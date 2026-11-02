@@ -473,6 +473,9 @@ export function normalizeCharacterActionMechanicFacts(
             }
           }
         : {}),
+      ...(outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL'
+        ? { rolledDie: { ...outcome.die } }
+        : {}),
       label: nullableLabel(entry.label) ?? nullableLabel('label' in outcome ? outcome.label : null)
     })
   }

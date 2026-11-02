@@ -149,8 +149,18 @@ export type ReactionTargetedSelfTriggerBindingAuthored = {
   sourceEffectIds?: string[]
 }
 
+/**
+ * Another creature rolls the d20 of an attack roll, before its result is shown; the reaction answers
+ * it by lowering the roll (Cutting Words). Who may be answered is the invocation's range and
+ * `targetRequirements`, with the roller as the target.
+ */
+export type ReactionAttackRollByOtherTriggerBindingAuthored = {
+  kind: 'ATTACK_ROLL_BY_OTHER'
+}
+
 export type ReactionTriggerBindingAuthored =
   | ReactionMovementTriggerBindingAuthored
+  | ReactionAttackRollByOtherTriggerBindingAuthored
   | ReactionAttackedSelfTriggerBindingAuthored
   | ReactionSpellCastTriggerBindingAuthored
   | ReactionDamageTakenTriggerBindingAuthored

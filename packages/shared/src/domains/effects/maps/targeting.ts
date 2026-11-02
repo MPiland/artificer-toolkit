@@ -79,11 +79,16 @@ const targetRequirement = buildNodeMap<TargetRequirementAuthored>()
 
 const TARGET_REQUIREMENT_NODE_MAP: NodeMap<TargetRequirementAuthored> = targetRequirement.define(
   'targetRequirement',
-  ({ map, nodes, cond, data }) => {
+  ({ map, nodes, cond, logic, data }) => {
     const { selectSingle, selectMulti } = nodes
     const local = cond.local()
     const { table } = data
     const holdsCondition = local.field(['kind']).eq('HAS_CONDITION')
+    const needsConditions = logic.or([
+      holdsCondition,
+      local.field(['kind']).eq('LACKS_CONDITION'),
+      local.field(['kind']).eq('NOT_IMMUNE_TO_CONDITION')
+    ])
     const needsSight = local.field(['kind']).eq('SIGHT')
 
     map
@@ -99,6 +104,18 @@ const TARGET_REQUIREMENT_NODE_MAP: NodeMap<TargetRequirementAuthored> = targetRe
                 code: 'HAS_CONDITION',
                 label: 'Target has a condition',
                 description: 'The target holds one of the conditions, from the user or from anyone.'
+              },
+              {
+                code: 'LACKS_CONDITION',
+                label: 'Target lacks every condition',
+                description:
+                  'The target holds none of the conditions (a creature that is not deafened).'
+              },
+              {
+                code: 'NOT_IMMUNE_TO_CONDITION',
+                label: 'Target is not immune',
+                description:
+                  'The target is immune to none of the conditions (a creature that can be charmed).'
               },
               {
                 code: 'SIGHT',
@@ -126,7 +143,7 @@ const TARGET_REQUIREMENT_NODE_MAP: NodeMap<TargetRequirementAuthored> = targetRe
               selectColumns: ['id', 'label', 'description']
             })
           },
-          { order: 2, showIf: holdsCondition, requiredIf: holdsCondition }
+          { order: 2, showIf: needsConditions, requiredIf: needsConditions }
         )
       )
       .set(

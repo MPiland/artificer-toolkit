@@ -840,6 +840,32 @@ describe('a single-target action’s target requirements (SPELLS-33.T4i4a)', () 
     await expect(refusals(requirements, at(1, null))).rejects.toThrow(EncounterValidationError)
   })
 
+  it('a ruled-out condition refuses a target holding any of them, however it was applied', async () => {
+    const requirements = [
+      { kind: 'LACKS_CONDITION', conditionIds: [FRIGHTENED, POISONED] }
+    ] satisfies Requirements
+    await expect(refusals(requirements, holding([PRONE], []))).resolves.toBeUndefined()
+    await expect(refusals(requirements, holding([POISONED], []))).rejects.toThrow(
+      'has a condition that rules it out'
+    )
+    await expect(
+      refusals(requirements, { ...holding([], []), innateConditionIds: [FRIGHTENED] })
+    ).rejects.toThrow(EncounterValidationError)
+  })
+
+  it('an immunity-bar refuses a target immune to any of the conditions', async () => {
+    const requirements = [
+      { kind: 'NOT_IMMUNE_TO_CONDITION', conditionIds: [FRIGHTENED] }
+    ] satisfies Requirements
+    await expect(refusals(requirements, holding([], []))).resolves.toBeUndefined()
+    await expect(
+      refusals(requirements, { ...holding([], []), conditionImmunityIds: [FRIGHTENED] })
+    ).rejects.toThrow('immune to a condition the action needs')
+    await expect(
+      refusals(requirements, { ...holding([], []), conditionImmunityIds: [POISONED] })
+    ).resolves.toBeUndefined()
+  })
+
   it('every requirement must hold, and an action with none admits any target', async () => {
     await expect(refusals(undefined, holding([], []))).resolves.toBeUndefined()
     await expect(

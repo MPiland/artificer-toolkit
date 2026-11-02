@@ -252,6 +252,14 @@ function reactionHookMet(
         )
         ? { event: event.kind, trigger: trigger.kind }
         : null
+    case 'ATTACK_ROLL_BY_OTHER':
+      return event.kind === 'ATTACK_ROLLED_BY_OTHER' &&
+        outcomes.some(
+          (outcome) =>
+            outcome.kind === 'EFFECT' && outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL'
+        )
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
     case 'TARGETED_SELF':
       return event.kind === 'TARGETED_BY_CAST' &&
         (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(event.castOwnerId))

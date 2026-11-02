@@ -260,6 +260,52 @@ describe('cast reaction discovery', () => {
   })
 })
 
+/** SPELLS-31.T4c3: only a held ATTACK_ROLL_BY_OTHER reaction that subtracts from the roll is offered when another creature rolls an attack. */
+describe('attack-roll reaction discovery', () => {
+  const rolled = { kind: 'ATTACK_ROLLED_BY_OTHER' } as const
+  const subtract = (actionId: string) =>
+    candidate(
+      actionId,
+      'REACTION',
+      { kind: 'ATTACK_ROLL_BY_OTHER' },
+      'SUBTRACT_FROM_TRIGGERING_ROLL'
+    )
+
+  it('offers a held subtract reaction when another creature rolls an attack', () => {
+    nextSequence = 0
+    expect(
+      heldReactionsTo([subtract('class:cutting-words')], rolled).map(
+        ({ reaction, trigger }) => [reaction.actionId, trigger] as const
+      )
+    ).toEqual([['class:cutting-words', 'ATTACK_ROLL_BY_OTHER']])
+  })
+
+  it('skips an attack-roll reaction that does not subtract from the roll', () => {
+    expect(
+      heldReactionsTo(
+        [candidate('class:observer', 'REACTION', { kind: 'ATTACK_ROLL_BY_OTHER' }, 'OTHER_EFFECT')],
+        rolled
+      )
+    ).toEqual([])
+  })
+
+  it('offers it to no other event, and offers no other reaction to an attack roll', () => {
+    nextSequence = 0
+    expect(
+      heldReactionsTo([subtract('class:cutting-words')], { kind: 'SPELL_CAST_BY_OTHER' })
+    ).toEqual([])
+    expect(
+      heldReactionsTo(
+        [
+          candidate('spell:counterspell', 'REACTION', { kind: 'SPELL_CAST' }),
+          candidate('spell:shield', 'REACTION', { kind: 'ATTACKED_SELF' }, 'GRANT_MODIFIER')
+        ],
+        rolled
+      )
+    ).toEqual([])
+  })
+})
+
 describe('targeted-self reaction discovery (REACTION-4.1)', () => {
   const targeted = (actionId: string, sourceEffectIds?: string[]) =>
     candidate(

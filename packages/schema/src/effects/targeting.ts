@@ -14,7 +14,8 @@ const MAX_TARGET_REQUIREMENTS = 4
 /**
  * What a creature must be, to the user, to be named as the one target (Encounter only); the commit
  * refuses any other. `HAS_CONDITION` needs one of `conditionIds` held, from the user (`ACTOR`) or from
- * any source (`ANY`). `SIGHT` needs the user to see the target, or the target to see the user.
+ * any source (`ANY`). `LACKS_CONDITION` needs none of `conditionIds` held; `NOT_IMMUNE_TO_CONDITION`
+ * needs the target immune to none of them. `SIGHT` needs the user to see the target, or the target to see the user.
  * `AT_ZERO_HIT_POINTS` needs a target at 0 hit points that is not dead.
  */
 export const targetRequirementDtoSchema = lazySchema(() =>
@@ -23,6 +24,14 @@ export const targetRequirementDtoSchema = lazySchema(() =>
       kind: z.literal('HAS_CONDITION'),
       conditionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema),
       source: z.enum(['ACTOR', 'ANY'])
+    }),
+    z.strictObject({
+      kind: z.literal('LACKS_CONDITION'),
+      conditionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('NOT_IMMUNE_TO_CONDITION'),
+      conditionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
     }),
     z.strictObject({
       kind: z.literal('SIGHT'),

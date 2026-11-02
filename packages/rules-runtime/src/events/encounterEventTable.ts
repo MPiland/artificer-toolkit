@@ -105,6 +105,8 @@ export type EncounterEvent =
     }
   /** Another creature casts a spell. */
   | { kind: 'SPELL_CAST_BY_OTHER' }
+  /** Another creature rolls the d20 of an attack roll, before its result is shown. */
+  | { kind: 'ATTACK_ROLLED_BY_OTHER' }
   /** The holder is chosen as a target of a cast of `castOwnerId` (the spell cast). */
   | { kind: 'TARGETED_BY_CAST'; castOwnerId: string }
   /**
@@ -183,6 +185,7 @@ export type EncounterReactionHook =
       triggerDamageTypeIds: readonly string[]
     }
   | { event: 'SPELL_CAST_BY_OTHER'; trigger: 'SPELL_CAST' }
+  | { event: 'ATTACK_ROLLED_BY_OTHER'; trigger: 'ATTACK_ROLL_BY_OTHER' }
   | { event: 'TARGETED_BY_CAST'; trigger: 'TARGETED_SELF' }
 
 /**

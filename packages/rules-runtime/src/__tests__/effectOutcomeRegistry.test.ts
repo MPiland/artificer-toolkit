@@ -8,9 +8,11 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   TRIGGER
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
+import { bardicInspirationDie } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { SRD_ABILITIES, SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
@@ -47,6 +49,7 @@ import {
   dnd5ePathGatedTargetProposalOperations,
   dnd5eTestDamageProposalOperation
 } from '../systems/dnd5e/effectActionOperationRegistry.js'
+import { executionSubtractsFromTriggeringRoll } from '../systems/dnd5e/subtractFromTriggeringRoll.js'
 import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
 import {
   ACTION_EFFECT_ID,
@@ -93,7 +96,8 @@ const PATH_GATED_OUTCOMES: readonly [Dnd5eRegisteredOutcome, string | null][] = 
   [{ kind: 'MANUAL_ADJUDICATION' }, null],
   [{ kind: 'ADD_SPEED_TO_MOVEMENT' }, null],
   [{ kind: 'TELEPORT_ALLOWANCE', maxFeet: 30, destinationKind: 'VISIBLE' }, null],
-  [{ kind: 'CANCEL_TRIGGERING_EVENT' }, null]
+  [{ kind: 'CANCEL_TRIGGERING_EVENT' }, null],
+  [{ kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }, null]
 ]
 
 function publish(graph: RuleGraphDefinition) {
@@ -506,6 +510,13 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
     ],
     [
+      {
+        effectKind: EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL,
+        die: bardicInspirationDie(ROLLED_DIE_SIGN.SUBTRACT)
+      },
+      'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
+    ],
+    [
       { effectKind: 'TELEPATHIC_LINK' },
       "D&D ACTOR_LINK under a test must be one bounded effect its active-effect plan carries on the test's result path."
     ],
@@ -528,6 +539,11 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       'CANCEL_TRIGGERING_EVENT',
       { kind: 'CANCEL_TRIGGERING_EVENT' },
       executionCancelsTriggeringEvent
+    ],
+    [
+      'SUBTRACT_FROM_TRIGGERING_ROLL',
+      { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' },
+      executionSubtractsFromTriggeringRoll
     ],
     [
       'TELEPORT_ALLOWANCE',

@@ -207,9 +207,9 @@ import {
   effectOutcomeProposalOutputs
 } from '../../effectOutcomeRegistry.js'
 import {
-  DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION,
   dnd5eOutcomeDefinition,
   dnd5eOutcomeTargetPreconditions,
+  dnd5eReactionOnlyOutcomeRefusal,
   dnd5eTargetOnlyOutcome,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
@@ -2003,6 +2003,9 @@ const DND5E_DIRECT_OUTCOMES: {
   DETECT_CONCEALED: (_outcome, input) => offList({ kind: 'DETECT_CONCEALED' }, input),
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
   CANCEL_TRIGGERING_EVENT: (_outcome, input) => offList({ kind: 'CANCEL_TRIGGERING_EVENT' }, input),
+  // The reaction rolls its die for the roll it answered: nothing is stored on its target, the roller.
+  SUBTRACT_FROM_TRIGGERING_ROLL: (_outcome, input) =>
+    offList({ kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }, input),
   // The commit ends the held effects its plan selects; nothing is stored on the target here.
   END_EFFECTS: (_outcome, input) => offList({ kind: 'END_EFFECTS' }, input),
   APPLY_GRANT: (_outcome, { plans }) =>
@@ -2137,14 +2140,16 @@ function supported(
       ? isChargedFreeActivation(invocation) || supportsSelf
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
-          // A reaction to being attacked, to taking damage, to being chosen as a target or to a spell
-          // being cast; the triggering event's pending decision offers it (never a direct action).
+          // A reaction to being attacked, to taking damage, to being chosen as a target, to a spell
+          // being cast or to another creature's attack roll; the triggering event's pending decision
+          // offers it (never a direct action).
           (invocation.activation.code === 'REACTION' &&
             'reactionTrigger' in invocation &&
             (invocation.reactionTrigger?.kind === 'ATTACKED_SELF' ||
               invocation.reactionTrigger?.kind === 'DAMAGE_TAKEN' ||
               invocation.reactionTrigger?.kind === 'TARGETED_SELF' ||
-              invocation.reactionTrigger?.kind === 'SPELL_CAST'))) &&
+              invocation.reactionTrigger?.kind === 'SPELL_CAST' ||
+              invocation.reactionTrigger?.kind === 'ATTACK_ROLL_BY_OTHER'))) &&
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
@@ -2199,11 +2204,8 @@ function supported(
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
   )
     unsupported('D&D conceal and detect outcomes belong to a check action.')
-  if (
-    outcome.effectKind === 'CANCEL_TRIGGERING_EVENT' &&
-    !('reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'SPELL_CAST')
-  )
-    unsupported(DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION)
+  const reactionOnlyRefusal = dnd5eReactionOnlyOutcomeRefusal(outcome.effectKind, invocation)
+  if (reactionOnlyRefusal) unsupported(reactionOnlyRefusal)
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (

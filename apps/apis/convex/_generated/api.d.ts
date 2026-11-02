@@ -23593,6 +23593,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -24795,6 +24803,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -25965,6 +25981,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -27185,6 +27209,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -27444,7 +27476,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -28451,6 +28484,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -29641,6 +29682,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -30809,6 +30858,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -31076,7 +31133,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -32033,6 +32091,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -33400,6 +33466,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -34582,6 +34656,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -35736,6 +35818,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -36937,6 +37027,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -37189,7 +37287,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -38180,6 +38279,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -39348,6 +39455,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -40497,6 +40612,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -40757,7 +40880,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -41698,6 +41822,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -43151,6 +43283,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -44333,6 +44473,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -45487,6 +45635,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -46688,6 +46844,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -46940,7 +47104,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -47931,6 +48096,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -49099,6 +49272,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -50248,6 +50429,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -50508,7 +50697,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -51449,6 +51639,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -52988,6 +53186,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -54190,6 +54396,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -55360,6 +55574,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -56580,6 +56802,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -56839,7 +57069,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -57846,6 +58077,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -59036,6 +59275,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -60204,6 +60451,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -60471,7 +60726,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -61428,6 +61684,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -62795,6 +63059,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -63977,6 +64249,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -65131,6 +65411,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -66332,6 +66620,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -66584,7 +66880,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -67575,6 +67872,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -68743,6 +69048,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -69892,6 +70205,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -70152,7 +70473,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -71093,6 +71415,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -72546,6 +72876,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -73728,6 +74066,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -74882,6 +75228,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -76083,6 +76437,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -76335,7 +76697,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -77326,6 +77689,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -78494,6 +78865,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -79643,6 +80022,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -79903,7 +80290,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -80844,6 +81232,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -82392,6 +82788,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -83594,6 +83998,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -84764,6 +85176,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -85984,6 +86404,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -86243,7 +86671,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -87250,6 +87679,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -88440,6 +88877,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -89608,6 +90053,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -89875,7 +90328,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -90832,6 +91286,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -92199,6 +92661,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -93381,6 +93851,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -94535,6 +95013,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -95736,6 +96222,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -95988,7 +96482,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -96979,6 +97474,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -98147,6 +98650,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -99296,6 +99807,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -99556,7 +100075,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -100497,6 +101017,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -101950,6 +102478,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -103132,6 +103668,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -104286,6 +104830,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -105487,6 +106039,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -105739,7 +106299,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -106730,6 +107291,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -107898,6 +108467,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -109047,6 +109624,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -109307,7 +109892,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -110248,6 +110834,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -111787,6 +112381,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -112989,6 +113591,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -114159,6 +114769,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -115379,6 +115997,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -115638,7 +116264,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -116645,6 +117272,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -117835,6 +118470,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -119003,6 +119646,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -119270,7 +119921,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -120227,6 +120879,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -121594,6 +122254,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -122776,6 +123444,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -123930,6 +124606,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -125131,6 +125815,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -125383,7 +126075,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -126374,6 +127067,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -127542,6 +128243,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -128691,6 +129400,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -128951,7 +129668,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -129892,6 +130610,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -131345,6 +132071,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -132527,6 +133261,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -133681,6 +134423,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -134882,6 +135632,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -135134,7 +135892,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -136125,6 +136884,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -137293,6 +138060,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -138442,6 +139217,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -138702,7 +139485,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -139643,6 +140427,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -141217,6 +142009,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -142419,6 +143219,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -143589,6 +144397,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -144809,6 +145625,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -145068,7 +145892,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -146075,6 +146900,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -147265,6 +148098,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -148433,6 +149274,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -148700,7 +149549,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -149657,6 +150507,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -151024,6 +151882,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -152206,6 +153072,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -153360,6 +154234,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -154561,6 +155443,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -154813,7 +155703,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -155804,6 +156695,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -156972,6 +157871,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -158121,6 +159028,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -158381,7 +159296,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -159322,6 +160238,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -160775,6 +161699,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -161957,6 +162889,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -163111,6 +164051,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -164312,6 +165260,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -164564,7 +165520,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -165555,6 +166512,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -166723,6 +167688,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -167872,6 +168845,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -168132,7 +169113,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -169073,6 +170055,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -170612,6 +171602,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -171814,6 +172812,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -172984,6 +173990,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -174204,6 +175218,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -174463,7 +175485,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -175470,6 +176493,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -176660,6 +177691,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -177828,6 +178867,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -178095,7 +179142,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -179052,6 +180100,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -180419,6 +181475,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -181601,6 +182665,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -182755,6 +183827,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -183956,6 +185036,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -184208,7 +185296,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -185199,6 +186288,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -186367,6 +187464,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -187516,6 +188621,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -187776,7 +188889,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -188717,6 +189831,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -190170,6 +191292,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -191352,6 +192482,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -192506,6 +193644,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -193707,6 +194853,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -193959,7 +195113,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -194950,6 +196105,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -196118,6 +197281,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -197267,6 +198438,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -197527,7 +198706,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -198468,6 +199648,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -200008,6 +201196,14 @@ export declare const api: {
                                           source: "ACTOR" | "ANY";
                                         }
                                       | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
+                                        }
+                                      | {
                                           direction:
                                             | "ACTOR_SEES_TARGET"
                                             | "TARGET_SEES_ACTOR";
@@ -201206,6 +202402,14 @@ export declare const api: {
                                           source: "ACTOR" | "ANY";
                                         }
                                       | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
+                                        }
+                                      | {
                                           direction:
                                             | "ACTOR_SEES_TARGET"
                                             | "TARGET_SEES_ACTOR";
@@ -202375,6 +203579,14 @@ export declare const api: {
                                           conditionIds: Array<string>;
                                           kind: "HAS_CONDITION";
                                           source: "ACTOR" | "ANY";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
                                         }
                                       | {
                                           direction:
@@ -203591,6 +204803,14 @@ export declare const api: {
                                           source: "ACTOR" | "ANY";
                                         }
                                       | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
+                                        }
+                                      | {
                                           direction:
                                             | "ACTOR_SEES_TARGET"
                                             | "TARGET_SEES_ACTOR";
@@ -203845,7 +205065,8 @@ export declare const api: {
                                 | {
                                     kind: "TARGETED_SELF";
                                     sourceEffectIds?: Array<string>;
-                                  };
+                                  }
+                                | { kind: "ATTACK_ROLL_BY_OTHER" };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
                               ridesSpellIds?: never;
@@ -204849,6 +206070,14 @@ export declare const api: {
                                           conditionIds: Array<string>;
                                           kind: "HAS_CONDITION";
                                           source: "ACTOR" | "ANY";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
                                         }
                                       | {
                                           direction:
@@ -206035,6 +207264,14 @@ export declare const api: {
                                           source: "ACTOR" | "ANY";
                                         }
                                       | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
+                                        }
+                                      | {
                                           direction:
                                             | "ACTOR_SEES_TARGET"
                                             | "TARGET_SEES_ACTOR";
@@ -207199,6 +208436,14 @@ export declare const api: {
                                           source: "ACTOR" | "ANY";
                                         }
                                       | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
+                                        }
+                                      | {
                                           direction:
                                             | "ACTOR_SEES_TARGET"
                                             | "TARGET_SEES_ACTOR";
@@ -207461,7 +208706,8 @@ export declare const api: {
                                 | {
                                     kind: "TARGETED_SELF";
                                     sourceEffectIds?: Array<string>;
-                                  };
+                                  }
+                                | { kind: "ATTACK_ROLL_BY_OTHER" };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
                               ridesSpellIds?: never;
@@ -208415,6 +209661,14 @@ export declare const api: {
                                           conditionIds: Array<string>;
                                           kind: "HAS_CONDITION";
                                           source: "ACTOR" | "ANY";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "LACKS_CONDITION";
+                                        }
+                                      | {
+                                          conditionIds: Array<string>;
+                                          kind: "NOT_IMMUNE_TO_CONDITION";
                                         }
                                       | {
                                           direction:
@@ -209764,6 +211018,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -210933,6 +212195,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -212074,6 +213344,14 @@ export declare const api: {
                                     conditionIds: Array<string>;
                                     kind: "HAS_CONDITION";
                                     source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
                                   }
                                 | {
                                     direction:
@@ -213256,6 +214534,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -213491,7 +214777,8 @@ export declare const api: {
                           | {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
-                            };
+                            }
+                          | { kind: "ATTACK_ROLL_BY_OTHER" };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -214476,6 +215763,14 @@ export declare const api: {
                                     conditionIds: Array<string>;
                                     kind: "HAS_CONDITION";
                                     source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
                                   }
                                 | {
                                     direction:
@@ -215631,6 +216926,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -216767,6 +218070,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -217010,7 +218321,8 @@ export declare const api: {
                           | {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
-                            };
+                            }
+                          | { kind: "ATTACK_ROLL_BY_OTHER" };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -217951,6 +219263,14 @@ export declare const api: {
                                     conditionIds: Array<string>;
                                     kind: "HAS_CONDITION";
                                     source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
                                   }
                                 | {
                                     direction:
@@ -219384,6 +220704,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -220553,6 +221881,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -221694,6 +223030,14 @@ export declare const api: {
                                     conditionIds: Array<string>;
                                     kind: "HAS_CONDITION";
                                     source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
                                   }
                                 | {
                                     direction:
@@ -222876,6 +224220,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -223111,7 +224463,8 @@ export declare const api: {
                           | {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
-                            };
+                            }
+                          | { kind: "ATTACK_ROLL_BY_OTHER" };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -224096,6 +225449,14 @@ export declare const api: {
                                     conditionIds: Array<string>;
                                     kind: "HAS_CONDITION";
                                     source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
                                   }
                                 | {
                                     direction:
@@ -225251,6 +226612,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -226387,6 +227756,14 @@ export declare const api: {
                                     source: "ACTOR" | "ANY";
                                   }
                                 | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
+                                  }
+                                | {
                                     direction:
                                       "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
                                     kind: "SIGHT";
@@ -226630,7 +228007,8 @@ export declare const api: {
                           | {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
-                            };
+                            }
+                          | { kind: "ATTACK_ROLL_BY_OTHER" };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -227571,6 +228949,14 @@ export declare const api: {
                                     conditionIds: Array<string>;
                                     kind: "HAS_CONDITION";
                                     source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "LACKS_CONDITION";
+                                  }
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "NOT_IMMUNE_TO_CONDITION";
                                   }
                                 | {
                                     direction:
@@ -229104,6 +230490,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -230306,6 +231700,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -231476,6 +232878,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -232696,6 +234106,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -232955,7 +234373,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -233962,6 +235381,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -235152,6 +236579,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -236320,6 +237755,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -236587,7 +238030,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -237544,6 +238988,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -238911,6 +240363,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -240093,6 +241553,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -241247,6 +242715,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -242448,6 +243924,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -242700,7 +244184,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -243691,6 +245176,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -244859,6 +246352,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -246008,6 +247509,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -246268,7 +247777,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -247209,6 +248719,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -248662,6 +250180,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -249844,6 +251370,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -250998,6 +252532,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -252199,6 +253741,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -252451,7 +254001,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -253442,6 +254993,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -254610,6 +256169,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -255759,6 +257326,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -256019,7 +257594,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -256960,6 +258536,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -258499,6 +260083,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -259701,6 +261293,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -260871,6 +262471,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -262091,6 +263699,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -262350,7 +263966,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -263357,6 +264974,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -264547,6 +266172,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -265715,6 +267348,14 @@ export declare const api: {
                                             source: "ACTOR" | "ANY";
                                           }
                                         | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
+                                          }
+                                        | {
                                             direction:
                                               | "ACTOR_SEES_TARGET"
                                               | "TARGET_SEES_ACTOR";
@@ -265982,7 +267623,8 @@ export declare const api: {
                                   | {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
-                                    };
+                                    }
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -266939,6 +268581,14 @@ export declare const api: {
                                             conditionIds: Array<string>;
                                             kind: "HAS_CONDITION";
                                             source: "ACTOR" | "ANY";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "LACKS_CONDITION";
+                                          }
+                                        | {
+                                            conditionIds: Array<string>;
+                                            kind: "NOT_IMMUNE_TO_CONDITION";
                                           }
                                         | {
                                             direction:
@@ -268306,6 +269956,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -269488,6 +271146,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -270642,6 +272308,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -271843,6 +273517,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -272095,7 +273777,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -273086,6 +274769,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -274254,6 +275945,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -275403,6 +277102,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -275663,7 +277370,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -276604,6 +278312,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -278057,6 +279773,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -279239,6 +280963,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -280393,6 +282125,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -281594,6 +283334,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -281846,7 +283594,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -282837,6 +284586,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:
@@ -284005,6 +285762,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -285154,6 +286919,14 @@ export declare const api: {
                                       source: "ACTOR" | "ANY";
                                     }
                                   | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
+                                    }
+                                  | {
                                       direction:
                                         | "ACTOR_SEES_TARGET"
                                         | "TARGET_SEES_ACTOR";
@@ -285414,7 +287187,8 @@ export declare const api: {
                             | {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
-                              };
+                              }
+                            | { kind: "ATTACK_ROLL_BY_OTHER" };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -286355,6 +288129,14 @@ export declare const api: {
                                       conditionIds: Array<string>;
                                       kind: "HAS_CONDITION";
                                       source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "LACKS_CONDITION";
+                                    }
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "NOT_IMMUNE_TO_CONDITION";
                                     }
                                   | {
                                       direction:

@@ -162,7 +162,8 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('TARGETED_SELF'),
       sourceEffectIds: z.optional(sourceEffectIdsFilterDtoSchema)
-    })
+    }),
+    z.strictObject({ kind: z.literal('ATTACK_ROLL_BY_OTHER') })
   ])
 )
 
