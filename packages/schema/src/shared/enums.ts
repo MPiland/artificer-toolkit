@@ -146,6 +146,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'MOVED_TOWARD_TARGET',
     'HOLDER_IN_BRIGHT_LIGHT',
     'HOLDER_CONCENTRATION_COUNT',
+    'CONCENTRATION_DAMAGE_OVER',
     'ARMOR_CLASS',
     'DAMAGE_TYPE',
     'CONDITION_TYPE',

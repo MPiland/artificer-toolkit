@@ -215,6 +215,7 @@ const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes
 })
 
 const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label: string }[] = [
+  { code: 'FREE', label: 'Nothing' },
   { code: 'SPELL_SLOT', label: 'A spell slot of a level you choose' },
   { code: 'RESOURCE_POOL', label: 'Charges from a resource pool' }
 ]

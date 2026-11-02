@@ -26,6 +26,8 @@ import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY, dnd5eSaveOutcomeRule } from './effectActionContracts.js'
 import { encounterConditionSaveAutoFails } from '../../conditionSaveAutoFail.js'
+import { resolveCharacterRuleSavingThrow } from '../../character/characterRuleRollProjection.js'
+import { DND5E_CHARACTER_WIDE_TARGET } from './modifierApplicability.js'
 
 const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
 const DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY = 'dnd5e.concentration-damage-dc'
@@ -204,6 +206,50 @@ export function resolveDnd5eHolderSave(input: {
   }
 }
 
+const DND5E_CONSTITUTION_ABILITY_CODE = 'CONSTITUTION'
+
+/**
+ * The holder's saves with its Concentration save evaluated for this roll's own facts: the grants
+ * scoped to Concentration whose conditions read the held count, the spell level and the damage
+ * (a Character's; a Creature has none) apply or not as those facts decide.
+ */
+function dnd5eConcentrationSaveRows(
+  input: Parameters<MaintenanceLinkCapabilityAdapter['saveFacts']>[0]
+): Dnd5eHolderSaveRows {
+  const holderSaves = dnd5eConcentrationHolderSaves(input.target)
+  const output = input.target.effectiveRulePolicyOutput
+  const save =
+    output === null
+      ? null
+      : resolveCharacterRuleSavingThrow(
+          output,
+          {
+            abilityCode: DND5E_CONSTITUTION_ABILITY_CODE,
+            abilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+            ruleDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+          },
+          {
+            ...DND5E_CHARACTER_WIDE_TARGET,
+            concentrationSave: {
+              heldCount: input.heldCount,
+              spellLevel: input.spellLevel,
+              damage: input.appliedDamage
+            }
+          }
+        )
+  if (!save) return holderSaves
+  return {
+    savingThrowDefinitions: [
+      ...(holderSaves.savingThrowDefinitions ?? []).filter(
+        (row) =>
+          row.abilityDefinitionId !== save.abilityDefinitionId ||
+          row.ruleDefinitionId !== save.ruleDefinitionId
+      ),
+      save
+    ]
+  }
+}
+
 /**
  * Derives the D&D-specific saving-throw facts consumed by the portable
  * concentration graph. The D&D policy binding supplies the exact ability
@@ -343,6 +389,7 @@ export const dnd5eMaintenanceLinkCapabilityAdapter: MaintenanceLinkCapabilityAda
   saveAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
   saveDc: dnd5eConcentrationDamageDc,
   saveFacts(input) {
+    const rulePolicyOutput = dnd5eConcentrationSaveRows(input)
     const addedDice = derivedAddedDice(
       input.target.targetDerivedFacts.savingThrowAddedDice,
       DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
@@ -350,7 +397,7 @@ export const dnd5eMaintenanceLinkCapabilityAdapter: MaintenanceLinkCapabilityAda
     const save = resolveDnd5eConcentrationSaveFacts({
       appliedDamage: input.appliedDamage,
       targetActorId: input.targetActorId,
-      rulePolicyOutput: dnd5eConcentrationHolderSaves(input.target),
+      rulePolicyOutput,
       addedDice,
       heldDice: derivedAddedDice(
         input.target.targetDerivedFacts.savingThrowAfterRollDice,

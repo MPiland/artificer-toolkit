@@ -117,9 +117,15 @@ export type CompiledEffect = {
   chosenItem?: PathChosenItemAuthored
   /**
    * Set on an optional on-hit rider's entry merged into a weapon attack (D123): the entry resolves
-   * only when its rider is among the ones the player chose, paying this cost.
+   * only when its rider is among the ones the player chose, paying this cost. `grantedByEffectId`
+   * names the granted action's authored Effect whose attacks alone offer it (a `GRANTED_ACTION_OPTION`).
    */
-  optionalRider?: { riderId: string; label: string; cost: OptionalOnHitAuthored }
+  optionalRider?: {
+    riderId: string
+    label: string
+    cost: OptionalOnHitAuthored
+    grantedByEffectId?: string
+  }
   /** Set on a CHOICE option's entries: the option is offered only while this optional rule is on. */
   requiresOptionalRule?: { definitionId: string }
   outcome: CompiledEffectOutcome

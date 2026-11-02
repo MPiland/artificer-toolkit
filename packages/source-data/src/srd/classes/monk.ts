@@ -289,6 +289,9 @@ const kiCharge = {
   resetKind: 'SHORT_REST' as const
 }
 
+/** The Effect of Flurry of Blows' offer (discipline 1): Open Hand Technique's options name it. */
+export const FLURRY_OF_BLOWS_EFFECT_ID = classRowId(M, 0xa0, 1)
+
 /**
  * A Bonus Action that offers its actions until the end of the turn: a ki discipline (Flurry of
  * Blows, Patient Defense, Step of the Wind) spends 1 ki point; Martial Arts' bonus strike is free.

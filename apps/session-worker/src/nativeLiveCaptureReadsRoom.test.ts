@@ -16,7 +16,7 @@ import {
   readNativeLiveMaintenanceOwners,
   readNativeLiveMaintenanceSlot
 } from './nativeEncounterMaintenance.js'
-import { readNativeLiveMovementConcentrationState } from './nativeEncounterMovementConcentration.js'
+import { readNativeLiveMovementConcentrationStates } from './nativeEncounterMovementConcentration.js'
 import { readNativeLiveActorsAndEffects } from './nativeEncounterTargets.js'
 import {
   activeEffect as authoredEffect,
@@ -303,20 +303,20 @@ describe('readNativeLiveMaintenanceOwners over the real room', () => {
   })
 })
 
-describe('readNativeLiveMovementConcentrationState over the real room', () => {
+describe('readNativeLiveMovementConcentrationStates over the real room', () => {
   const concentrationState = maintainedState({
     id: STATE_ID,
     ownerActorId: CASTER_ID,
     definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
   })
-  const slotKey = `${CASTER_ID}:${DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID}`
+  const slotKey = `${CASTER_ID}:${DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID}:${STATE_ID}`
   const casterActors = [runActor({ id: CASTER_ID })]
   const casterState = encounterRunState({ actors: casterActors })
   const read = (
     room: RoomCapture,
-    projection?: Parameters<typeof readNativeLiveMovementConcentrationState>[0]['projection']
+    projection?: Parameters<typeof readNativeLiveMovementConcentrationStates>[0]['projection']
   ) =>
-    readNativeLiveMovementConcentrationState({
+    readNativeLiveMovementConcentrationStates({
       state: casterState,
       targetActorId: CASTER_ID,
       targets: new Map(),
@@ -324,12 +324,12 @@ describe('readNativeLiveMovementConcentrationState over the real room', () => {
       capture: room.capture
     })
 
-  it('reads the stored Concentration slot when no contact has projected one', async () => {
+  it('reads the stored Concentration states when no contact has projected any', async () => {
     await withRoomCapture({ state: casterState, actors: casterActors }, async (room) => {
-      await expect(read(room)).resolves.toBeNull()
+      await expect(read(room)).resolves.toEqual([])
       expect(room.requests).toEqual([
         {
-          kind: 'MAINTENANCE_SLOT',
+          kind: 'MAINTENANCE_STATES',
           actorId: CASTER_ID,
           definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
         }
@@ -337,15 +337,21 @@ describe('readNativeLiveMovementConcentrationState over the real room', () => {
     })
   })
 
-  it('prefers the slot an earlier contact projected over the stored one', async () => {
+  it('prefers the states an earlier contact projected over the stored ones', async () => {
     await withRoomCapture({ state: casterState, actors: casterActors }, async (room) => {
       await expect(
         read(room, {
           slots: new Map([[slotKey, { state: null, dependents: [], zoneIds: [] }]]),
           owners: new Map()
         })
-      ).resolves.toBeNull()
-      expect(room.requests).toEqual([])
+      ).resolves.toEqual([])
+      expect(room.requests).toEqual([
+        {
+          kind: 'MAINTENANCE_STATES',
+          actorId: CASTER_ID,
+          definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+        }
+      ])
 
       // The room holds no published Concentration definition, so its real DEFINITION read answers none.
       await expect(
@@ -354,9 +360,10 @@ describe('readNativeLiveMovementConcentrationState over the real room', () => {
           owners: new Map()
         })
       ).rejects.toThrow('The concentration maintenance definition is stale.')
-      expect(room.requests).toEqual([
-        { kind: 'DEFINITION', definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
-      ])
+      expect(room.requests.at(-1)).toEqual({
+        kind: 'DEFINITION',
+        definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      })
     })
   })
 })

@@ -16301,10 +16301,12 @@
             },
             {
               "text": "With two Concentrations, damage asks for one Concentration save per spell, rolled in casting order, and each failure ends only its own spell and that spell's grants; an authored rule can add advantage or disadvantage to these saves under an authored condition (the ring: advantage while holding one spell; disadvantage on the second spell's save when the damage exceeds 10 + that spell's level).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-12.T1 (m587), SPELLS-12.T3a (m589), SPELLS-12.T3b (m597); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered with SPELLS-12.1. Per-spell saves are core engine behavior once capacity exceeds 1; the advantage/disadvantage are ordinary roll modifiers on Concentration saves with new authored predicates (held Concentration count, which Concentration the save is for, damage amount against a threshold). The ring's '10 + level of spell you are concentrating on' is authored data, so the GM's reading is what gets authored. D95 incapacitation ends both.",
+              "note": "Registered with SPELLS-12.1. Per-spell saves are core engine behavior once capacity exceeds 1; the advantage/disadvantage are ordinary roll modifiers on Concentration saves with new authored predicates (held Concentration count, which Concentration the save is for, damage amount against a threshold). The ring's '10 + level of spell you are concentrating on' is authored data, so the GM's reading is what gets authored. D95 incapacitation ends both. Closed 2026-11-02 by SPELLS-12.T1, SPELLS-12.T3a, SPELLS-12.T3b.",
               "id": "SPELLS-12.2"
             },
             {
@@ -16414,7 +16416,7 @@
             {
               "id": "SPELLS-12.T3b",
               "text": "Authored advantage and disadvantage predicates on those saves.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.2"
               ],
@@ -16428,8 +16430,7 @@
                   "SPELLS-12.T2a"
                 ]
               },
-              "note": "Split from T3. Approved by the user on 2026-10-31 (D204). From the T3a report: the movement chain still binds one state per holder, the oldest. AC SPELLS-12.2 asks for one save per spell, so this task makes movement damage save per held spell too.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T3. Approved by the user on 2026-10-31 (D204). From the T3a report: the movement chain still binds one state per holder, the oldest. AC SPELLS-12.2 asks for one save per spell, so this task makes movement damage save per held spell too. Merged in m597 (5e5effe59)."
             },
             {
               "id": "SPELLS-12.T4",
@@ -16626,17 +16627,21 @@
         {
           "id": "SPELLS-15",
           "title": "Area Legendary options",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/encounterArea.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A Creature's breath and other area Legendary options are offered in the Legendary window and resolve through the area executor.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-15.T1 (m552), SPELLS-15.T2 (m598); see each task's proof."
+              ],
               "origin": [],
-              "note": "Split from SPELLS-7 on 2026-10-10. D51 deferred area options to area targeting. Depends on SPELLS-7 and SPELLS-13.",
+              "note": "Split from SPELLS-7 on 2026-10-10. D51 deferred area options to area targeting. Depends on SPELLS-7 and SPELLS-13. Closed 2026-11-02 by SPELLS-15.T1, SPELLS-15.T2.",
               "id": "SPELLS-15.1",
               "journeys": [
                 "area-browser"
@@ -16667,7 +16672,7 @@
             },
             {
               "id": "SPELLS-15.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-15.1"
               ],
@@ -16681,8 +16686,7 @@
                 ]
               },
               "text": "In-turn area execution with save pause and Worker/web journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Size 8 accepted: the web `LegendaryActionControls` aim is needed for the AC and reuses the stage `areaAim` (D206).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Size 8 accepted: the web `LegendaryActionControls` aim is needed for the AC and reuses the stage `areaAim` (D206). Merged in m598 (3dfe0f632)."
             }
           ]
         },
@@ -18893,7 +18897,7 @@
                   "SPELLS-31.T4c1b4b"
                 ]
               },
-              "text": "Fold the bespoke Legendary Resistance pause into the shared result window.",
+              "text": "Prove Legendary Resistance is still offered after a window-spent failed save at the action, area and movement-reaction sites. It stays a separate post-fail pause, not a fold.",
               "note": "Split from T4c1b. Approved by the user on 2026-10-30."
             },
             {
@@ -19312,7 +19316,7 @@
             {
               "id": "SPELLS-31.T4l2b-1",
               "text": "Granted action options: `GRANTED_ACTION_OPTION` domain with `{ optionEffectId }` naming a sibling Effect, standing options read at attack time by the held offer, the offer resolved before prepare, optional-rider hand-off, tests. An Effect named by the domain is excluded from on-hit riders.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19325,13 +19329,12 @@
                   "SPELLS-31.T4l2"
                 ]
               },
-              "note": "D206. Reviewed 2026-11-01: option Effects stay in rider collection as gated FREE riders, because the GRANTED_ACTION_OPTION modifier is the generic relation; they are never ordinary riders.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "D206. Reviewed 2026-11-01: option Effects stay in rider collection as gated FREE riders, because the GRANTED_ACTION_OPTION modifier is the generic relation; they are never ordinary riders. Merged in m597 (5e5effe59)."
             },
             {
               "id": "SPELLS-31.T4l2b-2",
               "text": "Open Hand Technique authored on the granted action options, with parity proof and the closed rule kind deleted.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19344,7 +19347,7 @@
                   "SPELLS-31.T4l2b-1"
                 ]
               },
-              "note": "D206. A strike counts as a Flurry strike while an unspent offer is held; the out-of-order case is a deferred edge case."
+              "note": "D206. A strike counts as a Flurry strike while an unspent offer is held; the out-of-order case is a deferred edge case. Merged in m597 (5e5effe59)."
             },
             {
               "id": "SPELLS-31.T4m",
