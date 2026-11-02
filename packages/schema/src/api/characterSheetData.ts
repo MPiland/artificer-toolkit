@@ -35,6 +35,7 @@ import {
   resolvedSpellSlotExchangeSchema
 } from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
+import { rollAfterRollOfferDtoSchema } from './rolls.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
   activeGrantListingDtoSchema,
@@ -293,6 +294,10 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     attackBonus: z.optional(integerSchema),
     // Dice the Character's active grants add to this attack's roll (Bless's d4).
     attackAddedDice: z.optional(d20AddedDiceDtoSchema),
+    // Dice the Character holds for after this attack's d20 is seen (Bardic Inspiration): offered by the roll.
+    attackAfterRollOffers: z.optional(
+      z.array(rollAfterRollOfferDtoSchema).check(z.maxLength(MAX_D20_ADDED_DICE))
+    ),
     // Dice active grants add to this row's damage: the Character's own, and those an effect it
     // placed adds only against that effect's holder (Hunter's Mark's d6 against its mark).
     damageAddedDice: z.optional(

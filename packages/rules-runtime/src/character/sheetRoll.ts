@@ -1,7 +1,11 @@
 import { addsFullProficiency } from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { ExecuteRollInputDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  ExecuteRollInputDto,
+  RollAfterRollOfferDto,
+  RollSourceDto
+} from '@artificer-toolkit/schema/api/rolls'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
@@ -30,6 +34,8 @@ type ResolvedRoll = {
    * Favor), as its Sheet row shows them.
    */
   addedDice?: D20AddedDieDto[] | undefined
+  /** The dice the Character holds for after an attack's d20 is seen (Bardic Inspiration), as its Sheet row shows them. */
+  afterRollOffers?: RollAfterRollOfferDto[] | undefined
 }
 
 function withModifier(expression: string, modifier: number) {
@@ -63,7 +69,8 @@ function mechanicRolls(
             expression: withModifier('1d20', mechanic.attackBonus),
             rollMode: mechanic.attackRollMode,
             source: { kind: 'ATTACK' as const, label: `${sourceLabel} attack`.slice(0, 80) },
-            addedDice: mechanic.attackAddedDice
+            addedDice: mechanic.attackAddedDice,
+            afterRollOffers: mechanic.attackAfterRollOffers
           }
         ]),
     ...mechanic.outcomes.flatMap((outcome, index): ResolvedRoll[] => {
@@ -212,8 +219,13 @@ export function carriedTestDice(
   character: NonNullable<Parameters<typeof abilityCheckMinimumRoll>[0]['character']>
 ) {
   const { abilityCode } = resolved
-  if (resolved.addedDice)
-    return { addedDice: resolved.addedDice, spent: [], minimumRoll: null, afterRollOffers: [] }
+  if (resolved.addedDice || resolved.afterRollOffers)
+    return {
+      addedDice: resolved.addedDice ?? [],
+      spent: [],
+      minimumRoll: null,
+      afterRollOffers: resolved.afterRollOffers ?? []
+    }
   if (abilityCode === undefined)
     return { addedDice: [], spent: [], minimumRoll: null, afterRollOffers: [] }
   if (resolved.source.kind === 'SAVING_THROW')
