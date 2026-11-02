@@ -11,9 +11,9 @@ import {
   executeNativeActionGraphs,
   prepareNativeActionTest,
   continueNativeActionAfterTest,
-  type EncounterActionAutoRoll,
   type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
+import type { EncounterActionAutoRoll } from './encounterActionRequest.js'
 import {
   resolveNativeMovementLegendaryResistance,
   replayNativeMovementLegendaryResistance,

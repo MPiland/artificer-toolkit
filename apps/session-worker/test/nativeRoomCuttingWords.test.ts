@@ -1,5 +1,6 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {
@@ -57,9 +58,9 @@ const heckle = ((): ClassFeature => {
     throw new Error('The SRD Cutting Words is not an action.')
   const { resourceUse: _charge, ...invocation } = cuttingWordsReaction.invocation
   const [path] = cuttingWordsReaction.paths ?? []
-  const [outcome] = path?.resultBlock.outcomes ?? []
-  if (!path || !outcome || !invocation.range)
-    throw new Error('The SRD Cutting Words has no ranged outcome.')
+  if (!path || !('resultBlock' in path)) throw new Error('Expected a result-block path.')
+  const [outcome] = path.resultBlock.outcomes
+  if (!outcome || !invocation.range) throw new Error('The SRD Cutting Words has no ranged outcome.')
   return {
     ...srdByLabel(collegeOfLore.features ?? [], 'Cutting Words'),
     id: testUuid(0x7d0),
@@ -162,7 +163,7 @@ async function reactionUsed(room: Room) {
     ({ id }) => id === REACTOR_ACTOR_ID
   )
   if (!row) throw new Error('The room holds no reactor.')
-  return readStoredRunActor(row).resources.ruleUsage?.[DND5E_REACTION_ALLOWANCE_DEFINITION_ID] ?? 0
+  return encounterRuleUsageUsed(readStoredRunActor(row), DND5E_REACTION_ALLOWANCE_DEFINITION_ID)
 }
 
 const targetHitPoints = async (room: Room) =>

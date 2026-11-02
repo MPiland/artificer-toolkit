@@ -20,6 +20,23 @@ import {
   readNativeLiveSourcesSeen
 } from './nativeAttackPerception.js'
 
+/** Every token of an action's Scene, where a reaction to the action measures its range. */
+export async function readNativeActionAreaScene(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  actorId: string,
+  scene: { sceneId: string; expectedSceneVersion: number }
+) {
+  const areaScene = await capture({
+    kind: 'ACTION_AREA_SCENE',
+    command: { actorId, sceneId: scene.sceneId, expectedSceneVersion: scene.expectedSceneVersion }
+  })
+  if (areaScene.kind !== 'ACTION_AREA_SCENE')
+    throw new Error('Action Scene context is unavailable.')
+  return areaScene.context
+}
+
 /**
  * The perception, cover and Flanking loaders an action's mechanics read from the live Scene it locked
  * (none apply to an action without Scene positions). Each creature's sight is read as the

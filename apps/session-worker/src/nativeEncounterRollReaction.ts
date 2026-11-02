@@ -1,12 +1,9 @@
 import type {
-  LiveSessionEncounterRulesRequest,
-  LiveSessionEncounterRulesResponse
-} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { D20WindowReactionDieDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
@@ -15,6 +12,7 @@ import {
   planNativeEncounterAreaSourceSpend,
   type NativeEncounterActionMechanicsInput
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { buildEncounterWindowReactionReceipt } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { evaluateEncounterActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
@@ -32,17 +30,18 @@ import { encounterWindowReactionDie } from '@artificer-toolkit/rules-runtime/enc
 import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 
+import {
+  nativeLiveAttackSceneLoaders,
+  readNativeActionAreaScene
+} from './nativeAttackSceneLoaders.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
-import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { nativeReactionCandidate, type NativeReaction } from './nativeEncounterReactionCandidate.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
 type Prepared = NativeEncounterActionMechanicsInput['prepared']
 type ReactorTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
-type RollScene = Extract<
-  LiveSessionEncounterRulesResponse,
-  { kind: 'ACTION_AREA_SCENE' }
->['context']
+type SceneLoaderInput = Parameters<typeof nativeLiveAttackSceneLoaders>[0]
+type PreparationInput = Parameters<typeof prepareEncounterActionMechanics>[0]
 
 /** A reaction its holder could roll against another creature's attack roll now, with its die (D207). */
 export type NativeRollReaction = NativeReaction<
@@ -61,25 +60,34 @@ export type NativeRollReaction = NativeReaction<
 export async function discoverNativeRollReactions(input: {
   state: EncounterRunState
   actors: readonly EncounterRunActorState[]
+  system: SystemAuthoredDto
   roller: EncounterRunActorState
+  movementTargets: ReadonlyMap<string, ReactorTarget>
   loadTarget(actor: EncounterRunActorState): Promise<ReactorTarget>
-  readScene(): Promise<RollScene>
-  /** The reaction prepared against the roller. */
-  prepareReaction(
-    reactor: EncounterRunActorState,
-    reactorTarget: ReactorTarget,
-    actionId: string
-  ): Promise<Prepared>
-  capture: (
-    request: LiveSessionEncounterRulesRequest
-  ) => ReturnType<LiveCaptureReads['encounterRules']>
+  definitions: SceneLoaderInput['definitions']
+  /** The attack's Scene: its tokens measure each reaction's range, its sight the reactor's. */
+  scene: {
+    actorId: string
+    ref: { sceneId: string; expectedSceneVersion: number }
+    context: SceneLoaderInput['sceneContext']
+  }
+  /** The action sources a reaction is prepared from, as the attack's own are. */
+  actionSources: Pick<PreparationInput, 'loadSource' | 'loadRelationshipFacts'>
+  capture: SceneLoaderInput['capture']
 }): Promise<NativeRollReaction[]> {
-  const { state, roller } = input
+  const { state, roller, movementTargets, capture } = input
+  const loadTarget = async (actor: EncounterRunActorState) =>
+    movementTargets.get(actor.id) ?? (await input.loadTarget(actor))
+  const { loadAttackPerception } = nativeLiveAttackSceneLoaders({
+    ...input,
+    loadTarget,
+    sceneContext: input.scene.context
+  })
   const holders = []
   for (const reactor of input.actors
     .filter((actor) => actor.kind === 'CHARACTER' && actor.id !== roller.id)
     .sort((left, right) => left.id.localeCompare(right.id))) {
-    const reactorTarget = await input.loadTarget(reactor)
+    const reactorTarget = await loadTarget(reactor)
     if (isEncounterActorDefeated(reactor, deadCharacterIdsOfTargets([reactorTarget]))) continue
     const { reactions: hooks } = discoverEncounterEventHooks({
       reactions: characterReactionCandidates(reactorTarget),
@@ -88,7 +96,7 @@ export async function discoverNativeRollReactions(input: {
     if (hooks.length > 0) holders.push({ reactor, reactorTarget, hooks })
   }
   if (holders.length === 0) return []
-  const scene = await input.readScene()
+  const scene = await readNativeActionAreaScene(capture, input.scene.actorId, input.scene.ref)
   const grid = resolveEncounterSceneGrid({ encounter: state, sceneGrid: scene.sceneGrid })
   const reactions: NativeRollReaction[] = []
   for (const { reactor, reactorTarget, hooks } of holders) {
@@ -97,17 +105,24 @@ export async function discoverNativeRollReactions(input: {
     for (const {
       reaction: { actionId }
     } of hooks) {
-      const prepared = await input
-        .prepareReaction(reactor, reactorTarget, actionId)
-        .catch((error: unknown) => {
-          // A reaction its holder cannot pay for, or whose requirements the roller fails, is not offered.
-          if (
-            error instanceof StaleCharacterActionError ||
-            error instanceof EncounterValidationError
-          )
-            return null
-          throw error
-        })
+      const prepared = await prepareEncounterActionMechanics({
+        state,
+        actor: reactor,
+        target: roller,
+        actors: input.actors,
+        actionId,
+        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: false,
+        movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
+        sceneContext: null,
+        loadAttackPerception,
+        ...input.actionSources
+      }).catch((error: unknown) => {
+        // A reaction its holder cannot pay for, or whose requirements the roller fails, is not offered.
+        if (error instanceof StaleCharacterActionError || error instanceof EncounterValidationError)
+          return null
+        throw error
+      })
       if (!prepared || prepared.source.kind !== 'CHARACTER_ACTION') continue
       const die = encounterWindowReactionDie(prepared)
       if (!die) continue
@@ -126,7 +141,7 @@ export async function discoverNativeRollReactions(input: {
         actionId,
         sourceTarget: reactorTarget,
         targetIds: [roller.id],
-        capture: input.capture
+        capture
       })
       if (!economy?.available || suppressed) continue
       const candidate = nativeReactionCandidate({

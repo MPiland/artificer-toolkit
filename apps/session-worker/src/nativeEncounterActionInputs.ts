@@ -7,16 +7,37 @@ import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/li
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
-import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  encounterAttackActionState,
+  snapshotCreatureTypeId
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { holderStateRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActionReachFeet } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
+import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  deadCharacterIdsOfTargets,
+  isEncounterActorDefeated
+} from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import {
+  encounterActionSuppressedWarning,
+  evaluateEncounterActionRuleWarnings,
+  RULE_WARNINGS_MESSAGE
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { SQUARE_GRID_COMPASS_RAYS, type ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { authoredCheckOf } from './nativeCheckAction.js'
+import type { MovementTargets } from './nativeAreaPreparation.js'
+import type { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 type Relationship = Parameters<
@@ -163,6 +184,129 @@ export function refuseUnmetItemActionRequirements(
       reason: 'SOURCE_REQUIREMENTS_NOT_MET',
       message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
     })
+}
+
+/** A target immune to this source's use of the action (D156), or to spells of its school, is refused outright. */
+export function refuseImmuneTarget(
+  prepared: Pick<Prepared, 'source' | 'targetFacts'>,
+  holder: {
+    targetEffects: Parameters<typeof encounterSourceImmunityLabel>[0]['holderEffects']
+    sourceFacts: Parameters<typeof encounterSpellSchoolImmunity>[0]['sourceFacts']
+  }
+) {
+  const label = encounterSourceImmunityLabel({
+    source: prepared.source,
+    holderEffects: holder.targetEffects
+  })
+  const message =
+    label !== null
+      ? `Immune to ${label}`
+      : encounterSpellSchoolImmunity({
+            source: prepared.source,
+            sourceFacts: holder.sourceFacts,
+            target: prepared.targetFacts
+          })
+        ? 'Immune to spells of this school'
+        : null
+  if (message)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message
+    })
+}
+
+/** The refusal of a target the selected action cannot take. */
+export const targetNotPermitted = () =>
+  new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'TARGET_UNAVAILABLE',
+    message: 'The selected action does not permit this target.'
+  })
+
+type RuleWarningInput = Parameters<typeof evaluateEncounterActionRuleWarnings>[0]
+
+/**
+ * The warnings a single-target action raises, refused unless the actor acknowledged them, and the
+ * overrides they then apply. A target no rule lets the action take is refused outright.
+ */
+export function targetRuleOverrides(input: {
+  prepared: Prepared
+  command: Pick<ResolveEncounterActionInputDto, 'acknowledgedWarnings'>
+  evaluation: Pick<
+    Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>,
+    'activationCode' | 'economy' | 'suppressed'
+  >
+  endWarnings: RuleWarningInput['preparedWarnings']
+  scene: Pick<RuleWarningInput['target'], 'sceneContext' | 'facing'>
+  gameSystemId: string
+  movementTargets: ReadonlyMap<string, MovementTargets>
+}) {
+  const { prepared, movementTargets } = input
+  const { activationCode, economy, suppressed } = input.evaluation
+  const actorTarget = movementTargets.get(prepared.actor.id)
+  if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
+  const targetMovement = movementTargets.get(prepared.target.id)
+  const { outcomes } = (
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate
+      : prepared.source.capability
+  ).mechanicFacts
+  const ruleWarnings = evaluateEncounterActionRuleWarnings({
+    preparedWarnings: [
+      ...prepared.ruleWarnings,
+      ...encounterFleeActionWarnings({
+        sourceActorIds: encounterConditionFleeSources(actorTarget),
+        activationCode,
+        dash: outcomes.some(
+          (outcome) =>
+            outcome.kind === 'EFFECT' &&
+            outcome.effectKind === 'MOVEMENT_RULE' &&
+            outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
+        )
+      }),
+      ...input.endWarnings,
+      ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
+    ],
+    target: {
+      actor: prepared.actor,
+      target: prepared.target,
+      targetPolicy: prepared.targetPolicy,
+      makesAttackRoll: prepared.makesAttackRoll,
+      ...input.scene
+    },
+    targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
+    sizes: {
+      gameSystemId: input.gameSystemId,
+      actor: encounterActorEffectiveSize(actorTarget),
+      target: targetMovement ? encounterActorEffectiveSize(targetMovement) : null
+    },
+    targetDefeated: isEncounterActorDefeated(
+      prepared.target,
+      deadCharacterIdsOfTargets(movementTargets.values())
+    ),
+    targetPreconditions: {
+      declared: prepared.adapter.outcomeTargetPreconditions({
+        effectKinds: outcomes.flatMap((o) =>
+          o.kind === 'EFFECT' && !o.onRollTableRow ? [o.effectKind] : []
+        )
+      }),
+      target: targetMovement
+    },
+    actionEconomy: economy,
+    activationCode,
+    acknowledged: input.command.acknowledgedWarnings
+  })
+  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET') throw targetNotPermitted()
+  // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
+  if (ruleWarnings.kind === 'UNACKNOWLEDGED')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'RULE_WARNINGS',
+      message: RULE_WARNINGS_MESSAGE,
+      warnings: ruleWarnings.warnings
+    })
+  return ruleWarnings.overrides
 }
 
 /** A `RANDOM` push's ray: the one sealed for its target, else a compass ray rolled once with `roll`. */
