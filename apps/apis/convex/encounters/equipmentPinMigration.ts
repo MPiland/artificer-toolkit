@@ -72,20 +72,19 @@ export const blueprintEquipmentPins = migrations.define({
   // Blueprint enemies can approach the document size limit.
   batchSize: 1,
   migrateOne: async (ctx, row) => {
-    const enemies: JsonValue = JSON.parse(row.enemiesJson)
-    if (!Array.isArray(enemies)) return
-    const current = await Promise.all(
-      enemies.map(async (enemy) =>
-        isRecord(enemy) && enemy.snapshot !== undefined
-          ? { ...enemy, snapshot: await currentSnapshot(ctx, enemy.snapshot) }
-          : enemy
+    const setup: JsonValue = JSON.parse(row.setupJson)
+    if (!isRecord(setup) || !Array.isArray(setup.snapshots)) return
+    const current = {
+      ...setup,
+      snapshots: await Promise.all(
+        setup.snapshots.map((snapshot) => currentSnapshot(ctx, snapshot))
       )
-    )
-    const enemiesJson = JSON.stringify(current)
-    if (enemiesJson === row.enemiesJson) return
+    }
+    const setupJson = JSON.stringify(current)
+    if (setupJson === row.setupJson) return
     await ctx.db.patch(row._id, {
-      enemiesJson,
-      setupChecksum: checksumCanonicalJson({ name: row.name, enemies: current })
+      setupJson,
+      setupChecksum: checksumCanonicalJson({ name: row.name, ...current })
     })
   }
 })
