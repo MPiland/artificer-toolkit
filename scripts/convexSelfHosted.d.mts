@@ -12,5 +12,8 @@ export function convexCliEnvironment(): NodeJS.ProcessEnv
 export const convexDeployArguments: string[]
 export function convexCliArguments(url: string, adminKey: string): string[]
 export function convexEnvironmentValue(
-  name: 'LIVE_SESSION_TICKET_SECRET' | 'LIVE_SESSION_WORKER_SECRET' | 'CONTENT_SNAPSHOT_TOKEN_SECRET'
+  name:
+    | 'LIVE_SESSION_TICKET_SECRET'
+    | 'LIVE_SESSION_WORKER_SECRET'
+    | 'CONTENT_SNAPSHOT_TOKEN_SECRET'
 ): Promise<string>
