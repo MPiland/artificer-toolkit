@@ -60,7 +60,8 @@ const heckle = ((): ClassFeature => {
   const [path] = cuttingWordsReaction.paths ?? []
   if (!path || !('resultBlock' in path)) throw new Error('Expected a result-block path.')
   const [outcome] = path.resultBlock.outcomes
-  if (!outcome || !invocation.range) throw new Error('The SRD Cutting Words has no ranged outcome.')
+  if (!outcome || !('die' in outcome) || !invocation.range)
+    throw new Error('The SRD Cutting Words has no ranged outcome.')
   return {
     ...srdByLabel(collegeOfLore.features ?? [], 'Cutting Words'),
     id: testUuid(0x7d0),
