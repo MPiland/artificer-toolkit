@@ -947,6 +947,14 @@ describe('Character Sheet spell summons (D190)', () => {
     expect(remaining(apply(caster(), { ...base, type: 'END_CONCENTRATION' }))).toEqual([timed])
   })
 
+  it('keeps the summon that holds Concentration when a Run Concentration is ended by state id', () => {
+    const stateId = '50000000-0000-4000-8000-00000000000f'
+    expect(remaining(apply(caster(), { ...base, type: 'END_CONCENTRATION', stateId }))).toEqual([
+      held,
+      timed
+    ])
+  })
+
   it('ends the Concentration summon when the caster drops to 0 hit points', () => {
     expect(
       remaining(apply(caster(), { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 30 }))
