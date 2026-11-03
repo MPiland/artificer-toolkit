@@ -5,13 +5,16 @@
 // started. It never resets, deploys or reseeds the container; run it after the backend is deployed
 // and seeded. Re-running skips every finished Campaign, so it is safe after a reset too.
 //
-// With --managed it instead builds on a managed (staging) deployment named by CONVEX_URL and
-// CONVEX_SITE_URL, binding the invited tester accounts of --role-map=<json file> (no accounts are
-// created, no shared password, no fixtures, no admin key, no email sink). Needs
-// REVIEW_MANAGED_CONFIRM=<deployment name>, REVIEW_WORKER_CONTROL_SECRET and REVIEW_WEB_ORIGIN in
-// the environment. Run it only with the owner's approval for that run (ADR 0035).
+// With --managed --set=<N> it instead builds tester set N on a managed (staging) deployment named by
+// CONVEX_URL and CONVEX_SITE_URL: five accounts on REVIEW_MAILBOX (name+tN-role@domain) with a
+// password generated for the set and printed once to this terminal only (never to the log), and the
+// set's own review Campaigns, named "... (set N)". Re-running a set skips what it built and needs
+// REVIEW_SET_PASSWORD; --rebuild deletes the set's Campaigns, resets its password and builds again.
+// No fixtures, container admin key, Worker or email sink run there. The environment must hold
+// REVIEW_MANAGED_CONFIRM=<deployment name>, REVIEW_MANAGED_ADMIN_KEY, REVIEW_WORKER_CONTROL_SECRET and
+// REVIEW_WEB_ORIGIN. Run it only with the owner's approval for that run (ADR 0035).
 //
-//   node scripts/seedReviewData.mjs [--name=<evidence-name>] [--managed --role-map=<file>]
+//   node scripts/seedReviewData.mjs [--name=<evidence-name>] [--managed --set=<N> [--rebuild]]
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -36,39 +39,53 @@ await mkdir(artifactDirectory, { recursive: true })
 const logPath = resolve(artifactDirectory, 'seed.log')
 
 if (process.argv.includes('--managed')) {
-  const roleMap = process.argv
-    .find((argument) => argument.startsWith('--role-map='))
-    ?.slice('--role-map='.length)
-  if (!roleMap) throw new Error('--managed requires --role-map=<json file>.')
-  await runManaged(resolve(roleMap))
+  const set = process.argv.find((argument) => argument.startsWith('--set='))?.slice('--set='.length)
+  if (!set) throw new Error('--managed requires --set=<N>.')
+  await runManaged(set, process.argv.includes('--rebuild'))
 } else {
   await runLocal()
 }
 
-async function runManaged(roleMapPath) {
+async function runManaged(set, rebuild) {
   // The local lifecycle helpers (`run`, fixtures, admin key) refuse a remote target by design, so
-  // the managed path spawns the driver directly with only the variables it needs.
+  // the managed path spawns the driver directly with only the variables it needs. File descriptor 3
+  // carries the generated password to this terminal, bypassing the log.
   const names = [
+    'PATH',
+    'Path',
+    'SystemRoot',
+    'USERPROFILE',
+    'APPDATA',
+    'LOCALAPPDATA',
+    'TEMP',
+    'HOME',
     'CONVEX_URL',
     'CONVEX_SITE_URL',
     'REVIEW_MANAGED_CONFIRM',
+    'REVIEW_MANAGED_ADMIN_KEY',
     'REVIEW_WORKER_CONTROL_SECRET',
-    'REVIEW_WEB_ORIGIN'
+    'REVIEW_WEB_ORIGIN',
+    'REVIEW_MAILBOX',
+    'REVIEW_SET_PASSWORD'
   ]
   const environment = {
     ...Object.fromEntries(
-      ['PATH', 'Path', 'SystemRoot', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'HOME']
-        .map((key) => [key, process.env[key]])
-        .filter(([, value]) => value)
+      names.filter((key) => process.env[key]).map((key) => [key, process.env[key]])
     ),
-    ...Object.fromEntries(names.map((key) => [key, process.env[key]]).filter(([, value]) => value)),
-    REVIEW_ROLE_MAP_PATH: roleMapPath
+    REVIEW_SET: set,
+    ...(rebuild ? { REVIEW_REBUILD: '1' } : {})
   }
   const [executable, args] = yarnSpawn(['tsx', 'apps/apis/tests/developmentReviewDataCli.ts'])
   const log = createWriteStream(logPath)
-  const child = spawn(executable, args, { cwd: root, env: environment, shell: false })
+  const child = spawn(executable, args, {
+    cwd: root,
+    env: environment,
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe', 'pipe']
+  })
   child.stdout.pipe(log, { end: false })
   child.stderr.pipe(log, { end: false })
+  child.stdio[3].pipe(process.stdout, { end: false })
   const code = await new Promise((resolveExit, reject) => {
     child.once('error', reject)
     child.once('close', resolveExit)

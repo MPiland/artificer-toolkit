@@ -141,7 +141,14 @@ It is idempotent. A Campaign with its final `Review data ready` Session is skipp
 
 ### Managed (staging) target
 
-`node scripts/seedReviewData.mjs --managed --role-map=<json file>` builds the same four Campaigns on a managed deployment for external testers. It needs the owner's approval for each run (ADR 0035). The role map holds one already-invited account per role (`gm`, `player1`-`player3`, `admin`, `spare1`, `spare2`) as `{ email, password }`; keep the file outside the repository. The environment names the deployment (`CONVEX_URL`, `CONVEX_SITE_URL`, `REVIEW_MANAGED_CONFIRM=<deployment name>`), the web origin (`REVIEW_WEB_ORIGIN`) and the Session Worker control secret (`REVIEW_WORKER_CONTROL_SECRET`). The managed path only signs in: it creates no accounts, never uses the shared review password, grants nothing (the GM account must already hold the GM tier and the admin account the superadmin role, and the run verifies both), and starts no fixtures, admin key or email sink. Those stay local.
+`node scripts/seedReviewData.mjs --managed --set=<N> [--rebuild]` builds tester set N on a managed deployment. It needs the owner's approval for each run (ADR 0035); local data is set 0 and is unchanged.
+
+- **Set.** Five accounts, already verified, so sign-in needs no email: `<mailbox>+t<N>-gm`, `-p1`, `-p2`, `-p3`, `-spare` (for example `mekhit02+t3-gm@gmail.com`). The set owns its own copy of the four review Campaigns, with `(set N)` in each name. Sets never share accounts or Campaigns.
+- **Environment (names only; values stay in the operator's shell, never in the repo or logs).** `CONVEX_URL`, `CONVEX_SITE_URL` (a `*.convex.cloud` deployment and its `.convex.site`), `REVIEW_MANAGED_CONFIRM` (the deployment name), `REVIEW_MANAGED_ADMIN_KEY`, `REVIEW_WORKER_CONTROL_SECRET`, `REVIEW_MAILBOX` (`name@domain`), optional `REVIEW_WEB_ORIGIN`. `CONVEX_DEPLOY_KEY` and the self-hosted variables must be unset.
+- **Password.** Generated per set at run time and printed once, to the operator's terminal only (through a dedicated pipe, not the log file). It is never written to the repo, `local-validation` or any log.
+- **Re-run.** A finished Campaign is skipped. Re-running an existing set needs `REVIEW_SET_PASSWORD` (the password printed at creation); without it the run stops.
+- **Rebuild.** `--rebuild` generates a new password, resets the set's five accounts to it, and replaces the set's Campaigns (the old Campaigns are deleted through the product; their Characters stay orphaned). No other set is touched.
+- **Not provisioned on a managed set.** Superadmin and the email sink; sign-up, password reset and email change are the testers' own flows.
 
 ## Staging promotion
 

@@ -1,115 +1,220 @@
-import { describe, expect, it, vi } from 'vitest'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
+import type { FunctionArgs } from 'convex/server'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { retryRateLimitedAuth } from '../tests/developmentAuthRequest'
+import { convexTest } from '../tests/convexTest'
+import { reviewScenariosForSet, REVIEW_SCENARIOS } from '../tests/developmentReviewDataScenarios'
 import {
-  assertLocalOnlyStep,
-  REVIEW_ROLE_SPECS,
+  reviewRoster,
   reviewTarget,
-  reviewTargetSteps
+  reviewTargetSteps,
+  type AdminCall
 } from '../tests/developmentReviewTarget'
-import { REVIEW_ADMIN, REVIEW_GM, REVIEW_PASSWORD } from '../tests/developmentReviewDataScenarios'
+import { components, internal } from './_generated/api'
+import authSchema from './betterAuth/schema'
+import schema from './schema'
 
 const managedEnv = {
   CONVEX_URL: 'https://tester-staging-123.convex.cloud',
   CONVEX_SITE_URL: 'https://tester-staging-123.convex.site',
   REVIEW_MANAGED_CONFIRM: 'tester-staging-123',
-  REVIEW_WORKER_CONTROL_SECRET: 'worker-control-secret-value'
+  REVIEW_MANAGED_ADMIN_KEY: 'managed-admin-key-value',
+  REVIEW_WORKER_CONTROL_SECRET: 'worker-control-secret-value',
+  REVIEW_MAILBOX: 'mekhit02@gmail.com'
 }
-const roleMap = Object.fromEntries(
-  REVIEW_ROLE_SPECS.map((spec) => [
-    spec.key,
-    { email: `${spec.key}@testers.example`, password: `${spec.key}-Tester-Pass-1!` }
-  ])
-)
 const localEnv = {
   CONVEX_DEPLOYMENT: 'local:phase82-local-linux',
   CONVEX_URL: 'http://127.0.0.1:3210',
   CONVEX_SITE_URL: 'http://127.0.0.1:3211'
 }
 
-function steps(target: ReturnType<typeof reviewTarget>) {
-  const auth = vi.fn(async (_path: string, body?: Record<string, unknown>) =>
-    Response.json({ token: `session-for-${String(body?.email)}` })
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  vi.stubEnv('SITE_URL', 'http://localhost:3000')
+  vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3231')
+  vi.stubEnv('BETTER_AUTH_SECRET', 'review-target-test-secret-with-sufficient-length')
+  vi.stubEnv('PUBLIC_SIGN_UP_ENABLED', 'false')
+})
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllEnvs()
+})
+
+// Real auth routes and component adapter on convex-test; only the clock is faked. The admin calls
+// are recorded so a test can prove what the managed path sent to the deployment.
+function backend() {
+  const t = convexTest(schema, import.meta.glob('./**/*.*s'))
+  t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
+  const auth = retryRateLimitedAuth(
+    (path, body, session) =>
+      t.withRequestMetadata({ ip: '127.0.0.1' }).fetch(`/api/auth${path}`, {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          origin: 'http://localhost:3000',
+          'content-type': 'application/json',
+          ...(session ? { authorization: `Bearer ${session}` } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+      }),
+    async (milliseconds) => void vi.setSystemTime(Date.now() + milliseconds)
   )
-  const issueInvitation = vi.fn(async () => undefined)
-  const adminCall = vi.fn(async () => undefined)
-  const verify = {
-    tier: vi.fn(async () => 'GM'),
-    role: vi.fn(async () => 'superadmin')
+  const calls: { name: string; args: Record<string, unknown> }[] = []
+  const adminCall: AdminCall = async (name, args) => {
+    calls.push({ name, args })
+    const adapter = components.betterAuth.adapter
+    if (name === 'adapter:findOne')
+      return t.run((ctx) =>
+        ctx.runQuery(adapter.findOne, args as FunctionArgs<typeof adapter.findOne>)
+      )
+    if (name === 'adapter:create')
+      return t.run((ctx) =>
+        ctx.runMutation(adapter.create, args as FunctionArgs<typeof adapter.create>)
+      )
+    if (name === 'adapter:updateOne')
+      return t.run((ctx) =>
+        ctx.runMutation(adapter.updateOne, args as FunctionArgs<typeof adapter.updateOne>)
+      )
+    if (name === 'accountEntitlements:setTier')
+      return t.mutation(
+        internal.accountEntitlements.setTier,
+        args as FunctionArgs<typeof internal.accountEntitlements.setTier>
+      )
+    throw new Error(`Unexpected admin call ${name}.`)
   }
-  return {
-    auth,
-    issueInvitation,
-    adminCall,
-    verify,
-    ...reviewTargetSteps(target, { auth, issueInvitation, adminCall, verify })
-  }
+  return { t, auth, adminCall, calls }
 }
 
-describe('review target', () => {
-  it('binds the given accounts on a managed target without creating anything', async () => {
-    const target = reviewTarget(managedEnv, { roleMap })
-    const run = steps(target)
-    for (const spec of REVIEW_ROLE_SPECS)
-      expect(await run.session(spec)).toBe(`session-for-${spec.key}@testers.example`)
-    await run.grantGmTier('user-gm', REVIEW_GM)
-    await run.grantSuperadmin('user-admin', REVIEW_ADMIN)
-
-    expect(run.auth.mock.calls.map(([path]) => path)).toEqual(
-      REVIEW_ROLE_SPECS.map(() => '/sign-in/email')
-    )
-    expect(JSON.stringify(run.auth.mock.calls)).not.toContain(REVIEW_PASSWORD)
-    expect(run.issueInvitation).not.toHaveBeenCalled()
-    expect(run.adminCall).not.toHaveBeenCalled()
-    expect(run.verify.tier).toHaveBeenCalledWith(REVIEW_GM)
-    expect(run.verify.role).toHaveBeenCalledWith(REVIEW_ADMIN)
+async function buildSet(
+  world: ReturnType<typeof backend>,
+  set: number,
+  options: { rebuild?: boolean; password?: string } = {}
+) {
+  const announced: string[] = []
+  const target = reviewTarget(
+    { ...managedEnv, REVIEW_SET_PASSWORD: options.password },
+    { set, rebuild: options.rebuild }
+  )
+  const roster = reviewRoster(target)
+  const steps = reviewTargetSteps(target, {
+    auth: world.auth,
+    adminCall: world.adminCall,
+    announcePassword: (password) => void announced.push(password)
   })
+  const specs = [roster.gm, ...roster.players, ...roster.spares]
+  await steps.prepare(specs)
+  const sessions: string[] = []
+  for (const spec of specs) sessions.push(await steps.session(spec))
+  return { announced, roster, sessions, steps }
+}
 
-  it('fails instead of creating an account whose invitation was not redeemed', async () => {
-    const run = steps(reviewTarget(managedEnv, { roleMap }))
-    run.auth.mockResolvedValueOnce(new Response(null, { status: 401 }))
-    await expect(run.session(REVIEW_GM)).rejects.toThrow(/redeem its invitation/)
-    expect(run.issueInvitation).not.toHaveBeenCalled()
-  })
+const signIn = (world: ReturnType<typeof backend>, email: string, password: string) =>
+  world.auth('/sign-in/email', { email, password })
 
-  it('verifies, never grants, the GM tier and superadmin role', async () => {
-    const run = steps(reviewTarget(managedEnv, { roleMap }))
-    run.verify.tier.mockResolvedValueOnce('FREE')
-    await expect(run.grantGmTier('user-gm', REVIEW_GM)).rejects.toThrow(/GM tier/)
-    run.verify.role.mockResolvedValueOnce('user')
-    await expect(run.grantSuperadmin('user-admin', REVIEW_ADMIN)).rejects.toThrow(/superadmin/)
-    expect(run.adminCall).not.toHaveBeenCalled()
-  })
+describe('managed tester set accounts', () => {
+  it('creates two sets with their own verified accounts and generated passwords', async () => {
+    const world = backend()
+    const log = vi.spyOn(console, 'log')
+    const first = await buildSet(world, 1)
+    const second = await buildSet(world, 2)
 
-  it('refuses the local-only steps on a managed target', () => {
-    expect(() => assertLocalOnlyStep(reviewTarget(managedEnv, { roleMap }), 'Fixtures')).toThrow(
-      /only against the local Docker backend/
-    )
-    expect(() => assertLocalOnlyStep(reviewTarget(localEnv), 'Fixtures')).not.toThrow()
-  })
-
-  it('rejects unsafe managed inputs', () => {
-    const rejected: [Record<string, string | undefined>, unknown][] = [
-      [{ ...managedEnv, REVIEW_MANAGED_CONFIRM: undefined }, roleMap],
-      [{ ...managedEnv, REVIEW_MANAGED_CONFIRM: 'other-staging-1' }, roleMap],
-      [{ ...managedEnv, CONVEX_URL: 'http://127.0.0.1:3210' }, roleMap],
-      [{ ...managedEnv, CONVEX_SITE_URL: 'https://other.convex.site' }, roleMap],
-      [{ ...managedEnv, CONVEX_SELF_HOSTED_ADMIN_KEY: 'x' }, roleMap],
-      [{ ...managedEnv, CONVEX_DEPLOY_KEY: 'x' }, roleMap],
-      [{ ...managedEnv, REVIEW_WORKER_CONTROL_SECRET: undefined }, roleMap],
-      [managedEnv, { ...roleMap, gm: { ...roleMap.gm, password: REVIEW_PASSWORD } }],
-      [managedEnv, { ...roleMap, player1: roleMap.gm }],
-      [managedEnv, { ...roleMap, spare2: undefined }]
-    ]
-    for (const [env, map] of rejected) expect(() => reviewTarget(env, { roleMap: map })).toThrow()
-  })
-
-  it('keeps the local path on provisioning and deployment-admin grants', async () => {
-    const run = steps(reviewTarget(localEnv))
-    await run.grantGmTier('user-gm', REVIEW_GM)
-    await run.grantSuperadmin('user-admin', REVIEW_ADMIN)
-    expect(run.adminCall.mock.calls).toEqual([
-      ['accountEntitlements:setTier', { userId: 'user-gm', tier: 'GM' }],
-      ['authAdmin:setRole', { userId: 'user-admin', role: 'superadmin' }]
+    expect(first.roster.gm.email).toBe('mekhit02+t1-gm@gmail.com')
+    expect(first.roster.players.map((spec) => spec.email)).toEqual([
+      'mekhit02+t1-p1@gmail.com',
+      'mekhit02+t1-p2@gmail.com',
+      'mekhit02+t1-p3@gmail.com'
     ])
-    expect(run.verify.tier).not.toHaveBeenCalled()
+    expect(second.roster.spares.map((spec) => spec.email)).toEqual(['mekhit02+t2-spare@gmail.com'])
+    expect(first.roster.admin).toBeUndefined()
+    expect(first.sessions).toHaveLength(5)
+    expect(first.announced).toHaveLength(1)
+    expect(second.announced).toHaveLength(1)
+    expect(first.announced[0]).not.toBe(second.announced[0])
+    // Each set's password opens only that set's accounts; the sign-in needs no email (verified).
+    expect((await signIn(world, 'mekhit02+t1-gm@gmail.com', first.announced[0]!)).status).toBe(200)
+    expect((await signIn(world, 'mekhit02+t1-gm@gmail.com', second.announced[0]!)).status).toBe(401)
+    const users = await world.t.run((ctx) =>
+      ctx.runQuery(components.betterAuth.adapter.findMany, {
+        model: 'user',
+        paginationOpts: { cursor: null, numItems: 50 }
+      })
+    )
+    expect(users.page.filter((user) => user.emailVerified)).toHaveLength(10)
+
+    // The password reaches only `announcePassword`: not an admin call, a log line or a thrown error.
+    const sent = JSON.stringify(world.calls)
+    for (const password of [first.announced[0]!, second.announced[0]!]) {
+      expect(sent).not.toContain(password)
+      expect(JSON.stringify(log.mock.calls)).not.toContain(password)
+    }
+  })
+
+  it('re-runs an existing set without a new password, and only with the one it was given', async () => {
+    const world = backend()
+    const built = await buildSet(world, 1)
+    await expect(buildSet(world, 1)).rejects.toThrow(/REVIEW_SET_PASSWORD/)
+
+    const again = await buildSet(world, 1, { password: built.announced[0] })
+    expect(again.announced).toEqual([])
+    expect(again.sessions).toHaveLength(5)
+    await expect(buildSet(world, 1, { password: 'not-the-set-password-1' })).rejects.toThrow()
+    expect(world.calls.filter((call) => call.name === 'adapter:updateOne')).toEqual([])
+  })
+
+  it('rebuilds one set with a new password and leaves the other set alone', async () => {
+    const world = backend()
+    const first = await buildSet(world, 1)
+    const second = await buildSet(world, 2)
+    const rebuilt = await buildSet(world, 1, { rebuild: true })
+
+    expect(rebuilt.announced).toHaveLength(1)
+    const [oldPassword, newPassword] = [first.announced[0]!, rebuilt.announced[0]!]
+    expect(newPassword).not.toBe(oldPassword)
+    expect((await signIn(world, 'mekhit02+t1-p2@gmail.com', oldPassword)).status).toBe(401)
+    expect((await signIn(world, 'mekhit02+t1-p2@gmail.com', newPassword)).status).toBe(200)
+    expect((await signIn(world, 'mekhit02+t2-p2@gmail.com', second.announced[0]!)).status).toBe(200)
+    expect(JSON.stringify(world.calls)).not.toContain(newPassword)
+  })
+})
+
+describe('review target selection', () => {
+  it('names a set in each Campaign and keeps set 0 on the local names', () => {
+    expect(reviewScenariosForSet(0)).toBe(REVIEW_SCENARIOS)
+    expect(reviewScenariosForSet(3).map((scenario) => scenario.campaign)).toEqual(
+      REVIEW_SCENARIOS.map((scenario) => `${scenario.campaign} (set 3)`)
+    )
+  })
+
+  it('keeps the local roster: shared review accounts with an admin and two spares', () => {
+    const roster = reviewRoster(reviewTarget(localEnv))
+    expect(roster.admin?.username).toBe('Review_Admin_Sol')
+    expect(roster.spares).toHaveLength(2)
+    expect(roster.gm.email).toBeUndefined()
+  })
+
+  it('refuses superadmin grants and unsafe managed inputs', async () => {
+    const world = backend()
+    const target = reviewTarget(managedEnv, { set: 1 })
+    const steps = reviewTargetSteps(target, {
+      auth: world.auth,
+      adminCall: world.adminCall,
+      announcePassword: () => {}
+    })
+    await expect(steps.grantSuperadmin('user')).rejects.toThrow(/local review admin/)
+    expect(world.calls).toEqual([])
+
+    const rejected: [Record<string, string | undefined>, { set: number }][] = [
+      [{ ...managedEnv, REVIEW_MANAGED_CONFIRM: undefined }, { set: 1 }],
+      [{ ...managedEnv, REVIEW_MANAGED_CONFIRM: 'other-staging-1' }, { set: 1 }],
+      [{ ...managedEnv, CONVEX_URL: 'http://127.0.0.1:3210' }, { set: 1 }],
+      [{ ...managedEnv, CONVEX_SITE_URL: 'https://other.convex.site' }, { set: 1 }],
+      [{ ...managedEnv, CONVEX_SELF_HOSTED_ADMIN_KEY: 'x' }, { set: 1 }],
+      [{ ...managedEnv, CONVEX_DEPLOY_KEY: 'x' }, { set: 1 }],
+      [{ ...managedEnv, REVIEW_MANAGED_ADMIN_KEY: undefined }, { set: 1 }],
+      [{ ...managedEnv, REVIEW_WORKER_CONTROL_SECRET: undefined }, { set: 1 }],
+      [{ ...managedEnv, REVIEW_MAILBOX: 'not-a-mailbox' }, { set: 1 }],
+      [managedEnv, { set: 0 }]
+    ]
+    for (const [env, managed] of rejected) expect(() => reviewTarget(env, managed)).toThrow()
   })
 })

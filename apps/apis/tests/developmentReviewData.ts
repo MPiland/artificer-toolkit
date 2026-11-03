@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
+import { setTimeout as delay } from 'node:timers/promises'
 import type { ConvexHttpClient } from 'convex/browser'
 import { type FunctionReturnType, makeFunctionReference } from 'convex/server'
 import {
@@ -22,7 +23,6 @@ import { createDevelopmentSpellCharacter } from './developmentSpellCharacterFixt
 import {
   REVIEW_PLAYERS,
   REVIEW_READY_TITLE,
-  REVIEW_SPARES,
   REVIEW_SCENARIOS,
   type ReviewHero,
   type ReviewScenario,
@@ -86,13 +86,20 @@ export type ReviewContext = {
   gm: ReviewAccount
   /** One account per entry of REVIEW_PLAYERS, in order. */
   players: readonly ReviewAccount[]
-  admin: ReviewAccount
-  /** One account per entry of REVIEW_SPARES, in order; they join no Campaign. */
+  /** The superadmin account; only the local set (0) has one. */
+  admin?: ReviewAccount
+  /** Accounts that join no Campaign. */
   spares: readonly ReviewAccount[]
   /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
   grantGmTier: (userId: string) => Promise<void>
   /** Operator step: promotes the admin account to superadmin (deployment-admin `authAdmin:setRole`). */
   grantSuperadmin: (userId: string) => Promise<void>
+  /** Rebuild: an existing Campaign of the scenarios is deleted through the product command and built again. */
+  rebuild?: boolean
+  /** Mixed into Character ids so a rebuild never meets the Characters an earlier build left behind. */
+  idSalt?: string
+  /** Waits between polls while a deleted Campaign's deletion job runs; defaults to one second. */
+  awaitDeletion?: () => Promise<void>
   /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
   releaseRoom?: (campaignId: string) => Promise<void>
   /** Publishes what the room holds to Convex: a running table saves only at save points (D90). */
@@ -120,19 +127,27 @@ export async function seedReviewData(
   scenarios: readonly ReviewScenario[] = REVIEW_SCENARIOS
 ): Promise<ReviewSeedResult> {
   assert.equal(context.players.length, REVIEW_PLAYERS.length, 'One account per review player.')
-  assert.equal(context.spares.length, REVIEW_SPARES.length, 'One account per spare player.')
   const result: ReviewSeedResult = { created: [], skipped: [] }
   await context.grantGmTier(context.gm.userId)
-  await context.grantSuperadmin(context.admin.userId)
+  if (context.admin) await context.grantSuperadmin(context.admin.userId)
   // The room caches each roller's preference, so every account stays off: dice are typed.
-  for (const account of [context.gm, ...context.players, context.admin, ...context.spares])
+  for (const account of [
+    context.gm,
+    ...context.players,
+    ...(context.admin ? [context.admin] : []),
+    ...context.spares
+  ])
     await account.client.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   for (const scenario of scenarios) {
-    const existing = await findCampaign(context.gm.client, scenario.campaign)
+    let existing = await findCampaign(context.gm.client, scenario.campaign)
+    if (existing && context.rebuild) {
+      await removeCampaign(context, existing)
+      existing = null
+    }
     if (existing) {
       assert.ok(
-        await isFinished(context.gm.client, existing),
-        `Review Campaign "${scenario.campaign}" is incomplete; reset the local backend and run again.`
+        await isFinished(context.gm.client, existing.id),
+        `Review Campaign "${scenario.campaign}" is incomplete; reset the local backend (or rebuild the set) and run again.`
       )
       result.skipped.push(scenario.campaign)
       continue
@@ -143,15 +158,34 @@ export async function seedReviewData(
   return result
 }
 
-async function findCampaign(client: ReviewClient, name: string): Promise<string | null> {
+async function removeCampaign(
+  context: ReviewContext,
+  campaign: { id: string; name: string; version: number }
+) {
+  await context.gm.client.mutation(api.campaigns.deletion.remove, {
+    campaignId: campaign.id,
+    expectedVersion: campaign.version,
+    confirmation: 'DELETE'
+  })
+  // The listing hides a Campaign as soon as its deletion job exists, so it is gone once none remain by that name.
+  for (let attempt = 0; attempt < 120; attempt++) {
+    if (!(await findCampaign(context.gm.client, campaign.name))) return
+    await (context.awaitDeletion ?? (() => delay(1000)))()
+  }
+  throw new Error(`Review Campaign "${campaign.name}" was not deleted in time.`)
+}
+
+type ReviewCampaignRow = { id: string; name: string; version: number }
+
+async function findCampaign(client: ReviewClient, name: string): Promise<ReviewCampaignRow | null> {
   let cursor: string | null = null
   for (;;) {
-    const page: { page: { id: string; name: string }[]; isDone: boolean; continueCursor: string } =
+    const page: { page: ReviewCampaignRow[]; isDone: boolean; continueCursor: string } =
       await client.query(api.campaigns.queries.list, {
         paginationOpts: { cursor, numItems: 8 }
       })
     const match = page.page.find((campaign) => campaign.name === name)
-    if (match) return match.id
+    if (match) return match
     if (page.isDone) return null
     cursor = page.continueCursor
   }
@@ -219,9 +253,10 @@ async function admitPlayers(
 async function createHero(
   scenario: ReviewScenario,
   hero: ReviewHero,
-  owner: ReviewAccount
+  owner: ReviewAccount,
+  idSalt: string
 ): Promise<{ characterId: string; classId: string | null; spellIds: string[] }> {
-  const characterId = reviewId(`${scenario.campaign}/${hero.slug}`)
+  const characterId = reviewId(`${idSalt}${scenario.campaign}/${hero.slug}`)
   if (!hero.spells) {
     await createDevelopmentCharacter(owner.client, characterId, {}, hero.label)
     return { characterId, classId: null, spellIds: [] }
@@ -270,7 +305,12 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   const heroRecords: { hero: ReviewHero; owner: ReviewAccount; characterId: string }[] = []
   for (const [index, hero] of scenario.heroes.entries()) {
     const owner = accounts[index]!
-    const { characterId, classId, spellIds } = await createHero(scenario, hero, owner)
+    const { characterId, classId, spellIds } = await createHero(
+      scenario,
+      hero,
+      owner,
+      context.idSalt ?? ''
+    )
     await owner.client.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
     if (classId) await prepareSpells(owner.client, characterId, classId, spellIds)
     heroRecords.push({ hero, owner, characterId })

@@ -1,8 +1,9 @@
-// Entry for scripts/seedReviewData.mjs: builds the review data through product commands. On the
-// local Docker deployment it provisions the review accounts; on a managed (staging) target it binds
-// the invited accounts of REVIEW_ROLE_MAP_PATH and creates nothing.
+// Entry for scripts/seedReviewData.mjs: builds the review data through product commands. Local
+// (set 0) provisions the review accounts on the Docker deployment; a managed target (REVIEW_SET=N)
+// builds tester set N on staging. A managed set's password goes only to file descriptor 3, which the
+// script relays to the operator's terminal, never to the log.
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { writeSync } from 'node:fs'
 import { api } from '../convex/_generated/api.js'
 import { retryRateLimitedAuth } from './developmentAuthRequest'
 import { awaitCampaignCheckpoint } from './developmentCheckpoint'
@@ -10,20 +11,21 @@ import { developmentCli as cli } from './developmentCli'
 import { DevelopmentHttpClient } from './developmentHttpClient'
 import { tokenOf } from './developmentReviewAccounts'
 import { seedReviewData, type ReviewAccount } from './developmentReviewData'
+import { reviewScenariosForSet, type ReviewAccountSpec } from './developmentReviewDataScenarios'
 import {
-  REVIEW_ADMIN,
-  REVIEW_GM,
-  REVIEW_PLAYERS,
-  REVIEW_SPARES,
-  type ReviewAccountSpec
-} from './developmentReviewDataScenarios'
-import { assertLocalOnlyStep, reviewTarget, reviewTargetSteps } from './developmentReviewTarget'
+  managedAdminCall,
+  reviewRoster,
+  reviewTarget,
+  reviewTargetSteps
+} from './developmentReviewTarget'
 
-const roleMapPath = process.env.REVIEW_ROLE_MAP_PATH
 const target = reviewTarget(
   process.env,
-  roleMapPath ? { roleMap: JSON.parse(await readFile(roleMapPath, 'utf8')) as unknown } : undefined
+  process.env.REVIEW_SET
+    ? { set: Number(process.env.REVIEW_SET), rebuild: process.env.REVIEW_REBUILD === '1' }
+    : undefined
 )
+const roster = reviewRoster(target)
 
 // Better Auth allows three sign-ins per ten seconds per client IP, and every review account signs in.
 const auth = retryRateLimitedAuth((path, body, session) =>
@@ -40,23 +42,14 @@ const auth = retryRateLimitedAuth((path, body, session) =>
   })
 )
 
-const clients = new Map<string, DevelopmentHttpClient>()
 const steps = reviewTargetSteps(target, {
   auth,
-  issueInvitation: (data) => {
-    assertLocalOnlyStep(target, 'Issuing an invitation')
-    return cli('adapter:create', { input: { model: 'verification', data } })
-  },
-  adminCall: (name, args) => {
-    assertLocalOnlyStep(target, 'A deployment-admin call')
-    return cli(name, args, false)
-  },
-  verify: {
-    tier: async (spec) => {
-      const entitlements = await clients.get(spec.key)!.query(api.accountEntitlements.get, {})
-      return entitlements.tier
-    },
-    role: async (spec) => (await clients.get(spec.key)!.query(api.account.identity, {})).role
+  adminCall:
+    target.mode === 'managed'
+      ? managedAdminCall(target)
+      : (name, args, component = false) => cli(name, args, component),
+  announcePassword: (password) => {
+    writeSync(3, `Set ${target.set} password (shown once): ${password}\n`)
   }
 })
 
@@ -71,32 +64,43 @@ async function connect(
   }
   const client = new DevelopmentHttpClient(target.deploymentUrl.origin, { logger: false })
   client.setAuth(await mintToken(), mintToken)
-  clients.set(spec.key, client)
   const identity = await client.query(api.account.identity, {})
   return { client, userId: identity.userId, username: spec.username }
 }
 
-const gm = await connect(REVIEW_GM)
+await steps.prepare([
+  roster.gm,
+  ...roster.players,
+  ...(roster.admin ? [roster.admin] : []),
+  ...roster.spares
+])
+const gm = await connect(roster.gm)
 const players: ReviewAccount[] = []
-for (const spec of REVIEW_PLAYERS) players.push(await connect(spec))
-const admin = await connect(REVIEW_ADMIN)
+for (const spec of roster.players) players.push(await connect(spec))
+const admin = roster.admin ? await connect(roster.admin) : undefined
 const spares: ReviewAccount[] = []
-for (const spec of REVIEW_SPARES) spares.push(await connect(spec))
-const result = await seedReviewData({
-  gm,
-  players,
-  admin,
-  spares,
-  grantGmTier: (userId) => steps.grantGmTier(userId, REVIEW_GM),
-  grantSuperadmin: (userId) => steps.grantSuperadmin(userId, REVIEW_ADMIN),
-  checkpoint: (campaignId) =>
-    awaitCampaignCheckpoint(
-      gm.client,
-      campaignId,
-      target.mode === 'managed' ? target.workerControlSecret : undefined
-    ),
-  log: (message) => console.log(message)
-})
+for (const spec of roster.spares) spares.push(await connect(spec))
+const rebuild = target.mode === 'managed' && target.rebuild
+const result = await seedReviewData(
+  {
+    gm,
+    players,
+    admin,
+    spares,
+    grantGmTier: steps.grantGmTier,
+    grantSuperadmin: steps.grantSuperadmin,
+    rebuild,
+    idSalt: rebuild ? `${Date.now().toString(36)}/` : '',
+    checkpoint: (campaignId) =>
+      awaitCampaignCheckpoint(
+        gm.client,
+        campaignId,
+        target.mode === 'managed' ? target.workerControlSecret : undefined
+      ),
+    log: (message) => console.log(message)
+  },
+  reviewScenariosForSet(target.set)
+)
 console.log(
   `Review data: ${result.created.length} Campaign(s) created, ${result.skipped.length} already finished.`
 )
