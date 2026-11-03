@@ -12,7 +12,7 @@ import type {
   SparesCreaturesAuthored
 } from '#authored'
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
-import { buildNodeMap, type NodeMap } from '#utils'
+import { buildNodeMap, type NodeMap, type NodeSelectSource } from '#utils'
 import {
   MEASUREMENT_NODE_MAP,
   RANGE_NODE_MAP,
@@ -20,8 +20,17 @@ import {
   SHAPE_NODE_MAP
 } from '../../shared/maps/index.js'
 import { CHECK_NODE_MAP } from './check.js'
-import { CHARGE_SELECT_SOURCE } from './chargeSource.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
+
+/**
+ * The resource pools an effect can spend or restore: the `charges` of the record being authored,
+ * plus those of its parent class.
+ */
+export const CHARGE_SELECT_SOURCE: NodeSelectSource = {
+  kind: 'DOCUMENT_OBJECTS',
+  key: 'charges',
+  parent: { idPath: ['parentClassId'], documentTable: 'classes' }
+}
 
 const INVOCATION_KIND_OPTIONS: { code: EffectInvocationKind; label: string }[] = [
   { code: 'ACTION', label: 'Action' },

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAppForm } from '../app-form/AppForm'
@@ -66,6 +67,7 @@ function ResourceUseHarness({
           model={model}
           renderAllSteps
           resolveModel={false}
+          systemId={srdSystemRecord.id}
           updateAuthoringState={false}
         />
         <form.Subscribe selector={(state) => state.values}>
