@@ -1682,10 +1682,23 @@ export function buildNodeMap<NLocalIn extends object = EmptyObject>(): BuildNode
   const nodes = createNodeBuilder<NLocal>()
 
   return {
+    // Builds the nodes on first read: Convex evaluates a function's module graph on every call (D59),
+    // so a map built at module load is paid by every function that imports it, used or not.
     define: (mapId, build, authoring) => {
-      const map = createNodeMapBuilder<NLocal>()
-      build({ logic, cond, data, nodes, map })
-      return { schemaVersion: 1, mapId, nodes: map.build(), authoring }
+      let built: Record<NodeId, NodeEntry<NLocal>> | undefined
+      return {
+        schemaVersion: 1,
+        mapId,
+        get nodes() {
+          if (!built) {
+            const map = createNodeMapBuilder<NLocal>()
+            build({ logic, cond, data, nodes, map })
+            built = map.build()
+          }
+          return built
+        },
+        authoring
+      }
     },
     defineKeyed: (mapId, keyedBy) => ({ schemaVersion: 1, mapId, nodes: {}, keyedBy }),
     logic,

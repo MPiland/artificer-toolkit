@@ -15,6 +15,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { api } from '../convex/_generated/api.js'
+import { latencyLimits } from '../../web/src/test/latencyGate'
 import {
   assertDomainRejection,
   type DevelopmentClient,
@@ -214,15 +215,6 @@ export const encounterCutoverWorkloadDefinition = {
   outOfCombat: {
     stepsPerMinute: environmentCount('V15_OOC_STEPS_PER_MINUTE', 6),
     minutes: environmentCount('V15_OOC_MINUTES', 4)
-  },
-  thresholds: {
-    peerPreviewP95Ms: 150,
-    durablePeerConvergenceP95Ms: 250,
-    durablePeerConvergenceP99Ms: 500,
-    authoritativeCommandP95Ms: 1_000,
-    sceneOnlyHostP95Ms: 100,
-    ruleBoundHostP95Ms: 250,
-    localColdCommandMs: 500
   }
 } as const
 
@@ -367,15 +359,18 @@ export function assertEncounterCutoverWorkload(workload: EncounterCutoverWorkloa
       0
     )
   )
-  assert.ok(
-    workload.p95Ms <= encounterCutoverWorkloadDefinition.thresholds.authoritativeCommandP95Ms
-  )
-  for (const operation of workloadOperations)
-    assert.ok(
-      workload.byOperation[operation].p95Ms <=
-        encounterCutoverWorkloadDefinition.thresholds.authoritativeCommandP95Ms,
-      `${operation} p95 exceeded the authoritative command threshold.`
-    )
+}
+
+/** Authoritative command p95 overall and per operation class against the shared limit, so a tail hidden in the overall p95 is still recorded (D210: recorded, never gated here). */
+export function encounterCutoverCommandLatency(workload: EncounterCutoverWorkload) {
+  const limitMs = latencyLimits.authoritativeP95
+  return [
+    { name: 'ALL', observedMs: workload.p95Ms },
+    ...workloadOperations.map((operation) => ({
+      name: operation,
+      observedMs: workload.byOperation[operation].p95Ms
+    }))
+  ].map((entry) => ({ ...entry, limitMs, withinLimit: entry.observedMs <= limitMs }))
 }
 
 export async function measureEncounterCutoverWorkload(
@@ -1498,20 +1493,15 @@ export async function verifyEncounterCutoverWorkload({
       })}`
     )
     assertEncounterCutoverWorkload(workload)
-    assert.ok(
-      convergence.session.p95Ms <=
-        encounterCutoverWorkloadDefinition.thresholds.durablePeerConvergenceP95Ms,
-      'V15 warm durable peer convergence p95 exceeded 250 ms.'
-    )
-    assert.ok(
-      convergence.session.p99Ms <=
-        encounterCutoverWorkloadDefinition.thresholds.durablePeerConvergenceP99Ms,
-      'V15 warm durable peer convergence p99 exceeded 500 ms.'
-    )
     assert.ok(previews, 'V15 combat previews all dropped before reaching a peer.')
-    assert.ok(
-      previews.p95Ms <= encounterCutoverWorkloadDefinition.thresholds.peerPreviewP95Ms,
-      'V15 room preview p95 exceeded 150 ms.'
+    // D210: wall-clock latency is recorded against the shared limits here and gated only on staging.
+    console.log(
+      `V15 latency limits (recorded, not gated): ${JSON.stringify({
+        authoritativeCommandP95: encounterCutoverCommandLatency(workload),
+        durablePeerConvergenceP95: [convergence.session.p95Ms, latencyLimits.durableP95],
+        durablePeerConvergenceP99: [convergence.session.p99Ms, latencyLimits.durableP99],
+        peerPreviewP95: [previews.p95Ms, latencyLimits.ephemeralP95]
+      })}`
     )
     const outOfCombat = await measureOutOfCombat({
       control,
