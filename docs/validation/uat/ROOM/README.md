@@ -2,7 +2,7 @@
 
 Feature `ROOM` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves the GM and three players can all join the same live table, see each other, talk, share notes and maps, plan Sessions, survive a dropped connection, lose access when removed, and that the table keeps its state when everyone leaves and comes back. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). "Tabletop window" means the window opened with **Open tabletop window** in the **Live tabletop** panel of the Campaign's session page (or **Open live tabletop window** on a Character Sheet).
+Proves the GM and three players can all join the same live table, see each other, talk, share notes and maps, plan Sessions, survive a dropped connection, lose access when removed, and that the table keeps its state when everyone leaves and comes back. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). "Tabletop window" means the window opened with **Open tabletop window** in the **Live tabletop** panel of the Campaign's session page (or **Open live tabletop window** on a Character Sheet).
 
 ## Scenarios
 

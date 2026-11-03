@@ -29840,12 +29840,17 @@
             {
               "id": "RELEASE-8.4",
               "text": "External testers run UAT on staging: an owner-approved run provisions numbered tester sets on staging through product commands, each with five prebuilt verified accounts (GM, P1-P3, SPARE) on owner plus-addressed emails, a per-set password generated at run time and shown only to the operator, and its own copy of the four review Campaigns; sets are independent and rebuildable without a reset. Scenarios are tagged Solo (one tester, one account; account-security flows on the tester's own account and email) or Group (run by the owner with one browser profile per role), and a staging tester guide covers sign-in, real email, which scenarios apply and recording results.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/reviewTarget.test.ts",
+                "apps/apis/convex/encounters/reviewDataSets.test.ts",
+                "apps/apis/convex/encounters/reviewData.test.ts",
+                "apps/apis/convex/roomClock.test.ts"
+              ],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): staging UAT for other users"
               ],
-              "note": "Registered 2026-11-03. Revised 2026-11-03 (owner rulings: prebuilt per-tester sets, Solo/Group split, staging-only UAT)."
+              "note": "Registered 2026-11-03. Revised 2026-11-03 (owner rulings: prebuilt per-tester sets, Solo/Group split, staging-only UAT). Closed 2026-11-03 by RELEASE-8.T5, RELEASE-8.T6."
             }
           ],
           "wsjf": {
@@ -29990,7 +29995,7 @@
             },
             {
               "id": "RELEASE-8.T6",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELEASE-8.4"
               ],
@@ -30003,7 +30008,11 @@
                   "RELEASE-8.T5"
                 ]
               },
-              "text": "Staging tester guide docs/validation/uat/TESTERS.md: signing in to the assigned prebuilt account, creating the own-email account for the account-security scenarios, real email checks (arrival, branding, links, spam), which Solo scenarios to run in what order, and recording run notes (tester, set, role, scenario); reconcile with the restructured Start here page rather than duplicating it."
+              "text": "Staging tester guide docs/validation/uat/TESTERS.md: signing in to the assigned prebuilt account, creating the own-email account for the account-security scenarios, real email checks (arrival, branding, links, spam), which Solo scenarios to run in what order, and recording run notes (tester, set, role, scenario); reconcile with the restructured Start here page rather than duplicating it.",
+              "proof": [
+                "docs/validation/uat/TESTERS.md"
+              ],
+              "note": "Merged 2026-11-03 (m632, merge-slice run 41734787118). Docs-only: TESTERS.md tester guide, linked from the UAT Start here page; no passwords in the repository."
             }
           ]
         }
