@@ -323,9 +323,9 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
-  it('sends each preview stream at most 10 times a second and pings at most twice', async () => {
-    let now = 1_000
-    vi.spyOn(performance, 'now').mockImplementation(() => now)
+  it('sends each preview stream at most 10 times a second, ending on its latest sample, and pings at most twice', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
     const connection = createLiveSessionConnection({
       createSocket: (url, protocols) => new FakeSocket(url, protocols),
       getAccessToken: async () => 'access-token',
@@ -347,20 +347,39 @@ describe('live-session browser connection', () => {
       kind: 'TOKEN_DRAG_PREVIEW',
       tokenId: '00000000-0000-4000-8000-000000000015'
     })
-    const sentAt: Record<string, number[]> = {}
+    const start = Date.now()
+    const sent: Record<string, [atMs: number, sequence: number][]> = {}
     socket.send = (data) => {
       const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
-      if (message.type === 'TRANSIENT') (sentAt[message.envelope.kind] ??= []).push(now)
+      if (message.type === 'TRANSIENT')
+        (sent[message.envelope.kind] ??= []).push([Date.now() - start, message.envelope.sequence])
     }
 
-    // Pings and token-drag samples are offered together at 31 Hz for one second.
+    // Pings and token-drag samples are offered together at 31 Hz for one second, then the drag pauses.
     for (let frame = 1; frame <= 31; frame += 1) {
       connection.sendTransient({ ...envelope, sequence: frame })
       connection.sendTransient({ ...drag, sequence: frame })
-      now += 32
+      vi.advanceTimersByTime(32)
     }
-    const tenHertz = [1_000, 1_128, 1_256, 1_384, 1_512, 1_640, 1_768, 1_896]
-    expect(sentAt).toEqual({ PING: [1_000, 1_512], TOKEN_DRAG_PREVIEW: tenHertz })
+    vi.advanceTimersByTime(1_000)
+    expect(sent.PING).toEqual([
+      [0, 1],
+      [512, 17]
+    ])
+    // Every 100 ms the drag sends its newest sample, and the last one still reaches peers after the pause.
+    expect(sent.TOKEN_DRAG_PREVIEW).toEqual([
+      [0, 1],
+      [100, 4],
+      [200, 7],
+      [300, 10],
+      [400, 13],
+      [500, 16],
+      [600, 19],
+      [700, 22],
+      [800, 25],
+      [900, 29],
+      [1_000, 31]
+    ])
     connection.close()
   })
 

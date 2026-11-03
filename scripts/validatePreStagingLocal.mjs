@@ -6,6 +6,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
+import { measureLatency } from '../apps/web/src/test/latencyGate.ts'
 import { verifyBuilderBudgets } from './builderBudgets.mjs'
 import { verifyV15Budgets } from './v15Budgets.mjs'
 import { generatedStatus } from './generatedDrift.mjs'
@@ -1536,38 +1537,7 @@ async function main() {
       )
     }
     // D210: this run is local, so wall-clock latency is recorded with its limit and never fails it.
-    const latencyLimits = JSON.parse(
-      await readFile(resolve(root, 'apps/web/src/test/latencyLimits.json'), 'utf8')
-    )
-    const recordLatency = (observedMs, budgetMs, exclusive) => ({
-      budgetMs,
-      observedMs,
-      withinBudget: exclusive ? observedMs < budgetMs : observedMs <= budgetMs
-    })
-    manifest.performance = {
-      authoritativeBrowserConvergenceP95: recordLatency(
-        browserResult.authoritative.p95,
-        latencyLimits.authoritativeP95,
-        false
-      ),
-      durableBrowserConvergenceP95: recordLatency(
-        browserResult.durable.p95,
-        latencyLimits.durableP95,
-        false
-      ),
-      durableBrowserConvergenceP99: recordLatency(
-        browserResult.durable.p99,
-        latencyLimits.durableP99,
-        false
-      ),
-      ephemeralBrowserConvergenceP95: recordLatency(
-        browserResult.ephemeral.p95,
-        latencyLimits.ephemeralP95,
-        false
-      ),
-      ruleBrowserConvergenceP95: recordLatency(browserResult.ruleBound.p95, 1000, true),
-      sceneBrowserConvergenceP95: recordLatency(browserResult.sceneOnly.p95, 1000, true)
-    }
+    manifest.performance = measureLatency(browserResult)
     manifest.warnings = await collectWarningCounts(artifactDirectory, manifest.stages)
     manifest.completedAt = new Date().toISOString()
     manifest.releaseReadiness = 'READY_FOR_BOUNDED_STAGING_REVIEW'

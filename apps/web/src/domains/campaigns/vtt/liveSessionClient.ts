@@ -282,11 +282,28 @@ export function createLiveSessionConnection(
   let requestedEncounterSession: { timeline: boolean } | null = null
   let requestedCampaignSummary = false
   const previewSentAt = new Map<string, number>()
+  // The latest preview sample offered inside its stream's interval, sent when the interval ends.
+  const queuedPreviews = new Map<
+    string,
+    { envelope: SceneTransientEnvelopeDto; timer: ReturnType<typeof setTimeout> }
+  >()
 
   const send = (message: LiveSessionClientMessage): boolean => {
     if (socket?.readyState !== webSocketOpenState) return false
     socket.send(JSON.stringify(message))
     return true
+  }
+
+  const sendPreview = (key: string, envelope: SceneTransientEnvelopeDto): boolean => {
+    if (!ready || !send({ envelope, type: 'TRANSIENT' })) return false
+    previewSentAt.set(key, performance.now())
+    return true
+  }
+
+  const sendQueuedPreview = (key: string) => {
+    const queued = queuedPreviews.get(key)
+    queuedPreviews.delete(key)
+    if (queued) sendPreview(key, queued.envelope)
   }
 
   const emitDurableState = () =>
@@ -620,6 +637,8 @@ export function createLiveSessionConnection(
       generation += 1
       if (reconnectTimer) clearTimeout(reconnectTimer)
       reconnectTimer = null
+      for (const { timer } of queuedPreviews.values()) clearTimeout(timer)
+      queuedPreviews.clear()
       const current = socket
       socket = null
       commandReady = false
@@ -689,15 +708,19 @@ export function createLiveSessionConnection(
     },
     sendTransient(envelope) {
       const key = sceneTransientStreamKey(envelope)
-      const now = performance.now()
-      if (
-        !ready ||
-        now - (previewSentAt.get(key) ?? Number.NEGATIVE_INFINITY) <
-          (envelope.kind === 'PING' ? VTT_SCENE_LIMITS.pingIntervalMs : previewIntervalMs) ||
-        !send({ envelope, type: 'TRANSIENT' })
-      )
-        return false
-      previewSentAt.set(key, now)
+      if (!ready) return false
+      const waitMs =
+        (previewSentAt.get(key) ?? Number.NEGATIVE_INFINITY) +
+        (envelope.kind === 'PING' ? VTT_SCENE_LIMITS.pingIntervalMs : previewIntervalMs) -
+        performance.now()
+      if (waitMs <= 0) return sendPreview(key, envelope)
+      if (envelope.kind === 'PING') return false
+      // A gesture that pauses inside the interval still shows peers where it stopped.
+      const queued = queuedPreviews.get(key)
+      queuedPreviews.set(key, {
+        envelope,
+        timer: queued?.timer ?? setTimeout(() => sendQueuedPreview(key), waitMs)
+      })
       return true
     },
     subscribeCharacterSheet(characterId) {

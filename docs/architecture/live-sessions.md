@@ -1093,8 +1093,10 @@ a broader broadcast.
   moving more than 8 screen pixels, or by `P` on the focused map. Recipients draw a 1.5 s ring and a
   polite live region announces it. The room never echoes a ping to its origin socket.
 - **At most 10 Hz; pings at most 2 Hz.** `liveSessionClient` sends each preview stream at most once per
-  100 ms and a ping at most once per `VTT_SCENE_LIMITS.pingIntervalMs` (500 ms). A ping also takes a
-  per-socket `PING` token; faster pings are dropped without closing the socket.
+  100 ms and a ping at most once per `VTT_SCENE_LIMITS.pingIntervalMs` (500 ms). A preview offered
+  inside its interval is held, replaced by any newer one, and sent when the interval ends, so a gesture
+  that pauses still shows peers where it stopped (PERF-1.T3); a faster ping is dropped. A ping also takes
+  a per-socket `PING` token; faster pings are dropped without closing the socket.
 - **No Convex call or storage access per sample.** The Scene must be the room's cached Scene at the
   sample's version, else the sample is dropped and one background rebuild starts (at most one at a time,
   at most once per `previewRetryMs`). Origin and recipients are admissions the authorization cache still
