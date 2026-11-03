@@ -152,7 +152,7 @@ Proves a player can build a Character from choices, save and resume drafts, comm
 
 - **Covers:** BUILDER-4.1, BUILDER-4.2, BUILDER-4.3
 - **Accounts:** P1
-- **Preconditions:** Needs a source the owner supplies; none exists in the review data and a D&D Beyond link cannot be fetched without outside network access. P1 has a Foundry character JSON file (or a D&D Beyond public character link) that includes: an equipped custom two-handed or versatile weapon with a damage type and a magic bonus, an equipped custom armor with a magic bonus, and an equipped custom shield. If no such source is available, record the scenario BLOCKED with the missing source named under [Recording results](README.md#recording-results). Step 7 needs a live target: use a Scene attack against a creature in a P1 Campaign, or record the Sheet's attack roll only.
+- **Preconditions:** Needs a source the owner supplies; none exists in the review data and a D&D Beyond link cannot be fetched without outside network access. P1 has a Foundry character JSON file (or a D&D Beyond public character link) that includes: an equipped custom two-handed or versatile weapon with a damage type and a magic bonus, an equipped custom armor with a magic bonus, and an equipped custom shield. If no such source is available, mark the scenario BLOCKED in the [tracker](TRACKER.md) and name the missing source in [Run notes](#run-notes). Step 7 needs a live target: use a Scene attack against a creature in a P1 Campaign, or record the Sheet's attack roll only.
 
 **Steps**
 
@@ -183,3 +183,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | BUILDER-2.3 | Convex limits, per-edit call counts, autosave bytes, commit database I/O and worker chunk size; measured by a harness and the build, not visible on screen (the Builder working is UAT-BUILDER-1 and 3). |
 | BUILDER-2.4 | Exact removal of test fixtures and stale-JWT denial; a test-harness property.                                                                                                                            |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

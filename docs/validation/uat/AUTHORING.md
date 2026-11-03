@@ -398,7 +398,7 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 
 - **P2:** Searching Spells for "UAT Fire Bolt" finds nothing (private homebrew).
 
-**Record** (in the results file): time from step 1 to step 9 (minutes), difficulty 1 (trivial) to 5 (could not finish without help), the step where you hesitated longest, and any value you could not find.
+**Record** (in [Run notes](#run-notes), whatever the result): time from step 1 to step 9 (minutes), difficulty 1 (trivial) to 5 (could not finish without help), the step where you hesitated longest, and any value you could not find.
 
 ## UAT-AUTHORING-14: Author a Fireball-like spell from scratch
 
@@ -466,7 +466,7 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 
 ## Authoring feedback
 
-Each tester fills this in once, after the authoring scenarios they ran (UAT-AUTHORING-13 to 15, plus any other authoring scenario). Save it as `docs/validation/uat/results/<YYYY-MM-DD>-AUTHORING-FEEDBACK-<tester>.md` with the tester's name, the commit or staging build, and the date. Answer in your own words; short answers are fine, and "none" is a valid answer.
+Each tester fills this in once, after the authoring scenarios they ran (UAT-AUTHORING-13 to 15, plus any other authoring scenario). Write it in [Run notes](#run-notes) under a `### Authoring feedback - <tester> - <YYYY-MM-DD>` heading, with the commit or staging build, the table below and an answer to each question. Answer in your own words; short answers are fine, and "none" is a valid answer.
 
 | Scenario         | Time taken (minutes) | Difficulty (1 = trivial, 5 = could not finish unaided) |
 | ---------------- | -------------------- | ------------------------------------------------------ |
@@ -494,3 +494,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | AUTHORING-6.3  | Canonical Equipment import including the 500-item inheritance ceiling and unordered parents; a seed audit.                                              |
 | AUTHORING-10.2 | Canonical Vehicle import audit (compilation, checksums, rollback of conflicts) across the corpus; a seed audit. Vehicles are browsed in UAT-PLATFORM-1. |
 | AUTHORING-14.1 | Clone conformance over all 1,057 canonical records; a corpus-scale test. One copy per domain is exercised by hand in UAT-AUTHORING-2 and 3.             |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

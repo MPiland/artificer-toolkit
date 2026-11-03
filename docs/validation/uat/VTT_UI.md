@@ -124,3 +124,7 @@ This file proves the live map shows each token's identity, conditions, facing an
 | AC         | Why not a UAT step                                                                                                                                                              |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | VTT_UI-5.1 | A source-data audit comparing every SRD Creature's structured senses with its printed ones. A tester cannot check all of them; UAT-VTT_UI-3 step 11 spot-checks one (the Wolf). |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

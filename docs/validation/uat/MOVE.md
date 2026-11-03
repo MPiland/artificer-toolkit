@@ -280,3 +280,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | MOVE-2.3 | Same for the Shove Aside policy; its behaviour is MOVE-2.4 in UAT-MOVE-7.                                                                                                                                                                                         |
 | MOVE-2.5 | Same for the Tumble policy; its behaviour is MOVE-2.6 in UAT-MOVE-7.                                                                                                                                                                                              |
 | MOVE-3.4 | A camouflaged zone comes only from an authored zone manifest on a Spell, which a tester would have to author and cast; the ledger proof is an authoring-parity test through the real form. The GM-set Spot DC in UAT-MOVE-8 shows the same concealment on screen. |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

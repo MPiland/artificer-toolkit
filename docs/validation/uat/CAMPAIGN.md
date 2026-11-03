@@ -241,3 +241,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | CAMPAIGN-4.3 | Real-backend source-loss and Vehicle cleanup under contention; a concurrency harness.                                                                                                               |
 | CAMPAIGN-5.2 | Oversized cargo cleanup under contention; a concurrency harness.                                                                                                                                    |
 | CAMPAIGN-8.2 | The exact-message match in notification code and the live-backend test patterns; a code check. The refusal wording a tester sees is UAT-CAMPAIGN-8.                                                 |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

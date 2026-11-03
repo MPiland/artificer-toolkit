@@ -258,3 +258,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | AC          | Why not a UAT step                                                          |
 | ----------- | --------------------------------------------------------------------------- |
 | PRIVACY-1.3 | Every producer using the reviewed dispatcher is a code and contract review. |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

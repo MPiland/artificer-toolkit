@@ -4,6 +4,8 @@ User acceptance tests for the 21 Phase 8 features in the [phase ledger](../../ro
 
 UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one `uat` item per scenario, and an item becomes PASSED only after the owner accepts it with the evidence described in [Recording results](#recording-results).
 
+**Track progress in [TRACKER.md](TRACKER.md):** every scenario with a checkbox, its status and a link to its steps.
+
 Read the [alpha play guide](../../guides/alpha-play-guide.md) before the first run: it explains every live-table control these scenarios use, and its [known gaps](../../guides/alpha-play-guide.md#known-gaps) are not failures.
 
 ## Contents
@@ -93,25 +95,16 @@ Each account needs its own browser session, because sign-in is a cookie on `loca
 
 ## Recording results
 
-Record every run in `docs/validation/uat/results/<YYYY-MM-DD>-<FEATURE>.md`. Start from the feature's prefilled template in [results/templates](results/templates/), which lists every scenario; there are also templates for the [exploratory tasks](results/templates/EXPLORATORY.md) and the [authoring feedback](results/templates/AUTHORING-FEEDBACK.md). Each results file has this header and one row per scenario:
+[TRACKER.md](TRACKER.md) lists every scenario and exploratory task with a checkbox and a status, and is the one record of UAT progress. After each scenario, tick its line and set its status there.
 
-```markdown
-# <FEATURE> UAT run <YYYY-MM-DD>
-
-- Commit: <git rev-parse HEAD from setup step 3>
-- Review data: <the --name used in setup step 4>
-- Testers: <who drove which accounts>
-
-| Scenario        | Result | Notes | Evidence                                            |
-| --------------- | ------ | ----- | --------------------------------------------------- |
-| UAT-<FEATURE>-1 | PASS   |       | local-validation/uat/<YYYY-MM-DD>/<FEATURE>-1-*.png |
-```
-
-- **Result** is one of `PASS`, `FAIL`, `BLOCKED` (a gap or an earlier failure stopped it) or `SKIPPED` (with the reason).
-- **PASS** means every Expected line and every "Other users see" line held. Take at least one screenshot per scenario of its final state, and one per player window in multi-user scenarios. Screenshots stay in the ignored `local-validation/uat/<YYYY-MM-DD>/` folder; the results file is the durable record.
-- **FAIL**: note the step number, and give the details the [play guide's feedback list](../../guides/alpha-play-guide.md#sending-feedback) asks for (Campaign, Scene, round and turn, mode and auto-roll, expected, actual with the exact wording of any message, whether it repeats). Every failure is fixed or registered in the ledger before the feature is accepted.
+- **PASSED** means every Expected line and every "Other users see" line held. Take at least one screenshot per scenario of its final state, and one per player window in multi-user scenarios; screenshots stay in the ignored `local-validation/uat/<YYYY-MM-DD>/` folder.
+- **FAILED**, **BLOCKED** (a gap or an earlier failure stopped it) and **SKIPPED** each get an entry in the feature file's **Run notes** section, linked from the tracker line.
 - A behaviour listed in the play guide's known gaps is not a failure; note it only if it hurt the session.
-- When the owner accepts a feature's run, the orchestrator sets each of its ledger `uat` items to PASSED with the results file as evidence.
+- When the owner accepts a feature, the orchestrator sets each of its ledger `uat` items to PASSED with the tracker as evidence.
+
+### When a scenario fails
+
+The run note names the date, the build (commit or staging build name), the tester and the step number, and gives the details the [play guide's feedback list](../../guides/alpha-play-guide.md#sending-feedback) asks for: Campaign, Scene, round and turn, mode and auto-roll, expected, actual with the exact wording of any message, and whether it repeats. Every failure is fixed or registered in the ledger before the feature is accepted.
 
 ## Known UAT gaps
 
@@ -133,11 +126,11 @@ A few outside testers run the same scenario files on staging, each with their ow
 - **Staging URL:** provided by the owner. Do not guess or reuse a URL from another document.
 - **Approval:** a staging run needs the owner's approval each time (the same rule as every other staging check; see G4 above and the [release sequence](../../runbooks/phase-8-2-release.md)). Do not start one without it.
 - **Setup:** an external tester skips the operator steps (reset, seed, review data) and starts at step 6 of [Setup](#setup). The steps that need several signed-in users still need several browser profiles per [Running several users side by side](#running-several-users-side-by-side); a scenario that names accounts the tester does not have (GM, P1 to P3) is run with the testers' own invited accounts in those roles, as the owner assigns them.
-- **Recording:** results use the same format as [Recording results](#recording-results), with the staging build name the owner gives in place of the git commit and `staging` in the header's Review data line. Name the file `<YYYY-MM-DD>-<FEATURE>-<tester>.md` when more than one tester runs a file.
+- **Recording:** as in [Recording results](#recording-results), with the staging build name the owner gives in place of the git commit, and the tester's name in each run note.
 
 ## Exploratory tasks and authoring feedback
 
-- [EXPLORATORY.md](EXPLORATORY.md): open goal-based tasks for UX and bias checks. They are not pass/fail, and testers run them before seeing the scripted scenarios. Results go in `results/<YYYY-MM-DD>-EXPLORATORY-<tester>.md`.
+- [EXPLORATORY.md](EXPLORATORY.md): open goal-based tasks for UX and bias checks. They are not pass/fail, and testers run them before seeing the scripted scenarios. Results go in its [Run notes](EXPLORATORY.md#run-notes).
 - [Authoring feedback](AUTHORING.md#authoring-feedback): a questionnaire each tester fills in once, after the authoring scenarios (UAT-AUTHORING-13 to 15 and any other authoring scenario they ran).
 
 ## Scenario files and coverage

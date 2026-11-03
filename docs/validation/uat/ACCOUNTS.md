@@ -373,3 +373,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | ACCOUNTS-8.1 | Native-client request authorization and spoofed user IDs; contract test (the browser-visible part is UAT-ACCOUNTS-8).                |
 | ACCOUNTS-9.1 | Role provisioning is the internal CLI only; there is no UI.                                                                          |
 | ACCOUNTS-9.3 | Provider-admin endpoints answer 404 to POST requests; a browser address bar sends GET, so a tester cannot exercise them.             |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

@@ -187,3 +187,7 @@ This file proves that when an attack or spell triggers a reaction, the right per
 **Other users see**
 
 - **GM:** Sees the attack stay held throughout and sees no duplicate prompt for P1 after P1 returns.
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

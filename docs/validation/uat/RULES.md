@@ -164,3 +164,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | RULES-2.6 | Effect-action compiler decomposition; an internal refactor.                                                                                                                                           |
 | RULES-2.7 | Capability registry and a neutral second-System tracer; no second System exists to play.                                                                                                              |
 | RULES-2.8 | File splits below the size budget and one home for initiative cursor ordering; an internal refactor, with turn order exercised in the ENCOUNTER file.                                                 |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

@@ -204,3 +204,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | PLATFORM-25.2  | CI merge-slice workflow.                                                                                                                                |
 | PLATFORM-25.3  | CI batch merge.                                                                                                                                         |
 | PLATFORM-25.4  | CI run-id handling.                                                                                                                                     |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

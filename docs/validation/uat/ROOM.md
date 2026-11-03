@@ -318,3 +318,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | ROOM-6.11 | Room test of Legendary Action controller cases; Legendary play itself is in UAT-ENCOUNTER-6 and UAT-SPELLS-18.                                                                                 |
 | ROOM-6.12 | Room test of Concentration advantage on movement and a shared spatial effect; test code only.                                                                                                  |
 | ROOM-6.13 | Room test of initiative receipt metadata; internal.                                                                                                                                            |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

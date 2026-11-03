@@ -188,3 +188,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | SOCIAL-1.3 | Needs two final-slot actions committing in the same instant, which a person cannot cause by hand; an OCC harness. The sequential full-table refusal is UAT-SOCIAL-1 step 7. |
 | SOCIAL-1.4 | Retention and cleanup run on a schedule over aged rows; nothing in the app brings a row to its purge age.                                                                   |
 | SOCIAL-3.3 | Parallel final-slot race needs a harness; the sequential over-limit refusal is UAT-SOCIAL-6 step 4.                                                                         |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

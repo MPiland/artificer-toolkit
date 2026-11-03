@@ -264,3 +264,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | AC        | Why not a UAT step                                                                                                                                                                                                                        |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SCENE-2.3 | Maximum-polygon and full fog-capacity coverage is a storage limit test; drawing the largest allowed polygon by hand is impractical, and the ordinary walls, fog and light of scenarios 3 and 4 show the same code working at normal size. |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

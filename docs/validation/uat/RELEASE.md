@@ -68,3 +68,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | RELEASE-3.2 | none (decision record) | A recorded decision, not tester-visible behaviour                       |
 | RELEASE-4.1 | none (production)      | Production deployment is not a local UAT step                           |
 | RELEASE-4.2 | none (production)      | Production smoke is not a local UAT step                                |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).
