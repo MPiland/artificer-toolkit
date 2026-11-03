@@ -165,13 +165,16 @@ export async function persistEncounterActionPending(
       )
       const failedCounters = area.failedCounters ?? []
       // An area whose saves all settled as it opened may hold its first push pick or the saves of the
-      // creatures its movers struck, nothing picked.
+      // creatures its movers struck, nothing picked, or before either its damage window (D208),
+      // unanswered.
       const opened = area.forcedMovement
+      const damageRoll = area.damageRoll
       if (
-        (opened &&
-          (opened.landed.length > 0 ||
-            snapshot.snapshotKind !== 'AGGREGATE_CHOICE' ||
+        ((opened || damageRoll) &&
+          (snapshot.snapshotKind !== 'AGGREGATE_CHOICE' ||
             !encounterAreaCaughtSettled(snapshot))) ||
+        (opened && (opened.landed.length > 0 || damageRoll)) ||
+        (damageRoll && (!damageRoll.window || damageRoll.reroll)) ||
         (resume
           ? snapshot.occurrenceId !== resume.occurrence.id ||
             !castPendingContinues(resume.pending.context, input.response, { failedCounters })

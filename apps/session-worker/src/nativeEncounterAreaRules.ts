@@ -10,7 +10,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
-import type { EncounterDamageRerollAnswer } from '@artificer-toolkit/rules-runtime/encounterDamageRollWindow'
+import {
+  openEncounterAreaDamageRollWindow,
+  type EncounterDamageRerollAnswer
+} from '@artificer-toolkit/rules-runtime/encounterDamageRollWindow'
 import { initiativeActionOrder } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
@@ -40,12 +43,15 @@ import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/e
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   buildEncounterAreaPendingSnapshot,
+  decideEncounterAreaDamageRoll,
+  encounterAreaDamageRollWindow,
   encounterAreaSaveAwaiting,
   encounterAreaSettled,
   encounterChosenActorEntries,
   encounterChosenActorsChecksum,
   encounterCollisionSaveOccurrenceId,
   holdEncounterAreaCollisionSaves,
+  holdEncounterAreaDamageRoll,
   holdEncounterAreaForcedMovement,
   landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
@@ -53,7 +59,8 @@ import {
   markEncounterAreaSaveTested,
   nextEncounterAreaWindowRequestId,
   openEncounterAreaSaveWindow,
-  removeEncounterAreaTargetFromSnapshot
+  removeEncounterAreaTargetFromSnapshot,
+  rerolledEncounterAreaRolls
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
@@ -73,7 +80,11 @@ import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/e
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
-import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import {
+  payableCharacterDamageRerolls,
+  prepareNativeLiveActionMaintenance,
+  settledCharacterActionSpend
+} from './nativeEncounterMaintenance.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import {
   type AreaPlanBase,
@@ -604,11 +615,35 @@ export async function planNativeLiveEncounterAreaAnswer(
   }
 ) {
   const { command, actors, areaSnapshot, resolution } = input
-  if (resolution.kind === 'DAMAGE_REROLL')
-    throw new Error('An area action opens no damage roll window.')
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
+  // The caster's answer to the area's one damage window rerolls the shared roll for every creature
+  // and settles the area on it (D208).
+  if (resolution.kind === 'DAMAGE_REROLL') {
+    if (
+      encounterAreaDamageRollWindow(context)?.window.request.requestId !== input.requestId ||
+      areaSnapshot.occurrenceId !== input.response.occurrenceId ||
+      context.commandFingerprint !== input.fingerprint
+    )
+      throw new Error('The pending action evidence is invalid.')
+    const { option } = resolution
+    return planNativeLiveEncounterAreaCommit({
+      ...input,
+      areaSnapshot: decideEncounterAreaDamageRoll(
+        areaSnapshot,
+        rerolledEncounterAreaRolls(areaSnapshot, resolution.rerolled),
+        option && {
+          modifierId: option.modifierId,
+          label: option.label,
+          chargeId: option.chargeId,
+          cost: option.cost,
+          poolId: option.poolId,
+          maxDice: option.maxDice
+        }
+      )
+    })
+  }
   const answered = context.targets.find(
     (target) => target.snapshot.request.requestId === input.requestId
   )
@@ -955,7 +990,14 @@ export async function planNativeLiveEncounterAreaCommit(
   // An area that keeps no creature (it caught nobody, or the GM removed everyone it caught) commits
   // the caster's spend alone, against the caster's own preparation of the action.
   const first = kept[0] ?? (await prepareAreaCasterLead(input, base, context.removedActorIds))
-  const lead = first.target.prepared
+  // A damage reroll the caster paid for at the area's window joins the cast's own spend (D208).
+  const lead = settledCharacterActionSpend({
+    prepared: first.target.prepared,
+    chosenOnHit: null,
+    damageReroll: context.damageRoll?.reroll ?? null,
+    maintenance: null,
+    automationMode: input.state.automationMode
+  })
   const formCreature = await readChosenFormCreature(
     input,
     lead,
@@ -1005,6 +1047,8 @@ export async function planNativeLiveEncounterAreaCommit(
       )
     )
   const audits = legendaryResistanceAudits(kept)
+  // A point area rolls its damage on one tape; once its window opened, every replan settles on it.
+  const sharedRolls = context.damageRoll?.rolls.map((roll) => ({ ...roll })) ?? []
   const settled = await settleEncounterAreaAction({
     runtime: input.runtime,
     random: input.random,
@@ -1021,8 +1065,50 @@ export async function planNativeLiveEncounterAreaCommit(
     })),
     tests,
     legendaryResistance: audits,
-    rollsPerTarget
+    rollsPerTarget,
+    sharedRolls
   })
+  // A caster who can pay to reroll damage dice answers the area's one shared roll before any of it
+  // lands (D208). Each ray of an attack list is its own roll, and a GM removal settles without one.
+  const damageWindow =
+    context.damageRoll || rollsPerTarget || input.removal
+      ? null
+      : await openEncounterAreaDamageRollWindow({
+          runtime: input.runtime,
+          adapter: lead.adapter,
+          occurrenceId: areaOccurrenceId,
+          costs: payableCharacterDamageRerolls({ prepared: lead, maintenance: null }),
+          rolls: sharedRolls,
+          settled
+        })
+  if (damageWindow) {
+    const rolledFor = kept.find(({ sealed }) => sealed.actorId === damageWindow.actorId)?.sealed
+    if (rolledFor?.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
+      throw new Error('The area damage roll has no creature to open its window on.')
+    return {
+      kind: 'AREA_PENDING' as const,
+      command,
+      response: input.response,
+      snapshot: holdEncounterAreaDamageRoll(
+        areaSnapshot,
+        sharedRolls,
+        buildEncounterActionPendingSnapshot({
+          execution: damageWindow.pending,
+          optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+          commandJson: context.commandJson,
+          commandFingerprint: context.commandFingerprint,
+          initiatorUserId: context.initiatorUserId,
+          sourceActorId: context.casterActorId,
+          targetActorId: damageWindow.actorId,
+          currentnessChecksum: rolledFor.snapshot.applicationContext.currentnessChecksum
+        })
+      ),
+      prepared: { actors: input.actors },
+      fingerprint: input.fingerprint,
+      initiatorUserId: context.initiatorUserId,
+      occurrenceId: areaOccurrenceId
+    }
+  }
 
   const resumed = input.response ?? input.removal
   const occurredAt = new Date().toISOString()
