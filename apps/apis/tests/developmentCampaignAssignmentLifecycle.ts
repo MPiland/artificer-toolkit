@@ -754,7 +754,7 @@ export async function verifyCampaignAssignmentLifecycle(
       } satisfies CampaignPartyInventoryMutationInput
     })
     const beforeReplacement = await snapshot()
-    await owner.mutation(api.campaigns.assignments.assign, {
+    await first.client.mutation(api.campaigns.assignments.assign, {
       campaignId,
       characterId: replacementId
     })
@@ -822,7 +822,7 @@ export async function verifyCampaignAssignmentLifecycle(
 
     const noWriteReplacement = await snapshot()
     assert.deepEqual(
-      await owner.mutation(api.campaigns.assignments.assign, {
+      await first.client.mutation(api.campaigns.assignments.assign, {
         campaignId,
         characterId: replacementId
       }),

@@ -7,7 +7,7 @@ Closes PLATFORM-27.1 and PLATFORM-27.2. Branch `platform-27-authz`, based on `co
 - There are 295 client-callable public Convex functions (136 queries, 140 mutations, 19 actions, after excluding the Better Auth component's 8) and 14 HTTP routes. Each one has a declared access rule.
 - The audit found no function that takes its caller's identity from its arguments.
 - It found no confirmed cross-user read or write, no unauthenticated write, and no write path to master or seeded content.
-- No code fix was needed. Seven findings are product questions, listed under [Rulings needed](#rulings-needed). Two low-impact items are deferred as edge cases.
+- Seven findings were product questions. The user ruled on all of them in D211 (see [Rulings](#rulings-d211)). Three of the rulings needed code fixes, now made under AC 27.2. Two low-impact items are deferred as edge cases.
 - Coverage test: `apps/apis/convex/publicFunctionAccess.test.ts`. It has three parts:
   1. It enumerates every exported public `query`/`mutation`/`action` at runtime (Convex's `isPublic` flag) and fails if any function has no rule or any rule has no function. A `public` or `development` rule must also give a reason.
   2. It scans every argument validator, at any depth, for fields named `*userId(s)` and fails unless each one is declared in `USER_ID_ARGS` with why it is not the caller's identity.
@@ -21,8 +21,8 @@ Every rule except `public` and `development` gets the caller from `ctx.auth` thr
 | Rule        | Count | Meaning                                                                                                                                                      |
 | ----------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | self        |    61 | Reads or writes only the caller's own records, keyed by that identity.                                                                                       |
-| owner       |    62 | The caller must own the record that a client-supplied id names.                                                                                              |
-| member      |    78 | The caller must be an active Campaign member. Assignment, visibility and authorship checks narrow this further.                                              |
+| owner       |    63 | The caller must own the record that a client-supplied id names.                                                                                              |
+| member      |    77 | The caller must be an active Campaign member. Assignment, visibility and authorship checks narrow this further.                                              |
 | gm          |    67 | The caller must hold the Campaign owner role.                                                                                                                |
 | superadmin  |     5 | `requireSuperadmin`: superadmin role and a verified email (`identity.ts:80-87`).                                                                             |
 | signedIn    |     8 | Any signed-in caller, filtered by the target's visibility (public profiles, open public listings, report evidence).                                          |
@@ -83,7 +83,7 @@ Each line lists the function, its rule and the evidence `file:line` (relative to
 - `announcements`: `list` and `get` are member, and PARTY-scoped announcements are limited to party members (`announcements.ts:64-120`). `create` is gm (`:129-132`).
 - `archive:archive`: gm (`archive.ts:18-21`).
 - `assignments`
-  - `assign`: member. A player may assign only their own Character; the GM may assign an active member's Character (`assignments.ts:27-47`).
+  - `assign`: owner. An active member may assign only a Character they own. The GM is no exception (D211, `assignments.ts:27-33`).
   - `unassign`: member, with a player limited to their own assignment (`:111-123`).
 - `characterControllers:setControllers`: gm (`characterControllers.ts:22-41`).
 - `characterSheet`
@@ -189,7 +189,7 @@ Each line lists the function, its rule and the evidence `file:line` (relative to
   - `get`, `list`, `pendingPrepared`: member. Players get the player projection (`packages/encounter-persistence/src/sessionReads.ts`).
   - `actorSides`: gm.
 - `encounters/activeReads:active`, `encounters/pendingReads:pendingRuleOccurrence`, `encounters/sceneBindings:get`: member (`encounters/readAccess.ts:12-30`).
-- `encounters/activeReads:decisionSettlement`: member. See [Rulings needed](#rulings-needed) item 7.
+- `encounters/activeReads:decisionSettlement`: member. See [Rulings](#rulings-d211) item 7.
 - `encounters/actionChoices`, `encounters/actionTargetModifiers`: member, and the caller must control the actor (`NOT_ACTOR_CONTROLLER`).
 - `encounters/actorTokenBindings:execute`: gm, enforced in `packages/encounter-persistence/src/actorTokenBindingPersistence.ts:57-64`.
 - `encounters/healthDisplay:share`, `encounters/runs:create`, `encounters/runs:deletePrepared`: gm.
@@ -216,24 +216,31 @@ Each line lists the function, its rule and the evidence `file:line` (relative to
 - Listing-owner functions are owner: `listings:getOwned`, `open`, `close`, `update`; `listingDrafts:create`, `get`, `update`, `remove`; `admissionLists:listListingApplications`, `listListingInvitations`; `invitationReads:getForListing`; `invitations:create`, `revoke`; `applications:decide`. Each goes through `requireOwnedListing` / `requireOwnedCampaign` (`social/listingDocuments.ts:37-53`).
 - `applications:getOwn`, `applications:withdraw`: owner (the applicant).
 - `invitations:accept`, `invitations:decline`: self (the recipient).
-- `discovery`, `discoveryLists`, `applications:submit`, `reports:create`: signedIn, with visibility, block and evidence checks (`social/discovery.ts:24-62`, `social/reportEvidence.ts:22-94`).
+- `discovery`, `discoveryLists`, `applications:submit`, `reports:create`: signedIn, with visibility, block, ban and evidence checks. Discovery reads go through `readDiscoverableAccount` (`social/visibility.ts:34-52`). `getProfile` also refuses an account whose `profileVisibility` is not PUBLIC, unless the viewer owns it (`social/discovery.ts:21-43`). See also `social/reportEvidence.ts:22-94`.
 - `moderation`, `listingModeration:action`, `profileModeration:action`: superadmin (`social/moderationDocuments.ts:16-19`).
 
 ### Not client-callable
 
 `betterAuth/adapter:*` and `betterAuth/sessionUser:get` belong to the Better Auth component (`betterAuth/convex.config.ts`). Only this app's own functions can call them, and every call site passes identity derived from `ctx.auth` (`lib/authUserReads.ts:51-60`).
 
-## Rulings needed
+## Rulings (D211)
 
-Each item below is current behavior that may be intended. None reads or changes another user's data beyond what is described.
+The user ruled on all seven findings on 2026-11-03 (D211 in `docs/handoffs/phase-08-2-decisions.md`).
 
-1. **GM-initiated assignment** (`campaigns/assignments:assign`, `assignments.ts:32-47`). The GM can bind any active member's ACTIVE Character into the Campaign without that player's consent, which makes it visible to the party. Is this intended?
-2. **GM rolls for a player's Character** (`campaigns/characterSheet:executeRoll`, CHAR allows OWNER at `characterState.ts:33`). The roll is stored under the GM. Other sheet commands limit the GM through `assertCampaignGmSheetCommandAllowed`. Should rolls be limited the same way, given that players drive their own Characters' actions?
-3. **Gifting into another player's Character inventory** (`campaigns/inventoryTransfers:transfer`, `inventoryCharacter.ts:25`). A player may push items from their own Character or the party into another member's Character without that player's consent. `inventoryOwners:transferVersions` shows the destination's version number. The source side is gated. Is this intended?
-4. **Account PRIVATE vs social discovery** (`social/discovery:getProfile`, `discovery.ts:24-34`). Any signed-in viewer with an active social profile can resolve another ACTIVE social profile's username from its random public id. The account-level `profileVisibility` is not consulted. Does social participation override PRIVATE?
-5. **Banned hosts stay discoverable.** A Better Auth ban refuses the banned user's own sessions (`identity.ts:51`). It does not suspend their social profile, so their OPEN PUBLIC listings stay in `discoveryLists:browse/search` until a moderator suspends the profile. Should a ban also suspend the social profile?
-6. **Signed-out reference reads** (`content/details:get`, `content/catalogue:counts`, `content/systems:*`, platform art). These are currently public for platform (SRD) content. Should signed-out readers keep that access?
-7. **Decision settlement for other addressees** (`encounters/activeReads:decisionSettlement`, `packages/encounter-persistence/src/sessionReads.ts:242-263`). Any member who can read the Run can learn, by occurrence id, whether a decision was answered or GM-skipped. The occurrence does not have to have been addressed to them. The leak is a single flag. Closing it would require recording each occurrence's addressees, so this is a ruling: either members may see the settlement, or it is restricted to addressees and the GM.
+1. **GM-initiated assignment**: resolved by D211, fixed. Only a Character's owner may assign it to a Campaign. The GM keeps `unassign`. Before the fix, `assignments.ts` let a GM bind any active member's ACTIVE Character, which made it visible to the party. Now `assign` refuses with `Character is unavailable.` unless the caller owns the Character (`assignments.ts:27-33`), and its coverage rule moved from `member` to `owner`. The web UI needed no change: `CampaignParty` offers Add/Change Character only from the viewer's own Characters (`capabilities.assignOwnCharacter`), and the GM's control on others' rows is Unassign only. Test setups that had the GM assign a player's Character now have the owner do it.
+2. **GM rolls for a player's Character** (`campaigns/characterSheet:executeRoll`): resolved by D211, no change. This is the GM override in the Foundry ownership model, and the roll is recorded under the GM.
+3. **Gifting into another member's Character inventory** (`campaigns/inventoryTransfers:transfer`): resolved by D211, no change. It stays a logged hand-off with no accept step, and the recipient can drop or return the item.
+4. **Account PRIVATE vs social discovery**: resolved by D211, fixed. `social/discovery:getProfile` now refuses another viewer's lookup of an account whose `profileVisibility` is not PUBLIC; the owner still resolves their own (`social/discovery.ts:21-43`). The other discovery reads (`discovery:getListing`, `discoveryLists:browse`/`search`) never resolve a profile by public id. They show a listing's host only because the host published an OPEN PUBLIC listing, so PRIVATE does not hide the listing. Hiding it would remove every host who never switched their account to PUBLIC, because PRIVATE is the default. The orchestrator confirmed this reading (D211).
+5. **Banned hosts stay discoverable**: resolved by D211, fixed by filtering at read time. No transaction applies a ban in the app: the Better Auth admin endpoints are disabled (`betterAuth/options.ts:40-41`), so bans are written outside the app, and they can expire (`banExpires`). Suspending the profile when a ban is applied is therefore impossible, and an expired ban would leave it suspended. Instead, every discovery read (`getProfile`, `getListing`, `browse`, `search`) resolves the host through `readDiscoverableAccount` (`social/visibility.ts:34-52`). It returns null for an inactive, blocked or banned profile, the same way `readViewableProfileByUsername` already hides banned accounts. When a ban expires, the listings return without a moderator step.
+6. **Signed-out reference reads**: resolved by D211, no change. The SRD is openly licensed.
+7. **Decision settlement for other addressees** (`encounters/activeReads:decisionSettlement`): resolved by D211, no change. It is a single flag. Restricting it would require recording each occurrence's addressees.
+
+### Red proofs
+
+Each fix has a refusal test that fails against the production code before the fix. CI's "Red proof against the phase branch" job runs these test files at the merge-base.
+
+- Assignment: `campaigns/assignments.test.ts` "allows only the Character owner to bind it, idempotently; the GM cannot bind a player Character (D211)". Before the fix, the GM's `assign` resolved `{ ok: true }` instead of rejecting.
+- PRIVATE and ban: `social/discovery.test.ts` "hides PRIVATE accounts and banned hosts from discovery; owners still resolve their own (D211)". Before the fix, the PRIVATE `getProfile` lookup resolved, and the banned host's listing stayed in `browse` and `getListing`.
 
 ## Deferred edge cases (low likelihood, nothing exposed)
 

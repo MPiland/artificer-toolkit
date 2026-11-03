@@ -85,7 +85,7 @@ async function setup() {
       leftAt: null
     })
   )
-  await base.other.caller.mutation(assign, {
+  await base.owner.caller.mutation(assign, {
     campaignId: campaign.id,
     characterId: base.character.id
   })

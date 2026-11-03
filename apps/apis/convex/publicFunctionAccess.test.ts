@@ -62,7 +62,7 @@ const ACCESS: Record<string, Record<string, Access>> = {
   'authoring/nodeRuntime': { normalizeValues: 'self', resolve: 'self' },
   'campaigns/announcements': { create: 'gm', get: 'member', list: 'member' },
   'campaigns/archive': { archive: 'gm' },
-  'campaigns/assignments': { assign: 'member', unassign: 'member' },
+  'campaigns/assignments': { assign: 'owner', unassign: 'member' },
   'campaigns/characterControllers': { setControllers: 'gm' },
   'campaigns/characterSheet': {
     basics: 'member',
