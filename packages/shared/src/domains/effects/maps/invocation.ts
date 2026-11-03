@@ -12,7 +12,7 @@ import type {
   SparesCreaturesAuthored
 } from '#authored'
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
-import { buildNodeMap, type NodeMap } from '#utils'
+import { buildNodeMap, type NodeMap, type NodeSelectSource } from '#utils'
 import {
   MEASUREMENT_NODE_MAP,
   RANGE_NODE_MAP,
@@ -21,6 +21,16 @@ import {
 } from '../../shared/maps/index.js'
 import { CHECK_NODE_MAP } from './check.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
+
+/**
+ * The resource pools an effect can spend or restore: the `charges` of the record being authored,
+ * plus those of its parent class.
+ */
+export const CHARGE_SELECT_SOURCE: NodeSelectSource = {
+  kind: 'DOCUMENT_OBJECTS',
+  key: 'charges',
+  parent: { idPath: ['parentClassId'], documentTable: 'classes' }
+}
 
 const INVOCATION_KIND_OPTIONS: { code: EffectInvocationKind; label: string }[] = [
   { code: 'ACTION', label: 'Action' },
@@ -65,10 +75,13 @@ export const ACTIVATION_NODE_MAP = activation.define(
 )
 
 const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes }) => {
-  const { text, number } = nodes
+  const { selectSingle, number } = nodes
 
   map
-    .set('chargeId', text(['chargeId'], 'Charge ID', { requiredIf: true }))
+    .set(
+      'chargeId',
+      selectSingle(['chargeId'], 'Resource pool', CHARGE_SELECT_SOURCE, { requiredIf: true })
+    )
     .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
 })
 
@@ -248,10 +261,16 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
 const castModifier = buildNodeMap<CastModifierAuthored>()
 
 const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes }) => {
-  const { text, number, toggle, groupObject, groupArray } = nodes
+  const { selectSingle, number, toggle, groupObject, groupArray } = nodes
 
   map
-    .set('chargeId', text(['chargeId'], 'Charge ID', { order: 1, requiredIf: true }))
+    .set(
+      'chargeId',
+      selectSingle(['chargeId'], 'Resource pool', CHARGE_SELECT_SOURCE, {
+        order: 1,
+        requiredIf: true
+      })
+    )
     .set(
       'cost',
       number(['cost'], 'Cost', { order: 2, constraints: { minimum: 1 }, requiredIf: true })
@@ -291,7 +310,7 @@ const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label
 const optionalOnHit = buildNodeMap<OptionalOnHitAuthored>()
 
 const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define('optionalOnHit', ({ map, nodes, cond }) => {
-  const { selectSingle, text, number } = nodes
+  const { selectSingle, number } = nodes
   const isResourcePool = cond.local().field(['kind']).eq('RESOURCE_POOL')
 
   map
@@ -306,7 +325,7 @@ const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define('optionalOnHit', ({ map, n
     )
     .set(
       'chargeId',
-      text(['chargeId'], 'Charge ID', {
+      selectSingle(['chargeId'], 'Resource pool', CHARGE_SELECT_SOURCE, {
         order: 2,
         requiredIf: isResourcePool,
         showIf: isResourcePool,

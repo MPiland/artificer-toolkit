@@ -306067,6 +306067,7 @@ export declare const internal: {
               challenge_ratings?: Array<
                 Record<string, string | number | boolean | null>
               >;
+              charges?: Array<Record<string, string | number | boolean | null>>;
               class_features?: Array<
                 Record<string, string | number | boolean | null>
               >;
@@ -306238,6 +306239,7 @@ export declare const internal: {
             background_features?: string;
             backgrounds?: string;
             challenge_ratings?: string;
+            charges?: string;
             class_features?: string;
             class_proficiency_grants?: string;
             class_resources?: string;

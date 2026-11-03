@@ -22,7 +22,8 @@ const checksum = 'a'.repeat(64)
 const factsShapeByVersion: Readonly<Record<number, string>> = {
   1: 'bd9f89f9203754081a83156523106116d6940867a2d308ddc1aa85d4f4c602c3',
   2: '109cf498720edeb3af1c05d7a6239694838221ca7919d9b95b6ec558c72309c2',
-  3: '95fd3f6f8a65971fff2387c542bfde2e2ab68eb0d6854770a5c0c1adc70f0b34'
+  3: '95fd3f6f8a65971fff2387c542bfde2e2ab68eb0d6854770a5c0c1adc70f0b34',
+  4: '1e25cef1e57e7208056e4012cfca4d22f82fc978b338dd9f94954c2ed3824903'
 }
 const subjectKinds = {
   backgrounds: 'BACKGROUND',
