@@ -275,19 +275,21 @@ interface ManagedClient {
   context: BrowserContext
   failedRequests: string[]
   liveSessionFrames: string[]
-  liveSessionSentFrameTimes: number[]
   liveSessionSentFrames: string[]
   liveSessionUrls: string[]
   page: Page
   role: 'GM' | 'PLAYER' | 'PLAYER2'
-  visualFramePaintPending: boolean
-  visualFramePaints: VisualFramePaint[]
-  visualFrameTracking: boolean
+}
+
+/** Page-clock times of the token-drag preview frames a page sent and received (`recordPreviewFrameTimes`). */
+interface PreviewFrameTimes {
+  received: VisualFramePaint[]
+  sent: { at: number; data: string }[]
 }
 
 interface VisualFramePaint {
+  data: string
   paintedAt: number | null
-  payload: string
   receivedAt: number
 }
 
@@ -477,143 +479,132 @@ async function collectTokenDragTimings(
   })
   await sharePreviews.click()
   await expect(sharePreviews).toHaveAttribute('aria-pressed', 'true')
-  try {
-    for (let index = 0; index < totalSamples; index += 1) {
-      const priorVersion = await readSceneVersion(gm.page)
-      await gm.page.getByRole('button', { name: 'Scene controls' }).click()
-      await gm.page.getByRole('menuitem', { name: `Focus ${dragTokenLabel}`, exact: true }).click()
-      await gm.page.evaluate(
+  for (let index = 0; index < totalSamples; index += 1) {
+    const priorVersion = await readSceneVersion(gm.page)
+    await gm.page.getByRole('button', { name: 'Scene controls' }).click()
+    await gm.page.getByRole('menuitem', { name: `Focus ${dragTokenLabel}`, exact: true }).click()
+    await gm.page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        })
+    )
+    const canvas = liveSceneRegion(gm.page).getByRole('img', {
+      name: 'Interactive campaign scene'
+    })
+    const bounds = await canvas.boundingBox()
+    if (!bounds) throw new Error('Managed VTT canvas has no layout bounds.')
+    const from = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+    const dragDistance = Math.min(80, bounds.height / 5)
+    const to = {
+      x: from.x,
+      y: from.y + (index % 2 === 0 ? dragDistance : -dragDistance)
+    }
+    await gm.page.mouse.move(from.x, from.y)
+    await expect
+      .poll(() => canvas.evaluate((element) => getComputedStyle(element).cursor))
+      .toBe('grab')
+    await armLocalDragPaint(gm.page)
+    const previewStarts = await Promise.all(
+      previewPlayers.map(async (player) => (await previewFrameTimes(player.page)).received.length)
+    )
+    const privateStarts = privatePlayers.map((player) => player.liveSessionFrames.length)
+    const originStart = gm.liveSessionFrames.length
+    const originSentStart = gm.liveSessionSentFrames.length
+    await gm.page.mouse.down()
+    await gm.page.mouse.move(from.x + 1, from.y)
+    await expect
+      .poll(() => canvas.evaluate((element) => getComputedStyle(element).cursor))
+      .toBe('grabbing')
+    await gm.page.mouse.move(to.x, to.y, { steps: 6 })
+
+    const localPaint = await waitForLocalDragPaint(gm.page)
+    await expect
+      .poll(() =>
+        gm.liveSessionSentFrames
+          .slice(originSentStart)
+          .some((payload) => sentTokenDragPreview(payload))
+      )
+      .toBe(true)
+    const originAccepted = () =>
+      gm.liveSessionFrames
+        .slice(originStart)
+        .map(tokenDragAccepted)
+        .find((value) => value !== null) ?? null
+    try {
+      await expect.poll(originAccepted).not.toBeNull()
+    } catch (error) {
+      throw new Error(
+        `GM token preview received no authoritative response. Recent received frames: ${JSON.stringify(summarizeFrames(gm.liveSessionFrames.slice(originStart)))}. Recent sent frames: ${JSON.stringify(summarizeFrames(gm.liveSessionSentFrames.slice(originSentStart)))}.`,
+        { cause: error }
+      )
+    }
+    expect(originAccepted()).toBe(true)
+    const peerPreviewPaints = await Promise.all(
+      previewPlayers.map((player, playerIndex) =>
+        waitForVisualFrame(
+          player,
+          previewStarts[playerIndex]!,
+          (payload) => tokenDragPreview(payload) !== null
+        )
+      )
+    )
+    for (const [privateIndex, player] of privatePlayers.entries()) {
+      await player.page.evaluate(
         () =>
           new Promise<void>((resolve) => {
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
           })
       )
-      const canvas = liveSceneRegion(gm.page).getByRole('img', {
-        name: 'Interactive campaign scene'
-      })
-      const bounds = await canvas.boundingBox()
-      if (!bounds) throw new Error('Managed VTT canvas has no layout bounds.')
-      const from = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
-      const dragDistance = Math.min(80, bounds.height / 5)
-      const to = {
-        x: from.x,
-        y: from.y + (index % 2 === 0 ? dragDistance : -dragDistance)
-      }
-      await gm.page.mouse.move(from.x, from.y)
-      await expect
-        .poll(() => canvas.evaluate((element) => getComputedStyle(element).cursor))
-        .toBe('grab')
-      await armLocalDragPaint(gm.page)
-      const previewStarts = previewPlayers.map((player) => player.visualFramePaints.length)
-      const privateStarts = privatePlayers.map((player) => player.liveSessionFrames.length)
-      const originStart = gm.liveSessionFrames.length
-      const originSentStart = gm.liveSessionSentFrames.length
-      for (const player of previewPlayers) player.visualFrameTracking = true
-      await gm.page.mouse.down()
-      await gm.page.mouse.move(from.x + 1, from.y)
-      await expect
-        .poll(() => canvas.evaluate((element) => getComputedStyle(element).cursor))
-        .toBe('grabbing')
-      await gm.page.mouse.move(to.x, to.y, { steps: 6 })
-
-      const localPaint = await waitForLocalDragPaint(gm.page)
-      await expect
-        .poll(() =>
-          gm.liveSessionSentFrames
-            .slice(originSentStart)
-            .some((payload) => sentTokenDragPreview(payload))
-        )
-        .toBe(true)
-      const originAccepted = () =>
-        gm.liveSessionFrames
-          .slice(originStart)
-          .map(tokenDragAccepted)
-          .find((value) => value !== null) ?? null
-      try {
-        await expect.poll(originAccepted).not.toBeNull()
-      } catch (error) {
-        throw new Error(
-          `GM token preview received no authoritative response. Recent received frames: ${JSON.stringify(summarizeFrames(gm.liveSessionFrames.slice(originStart)))}. Recent sent frames: ${JSON.stringify(summarizeFrames(gm.liveSessionSentFrames.slice(originSentStart)))}.`,
-          { cause: error }
-        )
-      }
-      expect(originAccepted()).toBe(true)
-      const peerPreviewPaints = await Promise.all(
-        previewPlayers.map((player, playerIndex) =>
-          waitForVisualFrame(
-            player,
-            previewStarts[playerIndex]!,
-            (payload) => tokenDragPreview(payload) !== null
-          )
-        )
-      )
-      for (const player of previewPlayers) player.visualFrameTracking = false
-      for (const [privateIndex, player] of privatePlayers.entries()) {
-        await player.page.evaluate(
-          () =>
-            new Promise<void>((resolve) => {
-              requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-            })
-        )
-        expect(
-          player.liveSessionFrames
-            .slice(privateStarts[privateIndex]!)
-            .some((payload) => tokenDragPreview(payload) !== null)
-        ).toBe(false)
-      }
-      const resolvedTarget = tokenDragPreview(peerPreviewPaints[0]!.payload)
-      if (!resolvedTarget) throw new Error('Managed VTT drag preview has no resolved position.')
-      for (const preview of peerPreviewPaints.slice(1)) {
-        const candidate = tokenDragPreview(preview.payload)
-        if (
-          candidate?.sequence !== resolvedTarget.sequence ||
-          candidate?.tokenId !== resolvedTarget.tokenId ||
-          !samePosition(candidate.position, resolvedTarget.position)
-        ) {
-          throw new Error('Managed VTT peers received different resolved drag positions.')
-        }
-      }
-      const sentOffset = gm.liveSessionSentFrames
-        .slice(originSentStart)
-        .findIndex((payload) => sentTokenDragPreview(payload)?.sequence === resolvedTarget.sequence)
-      if (sentOffset < 0)
-        throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
-      const sentAt = gm.liveSessionSentFrameTimes[originSentStart + sentOffset]
-      if (sentAt === undefined)
-        throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
-
-      await armLocalDragRelease(gm.page)
-      await Promise.all(
-        clients.map((client) => armSceneVersionShown(client.page, priorVersion + 1))
-      )
-      await gm.page.mouse.up()
-      const releasedAt = await waitForLocalDragRelease(gm.page)
-      await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1)))
-      const observedAt = await Promise.all(
-        clients.map((client) => sceneVersionShownAt(client.page))
-      )
-
-      if (index >= warmupPairs) {
-        const slowestPaint = peerPreviewPaints.reduce((slowest, next) =>
-          slowest.paintedAt! >= next.paintedAt! ? slowest : next
-        )
-        const ephemeralMs = slowestPaint.paintedAt! - sentAt
-        sentToReceived.push(slowestPaint.receivedAt - sentAt)
-        receivedToPaint.push(slowestPaint.paintedAt! - slowestPaint.receivedAt)
-        const durableMs = Math.max(...observedAt.slice(1)) - releasedAt
-        samples.ephemeral.push(ephemeralMs)
-        samples.durable.push(durableMs)
-        samples.inputToSend.push(sentAt - localPaint.movedAt)
-        convergence.ephemeral.push(ephemeralMs)
-        convergence.durable.push(durableMs)
-        convergence.authoritative.push(Math.max(...observedAt) - releasedAt)
-      }
-
-      await gm.page.getByRole('button', { name: 'Undo last token move' }).click()
-      await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 2)))
+      expect(
+        player.liveSessionFrames
+          .slice(privateStarts[privateIndex]!)
+          .some((payload) => tokenDragPreview(payload) !== null)
+      ).toBe(false)
     }
-  } finally {
-    for (const client of clients) client.visualFrameTracking = false
+    const resolvedTarget = tokenDragPreview(peerPreviewPaints[0]!.data)
+    if (!resolvedTarget) throw new Error('Managed VTT drag preview has no resolved position.')
+    for (const preview of peerPreviewPaints.slice(1)) {
+      const candidate = tokenDragPreview(preview.data)
+      if (
+        candidate?.sequence !== resolvedTarget.sequence ||
+        candidate?.tokenId !== resolvedTarget.tokenId ||
+        !samePosition(candidate.position, resolvedTarget.position)
+      ) {
+        throw new Error('Managed VTT peers received different resolved drag positions.')
+      }
+    }
+    const sentAt = (await previewFrameTimes(gm.page)).sent.find(
+      ({ data }) => sentTokenDragPreview(data)?.sequence === resolvedTarget.sequence
+    )?.at
+    if (sentAt === undefined)
+      throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
+
+    await armLocalDragRelease(gm.page)
+    await Promise.all(clients.map((client) => armSceneVersionShown(client.page, priorVersion + 1)))
+    await gm.page.mouse.up()
+    const releasedAt = await waitForLocalDragRelease(gm.page)
+    await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1)))
+    const observedAt = await Promise.all(clients.map((client) => sceneVersionShownAt(client.page)))
+
+    if (index >= warmupPairs) {
+      const slowestPaint = peerPreviewPaints.reduce((slowest, next) =>
+        slowest.paintedAt! >= next.paintedAt! ? slowest : next
+      )
+      const ephemeralMs = slowestPaint.paintedAt! - sentAt
+      sentToReceived.push(slowestPaint.receivedAt - sentAt)
+      receivedToPaint.push(slowestPaint.paintedAt! - slowestPaint.receivedAt)
+      const durableMs = Math.max(...observedAt.slice(1)) - releasedAt
+      samples.ephemeral.push(ephemeralMs)
+      samples.durable.push(durableMs)
+      samples.inputToSend.push(sentAt - localPaint.movedAt)
+      convergence.ephemeral.push(ephemeralMs)
+      convergence.durable.push(durableMs)
+      convergence.authoritative.push(Math.max(...observedAt) - releasedAt)
+    }
+
+    await gm.page.getByRole('button', { name: 'Undo last token move' }).click()
+    await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 2)))
   }
   console.info(
     `Managed VTT preview timing segments: ${JSON.stringify({
@@ -735,10 +726,10 @@ async function waitForVisualFrame(
   startIndex: number,
   predicate: (payload: string) => boolean
 ): Promise<VisualFramePaint> {
-  const read = () =>
-    client.visualFramePaints
+  const read = async () =>
+    (await previewFrameTimes(client.page)).received
       .slice(startIndex)
-      .find((frame) => frame.paintedAt !== null && predicate(frame.payload)) ?? null
+      .find((frame) => frame.paintedAt !== null && predicate(frame.data)) ?? null
   try {
     await expect.poll(read).not.toBeNull()
   } catch (error) {
@@ -755,7 +746,7 @@ async function waitForVisualFrame(
       { cause: error }
     )
   }
-  const result = read()
+  const result = await read()
   if (!result) throw new Error(`${client.role} did not paint the expected live-session frame.`)
   return result
 }
@@ -995,6 +986,7 @@ async function openManagedClient(
   account: { email: string; password: string }
 ): Promise<ManagedClient> {
   const context = await browser.newContext()
+  await context.addInitScript(recordPreviewFrameTimes)
   const browserErrors: string[] = []
   const failedRequests: string[] = []
   try {
@@ -1005,14 +997,10 @@ async function openManagedClient(
       context,
       failedRequests,
       liveSessionFrames: [],
-      liveSessionSentFrameTimes: [],
       liveSessionSentFrames: [],
       liveSessionUrls: [],
       page,
-      role,
-      visualFramePaintPending: false,
-      visualFramePaints: [],
-      visualFrameTracking: false
+      role
     }
     page.on('console', (message) => {
       if (message.type() === 'error')
@@ -1047,48 +1035,53 @@ function observeLiveSessionSockets(page: Page, client: ManagedClient): void {
     if (!isLiveSessionSocket(socket.url())) return
     client.liveSessionUrls.push(socket.url())
     socket.on('framereceived', ({ payload }) => {
-      const rawPayload = payload.toString()
-      client.liveSessionFrames.push(rawPayload)
-      if (
-        !client.visualFrameTracking ||
-        client.visualFramePaintPending ||
-        !isVisualTimingFrame(rawPayload)
-      )
-        return
-      client.visualFramePaintPending = true
-      const frame: VisualFramePaint = {
-        paintedAt: null,
-        payload: rawPayload,
-        receivedAt: Date.now()
-      }
-      client.visualFramePaints.push(frame)
-      void page
-        .evaluate(
-          () =>
-            new Promise<number>((resolve) => {
-              requestAnimationFrame(() => requestAnimationFrame(() => resolve(Date.now())))
-            })
-        )
-        .then((paintedAt) => {
-          frame.paintedAt = paintedAt
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          client.visualFramePaintPending = false
-        })
+      client.liveSessionFrames.push(payload.toString())
     })
     socket.on('framesent', ({ payload }) => {
-      client.liveSessionSentFrameTimes.push(Date.now())
       client.liveSessionSentFrames.push(payload.toString())
     })
   })
 }
 
-function isVisualTimingFrame(payload: string): boolean {
-  const message = parsedFrame(payload)
-  return (
-    message?.type === 'TRANSIENT' &&
-    record(record(message.message)?.envelope)?.kind === 'TOKEN_DRAG_PREVIEW'
+/**
+ * Runs in every page before its scripts. Playwright's frame events reach the runner late (a peer's
+ * receipt of a preview arrived up to 142 ms before the runner saw its send), so the ephemeral path is
+ * timed on page clocks instead: when the page sends a token-drag preview, and when a page receives one
+ * and paints the next frame. Only previews are kept, so the record stays small.
+ */
+function recordPreviewFrameTimes(): void {
+  const frames: PreviewFrameTimes = { received: [], sent: [] }
+  ;(window as unknown as Record<string, unknown>).__vttPreviewFrames = frames
+  const isPreview = (socket: WebSocket, data: unknown): data is string =>
+    typeof data === 'string' &&
+    data.includes('"TOKEN_DRAG_PREVIEW"') &&
+    new URL(socket.url).pathname.startsWith('/live-session/')
+  const NativeWebSocket = window.WebSocket
+  window.WebSocket = class extends NativeWebSocket {
+    constructor(url: string | URL, protocols?: string | string[]) {
+      super(url, protocols)
+      this.addEventListener('message', ({ data }) => {
+        if (!isPreview(this, data)) return
+        const frame: VisualFramePaint = { data, paintedAt: null, receivedAt: Date.now() }
+        frames.received.push(frame)
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            frame.paintedAt = Date.now()
+          })
+        )
+      })
+    }
+
+    override send(data: Parameters<WebSocket['send']>[0]): void {
+      if (isPreview(this, data)) frames.sent.push({ at: Date.now(), data })
+      super.send(data)
+    }
+  }
+}
+
+async function previewFrameTimes(page: Page): Promise<PreviewFrameTimes> {
+  return page.evaluate(
+    () => (window as unknown as { __vttPreviewFrames: PreviewFrameTimes }).__vttPreviewFrames
   )
 }
 
