@@ -56,4 +56,6 @@ for (const subjectKind of authoredSubjectKindSchema.options) {
   if (cold > BUDGET_MS) over.push(`${subjectKind} ${cold} ms`)
 }
 if (over.length > 0)
-  console.log(`Recorded, not gated: cold parse round trip over ${BUDGET_MS} ms: ${over.join(', ')}.`)
+  console.log(
+    `Recorded, not gated: cold parse round trip over ${BUDGET_MS} ms: ${over.join(', ')}.`
+  )
