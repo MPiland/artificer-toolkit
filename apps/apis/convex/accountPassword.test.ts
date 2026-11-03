@@ -14,10 +14,7 @@ process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
 const toCookieHeaders = (setCookies: string[]) =>
   new Headers({
     origin: 'http://localhost:3000',
-    cookie: setCookies
-
-      .map((value) => value.split(';')[0])
-      .join('; ')
+    cookie: setCookies.map((value) => value.split(';')[0]).join('; ')
   })
 
 async function fixture() {
