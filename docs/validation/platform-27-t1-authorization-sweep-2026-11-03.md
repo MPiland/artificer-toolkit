@@ -237,7 +237,7 @@ The user ruled on all seven findings on 2026-11-03 (D211 in `docs/handoffs/phase
 
 ### Red proofs
 
-Each fix has a refusal test that fails against the production code before the fix. CI's "Red proof against the phase branch" job runs these test files at the merge-base.
+Each fix has a refusal test that fails against the production code before the fix. CI's "Red proof against the phase branch" job runs these test files at the merge-base. In Tests run 41734215072 (job 126260310378), both files below were RED. The other changed files, `publicFunctionAccess`, `inventoryOwners` and `developmentCustody`, passed there.
 
 - Assignment: `campaigns/assignments.test.ts` "allows only the Character owner to bind it, idempotently; the GM cannot bind a player Character (D211)". Before the fix, the GM's `assign` resolved `{ ok: true }` instead of rejecting.
 - PRIVATE and ban: `social/discovery.test.ts` "hides PRIVATE accounts and banned hosts from discovery; owners still resolve their own (D211)". Before the fix, the PRIVATE `getProfile` lookup resolved, and the banned host's listing stayed in `browse` and `getListing`.
