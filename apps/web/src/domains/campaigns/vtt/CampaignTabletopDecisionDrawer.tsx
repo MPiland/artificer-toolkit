@@ -264,7 +264,9 @@ export function CampaignTabletopDecisionDrawer({
                     ? 'Death save'
                     : pending.kind === 'ON_HIT_CHOICE'
                       ? onHitChoiceTitle(pending.options)
-                      : decisionTitle(pending.kind)}
+                      : pending.kind === 'ROLL_WINDOW' && pending.attackerActorId
+                        ? decisionTitle('REACTION_CHOICE')
+                        : decisionTitle(pending.kind)}
             </Text>
             {skipped ? null : (
               <Text c='dimmed' size='sm'>
@@ -429,12 +431,16 @@ export function CampaignTabletopDecisionDrawer({
           ) : pending.kind === 'ROLL_WINDOW' ? (
             <Stack gap='xs'>
               <Text size='sm'>
-                {rollPromptText(
-                  encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
-                    'a hidden combatant',
-                  pending.trigger
-                )}
-                : rolled {pending.d20.selectedNatural}, total {pending.d20.total}
+                {/* A reactor sees the attacker's roll before its result, never whether it hits (D207). */}
+                {pending.attackerActorId
+                  ? (encounter.actors.find((actor) => actor.id === pending.attackerActorId)
+                      ?.label ?? 'A hidden combatant')
+                  : `${rollPromptText(
+                      encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                        'a hidden combatant',
+                      pending.trigger
+                    )}:`}{' '}
+                rolled {pending.d20.selectedNatural}, total {pending.d20.total}
               </Text>
               {pending.options.map((option) => (
                 <Button
@@ -449,7 +455,8 @@ export function CampaignTabletopDecisionDrawer({
                     })
                   }
                 >
-                  Add {option.label} ({option.sign === 'SUBTRACT' ? '-' : '+'}
+                  {pending.attackerActorId ? 'Use' : 'Add'} {option.label} (
+                  {option.sign === 'SUBTRACT' ? '-' : '+'}
                   {option.count}d{option.faces})
                 </Button>
               ))}
@@ -461,7 +468,7 @@ export function CampaignTabletopDecisionDrawer({
                   void resolve({ kind: 'ROLL_WINDOW_DECLINE', requestId: pending.requestId })
                 }
               >
-                Keep the roll
+                {pending.attackerActorId ? 'Decline' : 'Keep the roll'}
               </Button>
             </Stack>
           ) : pending.kind === 'DAMAGE_ROLL_WINDOW' ? (

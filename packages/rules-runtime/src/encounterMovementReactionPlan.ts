@@ -2,6 +2,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterWindowReactionReceiptDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { movementReactionActionExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementReactionReceipts'
 import {
@@ -15,6 +16,7 @@ import {
   withFeatureChargeUsed
 } from './encounterActorState.js'
 import { withDecoyStrikeApplied } from './encounterAttackDecoys.js'
+import { consumeEncounterActionEconomy } from './encounterActionEconomyConsumption.js'
 import { advanceNativeActionGraphs, executeNativeActionGraphs } from './encounterActionExecution.js'
 import { bindEncounterMovementReactionInterruption } from './encounterMovementReactionExecution.js'
 import type { resolveNativeMovementLegendaryResistance } from './encounterMovementLegendaryResistance.js'
@@ -82,6 +84,23 @@ export type MovementReactionSettlementInput<
   execution:
     | CompletedReaction
     | Extract<Awaited<ReturnType<typeof advanceNativeActionGraphs>>, { kind: 'PENDING' }>
+  /**
+   * The reactions other creatures rolled against the reaction attack's d20, each paid with this
+   * settlement (D207). The mover's rides its own mechanics, as a target's does.
+   */
+  windowReactions?: readonly EncounterWindowReactionReceiptDto[]
+}
+
+/** The window reaction the mover itself rolled against the attack on it, if any (D207). */
+function targetWindowReaction<
+  TFacts extends ProjectableCharacterFacts,
+  TRow extends MovementCharacterRow
+>(input: MovementReactionSettlementInput<TFacts, TRow>) {
+  return (
+    input.windowReactions?.find(
+      ({ reaction }) => reaction.reactorActorId === input.prepared.prepared.target.id
+    ) ?? null
+  )
 }
 
 function verifyCompletedMovementReactionPlan<
@@ -221,7 +240,9 @@ function reactionMechanicsInput<
     occurredAt: input.occurredAt,
     applications: [...execution.applications, ...effects.effects.relationshipConditionApplications],
     forceTargetVersionAdvance:
-      prepared.prepared.target.kind === 'CHARACTER' && effects.createdEffects.length > 0,
+      prepared.prepared.target.kind === 'CHARACTER' &&
+      (effects.createdEffects.length > 0 ||
+        Boolean(targetWindowReaction(input)?.resourceConsumption)),
     sourceReleases: ended.sourceReleases,
     damageReleases: ended.damageReleases,
     eventPhases: {
@@ -279,6 +300,13 @@ function movementReactionActors<
       resources: withFeatureChargeUsed(targetActor, charge.ownerFeatureId, charge.afterUsed)
     })
   }
+  const targetWindow = targetWindowReaction(input)
+  if (targetWindow)
+    targetActor = consumeEncounterActionEconomy({
+      actor: targetActor,
+      consumption: targetWindow.actionEconomyTransition,
+      overridden: false
+    })
   return { sourceActor, targetActor, charge }
 }
 
@@ -326,6 +354,7 @@ function movementReactionSettlement<
           featureResourceConsumption: settled.featureResourceReceipt,
           targetFeatureResourceConsumption: null,
           actionEconomyTransition: null,
+          targetReactorSpend: Boolean(targetWindowReaction(input)?.resourceConsumption),
           activeEffectTransitions: effects.activeEffectTransitions.map(
             ({ targetActorId: _targetActorId, ...transition }) => ({
               ...transition,
@@ -407,7 +436,21 @@ function movementReactionSettlement<
           }
         ]
       : []),
-    ...(maintenance?.transition.characterOwnerTransitions ?? [])
+    ...(maintenance?.transition.characterOwnerTransitions ?? []),
+    // Each reactor that paid a charge for its die against the attack roll advances its Character.
+    ...(input.windowReactions ?? []).flatMap(({ reaction, characterStreamVersion }) =>
+      reaction.characterId !== null &&
+      reaction.characterStreamVersion !== null &&
+      characterStreamVersion !== null
+        ? [
+            {
+              characterId: reaction.characterId,
+              beforeStreamVersion: reaction.characterStreamVersion,
+              afterStreamVersion: characterStreamVersion
+            }
+          ]
+        : []
+    )
   ]
   const uniqueTransitions = new Map<string, (typeof characterTransitions)[number]>()
   for (const transition of characterTransitions) {
@@ -476,6 +519,20 @@ export function planEncounterMovementReactionAction<
         occurredAt: input.occurredAt
       })
     )
+  }
+  // Every other reactor that rolled against the attack has spent its reaction (D207).
+  for (const { reaction, actionEconomyTransition } of input.windowReactions ?? []) {
+    if (reaction.reactorActorId === prepared.target.id) continue
+    const reactor = projectedTargets.get(reaction.reactorActorId)
+    if (!reactor) throw new Error('Movement window reactor is unavailable.')
+    projectedTargets.set(reactor.actor.id, {
+      ...reactor,
+      actor: consumeEncounterActionEconomy({
+        actor: reactor.actor,
+        consumption: actionEconomyTransition,
+        overridden: false
+      })
+    })
   }
   const maintenance =
     input.prepared.maintenance && effects.maintainedState
