@@ -139,7 +139,9 @@ describe('managed tester set accounts', () => {
         paginationOpts: { cursor: null, numItems: 50 }
       })
     )
-    expect(users.page.filter((user) => user.emailVerified)).toHaveLength(10)
+    expect(
+      users.page.filter((user: { emailVerified?: boolean }) => user.emailVerified)
+    ).toHaveLength(10)
 
     // The password reaches only `announcePassword`: not an admin call, a log line or a thrown error.
     const sent = JSON.stringify(world.calls)

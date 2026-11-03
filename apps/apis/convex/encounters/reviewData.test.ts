@@ -25,7 +25,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   const names = scenarios.map((scenario) => scenario.campaign)
   // The admin's role and every spare's Campaigns, as each account reads them.
   const accounts = async () => ({
-    adminRole: (await context.admin.client.query(api.account.identity, {})).role,
+    adminRole: (await context.admin!.client.query(api.account.identity, {})).role,
     spareCampaigns: await Promise.all(
       context.spares.map(
         async (spare) =>
