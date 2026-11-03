@@ -2,7 +2,7 @@
 
 Feature `PRIVACY` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves that at a live table the GM sees everything, each player sees only what their Character may know, and nobody else ever sees hidden tokens, private rolls, monster statistics, or another player's private data. Every scenario names what each window must NOT show; look for those on purpose and report any leak as a failure. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). Use three browser profiles at once, one for the GM and one each for P1 and P2, with the tabletop window open in each.
+Proves that at a live table the GM sees everything, each player sees only what their Character may know, and nobody else ever sees hidden tokens, private rolls, monster statistics, or another player's private data. Every scenario names what each window must NOT show; look for those on purpose and report any leak as a failure. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Use three browser profiles at once, one for the GM and one each for P1 and P2, with the tabletop window open in each.
 
 ## Scenarios
 

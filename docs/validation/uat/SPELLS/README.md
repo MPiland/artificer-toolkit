@@ -2,7 +2,7 @@
 
 Feature `SPELLS` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-These scenarios play real casters and monsters through saves, conditions, dying, Concentration, areas, grants, zones and summons so a GM and players can trust the spell and rules layer at a live table. Scenarios 1 and 2 build the shared casters and arena that most later scenarios reuse; see [accounts](../README.md#roles-and-accounts), [review data](../OPERATOR.md#review-data) and [running several users side by side](../README.md#role-setup-for-the-owner). Record outcomes as described in [recording results](../README.md#recording-results); known holes are in [known UAT gaps](../OPERATOR.md#known-uat-gaps).
+These scenarios play real casters and monsters through saves, conditions, dying, Concentration, areas, grants, zones and summons so a GM and players can trust the spell and rules layer at a live table. Scenarios 1 and 2 build the shared casters and arena that most later scenarios reuse; see [accounts](../README.md#roles-and-accounts), [review data](../OPERATOR.md#review-data) and [running several users side by side](../README.md#role-setup-for-the-owner). Record outcomes as described in [recording results](../TESTERS.md#recording-results); known holes are in [known UAT gaps](../OPERATOR.md#known-uat-gaps).
 
 **Shared cast (built once in scenario 1, reused everywhere).** Spell lists are for setup; if a Character cannot prepare them all at once, prepare only what the running scenario names and swap on the Sheet.
 
