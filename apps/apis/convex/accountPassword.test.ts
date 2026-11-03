@@ -83,6 +83,13 @@ async function fixture() {
   const other = users[1]!
   const update = (input: AccountPasswordUpdateInput, headers = owner.headers) =>
     t.run((ctx) => createAuth(ctx).api.updateAccountPassword({ body: input, headers }))
+  const signIn = (signInPassword: string) =>
+    t.run((ctx) =>
+      createAuth(ctx).api.signInEmail({
+        body: { email: owner.user.email, password: signInPassword },
+        headers: new Headers({ origin: 'http://localhost:3000' })
+      })
+    )
   const snapshot = () =>
     t.run(async (ctx) => ({
       users: await ctx.runQuery(components.betterAuth.adapter.findMany, {
@@ -106,6 +113,7 @@ async function fixture() {
     other,
     password,
     update,
+    signIn,
     snapshot,
     input: {
       email: owner.user.email,
@@ -157,6 +165,10 @@ describe('native account password update', () => {
     ).resolves.toHaveProperty('userId')
     await expect(base.update(base.input)).rejects.toThrow('Invalid password')
     expect(await base.snapshot()).toEqual(after)
+    await expect(base.signIn(base.password)).rejects.toThrow('Invalid email or password')
+    await expect(base.signIn(base.input.password)).resolves.toMatchObject({
+      user: { id: base.owner.user._id }
+    })
   })
 
   it('refuses foreign/stale email, wrong password, extra identity and invalid inputs without changing state', async () => {
@@ -179,6 +191,10 @@ describe('native account password update', () => {
       base.update(base.input, new Headers({ origin: 'http://localhost:3000' }))
     ).rejects.toThrow('Unauthorized')
     expect(await base.snapshot()).toEqual(before)
+    await expect(base.signIn(base.input.password)).rejects.toThrow('Invalid email or password')
+    await expect(base.signIn(base.password)).resolves.toMatchObject({
+      user: { id: base.owner.user._id }
+    })
   })
 
   it('reads current stored email and revoked session instead of trusting a previous browser session', async () => {
