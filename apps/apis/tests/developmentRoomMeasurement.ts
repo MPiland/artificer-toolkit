@@ -295,11 +295,14 @@ export class RoomControl {
     this.#secret = secret
   }
 
-  /** Reads the secret from the local Convex deployment once; it is never printed or stored. */
-  static async open(client: DevelopmentHttpClient): Promise<RoomControl> {
+  /**
+   * Reads the secret from the local Convex deployment once, unless the operator supplies it for a
+   * managed target; it is never printed or stored.
+   */
+  static async open(client: DevelopmentHttpClient, secret?: string): Promise<RoomControl> {
     return new RoomControl(
       client.workerUrl(),
-      await convexEnvironmentValue('LIVE_SESSION_WORKER_SECRET')
+      secret ?? (await convexEnvironmentValue('LIVE_SESSION_WORKER_SECRET'))
     )
   }
 

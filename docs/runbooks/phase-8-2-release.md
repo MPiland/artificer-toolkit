@@ -139,6 +139,10 @@ proofs merely because a later check failed.
 
 It is idempotent. A Campaign with its final `Review data ready` Session is skipped, so a re-run after a reset rebuilds the same names with the same rolls. A Campaign without that Session is a failed earlier run: reset the backend and run again. The scenarios are data in `apps/apis/tests/developmentReviewDataScenarios.ts`; `apps/apis/convex/encounters/reviewData.test.ts`, `reviewDataFireAndThunder.test.ts` and `reviewDataSandbox.test.ts` prove the build and the skip against the real room.
 
+### Managed (staging) target
+
+`node scripts/seedReviewData.mjs --managed --role-map=<json file>` builds the same four Campaigns on a managed deployment for external testers. It needs the owner's approval for each run (ADR 0035). The role map holds one already-invited account per role (`gm`, `player1`-`player3`, `admin`, `spare1`, `spare2`) as `{ email, password }`; keep the file outside the repository. The environment names the deployment (`CONVEX_URL`, `CONVEX_SITE_URL`, `REVIEW_MANAGED_CONFIRM=<deployment name>`), the web origin (`REVIEW_WEB_ORIGIN`) and the Session Worker control secret (`REVIEW_WORKER_CONTROL_SECRET`). The managed path only signs in: it creates no accounts, never uses the shared review password, grants nothing (the GM account must already hold the GM tier and the admin account the superadmin role, and the run verifies both), and starts no fixtures, admin key or email sink. Those stay local.
+
 ## Staging promotion
 
 After R08 and the local V15 portion are green, request authorization naming the exact Convex, web,
