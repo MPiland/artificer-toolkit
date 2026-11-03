@@ -29551,11 +29551,11 @@
               "id": "RELEASE-8.1"
             },
             {
-              "text": "The owner reviews the UI on the review data and signs off before staging promotion; findings are fixed or registered.",
+              "text": "Before staging promotion, an agent smoke-checks every review Campaign's surfaces on the final local build and fixes or registers findings; the owner's acceptance happens through staging UAT, not a local review.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging).",
+              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback.",
               "id": "RELEASE-8.2"
             },
             {
@@ -29569,13 +29569,13 @@
             },
             {
               "id": "RELEASE-8.4",
-              "text": "External testers run UAT on staging: an owner-approved run builds the same four review Campaigns on staging through product commands, with invited tester accounts in the GM and player roles (no shared password, no local-only fixtures, no secrets in logs), and a staging tester guide covers invited sign-in, real email, which scenarios apply on staging, and recording results; the UAT README becomes the local operator guide.",
+              "text": "External testers run UAT on staging: an owner-approved run provisions numbered tester sets on staging through product commands, each with five prebuilt verified accounts (GM, P1-P3, SPARE) on owner plus-addressed emails, a per-set password generated at run time and shown only to the operator, and its own copy of the four review Campaigns; sets are independent and rebuildable without a reset. Scenarios are tagged Solo (one tester, one account; account-security flows on the tester's own account and email) or Group (run by the owner with one browser profile per role), and a staging tester guide covers sign-in, real email, which scenarios apply and recording results.",
               "status": "TODO",
               "proof": [],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): staging UAT for other users"
               ],
-              "note": "Registered 2026-11-03."
+              "note": "Registered 2026-11-03. Revised 2026-11-03 (owner rulings: prebuilt per-tester sets, Solo/Group split, staging-only UAT)."
             }
           ],
           "wsjf": {
@@ -29693,8 +29693,8 @@
                 ],
                 "finalSource": true
               },
-              "text": "Run the script against the local container after the final reset, hand the owner the data and a short surface list, collect findings, fix or register them, and record the owner's sign-off before staging. User action: the review and sign-off.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "After the final reset, run the review-data script against the local container and walk each review Campaign's surfaces in the Browser pane (Builder, Sheet, Scene, Encounter, live turn); fix or register findings and record the checked build identity. Agent-run; no owner sign-off (that is staging UAT).",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback."
             },
             {
               "id": "RELEASE-8.T5",
@@ -29709,7 +29709,7 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Staging review data: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a role map of invited tester accounts (GM, P1-P3, SUPERADMIN, spares), builds the four review Campaigns through the same product commands, never creates accounts or a shared password there, and keeps local-only steps (fixtures, admin key generation, email sink) local. Proved by real-code tests that the managed path binds the given accounts and refuses local-only steps; the staging run itself needs the owner's approval each time (ADR 0035).",
+              "text": "Staging tester sets: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a set number N, creates five verified accounts (GM, P1-P3, SPARE) at mekhit02+t<N>-<role>@gmail.com with one password generated per set and printed once to the operator (never persisted or logged), builds that set's own four review Campaigns (set number in each name) through product commands, skips finished work on re-run, offers a rebuild of one set, and keeps local-only steps local (set 0 is the local review accounts). Real-code tests: independent sets, re-run no-op, rebuild touches only its set, no password persisted or logged. The staging run itself needs the owner's approval each time (ADR 0035).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -29727,7 +29727,7 @@
                   "RELEASE-8.T5"
                 ]
               },
-              "text": "Staging tester guide docs/validation/uat/TESTERS.md: invited sign-in, browser profiles per role, real email in place of the local sink, which scenarios and gaps apply on staging (each scenario file marks local-only steps), results templates and file naming; the README external-testers section becomes a pointer and the README is the local operator guide."
+              "text": "Staging tester guide docs/validation/uat/TESTERS.md: signing in to the assigned prebuilt account, creating the own-email account for the account-security scenarios, real email checks (arrival, branding, links, spam), which Solo scenarios to run in what order, and recording run notes (tester, set, role, scenario); reconcile with the restructured Start here page rather than duplicating it."
             }
           ]
         }
