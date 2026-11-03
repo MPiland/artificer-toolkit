@@ -46,6 +46,7 @@ import {
   uploadVttMap
 } from './vttMapUpload'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
+import { SceneDeleteAction } from './SceneDeleteAction'
 import { AuthoringLeaveConfirmation } from '#forms/layout/AuthoringLeaveConfirmation'
 import * as styles from './CampaignScenePreparation.css'
 
@@ -299,15 +300,25 @@ export function CampaignScenePreparation({
       ) : null}
 
       {definition.data ? (
-        <CampaignSceneEditor
-          campaignId={campaignId}
-          currentUserId={currentUserId}
-          gameSystemId={gameSystemId}
-          memberships={memberships}
-          key={definition.data.id}
-          scene={definition.data}
-          onDirtyChange={setEditorDirty}
-        />
+        <>
+          <SceneDeleteAction
+            campaignId={campaignId}
+            scene={definition.data}
+            onDeleted={() => {
+              setEditorDirty(false)
+              setSelectedSceneId(null)
+            }}
+          />
+          <CampaignSceneEditor
+            campaignId={campaignId}
+            currentUserId={currentUserId}
+            gameSystemId={gameSystemId}
+            memberships={memberships}
+            key={definition.data.id}
+            scene={definition.data}
+            onDirtyChange={setEditorDirty}
+          />
+        </>
       ) : null}
 
       <div className={styles.form}>

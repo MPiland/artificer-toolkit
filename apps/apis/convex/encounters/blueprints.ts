@@ -1,8 +1,9 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import type { Validator } from 'convex/values'
+import { v, type Validator } from 'convex/values'
 import type { z } from 'zod'
 import {
   createEncounterBlueprintInputDtoSchema,
+  deleteEncounterBlueprintInputDtoSchema,
   updateEncounterBlueprintInputDtoSchema,
   encounterBlueprintDtoSchema,
   type EncounterBlueprintDto
@@ -18,12 +19,14 @@ import {
   type EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
+import { internal } from '../_generated/api'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import type { Doc } from '../_generated/dataModel'
 import { requireIdentity } from '../lib/identity'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { snapshotBlueprintEnemies } from './blueprintSnapshots'
+import { deleteBlueprintRow } from './blueprintDeletion'
 
 // Keep recursive JSON field paths inside the validator boundary; every result is schema-parsed.
 const blueprintValidator: Validator<EncounterBlueprintDto, 'required', string> = zodToConvex<
@@ -129,6 +132,25 @@ export const create = mutation({
     )
     await syncAccountUsage(ctx, 'savedEncounters', result.id)
     return result
+  }
+})
+
+export const remove = mutation({
+  args: zodToConvexFields(deleteEncounterBlueprintInputDtoSchema.shape),
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const { userId } = await requireIdentity(ctx)
+    const { blueprintId } = deleteEncounterBlueprintInputDtoSchema.parse(args)
+    const row = await ctx.db
+      .query('encounterBlueprints')
+      .withIndex('by_publicId', (q) => q.eq('id', blueprintId))
+      .unique()
+    if (!row || row.ownerUserId !== userId) throw new Error('Encounter Blueprint is unavailable.')
+    await deleteBlueprintRow(ctx, row)
+    await ctx.scheduler.runAfter(0, internal.encounters.blueprintDeletion.purgeUpdates, {
+      blueprintId
+    })
+    return null
   }
 })
 

@@ -296394,6 +296394,7 @@ export declare const api: {
       >;
     };
     blueprints: {
+      remove: FunctionReference<"mutation", "public", { blueprintId: string }, null>;
       create: FunctionReference<
         "mutation",
         "public",
@@ -307464,6 +307465,14 @@ export declare const internal: {
     >;
   };
   encounters: {
+    blueprintDeletion: {
+      purgeUpdates: FunctionReference<
+        "mutation",
+        "internal",
+        { blueprintId: string },
+        null
+      >;
+    };
     actorAbsenceMigration: {
       run: FunctionReference<
         "mutation",

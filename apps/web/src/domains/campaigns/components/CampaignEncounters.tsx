@@ -17,6 +17,7 @@ import {
   useEncounterBlueprints
 } from '#app/data/encounters/queries'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
+import { ConfirmDeleteModal } from '#app/components/ConfirmDelete/ConfirmDeleteModal'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
 import { mergeEncounterSummary } from '../vtt/liveCampaignSummary'
 import * as sharedStyles from '../campaigns.css'
@@ -41,6 +42,7 @@ export function CampaignEncounters({
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [blueprintDeleteOpen, setBlueprintDeleteOpen] = useState(false)
   const canManage = campaign.capabilities.manageActiveCampaign
   const blueprints = useEncounterBlueprints(campaign.gameSystemId, canManage && encounterAdderOpen)
   const summaries = (encounters.data ?? []).map((summary) =>
@@ -65,6 +67,15 @@ export function CampaignEncounters({
       setSelectedEncounterId(created.id)
       setSelectedBlueprintId(null)
       setEncounterAdderOpen(false)
+    }
+  })
+  const selectedBlueprint = blueprints.data?.find((blueprint) => blueprint.id === selectedBlueprintId)
+  const deleteBlueprint = useMutation({
+    mutationFn: (blueprintId: string) =>
+      convex.mutation(convexApi.encounters.blueprints.remove, { blueprintId }),
+    onSuccess: () => {
+      setBlueprintDeleteOpen(false)
+      setSelectedBlueprintId(null)
     }
   })
   const deleteEncounter = useMutation({
@@ -205,6 +216,14 @@ export function CampaignEncounters({
                   Add encounter
                 </Button>
                 <Button
+                  color='red'
+                  disabled={!selectedBlueprint}
+                  variant='subtle'
+                  onClick={() => setBlueprintDeleteOpen(true)}
+                >
+                  Delete saved encounter
+                </Button>
+                <Button
                   variant='subtle'
                   onClick={() =>
                     navigate({
@@ -233,6 +252,18 @@ export function CampaignEncounters({
               {addEncounter.error ? (
                 <Alert color='red'>That encounter couldn’t be added.</Alert>
               ) : null}
+              <ConfirmDeleteModal
+                body={`Permanently delete the saved encounter ${selectedBlueprint?.name ?? ''}? Encounters already added to Campaigns keep their own copy. This can’t be undone.`}
+                confirmLabel='Delete saved encounter'
+                errorMessage={
+                  deleteBlueprint.error ? 'That saved encounter couldn’t be deleted.' : null
+                }
+                isDeleting={deleteBlueprint.isPending}
+                opened={blueprintDeleteOpen && Boolean(selectedBlueprint)}
+                title='Delete saved encounter?'
+                onClose={() => setBlueprintDeleteOpen(false)}
+                onConfirm={() => selectedBlueprintId && deleteBlueprint.mutate(selectedBlueprintId)}
+              />
             </>
           ) : (
             <Button
