@@ -1,0 +1,98 @@
+{
+  "_id": "uatFighter000001",
+  "name": "UAT Foundry Fighter",
+  "type": "character",
+  "_stats": { "systemId": "dnd5e", "systemVersion": "4.3.0" },
+  "system": {
+    "abilities": {
+      "str": { "value": 16 },
+      "dex": { "value": 12 },
+      "con": { "value": 14 },
+      "int": { "value": 10 },
+      "wis": { "value": 11 },
+      "cha": { "value": 8 }
+    },
+    "attributes": { "hp": { "value": 13, "max": 13, "temp": 0 } },
+    "details": {
+      "biography": { "value": "<p>A test fighter invented for import checks.</p>" },
+      "appearance": "Broad-shouldered, with a weathered travelling cloak.",
+      "trait": "Calm under pressure.",
+      "ideal": "Duty to the people nearby.",
+      "bond": "Carries a worn ironwood token from home.",
+      "flaw": "Slow to trust strangers."
+    }
+  },
+  "items": [
+    {
+      "_id": "uatRace000000001",
+      "name": "Human",
+      "type": "race",
+      "system": {},
+      "flags": { "core": { "sourceId": "Compendium.dnd5e.races.Item.human" } }
+    },
+    {
+      "_id": "uatBackground001",
+      "name": "Soldier",
+      "type": "background",
+      "system": {},
+      "flags": { "core": { "sourceId": "Compendium.dnd5e.backgrounds.Item.soldier" } }
+    },
+    {
+      "_id": "uatClassFighter1",
+      "name": "Fighter",
+      "type": "class",
+      "system": { "levels": 1 },
+      "flags": { "core": { "sourceId": "Compendium.dnd5e.classes.Item.fighter" } }
+    },
+    {
+      "_id": "uatIronwoodGS001",
+      "name": "UAT Ironwood Greatsword",
+      "type": "weapon",
+      "system": {
+        "quantity": 1,
+        "equipped": true,
+        "attunement": "",
+        "rarity": "uncommon",
+        "magicalBonus": 1,
+        "description": {
+          "value": "<p>A two-handed blade carved from dense ironwood and edged with pale steel. Invented for testing.</p>"
+        },
+        "type": { "value": "martialM" },
+        "properties": ["hvy", "two", "mgc"],
+        "damage": { "base": { "number": 2, "denomination": 6, "types": ["slashing"] } },
+        "range": { "value": 5, "units": "ft" }
+      }
+    },
+    {
+      "_id": "uatIronwoodMail01",
+      "name": "UAT Ironwood Chain Mail",
+      "type": "equipment",
+      "system": {
+        "quantity": 1,
+        "equipped": true,
+        "rarity": "uncommon",
+        "magicalBonus": 1,
+        "description": {
+          "value": "<p>Interlocking rings of treated ironwood fibre and steel. Invented for testing.</p>"
+        },
+        "type": { "value": "medium" },
+        "armor": { "value": 14 },
+        "properties": ["mgc"]
+      }
+    },
+    {
+      "_id": "uatIronwoodShld1",
+      "name": "UAT Ironwood Shield",
+      "type": "equipment",
+      "system": {
+        "quantity": 1,
+        "equipped": true,
+        "description": {
+          "value": "<p>A round shield of laminated ironwood. Invented for testing.</p>"
+        },
+        "type": { "value": "shield" },
+        "armor": { "value": 2 }
+      }
+    }
+  ]
+}
