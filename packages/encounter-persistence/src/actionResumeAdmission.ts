@@ -16,7 +16,10 @@ import {
 } from './actionPending.js'
 import { areaActionPendingContext, readNativeAreaActionPending } from './actionAreaPending.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
-import { encounterAreaSaveAwaiting } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import {
+  encounterAreaDamageRollWindow,
+  encounterAreaSaveAwaiting
+} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { isNativeActionOccurrence } from './occurrenceOwner.js'
@@ -63,24 +66,36 @@ export async function readNativeEncounterActionResponseAdmission(
       : null
   const { resolution: answer } = response
   // A Legendary Resistance decision names its creature, an open push pick (D157) takes only its own
-  // destination, and every other area answer names a save's request.
+  // destination, an open damage window (D208) only its caster's answer, and every other area answer
+  // names a save's request.
   const areaPick = area?.context.forcedMovement?.pick
-  const areaSave = area
-    ? area.targets.find((target) =>
-        areaPick
-          ? answer.kind === 'FORCED_MOVEMENT' &&
-            answer.requestId === areaPick.requestId &&
-            target.actorId === areaPick.targetActorId
-          : answer.kind === 'AREA_LEGENDARY_RESISTANCE'
-            ? target.actorId === answer.actorId
-            : answer.kind !== 'FORCED_MOVEMENT' &&
-              'requestId' in answer &&
-              target.snapshot.request.requestId === answer.requestId
-      )
-    : null
-  if (area && !areaSave) rejectDomain('DECISION_NOT_PENDING')
-  const pending = areaSave
-    ? { command: area!.command, context: areaSave.context, snapshot: areaSave.snapshot }
+  const areaWindow = area && encounterAreaDamageRollWindow(area.context)
+  const windowContext = areaWindow?.window.applicationContext
+  const areaDamage =
+    areaWindow &&
+    windowContext?.kind === 'ENCOUNTER_ACTION' &&
+    (answer.kind === 'ROLL_WINDOW_USE' || answer.kind === 'ROLL_WINDOW_DECLINE') &&
+    answer.requestId === areaWindow.window.request.requestId
+      ? { actorId: area.context.casterActorId, snapshot: areaWindow.window, context: windowContext }
+      : null
+  const areaSave =
+    area && !areaWindow
+      ? area.targets.find((target) =>
+          areaPick
+            ? answer.kind === 'FORCED_MOVEMENT' &&
+              answer.requestId === areaPick.requestId &&
+              target.actorId === areaPick.targetActorId
+            : answer.kind === 'AREA_LEGENDARY_RESISTANCE'
+              ? target.actorId === answer.actorId
+              : answer.kind !== 'FORCED_MOVEMENT' &&
+                'requestId' in answer &&
+                target.snapshot.request.requestId === answer.requestId
+        )
+      : null
+  const areaAnswer = areaDamage ?? areaSave
+  if (area && !areaAnswer) rejectDomain('DECISION_NOT_PENDING')
+  const pending = areaAnswer
+    ? { command: area!.command, context: areaAnswer.context, snapshot: areaAnswer.snapshot }
     : occurrence.state === 'PENDING'
       ? await readNativeActionPending(ctx, occurrence)
       : null
@@ -99,12 +114,12 @@ export async function readNativeEncounterActionResponseAdmission(
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
   if (
     pending &&
-    !(areaSave
+    !(areaAnswer
       ? await canControlEvidenceRoller(ctx, {
           run,
           campaign,
           membership,
-          rollerActorId: areaPick ? area!.context.casterActorId : areaSave.context.rollerActorId
+          rollerActorId: areaPick ? area!.context.casterActorId : areaAnswer.context.rollerActorId
         })
       : await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence }))
   )
@@ -196,7 +211,7 @@ export async function readNativeEncounterActionResponseAdmission(
   else {
     // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
     // its answer.
-    const offeredOptionIds = areaSave ? [] : offeredDecisionOptionIds(pending.context)
+    const offeredOptionIds = areaAnswer ? [] : offeredDecisionOptionIds(pending.context)
     if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
       if (!offeredOptionIds.length) rejectDomain('DECISION_NOT_PENDING')
       if (answer.kind === 'OPTION' && !offeredOptionIds.includes(answer.optionId))
@@ -246,7 +261,7 @@ export async function readNativeEncounterActionResponseAdmission(
     admission,
     occurrence,
     pending,
-    area: area ? { snapshot: area.snapshot, actorId: areaSave!.actorId } : null,
+    area: area ? { snapshot: area.snapshot, actorId: areaAnswer!.actorId } : null,
     resolution,
     appRoll
   }

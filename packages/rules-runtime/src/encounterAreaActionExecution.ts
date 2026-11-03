@@ -206,12 +206,19 @@ export function encounterAreaTestDice(boundary: TestBoundary) {
   )
 }
 
+/** One roll on a frozen tape: the width it was rolled over and the zero-based roll. */
+export type EncounterFrozenRoll = { maximum: number; value: number }
+
 /**
  * Damage is rolled once for the whole area: the first creature to need die n rolls it and every
  * later creature replays it. A creature whose outcome would roll a different die there is refused.
+ * `rolls` is the tape itself: rolls already on it are replayed (a damage roll window's settled roll,
+ * D208), and every new roll is recorded on it for the caller to keep.
  */
-export function createFrozenRollTape(random: (maximum: number) => number) {
-  const rolls: { maximum: number; value: number }[] = []
+export function createFrozenRollTape(
+  random: (maximum: number) => number,
+  rolls: EncounterFrozenRoll[] = []
+) {
   return () => {
     let index = 0
     return (maximum: number) => {
@@ -265,6 +272,8 @@ export async function settleEncounterAreaAction(
     tests: readonly EncounterAreaTargetTest[]
     legendaryResistance?: ReadonlyMap<string, EncounterAreaLegendaryResistanceAudit>
     rollsPerTarget?: boolean
+    /** The shared tape a point area rolls on (`createFrozenRollTape`), when the caller keeps it. */
+    sharedRolls?: EncounterFrozenRoll[]
   }
 ) {
   requireDistinctEntries(input.targets)
@@ -283,7 +292,7 @@ export async function settleEncounterAreaAction(
   )
     throw new Error('A Legendary Resistance choice is undecided; the area cannot settle.')
   const random = input.random ?? nextRollInt
-  const sharedRolls = createFrozenRollTape(random)
+  const sharedRolls = createFrozenRollTape(random, input.sharedRolls)
   const bindings = new Map<string, EncounterAreaTarget['binding']>()
   const settled = []
   for (const target of input.targets) {
