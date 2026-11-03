@@ -167,9 +167,13 @@ async function removeCampaign(
     expectedVersion: campaign.version,
     confirmation: 'DELETE'
   })
-  // The listing hides a Campaign as soon as its deletion job exists, so it is gone once none remain by that name.
+  // The listing hides a Campaign as soon as its deletion job exists, but its name stays taken until the job is done.
   for (let attempt = 0; attempt < 120; attempt++) {
-    if (!(await findCampaign(context.gm.client, campaign.name))) return
+    const { status } = await context.gm.client.query(api.campaigns.deletion.status, {
+      campaignId: campaign.id
+    })
+    if (status === 'DELETED') return
+    assert.notEqual(status, 'FAILED', `Review Campaign "${campaign.name}" could not be deleted.`)
     await (context.awaitDeletion ?? (() => delay(1000)))()
   }
   throw new Error(`Review Campaign "${campaign.name}" was not deleted in time.`)
