@@ -63,6 +63,7 @@ async function backend() {
       return {
         status: response.status,
         location: response.headers.get('location'),
+        authToken: response.headers.get('set-auth-token'),
         body: text ? (JSON.parse(text) as Record<string, unknown>) : null
       }
     })
@@ -237,8 +238,13 @@ describe('account journeys through the Better Auth HTTP handler', () => {
     expect((await request(`${confirmation.pathname}${confirmation.search}`)).status).toBe(302)
     const login = await request('sign-in/email', { body: signup })
     expect(login.status).toBe(200)
-    const bearer = login.body?.token
-    if (typeof bearer !== 'string') throw new Error('Login returned no session.')
+    const originalBearer = login.body?.token
+    if (typeof originalBearer !== 'string') throw new Error('Login returned no session.')
+    let bearer: string = originalBearer
+    const otherLogin = await request('sign-in/email', { body: signup })
+    const otherBearer = otherLogin.body?.token
+    if (typeof otherBearer !== 'string') throw new Error('Second login returned no session.')
+    expect((await request('convex/token', { bearer: otherBearer })).status).toBe(200)
 
     const newPassword = 'Local-journey-changed-8175!'
     const passwordChange = {
@@ -256,10 +262,16 @@ describe('account journeys through the Better Auth HTTP handler', () => {
       })
     ).toMatchObject({ status: 400, body: { code: 'INVALID_PASSWORD' } })
     // The refused attempts changed nothing: the original password is still the current one.
-    expect(await request('account/password', { body: passwordChange, bearer })).toMatchObject({
-      status: 200,
-      body: null
-    })
+    const changed = await request('account/password', { body: passwordChange, bearer })
+    expect(changed).toMatchObject({ status: 200, body: null })
+    // Ruling ACCOUNTS-11.3: every other session is signed out; the changing session continues
+    // on the replacement session the response carries.
+    expect((await request('convex/token', { bearer: otherBearer })).status).toBe(401)
+    expect((await request('convex/token', { bearer: originalBearer })).status).toBe(401)
+    if (!changed.authToken) throw new Error('Password change returned no replacement session.')
+    bearer = changed.authToken
+    expect((await request('convex/token', { bearer })).status).toBe(200)
+    nextSignInWindow()
     expect((await request('sign-in/email', { body: signup })).status).toBe(401)
     expect(
       (await request('sign-in/email', { body: { email: signup.email, password: newPassword } }))

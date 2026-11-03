@@ -206,15 +206,20 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
                 throw new APIError('BAD_REQUEST', {
                   message: 'Your account email has changed. Refresh and try again.'
                 })
-              await changePassword({
+              // Revoking other sessions deletes every session, including this one, and issues a
+              // replacement; its cookies must reach the caller or the changing session signs out.
+              const changed = await changePassword({
                 context: context.context,
                 headers: context.headers,
+                returnHeaders: true,
                 body: {
                   currentPassword: context.body.currentPassword,
                   newPassword: context.body.password,
-                  revokeOtherSessions: false
+                  revokeOtherSessions: true
                 }
               })
+              for (const cookie of changed.headers.getSetCookie())
+                context.responseHeaders?.append('set-cookie', cookie)
               return context.json(null)
             }
           )
