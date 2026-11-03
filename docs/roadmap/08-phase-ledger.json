@@ -29670,7 +29670,7 @@
             },
             {
               "id": "RELEASE-8.T5",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "RELEASE-8.4"
               ],
@@ -29681,7 +29681,8 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Staging review data: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a role map of invited tester accounts (GM, P1-P3, SUPERADMIN, spares), builds the four review Campaigns through the same product commands, never creates accounts or a shared password there, and keeps local-only steps (fixtures, admin key generation, email sink) local. Proved by real-code tests that the managed path binds the given accounts and refuses local-only steps; the staging run itself needs the owner's approval each time (ADR 0035)."
+              "text": "Staging review data: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a role map of invited tester accounts (GM, P1-P3, SUPERADMIN, spares), builds the four review Campaigns through the same product commands, never creates accounts or a shared password there, and keeps local-only steps (fixtures, admin key generation, email sink) local. Proved by real-code tests that the managed path binds the given accounts and refuses local-only steps; the staging run itself needs the owner's approval each time (ADR 0035).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "RELEASE-8.T6",
