@@ -29197,6 +29197,15 @@
                 "R09.2"
               ],
               "id": "RELEASE-3.2"
+            },
+            {
+              "id": "RELEASE-3.3",
+              "text": "Staging upgrades in place: every stored-schema change that narrows what staging already holds since its deployed source ships a migration, proved by a local rehearsal that deploys the release over staging-shaped data and runs the migrations; promotion and re-promotion never reset or reseed staging.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth)"
+              ]
             }
           ],
           "wsjf": {
@@ -29243,7 +29252,8 @@
                 "size": 5,
                 "after": [
                   "RELEASE-3.T1",
-                  "RELEASE-8.T2"
+                  "RELEASE-8.T2",
+                  "RELEASE-3.T4"
                 ],
                 "finalSource": true
               },
@@ -29268,6 +29278,24 @@
               },
               "text": "Record the explicit Supabase (and remaining managed legacy services) retirement decision after R09 passes: present the evidence to the user, capture their ruling in phase-08-2-decisions.md and the open-questions doc, and update the ledger. User decides; agent writes it up.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+            },
+            {
+              "id": "RELEASE-3.T4",
+              "status": "TODO",
+              "closes": [
+                "RELEASE-3.3"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "RELEASE-3.T1"
+                ],
+                "finalSource": true
+              },
+              "text": "Upgrade-in-place readiness: diff the stored Convex schema between staging's deployed source (from RELEASE-3.T1's prior deployment ids) and the release source; list every narrowing change; add a migration for each that lacks one; rehearse locally by deploying staging's source to the local container, building data in that shape, deploying the release on top and running the migrations to completion with the SRD audit green. Local only."
             }
           ]
         },
