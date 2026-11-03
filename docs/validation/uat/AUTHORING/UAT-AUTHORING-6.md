@@ -2,7 +2,7 @@
 
 Creature copy, computed AC and the item loadout.
 
-Level 3 (Core play) · Feature AUTHORING · Mode: Group (GM, P1) · Path position 90 of 188
+Level 3 (Core play) · Feature AUTHORING · Mode: Solo (GM) · Path position 90 of 188
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ Level 3 (Core play) · Feature AUTHORING · Mode: Group (GM, P1) · Path positio
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -38,7 +38,9 @@ Level 3 (Core play) · Feature AUTHORING · Mode: Group (GM, P1) · Path positio
 - Step 9: the Encounter creature copies the authored loadout.
 - Step 10: changing or removing the instance's shield changes only that instance's AC, not the authored UAT Goblin.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P1 profile (not part of the tester's run):
 
 - **P1:** In the live table the instance's AC shows the changed value after step 10.
 

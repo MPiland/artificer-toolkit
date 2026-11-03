@@ -2,7 +2,7 @@
 
 GM Public and Private rolls with reveals.
 
-Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path position 88 of 188
+Level 3 (Core play) · Feature SHEET · Mode: Solo (GM) · Path position 88 of 188
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path positio
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -36,7 +36,9 @@ Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path positio
 - After reload the switch is still on Private (last choice is remembered).
 - The step 9 roll is in **My rolls** only.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P1 and P2 profiles (not part of the tester's run):
 
 - **P1:** sees the Public roll card, the "rolled" notice from step 5 and the revealed roll from step 6. Must NOT see the step 3 roll before it is revealed, nor the unrevealed step 9 roll, nor the Wolf's name in the step 5 notice if the Wolf is hidden from P1.
 - **P2:** same as P1.

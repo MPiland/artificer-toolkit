@@ -2,7 +2,7 @@
 
 Build a Character for a review player, save, resume and commit.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (GM, P1) · Path position 38 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 38 of 188
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (GM, P1) · Path 
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -37,7 +37,9 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (GM, P1) · Path 
 - Step 10-11: a Sheet opens with the chosen Race, Class and Background, correct ability scores, starting equipment in the inventory and hit points at maximum.
 - Step 12: the Character is listed once under Characters and the draft is gone; the starting equipment is not added a second time on reload.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's GM profile (not part of the tester's run):
 
 - **GM:** After step 4 and after step 10, open Review: Party in the Field's Party panel: "UAT Dara" and the draft are not shown (P1's Character there is still Aria).
 

@@ -2,7 +2,7 @@
 
 Author, publish and filter a homebrew Spell with artwork.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 28 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 28 of 188
 
 ## Prerequisites
 
@@ -12,8 +12,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -37,7 +37,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 - Step 9: the copy opens as a new draft with a different URL and the same content; the original is unchanged.
 - Step 10: the signed-out visit shows no homebrew and requires sign-in.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
 
 - **P2:** Searching Spells for "UAT Ember" finds nothing (private homebrew).
 

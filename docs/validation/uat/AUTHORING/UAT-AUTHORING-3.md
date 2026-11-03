@@ -2,7 +2,7 @@
 
 Background lifecycle — create, save, publish, replace, export, delete.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 26 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 26 of 188
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -40,7 +40,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 - Step 11: the Background is deleted from the active list; if a draft exists it is kept or offered back, not silently lost.
 - Step 12: the discarded draft is gone and the list returns.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
 
 - **P2:** After step 3 and again after step 9, search Backgrounds for "UAT Wanderer": it never appears (a draft is private, and homebrew stays private until shared; see [UAT-AUTHORING-11](UAT-AUTHORING-11.md)).
 

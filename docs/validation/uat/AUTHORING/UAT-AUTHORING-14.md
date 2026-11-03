@@ -2,7 +2,7 @@
 
 Author a Fireball-like spell from scratch.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 35 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 35 of 188
 
 ## Prerequisites
 
@@ -10,8 +10,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Fireball open in a second tab as the reference. Start a stopwatch before step 1.
 
 ## Steps
@@ -35,7 +35,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 - Step 9: the copy activates, with the same totals the SRD Fireball has.
 - Step 10: the reader view of the copy matches Fireball on every mechanical line: DEX save, 20-foot sphere, 150 feet, 8d6 on a failed save, half on a success, 9d6 at 4th level up to 14d6 at 9th.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
 
 - **P2:** Searching Spells for "UAT Fireball" finds nothing.
 

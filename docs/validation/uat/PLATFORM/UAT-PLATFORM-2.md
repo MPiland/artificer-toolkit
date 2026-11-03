@@ -2,7 +2,7 @@
 
 Upload, replace and remove an avatar.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P3) · Path position 21 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path position 21 of 188
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P3) · Path
 
 ## Accounts and windows
 
-- **Roles used:** P1, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P3
+- **Windows:** One browser window, signed in as P3 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -36,7 +36,9 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P3) · Path
 - The oversized image (if tried) is refused with a visible error; the avatar does not change.
 - After step 8 the avatar returns to the default placeholder and stays that way after reload.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P1 profile (not part of the tester's run):
 
 - **P1:** After step 5, anywhere P3's avatar appears (for example the Campaign member list of Review: Party in the Field), the second image appears; after step 8 the placeholder appears. The refused files never appear.
 

@@ -2,7 +2,7 @@
 
 Reusable effects, grants and modifiers on a System.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1) · Path position 32 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 32 of 188
 
 ## Prerequisites
 
@@ -12,8 +12,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -32,7 +32,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1) · Pat
 - Step 6: the stale save/publish is refused with a message about a newer version; nothing is overwritten.
 - Step 7: after reload the newer content appears and publishing succeeds.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P1 profile (not part of the tester's run):
 
 - **P1:** After step 4, open the SRD System's **Reusable definitions** list: the GM's draft definition is not listed.
 

@@ -2,7 +2,7 @@
 
 Equipment variants, inheritance and item names.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 30 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 30 of 188
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -34,7 +34,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 - Step 8: deletion of the base is refused naming the published variant.
 - Step 9: deletion succeeds in that order.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
 
 - **P2:** Searching Equipment for "UAT Blade" finds nothing at any point.
 

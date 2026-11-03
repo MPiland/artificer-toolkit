@@ -11,7 +11,7 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) ·
 ## Accounts and windows
 
 - **Roles used:** none (signed out)
-- **Windows:** One browser window, signed in as the account named in the steps with the account from your set. Your normal browser is fine.
+- **Windows:** One browser window, signed out. Your normal browser is fine.
 
 ## Steps
 

@@ -2,7 +2,7 @@
 
 Author a Fire Bolt-like cantrip from scratch.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 34 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 34 of 188
 
 ## Prerequisites
 
@@ -10,8 +10,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Fire Bolt page open in a second tab as the reference. Start a stopwatch before step 1.
 
 ## Steps
@@ -35,7 +35,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 - Step 9: **Activate** succeeds without a validation message; if one appears, record its exact wording as a confusion point.
 - Step 10: the reader view of the copy matches the SRD Fire Bolt on every mechanical line (ranged spell attack, 120 feet, 1d10 fire, 2d10 at level 5, 3d10 at 11, 4d10 at 17, Sorcerer and Wizard). Wording of the description may differ.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
 
 - **P2:** Searching Spells for "UAT Fire Bolt" finds nothing (private homebrew).
 

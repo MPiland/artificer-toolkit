@@ -2,7 +2,7 @@
 
 BLOCKED until AUTHORING-21 merges: the link between the modifier and its pool is changing from a typed Charge ID to a picker, and this scenario is written against the picker. Mark it BLOCKED in the Result block until then.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 36 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 36 of 188
 
 ## Prerequisites
 
@@ -10,8 +10,8 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 
 ## Accounts and windows
 
-- **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Sorcerer's **Empowered Spell** feature (Classes, Sorcerer, Metamagic) open as the reference. Start a stopwatch before step 1.
 
 ## Steps
@@ -33,7 +33,9 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Pat
 - Step 7: the copy and the SRD Empowered Spell agree on cost, reroll count and minimum, and both name the pool they spend.
 - Step 8: the Cast Modifier still points at the same pool, now shown under the Feat's new name.
 
-## Other users see
+## Cross-role check
+
+Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
 
 - **P2:** Searching Feats for "UAT Empowered" finds nothing.
 

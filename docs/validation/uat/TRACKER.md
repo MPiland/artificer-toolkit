@@ -17,43 +17,55 @@ For each line: tick the box once the scenario has been run, whatever the outcome
 - [ ] [EXPLORATORY-6](EXPLORATORY/EXPLORATORY-6.md): Find out what went wrong (EXPLORATORY) - role P2, facilitator needed - **NOT RUN**
 - [ ] [EXPLORATORY-7](EXPLORATORY/EXPLORATORY-7.md): Hand over a Character mid-campaign (EXPLORATORY) - role P2, facilitator needed - **NOT RUN**
 
-## Level 1: Single-user basics (25 Solo)
+## Level 1: Single-user basics (35 Solo)
 
 - [ ] [UAT-ACCOUNTS-1](ACCOUNTS/UAT-ACCOUNTS-1.md): Sign in, reload, sign out, sign back in by username (ACCOUNTS) - role P1 - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-2](ACCOUNTS/UAT-ACCOUNTS-2.md): Wrong password and unknown account are refused (ACCOUNTS) - role P1 - **NOT RUN**
-- [ ] [UAT-ACCOUNTS-4](ACCOUNTS/UAT-ACCOUNTS-4.md): Public sign-up is closed (ACCOUNTS) - role undefined - **NOT RUN**
+- [ ] [UAT-ACCOUNTS-4](ACCOUNTS/UAT-ACCOUNTS-4.md): Public sign-up is closed (ACCOUNTS) - role none, signed out - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-6](ACCOUNTS/UAT-ACCOUNTS-6.md): Create an account from an invitation (ACCOUNTS) - role OWN, own account - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-5](ACCOUNTS/UAT-ACCOUNTS-5.md): Reset a forgotten password (wrong code, mismatch, then success) (ACCOUNTS) - role OWN, own account - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-7](ACCOUNTS/UAT-ACCOUNTS-7.md): Choose, change and protect a username (ACCOUNTS) - role OWN, own account - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-13](ACCOUNTS/UAT-ACCOUNTS-13.md): Campaign text follows the same language rules as usernames (ACCOUNTS) - role GM - **NOT RUN**
 - [ ] [UAT-PLATFORM-1](PLATFORM/UAT-PLATFORM-1.md): SRD content is present and browsable (PLATFORM) - role GM - **NOT RUN**
+- [ ] [UAT-PLATFORM-2](PLATFORM/UAT-PLATFORM-2.md): Upload, replace and remove an avatar (PLATFORM) - role P3, owner cross-role check as P1 - **NOT RUN**
 - [ ] [UAT-PLATFORM-4](PLATFORM/UAT-PLATFORM-4.md): Password reset email is requested from the app (PLATFORM) - role P3 - **NOT RUN**
 - [ ] [UAT-AUTHORING-1](AUTHORING/UAT-AUTHORING-1.md): Browse Game Systems and Rules Catalogues (AUTHORING) - role GM - **NOT RUN**
 - [ ] [UAT-AUTHORING-2](AUTHORING/UAT-AUTHORING-2.md): SRD records are locked but can be copied into an owned draft (AUTHORING) - role GM - **NOT RUN**
-- [ ] [UAT-AUTHORING-5](AUTHORING/UAT-AUTHORING-5.md): Author a Class and see the Spell guard (AUTHORING) - role P1 - after session G2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-3](AUTHORING/UAT-AUTHORING-3.md): Background lifecycle — create, save, publish, replace, export, delete (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-4](AUTHORING/UAT-AUTHORING-4.md): Author, publish and filter a homebrew Spell with artwork (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-5](AUTHORING/UAT-AUTHORING-5.md): Author a Class and see the Spell guard (AUTHORING) - role P1 - **NOT RUN**
+- [ ] [UAT-AUTHORING-7](AUTHORING/UAT-AUTHORING-7.md): Equipment variants, inheritance and item names (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-8](AUTHORING/UAT-AUTHORING-8.md): Author a Feat, a Race and a Vehicle (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-9](AUTHORING/UAT-AUTHORING-9.md): Reusable effects, grants and modifiers on a System (AUTHORING) - role GM, owner cross-role check as P1 - **NOT RUN**
 - [ ] [UAT-AUTHORING-12](AUTHORING/UAT-AUTHORING-12.md): Option descriptions and adding a Check and a DC (AUTHORING) - role P1 - **NOT RUN**
+- [ ] [UAT-AUTHORING-13](AUTHORING/UAT-AUTHORING-13.md): Author a Fire Bolt-like cantrip from scratch (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-14](AUTHORING/UAT-AUTHORING-14.md): Author a Fireball-like spell from scratch (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-15](AUTHORING/UAT-AUTHORING-15.md): Author an Empowered Spell-like feature that spends a resource pool (AUTHORING) - role P1, owner cross-role check as P2 - **NOT RUN**
 - [ ] [UAT-RULES-1](RULES/UAT-RULES-1.md): Authoring forms show, hide and require fields as choices change (RULES) - role P1 - **NOT RUN**
-- [ ] [UAT-BUILDER-2](BUILDER/UAT-BUILDER-2.md): Two windows on one draft cannot overwrite each other (BUILDER) - role P1 - after session G2 - **NOT RUN**
+- [ ] [UAT-BUILDER-1](BUILDER/UAT-BUILDER-1.md): Build a Character for a review player, save, resume and commit (BUILDER) - role P1, owner cross-role check as GM - **NOT RUN**
+- [ ] [UAT-BUILDER-2](BUILDER/UAT-BUILDER-2.md): Two windows on one draft cannot overwrite each other (BUILDER) - role P1 - **NOT RUN**
 - [ ] [UAT-BUILDER-3](BUILDER/UAT-BUILDER-3.md): Choice-heavy builds — multiclass and spellcaster (BUILDER) - role P2 - **NOT RUN**
-- [ ] [UAT-BUILDER-4](BUILDER/UAT-BUILDER-4.md): Removing content a Character uses repairs the Character (BUILDER) - role P1 - after session G2, G1 - **NOT RUN**
+- [ ] [UAT-BUILDER-4](BUILDER/UAT-BUILDER-4.md): Removing content a Character uses repairs the Character (BUILDER) - role P1 - **NOT RUN**
 - [ ] [UAT-BUILDER-6](BUILDER/UAT-BUILDER-6.md): Imported custom items keep their kind, properties and damage (BUILDER) - role P1 - **NOT RUN**
-- [ ] [UAT-SHEET-1](SHEET/UAT-SHEET-1.md): Edit a personal Sheet and reload (SHEET) - role P1 - after session G2 - **NOT RUN**
+- [ ] [UAT-SHEET-1](SHEET/UAT-SHEET-1.md): Edit a personal Sheet and reload (SHEET) - role P1 - **NOT RUN**
 - [ ] [UAT-SHEET-2](SHEET/UAT-SHEET-2.md): Short and long rest (SHEET) - role P1 - **NOT RUN**
-- [ ] [UAT-SHEET-3](SHEET/UAT-SHEET-3.md): Learn, prepare and cast spells from the Sheet (SHEET) - role P1 - after session G2 - **NOT RUN**
-- [ ] [UAT-SHEET-7](SHEET/UAT-SHEET-7.md): Starting equipment on a new Character (SHEET) - role P1 - after session G2 - **NOT RUN**
-- [ ] [UAT-SHEET-8](SHEET/UAT-SHEET-8.md): Hands, two-handed weapons and shields (SHEET) - role P1 - after session G2 - **NOT RUN**
-- [ ] [UAT-SHEET-9](SHEET/UAT-SHEET-9.md): Speed on the overview and the Movement panel (SHEET) - role P1 - after session G2 - **NOT RUN**
-- [ ] [UAT-SHEET-10](SHEET/UAT-SHEET-10.md): Sheet at phone width (SHEET) - role P1 - after session G2 - **NOT RUN**
+- [ ] [UAT-SHEET-3](SHEET/UAT-SHEET-3.md): Learn, prepare and cast spells from the Sheet (SHEET) - role P1 - **NOT RUN**
+- [ ] [UAT-SHEET-7](SHEET/UAT-SHEET-7.md): Starting equipment on a new Character (SHEET) - role P1 - **NOT RUN**
+- [ ] [UAT-SHEET-8](SHEET/UAT-SHEET-8.md): Hands, two-handed weapons and shields (SHEET) - role P1 - **NOT RUN**
+- [ ] [UAT-SHEET-9](SHEET/UAT-SHEET-9.md): Speed on the overview and the Movement panel (SHEET) - role P1 - **NOT RUN**
+- [ ] [UAT-SHEET-10](SHEET/UAT-SHEET-10.md): Sheet at phone width (SHEET) - role P1 - **NOT RUN**
 
 ## Level 2: GM setup (4 Solo)
 
 - [ ] [UAT-CAMPAIGN-1](CAMPAIGN/UAT-CAMPAIGN-1.md): Create, edit, copy, archive and delete a Campaign (CAMPAIGN) - role GM - **NOT RUN**
-- [ ] [UAT-SCENE-1](SCENE/UAT-SCENE-1.md): Upload a map, calibrate and create a Scene (SCENE) - role GM - after session G4 - **NOT RUN**
-- [ ] [UAT-SCENE-2](SCENE/UAT-SCENE-2.md): Map upload refusals (SCENE) - role GM - after session G4 - **NOT RUN**
-- [ ] [UAT-RELIABILITY-4](RELIABILITY/UAT-RELIABILITY-4.md): A new Scene measures lengths correctly in every unit (RELIABILITY) - role GM - after session G4 - **NOT RUN**
+- [ ] [UAT-SCENE-1](SCENE/UAT-SCENE-1.md): Upload a map, calibrate and create a Scene (SCENE) - role GM - after session G2 - **NOT RUN**
+- [ ] [UAT-SCENE-2](SCENE/UAT-SCENE-2.md): Map upload refusals (SCENE) - role GM - after session G2 - **NOT RUN**
+- [ ] [UAT-RELIABILITY-4](RELIABILITY/UAT-RELIABILITY-4.md): A new Scene measures lengths correctly in every unit (RELIABILITY) - role GM - after session G2 - **NOT RUN**
 
-## Level 3: Core play (1 Solo)
+## Level 3: Core play (3 Solo)
 
+- [ ] [UAT-SHEET-5](SHEET/UAT-SHEET-5.md): GM Public and Private rolls with reveals (SHEET) - role GM, owner cross-role check as P1, P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-6](AUTHORING/UAT-AUTHORING-6.md): Creature copy, computed AC and the item loadout (AUTHORING) - role GM, owner cross-role check as P1 - **NOT RUN**
 - [ ] [UAT-RELIABILITY-8](RELIABILITY/UAT-RELIABILITY-8.md): The Sheet shows correct rests, ability checks and hit points (RELIABILITY) - role P1 - **NOT RUN**
 
 ## Level 4: Advanced play (0 Solo)
@@ -74,32 +86,12 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-ACCOUNTS-3](ACCOUNTS/UAT-ACCOUNTS-3.md): Two accounts at once stay isolated, and sign-out ends every tab (ACCOUNTS) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-9](ACCOUNTS/UAT-ACCOUNTS-9.md): Ordinary users cannot use superadmin tools (ACCOUNTS) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-10](ACCOUNTS/UAT-ACCOUNTS-10.md): Superadmin moderation (ACCOUNTS) - roles GM, P1, SUPERADMIN - **NOT RUN**
-- [ ] [UAT-PLATFORM-2](PLATFORM/UAT-PLATFORM-2.md): Upload, replace and remove an avatar (PLATFORM) - roles P1, P3 - **NOT RUN**
 - [ ] [UAT-PLATFORM-3](PLATFORM/UAT-PLATFORM-3.md): Artwork is private to its owner until shared (PLATFORM) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-AUTHORING-3](AUTHORING/UAT-AUTHORING-3.md): Background lifecycle — create, save, publish, replace, export, delete (AUTHORING) - roles P1, P2 - **NOT RUN**
 - [ ] [UAT-AUTHORING-10](AUTHORING/UAT-AUTHORING-10.md): Another account cannot see or edit your drafts (AUTHORING) - roles GM, P1, P2 - **NOT RUN**
-
-## Session G2 (Level 1): 8 scenarios
-
-**Profiles:** P1, P2, GM
-
-- [ ] [UAT-AUTHORING-4](AUTHORING/UAT-AUTHORING-4.md): Author, publish and filter a homebrew Spell with artwork (AUTHORING) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-AUTHORING-7](AUTHORING/UAT-AUTHORING-7.md): Equipment variants, inheritance and item names (AUTHORING) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-AUTHORING-8](AUTHORING/UAT-AUTHORING-8.md): Author a Feat, a Race and a Vehicle (AUTHORING) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-AUTHORING-9](AUTHORING/UAT-AUTHORING-9.md): Reusable effects, grants and modifiers on a System (AUTHORING) - roles GM, P1 - **NOT RUN**
-- [ ] [UAT-AUTHORING-13](AUTHORING/UAT-AUTHORING-13.md): Author a Fire Bolt-like cantrip from scratch (AUTHORING) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-AUTHORING-14](AUTHORING/UAT-AUTHORING-14.md): Author a Fireball-like spell from scratch (AUTHORING) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-AUTHORING-15](AUTHORING/UAT-AUTHORING-15.md): Author an Empowered Spell-like feature that spends a resource pool (AUTHORING) - roles P1, P2 - **NOT RUN**
-- [ ] [UAT-BUILDER-1](BUILDER/UAT-BUILDER-1.md): Build a Character for a review player, save, resume and commit (BUILDER) - roles GM, P1 - **NOT RUN**
-
-## Session G3 (Level 1): 2 scenarios
-
-**Profiles:** P1, P2, P3
-
 - [ ] [UAT-BUILDER-7](BUILDER/UAT-BUILDER-7.md): Build the Characters P2 and P3 will use in the Sandbox Campaign (BUILDER) - roles P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-SHEET-6](SHEET/UAT-SHEET-6.md): Equipment, inventory, attunement and deleting an item (SHEET) - roles P1, P2 - **NOT RUN**
 
-## Session G4 (Level 2): 8 scenarios
+## Session G2 (Level 2): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -112,7 +104,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-CAMPAIGN-4](CAMPAIGN/UAT-CAMPAIGN-4.md): Campaign content, sources and removals (CAMPAIGN) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-CAMPAIGN-5](CAMPAIGN/UAT-CAMPAIGN-5.md): Party inventory and Vehicles (CAMPAIGN) - roles GM, P1 - **NOT RUN**
 
-## Session G5 (Level 2): 8 scenarios
+## Session G3 (Level 2): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -125,7 +117,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-SCENE-9](SCENE/UAT-SCENE-9.md): One shared table screen for several players (SCENE) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-MOVE-5](MOVE/UAT-MOVE-5.md): Moving outside an Encounter and in a sandbox (MOVE) - roles GM, P1 - **NOT RUN**
 
-## Session G6 (Level 2): 4 scenarios
+## Session G4 (Level 2): 4 scenarios
 
 **Profiles:** GM, P1, P2
 
@@ -134,7 +126,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-ENCOUNTER-7](ENCOUNTER/UAT-ENCOUNTER-7.md): Blueprint edits and who can reach them (ENCOUNTER) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-SCENE-7](SCENE/UAT-SCENE-7.md): Map ownership and deletion (SCENE) - roles GM, P1 - **NOT RUN**
 
-## Session G7 (Level 3): 8 scenarios
+## Session G5 (Level 3): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -147,7 +139,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-ROOM-6](ROOM/UAT-ROOM-6.md): Notes — private and shared (ROOM) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-ROOM-8](ROOM/UAT-ROOM-8.md): Plan and log Sessions (ROOM) - roles GM, P1, P2 - **NOT RUN**
 
-## Session G8 (Level 3): 8 scenarios
+## Session G6 (Level 3): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -155,88 +147,86 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-ROOM-7](ROOM/UAT-ROOM-7.md): Show a map to players without presenting (ROOM) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-ROOM-10](ROOM/UAT-ROOM-10.md): Archiving a Campaign closes its live room (ROOM) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-SHEET-4](SHEET/UAT-SHEET-4.md): Roll from the Sheet and choose who sees it (SHEET) - roles GM, P1, P2 - **NOT RUN**
-- [ ] [UAT-SHEET-5](SHEET/UAT-SHEET-5.md): GM Public and Private rolls with reveals (SHEET) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-SHEET-11](SHEET/UAT-SHEET-11.md): Sheet during live play and after reconnect (SHEET) - roles GM, P1 - **NOT RUN**
-- [ ] [UAT-AUTHORING-6](AUTHORING/UAT-AUTHORING-6.md): Creature copy, computed AC and the item loadout (AUTHORING) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-ATTACK-1](ATTACK/UAT-ATTACK-1.md): Effects, movement, reactions and the turn lifecycle pass end to end (ATTACK) - roles GM, P1, P2, P3 - **NOT RUN**
-
-## Session G9 (Level 3): 8 scenarios
-
-**Profiles:** GM, P1, P2, P3
-
 - [ ] [UAT-ATTACK-2](ATTACK/UAT-ATTACK-2.md): Players control only their own actors (ATTACK) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-ATTACK-5](ATTACK/UAT-ATTACK-5.md): Targeting, hidden creatures and private roll cards (ATTACK) - roles GM, P1, P2 - **NOT RUN**
+
+## Session G7 (Level 3): 8 scenarios
+
+**Profiles:** GM, P1, P2
+
 - [ ] [UAT-ATTACK-6](ATTACK/UAT-ATTACK-6.md): Hiding, invisibility and unseen attackers (ATTACK) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-ATTACK-8](ATTACK/UAT-ATTACK-8.md): Grapple, shove and basic actions (ATTACK) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-ATTACK-10](ATTACK/UAT-ATTACK-10.md): Multiattack and SRD monster attacks (ATTACK) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-PRIVACY-1](PRIVACY/UAT-PRIVACY-1.md): What a player sees of the Encounter (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-PRIVACY-2](PRIVACY/UAT-PRIVACY-2.md): GM private rolls and monster rolls (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-PRIVACY-5](PRIVACY/UAT-PRIVACY-5.md): Reloads and replays do not leak (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
+- [ ] [UAT-PRIVACY-6](PRIVACY/UAT-PRIVACY-6.md): Health display settings (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
+- [ ] [UAT-PRIVACY-7](PRIVACY/UAT-PRIVACY-7.md): Other players' Sheets and Campaign roster (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
 
-## Session G10 (Level 3): 8 scenarios
+## Session G8 (Level 3): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
-- [ ] [UAT-PRIVACY-6](PRIVACY/UAT-PRIVACY-6.md): Health display settings (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
-- [ ] [UAT-PRIVACY-7](PRIVACY/UAT-PRIVACY-7.md): Other players' Sheets and Campaign roster (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-MOVE-1](MOVE/UAT-MOVE-1.md): A player moves their own token (MOVE) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-MOVE-3](MOVE/UAT-MOVE-3.md): Opportunity attack pauses the move (MOVE) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-MOVE-4](MOVE/UAT-MOVE-4.md): Undo last token move (MOVE) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-MOVE-7](MOVE/UAT-MOVE-7.md): Overrun, Shove Aside and Tumble (MOVE) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-REACTION-2](REACTION/UAT-REACTION-2.md): Only the right controller answers; GM Skip decision (REACTION) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-REACTION-1](REACTION/UAT-REACTION-1.md): Shield prompts the right player while the attacker waits (REACTION) - roles GM, P1, P2, P3 - **NOT RUN**
+- [ ] [UAT-REACTION-3](REACTION/UAT-REACTION-3.md): Roll prompts, Auto-roll on versus off (REACTION) - roles GM, P1 - **NOT RUN**
+- [ ] [UAT-REACTION-5](REACTION/UAT-REACTION-5.md): An authored reaction spell (Absorb Elements) (REACTION) - roles GM, P1 - **NOT RUN**
 
-## Session G11 (Level 3): 8 scenarios
+## Session G9 (Level 3): 8 scenarios
 
 **Profiles:** GM, P1, P2
 
-- [ ] [UAT-REACTION-3](REACTION/UAT-REACTION-3.md): Roll prompts, Auto-roll on versus off (REACTION) - roles GM, P1 - **NOT RUN**
-- [ ] [UAT-REACTION-5](REACTION/UAT-REACTION-5.md): An authored reaction spell (Absorb Elements) (REACTION) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-REACTION-7](REACTION/UAT-REACTION-7.md): Reconnect while a decision is open (REACTION) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-RULES-3](RULES/UAT-RULES-3.md): A reaction pauses a hit; answering resumes it; privacy of the pause (RULES) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-RULES-4](RULES/UAT-RULES-4.md): Healing keeps its dice and modifier visible in the roll card (RULES) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-VTT_UI-1](VTT_UI/UAT-VTT_UI-1.md): Token identity, status rings, facing and system state (VTT_UI) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-VTT_UI-2](VTT_UI/UAT-VTT_UI-2.md): Previews, footprints, large tokens and dragging (VTT_UI) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-VTT_UI-4](VTT_UI/UAT-VTT_UI-4.md): Keyboard, screen reader and low zoom (VTT_UI) - roles GM, P1 - **NOT RUN**
+- [ ] [UAT-PRIVACY-9](PRIVACY/UAT-PRIVACY-9.md): A hidden Concentration source stays hidden (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
+- [ ] [UAT-RELIABILITY-1](RELIABILITY/UAT-RELIABILITY-1.md): Privacy, replay, rollback, concurrency and performance hold together (RELIABILITY) - roles GM, P1, P2 - **NOT RUN**
 
-## Session G12 (Level 3): 8 scenarios
+## Session G10 (Level 3): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
-- [ ] [UAT-PRIVACY-9](PRIVACY/UAT-PRIVACY-9.md): A hidden Concentration source stays hidden (PRIVACY) - roles GM, P1, P2 - **NOT RUN**
-- [ ] [UAT-RELIABILITY-1](RELIABILITY/UAT-RELIABILITY-1.md): Privacy, replay, rollback, concurrency and performance hold together (RELIABILITY) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-RELIABILITY-2](RELIABILITY/UAT-RELIABILITY-2.md): Two users act at the same moment (RELIABILITY) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-RELIABILITY-3](RELIABILITY/UAT-RELIABILITY-3.md): The room closes after everyone leaves and reopens with state intact (RELIABILITY) - roles GM, P1, P3 - **NOT RUN**
 - [ ] [UAT-RELIABILITY-6](RELIABILITY/UAT-RELIABILITY-6.md): A contested passage holds, then spends once (RELIABILITY) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-PERF-2](PERF/UAT-PERF-2.md): Four people at a local table feel responsive (PERF) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-MOVE-2](MOVE/UAT-MOVE-2.md): Refusals at walls, hostile spaces and the map edge (MOVE) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-MOVE-8](MOVE/UAT-MOVE-8.md): Hidden hazards, traps and auras (MOVE) - roles GM, P1, P2 - **NOT RUN**
+- [ ] [UAT-MOVE-9](MOVE/UAT-MOVE-9.md): Climb onto a larger creature (MOVE) - roles GM, P1 - **NOT RUN**
+- [ ] [UAT-PRIVACY-4](PRIVACY/UAT-PRIVACY-4.md): Ownership transfer changes who sees what (PRIVACY) - roles GM, P1 - **NOT RUN**
 
-## Session G13 (Level 3): 8 scenarios
+## Session G11 (Level 3): 8 scenarios
 
 **Profiles:** GM, P1, P2, SPARE
 
-- [ ] [UAT-MOVE-9](MOVE/UAT-MOVE-9.md): Climb onto a larger creature (MOVE) - roles GM, P1 - **NOT RUN**
-- [ ] [UAT-PRIVACY-4](PRIVACY/UAT-PRIVACY-4.md): Ownership transfer changes who sees what (PRIVACY) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-ROOM-3](ROOM/UAT-ROOM-3.md): Reconnect after a dropped connection (ROOM) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-PRIVACY-3](PRIVACY/UAT-PRIVACY-3.md): Non-members, removed players and signed-out visitors (PRIVACY) - roles GM, P1, P2, SPARE - **NOT RUN**
 - [ ] [UAT-PRIVACY-8](PRIVACY/UAT-PRIVACY-8.md): Campaign content stays hidden until revealed (PRIVACY) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-ATTACK-7](ATTACK/UAT-ATTACK-7.md): Optional combat rules in play (ATTACK) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-ATTACK-9](ATTACK/UAT-ATTACK-9.md): Class features in play (ATTACK) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-ATTACK-11](ATTACK/UAT-ATTACK-11.md): Weapons in hand, loadouts and Disarm (ATTACK) - roles GM, P1 - **NOT RUN**
+- [ ] [UAT-ENCOUNTER-5](ENCOUNTER/UAT-ENCOUNTER-5.md): Morale (ENCOUNTER) - roles GM, P1 - **NOT RUN**
+- [ ] [UAT-REACTION-4](REACTION/UAT-REACTION-4.md): Counterspell and chains (REACTION) - roles GM, P1, P2 - **NOT RUN**
 
-## Session G14 (Level 3): 6 scenarios
+## Session G12 (Level 3): 4 scenarios
 
 **Profiles:** GM, P1, P2
 
-- [ ] [UAT-ENCOUNTER-5](ENCOUNTER/UAT-ENCOUNTER-5.md): Morale (ENCOUNTER) - roles GM, P1 - **NOT RUN**
-- [ ] [UAT-REACTION-4](REACTION/UAT-REACTION-4.md): Counterspell and chains (REACTION) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-REACTION-6](REACTION/UAT-REACTION-6.md): Disarm evidence from participants (REACTION) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-RELIABILITY-7](RELIABILITY/UAT-RELIABILITY-7.md): Authored speed and sense bonuses use the right length unit (RELIABILITY) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-RELIABILITY-9](RELIABILITY/UAT-RELIABILITY-9.md): Roll reasons and initiative read the right source (RELIABILITY) - roles GM, P1 - **NOT RUN**
 - [ ] [UAT-VTT_UI-3](VTT_UI/UAT-VTT_UI-3.md): Light, fog, senses and the GM's view preview (VTT_UI) - roles GM, P1 - **NOT RUN**
 
-## Session G15 (Level 4): 8 scenarios
+## Session G13 (Level 4): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -249,7 +239,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-ATTACK-4](ATTACK/UAT-ATTACK-4.md): Undo last action and its refusals (ATTACK) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-RULES-2](RULES/UAT-RULES-2.md): A started Encounter pauses for answers and resumes with nothing half-applied (RULES) - roles GM, P2 - **NOT RUN**
 
-## Session G16 (Level 4): 8 scenarios
+## Session G14 (Level 4): 8 scenarios
 
 **Profiles:** GM, P2, P1, SUPERADMIN, SPARE, P3
 
@@ -262,7 +252,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-SPELLS-3](SPELLS/UAT-SPELLS-3.md): Fireball on a group with saves answered by different controllers (SPELLS) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-SPELLS-4](SPELLS/UAT-SPELLS-4.md): Area caster cannot see a hidden creature (SPELLS) - roles GM, P1 - **NOT RUN**
 
-## Session G17 (Level 4): 8 scenarios
+## Session G15 (Level 4): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -275,7 +265,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-SPELLS-10](SPELLS/UAT-SPELLS-10.md): Dying, death saves, healing and kills (SPELLS) - roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-SPELLS-11](SPELLS/UAT-SPELLS-11.md): Stabilizing: Spare the Dying, Healer's Kit and first aid (SPELLS) - roles GM, P1, P2, P3 - **NOT RUN**
 
-## Session G18 (Level 4): 8 scenarios
+## Session G16 (Level 4): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -288,7 +278,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-SPELLS-18](SPELLS/UAT-SPELLS-18.md): Dragons, breath weapons and Legendary Resistance (SPELLS) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-SPELLS-19](SPELLS/UAT-SPELLS-19.md): Zones, auras and lasting hazards (SPELLS) - roles GM, P1, P2, P3 - **NOT RUN**
 
-## Session G19 (Level 4): 8 scenarios
+## Session G17 (Level 4): 8 scenarios
 
 **Profiles:** GM, P1, P2, P3
 
@@ -301,7 +291,7 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-SPELLS-26](SPELLS/UAT-SPELLS-26.md): Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility) (SPELLS) - roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-SPELLS-27](SPELLS/UAT-SPELLS-27.md): Racial traits, creature traits and Eldritch Blast (SPELLS) - roles GM, P1, P2, P3 - **NOT RUN**
 
-## Session G20 (Level 5): 8 scenarios
+## Session G18 (Level 5): 8 scenarios
 
 **Profiles:** GM, P1, SPARE, SUPERADMIN, DISPOSABLE, P2, P3
 
@@ -314,8 +304,25 @@ Each session is one sitting: sign every listed role in to its own browser profil
 - [ ] [UAT-RELIABILITY-13](RELIABILITY/UAT-RELIABILITY-13.md): Account deletion closes the live table (RELIABILITY) - roles GM, DISPOSABLE - **NOT RUN**
 - [ ] [UAT-RELEASE-1](RELEASE/UAT-RELEASE-1.md): Exact cleanup and final acceptance (RELEASE) - roles GM, P1, P2, P3 - **NOT RUN**
 
-## Session G21 (Level 5): 1 scenarios
+## Session G19 (Level 5): 1 scenarios
 
 **Profiles:** GM, P1, P2
 
 - [ ] [UAT-PERF-1](PERF/UAT-PERF-1.md): Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) (PERF) - roles GM, P1, P2 - **NOT RUN**
+
+# Owner follow-ups: cross-role checks (12)
+
+The tester's Solo run does not cover what the other roles see. After the tester finishes the scenario, the owner signs in as the listed role from the same set and runs the scenario's Cross-role check section.
+
+- [ ] [UAT-PLATFORM-2](PLATFORM/UAT-PLATFORM-2.md#cross-role-check): Upload, replace and remove an avatar - as P1 - **NOT RUN**
+- [ ] [UAT-AUTHORING-3](AUTHORING/UAT-AUTHORING-3.md#cross-role-check): Background lifecycle — create, save, publish, replace, export, delete - as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-4](AUTHORING/UAT-AUTHORING-4.md#cross-role-check): Author, publish and filter a homebrew Spell with artwork - as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-7](AUTHORING/UAT-AUTHORING-7.md#cross-role-check): Equipment variants, inheritance and item names - as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-8](AUTHORING/UAT-AUTHORING-8.md#cross-role-check): Author a Feat, a Race and a Vehicle - as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-9](AUTHORING/UAT-AUTHORING-9.md#cross-role-check): Reusable effects, grants and modifiers on a System - as P1 - **NOT RUN**
+- [ ] [UAT-AUTHORING-13](AUTHORING/UAT-AUTHORING-13.md#cross-role-check): Author a Fire Bolt-like cantrip from scratch - as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-14](AUTHORING/UAT-AUTHORING-14.md#cross-role-check): Author a Fireball-like spell from scratch - as P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-15](AUTHORING/UAT-AUTHORING-15.md#cross-role-check): Author an Empowered Spell-like feature that spends a resource pool - as P2 - **NOT RUN**
+- [ ] [UAT-BUILDER-1](BUILDER/UAT-BUILDER-1.md#cross-role-check): Build a Character for a review player, save, resume and commit - as GM - **NOT RUN**
+- [ ] [UAT-SHEET-5](SHEET/UAT-SHEET-5.md#cross-role-check): GM Public and Private rolls with reveals - as P1, P2 - **NOT RUN**
+- [ ] [UAT-AUTHORING-6](AUTHORING/UAT-AUTHORING-6.md#cross-role-check): Creature copy, computed AC and the item loadout - as P1 - **NOT RUN**
