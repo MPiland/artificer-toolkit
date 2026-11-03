@@ -25,7 +25,7 @@ import {
 } from '@artificer-toolkit/schema/api/account'
 import { USERNAME_NOT_ALLOWED_MESSAGE } from '@artificer-toolkit/shared/account/username'
 import { validateUsernameOnServer } from '@artificer-toolkit/shared/account/usernameServer'
-import { deleteSessionCookie } from 'better-auth/cookies'
+import { deleteSessionCookie, setSessionCookie } from 'better-auth/cookies'
 import { JWT_COOKIE_NAME } from '@convex-dev/better-auth/plugins'
 import { makeFunctionReference } from 'convex/server'
 import { internal } from './_generated/api'
@@ -211,15 +211,20 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
               const changed = await changePassword({
                 context: context.context,
                 headers: context.headers,
-                returnHeaders: true,
                 body: {
                   currentPassword: context.body.currentPassword,
                   newPassword: context.body.password,
                   revokeOtherSessions: true
                 }
               })
-              for (const cookie of changed.headers.getSetCookie())
-                context.responseHeaders?.append('set-cookie', cookie)
+              const replacement = changed.token
+                ? await context.context.internalAdapter.findSession(changed.token)
+                : null
+              if (!replacement)
+                throw new APIError('INTERNAL_SERVER_ERROR', {
+                  message: 'Your password changed but your session could not be renewed.'
+                })
+              await setSessionCookie(context, replacement)
               return context.json(null)
             }
           )

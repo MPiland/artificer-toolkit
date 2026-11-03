@@ -11,11 +11,11 @@ import schema from './schema'
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
 
-const toCookieHeaders = (responseHeaders: Headers) =>
+const toCookieHeaders = (setCookies: string[]) =>
   new Headers({
     origin: 'http://localhost:3000',
-    cookie: responseHeaders
-      .getSetCookie()
+    cookie: setCookies
+
       .map((value) => value.split(';')[0])
       .join('; ')
   })
@@ -65,7 +65,7 @@ async function fixture() {
         returnHeaders: true
       })
       const responseHeaders: Headers = signedIn.headers
-      const headers = toCookieHeaders(responseHeaders)
+      const headers = toCookieHeaders(responseHeaders.getSetCookie())
       const session: AuthDoc<'session'> | null = await ctx.runQuery(
         components.betterAuth.adapter.findOne,
         {
@@ -92,7 +92,7 @@ async function fixture() {
         headers: owner.headers,
         returnHeaders: true
       })
-      return headers
+      return headers.getSetCookie()
     })
   const signInSecondSession = () =>
     t.run(async (ctx) => {
@@ -101,7 +101,7 @@ async function fixture() {
         headers: new Headers({ origin: 'http://localhost:3000' }),
         returnHeaders: true
       })
-      return toCookieHeaders(signedIn.headers)
+      return toCookieHeaders(signedIn.headers.getSetCookie())
     })
   const getSession = (headers: Headers) =>
     t.run((ctx) => createAuth(ctx).api.getSession({ headers }))
