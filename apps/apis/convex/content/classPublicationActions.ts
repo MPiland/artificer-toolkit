@@ -1,6 +1,5 @@
-import * as zMini from 'zod/mini'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import {
   authoredSourceFacts,
   normalizeIngressValues,
@@ -20,7 +19,7 @@ import { internal } from '../_generated/api'
 import { action } from '../_generated/server'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 
-const classPublishDraftInputSchema = zMini.extend(authoredPublishDraftInputSchema, {
+const classPublishDraftInputSchema = z.extend(authoredPublishDraftInputSchema, {
   subjectKind: z.literal('CLASS')
 })
 const sourceRowsSchema = z.array(

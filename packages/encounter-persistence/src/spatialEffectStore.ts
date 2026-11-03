@@ -20,10 +20,10 @@ import {
   type EncounterSpatialRuleEffectRecord
 } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 
-const positiveIntegerSchema = z.number().int().positive()
+const positiveIntegerSchema = z.number().check(z.int()).check(z.positive())
 
 function parseJson(value: string): unknown {
   try {

@@ -1,5 +1,5 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import { encounterSceneActorTokenBindingDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   sceneEncounterBindingInputSchema,

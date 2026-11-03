@@ -1,6 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import {
   authoredCatalogueFamilySchema,
   authoredCatalogueMetadataSchema
@@ -38,38 +38,38 @@ const cleanupJob = makeFunctionReference<'mutation', { jobId: string }, null>(
 
 const characterHeadOutputSchema = z.strictObject({
   draft: characterStoredDraftSchema,
-  oldPayloadHead: z.unknown().nullable(),
+  oldPayloadHead: z.nullable(z.unknown()),
   stagedPayloadId: z.string(),
   incrementsUsage: z.boolean()
 })
 
 const authoredHeadOutputSchema = z.strictObject({
   draft: authoredStoredDraftSchema,
-  oldPayloadHead: z.unknown().nullable(),
+  oldPayloadHead: z.nullable(z.unknown()),
   stagedPayloadId: z.string(),
   incrementsUsage: z.boolean()
 })
 
 const characterExpectedStateSchema = z.strictObject({
-  active: z.unknown().nullable(),
-  draft: z.unknown().nullable()
+  active: z.nullable(z.unknown()),
+  draft: z.nullable(z.unknown())
 })
 
 const authoredExpectedStateSchema = z.strictObject({
-  root: z.unknown().nullable(),
-  draft: z.unknown().nullable(),
-  version: z.unknown().nullable()
+  root: z.nullable(z.unknown()),
+  draft: z.nullable(z.unknown()),
+  version: z.nullable(z.unknown())
 })
 
 const customTargetSchema = z.strictObject({
   source: importSourceDtoSchema,
-  externalId: z.string().min(1),
+  externalId: z.string().check(z.minLength(1)),
   subjectKind: authoredPublishDraftInputSchema.shape.subjectKind,
-  targetId: z.string().min(1),
-  systemId: z.string().min(1),
-  label: z.string().min(1),
+  targetId: z.string().check(z.minLength(1)),
+  systemId: z.string().check(z.minLength(1)),
+  label: z.string().check(z.minLength(1)),
   activate: z.boolean(),
-  payloadChecksum: z.string().min(1)
+  payloadChecksum: z.string().check(z.minLength(1))
 })
 
 const customExpectedStateSchema = z.strictObject({
@@ -87,21 +87,21 @@ const customExpectedStateSchema = z.strictObject({
 const customDraftOutputSchema = z.strictObject({
   activation: z.literal('DRAFT'),
   destination: importDestinationDtoSchema,
-  publicId: z.string().min(1),
+  publicId: z.string().check(z.minLength(1)),
   draft: authoredStoredDraftSchema,
-  stagedPayloadId: z.string().min(1),
+  stagedPayloadId: z.string().check(z.minLength(1)),
   incrementsUsage: z.literal(true)
 })
 
 const customActiveOutputSchema = z.strictObject({
   activation: z.literal('ACTIVE'),
   destination: importDestinationDtoSchema,
-  publicId: z.string().min(1),
-  stagedRootId: z.string().min(1),
-  stagedRootChecksum: z.string().min(1),
-  stagedVersionId: z.string().min(1),
-  stagedVersionChecksum: z.string().min(1),
-  checksum: z.string().min(1),
+  publicId: z.string().check(z.minLength(1)),
+  stagedRootId: z.string().check(z.minLength(1)),
+  stagedRootChecksum: z.string().check(z.minLength(1)),
+  stagedVersionId: z.string().check(z.minLength(1)),
+  stagedVersionChecksum: z.string().check(z.minLength(1)),
+  checksum: z.string().check(z.minLength(1)),
   contentSource: authoredContentSourceDtoSchema,
   createContentSource: z.boolean(),
   catalogue: authoredCatalogueMetadataSchema,

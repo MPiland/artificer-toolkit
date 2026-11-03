@@ -12,7 +12,7 @@ import {
   resolveHandOccupancy,
   type EquipmentSlotCode
 } from '@artificer-toolkit/shared/core'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 
 import { hydrateStoredCompilation } from './authoredPublicationHydrate.js'
 import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
@@ -154,7 +154,7 @@ export function assertCreatureLoadoutHands(
 
 const creatureArmorClassInputsSchema = z.object({
   abilityScores: z.record(z.string(), z.number()),
-  naturalArmorBonus: z.number().int().nonnegative()
+  naturalArmorBonus: z.number().check(z.int()).check(z.nonnegative())
 })
 
 /** The armor class inputs of an immutable Creature payload. */

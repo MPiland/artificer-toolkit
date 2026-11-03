@@ -1,16 +1,15 @@
-import { z } from 'zod'
 import { campaignDeletionStatusSchema } from '../api/campaignDeletion.js'
 import { uuidSchema } from '../api/campaignContractSchemas.js'
-import { lazySchema } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 export const campaignDeletionJobSchema = lazySchema(() =>
-  campaignDeletionStatusSchema.extend({
+  z.extend(campaignDeletionStatusSchema, {
     ownerUserId: uuidSchema,
-    stage: z.enum(['DRAIN_ROOM', 'ADMISSION', 'CHARACTERS', 'MEMBERSHIPS', 'PURGE']).optional(),
-    liveAuthority: z.object({ epoch: uuidSchema }).nullable().optional(),
-    retryAttempt: z.number().int().min(0).max(6).optional(),
-    phase: z.number().int().nonnegative(),
-    revision: z.number().int().nonnegative(),
+    stage: z.optional(z.enum(['DRAIN_ROOM', 'ADMISSION', 'CHARACTERS', 'MEMBERSHIPS', 'PURGE'])),
+    liveAuthority: z.optional(z.nullable(z.object({ epoch: uuidSchema }))),
+    retryAttempt: z.optional(z.number().check(z.int()).check(z.minimum(0)).check(z.maximum(6))),
+    phase: z.number().check(z.int()).check(z.nonnegative()),
+    revision: z.number().check(z.int()).check(z.nonnegative()),
     createdAt: z.string()
   })
 )

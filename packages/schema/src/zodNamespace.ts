@@ -1,8 +1,8 @@
 // The `z` namespace that `zod.ts` exports. Values are named re-exports because the `zod/mini`
 // namespace object carries `export * as locales`, which keeps every zod locale (194 KiB minified) in
 // each Convex function bundle, and Convex evaluates that bundle on every call (D59). Add a builder
-// here when a schema needs one; `apps/apis/convex/campaigns/inventoryReloadModuleBudget.test.ts`
-// keeps the locales out.
+// here when a schema needs one; `apps/apis/convex/functionBundleBudget.test.ts` keeps the locales
+// out.
 export type * from 'zod/mini'
 export {
   _default,
@@ -26,6 +26,7 @@ export {
   json,
   lazy,
   length,
+  looseObject,
   literal,
   lowercase,
   lt,
