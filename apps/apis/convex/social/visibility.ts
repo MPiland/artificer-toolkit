@@ -41,8 +41,7 @@ export async function readDiscoverableAccount(
   viewer: SocialStoredProfile,
   profile: SocialStoredProfile
 ) {
-  if (profile.status !== 'ACTIVE' || (await hasSocialBlock(ctx, viewer.id, profile.id)))
-    return null
+  if (profile.status !== 'ACTIVE' || (await hasSocialBlock(ctx, viewer.id, profile.id))) return null
   const account = await ctx.db
     .query('userProfiles')
     .withIndex('by_userId', (q) => q.eq('userId', profile.userId))
