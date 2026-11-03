@@ -135,7 +135,7 @@ export type LiveSessionWindowReaction = {
   resourceConsumption: z.infer<typeof liveSessionCharacterResourceConsumptionSchema> | null
 }
 
-const liveSessionWindowReactionsSchema = lazySchema(() =>
+export const liveSessionWindowReactionsSchema = lazySchema(() =>
   z
     .array(
       z.strictObject({

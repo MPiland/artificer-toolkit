@@ -28,7 +28,11 @@ import {
   sourceSpendMutation,
   settleActionSourceSpend
 } from './actionSourceSpend.js'
-import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
+import {
+  applyFailedCounterSpends,
+  failedCounterSpends,
+  requireFailedCounterReceipt
+} from './failedCounterSpend.js'
 import {
   completeActionOccurrence,
   recordActionRoot,
@@ -350,13 +354,11 @@ export async function persistEncounterActionCommit(
     )
   })
   if (
-    (sourceFailed &&
-      sourceFailed.failed.receipt.characterStreamVersion !==
-        sourceMechanics?.characterStreamVersion) ||
-    (targetFailed &&
-      targetFailed.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion)
+    sourceFailed &&
+    sourceFailed.failed.receipt.characterStreamVersion !== sourceMechanics?.characterStreamVersion
   )
     throw new Error('Live Session failed counter Character receipt mismatch.')
+  if (targetFailed) requireFailedCounterReceipt(targetFailed, mechanics)
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||

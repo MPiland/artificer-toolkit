@@ -156,7 +156,10 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTION_EVIDENCE'),
       selectedOptionId: checksumSchema,
-      /** The actor whose roll this is: the reactor's attack or the mover's save. */
+      /**
+       * The actor whose decision this is: the reactor's attack or the mover's save, or the creature
+       * a d20 window asks whether to change the attack roll by its reaction (D207).
+       */
       rollerActorId: uuidSchema,
       maintenanceCurrentnessChecksum: z.optional(checksumSchema),
       d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),

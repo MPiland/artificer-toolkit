@@ -492,7 +492,10 @@ export function requireAreaActionRemoval(input: {
  */
 export function projectNativeAreaActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
-  pending: Pick<Awaited<ReturnType<typeof readNativeAreaActionPending>>, 'context' | 'targets'>,
+  pending: Pick<
+    Awaited<ReturnType<typeof readNativeAreaActionPending>>,
+    'context' | 'targets' | 'command'
+  >,
   viewer: {
     isOwner: boolean
     controlledActorIds: ReadonlySet<string>
@@ -565,7 +568,7 @@ export function projectNativeAreaActionPending(
         targetActorId: target.actorId,
         summary: projectNativeActionPending(
           occurrence,
-          { snapshot: target.snapshot, context: target.context },
+          { snapshot: target.snapshot, context: target.context, command: pending.command },
           viewer.isOwner,
           reasons
         )
