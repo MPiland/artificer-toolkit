@@ -2017,7 +2017,7 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 ## D211 (2026-11-03): authorization rulings from the PLATFORM-27 sweep
 
 - **Ruling (user):** only a Character's owner can assign it to a Campaign. The GM can still unassign it. A Character never becomes visible to a party unless its owner chooses that.
-- **Ruling (user):** account `PRIVATE` wins over social participation. Social discovery checks the account's `profileVisibility`, so a PRIVATE account cannot be found by its public id.
+- **Ruling (user):** account `PRIVATE` wins over social participation. Social discovery checks the account's `profileVisibility`, so a PRIVATE account cannot be found by its public id. A host's OPEN PUBLIC listings still show their username in browse and search, because publishing a public listing is an explicit opt-in to be found as that game's host (orchestrator ruling on the slice's question).
 - **Ruling (user):** a ban also suspends the user's social profile, so their open public listings leave browse and search immediately.
 - **Ruling (user):** giving an item into another member's Character inventory stays a hand-off with no accept step. It is logged, and the recipient can drop or return the item.
 - **Orchestrator rulings (from the user's earlier calls; user did not object):**
