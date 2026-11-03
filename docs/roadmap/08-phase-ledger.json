@@ -4235,6 +4235,55 @@
             "size": 1
           },
           "mergedAt": "2026-10-14T14:32:17-05:00"
+        },
+        {
+          "id": "AUTHORING-21",
+          "title": "Authors pick a resource pool instead of typing its id",
+          "status": "TODO",
+          "origin": [
+            "2026-11-02 authoring complexity audit; user approved pre-UAT (D187 exception)"
+          ],
+          "acs": [
+            {
+              "id": "AUTHORING-21.1",
+              "text": "Every authored field that links an effect to a resource pool (resourceUse.chargeId, castModifier.chargeId and the resource-pool chargeId in invocation.ts) is a single select listing the pools the authored record can reach, by their names; the author never types an id. Proved through the real form renderer.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
+            },
+            {
+              "id": "AUTHORING-21.2",
+              "text": "Saving or publishing a record whose chargeId names no reachable pool is refused with a field error on that node (authoring resolver or publication validation, real code), so a broken link can never reach play.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
+            }
+          ],
+          "tasks": [
+            {
+              "id": "AUTHORING-21.T1",
+              "status": "TODO",
+              "closes": [
+                "AUTHORING-21.1",
+                "AUTHORING-21.2"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Seam-audit first: trace how a chargeId resolves at play (rules-runtime pool lookup) and what 'reachable pools' means per root (same feature, same class, character charges). Replace the three text nodes with a DATA-relationship selectSingle (pattern: targeting.ts:137-146) and add the unreachable-id refusal in the authoring layer. SRD records keep resolving (parity tests stay green). No feature-specific code.",
+              "note": "Registered 2026-11-02 on user approval; ahead of UAT so testers do not hit silent pool-link failures."
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 5,
+            "size": 2
+          }
         }
       ]
     },
