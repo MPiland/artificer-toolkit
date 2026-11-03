@@ -296394,7 +296394,6 @@ export declare const api: {
       >;
     };
     blueprints: {
-      remove: FunctionReference<"mutation", "public", { blueprintId: string }, null>;
       create: FunctionReference<
         "mutation",
         "public",
@@ -296473,6 +296472,12 @@ export declare const api: {
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
           splitCursor?: string | null;
         }
+      >;
+      remove: FunctionReference<
+        "mutation",
+        "public",
+        { blueprintId: string },
+        null
       >;
       update: FunctionReference<
         "mutation",
@@ -307465,14 +307470,6 @@ export declare const internal: {
     >;
   };
   encounters: {
-    blueprintDeletion: {
-      purgeUpdates: FunctionReference<
-        "mutation",
-        "internal",
-        { blueprintId: string },
-        null
-      >;
-    };
     actorAbsenceMigration: {
       run: FunctionReference<
         "mutation",
@@ -307561,6 +307558,14 @@ export declare const internal: {
           reset?: boolean;
         },
         any
+      >;
+    };
+    blueprintDeletion: {
+      purgeUpdates: FunctionReference<
+        "mutation",
+        "internal",
+        { blueprintId: string },
+        null
       >;
     };
     continuationSealMigration: {
