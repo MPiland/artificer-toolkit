@@ -908,3 +908,171 @@ describe('room Hold Person cast by a Character at a creature type it does not af
     expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
   })
 })
+
+describe('room burst whose caster pays to reroll its shared damage roll (SPELLS-31.T5e2b)', () => {
+  const POOL_ID = testUuid(0x7b0)
+  const REROLL_ID = testUuid(0x7b2)
+  const CAUGHT = CAUGHT_IDS as [string, string]
+
+  /** The burst rolling 2d4 on a failure and half of the same 2d4 on a success. */
+  const diceBurst: SpellAuthored = (() => {
+    const spell = structuredClone(emberBurst)
+    const [failed, succeeded] = spell.effects![0]!.paths! as {
+      resultBlock: { outcomes: Record<string, unknown>[] }
+    }[]
+    const { amount, ...dice } = failed!.resultBlock.outcomes[0]!
+    void amount
+    failed!.resultBlock.outcomes = [{ ...dice, valueKind: 'DICE', diceConfig: '2d4' }]
+    const { levels, scalingSource, ...half } = succeeded!.resultBlock.outcomes[0]!
+    void levels
+    void scalingSource
+    succeeded!.resultBlock.outcomes = [
+      { ...half, valueKind: 'DICE', scalingKind: 'NONE', diceConfig: '2d4' }
+    ]
+    return { ...spell, id: testUuid(0x7b1), label: 'Dice Burst' }
+  })()
+
+  /** One charge pool and one option paying from it to reroll a damage die; it names no feature of the System. */
+  const rerollFeature: ClassFeature = {
+    id: testUuid(0x7b8),
+    label: 'Spell Craft',
+    description: 'Pay a use to reroll a damage die.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: {
+          effect: REROLL_ID,
+          range: testUuid(0x7b3),
+          path: testUuid(0x7b4),
+          result: testUuid(0x7b5),
+          outcome: testUuid(0x7b6)
+        },
+        label: 'Rerolled casting',
+        instructions: 'Reroll a damage die; the new roll stands.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: { chargeId: POOL_ID, cost: 1, damageRerolls: { base: 1 } }
+      })
+    ]
+  }
+
+  const rerollRoom = () =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      characterSpellcasting: { spells: [diceBurst], prepared: [diceBurst.id] },
+      characterClassFeatures: [rerollFeature],
+      characterAction: (action) => action.label === 'Dice Burst (1st level)'
+    })
+  type RerollRoom = Awaited<ReturnType<typeof rerollRoom>>
+
+  const hitPoints = async (room: RerollRoom) =>
+    new Map(
+      vitalsOf(await readRoomHistory(room.room.base.stub)).map(
+        ({ id, currentHitPoints }) => [id, currentHitPoints] as const
+      )
+    )
+
+  /** The cast with every save failed, held at the caster's one damage window. */
+  async function heldWindow(room: RerollRoom) {
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'DAMAGE_ROLL_WINDOW')
+      throw new Error(`Expected the damage roll window, got ${decision?.pending.kind}.`)
+    return { decision, window: decision.pending }
+  }
+
+  const lost = (before: Map<string, number | undefined>, after: Map<string, number | undefined>) =>
+    CAUGHT.map((id) => before.get(id)! - after.get(id)!)
+
+  it('opens one window for the caster on the area’s one roll, before any creature takes damage', async () => {
+    const room = await rerollRoom()
+    const before = await hitPoints(room)
+    const { window } = await heldWindow(room)
+
+    expect(window.rollerActorId).toBe(CHARACTER_ACTOR_ID)
+    expect(window.dice).toHaveLength(2)
+    expect(window.dice.every(({ faces }) => faces === 4)).toBe(true)
+    expect(window.options).toEqual([
+      { optionId: expect.any(String), label: 'Spell Craft', cost: 1, maxDice: 1 }
+    ])
+    expect(await hitPoints(room)).toEqual(before)
+  }, 120000)
+
+  it('applies the rerolled total to every creature, pays once, and undoes as one action', async () => {
+    const room = await rerollRoom()
+    const before = await hitPoints(room)
+    const { decision, window } = await heldWindow(room)
+    const [first, second] = window.dice as [(typeof window.dice)[0], (typeof window.dice)[0]]
+    const face = first.value === 4 ? 1 : 4
+
+    const used = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ROLL_WINDOW_USE',
+        requestId: window.requestId,
+        optionId: window.options[0]!.optionId,
+        dice: [first.requestId],
+        faces: [face]
+      })
+    )
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const total = face + second.value
+    expect(lost(before, await hitPoints(room))).toEqual([total, total])
+    const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(roots[0]?.outputs.resourceConsumption).toMatchObject({ chargeId: POOL_ID, cost: 1 })
+
+    await undoLastAction(room)
+    expect(await hitPoints(room)).toEqual(before)
+  }, 120000)
+
+  it('keeps the roll for every creature and pays nothing when the caster declines', async () => {
+    const room = await rerollRoom()
+    const before = await hitPoints(room)
+    const { decision, window } = await heldWindow(room)
+
+    const declined = await room.send(
+      room.resolveCommand(decision, { kind: 'ROLL_WINDOW_DECLINE', requestId: window.requestId })
+    )
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+
+    const total = window.dice.reduce((sum, { value }) => sum + value, 0)
+    expect(lost(before, await hitPoints(room))).toEqual([total, total])
+    const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots[0]?.outputs.resourceConsumption ?? null).toBeNull()
+  }, 120000)
+
+  it('refuses more dice than the option rerolls and leaves the window open', async () => {
+    const room = await rerollRoom()
+    const before = await hitPoints(room)
+    const { decision, window } = await heldWindow(room)
+
+    const refused = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ROLL_WINDOW_USE',
+        requestId: window.requestId,
+        optionId: window.options[0]!.optionId,
+        dice: window.dice.map(({ requestId }) => requestId)
+      })
+    )
+    expect(refused.type).toBe('COMMAND_REJECTED')
+    expect((await readPendingActionDecision(room.room.base.stub))?.pending.kind).toBe(
+      'DAMAGE_ROLL_WINDOW'
+    )
+    expect(await hitPoints(room)).toEqual(before)
+  }, 120000)
+})

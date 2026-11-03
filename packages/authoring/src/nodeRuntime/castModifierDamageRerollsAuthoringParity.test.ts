@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { ClassAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { sorcerer } from '@artificer-toolkit/source-data/srd/classes/sorcerer.js'
+import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -12,15 +13,16 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 /**
  * SPELLS-31.T5e2a (D208): Empowered Spell resolves from the `castModifier` core option's
  * `damageRerolls` count, so it passes the class node map exactly as authored, with no closed rule, as
- * does a homebrew variant.
+ * does a homebrew variant. SPELLS-31.T5e2b offers the same count on an area's one shared damage roll,
+ * which the spell authors as any area damage: Fireball passes the spell node map as authored.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 const COLD_START_MS = 30_000
 
-function normalize(values: ClassAuthored) {
+function normalize(values: ClassAuthored | SpellAuthored, mapId: 'class' | 'spell' = 'class') {
   return normalizeNodeRuntimeValues(reader, {
-    mapId: 'class',
+    mapId,
     systemId: srdSystemRecord.id,
     values: structuredClone(values) as unknown as Record<string, unknown>
   })
@@ -72,5 +74,12 @@ describe('cast modifier damage rerolls through the class node map (SPELLS-31.T5e
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+
+  it('keeps an area spell whose one damage roll the count rerolls exactly as authored (SPELLS-31.T5e2b)', async () => {
+    expect(JSON.stringify(fireball)).not.toContain('CLOSED_RULE')
+    const result = await normalize(fireball, 'spell')
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(fireball.effects)
   })
 })

@@ -358,6 +358,7 @@ export async function completeAreaCommit(args: {
     input,
     command,
     caster,
+    lead,
     occurredAt,
     areaOccurrenceId,
     kept,

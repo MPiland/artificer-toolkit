@@ -11,7 +11,10 @@ import type {
 import { checksumRuleDocument, type RuleValue } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
-import type { NativePhaseReceipts } from './encounterActionCompletion.js'
+import type {
+  CompleteNativeActionGraphs,
+  NativePhaseReceipts
+} from './encounterActionCompletion.js'
 import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
 import type { NativeTwoPhase } from './encounterActionRequest.js'
 import {
@@ -88,6 +91,41 @@ export async function holdEncounterDamageRoll(input: {
     roller: 'SOURCE',
     ...(input.phaseReceipts.length ? { phaseReceipts: input.phaseReceipts } : {})
   }
+}
+
+/**
+ * Holds a settled area's one shared damage roll for its caster (D208): the window opens on the
+ * outcome of a creature that rolled every die on the area's tape, so its dice are the area's own and
+ * one answer rerolls them for every creature. Returns that creature and the window, or null when no
+ * cost or no damage die is there.
+ */
+export async function openEncounterAreaDamageRollWindow(input: {
+  runtime: RulesRuntimeService
+  adapter: CharacterRuleActionSystemAdapter
+  occurrenceId: string
+  costs: readonly DamageRerollCostDto[]
+  rolls: readonly { maximum: number; value: number }[]
+  settled: readonly { actorId: string; complete: CompleteNativeActionGraphs }[]
+}): Promise<{ actorId: string; pending: PendingNativeActionGraphs } | null> {
+  if (input.costs.length === 0 || input.rolls.length === 0) return null
+  const rolledAll = input.settled.find(
+    ({ complete }) =>
+      complete.outcomePhase !== null &&
+      complete.execution.evidence.trace.filter(({ evidence }) => evidence).length ===
+        input.rolls.length
+  )
+  if (!rolledAll) throw new Error('No area outcome rolled the whole damage roll.')
+  const pending = await holdEncounterDamageRoll({
+    runtime: input.runtime,
+    adapter: input.adapter,
+    occurrenceId: input.occurrenceId,
+    costs: input.costs,
+    published: rolledAll.complete.published,
+    execution: rolledAll.complete.execution,
+    twoPhase: null,
+    phaseReceipts: []
+  })
+  return pending && { actorId: rolledAll.actorId, pending }
 }
 
 /**
