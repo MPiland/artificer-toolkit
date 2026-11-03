@@ -2,7 +2,7 @@
 
 Feature `MOVE` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves a player can move only their own token, that the table stops illegal moves (walls, hostile spaces, the map edge, locked tokens), that leaving an enemy's reach pauses for the GM's answer, that the GM can undo a token move, and that traps, hidden hazards and climbing behave and stay hidden from players. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). Scenes with walls, doors and zones do not exist in the review data: build them in a sandbox Campaign (see SCENE UAT, [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and [UAT-SCENE-3](../SCENE/UAT-SCENE-3.md)) or add them to Review: Party in the Field in the steps.
+Proves a player can move only their own token, that the table stops illegal moves (walls, hostile spaces, the map edge, locked tokens), that leaving an enemy's reach pauses for the GM's answer, that the GM can undo a token move, and that traps, hidden hazards and climbing behave and stay hidden from players. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Scenes with walls, doors and zones do not exist in the review data: build them in a sandbox Campaign (see SCENE UAT, [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and [UAT-SCENE-3](../SCENE/UAT-SCENE-3.md)) or add them to Review: Party in the Field in the steps.
 
 ## Scenarios
 

@@ -2,7 +2,7 @@
 
 Feature `CAMPAIGN` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves a GM can create, run, copy, archive and delete a Campaign, bring players in and take them out, share content and party gear, post announcements and play a Character of their own, and that players only ever see what the GM has made visible to them. Accounts: [README](../README.md#roles-and-accounts). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results).
+Proves a GM can create, run, copy, archive and delete a Campaign, bring players in and take them out, share content and party gear, post announcements and play a Character of their own, and that players only ever see what the GM has made visible to them. Accounts: [README](../README.md#roles-and-accounts). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results).
 
 ## Scenarios
 
