@@ -94,7 +94,7 @@ PLATFORM is mostly infrastructure. What a tester can see is: the SRD content is 
 
 - **Covers:** PLATFORM-3.1, PLATFORM-3.2
 - **Accounts:** P3
-- **Preconditions:** Signed out. Local email is accept-and-discard, so the email itself cannot be read (gap G1); this scenario proves the app asks for it and shows the right next screen.
+- **Preconditions:** Signed out. This scenario proves the app asks for the email and shows the right next screen; the reset itself is run in [ACCOUNTS](ACCOUNTS.md).
 
 **Steps**
 
@@ -110,7 +110,7 @@ PLATFORM is mostly infrastructure. What a tester can see is: the SRD content is 
 - Both attempts show the same neutral message (the app does not reveal whether an account exists) and the page asking for the six-digit code.
 - No error about email delivery appears.
 - The old password still signs in.
-- Reading the email and entering the real code is not possible here (gap G1); the reset itself is run in [ACCOUNTS](ACCOUNTS.md) and is blocked there for the same reason.
+- [Local email](README.md#reading-local-email) holds one reset email for `review_pl_cade@example.invalid` and none for `nobody-here@example.invalid`.
 
 **Other users see**
 

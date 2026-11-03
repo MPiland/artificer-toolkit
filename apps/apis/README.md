@@ -1069,11 +1069,17 @@ passes the existing operation fence before restarting its in-memory storage.
 
 A container restart stops the fixture. Manage it with
 `pwsh -File scripts/localConvexFixtures.ps1 -Action start|status|stop`, which serves two container
-fixtures: this R2 substitute and an accept-and-discard email sink on container-only
+fixtures: this R2 substitute and the email sink (`tests/localEmailSink.ts`) on container-only
 `127.0.0.1:8025/email`. The local deployment sets `MAIL_DELIVERY_MODE=local` and
 `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`, so auth and notification email reach that sink
-from the backend's Node actions; it keeps no message. `start` is idempotent: it reuses fixtures that
-answer their health checks, otherwise copies `tests/localR2.ts` into `/tmp/artificer-local-fixtures`
+from the backend's Node actions. The sink writes each message as an HTML file under
+`/tmp/artificer-local-fixtures/email` and keeps the newest 50; `-Action mail` copies them to the
+ignored `local-validation/local-email/` folder for testers
+([Reading local email](../../docs/validation/uat/README.md#reading-local-email)). The sink is a local
+fixture only: Convex never deploys `tests/`, and `sendRenderedEmail` takes the local path only when
+both `CONVEX_SITE_URL` and `LOCAL_EMAIL_SINK_URL` are loopback, which a Convex Cloud deployment's
+system-set site URL never is. `start` is idempotent: it reuses fixtures that
+answer their health checks, otherwise copies `tests/localR2.ts` and `tests/localEmailSink.ts` into `/tmp/artificer-local-fixtures`
 in `phase82-convex-local-linux` and runs both with the container's Node (type stripping) until
 healthy. `stop` ends only the process whose pid `start` recorded, which discards the in-memory
 objects. The script refuses a container that does not publish 8026 on `127.0.0.1` only, and reads no

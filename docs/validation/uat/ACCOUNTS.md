@@ -111,7 +111,7 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 
 - **Covers:** ACCOUNTS-6.1, ACCOUNTS-6.2, ACCOUNTS-6.3
 - **Accounts:** P3
-- **Preconditions:** Steps 1-5 (wrong code, resend limit, reload) can be run now. Steps 6-10 are blocked until gap G1 is fixed: the six-digit code arrives only by email and no tester can read local email. If a reset is completed, step 10 restores the review password.
+- **Preconditions:** The six-digit code arrives by email; read it as [Reading local email](README.md#reading-local-email) describes. Step 10 restores the review password.
 
 **Steps**
 
@@ -120,11 +120,11 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 3. **P3:** Enter a wrong six-digit code such as 000000 and submit.
 4. **P3:** Request a new code from the same page (resend) a few times in a row.
 5. **P3:** Reload the page and look at the address bar.
-6. **P3:** (blocked: G1) Before the reset, keep a second tab open and signed in as P3. Then enter the real code from the email.
-7. **P3:** (blocked: G1) On **Update password**, type different values in **New password** and **Confirm password**; submit.
-8. **P3:** (blocked: G1) Type the same new password in both fields; submit.
-9. **P3:** (blocked: G1) Try to sign in with the old password, and reload the second tab.
-10. **P3:** (blocked: G1) Sign in with the new password. Try the code from step 6 again. Then reset the password back to the review password the same way.
+6. **P3:** Before the reset, keep a second tab open and signed in as P3. Then enter the real code from the newest reset email to `review_pl_cade@example.invalid`.
+7. **P3:** On **Update password**, type different values in **New password** and **Confirm password**; submit.
+8. **P3:** Type the same new password in both fields; submit.
+9. **P3:** Try to sign in with the old password, and reload the second tab.
+10. **P3:** Sign in with the new password. Try the code from step 6 again. Then reset the password back to the review password the same way.
 11. **GM:** Meanwhile, with the GM signed in on another profile, confirm the GM can still use the app.
 
 **Expected**
@@ -144,8 +144,8 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 ## UAT-ACCOUNTS-6: Create an account from an invitation
 
 - **Covers:** ACCOUNTS-3.1, ACCOUNTS-3.2, ACCOUNTS-3.3, ACCOUNTS-4.2
-- **Accounts:** OUTSIDER (a new person with no account; gap G1)
-- **Preconditions:** Blocked until gap G1 is fixed: public sign-up is closed and invitation and email-confirmation emails are discarded locally, so no tester can read an invitation link. The spare accounts (Review_Pl_Dara, Review_Pl_Eli) already exist, so they cannot redeem an invitation.
+- **Accounts:** OUTSIDER (a new person with no account)
+- **Preconditions:** Public sign-up is closed and the spare accounts (Review_Pl_Dara, Review_Pl_Eli) already exist, so they cannot redeem an invitation. Issue two invitations to new addresses (for example `uat_newcomer_1@example.invalid` and `uat_newcomer_2@example.invalid`) and read the invitation and confirmation emails as [Reading local email](README.md#reading-local-email) describes. A reset and a rerun of the review data removes the new account.
 
 **Steps**
 
@@ -363,13 +363,13 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC           | Why not a UAT step                                                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ACCOUNTS-1.3 | Absence of legacy tRPC/Supabase requests and exact test-account cleanup; needs request inspection, run by the browser journey.                    |
-| ACCOUNTS-1.4 | Typing before hydration completes; needs a blocked-hydration test hook, run by the browser journey. A tester cannot pause hydration.              |
-| ACCOUNTS-4.1 | Invitations are issued only by the internal CLI with hashed tokens; there is no UI to see. Redemption is covered by UAT-ACCOUNTS-6 (blocked: G1). |
-| ACCOUNTS-4.3 | Deployed HTTP origin and foreign-origin denial; a network-level test against a deployment.                                                        |
-| ACCOUNTS-4.4 | Concurrent invitation redemption on personal dev; a harness run.                                                                                  |
-| ACCOUNTS-8.1 | Native-client request authorization and spoofed user IDs; contract test (the browser-visible part is UAT-ACCOUNTS-8).                             |
-| ACCOUNTS-9.1 | Role provisioning is the internal CLI only; there is no UI.                                                                                       |
-| ACCOUNTS-9.3 | Provider-admin endpoints answer 404 to POST requests; a browser address bar sends GET, so a tester cannot exercise them.                          |
+| AC           | Why not a UAT step                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| ACCOUNTS-1.3 | Absence of legacy tRPC/Supabase requests and exact test-account cleanup; needs request inspection, run by the browser journey.       |
+| ACCOUNTS-1.4 | Typing before hydration completes; needs a blocked-hydration test hook, run by the browser journey. A tester cannot pause hydration. |
+| ACCOUNTS-4.1 | Invitations are issued only by the internal CLI with hashed tokens; there is no UI to see. Redemption is covered by UAT-ACCOUNTS-6.  |
+| ACCOUNTS-4.3 | Deployed HTTP origin and foreign-origin denial; a network-level test against a deployment.                                           |
+| ACCOUNTS-4.4 | Concurrent invitation redemption on personal dev; a harness run.                                                                     |
+| ACCOUNTS-8.1 | Native-client request authorization and spoofed user IDs; contract test (the browser-visible part is UAT-ACCOUNTS-8).                |
+| ACCOUNTS-9.1 | Role provisioning is the internal CLI only; there is no UI.                                                                          |
+| ACCOUNTS-9.3 | Provider-admin endpoints answer 404 to POST requests; a browser address bar sends GET, so a tester cannot exercise them.             |

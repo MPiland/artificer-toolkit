@@ -1,7 +1,8 @@
 import { Resend, type EmailId } from '@convex-dev/resend'
 import { register } from '@convex-dev/resend/test'
 import { convexTest } from '../tests/convexTest'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { startLocalEmailSink } from '../tests/localEmailSink'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { components, internal } from './_generated/api'
 import { sendRenderedEmail } from './emailTransport'
@@ -267,5 +268,70 @@ describe('authentication email delivery', () => {
     )
     expect(retryAttempts).toBe(2)
     expect(testMode).toBe(false)
+  })
+})
+
+describe('local email sink retention', () => {
+  let sink: Awaited<ReturnType<typeof startLocalEmailSink>>
+
+  async function retained() {
+    return (await sink.messages()).map(({ content }) => content)
+  }
+
+  beforeEach(async () => {
+    sink = await startLocalEmailSink({ capacity: 2 })
+  })
+
+  afterEach(async () => {
+    await sink.close()
+  })
+
+  it('keeps a rendered recovery email readable, with its code, through local delivery', async () => {
+    localEnvironment({ LOCAL_EMAIL_SINK_URL: sink.url })
+
+    await expect(t.action(internal.email.send, recoveryEmail)).resolves.toBeNull()
+
+    const [message, ...rest] = await sink.messages()
+    expect(rest).toEqual([])
+    expect(message!.name).toMatch(/-player@example\.test\.html$/)
+    expect(message!.content).toContain('<strong>To:</strong> player@example.test')
+    expect(message!.content).toContain(
+      '<strong>Subject:</strong> Reset your Artificer Toolkit password'
+    )
+    expect(message!.content).toContain('Verification code: 123456')
+  })
+
+  it('keeps only the newest messages up to its capacity and escapes the envelope', async () => {
+    localEnvironment({ LOCAL_EMAIL_SINK_URL: sink.url })
+    for (const subject of ['First', 'Second', 'Third <b>']) {
+      await sendRenderedEmail(testActionContext, {
+        recipient: 'player@example.test',
+        fromEnvironmentVariable: 'NOTIFICATION_EMAIL_FROM',
+        subject,
+        html: `<p>${subject}</p>`
+      })
+    }
+
+    const messages = await retained()
+    expect(messages).toHaveLength(2)
+    expect(messages[0]).toContain('<strong>Subject:</strong> Second')
+    expect(messages[1]).toContain('<strong>Subject:</strong> Third &lt;b&gt;')
+  })
+
+  it('retains nothing when the deployment is not local', async () => {
+    localEnvironment({
+      LOCAL_EMAIL_SINK_URL: sink.url,
+      CONVEX_SITE_URL: 'https://cloud.example.test'
+    })
+    await expect(t.action(internal.email.send, recoveryEmail)).rejects.toThrow('CONVEX_SITE_URL')
+
+    expect(await retained()).toEqual([])
+  })
+
+  it('rejects malformed messages without retaining them', async () => {
+    const response = await fetch(sink.url, { method: 'POST', body: JSON.stringify({ to: 'x' }) })
+
+    expect(response.status).toBe(400)
+    expect(await retained()).toEqual([])
   })
 })

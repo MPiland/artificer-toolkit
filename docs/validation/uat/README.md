@@ -48,7 +48,7 @@ The GM and P1 to P3 each need a browser profile for most scenarios; sign the SUP
 
 After the review-data run every account has **Roll my dice automatically** switched **off** (Settings, Preferences, or the **Auto-roll** switch in the tabletop header), so rolls raise a prompt where you can choose **Roll dice** or type physical dice. A scenario that needs auto-roll on says so.
 
-Public sign-up is closed and local email is discarded, so testers cannot make further accounts. A spare joins a Campaign without email: the GM invites it by username from a listing and the spare accepts in the app. Steps that read an email (an invitation link, a confirmation link, a reset code) stay "Blocked until gap G1 is fixed"; see [Known UAT gaps](#known-uat-gaps).
+Public sign-up is closed. A spare joins a Campaign without email: the GM invites it by username from a listing and the spare accepts in the app. Steps that read an email (an invitation link, a confirmation link, a reset code) use [local email](#reading-local-email).
 
 ## Review data
 
@@ -66,6 +66,17 @@ Public sign-up is closed and local email is discarded, so testers cannot make fu
 Hit points and slot counts on screen depend on those rolls: scenarios compare against what you see before a step, not against fixed numbers.
 
 Anything else a scenario needs (a new or higher-level Character, a Builder-built caster, homebrew content, an uploaded map, a throwaway Campaign) is created by the tester in that file's setup steps, through the product.
+
+## Reading local email
+
+The local build sends no real email. Password-reset codes, email-change and verification links, invitations and notification emails go to the local email sink, which keeps the newest 50 messages. To read them:
+
+1. Run `pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action mail`. It replaces the ignored `local-validation/local-email/` folder with the sink's current messages and prints how many it copied.
+2. Open the newest file for the recipient in a browser. Each file is named `<received time>-<sequence>-<recipient>.html` and starts with the **To** and **Subject** lines, then the email as sent, then its plain-text version (which also shows any code).
+
+Run the command again after each step that sends an email. The sink keeps messages until the local container is recreated; older ones are dropped once there are more than 50. The first `localConvexFixtures.ps1 -Action start` after updating to this sink restarts the local fixtures, which also clears map uploads held by the local R2 substitute.
+
+An account invitation has no app screen: it is issued by the internal `authInvitations:issue` function. To send one to a new address, run `node apps/apis/scripts/convexRunLocal.mjs authInvitations:issue '{"email":"<new address>@example.invalid","token":"<64 hex characters>"}'` (make a token with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`), then read the invitation email as above.
 
 ## Running several users side by side
 
@@ -102,15 +113,15 @@ Record every run in `docs/validation/uat/results/<YYYY-MM-DD>-<FEATURE>.md` (cre
 
 ## Known UAT gaps
 
-These stop some scenarios on the local build. Each scenario that depends on an open one says "Blocked until gap Gn is fixed". G2, G3 and G5 are closed (RELEASE-8.T3).
+These stop some scenarios on the local build. Each scenario that depends on an open one says "Blocked until gap Gn is fixed". G2, G3 and G5 are closed (RELEASE-8.T3), and G1 (RELEASE-8.T4).
 
-| Gap    | What is missing                                                                                                                                                                            | Effect                                                                                                         | Smallest fix                                                                                                                                                                      |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **G1** | Local email is accept-and-discard: the sink in `scripts/localConvexFixtures.ps1` keeps no message, so no tester can read a password-reset, invitation, verification or notification email. | Email steps cannot be run locally; the in-app part of those flows still can.                                   | Have the local sink keep the most recent messages and serve them on a host loopback page (or write each one to an ignored `local-validation/local-email/` file), local mode only. |
-| **G2** | Closed: the review data provisions the **SUPERADMIN** account `Review_Admin_Sol` and promotes it with `authAdmin:setRole`.                                                                 | None.                                                                                                          | Done (RELEASE-8.T3).                                                                                                                                                              |
-| **G3** | Closed: the review data provisions **SPARE1** `Review_Pl_Dara` and **SPARE2** `Review_Pl_Eli`, who join no Campaign.                                                                       | Steps that read an invitation or confirmation email still need G1; the in-app invitation by username does not. | Done (RELEASE-8.T3).                                                                                                                                                              |
-| **G4** | Managed staging credentials.                                                                                                                                                               | Staging and production scenarios (PERF and RELEASE) run only on an approved staging smoke, never locally.      | None locally: they run at the staging step of the release sequence.                                                                                                               |
-| **G5** | Closed: **Review: Sandbox** has walls, a door, terrain, per-player fog, dim light, a point light, hidden tokens and a Large creature, in Manual mode with standard initiative.             | None. Scenarios needing other setup still say "Heavy setup:" with what to build.                               | Done (RELEASE-8.T3).                                                                                                                                                              |
+| Gap    | What is missing                                                                                                                                                                | Effect                                                                                                    | Smallest fix                                                                                                        |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **G1** | Closed: local email was accept-and-discard; the sink now keeps the newest 50 messages.                                                                                         | None: email steps run locally, see [Reading local email](#reading-local-email).                           | Done (RELEASE-8.T4): `apps/apis/tests/localEmailSink.ts`, read with `scripts/localConvexFixtures.ps1 -Action mail`. |
+| **G2** | Closed: the review data provisions the **SUPERADMIN** account `Review_Admin_Sol` and promotes it with `authAdmin:setRole`.                                                     | None.                                                                                                     | Done (RELEASE-8.T3).                                                                                                |
+| **G3** | Closed: the review data provisions **SPARE1** `Review_Pl_Dara` and **SPARE2** `Review_Pl_Eli`, who join no Campaign.                                                           | None.                                                                                                     | Done (RELEASE-8.T3).                                                                                                |
+| **G4** | Managed staging credentials.                                                                                                                                                   | Staging and production scenarios (PERF and RELEASE) run only on an approved staging smoke, never locally. | None locally: they run at the staging step of the release sequence.                                                 |
+| **G5** | Closed: **Review: Sandbox** has walls, a door, terrain, per-player fog, dim light, a point light, hidden tokens and a Large creature, in Manual mode with standard initiative. | None. Scenarios needing other setup still say "Heavy setup:" with what to build.                          | Done (RELEASE-8.T3).                                                                                                |
 
 ## Scenario files and coverage
 
@@ -121,7 +132,7 @@ The coverage below is generated from the scenario files and the ledger: every AC
 | Feature     | File                             | Scenarios | ACs     | Covered by a scenario | of which blocked | Covered elsewhere | Not coverable |
 | ----------- | -------------------------------- | --------- | ------- | --------------------- | ---------------- | ----------------- | ------------- |
 | PLATFORM    | [PLATFORM.md](PLATFORM.md)       | 5         | 68      | 10                    | 0                | 58                | 0             |
-| ACCOUNTS    | [ACCOUNTS.md](ACCOUNTS.md)       | 13        | 37      | 29                    | 7                | 8                 | 0             |
+| ACCOUNTS    | [ACCOUNTS.md](ACCOUNTS.md)       | 13        | 37      | 29                    | 0                | 8                 | 0             |
 | AUTHORING   | [AUTHORING.md](AUTHORING.md)     | 12        | 57      | 50                    | 0                | 7                 | 0             |
 | RULES       | [RULES.md](RULES.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
 | BUILDER     | [BUILDER.md](BUILDER.md)         | 6         | 14      | 12                    | 0                | 2                 | 0             |
@@ -141,7 +152,7 @@ The coverage below is generated from the scenario files and the ledger: every AC
 | PERF        | [PERF.md](PERF.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY.md](QUALITY.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
 | RELEASE     | [RELEASE.md](RELEASE.md)         | 1         | 17      | 5                     | 0                | 8                 | 4             |
-| **Total**   |                                  | **175**   | **716** | **501**               | **8**            | **211**           | **4**         |
+| **Total**   |                                  | **175**   | **716** | **501**               | **1**            | **211**           | **4**         |
 
 ### AC map
 
@@ -234,19 +245,19 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | ACCOUNTS-1.4  | Covered elsewhere                                                                                                                                                                                          |
 | ACCOUNTS-2.1  | [UAT-ACCOUNTS-4](ACCOUNTS.md#uat-accounts-4-public-sign-up-is-closed)                                                                                                                                      |
 | ACCOUNTS-2.2  | [UAT-ACCOUNTS-4](ACCOUNTS.md#uat-accounts-4-public-sign-up-is-closed)                                                                                                                                      |
-| ACCOUNTS-3.1  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation) (blocked)                                                                                                                |
-| ACCOUNTS-3.2  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation) (blocked)                                                                                                                |
-| ACCOUNTS-3.3  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation) (blocked)                                                                                                                |
+| ACCOUNTS-3.1  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation)                                                                                                                          |
+| ACCOUNTS-3.2  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation)                                                                                                                          |
+| ACCOUNTS-3.3  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation)                                                                                                                          |
 | ACCOUNTS-4.1  | Covered elsewhere                                                                                                                                                                                          |
-| ACCOUNTS-4.2  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation) (blocked)                                                                                                                |
+| ACCOUNTS-4.2  | [UAT-ACCOUNTS-6](ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation)                                                                                                                          |
 | ACCOUNTS-4.3  | Covered elsewhere                                                                                                                                                                                          |
 | ACCOUNTS-4.4  | Covered elsewhere                                                                                                                                                                                          |
 | ACCOUNTS-5.1  | [UAT-ACCOUNTS-1](ACCOUNTS.md#uat-accounts-1-sign-in-reload-sign-out-sign-back-in-by-username), [UAT-ACCOUNTS-2](ACCOUNTS.md#uat-accounts-2-wrong-password-and-unknown-account-are-refused)                 |
 | ACCOUNTS-5.2  | [UAT-ACCOUNTS-3](ACCOUNTS.md#uat-accounts-3-two-accounts-at-once-stay-isolated-and-sign-out-ends-every-tab)                                                                                                |
 | ACCOUNTS-5.3  | [UAT-ACCOUNTS-3](ACCOUNTS.md#uat-accounts-3-two-accounts-at-once-stay-isolated-and-sign-out-ends-every-tab)                                                                                                |
-| ACCOUNTS-6.1  | [UAT-ACCOUNTS-5](ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success) (blocked)                                                                                         |
-| ACCOUNTS-6.2  | [UAT-ACCOUNTS-5](ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success) (blocked)                                                                                         |
-| ACCOUNTS-6.3  | [UAT-ACCOUNTS-5](ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success) (blocked)                                                                                         |
+| ACCOUNTS-6.1  | [UAT-ACCOUNTS-5](ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success)                                                                                                   |
+| ACCOUNTS-6.2  | [UAT-ACCOUNTS-5](ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success)                                                                                                   |
+| ACCOUNTS-6.3  | [UAT-ACCOUNTS-5](ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success)                                                                                                   |
 | ACCOUNTS-7.1  | [UAT-ACCOUNTS-7](ACCOUNTS.md#uat-accounts-7-choose-change-and-protect-a-username)                                                                                                                          |
 | ACCOUNTS-7.2  | [UAT-ACCOUNTS-7](ACCOUNTS.md#uat-accounts-7-choose-change-and-protect-a-username)                                                                                                                          |
 | ACCOUNTS-7.3  | [UAT-ACCOUNTS-3](ACCOUNTS.md#uat-accounts-3-two-accounts-at-once-stay-isolated-and-sign-out-ends-every-tab)                                                                                                |
