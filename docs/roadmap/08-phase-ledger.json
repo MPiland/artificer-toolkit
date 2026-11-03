@@ -2350,6 +2350,59 @@
               "text": "Inventory every owner-created table and its delete path (API and UI) against the account-deletion cascade; known gap: Encounter blueprints have no delete mutation (encounters/blueprints.ts has only create and update), and scene definitions and vehicles have API deletes whose UI entry points need checking. Add the coverage test first (red on the gaps), then add each missing owner-only delete and its confirmed UI action, reusing the account-deletion cascade per kind. Characters are out of scope here (BUILDER-5). List the inventory and proof files for the ledger."
             }
           ]
+        },
+        {
+          "id": "PLATFORM-27",
+          "title": "Every backend function checks who may call it",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
+          ],
+          "acs": [
+            {
+              "id": "PLATFORM-27.1",
+              "text": "A coverage test enumerates every public Convex query, mutation and action and fails unless each declares its access rule (signed-in caller from ctx.auth with an owner, membership or role check, or an explicit reviewed public reason); no public function takes a user ID from its arguments as identity, and a new public function cannot ship without a rule.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
+              ]
+            },
+            {
+              "id": "PLATFORM-27.2",
+              "text": "An audit of every public function finds and fixes each missing check: signed-out callers are refused where sign-in is required, another user cannot read, change or delete records they do not own or share through a Campaign, and master or seeded content cannot be changed by any user. Each fix lands with a regression test that fails before it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 13,
+            "size": 5
+          },
+          "tasks": [
+            {
+              "id": "PLATFORM-27.T1",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-27.1",
+                "PLATFORM-27.2"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 13,
+                "size": 5
+              },
+              "text": "Authorization sweep of apps/apis/convex: list every public query, mutation, action and HTTP route; classify its access rule with file:line evidence; add the coverage test first (red on unclassified functions); fix each gap found (client-supplied identity, missing owner or Campaign-membership check, cross-user reads by a client-supplied id, writes into a container the caller does not own, master/seeded content writes) with failing-first refusal tests (wrong user, signed-out, non-member). Reuse the existing access helpers rather than adding a new layer. Record the inventory and findings in docs/validation/ for the ledger."
+            }
+          ]
         }
       ]
     },
@@ -29469,7 +29522,8 @@
                 "after": [
                   "RELEASE-3.T1",
                   "RELEASE-8.T2",
-                  "RELEASE-3.T4"
+                  "RELEASE-3.T4",
+                  "PLATFORM-27.T1"
                 ],
                 "finalSource": true
               },
