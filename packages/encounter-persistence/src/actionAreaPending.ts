@@ -515,7 +515,7 @@ export function projectNativeAreaActionPending(
     return answers(casterId)
       ? projectNativeActionPending(
           occurrence,
-          { snapshot: damageWindow, context },
+          { snapshot: damageWindow, context, command: pending.command },
           viewer.isOwner,
           reasons
         )
