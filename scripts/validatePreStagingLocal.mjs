@@ -15,6 +15,7 @@ import {
   convexCliArguments,
   convexCliEnvironment,
   convexDeployArguments,
+  convexEnvironmentValue,
   generateAdminKey,
   localConvex,
   yarnSpawn
@@ -366,36 +367,6 @@ export function run(command, args, { environment = {}, logPath, sensitiveArgs = 
   })
 }
 
-// Read in memory for the Worker child only; the value is never logged or written.
-function localConvexEnvironmentValue(name) {
-  const [executable, args] = yarnSpawn([
-    'workspace',
-    '@artificer-toolkit/apis',
-    'exec',
-    'convex',
-    'env',
-    'get',
-    name,
-    ...convexCliArguments(
-      process.env.CONVEX_SELF_HOSTED_URL,
-      process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
-    )
-  ])
-  const result = spawnSync(executable, args, {
-    cwd: root,
-    encoding: 'utf8',
-    env: localChildEnvironment(),
-    shell: false,
-    stdio: ['ignore', 'pipe', 'ignore'],
-    windowsHide: true
-  })
-  const value = result.stdout?.trim()
-  if (result.status !== 0 || !value || Buffer.byteLength(value) < 32 || /[\r\n]/u.test(value)) {
-    throw new Error(`${name} must be provisioned in the local Convex deployment for the Worker.`)
-  }
-  return value
-}
-
 function localPortInUse(host, port) {
   return new Promise((resolvePort) => {
     const socket = createConnection({ host, port })
@@ -474,8 +445,9 @@ async function startLocalService({
 // The documented local Worker, with its secrets read in memory from the local Convex deployment.
 export async function startLocalSessionWorker(artifactDirectory) {
   const { allowedOrigins, host, port, secretNames } = localSessionWorker
+  // Read in memory for the Worker child only; the values are never logged or written.
   const secrets = Object.fromEntries(
-    secretNames.map((name) => [name, localConvexEnvironmentValue(name)])
+    await Promise.all(secretNames.map(async (name) => [name, await convexEnvironmentValue(name)]))
   )
   // Wrangler binds these from process.env; the empty env file keeps the ignored .dev.vars out.
   const environmentFile = resolve(artifactDirectory, 'local-session-worker.env')
