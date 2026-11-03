@@ -72,6 +72,13 @@ module load is paid on every call. `packages/schema` builds no schema at module 
 - **Content tables.** `apps/apis/convex/content/schema.ts` exports `buildContentTables()`. Root
   `schema.ts` spreads it, and `content/streams.ts` builds and memoizes the content schema on the
   first `contentStream()` call, because a stream needs only index metadata.
+- **The `z` namespace** (PERF-1) is `packages/schema/src/zodNamespace.ts`: types from `zod/mini` and
+  named value re-exports. The `zod/mini` namespace object carries every zod locale (194 KiB
+  minified), so exporting it kept them in each function bundle. A new builder is added there.
+  `apps/apis/convex/campaigns/inventoryReloadModuleBudget.test.ts` fails on a non-English locale or
+  more than 120 KiB of zod in a Campaign inventory query's bundle.
+- **Node maps** (PERF-1). `buildNodeMap().define` builds a map's nodes on the first read of
+  `nodes`, so importing a map module costs no node construction.
 
 Evidence: [D59 rollout](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md) and the
 [D55 spike](../validation/phase-08-2/d55-lazy-schema-spike-2026-09-27.md).

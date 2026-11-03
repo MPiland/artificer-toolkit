@@ -22,9 +22,9 @@ import {
   FEAT_NODE_MAP,
   RACE_NODE_MAP,
   SPELL_NODE_MAP,
-  VEHICLE_NODE_MAP,
-  type RuntimeNodeMap
-} from '@artificer-toolkit/shared/maps'
+  VEHICLE_NODE_MAP
+} from '@artificer-toolkit/shared/subjects/maps'
+import type { RuntimeNodeMap } from '@artificer-toolkit/shared/utils'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'

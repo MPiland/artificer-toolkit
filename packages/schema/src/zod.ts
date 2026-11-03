@@ -1,5 +1,6 @@
-import { config, z } from 'zod/mini'
+import { config } from 'zod/mini'
 import en from 'zod/v4/locales/en.js'
+import * as z from './zodNamespace.js'
 
 config(en())
 
