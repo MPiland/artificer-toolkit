@@ -203,10 +203,11 @@ describe('owner delete coverage', () => {
   it('classifies every owner-keyed table in the schema', () => {
     const ownerKeyed = Object.entries(schema.tables)
       .filter(([, table]) => {
-        const document = JSON.stringify(table.validator.json)
+        const document = JSON.stringify(table.validator)
         return OWNER_FIELDS.some((field) => document.includes(`"${field}"`))
       })
       .map(([name]) => name)
+    expect(ownerKeyed).toContain('encounterBlueprints')
     expect(ownerKeyed.filter((name) => !classified.includes(name))).toEqual([])
   })
 
