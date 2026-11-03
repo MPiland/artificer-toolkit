@@ -3082,6 +3082,59 @@
               "id": "ACCOUNTS-10.5"
             }
           ]
+        },
+        {
+          "id": "ACCOUNTS-11",
+          "title": "Change my password or email",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "User approval 2026-11-03 (D187 growth): UAT restructure found no ACs for in-app password and email change"
+          ],
+          "acs": [
+            {
+              "id": "ACCOUNTS-11.1",
+              "text": "A signed-in user can change their password from Account Settings by giving their current password; afterwards the old password no longer signs in and the new one does, and a wrong current password is refused without changing anything.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): UAT restructure found no ACs for in-app password and email change"
+              ]
+            },
+            {
+              "id": "ACCOUNTS-11.2",
+              "text": "A signed-in user can change their email from Account Settings; the change takes effect only after they open the confirmation link sent to the new address, the account keeps signing in and receiving mail on the old address until then, and a signed-out caller cannot change an account's email.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): UAT restructure found no ACs for in-app password and email change"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 2
+          },
+          "tasks": [
+            {
+              "id": "ACCOUNTS-11.T1",
+              "status": "TODO",
+              "closes": [
+                "ACCOUNTS-11.1",
+                "ACCOUNTS-11.2"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Prove ACCOUNTS-11.1 and 11.2 against real code: audit the existing proofs (apps/apis/convex/accountEmail.test.ts, apps/web/src/settings/accountClient.test.ts, SettingsPages.test.tsx), add any missing assertion (old password refused after change, wrong current password changes nothing, old email still works until confirmation, signed-out caller refused), fix any defect found with a failing-first regression test, and add one journey test of the Account Settings flow. List the proof files for the ledger."
+            }
+          ]
         }
       ]
     },
