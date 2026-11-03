@@ -36,7 +36,7 @@ import {
   onEndGrantEffectId
 } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import {
   endActorFormHeldBy,
   endCharacterFormHeldBy,
@@ -47,7 +47,7 @@ import { listStateZones } from './maintainedStateZones.js'
 import { playAbsenceContribution, syncPlayAbsence } from './playAbsencePersistence.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
-const positiveIntegerSchema = z.number().int().positive()
+const positiveIntegerSchema = z.number().check(z.int()).check(z.positive())
 
 /**
  * Why an effect leaves the store. `ENDED` is the effect running its course (expiry, Concentration

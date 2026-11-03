@@ -1,6 +1,5 @@
-import { z } from 'zod'
 import { uuidSchema } from './campaignContractSchemas.js'
-import { lazySchema } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 export const campaignDeletionStatusInputSchema = lazySchema(() =>
   z.strictObject({ campaignId: uuidSchema })
@@ -8,7 +7,7 @@ export const campaignDeletionStatusInputSchema = lazySchema(() =>
 export const campaignDeletionStatusSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,
-    expectedVersion: z.number().int().nonnegative(),
+    expectedVersion: z.number().check(z.int()).check(z.nonnegative()),
     status: z.enum(['DELETING', 'FAILED', 'DELETED']),
     error: z.nullable(z.literal('Campaign cleanup failed. Retry deletion to resume.')),
     updatedAt: z.string()

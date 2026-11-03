@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import type { Validator } from 'convex/values'
 import { makeFunctionReference } from 'convex/server'
 import { zodToConvex } from 'convex-helpers/server/zod4'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterActorTokenBindingCommandInputDtoSchema,

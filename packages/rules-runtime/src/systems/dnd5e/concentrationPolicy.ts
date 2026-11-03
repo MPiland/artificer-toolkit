@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
   rollModeContributorSourceDtoSchema,
