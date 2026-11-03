@@ -5,7 +5,7 @@ import { extname, isAbsolute, join, relative, sep } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { convexEnvironmentValue } from './developmentConvexEnvironment'
+import { convexEnvironmentValue } from '../../../scripts/convexSelfHosted.mjs'
 import { proofPwsh, proofYarn } from './developmentShell'
 
 type FixtureCredential = {

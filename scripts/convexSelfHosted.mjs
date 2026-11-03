@@ -93,3 +93,42 @@ export const convexDeployArguments = [
 ]
 
 export const convexCliArguments = (url, adminKey) => ['--url', url, '--admin-key', adminKey]
+
+/**
+ * Reads one environment value of the selected local deployment (CONVEX_SELF_HOSTED_URL) through its
+ * admin query API, with no shell or CLI child that could split the admin key. The value and the key
+ * stay in memory; errors name the variable and the cause, never either secret.
+ */
+export async function convexEnvironmentValue(name) {
+  const url = process.env.CONVEX_SELF_HOSTED_URL
+  const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+  assertLoopbackUrl('CONVEX_SELF_HOSTED_URL', url)
+  if (!adminKey) throw new Error(`CONVEX_SELF_HOSTED_ADMIN_KEY is required to read ${name}.`)
+  const unreadable = `${name} could not be read from the selected local Convex deployment`
+  let response
+  try {
+    response = await fetch(new URL('/api/query', url), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Convex ${adminKey}` },
+      body: JSON.stringify({
+        path: '_system/cli/queryEnvironmentVariables:get',
+        args: { name },
+        format: 'json'
+      }),
+      signal: AbortSignal.timeout(30_000)
+    })
+  } catch (error) {
+    throw new Error(`${unreadable}.`, { cause: error })
+  }
+  if (!response.ok) throw new Error(`${unreadable} (HTTP ${response.status}).`)
+  const result = await response.json()
+  if (result.status !== 'success') throw new Error(`${unreadable} (query ${result.status}).`)
+  const value = result.value?.value
+  if (typeof value !== 'string') {
+    throw new Error(`${name} is not set in the selected local Convex deployment.`)
+  }
+  if (Buffer.byteLength(value, 'utf8') < 32 || /[\r\n]/u.test(value)) {
+    throw new Error(`${name} must be one line of at least 32 bytes.`)
+  }
+  return value
+}

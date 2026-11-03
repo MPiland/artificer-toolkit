@@ -5,7 +5,7 @@ import {
   LIVE_SESSION_METER_PATH,
   type EncounterSessionFrameDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import { convexEnvironmentValue } from './developmentConvexEnvironment'
+import { convexEnvironmentValue } from '../../../scripts/convexSelfHosted.mjs'
 import type { DevelopmentHttpClient, RoomFrame } from './developmentHttpClient'
 
 export type HeldEncounterSession = Extract<EncounterSessionFrameDto, { held: true }>
