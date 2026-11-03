@@ -49,6 +49,28 @@ const JOURNEY_STACK = [
   /^scripts\/(runLocalConvexProof|localConvexFixtures)\.ps1$/,
   /^scripts\/affectedBrowserJourneys\.mjs$/
 ]
+const APP_SPECS_CONFIG = /^apps\/web\/playwright\.config\.ts$/
+
+/**
+ * The Playwright config and specs each CI proof's driver starts by script name, which no import graph
+ * sees. A change that reaches one runs that proof whatever the acceptance criteria name, since the proof
+ * is the only run of its own spec.
+ */
+export const PROOF_SPECS = {
+  'vtt-browser': [
+    /^apps\/web\/tests\/managed-vtt\//,
+    /^apps\/web\/playwright\.local-vtt\.config\.ts$/
+  ],
+  'builder-browser': [/^apps\/web\/tests\/e2e\/app\/characterBuilder\.spec\.ts$/, APP_SPECS_CONFIG],
+  'character-sheet-browser': [
+    /^apps\/web\/tests\/e2e\/app\/characterSheet\.spec\.ts$/,
+    APP_SPECS_CONFIG
+  ],
+  'character-sheet-spells-browser': [
+    /^apps\/web\/tests\/e2e\/app\/characterSheetSpells\.spec\.ts$/,
+    APP_SPECS_CONFIG
+  ]
+}
 const SERVED_ROOT = /^apps\/(web\/(src|public)|session-worker\/src|apis\/convex)\//
 const CODE_FILE = /\.[cm]?[jt]sx?$/
 
@@ -66,16 +88,24 @@ export function stackChange(changed) {
   return stack ? `${stack} changed` : fullRunReason(changed, [])
 }
 
+/**
+ * The files `changed` reaches through imports. The proof driver and its helpers read fixtures and
+ * evidence, not source, so the Tests rule that a file-reading test helper depends on every source file
+ * would select the journeys for any change.
+ */
+const journeyReach = (graph, changed) =>
+  affectedFiles(
+    { ...graph, predicates: graph.predicates.filter((edge) => !edge.readsSource) },
+    changed
+  )
+
 /** Why `changed` needs the browser journeys, or null. */
 export function journeyRunReason(graph, changed) {
   const stack = stackChange(changed)
   if (stack) return stack
   const asset = changed.find(servedAsset)
   if (asset) return `${asset} changed`
-  // The proof driver and its helpers read fixtures and evidence, not source, so the Tests rule that a
-  // file-reading test helper depends on every source file would select the journeys for any change.
-  const imports = { ...graph, predicates: graph.predicates.filter((edge) => !edge.readsSource) }
-  const affected = affectedFiles(imports, changed)
+  const affected = journeyReach(graph, changed)
   const entry = [...affected].find((path) => JOURNEY_ENTRIES.includes(path) || convexModule(path))
   return entry ? `the change reaches ${entry}` : null
 }
@@ -112,14 +142,21 @@ export function pushProofs(graph, changed, ciProofs, baseKnownBugs, knownBugs, n
   if (stack) return { reason: stack, proofs: ciProofs }
   const reach = journeyRunReason(graph, changed)
   const gated = reach ? ciProofs.filter((proof) => named.includes(proof)) : []
+  const affected = [...journeyReach(graph, changed)]
+  const own = ciProofs.filter((proof) =>
+    (PROOF_SPECS[proof] ?? []).some((pattern) => affected.some((path) => pattern.test(path)))
+  )
   const released = ciProofs.filter((proof) => baseKnownBugs[proof] && !knownBugs[proof])
   const reasons = [
     gated.length > 0 ? `${reach}; the acceptance criteria name these journeys` : null,
+    own.length > 0 ? 'the change reaches their own specs' : null,
     released.length > 0 ? 'known-bug labels removed' : null
   ].filter(Boolean)
   return {
     reason: reasons.length > 0 ? reasons.join('; ') : null,
-    proofs: ciProofs.filter((proof) => gated.includes(proof) || released.includes(proof))
+    proofs: ciProofs.filter(
+      (proof) => gated.includes(proof) || own.includes(proof) || released.includes(proof)
+    )
   }
 }
 
