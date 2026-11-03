@@ -22,7 +22,6 @@ import { createDevelopmentSpellCharacter } from './developmentSpellCharacterFixt
 import {
   REVIEW_PLAYERS,
   REVIEW_READY_TITLE,
-  REVIEW_SPARES,
   REVIEW_SCENARIOS,
   type ReviewHero,
   type ReviewScenario,
@@ -86,8 +85,9 @@ export type ReviewContext = {
   gm: ReviewAccount
   /** One account per entry of REVIEW_PLAYERS, in order. */
   players: readonly ReviewAccount[]
-  admin: ReviewAccount
-  /** One account per entry of REVIEW_SPARES, in order; they join no Campaign. */
+  /** The superadmin account; only the local set (0) has one. */
+  admin?: ReviewAccount
+  /** Accounts that join no Campaign. */
   spares: readonly ReviewAccount[]
   /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
   grantGmTier: (userId: string) => Promise<void>
@@ -120,12 +120,16 @@ export async function seedReviewData(
   scenarios: readonly ReviewScenario[] = REVIEW_SCENARIOS
 ): Promise<ReviewSeedResult> {
   assert.equal(context.players.length, REVIEW_PLAYERS.length, 'One account per review player.')
-  assert.equal(context.spares.length, REVIEW_SPARES.length, 'One account per spare player.')
   const result: ReviewSeedResult = { created: [], skipped: [] }
   await context.grantGmTier(context.gm.userId)
-  await context.grantSuperadmin(context.admin.userId)
+  if (context.admin) await context.grantSuperadmin(context.admin.userId)
   // The room caches each roller's preference, so every account stays off: dice are typed.
-  for (const account of [context.gm, ...context.players, context.admin, ...context.spares])
+  for (const account of [
+    context.gm,
+    ...context.players,
+    ...(context.admin ? [context.admin] : []),
+    ...context.spares
+  ])
     await account.client.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   for (const scenario of scenarios) {
     const existing = await findCampaign(context.gm.client, scenario.campaign)
