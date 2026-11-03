@@ -14,6 +14,8 @@ Read the [alpha play guide](../../guides/alpha-play-guide.md) before the first r
 - [Running several users side by side](#running-several-users-side-by-side)
 - [Recording results](#recording-results)
 - [Known UAT gaps](#known-uat-gaps)
+- [External testers (staging)](#external-testers-staging)
+- [Exploratory tasks and authoring feedback](#exploratory-tasks-and-authoring-feedback)
 - [Scenario files and coverage](#scenario-files-and-coverage)
 
 ## Setup
@@ -123,6 +125,21 @@ These stop some scenarios on the local build. Each scenario that depends on an o
 | **G4** | Managed staging credentials.                                                                                                                                                   | Staging and production scenarios (PERF and RELEASE) run only on an approved staging smoke, never locally. | None locally: they run at the staging step of the release sequence.                                                 |
 | **G5** | Closed: **Review: Sandbox** has walls, a door, terrain, per-player fog, dim light, a point light, hidden tokens and a Large creature, in Manual mode with standard initiative. | None. Scenarios needing other setup still say "Heavy setup:" with what to build.                          | Done (RELEASE-8.T3).                                                                                                |
 
+## External testers (staging)
+
+A few outside testers run the same scenario files on staging, each with their own account.
+
+- **Accounts:** public sign-up is closed, so each tester gets an invited account (an invitation issued by the owner). Accounts are never shared between testers, and the local review accounts and the `REVIEW_PASSWORD` constant do not exist on staging.
+- **Staging URL:** provided by the owner. Do not guess or reuse a URL from another document.
+- **Approval:** a staging run needs the owner's approval each time (the same rule as every other staging check; see G4 above and the [release sequence](../../runbooks/phase-8-2-release.md)). Do not start one without it.
+- **Setup:** an external tester skips the operator steps (reset, seed, review data) and starts at step 6 of [Setup](#setup). The steps that need several signed-in users still need several browser profiles per [Running several users side by side](#running-several-users-side-by-side); a scenario that names accounts the tester does not have (GM, P1 to P3) is run with the testers' own invited accounts in those roles, as the owner assigns them.
+- **Recording:** results use the same format as [Recording results](#recording-results), with the staging build name the owner gives in place of the git commit and `staging` in the header's Review data line. Name the file `<YYYY-MM-DD>-<FEATURE>-<tester>.md` when more than one tester runs a file.
+
+## Exploratory tasks and authoring feedback
+
+- [EXPLORATORY.md](EXPLORATORY.md): open goal-based tasks for UX and bias checks. They are not pass/fail, and testers run them before seeing the scripted scenarios. Results go in `results/<YYYY-MM-DD>-EXPLORATORY-<tester>.md`.
+- [Authoring feedback](AUTHORING.md#authoring-feedback): a questionnaire each tester fills in once, after the authoring scenarios (UAT-AUTHORING-13 to 15 and any other authoring scenario they ran).
+
 ## Scenario files and coverage
 
 The coverage below is generated from the scenario files and the ledger: every AC of every feature is either covered by at least one scenario, listed in its file as **Covered elsewhere** (no tester-visible behaviour; the ledger proof is the evidence), or listed as **Not coverable** with its gap. "Internal PBI" marks ACs of PBIs the ledger records as having no user flow.
@@ -133,7 +150,7 @@ The coverage below is generated from the scenario files and the ledger: every AC
 | ----------- | -------------------------------- | --------- | ------- | --------------------- | ---------------- | ----------------- | ------------- |
 | PLATFORM    | [PLATFORM.md](PLATFORM.md)       | 5         | 68      | 10                    | 0                | 58                | 0             |
 | ACCOUNTS    | [ACCOUNTS.md](ACCOUNTS.md)       | 13        | 37      | 29                    | 0                | 8                 | 0             |
-| AUTHORING   | [AUTHORING.md](AUTHORING.md)     | 12        | 57      | 50                    | 0                | 7                 | 0             |
+| AUTHORING   | [AUTHORING.md](AUTHORING.md)     | 15        | 57      | 50                    | 0                | 7                 | 0             |
 | RULES       | [RULES.md](RULES.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
 | BUILDER     | [BUILDER.md](BUILDER.md)         | 6         | 14      | 12                    | 0                | 2                 | 0             |
 | SHEET       | [SHEET.md](SHEET.md)             | 11        | 25      | 22                    | 0                | 3                 | 0             |
@@ -152,7 +169,7 @@ The coverage below is generated from the scenario files and the ledger: every AC
 | PERF        | [PERF.md](PERF.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY.md](QUALITY.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
 | RELEASE     | [RELEASE.md](RELEASE.md)         | 1         | 17      | 5                     | 0                | 8                 | 4             |
-| **Total**   |                                  | **175**   | **716** | **501**               | **1**            | **211**           | **4**         |
+| **Total**   |                                  | **178**   | **716** | **501**               | **1**            | **211**           | **4**         |
 
 ### AC map
 
