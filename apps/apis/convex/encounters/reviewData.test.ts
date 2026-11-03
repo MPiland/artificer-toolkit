@@ -1,20 +1,18 @@
 // @vitest-environment node
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { api } from '../_generated/api'
 import { seedReviewData } from '../../tests/developmentReviewData'
 import { REVIEW_SCENARIOS, REVIEW_SPARES } from '../../tests/developmentReviewDataScenarios'
-import { roomErrorLogs, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
+import {
+  roomErrorLogs,
+  useLocalRoomWorker,
+  useRealTimeClock
+} from '../../tests/fixtures/localRoomWorker'
 import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
-beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date', 'setTimeout', 'clearTimeout'] })
-})
-afterEach(() => {
-  vi.clearAllTimers()
-  vi.useRealTimers()
-  vi.unstubAllEnvs()
-})
+useRealTimeClock()
+useRealTimeClock()
 
 // The Worker keeps every room it has hosted until the test ends, so the last Campaign is built by
 // reviewDataFireAndThunder.test.ts on a Worker of its own.

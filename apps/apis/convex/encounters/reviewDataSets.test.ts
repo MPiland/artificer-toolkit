@@ -1,20 +1,18 @@
 // @vitest-environment node
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { seedReviewData } from '../../tests/developmentReviewData'
 import { reviewScenariosForSet } from '../../tests/developmentReviewDataScenarios'
 import { reviewRoster, reviewTarget } from '../../tests/developmentReviewTarget'
-import { roomErrorLogs, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
+import {
+  roomErrorLogs,
+  useLocalRoomWorker,
+  useRealTimeClock
+} from '../../tests/fixtures/localRoomWorker'
 import { reviewDataHarness, reviewSetContext } from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
-beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date', 'setTimeout', 'clearTimeout'] })
-})
-afterEach(() => {
-  vi.clearAllTimers()
-  vi.useRealTimers()
-  vi.unstubAllEnvs()
-})
+useRealTimeClock()
+useRealTimeClock()
 
 const managedEnv = {
   CONVEX_URL: 'https://tester-staging-123.convex.cloud',
