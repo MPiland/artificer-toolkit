@@ -2,7 +2,7 @@
 
 Feature `SOCIAL` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](../README.md#roles-and-accounts). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). Read email as [Reading local email](../README.md#reading-email) describes.
+Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](../README.md#roles-and-accounts). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Read email as [Reading email](../TESTERS.md#reading-email) describes.
 
 ## Scenarios
 

@@ -1,6 +1,6 @@
 # Reactions and decisions — UAT scenarios
 
-Feature `REACTION` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup). Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several users: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). Gaps: [README](../OPERATOR.md#known-uat-gaps).
+Feature `REACTION` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup). Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several users: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Gaps: [README](../OPERATOR.md#known-uat-gaps).
 
 This file proves that when an attack or spell triggers a reaction, the right person is asked, the hit waits with no timer, the GM can skip a stuck decision, the dice flow works with Auto-roll on and off, and Shield, Counterspell and authored reaction spells resolve correctly.
 

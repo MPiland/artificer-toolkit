@@ -9,7 +9,7 @@ Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2) · Path po
 - The review data provides the account **GM**, owner of the four review Campaigns.
 - The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
-- The review data provides an inbox that receives the account's email (see [Reading email](../README.md#reading-email)).
+- The review data provides an inbox that receives the account's email (see [Reading email](../TESTERS.md#reading-email)).
 
 ## Accounts and windows
 
@@ -35,7 +35,7 @@ Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2) · Path po
 - The new announcement arrives live as an unread notification; opening it marks it read.
 - With both channels off P1 gets no notification for the second announcement; P2 still does.
 - Step 9: P2's feed holds 25 entries, the latest 25; the oldest are gone. (The announcements stay in the Campaign.)
-- Email: [Reading email](../README.md#reading-email) holds no email to P1 for the second announcement (both channels off). Record which announcement emails P1 and P2 did receive.
+- Email: [Reading email](../TESTERS.md#reading-email) holds no email to P1 for the second announcement (both channels off). Record which announcement emails P1 and P2 did receive.
 - After re-enabling channels P1 gets the next one.
 
 - Staging: every email this scenario sends arrives in the inbox within a few minutes, shows the product branding, has working links and is not in spam.

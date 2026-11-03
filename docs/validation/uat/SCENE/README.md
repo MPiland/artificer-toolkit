@@ -2,7 +2,7 @@
 
 Feature `SCENE` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves a GM can upload and calibrate a map, build and present a Scene with tokens, walls, doors, light and fog, that players see exactly what they should and nothing hidden, and that several players can share one table screen. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). The scenarios build on each other: run [UAT-SCENE-1](UAT-SCENE-1.md) first, because it creates the Scene the later ones use.
+Proves a GM can upload and calibrate a map, build and present a Scene with tokens, walls, doors, light and fog, that players see exactly what they should and nothing hidden, and that several players can share one table screen. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). The scenarios build on each other: run [UAT-SCENE-1](UAT-SCENE-1.md) first, because it creates the Scene the later ones use.
 
 ## Scenarios
 

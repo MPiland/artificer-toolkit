@@ -1,6 +1,6 @@
 # VTT presentation — UAT scenarios
 
-Feature `VTT_UI` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup). Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several users: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). Gaps: [README](../OPERATOR.md#known-uat-gaps).
+Feature `VTT_UI` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup). Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several users: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Gaps: [README](../OPERATOR.md#known-uat-gaps).
 
 This file proves the live map shows each token's identity, conditions, facing and system state clearly, previews and perception match the rules, footprints and dragging behave, and the map is usable by keyboard, at low zoom, without relying on colour, and with a screen reader.
 
