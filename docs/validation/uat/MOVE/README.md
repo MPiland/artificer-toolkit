@@ -2,23 +2,23 @@
 
 Feature `MOVE` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves a player can move only their own token, that the table stops illegal moves (walls, hostile spaces, the map edge, locked tokens), that leaving an enemy's reach pauses for the GM's answer, that the GM can undo a token move, and that traps, hidden hazards and climbing behave and stay hidden from players. Accounts: [README](../README.md#accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#running-several-users-side-by-side). Record results: [README](../README.md#recording-results). Scenes with walls, doors and zones do not exist in the review data: build them in a sandbox Campaign (see SCENE UAT, [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and [UAT-SCENE-3](../SCENE/UAT-SCENE-3.md)) or add them to Review: Party in the Field in the steps.
+Proves a player can move only their own token, that the table stops illegal moves (walls, hostile spaces, the map edge, locked tokens), that leaving an enemy's reach pauses for the GM's answer, that the GM can undo a token move, and that traps, hidden hazards and climbing behave and stay hidden from players. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). Scenes with walls, doors and zones do not exist in the review data: build them in a sandbox Campaign (see SCENE UAT, [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and [UAT-SCENE-3](../SCENE/UAT-SCENE-3.md)) or add them to Review: Party in the Field in the steps.
 
 ## Scenarios
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Run order | Level | Scenario                    | Title                                              |
-| --------- | ----- | --------------------------- | -------------------------------------------------- |
-| 68        | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
-| 69        | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
-| 100       | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
-| 101       | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
-| 102       | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
-| 103       | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
-| 121       | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
-| 122       | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
-| 123       | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
+| Path position | Level | Scenario                    | Title                                              |
+| ------------- | ----- | --------------------------- | -------------------------------------------------- |
+| 70            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
+| 71            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
+| 102           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
+| 103           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
+| 104           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
+| 105           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
+| 123           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
+| 124           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
+| 125           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
 
 ## Covered elsewhere
 

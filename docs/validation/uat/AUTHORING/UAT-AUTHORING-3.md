@@ -2,24 +2,24 @@
 
 Background lifecycle — create, save, publish, replace, export, delete.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 24 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 26 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1, P2
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/backgrounds/new.
+1. **P1:** Open `<STAGING_URL>/backgrounds/new`.
 2. **P1:** Try to publish (**Activate**) with the name empty.
 3. **P1:** Enter the name "UAT Wanderer", fill the required fields, and choose **Save Draft**.
-4. **P1:** Reload, then go to http://localhost:3000/backgrounds and find your draft.
+4. **P1:** Reload, then go to `<STAGING_URL>/backgrounds` and find your draft.
 5. **P1:** Open it, change the description, and choose **Activate**.
 6. **P1:** Confirm it now shows as Active/Published in the list and use the search box and filters to find it.
 7. **P1:** Open it, edit the name to "UAT Wanderer II", save the draft, and make another change that is invalid (for example clear a required field).
@@ -56,5 +56,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

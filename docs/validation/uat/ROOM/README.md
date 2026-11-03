@@ -2,24 +2,24 @@
 
 Feature `ROOM` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves the GM and three players can all join the same live table, see each other, talk, share notes and maps, plan Sessions, survive a dropped connection, lose access when removed, and that the table keeps its state when everyone leaves and comes back. Accounts: [README](../README.md#accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#running-several-users-side-by-side). Record results: [README](../README.md#recording-results). "Tabletop window" means the window opened with **Open tabletop window** in the **Live tabletop** panel of the Campaign's session page (or **Open live tabletop window** on a Character Sheet).
+Proves the GM and three players can all join the same live table, see each other, talk, share notes and maps, plan Sessions, survive a dropped connection, lose access when removed, and that the table keeps its state when everyone leaves and comes back. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results). "Tabletop window" means the window opened with **Open tabletop window** in the **Live tabletop** panel of the Campaign's session page (or **Open live tabletop window** on a Character Sheet).
 
 ## Scenarios
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Run order | Level | Scenario                      | Title                                     |
-| --------- | ----- | ----------------------------- | ----------------------------------------- |
-| 76        | 3     | [UAT-ROOM-1](UAT-ROOM-1.md)   | GM and three players join at once         |
-| 77        | 3     | [UAT-ROOM-2](UAT-ROOM-2.md)   | Previews and pings                        |
-| 78        | 3     | [UAT-ROOM-4](UAT-ROOM-4.md)   | Chat — Table, Party and Direct            |
-| 79        | 3     | [UAT-ROOM-5](UAT-ROOM-5.md)   | Rolls, private GM rolls and chat limits   |
-| 80        | 3     | [UAT-ROOM-6](UAT-ROOM-6.md)   | Notes — private and shared                |
-| 81        | 3     | [UAT-ROOM-8](UAT-ROOM-8.md)   | Plan and log Sessions                     |
-| 82        | 3     | [UAT-ROOM-9](UAT-ROOM-9.md)   | Live play commands go through the room    |
-| 83        | 3     | [UAT-ROOM-7](UAT-ROOM-7.md)   | Show a map to players without presenting  |
-| 84        | 3     | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
-| 125       | 3     | [UAT-ROOM-3](UAT-ROOM-3.md)   | Reconnect after a dropped connection      |
+| Path position | Level | Scenario                      | Title                                     |
+| ------------- | ----- | ----------------------------- | ----------------------------------------- |
+| 78            | 3     | [UAT-ROOM-1](UAT-ROOM-1.md)   | GM and three players join at once         |
+| 79            | 3     | [UAT-ROOM-2](UAT-ROOM-2.md)   | Previews and pings                        |
+| 80            | 3     | [UAT-ROOM-4](UAT-ROOM-4.md)   | Chat — Table, Party and Direct            |
+| 81            | 3     | [UAT-ROOM-5](UAT-ROOM-5.md)   | Rolls, private GM rolls and chat limits   |
+| 82            | 3     | [UAT-ROOM-6](UAT-ROOM-6.md)   | Notes — private and shared                |
+| 83            | 3     | [UAT-ROOM-8](UAT-ROOM-8.md)   | Plan and log Sessions                     |
+| 84            | 3     | [UAT-ROOM-9](UAT-ROOM-9.md)   | Live play commands go through the room    |
+| 85            | 3     | [UAT-ROOM-7](UAT-ROOM-7.md)   | Show a map to players without presenting  |
+| 86            | 3     | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
+| 127           | 3     | [UAT-ROOM-3](UAT-ROOM-3.md)   | Reconnect after a dropped connection      |
 
 ## Covered elsewhere
 

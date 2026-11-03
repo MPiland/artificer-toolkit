@@ -2,21 +2,21 @@
 
 Equipment variants, inheritance and item names.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 28 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 30 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1, P2
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/equipment, search "Healer" and open the SRD item.
+1. **P1:** Open `<STAGING_URL>/equipment`, search "Healer" and open the SRD item.
 2. **P1:** Read its name and look for its uses/charges.
 3. **P1:** Search "Arrows", "Crossbow Bolts", "Sling Bullets", "Blowgun Needles", "Iron Spikes" and read each name and price.
 4. **P1:** Duplicate the SRD Longsword to a draft, name it "UAT Blade", and **Activate** it.
@@ -50,5 +50,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

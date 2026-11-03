@@ -2,18 +2,18 @@
 
 Equipment, inventory, attunement and deleting an item.
 
-Level 1 (Single-user basics) · Feature SHEET · Run order 45 of 188
+Level 1 (Single-user basics) · Feature SHEET · Mode: Group (P1, P2) · Path position 47 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): "UAT Dara" is committed and in no Campaign.
 - Done in [UAT-AUTHORING-7](../AUTHORING/UAT-AUTHORING-7.md): "UAT Blade", an Active homebrew weapon with a damage action, is owned by P1.
 
 ## Accounts and windows
 
-- **Accounts:** P1, P2
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
@@ -48,5 +48,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

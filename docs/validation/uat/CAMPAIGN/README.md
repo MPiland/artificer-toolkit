@@ -2,23 +2,23 @@
 
 Feature `CAMPAIGN` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
 
-Proves a GM can create, run, copy, archive and delete a Campaign, bring players in and take them out, share content and party gear, post announcements and play a Character of their own, and that players only ever see what the GM has made visible to them. Accounts: [README](../README.md#accounts). Several windows: [README](../README.md#running-several-users-side-by-side). Record results: [README](../README.md#recording-results).
+Proves a GM can create, run, copy, archive and delete a Campaign, bring players in and take them out, share content and party gear, post announcements and play a Character of their own, and that players only ever see what the GM has made visible to them. Accounts: [README](../README.md#roles-and-accounts). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [README](../README.md#recording-results).
 
 ## Scenarios
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Run order | Level | Scenario                            | Title                                              |
-| --------- | ----- | ----------------------------------- | -------------------------------------------------- |
-| 50        | 2     | [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) | Create, edit, copy, archive and delete a Campaign  |
-| 51        | 2     | [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) | Invite, accept, leave, remove, rejoin and transfer |
-| 52        | 2     | [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md) | Seat the whole party in the Sandbox Campaign       |
-| 57        | 2     | [UAT-CAMPAIGN-4](UAT-CAMPAIGN-4.md) | Campaign content, sources and removals             |
-| 58        | 2     | [UAT-CAMPAIGN-5](UAT-CAMPAIGN-5.md) | Party inventory and Vehicles                       |
-| 59        | 2     | [UAT-CAMPAIGN-7](UAT-CAMPAIGN-7.md) | The GM plays a Character                           |
-| 60        | 2     | [UAT-CAMPAIGN-6](UAT-CAMPAIGN-6.md) | Announcements                                      |
-| 74        | 3     | [UAT-CAMPAIGN-8](UAT-CAMPAIGN-8.md) | Not a member                                       |
-| 75        | 3     | [UAT-CAMPAIGN-3](UAT-CAMPAIGN-3.md) | Players see only what the GM made visible          |
+| Path position | Level | Scenario                            | Title                                              |
+| ------------- | ----- | ----------------------------------- | -------------------------------------------------- |
+| 52            | 2     | [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) | Create, edit, copy, archive and delete a Campaign  |
+| 53            | 2     | [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) | Invite, accept, leave, remove, rejoin and transfer |
+| 54            | 2     | [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md) | Seat the whole party in the Sandbox Campaign       |
+| 59            | 2     | [UAT-CAMPAIGN-4](UAT-CAMPAIGN-4.md) | Campaign content, sources and removals             |
+| 60            | 2     | [UAT-CAMPAIGN-5](UAT-CAMPAIGN-5.md) | Party inventory and Vehicles                       |
+| 61            | 2     | [UAT-CAMPAIGN-7](UAT-CAMPAIGN-7.md) | The GM plays a Character                           |
+| 62            | 2     | [UAT-CAMPAIGN-6](UAT-CAMPAIGN-6.md) | Announcements                                      |
+| 76            | 3     | [UAT-CAMPAIGN-8](UAT-CAMPAIGN-8.md) | Not a member                                       |
+| 77            | 3     | [UAT-CAMPAIGN-3](UAT-CAMPAIGN-3.md) | Players see only what the GM made visible          |
 
 ## Covered elsewhere
 

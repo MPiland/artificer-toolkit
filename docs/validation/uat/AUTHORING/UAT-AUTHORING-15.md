@@ -2,21 +2,21 @@
 
 BLOCKED until AUTHORING-21 merges: the link between the modifier and its pool is changing from a typed Charge ID to a picker, and this scenario is written against the picker. Mark it BLOCKED in the Result block until then.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 34 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 36 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Sorcerer's **Empowered Spell** feature (Classes, Sorcerer, Metamagic) open as the reference. Start a stopwatch before step 1.
 
 ## Steps
 
-1. **P1:** Start the timer. Open http://localhost:3000/feats/new and enter the **Name** "UAT Empowered Copy" and a **Description** (paste the SRD Empowered Spell text or write your own).
+1. **P1:** Start the timer. Open `<STAGING_URL>/feats/new` and enter the **Name** "UAT Empowered Copy" and a **Description** (paste the SRD Empowered Spell text or write your own).
 2. **P1:** Under **Charges** define the pool the feature spends, a stand-in for sorcery points: choose a **Limit Kind** (for example Fixed amount, with a number of points) and a **Reset Kind** of Long Rest.
 3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Passive and **Trigger** to Activated.
 4. **P1:** In **Cast Modifier**, choose the pool from the **Resource pool** list (the pool from step 2, listed under the Feat's name). Set **Cost** to 1. In **Rerolls damage dice after the roll** set **Damage dice rerolled** to 0, **Plus the modifier of** to Charisma, and **At least** to 1.
@@ -51,5 +51,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

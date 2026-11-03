@@ -2,31 +2,29 @@
 
 Reset a forgotten password (wrong code, mismatch, then success).
 
-Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Run order 181 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 13 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P3** (`Review_Pl_Cade`), who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- The review data provides a local mail catcher that shows the six-digit code (see [Reading local email](../README.md#reading-local-email)).
+- Done in [UAT-ACCOUNTS-6](UAT-ACCOUNTS-6.md): you have your own account, created with your own email address, and its inbox receives email.
 
 ## Accounts and windows
 
-- **Accounts:** P3
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** OWN
+- **Windows:** One browser window, signed in to the account you created in [ACCOUNTS-6](UAT-ACCOUNTS-6.md). Your normal browser is fine.
 
 ## Steps
 
-1. **P3:** Open http://localhost:3000/sign-in and go to **Reset your password**.
-2. **P3:** Enter `review_pl_cade@example.invalid` and submit to reach **Verify your reset code**.
-3. **P3:** Enter a wrong six-digit code such as 000000 and submit.
-4. **P3:** Request a new code from the same page (resend) a few times in a row.
-5. **P3:** Reload the page and look at the address bar.
-6. **P3:** Before the reset, keep a second tab open and signed in as P3. Then enter the real code from the newest reset email to `review_pl_cade@example.invalid`.
-7. **P3:** On **Update password**, type different values in **New password** and **Confirm password**; submit.
-8. **P3:** Type the same new password in both fields; submit.
-9. **P3:** Try to sign in with the old password, and reload the second tab.
-10. **P3:** Sign in with the new password. Try the code from step 6 again. Then reset the password back to the review password the same way.
-11. **GM:** Meanwhile, with the GM signed in on another profile, confirm the GM can still use the app.
+1. **OWN:** Open `<STAGING_URL>/sign-in` and go to **Reset your password**.
+2. **OWN:** Enter your own email address and submit to reach **Verify your reset code**.
+3. **OWN:** Enter a wrong six-digit code such as 000000 and submit.
+4. **OWN:** Request a new code from the same page (resend) a few times in a row.
+5. **OWN:** Reload the page and look at the address bar.
+6. **OWN:** Before the reset, keep a second tab open and signed in as OWN. Then enter the real code from the newest reset email to your own email address.
+7. **OWN:** On **Update password**, type different values in **New password** and **Confirm password**; submit.
+8. **OWN:** Type the same new password in both fields; submit.
+9. **OWN:** Try to sign in with the old password, and reload the second tab.
+10. **OWN:** Sign in with the new password. Try the code from step 6 again. Keep the new password.
 
 ## Expected
 
@@ -35,12 +33,14 @@ Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Run order 
 - Step 5: the address bar carries no code or secret and the page still works after reload.
 - Step 7: "Enter the same password in both fields." and nothing changes.
 - Step 8: the password changes; you can sign in with it.
-- Step 9: the old password is refused, and the second tab signed in as P3 before the reset is signed out after reload.
+- Step 9: the old password is refused, and the second tab signed in as OWN before the reset is signed out after reload.
 - Step 10: new password signs in; the code from step 6 is refused as invalid or already used.
+
+- Staging: every email this scenario sends arrives in the inbox within a few minutes, shows the product branding, has working links and is not in spam.
 
 ## Other users see
 
-- **GM:** Unaffected.
+- Not applicable: single user.
 
 ## ACs covered
 
@@ -54,5 +54,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

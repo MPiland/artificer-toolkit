@@ -2,23 +2,23 @@
 
 Campaign content, sources and removals.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Run order 57 of 188
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 59 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Done in [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md): P1 is a member of the Sandbox Campaign with "UAT Dara" assigned and GM is the owner.
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-S1. **GM:** Open http://localhost:3000/spells/new, create a homebrew Spell named "UAT GM Spark" (level 1, any school and casting time) and **Activate** it.
-S2. **GM:** Open http://localhost:3000/races/new, create a homebrew Race named "UAT GM Folk" and **Activate** it.
+S1. **GM:** Open `<STAGING_URL>/spells/new`, create a homebrew Spell named "UAT GM Spark" (level 1, any school and casting time) and **Activate** it.
+S2. **GM:** Open `<STAGING_URL>/races/new`, create a homebrew Race named "UAT GM Folk" and **Activate** it.
 
 1. **GM:** Open the Campaign **Settings** and read **Primary Rules Catalogue** and **Additional Rules Catalogues**.
 2. **GM:** Add the homebrew Spell's parent source (if the Spell is built on an official Spell, share the parent first) so the homebrew Spell is available in this Campaign.
@@ -54,5 +54,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

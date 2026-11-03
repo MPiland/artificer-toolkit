@@ -2,17 +2,17 @@
 
 Edit a personal Sheet and reload.
 
-Level 1 (Single-user basics) · Feature SHEET · Run order 42 of 188
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 44 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): "UAT Dara", a level-1 Fighter, is committed and in no Campaign.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -51,5 +51,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

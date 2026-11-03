@@ -2,28 +2,28 @@
 
 Sign in, reload, sign out, sign back in by username.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 9 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 9 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox; you are signed out.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox; you are signed out.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/characters while signed out.
+1. **P1:** Open `<STAGING_URL>/characters` while signed out.
 2. **P1:** Note that you land on the sign-in page.
-3. **P1:** In **Email or username** type `review_pl_aria@example.invalid`, enter the review password in **Password**, and sign in.
+3. **P1:** In **Email or username** type the email address of P1, enter the account's password in **Password**, and sign in.
 4. **P1:** Confirm you arrive on the Characters page you originally asked for.
 5. **P1:** Reload the page (F5).
-6. **P1:** Open http://localhost:3000/logout (or use the account menu's sign-out control).
-7. **P1:** After the "Signing you out" page, open http://localhost:3000/characters again.
-8. **P1:** Sign in again, this time typing the username `Review_Pl_Aria` in **Email or username**.
-9. **P1:** Open http://localhost:3000/settings/profile and check the **Username** field.
+6. **P1:** Open `<STAGING_URL>/logout` (or use the account menu's sign-out control).
+7. **P1:** After the "Signing you out" page, open `<STAGING_URL>/characters` again.
+8. **P1:** Sign in again, this time typing the username P1 in **Email or username**.
+9. **P1:** Open `<STAGING_URL>/settings/profile` and check the **Username** field.
 
 ## Expected
 
@@ -31,7 +31,7 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 9 of 188
 - Step 4: after signing in you are returned to the Characters page, not to a generic home.
 - Step 5: still signed in and the page renders fully (no blank screen).
 - Step 7: signed out again; the protected page redirects to sign-in.
-- Step 8-9: username sign-in works and the profile shows Review_Pl_Aria.
+- Step 8-9: username sign-in works and the profile shows P1.
 
 ## Other users see
 
@@ -49,5 +49,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

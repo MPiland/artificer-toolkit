@@ -2,27 +2,27 @@
 
 Author a Feat, a Race and a Vehicle.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 29 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 31 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1, P2
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/feats/new; create "UAT Sharp Eyes", save the draft, reload, then **Activate**.
+1. **P1:** Open `<STAGING_URL>/feats/new`; create "UAT Sharp Eyes", save the draft, reload, then **Activate**.
 2. **P1:** Search Feats for it, **Export JSON**, then **Duplicate** it and **Discard draft** on the copy.
-3. **P1:** Open http://localhost:3000/races/new; create "UAT Dwarf Line", save and **Activate**.
+3. **P1:** Open `<STAGING_URL>/races/new`; create "UAT Dwarf Line", save and **Activate**.
 4. **P1:** Create a subrace of it, "UAT Dwarf Line Hill", that inherits from "UAT Dwarf Line" and **Activate** it.
 5. **P1:** Edit "UAT Dwarf Line", change one trait, **Activate**, then open the subrace and check the trait.
 6. **P1:** Try to delete "UAT Dwarf Line" while the subrace exists.
-7. **P1:** Open http://localhost:3000/vehicles/new; create "UAT Cart", save, **Activate**, upload artwork, and **Export JSON**.
+7. **P1:** Open `<STAGING_URL>/vehicles/new`; create "UAT Cart", save, **Activate**, upload artwork, and **Export JSON**.
 8. **P1:** Delete the Vehicle.
 
 ## Expected
@@ -48,5 +48,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

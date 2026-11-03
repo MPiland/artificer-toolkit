@@ -2,20 +2,20 @@
 
 Campaign content stays hidden until revealed.
 
-Level 3 (Core play) · Feature PRIVACY · Run order 127 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 129 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
 - Done in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md): the Sandbox Campaign holds the Wolf and Goblin Blueprint and "UAT Cavern" is its presented Scene.
 - Done in [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md): a second Scene exists in the Sandbox Campaign (add it with the Scene editor if missing).
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
@@ -53,5 +53,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

@@ -2,29 +2,30 @@
 
 Delete my account, shared history survives.
 
-Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Run order 184 of 188
+Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Solo (OWN) with a facilitator playing GM · Path position 188 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **SPARE1** (`Review_Pl_Dara`), a player who is a member of no Campaign and owns no Character.
+- Done in [UAT-ACCOUNTS-6](UAT-ACCOUNTS-6.md): you have your own account, created with your own email address. Run this last: it deletes that account.
+- The review data provides the account **GM**, owner of the four review Campaigns (played by the owner as facilitator).
 
 ## Accounts and windows
 
-- **Accounts:** SPARE1 (Review_Pl_Dara), GM
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** OWN, GM
+- **Facilitator:** the owner plays GM in a separate profile and does every step labelled **GM**: S1 first (the tester accepts the invitation), and steps 6 to 8 once the tester says the account is deleted.
+- **Windows:** One browser window for OWN, your own account from [ACCOUNTS-6](UAT-ACCOUNTS-6.md). The owner is the facilitator in a separate profile.
 
 ## Steps
 
-S1. **GM:** Create a throwaway Campaign "UAT Delete Camp" as in [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) steps 1 and 2. Invite SPARE1 by username from their profile, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md); **SPARE1:** accept.
-S2. **SPARE1:** Build a Fighter Character as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) and assign it to "UAT Delete Camp". Create a homebrew Spell as in [AUTHORING-4](../AUTHORING/UAT-AUTHORING-4.md).
-S3. **GM:** Start a Session, present a Scene and start a short Encounter with the Character; **SPARE1:** post one chat message and make one roll.
+S1. **GM:** Create a throwaway Campaign "UAT Delete Camp" as in [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) steps 1 and 2. Invite OWN by username from their profile, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md); **OWN:** accept.
+S2. **OWN:** Build a Fighter Character as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) and assign it to "UAT Delete Camp". Create a homebrew Spell as in [AUTHORING-4](../AUTHORING/UAT-AUTHORING-4.md).
+S3. **GM:** Start a Session, present a Scene and start a short Encounter with the Character; **OWN:** post one chat message and make one roll.
 
-1. **SPARE1:** Open the live tabletop of the shared Campaign and post a chat message and make one roll.
-2. **SPARE1:** Note the Characters and homebrew you own.
-3. **SPARE1:** Open http://localhost:3000/settings/account and choose **Delete account**.
-4. **SPARE1:** Type the account email and the password; confirm.
-5. **SPARE1:** Try to sign in again.
+1. **OWN:** Open the live tabletop of the shared Campaign and post a chat message and make one roll.
+2. **OWN:** Note the Characters and homebrew you own.
+3. **OWN:** Open `<STAGING_URL>/settings/account` and choose **Delete account**.
+4. **OWN:** Type the account email and the password; confirm.
+5. **OWN:** Try to sign in again.
 6. **GM:** Reload the tabletop and read the chat, roll history and Session log.
 7. **GM:** Open the Encounter history and the member list.
 8. **GM:** Reload the tabletop after a minute.
@@ -53,5 +54,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

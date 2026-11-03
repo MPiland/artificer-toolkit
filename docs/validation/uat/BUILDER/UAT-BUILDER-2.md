@@ -2,21 +2,21 @@
 
 Two windows on one draft cannot overwrite each other.
 
-Level 1 (Single-user basics) · Feature BUILDER · Run order 37 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 39 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Done in [UAT-BUILDER-1](UAT-BUILDER-1.md): "UAT Dara" exists as a committed Character, and a saved draft is needed: create a quick draft named "UAT Race Condition" in the Builder and save it before step 1.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-S1. **P1:** Open http://localhost:3000/characters, choose **Create Character**, enter the name "UAT Race Condition", and choose **Save Character Draft**. This is the saved draft the steps use.
+S1. **P1:** Open `<STAGING_URL>/characters`, choose **Create Character**, enter the name "UAT Race Condition", and choose **Save Character Draft**. This is the saved draft the steps use.
 
 1. **P1:** Open the draft in window A and in window B (two tabs of the same account).
 2. **P1:** In window A change the Character Name to "UAT RC One" and choose **Save Character Draft**.
@@ -50,5 +50,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

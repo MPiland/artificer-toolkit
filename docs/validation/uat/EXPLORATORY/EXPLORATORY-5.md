@@ -2,34 +2,36 @@
 
 Make a tougher version of an existing creature and use it in an Encounter.
 
-Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Run order 6 of 188
+Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Mode: Solo (GM) with a facilitator · Path position 6 of 188
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 
 ## Prerequisites
 
-- The review data provides the account GM and the Campaign **Review: Party in the Field** (Encounter running).
+- The review data provides the account GM, who owns the four review Campaigns.
+- The review data provides the Campaign **Review: Party in the Field** (Encounter running).
 
-## Accounts and windows
+## Roles and windows
 
-- **Accounts:** GM (`Review_Gm_Rowan`)
-- **Windows:** One browser profile per account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM
+- **Tester role:** GM. You use one account from your set, in your normal browser, and you never act as another role.
+- **Facilitator:** the owner following the script below. The facilitator does only what the script says, when the trigger happens, and does not explain controls.
 
-## What is ready for you
+## Facilitator script
 
-- Nothing beyond the prerequisites: start from the accounts and Campaign named there.
+1. Nobody else is needed. The facilitator only answers questions about the task wording; do not explain controls.
 
 ## Task
 
 - **Goal:** Make a tougher version of an existing creature and use it in an Encounter.
 - **Scope:** Start from an SRD creature of your choice. Change what you think is needed to make it harder, then put it into an Encounter of that Campaign and see the change at the table. Do not use a creature already in the Encounter.
-- **Look for:** whether the product's locked-versus-editable rules for SRD records were clear; whether you expected to edit a number that the form computes (for example Armor Class); whether the effect of your change was visible at the table.
+- **Look for:** whether the locked-versus-editable rules for SRD records were clear; whether you expected to edit a number that the form computes (for example Armor Class); whether the effect of your change was visible at the table.
 
-Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop.
+Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. Tell the facilitator in words when a trigger in the script happens (for example "my Character is ready").
 
 ## Afterwards
 
-- **GM:** Remove the creature from the Encounter and delete your copy.
+- GM: remove the creature from the Encounter and delete your copy.
 
 ## ACs covered
 
@@ -43,6 +45,8 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:** GM
 - **Failed step:**
 - **Time:** minutes from start to goal, or to the moment you gave up
 - **Outcome:** reached / reached with help / gave up

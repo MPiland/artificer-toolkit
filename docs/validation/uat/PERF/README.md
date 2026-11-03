@@ -8,10 +8,10 @@ These scenarios give testers a human feel for responsiveness at a table of four.
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Run order | Level | Scenario                    | Title                                                                                                   |
-| --------- | ----- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 120       | 3     | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive                                                            |
-| 188       | 5     | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
+| Path position | Level | Scenario                    | Title                                                                                                   |
+| ------------- | ----- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 122           | 3     | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive                                                            |
+| 187           | 5     | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
 
 ## Covered elsewhere
 

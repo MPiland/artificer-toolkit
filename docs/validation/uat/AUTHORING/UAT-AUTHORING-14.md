@@ -2,21 +2,21 @@
 
 Author a Fireball-like spell from scratch.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 33 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 35 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Fireball open in a second tab as the reference. Start a stopwatch before step 1.
 
 ## Steps
 
-1. **P1:** Start the timer. Open http://localhost:3000/spells/new.
+1. **P1:** Start the timer. Open `<STAGING_URL>/spells/new`.
 2. **P1:** Under Basics, enter the **Name** "UAT Fireball Copy" and a **Description**. Set **Level** to Level 3, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Set **Casting Time** to 1 action and tick Verbal, Somatic and Material **Components**.
 3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Action and **Trigger** to Saving Throw. In **Saving Throw** set **DC Method** to the option that uses the caster's spell save DC, and **Save Ability** to Dexterity. Set **Activation** to Action with **Amount** 1.
 4. **P1:** Set **Range** to Distance, **Amount** 150, **Unit** Feet. Set **Shape Kind** to Sphere with **Radius** **Amount** 20, **Unit** Feet. Set **Target Selection** to Area Contents and **Target Eligibility** to Any valid target.
@@ -53,5 +53,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

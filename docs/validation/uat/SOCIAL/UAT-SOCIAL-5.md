@@ -2,19 +2,19 @@
 
 Notification feed, read state and preferences.
 
-Level 4 (Advanced play) · Feature SOCIAL · Run order 148 of 188
+Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2) · Path position 150 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
-- The review data provides a local mail catcher (see [Reading local email](../README.md#reading-local-email)).
+- The review data provides an inbox that receives the account's email (see [Reading email](../README.md#reading-email)).
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1, P2
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
@@ -35,8 +35,10 @@ Level 4 (Advanced play) · Feature SOCIAL · Run order 148 of 188
 - The new announcement arrives live as an unread notification; opening it marks it read.
 - With both channels off P1 gets no notification for the second announcement; P2 still does.
 - Step 9: P2's feed holds 25 entries, the latest 25; the oldest are gone. (The announcements stay in the Campaign.)
-- Email: [local email](../README.md#reading-local-email) holds no email to P1 for the second announcement (both channels off). Record which announcement emails P1 and P2 did receive.
+- Email: [Reading email](../README.md#reading-email) holds no email to P1 for the second announcement (both channels off). Record which announcement emails P1 and P2 did receive.
 - After re-enabling channels P1 gets the next one.
+
+- Staging: every email this scenario sends arrives in the inbox within a few minutes, shows the product branding, has working links and is not in spam.
 
 ## Other users see
 
@@ -54,5 +56,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

@@ -2,25 +2,25 @@
 
 Build a Character for a review player, save, resume and commit.
 
-Level 1 (Single-user basics) · Feature BUILDER · Run order 36 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (GM, P1) · Path position 38 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **GM**, owner of the four review Campaigns.
 
 ## Accounts and windows
 
-- **Accounts:** P1, GM
-- **Windows:** Two browser profiles: P1 builds; GM only checks the Party panel in step 13 ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/characters and choose **Create Character**.
+1. **P1:** Open `<STAGING_URL>/characters` and choose **Create Character**.
 2. **P1:** Enter **Character Name** "UAT Dara" and choose a Race, a Class and a Background.
 3. **P1:** Fill the ability scores (use the **Ability Method** the page offers) and pick the equipment choices.
 4. **P1:** Choose **Save Character Draft**.
-5. **P1:** Close the tab. Reopen http://localhost:3000/characters and find the draft; open it.
+5. **P1:** Close the tab. Reopen `<STAGING_URL>/characters` and find the draft; open it.
 6. **P1:** Confirm your earlier choices are intact, then change the Background and save the draft again.
 7. **P1:** Start a second Character, enter the name "UAT Throwaway", save the draft, then choose **Discard draft** and confirm.
 8. **P1:** Back on "UAT Dara", go to the **Review** step.
@@ -53,5 +53,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

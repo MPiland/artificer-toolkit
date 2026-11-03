@@ -2,25 +2,25 @@
 
 Two accounts at once stay isolated, and sign-out ends every tab.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 15 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 17 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox, who owns Aria and Ember.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox, who owns Aria and Ember.
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **GM:** In profile A, sign in as GM and open http://localhost:3000/campaigns.
-2. **P1:** In profile B, sign in as P1 and open http://localhost:3000/campaigns.
-3. **P1:** Open http://localhost:3000/characters and note the Characters listed.
-4. **GM:** Open http://localhost:3000/characters and note the Characters listed.
-5. **P1:** Open a second tab in profile B on http://localhost:3000/home.
+1. **GM:** In profile A, sign in as GM and open `<STAGING_URL>/campaigns`.
+2. **P1:** In profile B, sign in as P1 and open `<STAGING_URL>/campaigns`.
+3. **P1:** Open `<STAGING_URL>/characters` and note the Characters listed.
+4. **GM:** Open `<STAGING_URL>/characters` and note the Characters listed.
+5. **P1:** Open a second tab in profile B on `<STAGING_URL>/home`.
 6. **P1:** In the second tab, sign out (open /logout).
 7. **P1:** Switch to the first tab and click any navigation link (for example Characters).
 8. **GM:** Reload your page in profile A.
@@ -47,5 +47,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

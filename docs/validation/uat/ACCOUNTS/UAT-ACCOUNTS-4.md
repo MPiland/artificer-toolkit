@@ -2,7 +2,7 @@
 
 Public sign-up is closed.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 11 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) · Path position 11 of 188
 
 ## Prerequisites
 
@@ -10,12 +10,12 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 11 of 188
 
 ## Accounts and windows
 
-- **Accounts:** none (signed out)
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** none (signed out)
+- **Windows:** One browser window, signed in as the account named in the steps with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-1. Open http://localhost:3000/sign-up.
+1. Open `<STAGING_URL>/sign-up`.
 2. Read the page title and message.
 3. Look for any form that lets you choose a username and password.
 4. Try to fill and submit it if one is present.
@@ -41,5 +41,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

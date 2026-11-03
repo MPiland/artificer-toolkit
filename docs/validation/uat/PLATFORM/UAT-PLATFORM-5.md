@@ -2,7 +2,7 @@
 
 A Concentration save shows its result on the roll card.
 
-Level 4 (Advanced play) · Feature PLATFORM · Run order 156 of 188
+Level 4 (Advanced play) · Feature PLATFORM · Mode: Group (GM, P1) · Path position 158 of 188
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ Level 4 (Advanced play) · Feature PLATFORM · Run order 156 of 188
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
@@ -44,5 +44,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

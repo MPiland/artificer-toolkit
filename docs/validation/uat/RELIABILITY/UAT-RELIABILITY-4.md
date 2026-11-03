@@ -2,18 +2,18 @@
 
 A new Scene measures lengths correctly in every unit.
 
-Level 2 (GM setup) · Feature RELIABILITY · Run order 72 of 188
+Level 2 (GM setup) · Feature RELIABILITY · Mode: Solo (GM) · Path position 74 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
+- The review data provides the account **GM**, owner of the four review Campaigns.
 - Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
 - Use the provided file [assets/sample-battle-map.png](../assets/sample-battle-map.png): the map to upload (replaces "any small JPEG, PNG or WebP image").
 
 ## Accounts and windows
 
-- **Accounts:** GM
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -51,5 +51,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

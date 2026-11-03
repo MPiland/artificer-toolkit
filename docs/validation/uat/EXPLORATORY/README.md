@@ -2,11 +2,11 @@
 
 Open, goal-based tasks for finding usability problems and bias in how the product is explained and laid out. They are not pass/fail: nothing here moves a feature to accepted, and there is no Expected line to match. The scripted scenarios check that features work; these check whether a person who has not been told how can get things done.
 
-**Testers must not read the scripted scenario files first.** Read only the [Start here page](../README.md), the [accounts](../README.md#accounts) and the task file itself. Do not open a scenario file until your Result is written. Run these right after [Orientation](../ORIENTATION/UAT-ORIENTATION-1.md), before Level 1.
+**Testers must not read the scripted scenario files first.** Read only the [Start here page](../README.md), the [accounts](../README.md#roles-and-accounts) and the task file itself. Do not open a scenario file until your Result is written. Run these right after [Orientation](../ORIENTATION/UAT-ORIENTATION-1.md), before Level 1.
 
 ## How to run a task
 
-1. Pick the task and the account named in it. Use the accounts and Campaign listed under **What is ready for you**; sign in as described in [Accounts](../README.md#accounts).
+1. Pick the task and the account named in it. Use the accounts and Campaign listed under **What is ready for you**; sign in as described in [Accounts](../README.md#roles-and-accounts).
 2. Start a timer. Work toward the goal in your own way. Do not look for a "right" path.
 3. If you are stuck for more than a few minutes, say what you were trying to do and what you expected, then use the on-screen help, then ask the operator. Record every one of these.
 4. Stop the timer when you reach the goal or give up. Giving up is a result: record it.
@@ -27,12 +27,12 @@ Screenshots of confusing screens go in the ignored `local-validation/uat/<YYYY-M
 
 ## Tasks
 
-| Run order | Level | Scenario                          | Title                                           |
-| --------- | ----- | --------------------------------- | ----------------------------------------------- |
-| 2         | 0     | [EXPLORATORY-1](EXPLORATORY-1.md) | Build a level-3 caster and play one round       |
-| 3         | 0     | [EXPLORATORY-2](EXPLORATORY-2.md) | Author a homebrew spell from memory and cast it |
-| 4         | 0     | [EXPLORATORY-3](EXPLORATORY-3.md) | Set up a new encounter on an uploaded map as GM |
-| 5         | 0     | [EXPLORATORY-4](EXPLORATORY-4.md) | Run a short session as a first-time player      |
-| 6         | 0     | [EXPLORATORY-5](EXPLORATORY-5.md) | Copy and change an existing monster             |
-| 7         | 0     | [EXPLORATORY-6](EXPLORATORY-6.md) | Find out what went wrong                        |
-| 8         | 0     | [EXPLORATORY-7](EXPLORATORY-7.md) | Hand over a Character mid-campaign              |
+| Path position | Level | Scenario                          | Title                                           |
+| ------------- | ----- | --------------------------------- | ----------------------------------------------- |
+| 2             | 0     | [EXPLORATORY-1](EXPLORATORY-1.md) | Build a level-3 caster and play one round       |
+| 3             | 0     | [EXPLORATORY-2](EXPLORATORY-2.md) | Author a homebrew spell from memory and cast it |
+| 4             | 0     | [EXPLORATORY-3](EXPLORATORY-3.md) | Set up a new encounter on an uploaded map as GM |
+| 5             | 0     | [EXPLORATORY-4](EXPLORATORY-4.md) | Run a short session as a first-time player      |
+| 6             | 0     | [EXPLORATORY-5](EXPLORATORY-5.md) | Copy and change an existing monster             |
+| 7             | 0     | [EXPLORATORY-6](EXPLORATORY-6.md) | Find out what went wrong                        |
+| 8             | 0     | [EXPLORATORY-7](EXPLORATORY-7.md) | Hand over a Character mid-campaign              |

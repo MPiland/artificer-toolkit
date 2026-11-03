@@ -1,40 +1,69 @@
 # Phase 8 UAT: start here
 
-User acceptance tests for the 21 Phase 8 features in the [phase ledger](../../roadmap/08-phase-ledger.json). A non-engineer runs each scenario by hand on the local build, as a GM and up to three players at the same live table. The automated tests prove each acceptance criterion (AC) in isolation; these scenarios prove the pieces work together in real play. Passing them moves a feature from UAT_READY to accepted.
+User acceptance tests for the 21 Phase 8 features in the [phase ledger](../../roadmap/08-phase-ledger.json). Testers run each scenario by hand on **staging** and record what they saw. The automated tests prove each acceptance criterion (AC) in isolation; these scenarios prove the pieces work together in real play. Passing them moves a feature from UAT_READY to accepted.
 
 UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one `uat` item per scenario, and an item becomes PASSED only after the owner accepts it with the evidence described in [Recording results](#recording-results).
 
-**Run the path in [TRACKER.md](TRACKER.md).** Read the [alpha play guide](../../guides/alpha-play-guide.md) first: it explains every live-table control the scenarios use, and its [known gaps](../../guides/alpha-play-guide.md#known-gaps) are not failures. The operator prepares the build ([OPERATOR.md](OPERATOR.md)); you start at the first scenario.
+## Start
 
-## The path in levels
+- **Staging address:** `<STAGING_URL>`. Every scenario writes the address this way; the owner tells you the real one. Read the [alpha play guide](../../guides/alpha-play-guide.md) first: it explains every live-table control the scenarios use, and its [known gaps](../../guides/alpha-play-guide.md#known-gaps) are not failures.
+- **Your set.** The owner gives each tester a numbered set: five prebuilt accounts (GM, P1, P2, P3, SPARE) and your own copy of the four review Campaigns. The owner hands you the sign-in details privately; this repository never holds a password. Scenarios name roles only.
+- **Your own account.** The account-security scenarios (sign-up, forgotten password, password and email change, deletion) run on an account you create yourself with your own email address, so they never touch the prebuilt accounts. Prebuilt accounts never have their password, email or deletion state changed.
+- **The tracker.** Open [TRACKER.md](TRACKER.md): it lists what you were assigned. The owner prepares everything else ([OPERATOR.md](OPERATOR.md)).
 
-One scenario per file, in folders named after their feature. Run them in tracker order; no scenario depends on a later one.
+## Solo and Group
 
-| Level | Name                                 | Scenarios | First scenario                                        |
-| ----- | ------------------------------------ | --------- | ----------------------------------------------------- |
-| 0     | Orientation and exploratory tasks    | 8         | [UAT-ORIENTATION-1](ORIENTATION/UAT-ORIENTATION-1.md) |
-| 1     | Single-user basics                   | 41        | [UAT-ACCOUNTS-1](ACCOUNTS/UAT-ACCOUNTS-1.md)          |
-| 2     | GM setup                             | 24        | [UAT-CAMPAIGN-1](CAMPAIGN/UAT-CAMPAIGN-1.md)          |
-| 3     | Core play                            | 63        | [UAT-CAMPAIGN-8](CAMPAIGN/UAT-CAMPAIGN-8.md)          |
-| 4     | Advanced play                        | 40        | [UAT-ENCOUNTER-6](ENCOUNTER/UAT-ENCOUNTER-6.md)       |
-| 5     | Reliability, performance and release | 12        | [UAT-RELIABILITY-5](RELIABILITY/UAT-RELIABILITY-5.md) |
+- **Solo** scenarios need one role. You run them signed in to one account in your normal browser: one prebuilt account from your set, or your own account for the account-security scenarios. Some Solo scenarios and all exploratory tasks also need a **facilitator**, the owner acting as the GM or another player, who follows a numbered script with trigger points ("when the tester says their Character is ready, add it to the Encounter"). You never act as two roles.
+- **Group** scenarios need several roles at the same live table (149 of 188). The owner runs them alone, one browser profile per role ([Role setup](#role-setup-for-the-owner)), in the session agendas at the end of the tracker.
 
-- **Level 0, Orientation and exploratory tasks:** Sign in to every review account and find the Campaigns, then open-ended tasks that test whether the product explains itself. Read no scenario file first for the exploratory tasks.
-- **Level 1, Single-user basics:** One account at a time: accounts, uploads, authoring, the Character Builder and the Sheet. Nobody else needs to be present.
+| Level | Name                                 | Solo | Group | First scenario                                        |
+| ----- | ------------------------------------ | ---- | ----- | ----------------------------------------------------- |
+| 0     | Orientation and exploratory tasks    | 8    | 0     | [UAT-ORIENTATION-1](ORIENTATION/UAT-ORIENTATION-1.md) |
+| 1     | Single-user basics                   | 25   | 18    | [UAT-ACCOUNTS-1](ACCOUNTS/UAT-ACCOUNTS-1.md)          |
+| 2     | GM setup                             | 4    | 20    | [UAT-CAMPAIGN-1](CAMPAIGN/UAT-CAMPAIGN-1.md)          |
+| 3     | Core play                            | 1    | 62    | [UAT-CAMPAIGN-8](CAMPAIGN/UAT-CAMPAIGN-8.md)          |
+| 4     | Advanced play                        | 0    | 40    | [UAT-ENCOUNTER-6](ENCOUNTER/UAT-ENCOUNTER-6.md)       |
+| 5     | Reliability, performance and release | 1    | 9     | [UAT-RELIABILITY-5](RELIABILITY/UAT-RELIABILITY-5.md) |
+
+- **Level 0, Orientation and exploratory tasks:** Sign in with your account and find your Campaigns, then open-ended tasks that test whether the product explains itself (read no scenario file first for those).
+- **Level 1, Single-user basics:** One account at a time: your own account (sign-up, password reset, username), uploads, authoring, the Character Builder and the Sheet.
 - **Level 2, GM setup:** The GM builds a Campaign, seats the party, makes Scenes, Encounters and Blueprints. This creates the Sandbox Campaign that later levels reuse.
 - **Level 3, Core play:** The live table with several people: rooms, attacks, movement, privacy, reactions and reliability on the review Campaigns.
 - **Level 4, Advanced play:** Encounter lifecycle and optional rules, then the long spell and rules journeys that replace the Party's Characters.
-- **Level 5, Reliability, performance and release:** Account recovery and deletion, plan limits, the release checklist, and staging-only performance last.
+- **Level 5, Reliability, performance and release:** Plan limits, the release checklist and performance, ending with deleting your own account.
+
+## Roles and accounts
+
+| Role                   | Used for                                                        | Plan tier  |
+| ---------------------- | --------------------------------------------------------------- | ---------- |
+| **GM**                 | Owns the four review Campaigns                                  | GM         |
+| **P1**, **P2**, **P3** | Players in those Campaigns                                      | Free       |
+| **SPARE**              | A player in no Campaign, for invitation and join scenarios      | Free       |
+| **SUPERADMIN**         | Owner-only moderation scenarios                                 | Superadmin |
+| **OWN**                | The account you create yourself with your own email address     | Free       |
+| **DISPOSABLE**         | A throwaway account the owner creates for one deletion scenario | Free       |
+
+### Roles and what each sees
+
+| Role      | Campaigns                                                                                              | Characters        |
+| --------- | ------------------------------------------------------------------------------------------------------ | ----------------- |
+| **GM**    | Review: Party in the Field, Review: Shield and Hold, Review: Fire and Thunder, Review: Sandbox (as GM) | none of its own   |
+| **P1**    | Party in the Field, Shield and Hold, Sandbox                                                           | Aria, Ember, Iris |
+| **P2**    | Party in the Field, Fire and Thunder, Sandbox                                                          | Bryn, Pyra, Juno  |
+| **P3**    | Party in the Field, Sandbox                                                                            | Cade, Kit         |
+| **SPARE** | none                                                                                                   | none              |
+
+After the review data is built every account has **Roll my dice automatically** switched **off** (Settings, Preferences, or the **Auto-roll** switch in the tabletop header), so rolls raise a prompt where you can choose **Roll dice** or type physical dice. A scenario that needs auto-roll on says so. Public sign-up is closed: a new account needs an invitation from the owner.
 
 ## One pass
 
-Run the scenarios once, in order. Every scenario lists its **Prerequisites**: what the review data provides, which earlier scenario you must have finished, or which file in [assets](assets/) to use. A scenario that changes shared state ends with restore steps (R1, R2 …) that put it back through the normal controls, so the next scenario finds what it expects. If a scenario fails halfway, the GM puts the shared state back by hand (re-seat players, remove added tokens and zones, set settings back) before you continue; if that is impossible, mark the scenarios that depend on it BLOCKED. Resetting the review data is an operator action for the start of a new pass, never a step in a scenario.
+Run the scenarios once, in tracker order. Every scenario lists its **Prerequisites**: what your set provides, which earlier scenario you must have finished, or which file in [assets](assets/) to use. A scenario that changes shared state ends with restore steps (R1, R2 …) that put it back through the normal controls, and a scenario that destroys or consumes data says what it consumes. If a scenario fails halfway, put the shared state back by hand; if that is impossible, mark the scenarios that depend on it BLOCKED. The owner can rebuild your set between rounds. There is no reset inside a pass.
 
 ## Recording results
 
-- Fill in the **Result** block at the end of the scenario's file: **Status** (NOT RUN, PASSED, FAILED, BLOCKED or SKIPPED), **Date**, **Build** (the git commit for a local run, or the staging build name the owner gave), **Tester**, **Failed step**, and **Notes**.
+- Fill in the **Result** block at the end of the scenario's file: **Status** (NOT RUN, PASSED, FAILED, BLOCKED or SKIPPED), **Date**, **Build**, **Tester**, **Set** (your set number), **Role** (the role you played), **Failed step** and **Notes**. The scenario ID is the file name, so every note stays tied to its context.
 - Then tick the scenario in the [tracker](TRACKER.md) and set the same status there.
-- **PASSED** means every Expected line and every "Other users see" line held. Take at least one screenshot per scenario of its final state, and one per player window in multi-user scenarios; screenshots stay in the ignored `local-validation/uat/<YYYY-MM-DD>/` folder.
+- **PASSED** means every Expected line and every "Other users see" line held. Take at least one screenshot per scenario of its final state; for Group scenarios, one per role window.
 - A behaviour listed in the play guide's known gaps is not a failure; note it only if it hurt the session.
 - When the owner accepts a feature, the orchestrator sets each of its ledger `uat` items to PASSED with the tracker as evidence.
 
@@ -42,59 +71,18 @@ Run the scenarios once, in order. Every scenario lists its **Prerequisites**: wh
 
 The Result block names the date, the build (commit or staging build name), the tester and the step number, and gives the details the [play guide's feedback list](../../guides/alpha-play-guide.md#sending-feedback) asks for: Campaign, Scene, round and turn, mode and auto-roll, expected, actual with the exact wording of any message, and whether it repeats. Every failure is fixed or registered in the ledger before the feature is accepted.
 
-## Accounts
+## Reading email
 
-The review data creates seven local-only accounts. Sign in at http://localhost:3000/sign-in with **Email or username** and the shared review password, which is the `REVIEW_PASSWORD` constant in [developmentReviewDataScenarios.ts](../../../apps/apis/tests/developmentReviewDataScenarios.ts). It exists only on the local Docker backend and guards nothing.
+Staging sends real email. Use the inbox of the address on the account (your own address for your own account). Every scenario that sends email also checks that it arrives within a few minutes, shows the product branding, has working links and is not in spam. The local email sink is an operator fallback only ([Reading local email](OPERATOR.md#reading-local-email)).
 
-| Name in scenarios | Username           | Email                              | Role in the review data                                                    |
-| ----------------- | ------------------ | ---------------------------------- | -------------------------------------------------------------------------- |
-| **GM**            | `Review_Gm_Rowan`  | `review_gm_rowan@example.invalid`  | GM of all four review Campaigns; GM plan tier                              |
-| **P1**            | `Review_Pl_Aria`   | `review_pl_aria@example.invalid`   | Player: Aria (Party in the Field), Ember (Shield and Hold), Iris (Sandbox) |
-| **P2**            | `Review_Pl_Bryn`   | `review_pl_bryn@example.invalid`   | Player: Bryn (Party in the Field), Pyra (Fire and Thunder), Juno (Sandbox) |
-| **P3**            | `Review_Pl_Cade`   | `review_pl_cade@example.invalid`   | Player: Cade (Party in the Field), Kit (Sandbox)                           |
-| **SUPERADMIN**    | `Review_Admin_Sol` | `review_admin_sol@example.invalid` | Superadmin (promoted with `authAdmin:setRole`); member of no Campaign      |
-| **SPARE1**        | `Review_Pl_Dara`   | `review_pl_dara@example.invalid`   | Player outside every Campaign; free plan tier                              |
-| **SPARE2**        | `Review_Pl_Eli`    | `review_pl_eli@example.invalid`    | Player outside every Campaign; free plan tier                              |
+## Role setup for the owner
 
-The GM and P1 to P3 each need a browser profile for most scenarios; sign the SUPERADMIN or a spare in to a fifth profile, or sign out of one of the four, when a scenario names them. Never delete the GM, P1 to P3 or the SUPERADMIN: account-deletion scenarios delete a spare.
+Only the owner (and a facilitator) needs this; a Solo tester uses one normal browser.
 
-After the review-data run every account has **Roll my dice automatically** switched **off** (Settings, Preferences, or the **Auto-roll** switch in the tabletop header), so rolls raise a prompt where you can choose **Roll dice** or type physical dice. A scenario that needs auto-roll on says so.
-
-Public sign-up is closed. A spare joins a Campaign without email: the GM invites it by username from a listing and the spare accepts in the app. Steps that read an email (an invitation link, a confirmation link, a reset code) use [local email](README.md#reading-local-email).
-
-The spare accounts are consumed in order: SPARE2 joins one Campaign for [EXPLORATORY-4](EXPLORATORY/EXPLORATORY-4.md) and is removed again; SPARE1 stays outside every Campaign until [ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md) deletes it, and SPARE2 is deleted last, by [RELIABILITY-13](RELIABILITY/UAT-RELIABILITY-13.md).
-
-## Running several users side by side
-
-Each account needs its own browser session, because sign-in is a cookie on `localhost:3000`.
-
-- Use **separate browser profiles**, not tabs: for example Chrome profiles named "UAT GM", "UAT P1" and "UAT P2", and Edge or Firefox for P3. Private or incognito windows of one browser share one session, so they count as one profile at most.
-- Tile the windows so the GM window and at least one player window are visible at once. Scenarios list what every other window must show, and what it must **not** show (hidden tokens, GM private rolls, other players' private data).
-- One person can drive all four windows. Helpers can join only on this machine: the local build is not reachable from other devices, including phones.
-- **Mobile width**: open the browser's developer tools, turn on the device toolbar and pick a 375-pixel-wide phone. Real phones cannot reach the local build.
-- **Dropped connection**: in developer tools, open the Network panel and set throttling to **Offline**, then back to **No throttling**; or close the tab and reopen the page.
-- Each step names who acts, for example "3. **P1:** ...". When a step says "at the same time", have two windows ready and click within a second or two of each other.
-
-## Reading local email
-
-The local build sends no real email. Password-reset codes, email-change and verification links, invitations and notification emails go to the local email sink, which keeps the newest 50 messages. To read them:
-
-1. Run `pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action mail`. It replaces the ignored `local-validation/local-email/` folder with the sink's current messages and prints how many it copied.
-2. Open the newest file for the recipient in a browser. Each file is named `<received time>-<sequence>-<recipient>.html` and starts with the **To** and **Subject** lines, then the email as sent, then its plain-text version (which also shows any code).
-
-Run the command again after each step that sends an email. The sink keeps messages until the local container is recreated; older ones are dropped once there are more than 50. The first `localConvexFixtures.ps1 -Action start` after updating to this sink restarts the local fixtures, which also clears map uploads held by the local R2 substitute.
-
-An account invitation has no app screen: it is issued by the internal `authInvitations:issue` function. To send one to a new address, run `node apps/apis/scripts/convexRunLocal.mjs authInvitations:issue '{"email":"<new address>@example.invalid","token":"<64 hex characters>"}'` (make a token with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`), then read the invitation email as above.
-
-## External testers (staging)
-
-A few outside testers run the same scenario files on staging, each with their own account.
-
-- **Accounts:** public sign-up is closed, so each tester gets an invited account (an invitation issued by the owner). Accounts are never shared between testers, and the local review accounts and the `REVIEW_PASSWORD` constant do not exist on staging.
-- **Staging URL:** provided by the owner. Do not guess or reuse a URL from another document.
-- **Approval:** a staging run needs the owner's approval each time (the same rule as every other staging check; see G4 in [Known UAT gaps](OPERATOR.md#known-uat-gaps) and the [release sequence](../../runbooks/phase-8-2-release.md)). Do not start one without it.
-- **Setup:** an external tester skips the operator steps (reset, seed, review data) and starts at step 6 of [Setup](OPERATOR.md#setup). The steps that need several signed-in users still need several browser profiles per [Running several users side by side](#running-several-users-side-by-side); a scenario that names accounts the tester does not have (GM, P1 to P3) is run with the testers' own invited accounts in those roles, as the owner assigns them.
-- **Recording:** as in [Recording results](#recording-results), with the staging build name the owner gives in place of the git commit, and the tester's name in each run note.
+- Create one Chrome or Edge profile per role (GM, P1, P2, P3, SPARE), plus one for the tester's own account. Sign each profile into its account once and keep it signed in.
+- Firefox Multi-Account Containers are an accepted alternative. A private window gives only one extra sign-in per browser, so it is not enough on its own.
+- Each scenario's **Roles used** line lists which profiles to open. Steps switch roles by switching windows, never by signing out.
+- On a facilitated scenario, do only what the numbered script says, when its trigger happens, and do not explain controls.
 
 ## Coverage
 

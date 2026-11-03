@@ -8,15 +8,15 @@ Proves a player can build a Character from choices, save and resume drafts, comm
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Run order | Level | Scenario                          | Title                                                           |
-| --------- | ----- | --------------------------------- | --------------------------------------------------------------- |
-| 36        | 1     | [UAT-BUILDER-1](UAT-BUILDER-1.md) | Build a Character for a review player, save, resume and commit  |
-| 37        | 1     | [UAT-BUILDER-2](UAT-BUILDER-2.md) | Two windows on one draft cannot overwrite each other            |
-| 38        | 1     | [UAT-BUILDER-3](UAT-BUILDER-3.md) | Choice-heavy builds — multiclass and spellcaster                |
-| 39        | 1     | [UAT-BUILDER-7](UAT-BUILDER-7.md) | Build the Characters P2 and P3 will use in the Sandbox Campaign |
-| 40        | 1     | [UAT-BUILDER-4](UAT-BUILDER-4.md) | Removing content a Character uses repairs the Character         |
-| 41        | 1     | [UAT-BUILDER-6](UAT-BUILDER-6.md) | Imported custom items keep their kind, properties and damage    |
-| 56        | 2     | [UAT-BUILDER-5](UAT-BUILDER-5.md) | Withdrawing shared content reconciles assigned Characters       |
+| Path position | Level | Scenario                          | Title                                                           |
+| ------------- | ----- | --------------------------------- | --------------------------------------------------------------- |
+| 38            | 1     | [UAT-BUILDER-1](UAT-BUILDER-1.md) | Build a Character for a review player, save, resume and commit  |
+| 39            | 1     | [UAT-BUILDER-2](UAT-BUILDER-2.md) | Two windows on one draft cannot overwrite each other            |
+| 40            | 1     | [UAT-BUILDER-3](UAT-BUILDER-3.md) | Choice-heavy builds — multiclass and spellcaster                |
+| 41            | 1     | [UAT-BUILDER-7](UAT-BUILDER-7.md) | Build the Characters P2 and P3 will use in the Sandbox Campaign |
+| 42            | 1     | [UAT-BUILDER-4](UAT-BUILDER-4.md) | Removing content a Character uses repairs the Character         |
+| 43            | 1     | [UAT-BUILDER-6](UAT-BUILDER-6.md) | Imported custom items keep their kind, properties and damage    |
+| 58            | 2     | [UAT-BUILDER-5](UAT-BUILDER-5.md) | Withdrawing shared content reconciles assigned Characters       |
 
 ## Covered elsewhere
 

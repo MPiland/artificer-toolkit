@@ -2,29 +2,29 @@
 
 Choose, change and protect a username.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 13 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 14 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P3** (`Review_Pl_Cade`), who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- Done in [UAT-ACCOUNTS-6](UAT-ACCOUNTS-6.md): you have your own account, created with your own email address.
+- The review data provides the account **GM**, whose username the owner gives you for step 2.
 
 ## Accounts and windows
 
-- **Accounts:** P3, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** OWN
+- **Windows:** One browser window, signed in to the account you created in [ACCOUNTS-6](UAT-ACCOUNTS-6.md). Your normal browser is fine.
 
 ## Steps
 
-1. **P3:** Open http://localhost:3000/settings/profile.
-2. **P3:** In **Username** type `Review_Pl_Aria` (P1's name). Note the availability message and try to save with **Save profile**.
-3. **P3:** Type `review_pl_aria` (different case only) and try again.
-4. **P3:** Type `ass_muncher`, then `AssMuncher`, then `Ass1Muncher`, then `assmuncher`; try to save each.
-5. **P3:** Type `Cassandra`, then `Classic`, then `Glasshouse`; check the availability message for each without saving.
-6. **P3:** Type `Review_Pl_Cade_Two` and choose **Save profile**.
-7. **P3:** Reload the page. Sign out and sign in using `Review_Pl_Cade_Two`.
-8. **P3:** Change the username to `review_pl_cade` (case change of the original) and save; then change to `Review_Pl_Cade` and save.
-9. **P3:** Reload and check the exact capitalisation shown.
+1. **OWN:** Open `<STAGING_URL>/settings/profile`.
+2. **OWN:** In **Username** type the GM's username (the owner gives it to you). Note the availability message and try to save with **Save profile**.
+3. **OWN:** Type the GM's username in different capitalisation and try again.
+4. **OWN:** Type `ass_muncher`, then `AssMuncher`, then `Ass1Muncher`, then `assmuncher`; try to save each.
+5. **OWN:** Type `Cassandra`, then `Classic`, then `Glasshouse`; check the availability message for each without saving.
+6. **OWN:** Type your username with `_Two` added and choose **Save profile**.
+7. **OWN:** Reload the page. Sign out and sign in using your username with `_Two` added.
+8. **OWN:** Change the username to your original username in different capitalisation and save; then change it back to your original capitalisation and save.
+9. **OWN:** Reload and check the exact capitalisation shown.
 
 ## Expected
 
@@ -33,11 +33,11 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 13 of 188
 - Step 4: all four are refused as not allowed.
 - Step 5: all three are acceptable (no "not allowed" message).
 - Step 6-7: the new name is saved, survives reload, and works for sign-in.
-- Step 8-9: case-only changes are allowed and the display keeps the capitalisation you saved, ending as Review_Pl_Cade.
+- Step 8-9: case-only changes are allowed and the display keeps the capitalisation you saved, ending as your original username.
 
 ## Other users see
 
-- **P1:** Still signed in as Review_Pl_Aria throughout; P3's attempts to take that name do not affect P1's account.
+- Not applicable: single user.
 
 ## ACs covered
 
@@ -51,5 +51,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

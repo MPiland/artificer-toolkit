@@ -8,9 +8,9 @@ These scenarios check the alpha play guide against the running build and record 
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Run order | Level | Scenario                          | Title                              |
-| --------- | ----- | --------------------------------- | ---------------------------------- |
-| 187       | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
+| Path position | Level | Scenario                          | Title                              |
+| ------------- | ----- | --------------------------------- | ---------------------------------- |
+| 186           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
 
 ## Covered elsewhere
 

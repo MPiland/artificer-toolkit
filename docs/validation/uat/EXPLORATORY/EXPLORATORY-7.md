@@ -2,34 +2,38 @@
 
 Level a Character up between Sessions and play the next Session with the new abilities.
 
-Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Run order 8 of 188
+Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Mode: Solo (P2) with a facilitator playing GM · Path position 8 of 188
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 
 ## Prerequisites
 
-- The review data provides the account P2 and the Campaign **Review: Fire and Thunder**, where P2 plays Pyra.
+- The review data provides the account P2, who owns Bryn and Pyra and is a member of Review: Fire and Thunder.
+- The review data provides the Campaign **Review: Fire and Thunder**, owned by GM, with Pyra on P2's seat.
 
-## Accounts and windows
+## Roles and windows
 
-- **Accounts:** P2 (`Review_Pl_Bryn`), with the GM in a second profile
-- **Windows:** One browser profile per account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P2, GM
+- **Tester role:** P2. You use one account from your set, in your normal browser, and you never act as another role.
+- **Facilitator:** the owner, signed in as GM in a separate browser profile, following the script below. The facilitator does only what the script says, when the trigger happens, and does not explain controls.
 
-## What is ready for you
+## Facilitator script
 
-- Before you start (operator): none. P2 works on a **copy** of Pyra made in the Builder ("Pyra (levelled)"), because the seeded Pyra is locked; **GM** assigns the copy to P2's seat with **Change Character** when it is ready.
+1. Before the tester starts: GM signs in in a separate profile.
+2. When the tester says the levelled copy "Pyra (levelled)" is committed: GM uses **Change Character** to assign the copy to P2's seat and tells the tester.
+3. When the tester says they are ready to play a round: GM makes the copy the active actor and tells the tester.
 
 ## Task
 
 - **Goal:** Level a Character up between Sessions and play the next Session with the new abilities.
-- **Scope:** Raise the copy by one level in the Builder, review what changed, then play a round in the Encounter with a newly gained option if one is available. End when the Sheet and the live table agree about the new level.
+- **Scope:** Make a copy of Pyra in the Builder named "Pyra (levelled)", raise the copy by one level, and review what changed. Play a round in the Encounter with a newly gained option if one is available. End when the Sheet and the live table agree about the new level.
 - **Look for:** whether the Builder showed what changed; whether you knew where the Sheet and the Builder differ in purpose; any value that looked wrong after the level-up.
 
-Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop.
+Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. Tell the facilitator in words when a trigger in the script happens (for example "my Character is ready").
 
 ## Afterwards
 
-- **GM:** Use **Change Character** to put Pyra back on P2's seat so RULES and VTT_UI scenarios find her.
+- GM: use **Change Character** to put Pyra back on P2's seat. Owner: delete the tester's copy.
 
 ## ACs covered
 
@@ -43,6 +47,8 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:** P2
 - **Failed step:**
 - **Time:** minutes from start to goal, or to the moment you gave up
 - **Outcome:** reached / reached with help / gave up

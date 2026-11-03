@@ -2,21 +2,21 @@
 
 Option descriptions and adding a Check and a DC.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 31 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 33 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 - **Settings:** **Authoring experience** is **Advanced** for step 4 (change it in Settings, Preferences).
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/creatures/new and find a field with System options such as speeds, senses, damage types, skills or abilities.
+1. **P1:** Open `<STAGING_URL>/creatures/new` and find a field with System options such as speeds, senses, damage types, skills or abilities.
 2. **P1:** Hover (or focus) several options in the dropdown and read the tooltip.
 3. **P1:** Do the same for damage types and for proficiencies on a new Spell or Class.
 4. **P1:** In the Spell editor, open the mechanics/effects section and add an invocation **Check**; then add a **DC** to that Check.
@@ -45,5 +45,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

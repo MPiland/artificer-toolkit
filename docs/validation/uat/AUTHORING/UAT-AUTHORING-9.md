@@ -2,22 +2,22 @@
 
 Reusable effects, grants and modifiers on a System.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 30 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1) · Path position 32 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - The review data provides the SRD System with its Reusable definitions list; the GM account can create System definitions there (if no create control is shown to the GM, stop and report it).
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **GM:** Open http://localhost:3000/systems and the SRD System, then find **Reusable definitions**.
+1. **GM:** Open `<STAGING_URL>/systems` and the SRD System, then find **Reusable definitions**.
 2. **GM:** Page through the list with **Next definitions page** and **Previous definitions page**; use **Definition family** to see the seven families.
 3. **GM:** Under **Create reusable definition**, choose one family, enter a **Label** and a description, and create it.
 4. **GM:** Edit its **Reusable definition document**, save, and reload.
@@ -48,5 +48,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

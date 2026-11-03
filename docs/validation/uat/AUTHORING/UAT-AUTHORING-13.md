@@ -2,21 +2,21 @@
 
 Author a Fire Bolt-like cantrip from scratch.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Run order 32 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (P1, P2) · Path position 34 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Fire Bolt page open in a second tab as the reference. Start a stopwatch before step 1.
 
 ## Steps
 
-1. **P1:** Start the timer. Open http://localhost:3000/spells/new.
+1. **P1:** Start the timer. Open `<STAGING_URL>/spells/new`.
 2. **P1:** Under Basics, enter the **Name** "UAT Fire Bolt Copy" and a **Description** (paste the SRD text or write your own). Set **Level** to Cantrip, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Under Casting, set **Casting Time** to 1 action and tick the Verbal and Somatic **Components**.
 3. **P1:** Under Effects, add one effect (the **Add effect** button). In **How It Starts** set **Kind** to Action, **Trigger** to Ranged Spell Attack, and **Activation** to Action with **Amount** 1.
 4. **P1:** Under **Range** set **Range Kind** to Distance, **Amount** 120, **Unit** Feet. Under **Targeting** set **Target Selection** to Single Target and **Target Eligibility** to Any valid target.
@@ -53,5 +53,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

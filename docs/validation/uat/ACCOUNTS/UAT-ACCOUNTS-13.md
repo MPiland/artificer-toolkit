@@ -2,20 +2,20 @@
 
 Campaign text follows the same language rules as usernames.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 12 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (GM) · Path position 15 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
+- The review data provides the account **GM**, owner of the four review Campaigns.
 
 ## Accounts and windows
 
-- **Accounts:** GM
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-1. **GM:** Open http://localhost:3000/campaigns/new.
+1. **GM:** Open `<STAGING_URL>/campaigns/new`.
 2. **GM:** In **Campaign name** type `ass_muncher` and try to continue or save.
 3. **GM:** Replace it with `Cassandra's Classic Table` and try to continue or save, but do not finish creating the Campaign (leave the page).
 4. **GM:** Open any existing Campaign's notes and try to save a note containing `AssMuncher`, then remove the text.
@@ -42,5 +42,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

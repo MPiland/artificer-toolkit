@@ -2,21 +2,21 @@
 
 Non-members, removed players and signed-out visitors.
 
-Level 3 (Core play) · Feature PRIVACY · Run order 126 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2, SPARE) · Path position 128 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **SPARE1** (`Review_Pl_Dara`), a player who is a member of no Campaign and owns no Character.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **SPARE**, a player who is a member of no Campaign and owns no Character.
 - The review data provides the Campaign **Review: Fire and Thunder** (owner GM; member P2 with Pyra, who has Fireball and Thunderwave; a Wolf and three Goblins; Assisted mode; the review Encounter started; P1 and P3 are not members).
 - Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1, P2, SPARE1 (Review_Pl_Dara)
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1, P2, SPARE
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
@@ -27,7 +27,7 @@ Level 3 (Core play) · Feature PRIVACY · Run order 126 of 188
 5. **P2:** Try the old tabletop address and the Campaign address.
 6. **P2:** Try to open the Sheet addresses for P1's Character and for P2's own old Character in the Sandbox.
 7. **Signed-out window:** Open the Sandbox tabletop address while signed out (a private window needs no spare account).
-8. **SPARE1:** Sign in with an account that is not a member and open the tabletop address.
+8. **SPARE:** Sign in with an account that is not a member and open the tabletop address.
    R1. **GM:** Re-seat the player you removed in steps 3 to 6 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
@@ -40,7 +40,7 @@ Level 3 (Core play) · Feature PRIVACY · Run order 126 of 188
 
 - **P1 (not a member):** must NOT see any Fire and Thunder tokens, chat, notes, announcements or roster.
 - **P2 (removed):** must NOT see any Encounter data, chat, notes or roster after removal.
-- **Signed-out window and SPARE1:** must NOT see anything.
+- **Signed-out window and SPARE:** must NOT see anything.
 
 ## ACs covered
 
@@ -54,5 +54,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

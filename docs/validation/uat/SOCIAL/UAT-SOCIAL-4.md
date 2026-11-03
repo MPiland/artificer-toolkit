@@ -2,18 +2,18 @@
 
 Private profiles and masking.
 
-Level 4 (Advanced play) · Feature SOCIAL · Run order 147 of 188
+Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (P1, P2, SPARE) · Path position 149 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **SPARE1** (`Review_Pl_Dara`), a player who is a member of no Campaign and owns no Character.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **SPARE**, a player who is a member of no Campaign and owns no Character.
 - Done in [UAT-SOCIAL-1](UAT-SOCIAL-1.md): the "UAT Table" listing exists and P1 has an application.
 
 ## Accounts and windows
 
-- **Accounts:** P1, P2, SPARE1 (Review_Pl_Dara)
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P1, P2, SPARE
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
@@ -22,8 +22,8 @@ Level 4 (Advanced play) · Feature SOCIAL · Run order 147 of 188
 3. **P2:** Open the "UAT Table" listing from [UAT-SOCIAL-1](UAT-SOCIAL-1.md) and look for P1's application, name and message.
 4. **P1:** Set the profile back to public.
 5. **P2:** Reload P1's profile.
-6. **SPARE1 (signed out):** Without signing in, open P1's profile address and the listing address.
-7. **SPARE1:** Sign in and open them again.
+6. **SPARE (signed out):** Without signing in, open P1's profile address and the listing address.
+7. **SPARE:** Sign in and open them again.
 
 ## Expected
 
@@ -35,7 +35,7 @@ Level 4 (Advanced play) · Feature SOCIAL · Run order 147 of 188
 ## Other users see
 
 - **P2:** must NOT see fields P1 marked private, in the profile, the listing, or the tab title.
-- **SPARE1:** must NOT see profile or listing data until signed in, and then only the public part.
+- **SPARE:** must NOT see profile or listing data until signed in, and then only the public part.
 
 ## ACs covered
 
@@ -49,5 +49,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

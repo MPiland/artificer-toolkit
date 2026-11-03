@@ -2,11 +2,11 @@
 
 Upload, replace and remove an avatar.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Run order 19 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P3) · Path position 21 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P3** (`Review_Pl_Cade`), who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
+- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
 - Use the provided file [assets/avatar-a.png](../assets/avatar-a.png): the first image (steps 2 to 4).
 - Use the provided file [assets/avatar-b.png](../assets/avatar-b.png): the second, different image (step 5).
 - Use the provided file [assets/not-an-image.txt](../assets/not-an-image.txt): the plain text file refused in step 6.
@@ -14,12 +14,12 @@ Level 1 (Single-user basics) · Feature PLATFORM · Run order 19 of 188
 
 ## Accounts and windows
 
-- **Accounts:** P3
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1, P3
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **P3:** Open http://localhost:3000/settings/profile.
+1. **P3:** Open `<STAGING_URL>/settings/profile`.
 2. **P3:** Choose **Change avatar** and pick the first image, [avatar-a.png](../assets/avatar-a.png).
 3. **P3:** Wait for the upload to finish, then choose **Save profile** if the page asks for it.
 4. **P3:** Reload the page.
@@ -52,5 +52,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

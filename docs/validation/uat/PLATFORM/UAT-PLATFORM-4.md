@@ -2,7 +2,7 @@
 
 Password reset email is requested from the app.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Run order 21 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path position 23 of 188
 
 ## Prerequisites
 
@@ -11,13 +11,13 @@ Level 1 (Single-user basics) · Feature PLATFORM · Run order 21 of 188
 
 ## Accounts and windows
 
-- **Accounts:** P3
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P3
+- **Windows:** One browser window, signed in as P3 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-1. **P3:** Open http://localhost:3000/sign-in and follow the forgot-password link to the **Reset your password** page.
-2. **P3:** Enter `review_pl_cade@example.invalid` in **Email address** and submit.
+1. **P3:** Open `<STAGING_URL>/sign-in` and follow the forgot-password link to the **Reset your password** page.
+2. **P3:** Enter the email address of P3 in **Email address** and submit.
 3. **P3:** On the next page (**Verify your reset code**) read the message shown.
 4. **P3:** Go back and repeat with an address that has no account, `nobody-here@example.invalid`.
 5. **P3:** Compare the messages from both attempts.
@@ -28,7 +28,9 @@ Level 1 (Single-user basics) · Feature PLATFORM · Run order 21 of 188
 - Both attempts show the same neutral message (the app does not reveal whether an account exists) and the page asking for the six-digit code.
 - No error about email delivery appears.
 - The old password still signs in.
-- [Local email](../README.md#reading-local-email) holds one reset email for `review_pl_cade@example.invalid` and none for `nobody-here@example.invalid`.
+- **Local only** (the second half needs the local email sink): [Reading email](../README.md#reading-email) shows one reset email in the inbox of the email address of P3; no email exists for `nobody-here@example.invalid`.
+
+- Staging: every email this scenario sends arrives in the inbox within a few minutes, shows the product branding, has working links and is not in spam.
 
 ## Other users see
 
@@ -46,5 +48,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

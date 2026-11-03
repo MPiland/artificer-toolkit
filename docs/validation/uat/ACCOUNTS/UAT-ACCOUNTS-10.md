@@ -2,20 +2,20 @@
 
 Superadmin moderation.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Run order 17 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, SUPERADMIN) · Path position 19 of 188
 
 ## Prerequisites
 
-- The review data provides the account **SUPERADMIN** (`Review_Admin_Sol`), a superadmin who is a member of no Campaign.
+- The review data provides the account **SUPERADMIN**, a superadmin who is a member of no Campaign.
 
 ## Accounts and windows
 
-- **Accounts:** SUPERADMIN (Review_Admin_Sol)
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** GM, P1, SUPERADMIN
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **SUPERADMIN:** Sign in and open http://localhost:3000/social/moderation.
+1. **SUPERADMIN:** Sign in and open `<STAGING_URL>/social/moderation`.
 2. **SUPERADMIN:** Read the list of items waiting for review.
 3. **GM:** Create or report a Social listing so there is something to moderate, if the list is empty.
 4. **SUPERADMIN:** Open an item and record a review decision.
@@ -44,5 +44,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

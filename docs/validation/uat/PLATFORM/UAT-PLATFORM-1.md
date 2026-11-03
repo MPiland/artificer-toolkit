@@ -2,26 +2,26 @@
 
 SRD content is present and browsable.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Run order 18 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (GM) · Path position 20 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
+- The review data provides the account **GM**, owner of the four review Campaigns.
 
 ## Accounts and windows
 
-- **Accounts:** GM
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-1. **GM:** Sign in and open http://localhost:3000/systems.
+1. **GM:** Sign in and open `<STAGING_URL>/systems`.
 2. **GM:** Note how many Game Systems are listed, then open the SRD System.
 3. **GM:** On the System page, look through the catalogues it shows (for example Rules Catalogues and reusable definitions) and open one entry.
-4. **GM:** Open http://localhost:3000/spells. In **Search spells**, type "Fireball" and open the result.
-5. **GM:** Open http://localhost:3000/creatures, search "Wolf", open it, go back, search "Goblin", open it.
-6. **GM:** Open http://localhost:3000/classes and find Fighter. Open http://localhost:3000/races and find the Dragonborn. Open http://localhost:3000/backgrounds, http://localhost:3000/feats, http://localhost:3000/vehicles and confirm each list has entries.
-7. **GM:** Open http://localhost:3000/equipment, search "Healer" and open "Healer's Kit".
+4. **GM:** Open `<STAGING_URL>/spells`. In **Search spells**, type "Fireball" and open the result.
+5. **GM:** Open `<STAGING_URL>/creatures`, search "Wolf", open it, go back, search "Goblin", open it.
+6. **GM:** Open `<STAGING_URL>/classes` and find Fighter. Open `<STAGING_URL>/races` and find the Dragonborn. Open `<STAGING_URL>/backgrounds`, `<STAGING_URL>/feats`, `<STAGING_URL>/vehicles` and confirm each list has entries.
+7. **GM:** Open `<STAGING_URL>/equipment`, search "Healer" and open "Healer's Kit".
 8. **GM:** Reload the Fireball page and the Wolf page.
 
 ## Expected
@@ -48,5 +48,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

@@ -2,27 +2,27 @@
 
 Artwork is private to its owner until shared.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Run order 20 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P2) · Path position 22 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
 - Use the provided file [assets/artwork.png](../assets/artwork.png): the Spell artwork uploaded in step 2.
 
 ## Accounts and windows
 
-- **Accounts:** P1, P2
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** P1, P2
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/spells/new.
+1. **P1:** Open `<STAGING_URL>/spells/new`.
 2. **P1:** Type the name "UAT Image Spark" and upload [artwork.png](../assets/artwork.png) as the Spell's artwork.
 3. **P1:** Choose **Save Draft**, then reload and confirm the artwork is still shown.
 4. **P1:** Right-click the artwork and choose Copy image address (or Open image in new tab and copy the address bar).
 5. **P2:** Paste that address into a new tab in P2's own window and press Enter.
-6. **P2:** Open http://localhost:3000/spells and search "UAT Image".
+6. **P2:** Open `<STAGING_URL>/spells` and search "UAT Image".
 7. **P1:** Back on the draft, choose **Discard draft** and confirm.
 8. **P1:** Open the copied image address again in a new tab.
 
@@ -49,5 +49,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

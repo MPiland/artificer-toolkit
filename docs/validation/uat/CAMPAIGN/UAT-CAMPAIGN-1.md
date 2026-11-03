@@ -2,17 +2,17 @@
 
 Create, edit, copy, archive and delete a Campaign.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Run order 50 of 188
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Solo (GM) · Path position 52 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
+- The review data provides the account **GM**, owner of the four review Campaigns.
 - The review data provides the four review Campaigns, which this scenario does not touch (you make your own Campaigns).
 
 ## Accounts and windows
 
-- **Accounts:** GM
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** GM
+- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -51,5 +51,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

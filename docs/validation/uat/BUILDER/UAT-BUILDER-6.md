@@ -2,25 +2,25 @@
 
 Imported custom items keep their kind, properties and damage.
 
-Level 1 (Single-user basics) · Feature BUILDER · Run order 41 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 43 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Use the provided file [assets/foundry-uat-fighter.json](../assets/foundry-uat-fighter.json): a Foundry dnd5e Actor JSON with SRD Human, Soldier and Fighter plus three custom items: UAT Ironwood Greatsword (equipped, two-handed, magical), UAT Ironwood Chain Mail (equipped, medium armor, AC 14) and UAT Ironwood Shield (equipped).
 
 ## Accounts and windows
 
-- **Accounts:** P1
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P1
+- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
-1. **P1:** Open http://localhost:3000/library/import.
+1. **P1:** Open `<STAGING_URL>/library/import`.
 2. **P1:** Under **Choose a source** pick the Foundry source type and choose the JSON file [foundry-uat-fighter.json](../assets/foundry-uat-fighter.json).
 3. **P1:** Review the preview. All three custom items are listed under **Drafts required (3)** (they are imported as drafts; there is no per-item Active or Draft choice for them). Note the section each item is in and import.
 4. **P1:** Open the imported Character's Sheet.
-5. **P1:** Open the custom weapon, armor and shield in Equipment (http://localhost:3000/equipment).
+5. **P1:** Open the custom weapon, armor and shield in Equipment (`<STAGING_URL>/equipment`).
 6. **P1:** On the Sheet inventory check which hand holds the weapon and shield and what is worn.
 7. **P1:** Make an attack with the custom weapon from the Sheet.
 
@@ -51,5 +51,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

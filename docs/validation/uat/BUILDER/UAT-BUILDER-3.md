@@ -2,16 +2,16 @@
 
 Choice-heavy builds — multiclass and spellcaster.
 
-Level 1 (Single-user basics) · Feature BUILDER · Run order 38 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P2) · Path position 40 of 188
 
 ## Prerequisites
 
-- The review data provides the account **P2** (`Review_Pl_Bryn`), who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
 
 ## Accounts and windows
 
-- **Accounts:** P2
-- **Windows:** One browser window signed in as the account above.
+- **Roles used:** P2
+- **Windows:** One browser window, signed in as P2 with the account from your set. Your normal browser is fine.
 
 ## Steps
 
@@ -48,5 +48,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

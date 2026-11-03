@@ -2,23 +2,23 @@
 
 Creature copy, computed AC and the item loadout.
 
-Level 3 (Core play) · Feature AUTHORING · Run order 88 of 188
+Level 3 (Core play) · Feature AUTHORING · Mode: Group (GM, P1) · Path position 90 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **P1** (`Review_Pl_Aria`), who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The review data provides the account **GM**, owner of the four review Campaigns.
+- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
 - Done in [UAT-AUTHORING-4](UAT-AUTHORING-4.md): P1 owns the Active Spell "UAT Ember Dart".
 
 ## Accounts and windows
 
-- **Accounts:** GM, P1
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, P1
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-1. **GM:** Open the SRD Wolf at http://localhost:3000/creatures and read its Armor Class and any natural armor line.
+1. **GM:** Open the SRD Wolf at `<STAGING_URL>/creatures` and read its Armor Class and any natural armor line.
 2. **GM:** Open the SRD Goblin and read its Armor Class and its loadout (main hand, off hand, carried, worn).
 3. **GM:** Choose **Duplicate to edit** on the Goblin and name the copy "UAT Goblin".
 4. **GM:** In the loadout, put a two-handed weapon in the main hand and try to also place a shield in the off hand.
@@ -54,5 +54,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**

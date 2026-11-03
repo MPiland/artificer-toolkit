@@ -2,37 +2,38 @@
 
 Account deletion closes the live table.
 
-Level 5 (Reliability, performance and release) · Feature RELIABILITY · Run order 186 of 188
+Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, DISPOSABLE) · Path position 185 of 188
 
 ## Prerequisites
 
-- The review data provides the account **GM** (`Review_Gm_Rowan`), owner of the four review Campaigns.
-- The review data provides the account **SPARE2** (`Review_Pl_Eli`), a player who is a member of no Campaign and owns no Character.
+- The review data provides the account **GM**, owner of the four review Campaigns.
 - The review data provides the Campaign **Review: Sandbox** (owner GM; members P1, P2 and P3 with Iris, Juno and Kit; Manual mode; dim light and per-player fog; a wall with a closed door, a rubble line and one light; a visible Ogre in the east room and a hidden Goblin and a hidden Wolf; the review Encounter started and nobody has acted).
+
+- The review data provides a throwaway account **DISPOSABLE** that is in no Campaign, created by the owner by invitation to a spare email address (as in [ACCOUNTS-6](../ACCOUNTS/UAT-ACCOUNTS-6.md)). Consumes: the account is deleted. The owner creates a new one for each run.
 
 ## Accounts and windows
 
-- **Accounts:** GM, SPARE1 (Review_Pl_Dara)
-- **Windows:** One browser profile per account, each signed in as its own account ([how](../README.md#running-several-users-side-by-side)).
+- **Roles used:** GM, DISPOSABLE
+- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
 
 ## Steps
 
-S1. **GM:** Invite SPARE2 (`Review_Pl_Eli`) to Review: Sandbox by username from their profile, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md); **SPARE2:** accept.
+S1. **GM:** Invite DISPOSABLE to Review: Sandbox by username from their profile, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md); **DISPOSABLE:** accept.
 
-1. **SPARE2:** Open the Review: Sandbox tabletop window.
-2. **GM:** Open the tabletop window and confirm SPARE2 is present in the roster.
-3. **SPARE2:** Delete the account from the account settings and confirm the deletion.
-4. **SPARE2:** Read the tabletop window.
+1. **DISPOSABLE:** Open the Review: Sandbox tabletop window.
+2. **GM:** Open the tabletop window and confirm DISPOSABLE is present in the roster.
+3. **DISPOSABLE:** Delete the account from the account settings and confirm the deletion.
+4. **DISPOSABLE:** Read the tabletop window.
 5. **GM:** Read the roster and the live table.
 
 ## Expected
 
-- Step 4: SPARE2's tabletop window stops receiving updates and shows a signed-out or access message; it does not keep updating.
-- Step 5: SPARE2 is no longer a member; nothing else in the table changes.
+- Step 4: DISPOSABLE's tabletop window stops receiving updates and shows a signed-out or access message; it does not keep updating.
+- Step 5: DISPOSABLE is no longer a member; nothing else in the table changes.
 
 ## Other users see
 
-- **GM:** Sees SPARE2 removed and no error.
+- **GM:** Sees DISPOSABLE removed and no error.
 
 ## ACs covered
 
@@ -46,5 +47,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
+- **Set:**
+- **Role:**
 - **Failed step:**
 - **Notes:**
