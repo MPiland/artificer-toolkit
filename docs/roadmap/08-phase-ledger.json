@@ -19640,7 +19640,7 @@
         {
           "id": "SPELLS-31",
           "title": "Class feature closed rules become core authoring options",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [
             "Q25 answered A (user, 2026-10-18)"
           ],
@@ -19653,17 +19653,34 @@
           "acs": [
             {
               "id": "SPELLS-31.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds.",
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds. Closed 2026-11-03 by SPELLS-31.T1, SPELLS-31.T2, SPELLS-31.T3a, SPELLS-31.T3b, SPELLS-31.T3c, SPELLS-31.T3d, SPELLS-31.T4c1a, SPELLS-31.T4c1p, SPELLS-31.T4c1a2, SPELLS-31.T4c1b, SPELLS-31.T4c1b2, SPELLS-31.T4c1b3, SPELLS-31.T4c1b4, SPELLS-31.T4c1b4b, SPELLS-31.T4c1b5, SPELLS-31.T4c1c, SPELLS-31.T4c2, SPELLS-31.T4c2b, SPELLS-31.T4c2c, SPELLS-31.T4c3a, SPELLS-31.T4c3b1, SPELLS-31.T4c3b2, SPELLS-31.T4e, SPELLS-31.T4e2, SPELLS-31.T4f, SPELLS-31.T4f2, SPELLS-31.T4f2b, SPELLS-31.T4f2c, SPELLS-31.T4i, SPELLS-31.T4i2, SPELLS-31.T4j, SPELLS-31.T4k1, SPELLS-31.T4k2a, SPELLS-31.T4k2b, SPELLS-31.T4k2c, SPELLS-31.T4k2d2, SPELLS-31.T4l1, SPELLS-31.T4l2, SPELLS-31.T4l2b-1, SPELLS-31.T4l2b-2, SPELLS-31.T4m, SPELLS-31.T4n, SPELLS-31.T4o, SPELLS-31.T4r, SPELLS-31.T4s, SPELLS-31.T4v, SPELLS-31.T5a, SPELLS-31.T5b, SPELLS-31.T5c, SPELLS-31.T5d, SPELLS-31.T5e, SPELLS-31.T5e2a, SPELLS-31.T5e2b, SPELLS-31.T5f1, SPELLS-31.T5f2, SPELLS-31.T5f4, SPELLS-31.T5f3, SPELLS-31.T5g, SPELLS-31.T5g2, SPELLS-31.T5g3, SPELLS-31.T5h-1, SPELLS-31.T5h-3, SPELLS-31.T5h-2, SPELLS-31.T5i, SPELLS-31.T5j, SPELLS-31.T5k, SPELLS-31.T5l, SPELLS-31.T5m, SPELLS-31.T5n, SPELLS-31.T5n2, SPELLS-31.T5o, SPELLS-31.T5o2, SPELLS-31.T5p, SPELLS-31.T5q-A, SPELLS-31.T5q-B, SPELLS-31.T5ra, SPELLS-31.T5rb, SPELLS-31.T5s, SPELLS-31.T5t, SPELLS-31.T5i2, SPELLS-31.T5i3, SPELLS-31.T5i4, SPELLS-31.T4v2a, SPELLS-31.T4v2b, SPELLS-31.T4m2, SPELLS-31.T6w.",
               "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
               "proof": [
-                "apps/session-worker/test/nativeRoomTranquility.test.ts",
-                "packages/rules-runtime/src/__tests__/standingEffects.test.ts",
-                "apps/session-worker/test/nativeRoomStandingEffect.test.ts",
-                "apps/apis/convex/characters/sheetRestStandingEffect.test.ts",
-                "packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts",
-                "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx"
+                "nativeRoomHideAction.test.ts",
+                "nativeRoomEscapeAction.test.ts",
+                "occurrenceOwner.test.ts",
+                "cunningActionAndKiAuthoringParity.test.ts",
+                "nativeRoomCunningAction.test.ts",
+                "characterSpellCastActions.test.ts",
+                "classHealingDealtAuthoringParity.test.ts",
+                "classConditionImmunityAuraAuthoringParity.test.ts",
+                "encounterOccupantSaveBonusCompilation.test.ts",
+                "encounterOccupantSaveAuras.test.ts",
+                "nativeRoomTurnZoneEffects.test.ts",
+                "druidFeatureAuthoringParity.test.ts",
+                "wildShapeScaling.test.ts",
+                "nativeRoomFrenzy.test.ts",
+                "sheetCommandReducer.test.ts",
+                "nativeRoomSpellSlotExchange.test.ts",
+                "CharacterSheetActions.test.tsx",
+                "classFeatureOptionsAuthoringParity.test.ts",
+                "subclassSpecializationGrantFold.test.ts",
+                "featureChoiceRulingsAuthoringParity.test.ts",
+                "nativeRoomFiendishResilience.test.ts",
+                "srdClassNodeMap.test.ts",
+                "classFeatureCoreOptions.test.ts"
               ],
               "journeys": [
                 "delegated-attack-browser"
@@ -20752,7 +20769,7 @@
             {
               "id": "SPELLS-31.T5e2b",
               "text": "Empowered Spell on area damage: one shared window per damage roll, answered once by the caster, before damage is applied to any target.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -20765,8 +20782,7 @@
                   "SPELLS-31.T5e2a"
                 ]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split on seam trace; user approved 2026-11-01 (D208). Merged in m622 (m616 refused on a semantic conflict with T4c3b2, fixed by carrying command through the area damage window; m620 refused on the vtt-browser token-drag ephemeral p95, 183 ms against 150, which also failed on the script-only T3c tip, so runner load per D210; m621 refused on the red trace run that m620 left on the T5e2b tip, rerun green). D208: area damage roll window with a shared reroll tape; a caster caught by its own area pays the reroll. Stored shape changed (D196 reseed)."
             },
             {
               "id": "SPELLS-31.T5f1",
@@ -21395,7 +21411,18 @@
               "text": "Water Elemental Whelm as a self-centered area over the elemental's space, like Spirit Guardians, with the failed save holding the target through the save-gated hold and the recurring damage (D202). Replaces its GM ruling; the two-creature grapple limit may stay a ruling.",
               "note": "Directed by the user on 2026-10-31. Engulf and regurgitation stay GM rulings. Merged in m588 (66b841e3b)."
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomHideAction.test.ts",
+            "apps/session-worker/test/nativeRoomEscapeAction.test.ts",
+            "apps/session-worker/test/nativeRoomCunningAction.test.ts",
+            "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts",
+            "apps/session-worker/test/nativeRoomFrenzy.test.ts",
+            "apps/session-worker/test/nativeRoomSpellSlotExchange.test.ts",
+            "apps/session-worker/test/nativeRoomFiendishResilience.test.ts",
+            "apps/session-worker/test/nativeRoomSpellCasting.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "SPELLS-32",
@@ -29393,10 +29420,10 @@
             {
               "id": "RELEASE-8.3",
               "text": "UAT runs end to end on local data: testers read local emails (invitations, resets, verification) in local mode only, sign in as a superadmin and as spare players outside every Campaign, and use a seeded sandbox Campaign with walls, doors, fog, lights, hidden tokens and manual initiative.",
-              "status": "IN_PROGRESS",
-              "note": "User approved 2026-11-02 (D187 growth) from the UAT gaps G1, G2, G3 and G5 in docs/validation/uat/README.md. Closed 2026-11-02 by RELEASE-8.T3, RELEASE-8.T3b, RELEASE-8.T4. Reopened 2026-11-02: the review-data seed fails at the first checkpoint (RELEASE-8.T3c).",
+              "status": "DONE",
+              "note": "User approved 2026-11-02 (D187 growth) from the UAT gaps G1, G2, G3 and G5 in docs/validation/uat/README.md. Closed 2026-11-02 by RELEASE-8.T3, RELEASE-8.T3b, RELEASE-8.T4. Reopened 2026-11-02: the review-data seed fails at the first checkpoint (RELEASE-8.T3c). Closed 2026-11-03 by RELEASE-8.T3, RELEASE-8.T3b, RELEASE-8.T3c, RELEASE-8.T4.",
               "proof": [
-                "Closed by RELEASE-8.T3 (m610), RELEASE-8.T3b (m614), RELEASE-8.T4 (m615); see each task's proof."
+                "Closed by RELEASE-8.T3 (m610), RELEASE-8.T3b (m614), RELEASE-8.T3c (m622), RELEASE-8.T4 (m615); see each task's proof."
               ]
             }
           ],
@@ -29466,7 +29493,7 @@
             {
               "id": "RELEASE-8.T3c",
               "text": "Bug: after a D196 reset, node scripts/seedReviewData.mjs fails at the first Campaign checkpoint. awaitCampaignCheckpoint -> RoomControl.open -> convexEnvironmentValue throws \"LIVE_SESSION_WORKER_SECRET could not be read from the selected local Convex deployment\" (apps/apis/tests/developmentConvexEnvironment.ts:39), although the Session Worker the same driver started read that secret. Reproduced twice (local-validation/d196-m615/review3.log, review5.log). Find the root cause, fix it, add a regression test that fails before the fix, and prove a full seedReviewData run on a freshly reset local backend.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELEASE-8.3"
               ],
@@ -29479,8 +29506,7 @@
                   "RELEASE-8.T3b"
                 ]
               },
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Bug fix within RELEASE-8.3 (review data must build for UAT), no scope growth."
+              "note": "Bug fix within RELEASE-8.3 (review data must build for UAT), no scope growth. Merged in m622. Root cause: pwsh resolved yarn to the yarn.cmd shim, and cmd.exe split the instance|hex admin key at the pipe. One shared admin-API reader in scripts/convexSelfHosted.mjs."
             },
             {
               "id": "RELEASE-8.T4",
