@@ -33,6 +33,7 @@ import {
 } from './encounterMovementReactionActionExecution.js'
 import {
   encounterAttackD20Belief,
+  isEncounterSightGovernedD20,
   type EncounterAttackD20Belief,
   type EncounterPreparedAttackSight
 } from './encounterAttackBelief.js'
@@ -320,7 +321,10 @@ export async function prepareNativeActionTest(
     attackSight?: EncounterPreparedAttackSight | null
     /** The dice the TEST save's target holds for after its d20 (D168), as in `advanceNativeActionGraphs`. */
     saveWindow?: EncounterActionSaveWindow
-    /** The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. */
+    /**
+     * The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. Its
+     * windows settled, so a held die nobody spent adds 0 to the roll.
+     */
     windowDice?: readonly D20RolledAddedDieDto[]
     /**
      * The dice this TEST rolled after its d20 when it was first answered, replayed by request when a
@@ -350,11 +354,13 @@ export async function prepareNativeActionTest(
 
   /**
    * A rolled TEST d20 that a die could still change is shown to its next decider before it resolves:
-   * as rolled, or as the window just answered settled it, for the next reactor (D207).
+   * as rolled, or as the window just answered settled it, for the next reactor (D207). A d20 that
+   * sight governs settles its true mode first, as in `advanceNativeActionGraphs`, so it opens none.
    */
   async function windowRolledSave(
     rolledContinuation: ServerRuleExecutionContinuationDto,
     rolledPolicy: ServerRuleExecutionD20PolicyDto,
+    sightGoverned: boolean,
     rolled:
       | { response: SettledActionResponse; appRollId: string | null }
       | { previous: D20WindowPausePayloadDto; d20: EncounterActionWindowAnswer['d20'] }
@@ -366,7 +372,7 @@ export async function prepareNativeActionTest(
     })
     if (next.dice.length > 0) mayAddDice = true
     const window =
-      next.dice.length > 0 && !attackSight
+      next.dice.length > 0 && !sightGoverned
         ? await openActionSaveWindow({
             runtime: input.runtime,
             occurrenceId: input.occurrenceId,
@@ -470,7 +476,7 @@ export async function prepareNativeActionTest(
         heldD20: heldStageD20(response.heldFace, sight)
       }
     if (resolution.kind !== 'ROLL_WINDOW') {
-      const window = await windowRolledSave(pending.continuation, policy, {
+      const window = await windowRolledSave(pending.continuation, policy, sight !== null, {
         response,
         appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
       })
@@ -480,20 +486,19 @@ export async function prepareNativeActionTest(
       if (pending.pause?.kind !== 'ROLL_WINDOW' || isDamageRollWindow(pending.pause.payload))
         throw new Error('The native action TEST evidence is stale.')
       // The next reactor, if any, is asked about the roll as the window just answered settled it.
-      const window = await windowRolledSave(heldContinuation, policy, {
+      const window = await windowRolledSave(heldContinuation, policy, false, {
         previous: pending.pause.payload,
         d20: resolution.d20
       })
       if (window) return window
     }
-    const windowDice = input.windowDice ?? []
-    if (windowDice.length > 0) mayAddDice = true
+    if (input.windowDice) mayAddDice = true
     continuation = heldContinuation
     faces = response.faces
     rollMode = response.rollMode
     keep = response.keep
     modeAdjustment = response.modeAdjustment
-    addedDice = [...response.addedDice, ...windowDice]
+    addedDice = [...response.addedDice, ...(input.windowDice ?? [])]
     result = await resumeEncounterD20({
       continuation,
       natural: response.value,
@@ -520,10 +525,7 @@ export async function prepareNativeActionTest(
     })
     if (!input.autoRoll[roller]) {
       const d20Belief = attackSight
-        ? encounterAttackD20Belief({
-            policy: pendingPolicy,
-            ...attackSight
-          })
+        ? encounterAttackD20Belief({ policy: pendingPolicy, ...attackSight })
         : null
       return {
         kind: 'PENDING',
@@ -541,7 +543,8 @@ export async function prepareNativeActionTest(
       resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
-    const window = await windowRolledSave(result.continuation, pendingPolicy, {
+    const sightGoverned = isEncounterSightGovernedD20({ policy: pendingPolicy, belief: null })
+    const window = await windowRolledSave(result.continuation, pendingPolicy, sightGoverned, {
       response: automatic,
       appRollId: null
     })

@@ -3,6 +3,7 @@ import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/act
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
 import {
   characterActor,
   creatureFeature,
@@ -10,21 +11,19 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
-import {
-  collegeOfLore,
-  cuttingWordsReaction
-} from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { collegeOfLore } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
-import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { expireReactionOffer } from './reactionTimeoutClock.js'
 import {
   readActorHitPoints,
+  readPendingActionContext,
   readPendingActionDecision,
   readRoomHistory
 } from './roomHistoryReads.js'
@@ -60,51 +59,6 @@ const loreCuttingWords = {
 const inspirationGrantId = `resource:${bard.id}:${bard.resources?.id}`
 
 /**
- * A homebrew Fighter feature: a free reaction (no charge) that takes 1d4 from another creature's
- * attack roll, otherwise authored as Cutting Words is.
- */
-const heckle = ((): ClassFeature => {
-  if (cuttingWordsReaction.invocation.kind !== 'ACTION')
-    throw new Error('The SRD Cutting Words is not an action.')
-  const { resourceUse: _charge, ...invocation } = cuttingWordsReaction.invocation
-  const [path] = cuttingWordsReaction.paths ?? []
-  if (!path || !('resultBlock' in path)) throw new Error('Expected a result-block path.')
-  const [outcome] = path.resultBlock.outcomes
-  if (!outcome || !('die' in outcome) || !invocation.range)
-    throw new Error('The SRD Cutting Words has no ranged outcome.')
-  return {
-    ...srdByLabel(collegeOfLore.features ?? [], 'Cutting Words'),
-    id: testUuid(0x7d0),
-    label: 'Heckle',
-    availableAtLevel: 1,
-    effects: [
-      {
-        ...cuttingWordsReaction,
-        id: testUuid(0x7d1),
-        invocation: { ...invocation, range: { ...invocation.range, id: testUuid(0x7d2) } },
-        paths: [
-          {
-            ...path,
-            id: testUuid(0x7d3),
-            resultBlock: {
-              ...path.resultBlock,
-              id: testUuid(0x7d4),
-              outcomes: [
-                {
-                  ...outcome,
-                  id: testUuid(0x7d5),
-                  die: { count: 1, faces: 4, sign: 'SUBTRACT', timing: 'AFTER_ROLL' }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    ]
-  }
-})()
-
-/**
  * A Wolf whose Bite (+4) attacks a Wolf (AC 13), with a Character 10 ft away: a level 3 Lore Bard
  * holding Cutting Words with `used` of its one Bardic Inspiration spent, or a Fighter holding Heckle.
  */
@@ -127,7 +81,7 @@ function reactorRoom(reactor: 'LORE_BARD' | 'HECKLER', used = 0) {
             ]
           }
         }
-      : { characterClassFeatures: [heckle] })
+      : { characterClassFeatures: [heckleFeature()] })
   })
 }
 type Room = Awaited<ReturnType<typeof reactorRoom>>
@@ -190,6 +144,56 @@ async function undoLastAction(room: Room) {
     expectedVersion: await room.version()
   })
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+}
+
+/**
+ * A Wolf bites a Character holding Heckle and Shield, or a level 3 Lore Bard with its one Bardic
+ * Inspiration, hitting by 1 so the Character's die could make it miss; returns the Character's d20
+ * window on the roll.
+ */
+async function biteTheReactor(reactor: 'HECKLER' | 'LORE_BARD') {
+  const room = await actionRoom({
+    actors: [
+      srdCreatureActor({ id: ATTACKER_ID, creature: attackBite }),
+      characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
+    ],
+    ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+    ...(reactor === 'HECKLER'
+      ? {
+          characterClassFeatures: [heckleFeature()],
+          characterSpellcasting: { spells: [shield], prepared: [shield.id] }
+        }
+      : {
+          characterPlay: {
+            characterClass: bard,
+            characterSubclass: loreCuttingWords,
+            classLevel: 3
+          }
+        })
+  })
+  const started = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext())
+  expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+  const attack = await room.pendingDecision()
+  if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack prompt.')
+  const { request } = attack.pending
+  const context = await readPendingActionContext(room.room.base.stub)
+  if (context.kind !== 'ENCOUNTER_ACTION' || !context.d20Policy)
+    throw new Error('Expected a pending attack d20.')
+  const face = context.d20Policy.dc + 1 - context.d20Policy.modifier
+  expect(
+    (
+      await room.resolve(attack, {
+        kind: 'ENTER_DICE',
+        requestId: request.requestId,
+        rawFaces: [face],
+        rollMode: request.rollMode
+      })
+    ).type
+  ).toBe('COMMAND_COMMITTED')
+  const window = await room.pendingDecision()
+  if (window.pending.kind !== 'ROLL_WINDOW')
+    throw new Error(`Expected the d20 window, got ${window.pending.kind}.`)
+  return { room, window, pending: window.pending }
 }
 
 describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', () => {
@@ -278,6 +282,55 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     expect(await targetHitPoints(room)).toBe(hitPoints)
+    expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('rebuilds the declined roll when the bitten Heckler then casts Shield', async () => {
+    const { room, window, pending } = await biteTheReactor('HECKLER')
+    const declined = await room.resolve(window, {
+      kind: 'ROLL_WINDOW_DECLINE',
+      requestId: pending.requestId
+    })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    const offered = await room.pendingDecision()
+    if (offered.pending.kind !== 'REACTION_CHOICE')
+      throw new Error(`Expected the Shield choice, got ${offered.pending.kind}.`)
+    const shielded = await room.resolve(offered, {
+      kind: 'OPTION',
+      optionId: offered.pending.options[0]!.optionId
+    })
+    expect(shielded.type, JSON.stringify(shielded)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    // Shield, not the declined Heckle, spent the reaction.
+    expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('offers no Shield once Heckle spent the reaction on the same roll', async () => {
+    const { room, window, pending } = await biteTheReactor('HECKLER')
+    const heckled = await room.resolve(window, {
+      kind: 'ROLL_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [1]
+    })
+    expect(heckled.type, JSON.stringify(heckled)).toBe('COMMAND_COMMITTED')
+    // A 1 off a hit by 1 still meets the armor class, so the Bite hits with no reaction left for Shield.
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('lets the bitten Lore Bard spend inspiration on the roll against itself, with the Bite', async () => {
+    const { room, window, pending } = await biteTheReactor('LORE_BARD')
+    const used = await room.resolve(window, {
+      kind: 'ROLL_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    // Its charge rides its own mechanics, so its receipt names the version they leave it at.
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await inspirationUsed(room)).toBe(1)
     expect(await reactionUsed(room)).toBe(1)
   })
 })

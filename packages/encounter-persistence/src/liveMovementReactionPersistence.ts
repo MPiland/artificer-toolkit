@@ -14,6 +14,8 @@ import {
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -21,6 +23,11 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
+import {
+  applyFailedCounterSpends,
+  failedCounterSpends,
+  requireFailedCounterReceipt
+} from './failedCounterSpend.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
@@ -87,6 +94,26 @@ export async function persistLiveMovementReaction(
     (target.kind === 'CHARACTER' && !input.authorizedCharacterIds.has(target.sourceId))
   )
     throw new Error('Live movement reaction actor or receipt scope mismatch.')
+  // Each reaction rolled against the attack roll is the one a die of its settled d20 names, and it
+  // spends its reactor's reaction and charge with the attack (D207).
+  const spentReactions = windowSpentReactions(batch)
+  if (
+    step.windowReactions.length !== spentReactions.length ||
+    step.windowReactions.some(
+      ({ receipt: { reaction } }, index) =>
+        reaction.reactorActorId !== spentReactions[index]?.reactorActorId ||
+        reaction.selectionChecksum !== spentReactions[index]?.selectionChecksum ||
+        (reaction.characterId !== null && !input.authorizedCharacterIds.has(reaction.characterId))
+    )
+  )
+    throw new Error('Live movement reaction window reactions do not match the rolled dice.')
+  const windowSpends = failedCounterSpends({
+    windowReactions: step.windowReactions,
+    actors: input.actors,
+    source
+  })
+  // The mover pays for its own die against the attack in its single mechanics call.
+  const targetWindow = windowSpends.find(({ reactor }) => reactor.id === target.id)
   // The movement admission's revision fence pins these to the room's captured Characters.
   const sourceBeforeVersion =
     source.kind === 'CHARACTER'
@@ -197,8 +224,12 @@ export async function persistLiveMovementReaction(
     })),
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
-    forceVersionAdvance: target.kind === 'CHARACTER' && step.createdEffects.length > 0
+    forceVersionAdvance:
+      target.kind === 'CHARACTER' &&
+      (step.createdEffects.length > 0 || Boolean(targetWindow?.spends)),
+    ...(targetWindow?.mutation ?? {})
   })
+  if (targetWindow) requireFailedCounterReceipt(targetWindow, mechanics)
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||
@@ -247,6 +278,12 @@ export async function persistLiveMovementReaction(
       })
     )
   }
+  if (targetWindow)
+    nextTarget = consumeEncounterActionEconomy({
+      actor: nextTarget,
+      consumption: targetWindow.failed.receipt.actionEconomyTransition,
+      overridden: false
+    })
   const allowance = receipt.allowance
   const spent = {
     definitionId: allowance.definitionId,
@@ -284,8 +321,23 @@ export async function persistLiveMovementReaction(
       throw new Error('Live movement reaction actor changed before settlement.')
     await writeRunActor(ctx, row._id, after)
   }
+  const settledReactors = await applyFailedCounterSpends(ctx, {
+    state,
+    occurrenceId: input.occurrenceId,
+    sourceCommandId: input.sourceCommandId,
+    occurredAt: input.occurredAt,
+    spends: windowSpends,
+    exceptActorIds: [source.id, target.id],
+    applyMechanics: callbacks.applyMechanics,
+    currentCharacterMaximumHitPoints: (current, characterId) =>
+      readLiveCharacterMaximumHitPoints(ctx, current, characterId)
+  })
   const beforeCleanup = input.actors.map((actor) =>
-    actor.id === source.id ? nextSource : actor.id === target.id ? nextTarget : actor
+    actor.id === source.id
+      ? nextSource
+      : actor.id === target.id
+        ? nextTarget
+        : (settledReactors.get(actor.id) ?? actor)
   )
   const ownerActorIds = [
     ...new Set(
@@ -380,7 +432,20 @@ export async function persistLiveMovementReaction(
           }
         ]
       : []),
-    ...(batch.maintenanceTransition?.characterOwnerTransitions ?? [])
+    ...(batch.maintenanceTransition?.characterOwnerTransitions ?? []),
+    ...windowSpends.flatMap(({ reactor, failed: { receipt: spend } }) =>
+      reactor.kind === 'CHARACTER' &&
+      spend.reaction.characterStreamVersion !== null &&
+      spend.characterStreamVersion !== null
+        ? [
+            {
+              characterId: reactor.sourceId,
+              beforeStreamVersion: spend.reaction.characterStreamVersion,
+              afterStreamVersion: spend.characterStreamVersion
+            }
+          ]
+        : []
+    )
   ]) {
     if (!input.authorizedCharacterIds.has(span.characterId))
       throw new Error('Live movement reaction Character transition is outside the captured scope.')

@@ -36,9 +36,10 @@ import type { z } from 'zod'
 type PreparedMovementReaction = Pick<
   Awaited<ReturnType<typeof prepareEncounterMovementReactionAction>>,
   'option' | 'prepared' | 'executionPlan' | 'action'
-> & {
-  maintenance: Parameters<typeof bindEncounterMovementMaintenancePending>[1]
-}
+> &
+  Pick<Parameters<typeof movementReactionSaveWindow>[0], 'windowReactionDice'> & {
+    maintenance: Parameters<typeof bindEncounterMovementMaintenancePending>[1]
+  }
 
 type MovementReactionActionExecutionDto = z.infer<typeof movementReactionActionExecutionDtoSchema>
 type ReplayResult = Awaited<ReturnType<typeof advanceNativeActionGraphs>>

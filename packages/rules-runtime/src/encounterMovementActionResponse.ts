@@ -6,6 +6,7 @@ import type {
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
@@ -488,25 +489,25 @@ export async function evaluateEncounterMovementActionResponse<
     }
     if (execution.kind === 'PENDING') {
       // Only a Character's own action opens a damage roll's window (D208).
-      if (execution.pause?.kind === 'ROLL_WINDOW' && isDamageRollWindow(execution.pause.payload))
+      const rollWindow = execution.pause?.kind === 'ROLL_WINDOW' ? execution.pause.payload : null
+      if (rollWindow && isDamageRollWindow(rollWindow))
         throw new Error('A movement reaction opens no damage roll window.')
       const pendingSnapshot = bindEncounterMovementMaintenancePending(
         retainEncounterMovementReactionActionEvidence({
           continuation: execution.continuation,
           context: actionContext,
           selectedOptionId,
+          // A reactor asked whether to change the attack roll decides its own d20 window (D207).
           rollerActorId:
-            execution.roller === 'SOURCE'
+            (rollWindow && d20WindowReactorActorId(rollWindow)) ||
+            (execution.roller === 'SOURCE'
               ? option.candidate.reactorActorId
-              : option.candidate.movingActorId,
+              : option.candidate.movingActorId),
           d20Policy: execution.d20Policy,
           ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
           ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
-          ...(execution.pause?.kind === 'ROLL_WINDOW' &&
-          !isDamageRollWindow(execution.pause.payload)
-            ? { pause: { kind: 'ROLL_WINDOW' as const, payload: execution.pause.payload } }
-            : {}),
+          ...(rollWindow ? { pause: { kind: 'ROLL_WINDOW' as const, payload: rollWindow } } : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
         }),
         prepared.maintenance

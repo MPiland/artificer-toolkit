@@ -1,6 +1,7 @@
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import {
   targetSaveWindow,
+  type EncounterActionSaveWindow,
   type EncounterActionWindowAnswer,
   type EncounterD20WindowResponse
 } from './encounterActionSaveWindow.js'
@@ -37,6 +38,8 @@ type PreparedMovementReaction = Pick<
   'option' | 'prepared' | 'executionPlan' | 'action'
 > & {
   maintenance: Parameters<typeof bindEncounterMovementMaintenancePending>[1]
+  /** The dice other creatures may roll against the reaction attack by their reactions (D207). */
+  windowReactionDice?: EncounterActionSaveWindow['reactionDice']
 }
 
 type CompletedMovementReaction = Awaited<ReturnType<typeof executeNativeActionGraphs>> & {
@@ -82,12 +85,19 @@ function reactionAutoRoll(input: {
   }
 }
 
-/** The dice the mover holds for after its reaction save's d20, and the reactor for its attack's (D168, D203). */
-export function movementReactionSaveWindow({ prepared }: PreparedMovementReaction) {
+/**
+ * The dice the mover holds for after its reaction save's d20, the reactor for its attack's, and then
+ * each other creature by its reaction against that attack (D168, D203, D207).
+ */
+export function movementReactionSaveWindow({
+  prepared,
+  windowReactionDice
+}: PreparedMovementReaction) {
   return targetSaveWindow(
     prepared.state.gameSystemId,
     prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? [],
-    prepared.attackWindowDice
+    prepared.attackWindowDice,
+    windowReactionDice
   )
 }
 
