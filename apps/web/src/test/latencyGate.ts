@@ -1,4 +1,4 @@
-import limits from './latencyLimits.json'
+import limits from './latencyLimits.json' with { type: 'json' }
 
 /** Where a browser journey runs. Only MANAGED (staging, real Cloudflare and hosted Convex) gates on wall-clock latency (D210). */
 export type LatencyTopology = 'LOCAL' | 'MANAGED'

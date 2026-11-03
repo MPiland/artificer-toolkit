@@ -11,6 +11,7 @@ import {
   journeyRunReason,
   ledgerTasks,
   GATING_SHARDS,
+  PROOF_SPECS,
   proofNames,
   pushProofs,
   runnerProofs,
@@ -134,6 +135,24 @@ describe('browser journey selection', () => {
         reason: null,
         proofs: []
       })
+    })
+
+    it.each([
+      ['its own spec', 'apps/web/tests/managed-vtt/managedRemoteVtt.spec.ts', 'vtt-browser'],
+      ['a file its spec imports', 'apps/web/src/test/latencyGate.ts', 'vtt-browser'],
+      ['its Playwright config', 'apps/web/playwright.local-vtt.config.ts', 'vtt-browser'],
+      ['its own spec', 'apps/web/tests/e2e/app/characterBuilder.spec.ts', 'builder-browser']
+    ])('runs a journey when %s changes, whatever the criteria name', (_, path, proof) => {
+      expect(pushProofs(graph, [path], ciProofs, {}, {}, []).proofs).toEqual([proof])
+    })
+
+    it('names only tracked proof specs', () => {
+      const tracked = execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
+        .split('\n')
+        .filter(Boolean)
+      for (const patterns of Object.values(PROOF_SPECS))
+        for (const pattern of patterns)
+          expect(tracked.some((path) => pattern.test(path))).toBe(true)
     })
 
     it('runs every journey for a stack change, whatever the criteria name', () => {
