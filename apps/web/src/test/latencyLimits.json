@@ -1,0 +1,8 @@
+{
+  "authoritativeP95": 1000,
+  "durableP95": 250,
+  "durableP99": 500,
+  "ephemeralP95": 150,
+  "ruleConvergenceP95": 1500,
+  "sceneConvergenceP95": 1500
+}

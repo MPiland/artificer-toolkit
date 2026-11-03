@@ -8,6 +8,7 @@ import {
   type Response
 } from '@playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
+import { enforcedLatencyMisses, measureLatency } from '../../src/test/latencyGate'
 
 const campaignName = requiredValue('MANAGED_VTT_CAMPAIGN_NAME')
 const gmCredentials = credentials('GM')
@@ -24,14 +25,6 @@ const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^http/, (protoco
 )
 const warmupPairs = boundedSampleCount('VTT_USAGE_WARMUP_PAIRS', 2, 0)
 const measuredPairs = boundedSampleCount('VTT_USAGE_MEASURED_PAIRS', 10, 1)
-const browserLimits = {
-  authoritativeP95: 1_000,
-  durableP95: 250,
-  durableP99: 500,
-  ephemeralP95: 150,
-  ruleConvergenceP95: 1_500,
-  sceneConvergenceP95: 1_500
-}
 const pageReadyTimeoutMs = topology === 'LOCAL' ? 60_000 : 15_000
 const diagnosticSections = [
   'fixture-ready',
@@ -333,19 +326,11 @@ function summarizeConvergenceTimings(timings: ConvergenceTimings): ConvergenceSu
 
 function assertConvergenceThresholds(timings: ConvergenceTimings): void {
   const summary = summarizeConvergenceTimings(timings)
+  const measures = measureLatency(summary)
   console.info(`Managed VTT convergence checkpoint: ${JSON.stringify(summary)}`)
-  if (summary.sceneOnly)
-    expect(summary.sceneOnly.p95).toBeLessThan(browserLimits.sceneConvergenceP95)
-  if (summary.ruleBound)
-    expect(summary.ruleBound.p95).toBeLessThan(browserLimits.ruleConvergenceP95)
-  if (summary.authoritative)
-    expect(summary.authoritative.p95).toBeLessThanOrEqual(browserLimits.authoritativeP95)
-  if (summary.ephemeral)
-    expect(summary.ephemeral.p95).toBeLessThanOrEqual(browserLimits.ephemeralP95)
-  if (summary.durable) {
-    expect(summary.durable.p95).toBeLessThanOrEqual(browserLimits.durableP95)
-    expect(summary.durable.p99).toBeLessThanOrEqual(browserLimits.durableP99)
-  }
+  console.info(`Managed VTT latency limits (${topology}): ${JSON.stringify(measures)}`)
+  // D210: only a managed (staging) target gates on wall-clock latency; LOCAL runs record it above.
+  expect(enforcedLatencyMisses(measures, topology)).toEqual([])
 }
 
 async function campaignCard(page: Page): Promise<Locator> {
