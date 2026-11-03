@@ -26,7 +26,7 @@ describe('owner-only permanent Character delete', () => {
     })
     const sharedBefore = await base.t.run(async (ctx) => ({
       sources: await ctx.db.query('contentSources').collect(),
-      definitions: await ctx.db.query('contentDefinitions').collect()
+      definitions: await ctx.db.query('reusableDefinitions').collect()
     }))
 
     await base.owner.caller.mutation(api.characters.deletion.remove, { id: base.character.id })
@@ -36,7 +36,7 @@ describe('owner-only permanent Character delete', () => {
     expect(
       await base.t.run(async (ctx) => ({
         sources: await ctx.db.query('contentSources').collect(),
-        definitions: await ctx.db.query('contentDefinitions').collect()
+        definitions: await ctx.db.query('reusableDefinitions').collect()
       }))
     ).toEqual(sharedBefore)
     await expect(
