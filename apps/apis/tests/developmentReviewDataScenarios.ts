@@ -15,7 +15,7 @@ import { thunderwave } from '@artificer-toolkit/source-data/srd/spells/thunderwa
  */
 export const REVIEW_PASSWORD = 'Review_Local_1!pass'
 
-export type ReviewAccountSpec = { key: string; username: string }
+export type ReviewAccountSpec = { key: string; username: string; email?: string }
 
 export const REVIEW_GM: ReviewAccountSpec = { key: 'gm', username: 'Review_Gm_Rowan' }
 export const REVIEW_PLAYERS: readonly ReviewAccountSpec[] = [
@@ -268,3 +268,12 @@ export const REVIEW_SCENARIOS: readonly ReviewScenario[] = [
     steps: []
   }
 ]
+
+/** The review Campaigns of one managed tester set; set 0 is the local data and keeps its names. */
+export function reviewScenariosForSet(set: number): readonly ReviewScenario[] {
+  if (set === 0) return REVIEW_SCENARIOS
+  return REVIEW_SCENARIOS.map((scenario) => ({
+    ...scenario,
+    campaign: `${scenario.campaign} (set ${set})`
+  }))
+}

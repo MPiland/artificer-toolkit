@@ -1,19 +1,16 @@
 // @vitest-environment node
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { seedReviewData } from '../../tests/developmentReviewData'
 import { REVIEW_SCENARIOS } from '../../tests/developmentReviewDataScenarios'
-import { roomErrorLogs, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
+import {
+  roomErrorLogs,
+  useLocalRoomWorker,
+  useRealTimeClock
+} from '../../tests/fixtures/localRoomWorker'
 import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
-beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date', 'setTimeout', 'clearTimeout'] })
-})
-afterEach(() => {
-  vi.clearAllTimers()
-  vi.useRealTimers()
-  vi.unstubAllEnvs()
-})
+useRealTimeClock()
 
 const scenarios = REVIEW_SCENARIOS.slice(2, 3)
 
