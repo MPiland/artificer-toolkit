@@ -29538,6 +29538,16 @@
               "proof": [
                 "Closed by RELEASE-8.T3 (m610), RELEASE-8.T3b (m614), RELEASE-8.T3c (m622), RELEASE-8.T4 (m615); see each task's proof."
               ]
+            },
+            {
+              "id": "RELEASE-8.4",
+              "text": "External testers run UAT on staging: an owner-approved run builds the same four review Campaigns on staging through product commands, with invited tester accounts in the GM and player roles (no shared password, no local-only fixtures, no secrets in logs), and a staging tester guide covers invited sign-in, real email, which scenarios apply on staging, and recording results; the UAT README becomes the local operator guide.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): staging UAT for other users"
+              ],
+              "note": "Registered 2026-11-03."
             }
           ],
           "wsjf": {
@@ -29657,6 +29667,38 @@
               },
               "text": "Run the script against the local container after the final reset, hand the owner the data and a short surface list, collect findings, fix or register them, and record the owner's sign-off before staging. User action: the review and sign-off.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+            },
+            {
+              "id": "RELEASE-8.T5",
+              "status": "TODO",
+              "closes": [
+                "RELEASE-8.4"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              },
+              "text": "Staging review data: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a role map of invited tester accounts (GM, P1-P3, SUPERADMIN, spares), builds the four review Campaigns through the same product commands, never creates accounts or a shared password there, and keeps local-only steps (fixtures, admin key generation, email sink) local. Proved by real-code tests that the managed path binds the given accounts and refuses local-only steps; the staging run itself needs the owner's approval each time (ADR 0035)."
+            },
+            {
+              "id": "RELEASE-8.T6",
+              "status": "TODO",
+              "closes": [
+                "RELEASE-8.4"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 1,
+                "after": [
+                  "RELEASE-8.T5"
+                ]
+              },
+              "text": "Staging tester guide docs/validation/uat/TESTERS.md: invited sign-in, browser profiles per role, real email in place of the local sink, which scenarios and gaps apply on staging (each scenario file marks local-only steps), results templates and file naming; the README external-testers section becomes a pointer and the README is the local operator guide."
             }
           ]
         }
