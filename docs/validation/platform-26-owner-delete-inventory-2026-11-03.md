@@ -4,22 +4,22 @@ Ruling (2026-11-03): a user can permanently delete any content they create. This
 
 ## Covered kinds
 
-| Kind | Tables | API mutation | UI entry point |
-| --- | --- | --- | --- |
-| Authored content | `authoredRoots` | `content/deletion.deleteActive` | `data/authoredOperations.ts` |
-| Authored drafts | `authoredDrafts` | `content/drafts.discard` | `data/authoredOperations.ts` |
-| Campaigns | `campaigns` | `campaigns/deletion.remove` | `CampaignSettings.tsx` |
-| Scenes | `sceneDefinitions`, `sceneDefinitionSaves` | `scenes/definitions.remove` | **new** `vtt/SceneDeleteAction.tsx` (was API-only) |
-| Vehicles | `campaignVehicles` | `campaigns/vehicles.remove` | `CampaignVehicles.tsx` |
-| Notebooks | `campaignNotebookSections` | `campaigns/notebooks.remove` | `CampaignNotebook.tsx` |
-| Session notes | `campaignSessionNotes` | `campaigns/sessionNotes.remove` | `CampaignSessionNotes.tsx` |
-| Session references | `campaignSessionReferences` | `campaigns/sessionReferences.remove` | `CampaignSessionReferences.tsx` |
-| Chat messages | `campaignConversationEntries` | `campaigns/chat.unsend` | `CampaignChat.tsx` |
-| Currency systems | `campaignCurrencySystems` | `campaigns/currencySystems.remove` | `CurrencySystemEditor.tsx` |
-| Social listing drafts | `socialListings` | `social/listingDrafts.remove` | `SocialListingFormPage.tsx` |
-| Uploaded media | `mediaAssets` | `media/authoredAssets.remove` | `data/media.ts` |
-| Roll history | `userRollHistory` | `rolls.discard` | `data/rolls.ts` |
-| Encounter blueprints | `encounterBlueprints`, `encounterBlueprintUpdates` | **new** `encounters/blueprints.remove` | **new** "Delete saved encounter" in `CampaignEncounters.tsx` |
+| Kind                  | Tables                                             | API mutation                           | UI entry point                                               |
+| --------------------- | -------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
+| Authored content      | `authoredRoots`                                    | `content/deletion.deleteActive`        | `data/authoredOperations.ts`                                 |
+| Authored drafts       | `authoredDrafts`                                   | `content/drafts.discard`               | `data/authoredOperations.ts`                                 |
+| Campaigns             | `campaigns`                                        | `campaigns/deletion.remove`            | `CampaignSettings.tsx`                                       |
+| Scenes                | `sceneDefinitions`, `sceneDefinitionSaves`         | `scenes/definitions.remove`            | **new** `vtt/SceneDeleteAction.tsx` (was API-only)           |
+| Vehicles              | `campaignVehicles`                                 | `campaigns/vehicles.remove`            | `CampaignVehicles.tsx`                                       |
+| Notebooks             | `campaignNotebookSections`                         | `campaigns/notebooks.remove`           | `CampaignNotebook.tsx`                                       |
+| Session notes         | `campaignSessionNotes`                             | `campaigns/sessionNotes.remove`        | `CampaignSessionNotes.tsx`                                   |
+| Session references    | `campaignSessionReferences`                        | `campaigns/sessionReferences.remove`   | `CampaignSessionReferences.tsx`                              |
+| Chat messages         | `campaignConversationEntries`                      | `campaigns/chat.unsend`                | `CampaignChat.tsx`                                           |
+| Currency systems      | `campaignCurrencySystems`                          | `campaigns/currencySystems.remove`     | `CurrencySystemEditor.tsx`                                   |
+| Social listing drafts | `socialListings`                                   | `social/listingDrafts.remove`          | `SocialListingFormPage.tsx`                                  |
+| Uploaded media        | `mediaAssets`                                      | `media/authoredAssets.remove`          | `data/media.ts`                                              |
+| Roll history          | `userRollHistory`                                  | `rolls.discard`                        | `data/rolls.ts`                                              |
+| Encounter blueprints  | `encounterBlueprints`, `encounterBlueprintUpdates` | **new** `encounters/blueprints.remove` | **new** "Delete saved encounter" in `CampaignEncounters.tsx` |
 
 ## Gaps fixed
 
@@ -29,15 +29,15 @@ Ruling (2026-11-03): a user can permanently delete any content they create. This
 
 ## Pending (reported for a ruling, not guessed)
 
-| Kind | Tables | Question |
-| --- | --- | --- |
-| Characters | `characters`, `characterPlayStates`, `characterDrafts` | BUILDER-5 owns it. |
-| Campaign announcements | `campaignAnnouncements` | Delivered to members as notifications: does deleting retract them? |
-| Campaign sessions | `campaignSessions` | Other members own notes, RSVPs and attendance on the session. |
-| Custom sources, reusable definitions | `contentSources`, `reusableDefinitions`, `reusableDefinitionDrafts` | Other accounts and Campaigns may depend on a published source. |
-| Import jobs | `importJobs`, `importPreviewSessions` | Job history with created content attached. |
-| Published Social listings | `socialListings` (OPEN/CLOSED) | Carry other accounts' applications. |
-| VTT map uploads | `mediaAssets` | Share the table with Scene references. |
+| Kind                                 | Tables                                                              | Question                                                           |
+| ------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Characters                           | `characters`, `characterPlayStates`, `characterDrafts`              | BUILDER-5 owns it.                                                 |
+| Campaign announcements               | `campaignAnnouncements`                                             | Delivered to members as notifications: does deleting retract them? |
+| Campaign sessions                    | `campaignSessions`                                                  | Other members own notes, RSVPs and attendance on the session.      |
+| Custom sources, reusable definitions | `contentSources`, `reusableDefinitions`, `reusableDefinitionDrafts` | Other accounts and Campaigns may depend on a published source.     |
+| Import jobs                          | `importJobs`, `importPreviewSessions`                               | Job history with created content attached.                         |
+| Published Social listings            | `socialListings` (OPEN/CLOSED)                                      | Carry other accounts' applications.                                |
+| VTT map uploads                      | `mediaAssets`                                                       | Share the table with Scene references.                             |
 
 ## Coverage test and limits
 

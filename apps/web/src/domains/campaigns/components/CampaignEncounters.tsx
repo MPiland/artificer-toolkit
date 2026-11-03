@@ -69,7 +69,9 @@ export function CampaignEncounters({
       setEncounterAdderOpen(false)
     }
   })
-  const selectedBlueprint = blueprints.data?.find((blueprint) => blueprint.id === selectedBlueprintId)
+  const selectedBlueprint = blueprints.data?.find(
+    (blueprint) => blueprint.id === selectedBlueprintId
+  )
   const deleteBlueprint = useMutation({
     mutationFn: (blueprintId: string) =>
       convex.mutation(convexApi.encounters.blueprints.remove, { blueprintId }),

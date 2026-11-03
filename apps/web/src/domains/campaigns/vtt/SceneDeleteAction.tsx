@@ -33,7 +33,9 @@ export function SceneDeleteAction({
       <ConfirmDeleteModal
         body={`Permanently delete ${scene.name}? Its map placements, loot and any live showing are removed. This can’t be undone.`}
         confirmLabel='Delete scene'
-        errorMessage={remove.error ? 'That scene couldn’t be deleted. Reload it and try again.' : null}
+        errorMessage={
+          remove.error ? 'That scene couldn’t be deleted. Reload it and try again.' : null
+        }
         isDeleting={remove.isPending}
         opened={confirming}
         title='Delete scene?'

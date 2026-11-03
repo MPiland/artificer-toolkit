@@ -201,12 +201,15 @@ const classified = [
 
 describe('owner delete coverage', () => {
   it('classifies every owner-keyed table in the schema', () => {
-    const ownerKeyed = Object.entries(schema.tables)
-      .filter(([, table]) => {
-        const document = JSON.stringify(table.export().documentType)
+    const { tables } = JSON.parse(schema.export()) as {
+      tables: { tableName: string; documentType: unknown }[]
+    }
+    const ownerKeyed = tables
+      .filter(({ documentType }) => {
+        const document = JSON.stringify(documentType)
         return OWNER_FIELDS.some((field) => document.includes(`"${field}"`))
       })
-      .map(([name]) => name)
+      .map(({ tableName }) => tableName)
     expect(ownerKeyed.filter((name) => !classified.includes(name))).toEqual([])
   })
 
