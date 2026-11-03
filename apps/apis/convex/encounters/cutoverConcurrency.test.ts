@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import {
   assertEncounterCutoverWorkload,
+  encounterCutoverCommandLatency,
   encounterCutoverWorkloadDefinition,
   measureEncounterCutoverWorkload,
   scheduleEncounterCutoverWorkload,
@@ -73,7 +74,7 @@ it('refuses workload samples that omit command timings', async () => {
   ).rejects.toThrow()
 })
 
-it('checks each authoritative operation class even when its tail is hidden in the overall p95', async () => {
+it('records each authoritative operation class even when its tail is hidden in the overall p95', async () => {
   const workload = await measureEncounterCutoverWorkload(async (current) => {
     const items = [...current[0], ...current[1]]
     let sceneMoves = 0
@@ -97,5 +98,11 @@ it('checks each authoritative operation class even when its tail is hidden in th
   })
   expect(workload.p95Ms).toBe(250)
   expect(workload.byOperation.SCENE_MOVE.p95Ms).toBe(1250)
-  expect(() => assertEncounterCutoverWorkload(workload)).toThrow(/SCENE_MOVE p95/)
+  expect(
+    encounterCutoverCommandLatency(workload)
+      .filter(({ withinLimit }) => !withinLimit)
+      .map(({ name }) => name)
+  ).toEqual(['SCENE_MOVE'])
+  // D210: a slow tail is recorded, never a failure outside staging.
+  expect(() => assertEncounterCutoverWorkload(workload)).not.toThrow()
 })

@@ -1295,7 +1295,7 @@ yarn workspace @artificer-toolkit/session-worker build
 
 Focused checks are implementation feedback. The final local release source must pass
 `yarn validate:pre-staging:local`, including transaction, replay, rollback and privacy proofs and the
-complete browser journeys. The frozen V15 workload keeps its thresholds: transient delivery at or below
+complete browser journeys. The frozen V15 workload keeps its thresholds, recorded locally and gated on staging only (D210, [ci-validation.md](ci-validation.md#browser-journeys)): transient delivery at or below
 `150 ms`; durable browser p95 at or below `250 ms` and p99 at or below `500 ms`; authoritative completion
 at or below `1,000 ms`; Scene-only host p95 below `100 ms`; rule-bound host p95 below `250 ms`. The workload
 (`apps/apis/tests/developmentEncounterCutover.ts`) sends every command through the room from the member who
