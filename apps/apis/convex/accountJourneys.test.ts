@@ -63,7 +63,7 @@ async function backend() {
       return {
         status: response.status,
         location: response.headers.get('location'),
-        authToken: response.headers.get('set-auth-token'),
+        setCookies: response.headers.getSetCookie(),
         body: text ? (JSON.parse(text) as Record<string, unknown>) : null
       }
     })
@@ -268,8 +268,10 @@ describe('account journeys through the Better Auth HTTP handler', () => {
     // on the replacement session the response carries.
     expect((await request('convex/token', { bearer: otherBearer })).status).toBe(401)
     expect((await request('convex/token', { bearer: originalBearer })).status).toBe(401)
-    if (!changed.authToken) throw new Error('Password change returned no replacement session.')
-    bearer = changed.authToken
+    // The replacement session arrives as a signed session cookie; a bearer carries the same value.
+    const sessionCookie = changed.setCookies.find((cookie) => cookie.includes('session_token='))
+    if (!sessionCookie) throw new Error('Password change returned no replacement session.')
+    bearer = decodeURIComponent(sessionCookie.split(';')[0]!.split('=')[1]!)
     expect((await request('convex/token', { bearer })).status).toBe(200)
     nextSignInWindow()
     expect((await request('sign-in/email', { body: signup })).status).toBe(401)

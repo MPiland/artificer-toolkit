@@ -92,14 +92,16 @@ async function fixture() {
       return headers.getSetCookie()
     })
   const signInSecondSession = () =>
-    t.run(async (ctx) => {
-      const signedIn = await createAuth(ctx).api.signInEmail({
-        body: { email: owner.user.email, password },
-        headers: new Headers({ origin: 'http://localhost:3000' }),
-        returnHeaders: true
+    t
+      .run(async (ctx) => {
+        const signedIn = await createAuth(ctx).api.signInEmail({
+          body: { email: owner.user.email, password },
+          headers: new Headers({ origin: 'http://localhost:3000' }),
+          returnHeaders: true
+        })
+        return signedIn.headers.getSetCookie()
       })
-      return toCookieHeaders(signedIn.headers.getSetCookie())
-    })
+      .then(toCookieHeaders)
   const getSession = (headers: Headers) =>
     t.run((ctx) => createAuth(ctx).api.getSession({ headers }))
   const signIn = (signInPassword: string) =>
