@@ -73,8 +73,12 @@ const held = makeFunctionReference<
  * Run lag the room. Publishes everything the room has committed through the development barrier,
  * without disturbing connected sockets.
  */
-export async function awaitCampaignCheckpoint(client: DevelopmentHttpClient, campaignId: string) {
-  await (await RoomControl.open(client)).barrier(campaignId)
+export async function awaitCampaignCheckpoint(
+  client: DevelopmentHttpClient,
+  campaignId: string,
+  workerControlSecret?: string
+) {
+  await (await RoomControl.open(client, workerControlSecret)).barrier(campaignId)
 }
 
 /** Publishes the room's committed commands, then asserts Convex holds the Scene at `version`. */
