@@ -1,16 +1,37 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { nodeRuntimeNormalizeValuesRequestDtoSchema } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
+import {
+  normalizeFixtureNodeRuntimeValues,
+  resolveFixtureNodeRuntime
+} from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAppForm } from '../app-form/AppForm'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
 import { FormRenderer } from '../rendering/FormRenderer'
 
 type FormValues = Record<string, unknown>
+
+// The structural-change guard verifies each edit with the native normalizer; run the real one.
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useConvex: () => ({
+    query: async (reference: Parameters<typeof getFunctionName>[0], input: unknown) => {
+      if (getFunctionName(reference) !== getFunctionName(api.authoring.nodeRuntime.normalizeValues))
+        throw new Error('Expected native node-runtime normalization.')
+      return normalizeFixtureNodeRuntimeValues({
+        ...nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input),
+        ancestors: [paladinRoot]
+      })
+    }
+  })
+}))
 
 const Renderer = FormRenderer<FormValues>({ defaultValues: {} })
 const paladinRoot = paladin as unknown as FormValues
