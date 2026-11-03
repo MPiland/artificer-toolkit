@@ -64,5 +64,6 @@ export {
   union,
   unknown,
   url,
-  uuid
+  uuid,
+  ZodMiniType
 } from 'zod/mini'
