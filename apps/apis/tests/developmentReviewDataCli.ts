@@ -21,9 +21,7 @@ import {
 
 const target = reviewTarget(
   process.env,
-  process.env.REVIEW_SET
-    ? { set: Number(process.env.REVIEW_SET), rebuild: process.env.REVIEW_REBUILD === '1' }
-    : undefined
+  process.env.REVIEW_SET ? { set: Number(process.env.REVIEW_SET) } : undefined
 )
 const roster = reviewRoster(target)
 
@@ -80,7 +78,6 @@ for (const spec of roster.players) players.push(await connect(spec))
 const admin = roster.admin ? await connect(roster.admin) : undefined
 const spares: ReviewAccount[] = []
 for (const spec of roster.spares) spares.push(await connect(spec))
-const rebuild = target.mode === 'managed' && target.rebuild
 const result = await seedReviewData(
   {
     gm,
@@ -89,7 +86,6 @@ const result = await seedReviewData(
     spares,
     grantGmTier: steps.grantGmTier,
     grantSuperadmin: steps.grantSuperadmin,
-    rebuild,
     checkpoint: (campaignId) =>
       awaitCampaignCheckpoint(
         gm.client,

@@ -1,8 +1,6 @@
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
-import { makeFunctionReference } from 'convex/server'
 import { components, internal } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
 import { readySheetFixture } from './readyCharacter'
 import { createPartyUser } from './partyPlayer'
 import type { ReviewAccount, ReviewContext } from '../developmentReviewData'
@@ -20,12 +18,6 @@ import {
   roomDevelopmentClient,
   seedRoomContentSnapshots
 } from './localRoomWorker'
-
-const runDeletion = makeFunctionReference<
-  'action',
-  { jobId: Id<'campaignDeletionJobs'>; revision: number },
-  null
->('campaigns/deletionJobs:run')
 
 type TestConvex = Awaited<ReturnType<typeof readySheetFixture>>['t']
 
@@ -101,13 +93,6 @@ export async function reviewSetContext(
     buildSnapshots: seedRoomContentSnapshots,
     checkpoint: async (campaignId) => {
       await checkpointRoom(campaignId)
-    },
-    // convex-test does not run the scheduled deletion steps, so each wait advances every open job one step.
-    awaitDeletion: async () => {
-      const jobs = await t.run((ctx) => ctx.db.query('campaignDeletionJobs').collect())
-      for (const job of jobs)
-        if (job.status !== 'DELETED' && job.status !== 'FAILED')
-          await t.action(runDeletion, { jobId: job._id, revision: job.revision })
     },
     log: (message) => console.log(message)
   }

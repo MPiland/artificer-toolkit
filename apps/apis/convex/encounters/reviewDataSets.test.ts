@@ -28,7 +28,7 @@ const managedEnv = {
 // The sandbox scenario is the smallest review Campaign; the sets share every other code path.
 const sandboxOf = (set: number) => reviewScenariosForSet(set).slice(3)
 
-it('builds independent Campaigns per tester set, skips a finished set, and rebuilds only its own', async () => {
+it('builds independent Campaigns per tester set and skips a finished set', async () => {
   const { t } = await reviewDataHarness()
   const contexts = new Map(
     await Promise.all(
@@ -41,8 +41,8 @@ it('builds independent Campaigns per tester set, skips a finished set, and rebui
       )
     )
   )
-  const seed = (set: number, rebuild = false) =>
-    seedReviewData({ ...contexts.get(set)!, rebuild }, sandboxOf(set)).catch((error: unknown) => {
+  const seed = (set: number) =>
+    seedReviewData(contexts.get(set)!, sandboxOf(set)).catch((error: unknown) => {
       throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
     })
   const campaigns = () =>
@@ -57,9 +57,8 @@ it('builds independent Campaigns per tester set, skips a finished set, and rebui
   expect((await seed(1)).created).toEqual(['Review: Sandbox (set 1)'])
   expect((await seed(2)).created).toEqual(['Review: Sandbox (set 2)'])
   const built = await campaigns()
-  const byName = (rows: typeof built, name: string) => rows.find((row) => row.name === name)!
   const [one, two] = ['Review: Sandbox (set 1)', 'Review: Sandbox (set 2)'].map((name) =>
-    byName(built, name)
+    built.find((row) => row.name === name)
   )
   expect(built).toHaveLength(2)
   expect(one!.owner).toBe(contexts.get(1)!.gm.userId)
@@ -70,12 +69,4 @@ it('builds independent Campaigns per tester set, skips a finished set, and rebui
   expect(await seed(1)).toEqual({ created: [], skipped: ['Review: Sandbox (set 1)'] })
   expect(await seed(2)).toEqual({ created: [], skipped: ['Review: Sandbox (set 2)'] })
   expect(await campaigns()).toEqual(built)
-
-  // A rebuild replaces set 1's Campaign and never touches set 2's.
-  const rebuilt = await seed(1, true)
-  expect(rebuilt.created).toEqual(['Review: Sandbox (set 1)'])
-  const after = await campaigns()
-  expect(after).toHaveLength(2)
-  expect(byName(after, 'Review: Sandbox (set 2)')).toEqual(two)
-  expect(byName(after, 'Review: Sandbox (set 1)').id).not.toBe(one!.id)
 }, 240_000)

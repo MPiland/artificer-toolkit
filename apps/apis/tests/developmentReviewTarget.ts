@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
-import { hashPassword } from 'better-auth/crypto'
 import { jsonToConvex } from 'convex/values'
 import { z } from 'zod'
 import type { AuthRequest } from './developmentAuthRequest'
@@ -25,7 +24,6 @@ export type ReviewTarget =
   | {
       mode: 'managed'
       set: number
-      rebuild: boolean
       deploymentUrl: URL
       siteUrl: URL
       mailbox: { name: string; domain: string }
@@ -44,7 +42,7 @@ export type ReviewTarget =
  */
 export function reviewTarget(
   env: Record<string, string | undefined>,
-  managed?: { set: number; rebuild?: boolean }
+  managed?: { set: number }
 ): ReviewTarget {
   if (!managed) {
     const target = developmentTarget(env)
@@ -87,7 +85,6 @@ export function reviewTarget(
   return {
     mode: 'managed',
     set: managed.set,
-    rebuild: managed.rebuild ?? false,
     deploymentUrl,
     siteUrl,
     mailbox: { name: mailbox[1]!, domain: mailbox[2]! },
@@ -155,7 +152,7 @@ export function managedAdminCall(target: ReviewTarget & { mode: 'managed' }): Ad
  * review password and grants the GM tier and superadmin through deployment-admin functions. A managed
  * set does the same with a password generated for the set: `announcePassword` receives it once and
  * it is neither returned, stored nor logged. Re-running an existing set needs that password
- * (`suppliedPassword`); a rebuild generates a new one and resets the set's accounts to it.
+ * (`suppliedPassword`); a new round for a tester uses a new set number.
  */
 export function reviewTargetSteps(
   target: ReviewTarget,
@@ -171,39 +168,21 @@ export function reviewTargetSteps(
     )
     return typeof user === 'object' && user !== null ? user : null
   }
-  const resetPassword = async (user: object, next: string) => {
-    const userId: unknown = Reflect.get(user, '_id')
-    assert.equal(typeof userId, 'string', 'The account has no id.')
-    await adminCall(
-      'adapter:updateOne',
-      {
-        input: {
-          model: 'account',
-          where: [
-            { field: 'userId', value: userId },
-            { field: 'providerId', value: 'credential' }
-          ],
-          update: { password: await hashPassword(next), updatedAt: Date.now() }
-        }
-      },
-      true
-    )
-  }
   return {
     /** Fixes the set's password before any account is touched; managed only, a no-op locally. */
     prepare: async (specs: readonly ReviewAccountSpec[]) => {
       if (target.mode === 'local') return
       const users = await Promise.all(specs.map((spec) => findUser(spec.email!)))
       const exists = users.some(Boolean)
-      if (!target.rebuild && exists && !target.suppliedPassword)
+      if (exists && !target.suppliedPassword)
         throw new Error(
-          `Set ${target.set} already has accounts: pass REVIEW_SET_PASSWORD, or rebuild the set to reset its password.`
+          `Set ${target.set} already has accounts: pass REVIEW_SET_PASSWORD, or use a new set number.`
         )
-      if (target.rebuild || !exists) {
+      if (exists) password = target.suppliedPassword
+      else {
         password = randomBytes(18).toString('base64url')
         deps.announcePassword(password)
-        for (const user of users) if (user && target.rebuild) await resetPassword(user, password)
-      } else password = target.suppliedPassword
+      }
     },
     session: (spec: ReviewAccountSpec): Promise<string> =>
       reviewAccountSession(

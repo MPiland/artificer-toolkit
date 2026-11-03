@@ -9,12 +9,12 @@
 // CONVEX_URL and CONVEX_SITE_URL: five accounts on REVIEW_MAILBOX (name+tN-role@domain) with a
 // password generated for the set and printed once to this terminal only (never to the log), and the
 // set's own review Campaigns, named "... (set N)". Re-running a set skips what it built and needs
-// REVIEW_SET_PASSWORD; --rebuild deletes the set's Campaigns, resets its password and builds again.
+// REVIEW_SET_PASSWORD. A new round for a tester uses a new set number.
 // No fixtures, container admin key, Worker or email sink run there. The environment must hold
 // REVIEW_MANAGED_CONFIRM=<deployment name>, REVIEW_MANAGED_ADMIN_KEY, REVIEW_WORKER_CONTROL_SECRET and
 // REVIEW_WEB_ORIGIN. Run it only with the owner's approval for that run (ADR 0035).
 //
-//   node scripts/seedReviewData.mjs [--name=<evidence-name>] [--managed --set=<N> [--rebuild]]
+//   node scripts/seedReviewData.mjs [--name=<evidence-name>] [--managed --set=<N>]
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -41,12 +41,12 @@ const logPath = resolve(artifactDirectory, 'seed.log')
 if (process.argv.includes('--managed')) {
   const set = process.argv.find((argument) => argument.startsWith('--set='))?.slice('--set='.length)
   if (!set) throw new Error('--managed requires --set=<N>.')
-  await runManaged(set, process.argv.includes('--rebuild'))
+  await runManaged(set)
 } else {
   await runLocal()
 }
 
-async function runManaged(set, rebuild) {
+async function runManaged(set) {
   // The local lifecycle helpers (`run`, fixtures, admin key) refuse a remote target by design, so
   // the managed path spawns the driver directly with only the variables it needs. File descriptor 3
   // carries the generated password to this terminal, bypassing the log.
@@ -72,8 +72,7 @@ async function runManaged(set, rebuild) {
     ...Object.fromEntries(
       names.filter((key) => process.env[key]).map((key) => [key, process.env[key]])
     ),
-    REVIEW_SET: set,
-    ...(rebuild ? { REVIEW_REBUILD: '1' } : {})
+    REVIEW_SET: set
   }
   const [executable, args] = yarnSpawn(['tsx', 'apps/apis/tests/developmentReviewDataCli.ts'])
   const log = createWriteStream(logPath)

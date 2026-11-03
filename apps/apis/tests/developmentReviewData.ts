@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { setTimeout as delay } from 'node:timers/promises'
 import type { ConvexHttpClient } from 'convex/browser'
 import { type FunctionReturnType, makeFunctionReference } from 'convex/server'
 import {
@@ -94,10 +93,6 @@ export type ReviewContext = {
   grantGmTier: (userId: string) => Promise<void>
   /** Operator step: promotes the admin account to superadmin (deployment-admin `authAdmin:setRole`). */
   grantSuperadmin: (userId: string) => Promise<void>
-  /** Rebuild: an existing Campaign of the scenarios is deleted through the product command and built again. */
-  rebuild?: boolean
-  /** Waits between polls while a deleted Campaign's deletion job runs; defaults to one second. */
-  awaitDeletion?: () => Promise<void>
   /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
   releaseRoom?: (campaignId: string) => Promise<void>
   /** Publishes what the room holds to Convex: a running table saves only at save points (D90). */
@@ -137,15 +132,11 @@ export async function seedReviewData(
   ])
     await account.client.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   for (const scenario of scenarios) {
-    let existing = await findCampaign(context.gm.client, scenario.campaign)
-    if (existing && context.rebuild) {
-      await removeCampaign(context, existing)
-      existing = null
-    }
+    const existing = await findCampaign(context.gm.client, scenario.campaign)
     if (existing) {
       assert.ok(
-        await isFinished(context.gm.client, existing.id),
-        `Review Campaign "${scenario.campaign}" is incomplete; reset the local backend (or rebuild the set) and run again.`
+        await isFinished(context.gm.client, existing),
+        `Review Campaign "${scenario.campaign}" is incomplete; reset the local backend and run again.`
       )
       result.skipped.push(scenario.campaign)
       continue
@@ -156,38 +147,15 @@ export async function seedReviewData(
   return result
 }
 
-async function removeCampaign(
-  context: ReviewContext,
-  campaign: { id: string; name: string; version: number }
-) {
-  await context.gm.client.mutation(api.campaigns.deletion.remove, {
-    campaignId: campaign.id,
-    expectedVersion: campaign.version,
-    confirmation: 'DELETE'
-  })
-  // The listing hides a Campaign as soon as its deletion job exists, but its name stays taken until the job is done.
-  for (let attempt = 0; attempt < 120; attempt++) {
-    const { status } = await context.gm.client.query(api.campaigns.deletion.status, {
-      campaignId: campaign.id
-    })
-    if (status === 'DELETED') return
-    assert.notEqual(status, 'FAILED', `Review Campaign "${campaign.name}" could not be deleted.`)
-    await (context.awaitDeletion ?? (() => delay(1000)))()
-  }
-  throw new Error(`Review Campaign "${campaign.name}" was not deleted in time.`)
-}
-
-type ReviewCampaignRow = { id: string; name: string; version: number }
-
-async function findCampaign(client: ReviewClient, name: string): Promise<ReviewCampaignRow | null> {
+async function findCampaign(client: ReviewClient, name: string): Promise<string | null> {
   let cursor: string | null = null
   for (;;) {
-    const page: { page: ReviewCampaignRow[]; isDone: boolean; continueCursor: string } =
+    const page: { page: { id: string; name: string }[]; isDone: boolean; continueCursor: string } =
       await client.query(api.campaigns.queries.list, {
         paginationOpts: { cursor, numItems: 8 }
       })
     const match = page.page.find((campaign) => campaign.name === name)
-    if (match) return match
+    if (match) return match.id
     if (page.isDone) return null
     cursor = page.continueCursor
   }
@@ -255,10 +223,9 @@ async function admitPlayers(
 async function createHero(
   scenario: ReviewScenario,
   hero: ReviewHero,
-  owner: ReviewAccount,
-  idSalt: string
+  owner: ReviewAccount
 ): Promise<{ characterId: string; classId: string | null; spellIds: string[] }> {
-  const characterId = reviewId(`${idSalt}${scenario.campaign}/${hero.slug}`)
+  const characterId = reviewId(`${scenario.campaign}/${hero.slug}`)
   if (!hero.spells) {
     await createDevelopmentCharacter(owner.client, characterId, {}, hero.label)
     return { characterId, classId: null, spellIds: [] }
@@ -266,13 +233,7 @@ async function createHero(
   const created = await createDevelopmentSpellCharacter(
     owner.client,
     characterId,
-    // Published spell names are unique per owner and cannot be retired, so a rebuild's copies carry the salt.
-    idSalt
-      ? hero.spells.list.map((spell) => ({
-          ...spell,
-          label: `${spell.label} (${idSalt.slice(0, -1)})`
-        }))
-      : hero.spells.list,
+    hero.spells.list,
     hero.spells.slots,
     undefined,
     undefined,
@@ -313,13 +274,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   const heroRecords: { hero: ReviewHero; owner: ReviewAccount; characterId: string }[] = []
   for (const [index, hero] of scenario.heroes.entries()) {
     const owner = accounts[index]!
-    const { characterId, classId, spellIds } = await createHero(
-      scenario,
-      hero,
-      owner,
-      // A rebuild's Characters and spell copies never meet the ones an earlier build left behind.
-      context.rebuild ? `${Date.now().toString(36)}/` : ''
-    )
+    const { characterId, classId, spellIds } = await createHero(scenario, hero, owner)
     await owner.client.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
     if (classId) await prepareSpells(owner.client, characterId, classId, spellIds)
     heroRecords.push({ hero, owner, characterId })

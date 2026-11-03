@@ -88,13 +88,10 @@ function backend() {
 async function buildSet(
   world: ReturnType<typeof backend>,
   set: number,
-  options: { rebuild?: boolean; password?: string } = {}
+  options: { password?: string } = {}
 ) {
   const announced: string[] = []
-  const target = reviewTarget(
-    { ...managedEnv, REVIEW_SET_PASSWORD: options.password },
-    { set, rebuild: options.rebuild }
-  )
+  const target = reviewTarget({ ...managedEnv, REVIEW_SET_PASSWORD: options.password }, { set })
   const roster = reviewRoster(target)
   const steps = reviewTargetSteps(target, {
     auth: world.auth,
@@ -161,21 +158,6 @@ describe('managed tester set accounts', () => {
     expect(again.sessions).toHaveLength(5)
     await expect(buildSet(world, 1, { password: 'not-the-set-password-1' })).rejects.toThrow()
     expect(world.calls.filter((call) => call.name === 'adapter:updateOne')).toEqual([])
-  })
-
-  it('rebuilds one set with a new password and leaves the other set alone', async () => {
-    const world = backend()
-    const first = await buildSet(world, 1)
-    const second = await buildSet(world, 2)
-    const rebuilt = await buildSet(world, 1, { rebuild: true })
-
-    expect(rebuilt.announced).toHaveLength(1)
-    const [oldPassword, newPassword] = [first.announced[0]!, rebuilt.announced[0]!]
-    expect(newPassword).not.toBe(oldPassword)
-    expect((await signIn(world, 'mekhit02+t1-p2@gmail.com', oldPassword)).status).toBe(401)
-    expect((await signIn(world, 'mekhit02+t1-p2@gmail.com', newPassword)).status).toBe(200)
-    expect((await signIn(world, 'mekhit02+t2-p2@gmail.com', second.announced[0]!)).status).toBe(200)
-    expect(JSON.stringify(world.calls)).not.toContain(newPassword)
   })
 })
 
