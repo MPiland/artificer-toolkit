@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest'
 import type { TestConvex } from 'convex-test'
 import { getFunctionName, makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { ConvexError, convexToJson, jsonToConvex, type JSONValue, type Value } from 'convex/values'
@@ -294,6 +294,33 @@ let attached: AttachedRoom | null = null
 const touchedCampaignIds = new Set<string>()
 /** Whether a room failed to close, so the Worker must not serve another test. */
 let workerDiscarded = false
+
+const realNow = () => performance.timeOrigin + performance.now()
+
+/**
+ * The fake clock Convex's scheduler needs, kept on real time. The Worker checks a Live-session
+ * ticket (60 s) against the real clock, but `shouldAdvanceTime` adds only 20 ms per interval that
+ * fires, so each event-loop stall leaves the fake clock further behind and a long build ends up
+ * issuing tickets that are already past their real expiry. Every interval re-reads the real clock.
+ */
+export function useRealTimeClock() {
+  let sync: NodeJS.Timeout | undefined
+  beforeEach(() => {
+    vi.useFakeTimers({
+      now: realNow(),
+      shouldAdvanceTime: true,
+      toFake: ['Date', 'setTimeout', 'clearTimeout']
+    })
+    sync = setInterval(() => vi.setSystemTime(realNow()), 20)
+    sync.unref()
+  })
+  afterEach(() => {
+    clearInterval(sync)
+    vi.clearAllTimers()
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
+}
 
 /**
  * Starts one Worker for the test file and stops it, with its loopback servers, after the file.

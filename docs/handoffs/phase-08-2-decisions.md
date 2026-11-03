@@ -2014,3 +2014,14 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Deterministic budgets still gate everywhere:** Convex I/O per session (4.3 MB, D209), call counts and payload sizes do not depend on host load.
 - **Trigger:** the `vtt-browser` ephemeral p95 assertion refused m613, m617 and m618 (198 to 342 ms) and passed on reruns of the same commits; it also failed on the m591 batch. PERF-1.T0 makes the journeys record instead of fail; PERF-1.T1 first compares the local ephemeral p95 at m612 and at the final tip, in case lost headroom points to a regression.
 - **UAT (user):** the owner and a few external testers run UAT on the unoptimized build, in parallel with the optimization pass, since it tests UX and flow order. External testers use staging with scripted scenarios (steps and expected results) plus a few open goal tasks; React Flow node authoring is postponed until after UAT.
+## D211 (2026-11-03): authorization rulings from the PLATFORM-27 sweep
+
+- **Ruling (user):** only a Character's owner can assign it to a Campaign. The GM can still unassign it. A Character never becomes visible to a party unless its owner chooses that.
+- **Ruling (user):** account `PRIVATE` wins over social participation. Social discovery checks the account's `profileVisibility`, so a PRIVATE account cannot be found by its public id. A host's OPEN PUBLIC listings still show their username in browse and search, because publishing a public listing is an explicit opt-in to be found as that game's host (orchestrator ruling on the slice's question).
+- **Ruling (user):** a ban also suspends the user's social profile, so their open public listings leave browse and search immediately.
+- **Ruling (user):** giving an item into another member's Character inventory stays a hand-off with no accept step. It is logged, and the recipient can drop or return the item.
+- **Orchestrator rulings (from the user's earlier calls; user did not object):**
+  - The GM may roll for a player's Character. This is the GM override in the Foundry ownership model (players-drive-own-actions), and the roll is recorded under the GM.
+  - Signed-out readers keep access to platform (SRD) reference content and art. The SRD is openly licensed.
+  - Any Run member may see whether a decision occurrence was answered or GM-skipped. It is a single flag, and restricting it would require recording addressees per occurrence.
+- **Trigger:** the PLATFORM-27.T1 sweep (`docs/validation/platform-27-t1-authorization-sweep-2026-11-03.md`). The first three rulings are fixed in PLATFORM-27.T1 under AC 27.2, each with a refusal test that fails first.

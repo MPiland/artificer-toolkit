@@ -139,6 +139,17 @@ proofs merely because a later check failed.
 
 It is idempotent. A Campaign with its final `Review data ready` Session is skipped, so a re-run after a reset rebuilds the same names with the same rolls. A Campaign without that Session is a failed earlier run: reset the backend and run again. The scenarios are data in `apps/apis/tests/developmentReviewDataScenarios.ts`; `apps/apis/convex/encounters/reviewData.test.ts`, `reviewDataFireAndThunder.test.ts` and `reviewDataSandbox.test.ts` prove the build and the skip against the real room.
 
+### Managed (staging) target
+
+`node scripts/seedReviewData.mjs --managed --set=<N>` builds tester set N on a managed deployment. It needs the owner's approval for each run (ADR 0035); local data is set 0 and is unchanged.
+
+- **Set.** Five accounts, already verified, so sign-in needs no email: `<mailbox>+t<N>-gm`, `-p1`, `-p2`, `-p3`, `-spare` (for example `mekhit02+t3-gm@gmail.com`). The set owns its own copy of the four review Campaigns, with `(set N)` in each name. Sets never share accounts or Campaigns.
+- **Environment (names only; values stay in the operator's shell, never in the repo or logs).** `CONVEX_URL`, `CONVEX_SITE_URL` (a `*.convex.cloud` deployment and its `.convex.site`), `REVIEW_MANAGED_CONFIRM` (the deployment name), `REVIEW_MANAGED_ADMIN_KEY`, `REVIEW_WORKER_CONTROL_SECRET`, `REVIEW_MAILBOX` (`name@domain`), optional `REVIEW_WEB_ORIGIN`. `CONVEX_DEPLOY_KEY` and the self-hosted variables must be unset.
+- **Password.** Generated per set at run time and printed once, to the operator's terminal only (through a dedicated pipe, not the log file). It is never written to the repo, `local-validation` or any log.
+- **Re-run.** A finished Campaign is skipped. Re-running an existing set needs `REVIEW_SET_PASSWORD` (the password printed at creation); without it the run stops.
+- **New round.** A tester's next round uses a new set number (N+1): new accounts, a new password and clean Campaigns. The old set is simply no longer handed out; there is no rebuild or reset.
+- **Not provisioned on a managed set.** Superadmin and the email sink; sign-up, password reset and email change are the testers' own flows.
+
 ## Staging promotion
 
 After R08 and the local V15 portion are green, request authorization naming the exact Convex, web,
