@@ -1234,7 +1234,28 @@ export type NodeLocalCollectionSource = {
   labelPath: ShallowPath
 }
 
-export type NodeSelectSource = NodeInlineSource | NodeDataSource | NodeLocalCollectionSource
+/**
+ * Options are the objects under the authored root that carry an object at `key` with a string `id`
+ * (see `collectDocumentObjects`), named by their owner. The source-facts table named `key`
+ * (`document_id`, `id`, `label`) supplies the same objects of the stored declared parent document.
+ * An id carried by two objects is ambiguous and is not an option.
+ */
+export type NodeDocumentObjectsSource = {
+  kind: 'DOCUMENT_OBJECTS'
+  key: string
+  parent?: {
+    /** Where the authored root names its parent document, if it has one. */
+    idPath: ShallowPath
+    /** The source-facts table holding one row per stored document; a parent absent from it cannot be checked. */
+    documentTable: string
+  }
+}
+
+export type NodeSelectSource =
+  | NodeInlineSource
+  | NodeDataSource
+  | NodeLocalCollectionSource
+  | NodeDocumentObjectsSource
 
 /* ──────────────────────────────────────────────────────────────
  * Node specs (nodeId is record key; node value has path)

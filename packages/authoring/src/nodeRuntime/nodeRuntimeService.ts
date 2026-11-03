@@ -16,6 +16,7 @@ import type {
   ArrayGroupPresentation,
   InlineFilter,
   NodeArrayAuthoringMeta,
+  NodeDocumentObjectsSource,
   NodeLocalCollectionSource,
   RuntimeNodeEntry,
   RuntimeNodeMap,
@@ -24,6 +25,7 @@ import type {
 } from '@artificer-toolkit/shared/maps'
 import {
   clearValuesAtPaths,
+  collectDocumentObjects,
   evaluateConditionIf,
   getValueAtPath,
   isIdRef,
@@ -34,6 +36,7 @@ import {
   resolveInputAuthoringMeta,
   resolveNodeMapSteps,
   resolveObjectAuthoringMeta,
+  unambiguousDocumentObjects,
   type NodeRuntimeScope,
   type RuntimePath,
   type SectionedNodeGroup,
@@ -120,6 +123,8 @@ function collectScopeReads(
     reads.push((scope) =>
       resolveLocalCollectionOptions(definition as NodeLocalCollectionSource, scope)
     )
+  if (isRuntimeRecord(definition) && definition.kind === 'DOCUMENT_OBJECTS')
+    reads.push((scope) => readDocumentObjects(definition as NodeDocumentObjectsSource, scope))
   for (const [key, child] of Object.entries(definition)) {
     if (key === 'nodes' && isRuntimeRecord(definition) && definition.kind === 'GROUP') continue
     collectScopeReads(child, reads, seen)
@@ -655,6 +660,7 @@ export function readsOnlyCoreCodes(plan: RelationshipPlan): boolean {
 
 // A data source keeps an unknown value when it says so; a System core-code source refuses it.
 function unknownOptionsPolicy(source: NodeSelectSource): 'PRESERVE' | 'REFUSE' | undefined {
+  if (source.kind === 'DOCUMENT_OBJECTS') return 'REFUSE'
   if (source.kind !== 'DATA') return undefined
   if (source.preserveUnknownOptions) return 'PRESERVE'
   return readsOnlyCoreCodes(source.relationship) ? 'REFUSE' : undefined
@@ -675,6 +681,8 @@ async function resolveOptions(
       )
     case 'LOCAL_COLLECTION':
       return resolveLocalCollectionOptions(source, scope)
+    case 'DOCUMENT_OBJECTS':
+      return resolveDocumentObjectOptions(db, source, scope)
     case 'INLINE_OPTIONS':
       return applyInlineFilter(db, toOptions(source.options), source.filter, scope)
     case 'INLINE_GROUPS': {
@@ -688,6 +696,60 @@ async function resolveOptions(
       return dedupeOptions(optionSets.flat())
     }
   }
+}
+
+/** What the options of a document-objects source depend on: the root's own objects and its parent's id. */
+function readDocumentObjects(source: NodeDocumentObjectsSource, scope: NodeRuntimeScope) {
+  const root = scope.ancestors?.at(-1) ?? scope.values
+  const parentId = source.parent ? getValueAtPath(root, source.parent.idPath) : undefined
+  return {
+    objects: collectDocumentObjects(root, source.key),
+    parentId: typeof parentId === 'string' ? parentId : undefined
+  }
+}
+
+// The root's own objects come from the values being edited, so a new one is selectable before it is
+// saved; the declared parent's come from its stored source facts. A parent the reader cannot find
+// refuses the whole read rather than silently narrowing the options.
+async function resolveDocumentObjectOptions(
+  db: NodeRuntimeReader,
+  source: NodeDocumentObjectsSource,
+  scope: NodeRuntimeScope
+): Promise<NodeRuntimeOptionDto[]> {
+  const { objects, parentId } = readDocumentObjects(source, scope)
+  if (!source.parent || parentId === undefined) return unambiguousDocumentObjects(objects)
+
+  const { documentTable } = source.parent
+  // The shared executor applies the predicate; a reader only supplies the table's rows.
+  const rowsWhere = (
+    table: string,
+    column: string,
+    selectColumns: readonly [string, ...string[]]
+  ) =>
+    executeRelationshipPlan(
+      db,
+      {
+        kind: 'TABLE',
+        table,
+        selectColumns,
+        where: { kind: 'PREDICATE', column, op: '=', value: parentId }
+      },
+      scope
+    )
+  const [parent] = await rowsWhere(documentTable, 'id', ['id'])
+  if (!parent)
+    throw new Error(
+      `The ${source.key} of parent document ${parentId} could not be checked: the parent was not found.`
+    )
+  const inherited = await rowsWhere(source.key, 'document_id', ['id', 'label'])
+  return unambiguousDocumentObjects([
+    ...objects,
+    ...inherited.flatMap((row) =>
+      isRuntimeRecord(row) && typeof row.id === 'string' && typeof row.label === 'string'
+        ? [{ id: row.id, label: row.label }]
+        : []
+    )
+  ])
 }
 
 async function applyInlineFilter(

@@ -659,7 +659,11 @@ describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D
       { chargeId: 'homebrew-pool', cost: 3, diceConfig: '2d8', damageTypeId: radiant }
     ]
   ])('keeps %s exactly as authored', async (_label, input) => {
-    const authored = withFeature(monk, poolRiderFeature(input))
+    const rider = poolRiderFeature(input)
+    // A pool other than the class's own is one the rider's feature authors.
+    if (input.chargeId !== kiChargeId)
+      rider.charges = { ...monk.resources!.charges!, id: input.chargeId }
+    const authored = withFeature(monk, rider)
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
