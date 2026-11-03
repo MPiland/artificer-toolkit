@@ -721,7 +721,11 @@ async function resolveDocumentObjectOptions(
 
   const { documentTable } = source.parent
   // The shared executor applies the predicate; a reader only supplies the table's rows.
-  const rowsWhere = (table: string, column: string, selectColumns: string[]) =>
+  const rowsWhere = (
+    table: string,
+    column: string,
+    selectColumns: readonly [string, ...string[]]
+  ) =>
     executeRelationshipPlan(
       db,
       {
@@ -729,7 +733,7 @@ async function resolveDocumentObjectOptions(
         table,
         selectColumns,
         where: { kind: 'PREDICATE', column, op: '=', value: parentId }
-      } as RelationshipPlan,
+      },
       scope
     )
   const [parent] = await rowsWhere(documentTable, 'id', ['id'])
