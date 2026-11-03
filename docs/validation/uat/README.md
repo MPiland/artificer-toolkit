@@ -93,7 +93,7 @@ Each account needs its own browser session, because sign-in is a cookie on `loca
 
 ## Recording results
 
-Record every run in `docs/validation/uat/results/<YYYY-MM-DD>-<FEATURE>.md` (create the `results` folder on the first run), with this header and one row per scenario:
+Record every run in `docs/validation/uat/results/<YYYY-MM-DD>-<FEATURE>.md`. Start from the feature's prefilled template in [results/templates](results/templates/), which lists every scenario; there are also templates for the [exploratory tasks](results/templates/EXPLORATORY.md) and the [authoring feedback](results/templates/AUTHORING-FEEDBACK.md). Each results file has this header and one row per scenario:
 
 ```markdown
 # <FEATURE> UAT run <YYYY-MM-DD>
