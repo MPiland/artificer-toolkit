@@ -1,7 +1,8 @@
 // First-use schema cost on a freshly deployed self-hosted Convex backend (PLATFORM-13.T27): for each
 // authored subject kind, parses the corpus's largest document inside the content/schemaCostProbe query,
-// once cold (the first call since the deploy) and once warm, and fails when a call nears the 1 s
-// query limit. Numbers are client round trips (request, query, response), not in-function time;
+// once cold (the first call since the deploy) and once warm, and records when a call nears the 1 s
+// query limit (D210: wall-clock latency is recorded, never gated outside staging; a query that
+// exceeds Convex's own limit still errors). Numbers are client round trips (request, query, response), not in-function time;
 // the cold-minus-warm gap is the first-use cost of the schema.
 //   yarn exec tsx apps/apis/scripts/liveBackendSchemaProbe.ts [--container=<name>]
 import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections/identity'
@@ -13,6 +14,7 @@ import {
 } from '../../../scripts/convexSelfHosted.mjs'
 
 // Half of Convex's 1 s query limit: a call above it leaves too little margin on a slower runner.
+// Flagged in the log only; host load moves it (1812 ms on the first query after a local deploy).
 const BUDGET_MS = 500
 
 const container = process.argv.find((argument) => argument.startsWith('--container='))?.slice(12)
@@ -54,4 +56,4 @@ for (const subjectKind of authoredSubjectKindSchema.options) {
   if (cold > BUDGET_MS) over.push(`${subjectKind} ${cold} ms`)
 }
 if (over.length > 0)
-  throw new Error(`Cold parse round trip over ${BUDGET_MS} ms: ${over.join(', ')}.`)
+  console.log(`Recorded, not gated: cold parse round trip over ${BUDGET_MS} ms: ${over.join(', ')}.`)
