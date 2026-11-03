@@ -367,6 +367,120 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 
 - Not applicable: single user.
 
+## UAT-AUTHORING-13: Author a Fire Bolt-like cantrip from scratch
+
+- **Covers:** none of the registered ACs. This is an authoring-effort check: it measures how hard a real effect is to build, and it complements AUTHORING-9.1 to 9.3.
+- **Accounts:** P1
+- **Preconditions:** Review data built; **Authoring experience** in Settings, Preferences is **Advanced**. Do not copy the SRD Fire Bolt: build from the blank form so the effort is measured. Keep the SRD Fire Bolt page open in a second tab as the reference. A stopwatch is running (see the recording lines below).
+
+**Steps**
+
+1. **P1:** Start the timer. Open http://localhost:3000/spells/new.
+2. **P1:** Under Basics, enter the **Name** "UAT Fire Bolt Copy" and a **Description** (paste the SRD text or write your own). Set **Level** to Cantrip, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Under Casting, set **Casting Time** to 1 action and tick the Verbal and Somatic **Components**.
+3. **P1:** Under Effects, add one effect (the **Add effect** button). In **How It Starts** set **Kind** to Action, **Trigger** to Ranged Spell Attack, and **Activation** to Action with **Amount** 1.
+4. **P1:** Under **Range** set **Range Kind** to Distance, **Amount** 120, **Unit** Feet. Under **Targeting** set **Target Selection** to Single Target and **Target Eligibility** to Any valid target.
+5. **P1:** Under **Outcome Paths** add one path. Set **Outcome Path** to On Hit, **Outcome Group** to Single, **Selection Model** to Direct and **Starts From** to Source.
+6. **P1:** In the path's **Result**, set **Outcome Type** to Single, then add one outcome. Set **Effect Kind** to Damage, **Damage Type** to Fire, **Value Kind** to Dice, **Scaling Kind** to Per Level and **Scaling Source** to Character Level.
+7. **P1:** In the outcome's **Levels** table add four rows: **Level** 1 with **Damage Dice** `1d10`, level 5 with `2d10`, level 11 with `3d10`, level 17 with `4d10`.
+8. **P1:** Choose **Save Draft**, reload, and confirm every value is still set.
+9. **P1:** Choose **Activate**. Stop the timer.
+10. **P1:** Open the published "UAT Fire Bolt Copy" in the reader view (its detail page) in one tab and the SRD **Fire Bolt** in another. Compare them side by side: casting time, range, attack, damage, scaling levels and Classes.
+11. **P1:** Record the time taken and the 1-5 difficulty rating (below), then **Discard draft** or delete the Spell to leave no clutter.
+
+**Expected**
+
+- Step 2-7: every field above exists in the Advanced form under the label given. Fields that do not apply to the chosen Trigger or Effect Kind stay hidden rather than erroring.
+- Step 8: the draft survives the reload with all four scaling rows.
+- Step 9: **Activate** succeeds without a validation message; if one appears, record its exact wording as a confusion point.
+- Step 10: the reader view of the copy matches the SRD Fire Bolt on every mechanical line (ranged spell attack, 120 feet, 1d10 fire, 2d10 at level 5, 3d10 at 11, 4d10 at 17, Sorcerer and Wizard). Wording of the description may differ.
+
+**Other users see**
+
+- **P2:** Searching Spells for "UAT Fire Bolt" finds nothing (private homebrew).
+
+**Record** (in the results file): time from step 1 to step 9 (minutes), difficulty 1 (trivial) to 5 (could not finish without help), the step where you hesitated longest, and any value you could not find.
+
+## UAT-AUTHORING-14: Author a Fireball-like spell from scratch
+
+- **Covers:** none of the registered ACs. Authoring-effort check, as UAT-AUTHORING-13.
+- **Accounts:** P1
+- **Preconditions:** Review data built; **Authoring experience** is **Advanced**. Build from the blank form, not from a copy. Keep the SRD **Fireball** open in a second tab as the reference. A stopwatch is running.
+
+**Steps**
+
+1. **P1:** Start the timer. Open http://localhost:3000/spells/new.
+2. **P1:** Under Basics, enter the **Name** "UAT Fireball Copy" and a **Description**. Set **Level** to Level 3, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Set **Casting Time** to 1 action and tick Verbal, Somatic and Material **Components**.
+3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Action and **Trigger** to Saving Throw. In **Saving Throw** set **DC Method** to the option that uses the caster's spell save DC, and **Save Ability** to Dexterity. Set **Activation** to Action with **Amount** 1.
+4. **P1:** Set **Range** to Distance, **Amount** 150, **Unit** Feet. Set **Shape Kind** to Sphere with **Radius** **Amount** 20, **Unit** Feet. Set **Target Selection** to Area Contents and **Target Eligibility** to Any valid target.
+5. **P1:** Under **Outcome Paths** add a first path: **Outcome Path** On Save Failure, **Outcome Group** Single, **Selection Model** Direct, **Starts From** Source. In its **Result** set **Outcome Type** Single and add an outcome: **Effect Kind** Damage, **Damage Type** Fire, **Value Kind** Dice, **Scaling Kind** Per Level, **Scaling Source** Spell Cast Level.
+6. **P1:** In that outcome's **Levels** table add seven rows: **Level** 3 with **Damage Dice** `8d6`, then 4 with `9d6`, 5 with `10d6`, 6 with `11d6`, 7 with `12d6`, 8 with `13d6`, 9 with `14d6`.
+7. **P1:** Add a second path: **Outcome Path** On Save Success, with the same Group, Selection Model and Starts From. Add an outcome with the same Effect Kind, Damage Type, Value Kind, Scaling Kind and Scaling Source, and set **Amount Modifier** to Half.
+8. **P1:** In the second outcome's **Levels** table enter the same seven rows again (levels 3 to 9, `8d6` to `14d6`).
+9. **P1:** Choose **Save Draft**, reload, then **Activate**. Stop the timer.
+10. **P1:** Open the published copy in the reader view beside the SRD **Fireball** and compare casting time, range, area, save, damage on a failed save, damage on a successful save, and the upcast table.
+11. **P1:** Record the time taken and the difficulty rating, then delete the Spell.
+
+**Expected**
+
+- Step 3-8: each field exists in the Advanced form under the label given.
+- Step 7-8 (expected behaviour, not a failure): the second path asks you to restate the full seven-row level table, because half damage on a save is a modifier on a separate path with its own table, not a derived value. The "+1d6 per slot above 3rd" rule is also entered as seven written-out rows, not as one rule. Note how long these two steps took and whether you made a typo in the second table. Deriving both is a known candidate improvement (authoring audit), not part of this scenario.
+- Step 9: the copy activates, with the same totals the SRD Fireball has.
+- Step 10: the reader view of the copy matches Fireball on every mechanical line: DEX save, 20-foot sphere, 150 feet, 8d6 on a failed save, half on a success, 9d6 at 4th level up to 14d6 at 9th.
+
+**Other users see**
+
+- **P2:** Searching Spells for "UAT Fireball" finds nothing.
+
+**Record**: time from step 1 to step 9, difficulty 1 to 5, the time spent on steps 7 and 8 alone, and every typo or mismatch you had to correct between the two tables.
+
+## UAT-AUTHORING-15: Author an Empowered Spell-like feature that spends a resource pool
+
+- **Covers:** AUTHORING-21.1, AUTHORING-21.2 (once AUTHORING-21 merges); also an authoring-effort check.
+- **Accounts:** P1
+- **Preconditions:** Review data built; **Authoring experience** is **Advanced**. **Blocked until AUTHORING-21 merges**: the link between the modifier and its pool is changing from a typed Charge ID to a picker, and this scenario is written against the picker. Keep the SRD Sorcerer's **Empowered Spell** feature open as the reference (Classes, Sorcerer, Metamagic). A stopwatch is running.
+
+**Steps**
+
+1. **P1:** Start the timer. Open http://localhost:3000/feats/new and enter the **Name** "UAT Empowered Copy" and a **Description** (paste the SRD Empowered Spell text or write your own).
+2. **P1:** Under **Charges** define the pool the feature spends, a stand-in for sorcery points: choose a **Limit Kind** (for example Fixed amount, with a number of points) and a **Reset Kind** of Long Rest.
+3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Passive and **Trigger** to Activated.
+4. **P1:** In **Cast Modifier**, choose the pool from the list (the picker lists the pool from step 2). Set **Cost** to 1. In **Rerolls damage dice after the roll** set **Damage dice rerolled** to 0, **Plus the modifier of** to Charisma, and **At least** to 1.
+5. **P1:** Under **Outcome Paths** add one path: **Outcome Path** On Use, **Outcome Group** Single, **Selection Model** Direct. In its **Result**, add an outcome with **Effect Kind** Manual Adjudication, a **Reason** of your choice, and **Instructions** such as "The chosen damage dice are rolled again, and the new rolls stand."
+6. **P1:** Choose **Save Draft**, reload, confirm the pool is still selected in **Cast Modifier**, then **Activate**. Stop the timer.
+7. **P1:** Open the published copy in the reader view beside the SRD Empowered Spell and compare: the cost (1 point), the Charisma-based reroll count with a minimum of one, and the pool it spends.
+8. **P1:** Rename the pool in the Charges section, **Activate** again, and reopen the Cast Modifier.
+9. **P1:** Record the time taken and the difficulty rating, then delete the Feat.
+
+**Expected**
+
+- Step 4: the pool is chosen from a list, not typed as an ID; a feature with no pool defined offers an empty list rather than a free-text box. If the picker does not list the Feat's own pool (the SRD defines the pool on the Class, under Resource, Charges), record that; building a homebrew Class to hold the pool is the fallback and counts toward the time.
+- Step 6: the chosen pool survives the reload and the feature activates.
+- Step 7: the copy and the SRD Empowered Spell agree on cost, reroll count and minimum, and both name the pool they spend.
+- Step 8: the Cast Modifier still points at the same pool after the pool is renamed.
+
+**Other users see**
+
+- **P2:** Searching Feats for "UAT Empowered" finds nothing.
+
+**Record**: time from step 1 to step 6, difficulty 1 to 5, and whether you found the pool link without help.
+
+## Authoring feedback
+
+Each tester fills this in once, after the authoring scenarios they ran (UAT-AUTHORING-13 to 15, plus any other authoring scenario). Save it as `docs/validation/uat/results/<YYYY-MM-DD>-AUTHORING-FEEDBACK-<tester>.md` with the tester's name, the commit or staging build, and the date. Answer in your own words; short answers are fine, and "none" is a valid answer.
+
+| Scenario         | Time taken (minutes) | Difficulty (1 = trivial, 5 = could not finish unaided) |
+| ---------------- | -------------------- | ------------------------------------------------------ |
+| UAT-AUTHORING-13 |                      |                                                        |
+| UAT-AUTHORING-14 |                      |                                                        |
+| UAT-AUTHORING-15 |                      |                                                        |
+
+1. **Guided and Advanced.** Which mode felt easier for the things you built? Did you switch between them, and if so at which step and why (the Guided header offers **Switch to advanced**; Settings, Preferences changes the default)?
+2. **Where you got stuck.** List each place you stopped or asked for help, the page or section it was on, and how you got unstuck.
+3. **Fields you did not understand.** List the field labels whose meaning or effect you could not tell, even if you filled them in by guessing.
+4. **Starting point.** For the next effect you build, would you rather copy an existing effect, start from a template, or build from scratch? Say why, and say if it depends on the kind of effect.
+5. **Visual node-graph editor.** Imagine building the same effect on a canvas of connected boxes (a node graph) instead of the form. Would that have helped, made it harder, or made no difference? Say why, and for which of the three scenarios.
+6. **Anything else** that cost you time or that you expected to find and did not.
+
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
