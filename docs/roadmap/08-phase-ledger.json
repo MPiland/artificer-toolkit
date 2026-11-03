@@ -28366,7 +28366,7 @@
             },
             {
               "id": "PERF-1.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "PERF-1.2"
               ],
@@ -28377,9 +28377,8 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Fix campaigns/contentShares:list exceeding the Convex 1 s query limit (campaign-custody-browser red on the phase tip): find the read cost driver, fix it in the right layer, prove a bounded read with a real-code convex-test that fails before the fix.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Registered 2026-11-03 under PERF-1.2; blocks the PERF-1.T0 fix + AUTHORING-21.T1 batch merge."
+              "text": "Cut the Convex per-call module and schema evaluation floor for the queries in the inventory reload burst (vehicles:definitionOptions, contentShares:list and peers hit 830-1003 ms together and exceed the 1 s limit in campaign-custody-browser): function modules import only the node maps they need, fixed where the graph is pulled in; proven by a gating module-graph budget test that fails before the fix, plus a green campaign-custody-browser proof.",
+              "note": "Merged 2026-11-03: zod/mini locales out of every Convex bundle (schema zodNamespace.ts) and lazy node-map build; inventoryReloadModuleBudget.test.ts gates it. Burst max 1003 ms (timeout) to ~610 ms on CI."
             },
             {
               "id": "PERF-1.T3",
@@ -28396,6 +28395,22 @@
               },
               "text": "Local latency optimization pass toward the PERF-1.2 targets (ephemeral preview p95 <= 150 ms, durable convergence p95 <= 250 / p99 <= 500 ms, command p95 <= 1 s) from CI-recorded evidence: trace the largest contributors per metric (vtt-browser ephemeral p95 183 ms, inputToSend ~157 ms on every run) to code with file:line, fix the root causes, and keep Convex I/O inside the Q16 budget. First, give the latency limit rule one home: scripts/validatePreStagingLocal.mjs reuses latencyGate measureLatency instead of re-implementing the inclusive/exclusive rule. Excludes contentShares:list (T2).",
               "note": "Registered 2026-11-03 under PERF-1.2; runs in parallel with UAT. T1 stays the phase-end final-source run."
+            },
+            {
+              "id": "PERF-1.T4",
+              "status": "TODO",
+              "closes": [
+                "PERF-1.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "The 13 encounter, import and live-session Convex modules that still import full zod at run time (and so carry every zod locale) use the schema package z instead; extend the module-budget gate from T2 to every Convex function bundle so no bundle carries a non-English locale.",
+              "note": "Registered 2026-11-03 from the PERF-1.T2 report; widens the per-call floor margin under the 1 s limit."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
