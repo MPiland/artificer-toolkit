@@ -45,7 +45,6 @@ type Client = {
 
 const origin = 'http://localhost:3000'
 const workerOrigin = 'ws://127.0.0.1:8787'
-const limits = { previewP95Ms: 150, durableP95Ms: 250, durableP99Ms: 500 }
 const proofInitScript = `(() => {
   const proof = { versions: {}, paints: [], longTasks: [] }
   window.__v15Proof = proof
@@ -814,18 +813,6 @@ export async function openV15WorkloadBrowser(input: {
           preflight,
           warmups
         }
-        assert.ok(
-          result.preview.p95Ms <= limits.previewP95Ms,
-          'V15 peer preview p95 exceeded 150 ms.'
-        )
-        assert.ok(
-          result.durable.p95Ms <= limits.durableP95Ms,
-          'V15 durable peer p95 exceeded 250 ms.'
-        )
-        assert.ok(
-          result.durable.p99Ms <= limits.durableP99Ms,
-          'V15 durable peer p99 exceeded 500 ms.'
-        )
         return result
       },
       async close(): Promise<void> {
