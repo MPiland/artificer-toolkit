@@ -96,8 +96,6 @@ export type ReviewContext = {
   grantSuperadmin: (userId: string) => Promise<void>
   /** Rebuild: an existing Campaign of the scenarios is deleted through the product command and built again. */
   rebuild?: boolean
-  /** Mixed into Character ids so a rebuild never meets the Characters an earlier build left behind. */
-  idSalt?: string
   /** Waits between polls while a deleted Campaign's deletion job runs; defaults to one second. */
   awaitDeletion?: () => Promise<void>
   /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
@@ -268,7 +266,13 @@ async function createHero(
   const created = await createDevelopmentSpellCharacter(
     owner.client,
     characterId,
-    hero.spells.list,
+    // Published spell names are unique per owner and cannot be retired, so a rebuild's copies carry the salt.
+    idSalt
+      ? hero.spells.list.map((spell) => ({
+          ...spell,
+          label: `${spell.label} (${idSalt.slice(0, -1)})`
+        }))
+      : hero.spells.list,
     hero.spells.slots,
     undefined,
     undefined,
@@ -313,7 +317,8 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       scenario,
       hero,
       owner,
-      context.idSalt ?? ''
+      // A rebuild's Characters and spell copies never meet the ones an earlier build left behind.
+      context.rebuild ? `${Date.now().toString(36)}/` : ''
     )
     await owner.client.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
     if (classId) await prepareSpells(owner.client, characterId, classId, spellIds)

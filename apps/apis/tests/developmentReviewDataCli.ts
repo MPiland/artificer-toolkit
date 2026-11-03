@@ -90,7 +90,6 @@ const result = await seedReviewData(
     grantGmTier: steps.grantGmTier,
     grantSuperadmin: steps.grantSuperadmin,
     rebuild,
-    idSalt: rebuild ? `${Date.now().toString(36)}/` : '',
     checkpoint: (campaignId) =>
       awaitCampaignCheckpoint(
         gm.client,
