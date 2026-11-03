@@ -12,7 +12,6 @@ import { reviewDataHarness, reviewSetContext } from '../../tests/fixtures/review
 
 useLocalRoomWorker()
 useRealTimeClock()
-useRealTimeClock()
 
 const managedEnv = {
   CONVEX_URL: 'https://tester-staging-123.convex.cloud',

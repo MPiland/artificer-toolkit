@@ -12,7 +12,6 @@ import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
 useRealTimeClock()
-useRealTimeClock()
 
 // The Worker keeps every room it has hosted until the test ends, so the last Campaign is built by
 // reviewDataFireAndThunder.test.ts on a Worker of its own.

@@ -11,7 +11,6 @@ import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
 useRealTimeClock()
-useRealTimeClock()
 
 const scenarios = REVIEW_SCENARIOS.slice(2, 3)
 
