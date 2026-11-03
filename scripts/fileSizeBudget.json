@@ -8,6 +8,5 @@
   "packages/shared/src/domains/shared/maps/facet.ts": 2173,
   "packages/source-data/src/srd/classes/warlock.ts": 1907,
   "packages/source-data/src/srd/creatures/stat-blocks.ts": 10866,
-  "scripts/phase8/buildPhaseLedger.mjs": 2240,
-  "scripts/validatePreStagingLocal.mjs": 1513
+  "scripts/phase8/buildPhaseLedger.mjs": 2240
 }
