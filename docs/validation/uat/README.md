@@ -2,13 +2,14 @@
 
 User acceptance tests for the 21 Phase 8 features in the [phase ledger](../../roadmap/08-phase-ledger.json). Testers run each scenario by hand on **staging** and record what they saw. The automated tests prove each acceptance criterion (AC) in isolation; these scenarios prove the pieces work together in real play. Passing them moves a feature from UAT_READY to accepted.
 
-UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one `uat` item per scenario, and an item becomes PASSED only after the owner accepts it with the evidence described in [Recording results](#recording-results).
+UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one `uat` item per scenario, and an item becomes PASSED only after the owner accepts it with the evidence described in [Recording results](TESTERS.md#recording-results).
 
 ## Start
 
 - **Staging address:** `<STAGING_URL>`. Every scenario writes the address this way; the owner tells you the real one. Read the [alpha play guide](../../guides/alpha-play-guide.md) first: it explains every live-table control the scenarios use, and its [known gaps](../../guides/alpha-play-guide.md#known-gaps) are not failures.
-- **Your set.** The owner gives each tester a numbered set: five prebuilt accounts (GM, P1, P2, P3, SPARE) and your own copy of the four review Campaigns. The owner hands you the sign-in details privately; this repository never holds a password. Scenarios name roles only.
-- **Your own account.** The account-security scenarios (sign-up, forgotten password, password and email change, deletion) run on an account you create yourself with your own email address, so they never touch the prebuilt accounts. Prebuilt accounts never have their password, email or deletion state changed.
+- **Testers.** Follow the [tester guide](TESTERS.md): what the owner sends you, signing in to your set, creating your own account, real email checks, the Solo run order and recording results.
+- **Your set.** The owner gives each tester a numbered set: five prebuilt accounts (GM, P1, P2, P3, SPARE) and your own copy of the four review Campaigns. Scenarios name roles only.
+- **Your own account.** The account-security scenarios (sign-up, forgotten password, password and email change, deletion) run on an account you create yourself with your own email address, so they never touch the prebuilt accounts.
 - **The tracker.** Open [TRACKER.md](TRACKER.md): it lists what you were assigned. The owner prepares everything else ([OPERATOR.md](OPERATOR.md)).
 
 ## Solo and Group
@@ -58,22 +59,6 @@ After the review data is built every account has **Roll my dice automatically** 
 ## One pass
 
 Run the scenarios once, in tracker order. Every scenario lists its **Prerequisites**: what your set provides, which earlier scenario you must have finished, or which file in [assets](assets/) to use. A scenario that changes shared state ends with restore steps (R1, R2 …) that put it back through the normal controls, and a scenario that destroys or consumes data says what it consumes. If a scenario fails halfway, put the shared state back by hand; if that is impossible, mark the scenarios that depend on it BLOCKED. The owner can rebuild your set between rounds. There is no reset inside a pass.
-
-## Recording results
-
-- Fill in the **Result** block at the end of the scenario's file: **Status** (NOT RUN, PASSED, FAILED, BLOCKED or SKIPPED), **Date**, **Build**, **Tester**, **Set** (your set number), **Role** (the role you played), **Failed step** and **Notes**. The scenario ID is the file name, so every note stays tied to its context.
-- Then tick the scenario in the [tracker](TRACKER.md) and set the same status there.
-- **PASSED** means every Expected line held and the owner has run its "Other users see" or "Cross-role check" lines. Take at least one screenshot per scenario of its final state; for Group scenarios, one per role window.
-- A behaviour listed in the play guide's known gaps is not a failure; note it only if it hurt the session.
-- When the owner accepts a feature, the orchestrator sets each of its ledger `uat` items to PASSED with the tracker as evidence.
-
-### When a scenario fails
-
-The Result block names the date, the build (commit or staging build name), the tester and the step number, and gives the details the [play guide's feedback list](../../guides/alpha-play-guide.md#sending-feedback) asks for: Campaign, Scene, round and turn, mode and auto-roll, expected, actual with the exact wording of any message, and whether it repeats. Every failure is fixed or registered in the ledger before the feature is accepted.
-
-## Reading email
-
-Staging sends real email. Use the inbox of the address on the account (your own address for your own account). Every scenario that sends email also checks that it arrives within a few minutes, shows the product branding, has working links and is not in spam. The local email sink is an operator fallback only ([Reading local email](OPERATOR.md#reading-local-email)).
 
 ## Role setup for the owner
 

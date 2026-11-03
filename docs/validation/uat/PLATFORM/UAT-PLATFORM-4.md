@@ -28,7 +28,7 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path posi
 - Both attempts show the same neutral message (the app does not reveal whether an account exists) and the page asking for the six-digit code.
 - No error about email delivery appears.
 - The old password still signs in.
-- **Local only** (the second half needs the local email sink): [Reading email](../README.md#reading-email) shows one reset email in the inbox of the email address of P3; no email exists for `nobody-here@example.invalid`.
+- **Local only** (the second half needs the local email sink): [Reading local email](../OPERATOR.md#reading-local-email) shows one reset email in the inbox of the email address of P3; no email exists for `nobody-here@example.invalid`.
 
 - Staging: every email this scenario sends arrives in the inbox within a few minutes, shows the product branding, has working links and is not in spam.
 
