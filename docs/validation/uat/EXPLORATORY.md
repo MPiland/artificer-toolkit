@@ -2,7 +2,7 @@
 
 Open, goal-based tasks for finding usability problems and bias in how the product is explained and laid out. They are not pass/fail: nothing here moves a feature to accepted, and there is no Expected line to match. The scripted scenarios in the other files check that features work; these check whether a person who has not been told how can get things done.
 
-**Testers must not read the scripted scenario files first.** The scripted steps name every button and field, which would hide the confusion these tasks exist to find. Read only [README](README.md#setup) for setup, [Accounts](README.md#accounts) and [Review data](README.md#review-data), and the [alpha play guide](../../guides/alpha-play-guide.md) if you want the live-table vocabulary. Do not open a scenario file until your results file is written.
+**Testers must not read the scripted scenario files first.** The scripted steps name every button and field, which would hide the confusion these tasks exist to find. Read only [README](README.md#setup) for setup, [Accounts](README.md#accounts) and [Review data](README.md#review-data), and the [alpha play guide](../../guides/alpha-play-guide.md) if you want the live-table vocabulary. Do not open a scenario file until your run notes are written.
 
 ## How to run a task
 
@@ -12,7 +12,7 @@ Open, goal-based tasks for finding usability problems and bias in how the produc
 4. Stop the timer when you reach the goal or give up. Giving up is a result: record it.
 5. Fill in the record for the task (below), then move to the next.
 
-Tasks change the data, so run them on a reset build or throwaway Campaigns where noted. Two or more testers may run the same task; do not compare notes until both results files are written.
+Tasks change the data, so run them on a reset build or throwaway Campaigns where noted. Two or more testers may run the same task; do not compare notes until both have written their run notes.
 
 ## What to record for every task
 
@@ -25,21 +25,22 @@ Tasks change the data, so run them on a reset build or throwaway Campaigns where
 
 ## Recording results
 
-Save one file per tester per run as `docs/validation/uat/results/<YYYY-MM-DD>-EXPLORATORY-<tester>.md` (create the `results` folder on the first run). `<tester>` is the tester's name or handle, with no spaces.
+Tick the task in the [tracker](TRACKER.md) and write one entry per tester per task in [Run notes](#run-notes) at the end of this file, in this form:
 
 ```markdown
-# EXPLORATORY run <YYYY-MM-DD> - <tester>
+### EXPLORATORY-1 - <tester> - <YYYY-MM-DD>
 
 - Build: <git rev-parse HEAD for a local run, or the staging build name the owner gave>
-- Environment: local | staging
-- Account and Campaign: <as used in each task>
-
-| Task          | Time (min) | Outcome                    | Rating 1-5 | Confusion points | Workarounds | Bias check |
-| ------------- | ---------- | -------------------------- | ---------- | ---------------- | ----------- | ---------- |
-| EXPLORATORY-1 |            | reached / helped / gave up |            |                  |             |            |
+- Account and Campaign: <as used>
+- Time: <minutes>
+- Outcome: reached / reached with help / gave up
+- Rating: <1-5>
+- Confusion points:
+- Workarounds:
+- Bias check:
 ```
 
-Add one short paragraph per task if a table cell is too small. Screenshots of confusing screens go in the ignored `local-validation/uat/<YYYY-MM-DD>/` folder and are named in the notes. Do not put passwords or tokens in a results file.
+Screenshots of confusing screens go in the ignored `local-validation/uat/<YYYY-MM-DD>/` folder and are named in the notes. Do not put passwords or tokens in run notes.
 
 ## EXPLORATORY-1: Build a level-3 caster and play one round
 
@@ -89,3 +90,7 @@ Add one short paragraph per task if a table cell is too small. Screenshots of co
 - **Start:** Account **P2**, Character **Pyra** in **Review: Fire and Thunder**.
 - **Scope:** Raise Pyra by one level in the Builder, review what changed, then play a round in the Encounter with a newly gained option if one is available. End when the Sheet and the live table agree about the new level.
 - **Look for:** whether the Builder showed what changed; whether you knew where the Sheet and the Builder differ in purpose; any value that looked wrong after the level-up.
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

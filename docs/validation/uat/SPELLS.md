@@ -765,3 +765,7 @@ Part B (swap):
 | SPELLS-6.1  | A rules audit whose output is a slice list; no tester-visible behaviour.                                                                                                                                |
 | SPELLS-25.1 | Schema and corpus check that every zone sets attachmentKind; a failing zone cannot be built, so there is no screen to compare. Scenario 19 shows the zones that work.                                   |
 | SPELLS-31.1 | TODO in the ledger: corpus conversion of class and subclass feature closed rules with authoring-parity proofs. Run a UAT spot check (for example Open Hand Tranquility in scenario 26) once it is DONE. |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

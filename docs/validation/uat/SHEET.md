@@ -317,3 +317,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | SHEET-5.1 | Two simultaneous Builder commits is a concurrency harness; not reproducible by hand. |
 | SHEET-5.4 | Post-write failure rollback needs fault injection.                                   |
 | SHEET-7.1 | Records read by a note edit is a storage measurement.                                |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

@@ -346,3 +346,7 @@ This file proves a GM and up to three players can fight at the same time: each p
 | ATTACK-6.2  | A source-data audit of the Creature equipment, not something a screen shows.                                                                  |
 | ATTACK-6.3  | A shared derivation path (Creature and Character gear use one code path) with no behaviour change a tester could see.                         |
 | ATTACK-11.2 | A stat-block audit over all 142 SRD Multiattacks. UAT-ATTACK-10 spot-checks the visible effect on a sample of monsters.                       |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).

@@ -90,3 +90,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | PERF-4.2  | Module load cost; measured                                                                                                      |
 | PERF-4.3  | SHA-256 digest equality; unit test                                                                                              |
 | PERF-4.4  | Projection read volume with computed AC; measured                                                                               |
+
+## Run notes
+
+One entry per failed, blocked or skipped run, newest first, linked from the [tracker](TRACKER.md). Use the scenario id as a `###` heading, then the date, the build (commit or staging build name), the tester, the step number and the details listed in [When a scenario fails](README.md#when-a-scenario-fails).
