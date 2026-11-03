@@ -2,7 +2,7 @@
 
 import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   LIVE_SESSION_CONTROL_PATH,

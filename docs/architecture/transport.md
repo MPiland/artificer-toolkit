@@ -75,8 +75,9 @@ module load is paid on every call. `packages/schema` builds no schema at module 
 - **The `z` namespace** (PERF-1) is `packages/schema/src/zodNamespace.ts`: types from `zod/mini` and
   named value re-exports. The `zod/mini` namespace object carries every zod locale (194 KiB
   minified), so exporting it kept them in each function bundle. A new builder is added there.
-  `apps/apis/convex/campaigns/inventoryReloadModuleBudget.test.ts` fails on a non-English locale or
-  more than 120 KiB of zod in a Campaign inventory query's bundle.
+  Packages and Convex modules build schemas with `@artificer-toolkit/schema/zod`, never full `zod`,
+  which carries every locale too. `apps/apis/convex/functionBundleBudget.test.ts` fails on a non-English locale in any Convex function bundle, or on more than 120 KiB of zod in a
+  Campaign inventory query's bundle.
 - **Node maps** (PERF-1). `buildNodeMap().define` builds a map's nodes on the first read of
   `nodes`, so importing a map module costs no node construction.
 

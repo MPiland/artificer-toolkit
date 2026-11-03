@@ -41,35 +41,35 @@
           "title": "SRD content is present and browsable",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PLATFORM.md#uat-platform-1-srd-content-is-present-and-browsable"
+          "scenario": "docs/validation/uat/PLATFORM/UAT-PLATFORM-1.md"
         },
         {
           "id": "PLATFORM-UAT-2",
           "title": "Upload, replace and remove an avatar",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PLATFORM.md#uat-platform-2-upload-replace-and-remove-an-avatar"
+          "scenario": "docs/validation/uat/PLATFORM/UAT-PLATFORM-2.md"
         },
         {
           "id": "PLATFORM-UAT-3",
           "title": "Artwork is private to its owner until shared",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PLATFORM.md#uat-platform-3-artwork-is-private-to-its-owner-until-shared"
+          "scenario": "docs/validation/uat/PLATFORM/UAT-PLATFORM-3.md"
         },
         {
           "id": "PLATFORM-UAT-4",
           "title": "Password reset email is requested from the app",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PLATFORM.md#uat-platform-4-password-reset-email-is-requested-from-the-app"
+          "scenario": "docs/validation/uat/PLATFORM/UAT-PLATFORM-4.md"
         },
         {
           "id": "PLATFORM-UAT-5",
           "title": "A Concentration save shows its result on the roll card",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PLATFORM.md#uat-platform-5-a-concentration-save-shows-its-result-on-the-roll-card"
+          "scenario": "docs/validation/uat/PLATFORM/UAT-PLATFORM-5.md"
         }
       ],
       "pbis": [
@@ -2297,6 +2297,112 @@
               "note": "Merged by hand in m340; first live batch m341 (RULES-2.T9b + SCENE-4.T3) went green."
             }
           ]
+        },
+        {
+          "id": "PLATFORM-26",
+          "title": "Delete anything I created",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "User ruling 2026-11-03: users can permanently delete any content they create"
+          ],
+          "acs": [
+            {
+              "id": "PLATFORM-26.1",
+              "text": "Every kind of record a user creates and owns (authored content, Campaigns, Scenes, Encounter blueprints, vehicles, notebooks, session notes, listings, media and any other owner-created kind) has an owner-only permanent delete with a confirmation, reachable from the UI where that record is managed; deleting it cleans up what depends on it the same way account deletion does.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User ruling 2026-11-03: users can permanently delete any content they create"
+              ]
+            },
+            {
+              "id": "PLATFORM-26.2",
+              "text": "A coverage test lists every owner-created table from the schema and fails when one has no owner delete path, so a new content kind cannot ship without delete.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User ruling 2026-11-03: users can permanently delete any content they create"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 5,
+            "size": 3
+          },
+          "tasks": [
+            {
+              "id": "PLATFORM-26.T1",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-26.1",
+                "PLATFORM-26.2"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Inventory every owner-created table and its delete path (API and UI) against the account-deletion cascade; known gap: Encounter blueprints have no delete mutation (encounters/blueprints.ts has only create and update), and scene definitions and vehicles have API deletes whose UI entry points need checking. Add the coverage test first (red on the gaps), then add each missing owner-only delete and its confirmed UI action, reusing the account-deletion cascade per kind. Characters are out of scope here (BUILDER-5). List the inventory and proof files for the ledger."
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-27",
+          "title": "Every backend function checks who may call it",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
+          ],
+          "acs": [
+            {
+              "id": "PLATFORM-27.1",
+              "text": "A coverage test enumerates every public Convex query, mutation and action and fails unless each declares its access rule (signed-in caller from ctx.auth with an owner, membership or role check, or an explicit reviewed public reason); no public function takes a user ID from its arguments as identity, and a new public function cannot ship without a rule.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
+              ]
+            },
+            {
+              "id": "PLATFORM-27.2",
+              "text": "An audit of every public function finds and fixes each missing check: signed-out callers are refused where sign-in is required, another user cannot read, change or delete records they do not own or share through a Campaign, and master or seeded content cannot be changed by any user. Each fix lands with a regression test that fails before it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 13,
+            "size": 5
+          },
+          "tasks": [
+            {
+              "id": "PLATFORM-27.T1",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-27.1",
+                "PLATFORM-27.2"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 13,
+                "size": 5
+              },
+              "text": "Authorization sweep of apps/apis/convex: list every public query, mutation, action and HTTP route; classify its access rule with file:line evidence; add the coverage test first (red on unclassified functions); fix each gap found (client-supplied identity, missing owner or Campaign-membership check, cross-user reads by a client-supplied id, writes into a container the caller does not own, master/seeded content writes) with failing-first refusal tests (wrong user, signed-out, non-member). Reuse the existing access helpers rather than adding a new layer. Record the inventory and findings in docs/validation/ for the ledger."
+            }
+          ]
         }
       ]
     },
@@ -2315,91 +2421,91 @@
           "title": "Sign in, reload, sign out, sign back in by username",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-1-sign-in-reload-sign-out-sign-back-in-by-username"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-1.md"
         },
         {
           "id": "ACCOUNTS-UAT-2",
           "title": "Wrong password and unknown account are refused",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-2-wrong-password-and-unknown-account-are-refused"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-2.md"
         },
         {
           "id": "ACCOUNTS-UAT-3",
           "title": "Two accounts at once stay isolated, and sign-out ends every tab",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-3-two-accounts-at-once-stay-isolated-and-sign-out-ends-every-tab"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-3.md"
         },
         {
           "id": "ACCOUNTS-UAT-4",
           "title": "Public sign-up is closed",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-4-public-sign-up-is-closed"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-4.md"
         },
         {
           "id": "ACCOUNTS-UAT-5",
           "title": "Reset a forgotten password (wrong code, mismatch, then success)",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-5-reset-a-forgotten-password-wrong-code-mismatch-then-success"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-5.md"
         },
         {
           "id": "ACCOUNTS-UAT-6",
           "title": "Create an account from an invitation",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-6-create-an-account-from-an-invitation"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-6.md"
         },
         {
           "id": "ACCOUNTS-UAT-7",
           "title": "Choose, change and protect a username",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-7-choose-change-and-protect-a-username"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-7.md"
         },
         {
           "id": "ACCOUNTS-UAT-8",
           "title": "Private profiles stay private; Public profiles show only public fields",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-8-private-profiles-stay-private-public-profiles-show-only-public-fields"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-8.md"
         },
         {
           "id": "ACCOUNTS-UAT-9",
           "title": "Ordinary users cannot use superadmin tools",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-9-ordinary-users-cannot-use-superadmin-tools"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-9.md"
         },
         {
           "id": "ACCOUNTS-UAT-10",
           "title": "Superadmin moderation (blocked)",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-10-superadmin-moderation-blocked"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-10.md"
         },
         {
           "id": "ACCOUNTS-UAT-11",
           "title": "Refused account deletions",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-11-refused-account-deletions"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-11.md"
         },
         {
           "id": "ACCOUNTS-UAT-12",
           "title": "Delete my account, shared history survives (blocked)",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives-blocked"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-12.md"
         },
         {
           "id": "ACCOUNTS-UAT-13",
           "title": "Campaign text follows the same language rules as usernames",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ACCOUNTS.md#uat-accounts-13-campaign-text-follows-the-same-language-rules-as-usernames"
+          "scenario": "docs/validation/uat/ACCOUNTS/UAT-ACCOUNTS-13.md"
         }
       ],
       "pbis": [
@@ -3082,6 +3188,103 @@
               "id": "ACCOUNTS-10.5"
             }
           ]
+        },
+        {
+          "id": "ACCOUNTS-11",
+          "title": "Change my password or email",
+          "status": "IN_PROGRESS",
+          "journeyTests": [
+            "apps/apis/convex/accountJourneys.test.ts"
+          ],
+          "journeyStatus": "verified",
+          "origin": [
+            "User approval 2026-11-03 (D187 growth): UAT restructure found no ACs for in-app password and email change"
+          ],
+          "acs": [
+            {
+              "id": "ACCOUNTS-11.1",
+              "text": "A signed-in user can change their password from Account Settings by giving their current password; afterwards the old password no longer signs in and the new one does, and a wrong current password is refused without changing anything.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/accountPassword.test.ts",
+                "apps/apis/convex/accountEmail.test.ts",
+                "apps/web/src/settings/AccountSettingsPage.test.tsx",
+                "apps/apis/convex/accountJourneys.test.ts"
+              ],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): UAT restructure found no ACs for in-app password and email change"
+              ],
+              "note": "Closed 2026-11-03 by ACCOUNTS-11.T1."
+            },
+            {
+              "id": "ACCOUNTS-11.2",
+              "text": "A signed-in user can change their email from Account Settings; the change takes effect only after they open the confirmation link sent to the new address, the account keeps signing in and receiving mail on the old address until then, and a signed-out caller cannot change an account's email.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/accountPassword.test.ts",
+                "apps/apis/convex/accountEmail.test.ts",
+                "apps/web/src/settings/AccountSettingsPage.test.tsx",
+                "apps/apis/convex/accountJourneys.test.ts"
+              ],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth): UAT restructure found no ACs for in-app password and email change"
+              ],
+              "note": "Closed 2026-11-03 by ACCOUNTS-11.T1."
+            },
+            {
+              "id": "ACCOUNTS-11.3",
+              "text": "Changing the password signs out every other session of that account; the session that made the change stays signed in.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User ruling 2026-11-03: a password change signs out every other session"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 2
+          },
+          "tasks": [
+            {
+              "id": "ACCOUNTS-11.T1",
+              "status": "DONE",
+              "closes": [
+                "ACCOUNTS-11.1",
+                "ACCOUNTS-11.2"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Prove ACCOUNTS-11.1 and 11.2 against real code: audit the existing proofs (apps/apis/convex/accountEmail.test.ts, apps/web/src/settings/accountClient.test.ts, SettingsPages.test.tsx), add any missing assertion (old password refused after change, wrong current password changes nothing, old email still works until confirmation, signed-out caller refused), fix any defect found with a failing-first regression test, and add one journey test of the Account Settings flow. List the proof files for the ledger.",
+              "proof": [
+                "apps/apis/convex/accountPassword.test.ts",
+                "apps/apis/convex/accountEmail.test.ts",
+                "apps/web/src/settings/AccountSettingsPage.test.tsx",
+                "apps/apis/convex/accountJourneys.test.ts"
+              ],
+              "note": "Merged 2026-11-03 (merge-slice run 41713210672). No defects found; test-only change. Email change needs confirmation from the current address and then the new one (stricter than the AC)."
+            },
+            {
+              "id": "ACCOUNTS-11.T2",
+              "status": "TODO",
+              "closes": [
+                "ACCOUNTS-11.3"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 1
+              },
+              "text": "Revoke other sessions on password change: set the password-change path to revoke other sessions (revokeOtherSessions), update the test that asserted the opposite to the new ruling (a second signed-in session is refused after the change, the changing session keeps working), extend the ACCOUNTS-11 journey with that check, and update the UAT-ACCOUNTS-14 Expected line."
+            }
+          ]
         }
       ]
     },
@@ -3100,84 +3303,84 @@
           "title": "Browse Game Systems and Rules Catalogues",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-1-browse-game-systems-and-rules-catalogues"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-1.md"
         },
         {
           "id": "AUTHORING-UAT-2",
           "title": "SRD records are locked but can be copied into an owned draft",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-2-srd-records-are-locked-but-can-be-copied-into-an-owned-draft"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-2.md"
         },
         {
           "id": "AUTHORING-UAT-3",
           "title": "Background lifecycle — create, save, publish, replace, export, delete",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-3-background-lifecycle--create-save-publish-replace-export-delete"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-3.md"
         },
         {
           "id": "AUTHORING-UAT-4",
           "title": "Author, publish and filter a homebrew Spell with artwork",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-4-author-publish-and-filter-a-homebrew-spell-with-artwork"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-4.md"
         },
         {
           "id": "AUTHORING-UAT-5",
           "title": "Author a Class and see the Spell guard",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-5-author-a-class-and-see-the-spell-guard"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-5.md"
         },
         {
           "id": "AUTHORING-UAT-6",
           "title": "Creature copy, computed AC and the item loadout",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-6-creature-copy-computed-ac-and-the-item-loadout"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-6.md"
         },
         {
           "id": "AUTHORING-UAT-7",
           "title": "Equipment variants, inheritance and item names",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-7-equipment-variants-inheritance-and-item-names"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-7.md"
         },
         {
           "id": "AUTHORING-UAT-8",
           "title": "Author a Feat, a Race and a Vehicle",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-8-author-a-feat-a-race-and-a-vehicle"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-8.md"
         },
         {
           "id": "AUTHORING-UAT-9",
           "title": "Reusable effects, grants and modifiers on a System",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-9-reusable-effects-grants-and-modifiers-on-a-system"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-9.md"
         },
         {
           "id": "AUTHORING-UAT-10",
           "title": "Another account cannot see or edit your drafts",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-10-another-account-cannot-see-or-edit-your-drafts"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-10.md"
         },
         {
           "id": "AUTHORING-UAT-11",
           "title": "Share homebrew with a Campaign, then withdraw it",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-11-share-homebrew-with-a-campaign-then-withdraw-it"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-11.md"
         },
         {
           "id": "AUTHORING-UAT-12",
           "title": "Option descriptions and adding a Check and a DC",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/AUTHORING.md#uat-authoring-12-option-descriptions-and-adding-a-check-and-a-dc"
+          "scenario": "docs/validation/uat/AUTHORING/UAT-AUTHORING-12.md"
         }
       ],
       "pbis": [
@@ -4319,35 +4522,35 @@
           "title": "Authoring forms show, hide and require fields as choices change",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RULES.md#uat-rules-1-authoring-forms-show-hide-and-require-fields-as-choices-change"
+          "scenario": "docs/validation/uat/RULES/UAT-RULES-1.md"
         },
         {
           "id": "RULES-UAT-2",
           "title": "A started Encounter pauses for answers and resumes with nothing half-applied",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RULES.md#uat-rules-2-a-started-encounter-pauses-for-answers-and-resumes-with-nothing-half-applied"
+          "scenario": "docs/validation/uat/RULES/UAT-RULES-2.md"
         },
         {
           "id": "RULES-UAT-3",
           "title": "A reaction pauses a hit; answering resumes it; privacy of the pause",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RULES.md#uat-rules-3-a-reaction-pauses-a-hit-answering-resumes-it-privacy-of-the-pause"
+          "scenario": "docs/validation/uat/RULES/UAT-RULES-3.md"
         },
         {
           "id": "RULES-UAT-4",
           "title": "Healing keeps its dice and modifier visible in the roll card",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RULES.md#uat-rules-4-healing-keeps-its-dice-and-modifier-visible-in-the-roll-card"
+          "scenario": "docs/validation/uat/RULES/UAT-RULES-4.md"
         },
         {
           "id": "RULES-UAT-5",
           "title": "An attack with two damage parts keeps each part visible",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RULES.md#uat-rules-5-an-attack-with-two-damage-parts-keeps-each-part-visible"
+          "scenario": "docs/validation/uat/RULES/UAT-RULES-5.md"
         }
       ],
       "pbis": [
@@ -5944,42 +6147,42 @@
           "title": "Build a Character for a review player, save, resume and commit",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/BUILDER.md#uat-builder-1-build-a-character-for-a-review-player-save-resume-and-commit"
+          "scenario": "docs/validation/uat/BUILDER/UAT-BUILDER-1.md"
         },
         {
           "id": "BUILDER-UAT-2",
           "title": "Two windows on one draft cannot overwrite each other",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/BUILDER.md#uat-builder-2-two-windows-on-one-draft-cannot-overwrite-each-other"
+          "scenario": "docs/validation/uat/BUILDER/UAT-BUILDER-2.md"
         },
         {
           "id": "BUILDER-UAT-3",
           "title": "Choice-heavy builds — multiclass and spellcaster",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/BUILDER.md#uat-builder-3-choice-heavy-builds--multiclass-and-spellcaster"
+          "scenario": "docs/validation/uat/BUILDER/UAT-BUILDER-3.md"
         },
         {
           "id": "BUILDER-UAT-4",
           "title": "Removing content a Character uses repairs the Character",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/BUILDER.md#uat-builder-4-removing-content-a-character-uses-repairs-the-character"
+          "scenario": "docs/validation/uat/BUILDER/UAT-BUILDER-4.md"
         },
         {
           "id": "BUILDER-UAT-5",
           "title": "Withdrawing shared content reconciles assigned Characters",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/BUILDER.md#uat-builder-5-withdrawing-shared-content-reconciles-assigned-characters"
+          "scenario": "docs/validation/uat/BUILDER/UAT-BUILDER-5.md"
         },
         {
           "id": "BUILDER-UAT-6",
           "title": "Imported custom items keep their kind, properties and damage",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/BUILDER.md#uat-builder-6-imported-custom-items-keep-their-kind-properties-and-damage"
+          "scenario": "docs/validation/uat/BUILDER/UAT-BUILDER-6.md"
         }
       ],
       "pbis": [
@@ -6239,6 +6442,69 @@
               ]
             }
           ]
+        },
+        {
+          "id": "BUILDER-5",
+          "title": "Delete my Characters",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "User ruling 2026-11-03: users can permanently delete any content they create"
+          ],
+          "acs": [
+            {
+              "id": "BUILDER-5.1",
+              "text": "A player can permanently delete their own active Character from the Characters list and from the Sheet after a confirmation that names the Character; it leaves their list at once, its Sheet and Builder links show not found, and it cannot be restored.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User ruling 2026-11-03: users can permanently delete any content they create"
+              ]
+            },
+            {
+              "id": "BUILDER-5.2",
+              "text": "Deleting a Character that belongs to a Campaign releases it from the Party; if it is in a running Encounter its token and effects are removed and the GM and other players see it leave; its portrait and other owned media are deleted. The cascade reuses the account-deletion Character path rather than a second copy.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User ruling 2026-11-03: users can permanently delete any content they create"
+              ]
+            },
+            {
+              "id": "BUILDER-5.3",
+              "text": "Only the Character's owner can delete it; the Campaign's GM, other players and signed-out callers are refused, and deleting one Character never changes the owner's other Characters or any shared or authored content it used.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User ruling 2026-11-03: users can permanently delete any content they create"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 5,
+            "size": 3
+          },
+          "tasks": [
+            {
+              "id": "BUILDER-5.T1",
+              "status": "TODO",
+              "closes": [
+                "BUILDER-5.1",
+                "BUILDER-5.2",
+                "BUILDER-5.3"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Add an owner-only permanent Character delete: a public mutation in apps/apis/convex/characters that reuses the per-Character cascade in characters/accountDeletion.ts (Campaign release, live Encounter removal and room reconcile, media), a confirmed delete action on the Characters list and the Sheet, refusal tests for GM, other player and signed-out callers, and one journey test (delete from the list while in a Campaign with a running Encounter). Add a UAT scenario file under docs/validation/uat/BUILDER."
+            }
+          ]
         }
       ]
     },
@@ -6257,77 +6523,77 @@
           "title": "Edit a personal Sheet and reload",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-1-edit-a-personal-sheet-and-reload"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-1.md"
         },
         {
           "id": "SHEET-UAT-2",
           "title": "Short and long rest",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-2-short-and-long-rest"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-2.md"
         },
         {
           "id": "SHEET-UAT-3",
           "title": "Learn, prepare and cast spells from the Sheet",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-3-learn-prepare-and-cast-spells-from-the-sheet"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-3.md"
         },
         {
           "id": "SHEET-UAT-4",
           "title": "Roll from the Sheet and choose who sees it",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-4-roll-from-the-sheet-and-choose-who-sees-it"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-4.md"
         },
         {
           "id": "SHEET-UAT-5",
           "title": "GM Public and Private rolls with reveals",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-5-gm-public-and-private-rolls-with-reveals"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-5.md"
         },
         {
           "id": "SHEET-UAT-6",
           "title": "Equipment, inventory, attunement and deleting an item",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-6-equipment-inventory-attunement-and-deleting-an-item"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-6.md"
         },
         {
           "id": "SHEET-UAT-7",
           "title": "Starting equipment on a new Character",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-7-starting-equipment-on-a-new-character"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-7.md"
         },
         {
           "id": "SHEET-UAT-8",
           "title": "Hands, two-handed weapons and shields",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-8-hands-two-handed-weapons-and-shields"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-8.md"
         },
         {
           "id": "SHEET-UAT-9",
           "title": "Speed on the overview and the Movement panel",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-9-speed-on-the-overview-and-the-movement-panel"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-9.md"
         },
         {
           "id": "SHEET-UAT-10",
           "title": "Sheet at phone width",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-10-sheet-at-phone-width"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-10.md"
         },
         {
           "id": "SHEET-UAT-11",
           "title": "Sheet during live play and after reconnect",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SHEET.md#uat-sheet-11-sheet-during-live-play-and-after-reconnect"
+          "scenario": "docs/validation/uat/SHEET/UAT-SHEET-11.md"
         }
       ],
       "pbis": [
@@ -6821,56 +7087,56 @@
           "title": "Create, edit, copy, archive and delete a Campaign",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-1-create-edit-copy-archive-and-delete-a-campaign"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-1.md"
         },
         {
           "id": "CAMPAIGN-UAT-2",
           "title": "Invite, accept, leave, remove, rejoin and transfer",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-2-invite-accept-leave-remove-rejoin-and-transfer"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-2.md"
         },
         {
           "id": "CAMPAIGN-UAT-3",
           "title": "Players see only what the GM made visible",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-3-players-see-only-what-the-gm-made-visible"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-3.md"
         },
         {
           "id": "CAMPAIGN-UAT-4",
           "title": "Campaign content, sources and removals",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-4-campaign-content-sources-and-removals"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-4.md"
         },
         {
           "id": "CAMPAIGN-UAT-5",
           "title": "Party inventory and Vehicles",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-5-party-inventory-and-vehicles"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-5.md"
         },
         {
           "id": "CAMPAIGN-UAT-6",
           "title": "Announcements",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-6-announcements"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-6.md"
         },
         {
           "id": "CAMPAIGN-UAT-7",
           "title": "The GM plays a Character",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-7-the-gm-plays-a-character"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-7.md"
         },
         {
           "id": "CAMPAIGN-UAT-8",
           "title": "Not a member",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/CAMPAIGN.md#uat-campaign-8-not-a-member"
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-8.md"
         }
       ],
       "pbis": [
@@ -7285,42 +7551,42 @@
           "title": "Create a listing, apply, accept and fill a table",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SOCIAL.md#uat-social-1-create-a-listing-apply-accept-and-fill-a-table"
+          "scenario": "docs/validation/uat/SOCIAL/UAT-SOCIAL-1.md"
         },
         {
           "id": "SOCIAL-UAT-2",
           "title": "Invitations and Social Hub navigation",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SOCIAL.md#uat-social-2-invitations-and-social-hub-navigation"
+          "scenario": "docs/validation/uat/SOCIAL/UAT-SOCIAL-2.md"
         },
         {
           "id": "SOCIAL-UAT-3",
           "title": "Blocks and what they do",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SOCIAL.md#uat-social-3-blocks-and-what-they-do"
+          "scenario": "docs/validation/uat/SOCIAL/UAT-SOCIAL-3.md"
         },
         {
           "id": "SOCIAL-UAT-4",
           "title": "Private profiles and masking",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SOCIAL.md#uat-social-4-private-profiles-and-masking"
+          "scenario": "docs/validation/uat/SOCIAL/UAT-SOCIAL-4.md"
         },
         {
           "id": "SOCIAL-UAT-5",
           "title": "Notification feed, read state and preferences",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SOCIAL.md#uat-social-5-notification-feed-read-state-and-preferences"
+          "scenario": "docs/validation/uat/SOCIAL/UAT-SOCIAL-5.md"
         },
         {
           "id": "SOCIAL-UAT-6",
           "title": "Plan limits and capacity",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SOCIAL.md#uat-social-6-plan-limits-and-capacity"
+          "scenario": "docs/validation/uat/SOCIAL/UAT-SOCIAL-6.md"
         }
       ],
       "pbis": [
@@ -7511,70 +7777,70 @@
           "title": "GM and three players join at once",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-1-gm-and-three-players-join-at-once"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-1.md"
         },
         {
           "id": "ROOM-UAT-2",
           "title": "Previews and pings",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-2-previews-and-pings"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-2.md"
         },
         {
           "id": "ROOM-UAT-3",
           "title": "Reconnect after a dropped connection",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-3-reconnect-after-a-dropped-connection"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-3.md"
         },
         {
           "id": "ROOM-UAT-4",
           "title": "Chat — Table, Party and Direct",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-4-chat--table-party-and-direct"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-4.md"
         },
         {
           "id": "ROOM-UAT-5",
           "title": "Rolls, private GM rolls and chat limits",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-5-rolls-private-gm-rolls-and-chat-limits"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-5.md"
         },
         {
           "id": "ROOM-UAT-6",
           "title": "Notes — private and shared",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-6-notes--private-and-shared"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-6.md"
         },
         {
           "id": "ROOM-UAT-7",
           "title": "Show a map to players without presenting",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-7-show-a-map-to-players-without-presenting"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-7.md"
         },
         {
           "id": "ROOM-UAT-8",
           "title": "Plan and log Sessions",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-8-plan-and-log-sessions"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-8.md"
         },
         {
           "id": "ROOM-UAT-9",
           "title": "Live play commands go through the room",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-9-live-play-commands-go-through-the-room"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-9.md"
         },
         {
           "id": "ROOM-UAT-10",
           "title": "Archiving a Campaign closes its live room",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ROOM.md#uat-room-10-archiving-a-campaign-closes-its-live-room"
+          "scenario": "docs/validation/uat/ROOM/UAT-ROOM-10.md"
         }
       ],
       "pbis": [
@@ -8364,63 +8630,63 @@
           "title": "Upload a map, calibrate and create a Scene",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-1-upload-a-map-calibrate-and-create-a-scene"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-1.md"
         },
         {
           "id": "SCENE-UAT-2",
           "title": "Map upload refusals",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-2-map-upload-refusals"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-2.md"
         },
         {
           "id": "SCENE-UAT-3",
           "title": "Present a Scene and build it live",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-3-present-a-scene-and-build-it-live"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-3.md"
         },
         {
           "id": "SCENE-UAT-4",
           "title": "Fog of war off, shared and per player",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-4-fog-of-war-off-shared-and-per-player"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-4.md"
         },
         {
           "id": "SCENE-UAT-5",
           "title": "Doors",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-5-doors"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-5.md"
         },
         {
           "id": "SCENE-UAT-6",
           "title": "Offline edits recover",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-6-offline-edits-recover"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-6.md"
         },
         {
           "id": "SCENE-UAT-7",
           "title": "Map ownership and deletion",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-7-map-ownership-and-deletion"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-7.md"
         },
         {
           "id": "SCENE-UAT-8",
           "title": "GM loot tables",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-8-gm-loot-tables"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-8.md"
         },
         {
           "id": "SCENE-UAT-9",
           "title": "One shared table screen for several players",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SCENE.md#uat-scene-9-one-shared-table-screen-for-several-players"
+          "scenario": "docs/validation/uat/SCENE/UAT-SCENE-9.md"
         }
       ],
       "pbis": [
@@ -8823,63 +9089,63 @@
           "title": "A player moves their own token",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-1-a-player-moves-their-own-token"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-1.md"
         },
         {
           "id": "MOVE-UAT-2",
           "title": "Refusals at walls, hostile spaces and the map edge",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-2-refusals-at-walls-hostile-spaces-and-the-map-edge"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-2.md"
         },
         {
           "id": "MOVE-UAT-3",
           "title": "Opportunity attack pauses the move",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-3-opportunity-attack-pauses-the-move"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-3.md"
         },
         {
           "id": "MOVE-UAT-4",
           "title": "Undo last token move",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-4-undo-last-token-move"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-4.md"
         },
         {
           "id": "MOVE-UAT-5",
           "title": "Moving outside an Encounter and in a sandbox",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-5-moving-outside-an-encounter-and-in-a-sandbox"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-5.md"
         },
         {
           "id": "MOVE-UAT-6",
           "title": "Peers converge, reload and departure",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-6-peers-converge-reload-and-departure"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-6.md"
         },
         {
           "id": "MOVE-UAT-7",
           "title": "Overrun, Shove Aside and Tumble",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-7-overrun-shove-aside-and-tumble"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-7.md"
         },
         {
           "id": "MOVE-UAT-8",
           "title": "Hidden hazards, traps and auras",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-8-hidden-hazards-traps-and-auras"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-8.md"
         },
         {
           "id": "MOVE-UAT-9",
           "title": "Climb onto a larger creature",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/MOVE.md#uat-move-9-climb-onto-a-larger-creature"
+          "scenario": "docs/validation/uat/MOVE/UAT-MOVE-9.md"
         }
       ],
       "pbis": [
@@ -9739,7 +10005,7 @@
           "origin": [
             "G5-ASSISTED-MANUAL-JOURNEY"
           ],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-1-assisted-and-manual-encounter-journeys-pass"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-1.md"
         },
         {
           "id": "ENCOUNTER-UAT-2",
@@ -9748,42 +10014,42 @@
           "origin": [
             "G5-OPTIONAL-JOURNEY"
           ],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-2-initiative-and-optional-combat-combinations-pass-end-to-end"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-2.md"
         },
         {
           "id": "ENCOUNTER-UAT-3",
           "title": "Prepare, start, delete and persist a Run",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-3-prepare-start-delete-and-persist-a-run"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-3.md"
         },
         {
           "id": "ENCOUNTER-UAT-4",
           "title": "Controllers, dispositions and removing a member",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-4-controllers-dispositions-and-removing-a-member"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-4.md"
         },
         {
           "id": "ENCOUNTER-UAT-5",
           "title": "Morale",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-5-morale"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-5.md"
         },
         {
           "id": "ENCOUNTER-UAT-6",
           "title": "Roll cards for turn-stage rolls",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-6-roll-cards-for-turn-stage-rolls"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-6.md"
         },
         {
           "id": "ENCOUNTER-UAT-7",
           "title": "Blueprint edits and who can reach them",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ENCOUNTER.md#uat-encounter-7-blueprint-edits-and-who-can-reach-them"
+          "scenario": "docs/validation/uat/ENCOUNTER/UAT-ENCOUNTER-7.md"
         }
       ],
       "pbis": [
@@ -10505,77 +10771,77 @@
           "origin": [
             "G5-LIFECYCLE-JOURNEY"
           ],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-1-effects-movement-reactions-and-the-turn-lifecycle-pass-end-to-end"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-1.md"
         },
         {
           "id": "ATTACK-UAT-2",
           "title": "Players control only their own actors",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-2-players-control-only-their-own-actors"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-2.md"
         },
         {
           "id": "ATTACK-UAT-3",
           "title": "Assisted warnings and \"Do it anyway\"",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-3-assisted-warnings-and-do-it-anyway"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-3.md"
         },
         {
           "id": "ATTACK-UAT-4",
           "title": "Undo last action and its refusals",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-4-undo-last-action-and-its-refusals"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-4.md"
         },
         {
           "id": "ATTACK-UAT-5",
           "title": "Targeting, hidden creatures and private roll cards",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-5-targeting-hidden-creatures-and-private-roll-cards"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-5.md"
         },
         {
           "id": "ATTACK-UAT-6",
           "title": "Hiding, invisibility and unseen attackers",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-6-hiding-invisibility-and-unseen-attackers"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-6.md"
         },
         {
           "id": "ATTACK-UAT-7",
           "title": "Optional combat rules in play",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-7-optional-combat-rules-in-play"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-7.md"
         },
         {
           "id": "ATTACK-UAT-8",
           "title": "Grapple, shove and basic actions",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-8-grapple-shove-and-basic-actions"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-8.md"
         },
         {
           "id": "ATTACK-UAT-9",
           "title": "Class features in play",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-9-class-features-in-play"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-9.md"
         },
         {
           "id": "ATTACK-UAT-10",
           "title": "Multiattack and SRD monster attacks",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-10-multiattack-and-srd-monster-attacks"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-10.md"
         },
         {
           "id": "ATTACK-UAT-11",
           "title": "Weapons in hand, loadouts and Disarm",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/ATTACK.md#uat-attack-11-weapons-in-hand-loadouts-and-disarm"
+          "scenario": "docs/validation/uat/ATTACK/UAT-ATTACK-11.md"
         }
       ],
       "pbis": [
@@ -13737,189 +14003,189 @@
           "title": "Build the casters and cast from the Sheet outside an Encounter",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-1-build-the-casters-and-cast-from-the-sheet-outside-an-encounter"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-1.md"
         },
         {
           "id": "SPELLS-UAT-2",
           "title": "Set up the Spell Arena Encounter (Assisted)",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-2-set-up-the-spell-arena-encounter-assisted"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-2.md"
         },
         {
           "id": "SPELLS-UAT-3",
           "title": "Fireball on a group with saves answered by different controllers",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-3-fireball-on-a-group-with-saves-answered-by-different-controllers"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-3.md"
         },
         {
           "id": "SPELLS-UAT-4",
           "title": "Area caster cannot see a hidden creature",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-4-area-caster-cannot-see-a-hidden-creature"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-4.md"
         },
         {
           "id": "SPELLS-UAT-5",
           "title": "Cones, lines, Self cubes and aiming on the map",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-5-cones-lines-self-cubes-and-aiming-on-the-map"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-5.md"
         },
         {
           "id": "SPELLS-UAT-6",
           "title": "Cover from walls and manual cover",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-6-cover-from-walls-and-manual-cover"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-6.md"
         },
         {
           "id": "SPELLS-UAT-7",
           "title": "Hold Person, Concentration, damage checks, replacement and end",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-7-hold-person-concentration-damage-checks-replacement-and-end"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-7.md"
         },
         {
           "id": "SPELLS-UAT-8",
           "title": "Attack and check modifiers from conditions",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-8-attack-and-check-modifiers-from-conditions"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-8.md"
         },
         {
           "id": "SPELLS-UAT-9",
           "title": "Exhaustion 4 and 6, Petrified resistance, nonmagical defenses and automatic failures",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-9-exhaustion-4-and-6-petrified-resistance-nonmagical-defenses-and-automatic-failures"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-9.md"
         },
         {
           "id": "SPELLS-UAT-10",
           "title": "Dying, death saves, healing and kills",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-10-dying-death-saves-healing-and-kills"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-10.md"
         },
         {
           "id": "SPELLS-UAT-11",
           "title": "Stabilizing: Spare the Dying, Healer's Kit and first aid",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-11-stabilizing-spare-the-dying-healers-kit-and-first-aid"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-11.md"
         },
         {
           "id": "SPELLS-UAT-12",
           "title": "Single-use items and Antitoxin",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-12-single-use-items-and-antitoxin"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-12.md"
         },
         {
           "id": "SPELLS-UAT-13",
           "title": "Reaction spells: Shield and Counterspell, one-roll grants",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-13-reaction-spells-shield-and-counterspell-one-roll-grants"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-13.md"
         },
         {
           "id": "SPELLS-UAT-14",
           "title": "Reaction countdown timer",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-14-reaction-countdown-timer"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-14.md"
         },
         {
           "id": "SPELLS-UAT-15",
           "title": "Grant spells and their lifetimes",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-15-grant-spells-and-their-lifetimes"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-15.md"
         },
         {
           "id": "SPELLS-UAT-16",
           "title": "Grants and Concentration carry over after the Encounter",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-16-grants-and-concentration-carry-over-after-the-encounter"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-16.md"
         },
         {
           "id": "SPELLS-UAT-17",
           "title": "Two Concentrations with an authored ring",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-17-two-concentrations-with-an-authored-ring"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-17.md"
         },
         {
           "id": "SPELLS-UAT-18",
           "title": "Dragons, breath weapons and Legendary Resistance",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-18-dragons-breath-weapons-and-legendary-resistance"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-18.md"
         },
         {
           "id": "SPELLS-UAT-19",
           "title": "Zones, auras and lasting hazards",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-19-zones-auras-and-lasting-hazards"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-19.md"
         },
         {
           "id": "SPELLS-UAT-20",
           "title": "Multi-target spells and teleports",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-20-multi-target-spells-and-teleports"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-20.md"
         },
         {
           "id": "SPELLS-UAT-21",
           "title": "Invisibility, Sanctuary, Fear and Blindness",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-21-invisibility-sanctuary-fear-and-blindness"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-21.md"
         },
         {
           "id": "SPELLS-UAT-22",
           "title": "Summons: turns, groups and ends",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-22-summons-turns-groups-and-ends"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-22.md"
         },
         {
           "id": "SPELLS-UAT-23",
           "title": "Manual mode raises no rules prompts",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-23-manual-mode-raises-no-rules-prompts"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-23.md"
         },
         {
           "id": "SPELLS-UAT-24",
           "title": "Privacy and permissions refusals",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-24-privacy-and-permissions-refusals"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-24.md"
         },
         {
           "id": "SPELLS-UAT-25",
           "title": "Phone width: Sheet death saves and summons",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-25-phone-width-sheet-death-saves-and-summons"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-25.md"
         },
         {
           "id": "SPELLS-UAT-26",
           "title": "Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility)",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-26-sheet-attack-rows-match-the-room-and-an-always-on-feature-that-rests-restore-tranquility"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-26.md"
         },
         {
           "id": "SPELLS-UAT-27",
           "title": "Racial traits, creature traits and Eldritch Blast",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/SPELLS.md#uat-spells-27-racial-traits-creature-traits-and-eldritch-blast"
+          "scenario": "docs/validation/uat/SPELLS/UAT-SPELLS-27.md"
         }
       ],
       "pbis": [
@@ -24100,49 +24366,49 @@
           "title": "Shield prompts the right player while the attacker waits",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-1-shield-prompts-the-right-player-while-the-attacker-waits"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-1.md"
         },
         {
           "id": "REACTION-UAT-2",
           "title": "Only the right controller answers; GM Skip decision",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-2-only-the-right-controller-answers-gm-skip-decision"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-2.md"
         },
         {
           "id": "REACTION-UAT-3",
           "title": "Roll prompts, Auto-roll on versus off",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-3-roll-prompts-auto-roll-on-versus-off"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-3.md"
         },
         {
           "id": "REACTION-UAT-4",
           "title": "Counterspell and chains",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-4-counterspell-and-chains"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-4.md"
         },
         {
           "id": "REACTION-UAT-5",
           "title": "An authored reaction spell (Absorb Elements)",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-5-an-authored-reaction-spell-absorb-elements"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-5.md"
         },
         {
           "id": "REACTION-UAT-6",
           "title": "Disarm evidence from participants",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-6-disarm-evidence-from-participants"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-6.md"
         },
         {
           "id": "REACTION-UAT-7",
           "title": "Reconnect while a decision is open",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/REACTION.md#uat-reaction-7-reconnect-while-a-decision-is-open"
+          "scenario": "docs/validation/uat/REACTION/UAT-REACTION-7.md"
         }
       ],
       "pbis": [
@@ -24651,63 +24917,63 @@
           "title": "What a player sees of the Encounter",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-1-what-a-player-sees-of-the-encounter"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-1.md"
         },
         {
           "id": "PRIVACY-UAT-2",
           "title": "GM private rolls and monster rolls",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-2-gm-private-rolls-and-monster-rolls"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-2.md"
         },
         {
           "id": "PRIVACY-UAT-3",
           "title": "Non-members, removed players and signed-out visitors",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-3-non-members-removed-players-and-signed-out-visitors"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-3.md"
         },
         {
           "id": "PRIVACY-UAT-4",
           "title": "Ownership transfer changes who sees what",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-4-ownership-transfer-changes-who-sees-what"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-4.md"
         },
         {
           "id": "PRIVACY-UAT-5",
           "title": "Reloads and replays do not leak",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-5-reloads-and-replays-do-not-leak"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-5.md"
         },
         {
           "id": "PRIVACY-UAT-6",
           "title": "Health display settings",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-6-health-display-settings"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-6.md"
         },
         {
           "id": "PRIVACY-UAT-7",
           "title": "Other players' Sheets and Campaign roster",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-7-other-players-sheets-and-campaign-roster"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-7.md"
         },
         {
           "id": "PRIVACY-UAT-8",
           "title": "Campaign content stays hidden until revealed",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-8-campaign-content-stays-hidden-until-revealed"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-8.md"
         },
         {
           "id": "PRIVACY-UAT-9",
           "title": "A hidden Concentration source stays hidden",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PRIVACY.md#uat-privacy-9-a-hidden-concentration-source-stays-hidden"
+          "scenario": "docs/validation/uat/PRIVACY/UAT-PRIVACY-9.md"
         }
       ],
       "pbis": [
@@ -24966,91 +25232,91 @@
           "origin": [
             "G5-RESILIENCE"
           ],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-1-privacy-replay-rollback-concurrency-and-performance-hold-together"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-1.md"
         },
         {
           "id": "RELIABILITY-UAT-2",
           "title": "Two users act at the same moment",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-2-two-users-act-at-the-same-moment"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-2.md"
         },
         {
           "id": "RELIABILITY-UAT-3",
           "title": "The room closes after everyone leaves and reopens with state intact",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-3-the-room-closes-after-everyone-leaves-and-reopens-with-state-intact"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-3.md"
         },
         {
           "id": "RELIABILITY-UAT-4",
           "title": "A new Scene measures lengths correctly in every unit",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-4-a-new-scene-measures-lengths-correctly-in-every-unit"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-4.md"
         },
         {
           "id": "RELIABILITY-UAT-5",
           "title": "Forms and sign-out recover without silent data loss",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-5-forms-and-sign-out-recover-without-silent-data-loss"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-5.md"
         },
         {
           "id": "RELIABILITY-UAT-6",
           "title": "A contested passage holds, then spends once",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-6-a-contested-passage-holds-then-spends-once"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-6.md"
         },
         {
           "id": "RELIABILITY-UAT-7",
           "title": "Authored speed and sense bonuses use the right length unit",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-7-authored-speed-and-sense-bonuses-use-the-right-length-unit"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-7.md"
         },
         {
           "id": "RELIABILITY-UAT-8",
           "title": "The Sheet shows correct rests, ability checks and hit points",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-8-the-sheet-shows-correct-rests-ability-checks-and-hit-points"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-8.md"
         },
         {
           "id": "RELIABILITY-UAT-9",
           "title": "Roll reasons and initiative read the right source",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-9-roll-reasons-and-initiative-read-the-right-source"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-9.md"
         },
         {
           "id": "RELIABILITY-UAT-10",
           "title": "Builder and party inventory values are right",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-10-builder-and-party-inventory-values-are-right"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-10.md"
         },
         {
           "id": "RELIABILITY-UAT-11",
           "title": "Authoring selects, labels and lists",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-11-authoring-selects-labels-and-lists"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-11.md"
         },
         {
           "id": "RELIABILITY-UAT-12",
           "title": "Core pages open with their data",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-12-core-pages-open-with-their-data"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-12.md"
         },
         {
           "id": "RELIABILITY-UAT-13",
           "title": "Account deletion closes the live table",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/RELIABILITY.md#uat-reliability-13-account-deletion-closes-the-live-table"
+          "scenario": "docs/validation/uat/RELIABILITY/UAT-RELIABILITY-13.md"
         }
       ],
       "pbis": [
@@ -27759,28 +28025,28 @@
           "title": "Token identity, status rings, facing and system state",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/VTT_UI.md#uat-vtt_ui-1-token-identity-status-rings-facing-and-system-state"
+          "scenario": "docs/validation/uat/VTT_UI/UAT-VTT_UI-1.md"
         },
         {
           "id": "VTT_UI-UAT-2",
           "title": "Previews, footprints, large tokens and dragging",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/VTT_UI.md#uat-vtt_ui-2-previews-footprints-large-tokens-and-dragging"
+          "scenario": "docs/validation/uat/VTT_UI/UAT-VTT_UI-2.md"
         },
         {
           "id": "VTT_UI-UAT-3",
           "title": "Light, fog, senses and the GM's view preview",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/VTT_UI.md#uat-vtt_ui-3-light-fog-senses-and-the-gms-view-preview"
+          "scenario": "docs/validation/uat/VTT_UI/UAT-VTT_UI-3.md"
         },
         {
           "id": "VTT_UI-UAT-4",
           "title": "Keyboard, screen reader and low zoom",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/VTT_UI.md#uat-vtt_ui-4-keyboard-screen-reader-and-low-zoom"
+          "scenario": "docs/validation/uat/VTT_UI/UAT-VTT_UI-4.md"
         }
       ],
       "pbis": [
@@ -28253,14 +28519,14 @@
           "status": "NOT_RUN",
           "origin": [],
           "reference": "apps/web/tests/managed-vtt/managedRemoteVtt.spec.ts",
-          "scenario": "docs/validation/uat/PERF.md#uat-perf-1-managed-three-user-live-room-journey-needs-managed-credentials-run-only-on-an-approved-staging-smoke"
+          "scenario": "docs/validation/uat/PERF/UAT-PERF-1.md"
         },
         {
           "id": "PERF-UAT-2",
           "title": "Four people at a local table feel responsive",
           "status": "NOT_RUN",
           "origin": [],
-          "scenario": "docs/validation/uat/PERF.md#uat-perf-2-four-people-at-a-local-table-feel-responsive"
+          "scenario": "docs/validation/uat/PERF/UAT-PERF-2.md"
         }
       ],
       "pbis": [
@@ -28414,7 +28680,7 @@
             },
             {
               "id": "PERF-1.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-1.2"
               ],
@@ -28426,7 +28692,10 @@
                 "after": []
               },
               "text": "The 13 encounter, import and live-session Convex modules that still import full zod at run time (and so carry every zod locale) use the schema package z instead; extend the module-budget gate from T2 to every Convex function bundle so no bundle carries a non-English locale.",
-              "note": "Registered 2026-11-03 from the PERF-1.T2 report; widens the per-call floor margin under the 1 s limit."
+              "note": "Merged 2026-11-03 (m629, merge-slice run 41713450455). 16 modules moved to the @artificer-toolkit/schema/zod subpath (zod/mini, no locales); the budget test gates all 410 function bundles. Red proof: run 41707000172.",
+              "proof": [
+                "apps/apis/convex/functionBundleBudget.test.ts"
+              ]
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
@@ -28988,7 +29257,7 @@
           "origin": [
             "G5-CLEANUP-ACCEPTANCE"
           ],
-          "scenario": "docs/validation/uat/RELEASE.md#uat-release-1-exact-cleanup-and-final-acceptance"
+          "scenario": "docs/validation/uat/RELEASE/UAT-RELEASE-1.md"
         }
       ],
       "pbis": [
@@ -29197,6 +29466,15 @@
                 "R09.2"
               ],
               "id": "RELEASE-3.2"
+            },
+            {
+              "id": "RELEASE-3.3",
+              "text": "Staging upgrades in place: every stored-schema change that narrows what staging already holds since its deployed source ships a migration, proved by a local rehearsal that deploys the release over staging-shaped data and runs the migrations; promotion and re-promotion never reset or reseed staging.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "User approval 2026-11-03 (D187 growth)"
+              ]
             }
           ],
           "wsjf": {
@@ -29243,7 +29521,9 @@
                 "size": 5,
                 "after": [
                   "RELEASE-3.T1",
-                  "RELEASE-8.T2"
+                  "RELEASE-8.T2",
+                  "RELEASE-3.T4",
+                  "PLATFORM-27.T1"
                 ],
                 "finalSource": true
               },
@@ -29268,6 +29548,24 @@
               },
               "text": "Record the explicit Supabase (and remaining managed legacy services) retirement decision after R09 passes: present the evidence to the user, capture their ruling in phase-08-2-decisions.md and the open-questions doc, and update the ledger. User decides; agent writes it up.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+            },
+            {
+              "id": "RELEASE-3.T4",
+              "status": "TODO",
+              "closes": [
+                "RELEASE-3.3"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "RELEASE-3.T1"
+                ],
+                "finalSource": true
+              },
+              "text": "Upgrade-in-place readiness: diff the stored Convex schema between staging's deployed source (from RELEASE-3.T1's prior deployment ids) and the release source; list every narrowing change; add a migration for each that lacks one; rehearse locally by deploying staging's source to the local container, building data in that shape, deploying the release on top and running the migrations to completion with the SRD audit green. Local only."
             }
           ]
         },
@@ -29523,11 +29821,11 @@
               "id": "RELEASE-8.1"
             },
             {
-              "text": "The owner reviews the UI on the review data and signs off before staging promotion; findings are fixed or registered.",
+              "text": "Before staging promotion, an agent smoke-checks every review Campaign's surfaces on the final local build and fixes or registers findings; the owner's acceptance happens through staging UAT, not a local review.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging).",
+              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback.",
               "id": "RELEASE-8.2"
             },
             {
@@ -29541,13 +29839,13 @@
             },
             {
               "id": "RELEASE-8.4",
-              "text": "External testers run UAT on staging: an owner-approved run builds the same four review Campaigns on staging through product commands, with invited tester accounts in the GM and player roles (no shared password, no local-only fixtures, no secrets in logs), and a staging tester guide covers invited sign-in, real email, which scenarios apply on staging, and recording results; the UAT README becomes the local operator guide.",
+              "text": "External testers run UAT on staging: an owner-approved run provisions numbered tester sets on staging through product commands, each with five prebuilt verified accounts (GM, P1-P3, SPARE) on owner plus-addressed emails, a per-set password generated at run time and shown only to the operator, and its own copy of the four review Campaigns; sets are independent and rebuildable without a reset. Scenarios are tagged Solo (one tester, one account; account-security flows on the tester's own account and email) or Group (run by the owner with one browser profile per role), and a staging tester guide covers sign-in, real email, which scenarios apply and recording results.",
               "status": "TODO",
               "proof": [],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): staging UAT for other users"
               ],
-              "note": "Registered 2026-11-03."
+              "note": "Registered 2026-11-03. Revised 2026-11-03 (owner rulings: prebuilt per-tester sets, Solo/Group split, staging-only UAT)."
             }
           ],
           "wsjf": {
@@ -29665,8 +29963,8 @@
                 ],
                 "finalSource": true
               },
-              "text": "Run the script against the local container after the final reset, hand the owner the data and a short surface list, collect findings, fix or register them, and record the owner's sign-off before staging. User action: the review and sign-off.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "After the final reset, run the review-data script against the local container and walk each review Campaign's surfaces in the Browser pane (Builder, Sheet, Scene, Encounter, live turn); fix or register findings and record the checked build identity. Agent-run; no owner sign-off (that is staging UAT).",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback."
             },
             {
               "id": "RELEASE-8.T5",
@@ -29681,7 +29979,7 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Staging review data: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a role map of invited tester accounts (GM, P1-P3, SUPERADMIN, spares), builds the four review Campaigns through the same product commands, never creates accounts or a shared password there, and keeps local-only steps (fixtures, admin key generation, email sink) local. Proved by real-code tests that the managed path binds the given accounts and refuses local-only steps; the staging run itself needs the owner's approval each time (ADR 0035).",
+              "text": "Staging tester sets: the review-data builder (developmentReviewDataCli via scripts/seedReviewData.mjs) accepts a managed target and a set number N, creates five verified accounts (GM, P1-P3, SPARE) at mekhit02+t<N>-<role>@gmail.com with one password generated per set and printed once to the operator (never persisted or logged), builds that set's own four review Campaigns (set number in each name) through product commands, skips finished work on re-run, offers a rebuild of one set, and keeps local-only steps local (set 0 is the local review accounts). Real-code tests: independent sets, re-run no-op, rebuild touches only its set, no password persisted or logged. The staging run itself needs the owner's approval each time (ADR 0035).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -29699,7 +29997,7 @@
                   "RELEASE-8.T5"
                 ]
               },
-              "text": "Staging tester guide docs/validation/uat/TESTERS.md: invited sign-in, browser profiles per role, real email in place of the local sink, which scenarios and gaps apply on staging (each scenario file marks local-only steps), results templates and file naming; the README external-testers section becomes a pointer and the README is the local operator guide."
+              "text": "Staging tester guide docs/validation/uat/TESTERS.md: signing in to the assigned prebuilt account, creating the own-email account for the account-security scenarios, real email checks (arrival, branding, links, spam), which Solo scenarios to run in what order, and recording run notes (tester, set, role, scenario); reconcile with the restructured Start here page rather than duplicating it."
             }
           ]
         }

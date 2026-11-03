@@ -2,6 +2,7 @@ import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { createLocalJWKSet, jwtVerify } from 'jose'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+import type { AccountPasswordUpdateInput } from '@artificer-toolkit/schema/api/account'
 import { authEmailDeliveryInputSchema } from '@artificer-toolkit/schema/api/auth'
 import { convexTest } from '../tests/convexTest'
 import { generateValidUsername } from '../tests/fixtures/generatedUsername'
@@ -19,7 +20,10 @@ beforeEach(() => {
   vi.stubEnv('PUBLIC_SIGN_UP_ENABLED', undefined)
   vi.resetModules()
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.useRealTimers()
+})
 
 // Drives the real Better Auth HTTP handler; only the Convex platform (JWT validation into an
 // identity, email transport) is replaced by the in-memory backend.
@@ -216,5 +220,103 @@ describe('account journeys through the Better Auth HTTP handler', () => {
       (await request('sign-in/email', { body: { email: signup.email, password: newPassword } }))
         .status
     ).toBe(200)
+  })
+
+  it('changes the password and then the email from Account Settings: old credentials work until each change lands', async () => {
+    vi.stubEnv('PUBLIC_SIGN_UP_ENABLED', 'true')
+    // Better Auth allows 3 /sign-in requests per IP per 10s; the fake clock steps past each window.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const nextSignInWindow = () => vi.setSystemTime(Date.now() + 11_000)
+    const { request, deliveries, findUser } = await backend()
+    const signup = signupInput()
+    expect((await request('sign-up/email', { body: signup })).status).toBe(200)
+    const confirmation = new URL(
+      (await deliveries(signup.email)).filter((delivery) => delivery.action === 'signup').at(-1)!
+        .actionUrl
+    )
+    expect((await request(`${confirmation.pathname}${confirmation.search}`)).status).toBe(302)
+    const login = await request('sign-in/email', { body: signup })
+    expect(login.status).toBe(200)
+    const bearer = login.body?.token
+    if (typeof bearer !== 'string') throw new Error('Login returned no session.')
+
+    const newPassword = 'Local-journey-changed-8175!'
+    const passwordChange = {
+      email: signup.email,
+      currentPassword: signup.password,
+      password: newPassword
+    } satisfies AccountPasswordUpdateInput
+    expect(await request('account/password', { body: passwordChange })).toMatchObject({
+      status: 401
+    })
+    expect(
+      await request('account/password', {
+        body: { ...passwordChange, currentPassword: 'Wrong-journey-password-8175!' },
+        bearer
+      })
+    ).toMatchObject({ status: 400, body: { code: 'INVALID_PASSWORD' } })
+    // The refused attempts changed nothing: the original password is still the current one.
+    expect(await request('account/password', { body: passwordChange, bearer })).toMatchObject({
+      status: 200,
+      body: null
+    })
+    expect((await request('sign-in/email', { body: signup })).status).toBe(401)
+    expect(
+      (await request('sign-in/email', { body: { email: signup.email, password: newPassword } }))
+        .status
+    ).toBe(200)
+
+    const newEmail = `changed-${signup.email}`
+    const emailChange = {
+      newEmail,
+      callbackURL: `${appOrigin}/settings/account?emailChanged=1`
+    }
+    nextSignInWindow()
+    expect(await request('change-email', { body: emailChange })).toMatchObject({ status: 401 })
+    expect(await request('change-email', { body: emailChange, bearer })).toMatchObject({
+      status: 200,
+      body: { status: true }
+    })
+    const signInOld = () =>
+      request('sign-in/email', { body: { email: signup.email, password: newPassword } })
+    const signInNew = () =>
+      request('sign-in/email', { body: { email: newEmail, password: newPassword } })
+    const changeLinks = async (recipient: string) =>
+      (await deliveries(recipient)).filter((delivery) => delivery.action === 'email_change')
+    const [currentAddressLink] = await changeLinks(signup.email)
+    expect(await changeLinks(newEmail)).toEqual([])
+    nextSignInWindow()
+    expect((await signInOld()).status).toBe(200)
+    expect((await signInNew()).status).toBe(401)
+
+    const currentAddressUrl = new URL(currentAddressLink!.actionUrl)
+    expect(await request(`${currentAddressUrl.pathname}${currentAddressUrl.search}`)).toMatchObject(
+      { status: 302, location: `${appOrigin}/settings/account?emailChanged=1` }
+    )
+    const [newAddressLink] = await changeLinks(newEmail)
+    expect(newAddressLink).toBeDefined()
+    // Until the new address confirms, the old address still signs in and still receives mail.
+    expect(await findUser(newEmail)).toBeNull()
+    nextSignInWindow()
+    expect((await signInOld()).status).toBe(200)
+    expect((await signInNew()).status).toBe(401)
+    expect(
+      (await request('email-otp/request-password-reset', { body: { email: signup.email } })).status
+    ).toBe(200)
+    expect(
+      (await deliveries(signup.email)).filter((delivery) => delivery.action === 'recovery')
+    ).toHaveLength(1)
+    expect(await deliveries(newEmail)).toEqual([newAddressLink])
+
+    const newAddressUrl = new URL(newAddressLink!.actionUrl)
+    expect(await request(`${newAddressUrl.pathname}${newAddressUrl.search}`)).toMatchObject({
+      status: 302,
+      location: `${appOrigin}/settings/account?emailChanged=1`
+    })
+    expect(await findUser(newEmail)).toMatchObject({ email: newEmail, emailVerified: true })
+    expect(await findUser(signup.email)).toBeNull()
+    nextSignInWindow()
+    expect((await signInNew()).status).toBe(200)
+    expect((await signInOld()).status).toBe(401)
   })
 })

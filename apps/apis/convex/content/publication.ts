@@ -1,6 +1,5 @@
-import * as zMini from 'zod/mini'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import {
   authoredPublishDraftInputSchema,
   authoredPublicationResultSchema,
@@ -29,7 +28,7 @@ import {
   readPublicationState
 } from './publicationPersistence'
 
-const mutationPublishDraftInputSchema = zMini.extend(authoredPublishDraftInputSchema, {
+const mutationPublishDraftInputSchema = z.extend(authoredPublishDraftInputSchema, {
   subjectKind: z.enum(['BACKGROUND', 'CREATURE', 'EQUIPMENT', 'FEAT', 'RACE', 'SPELL', 'VEHICLE'])
 })
 

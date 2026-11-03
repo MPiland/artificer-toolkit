@@ -8,7 +8,7 @@ import {
 import { readRoomInputsBatch } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import { httpAction, type ActionCtx } from '../_generated/server'
 
 const bootstrap = makeFunctionReference<'query', JsonObject, unknown>(

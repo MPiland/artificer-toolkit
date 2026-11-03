@@ -90,6 +90,11 @@
       "source": "./src/projections/*.ts",
       "types": "./dist/projections/*.d.ts",
       "default": "./dist/projections/*.js"
+    },
+    "./zod": {
+      "source": "./src/zod.ts",
+      "types": "./dist/zod.d.ts",
+      "default": "./dist/zod.js"
     }
   },
   "scripts": {

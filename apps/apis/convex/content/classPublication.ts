@@ -1,7 +1,6 @@
-import * as zMini from 'zod/mini'
 import { v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import {
   authoredNodeRuntimeSourceFactsSchema,
   isNodeRuntimeSourceTable,
@@ -26,7 +25,7 @@ import {
 } from './publicationPersistence'
 import { readDraftPayloadJson } from './documents'
 
-const classPublishDraftInputSchema = zMini.extend(authoredPublishDraftInputSchema, {
+const classPublishDraftInputSchema = z.extend(authoredPublishDraftInputSchema, {
   subjectKind: z.literal('CLASS')
 })
 

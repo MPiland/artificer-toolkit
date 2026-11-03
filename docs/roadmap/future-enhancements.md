@@ -97,6 +97,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
 - **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
 - **Failure outcomes on an authored check (RULES-2.T6e3b1a):** authoring lets a CHECK trigger hold only an ON_CHECK_SUCCESS path, so a failed homebrew check does nothing. Add an ON_CHECK_FAIL path through the node map, compiler and room, for example "on a failed Athletics check you fall and take 1d6".
+- **In-app superadmin invitations (user request, 2026-11-03):** an admin page where a superadmin enters an email address and sends an account invitation through the same path as `authInvitationsCli:invite`, with a list of pending invitations to reissue or revoke. Until then, invitations are sent with that function from the Convex dashboard's Functions page (staging and production) or `apps/apis/scripts/convexRunLocal.mjs` (local).
+- **Mailpit for local email (user request, 2026-11-03):** run Mailpit as a container beside the local Convex backend and point the local email sender at its send API in place of the current sink (`apps/apis/tests/localEmailSink.ts`, read with `scripts/localConvexFixtures.ps1 -Action mail`), so local mail to any throwaway address is read in a browser inbox. Local only: staging and production keep real delivery through Resend.
 
 ### Deferred edge cases (watch for in real use)
 

@@ -24,7 +24,7 @@ import {
   temporaryHitPointsAfterRelease,
   type TemporaryHitPointsPool
 } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'

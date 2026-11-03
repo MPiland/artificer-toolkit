@@ -1,6 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
-import { z } from 'zod'
+import { z } from '@artificer-toolkit/schema/zod'
 import {
   importResultItemDtoSchema,
   type ImportResultItemDto
@@ -19,8 +19,12 @@ import { internalMutation } from '../lib/mutations'
 import { parseImportJob, requireCurrentImportOwner } from './jobs'
 
 const planOutputSchema = z.strictObject({
-  generatedIds: z.array(uuidSchema).max(IMPORT_MAX_STAGE_ROWS),
-  expectedStageCount: z.number().int().positive().max(IMPORT_MAX_STAGE_ROWS)
+  generatedIds: z.array(uuidSchema).check(z.maxLength(IMPORT_MAX_STAGE_ROWS)),
+  expectedStageCount: z
+    .number()
+    .check(z.int())
+    .check(z.positive())
+    .check(z.maximum(IMPORT_MAX_STAGE_ROWS))
 })
 
 export type ImportRunnerPlan = z.infer<typeof planOutputSchema>
