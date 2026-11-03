@@ -5,6 +5,7 @@ import {
   type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
+import { collectDocumentObjects, unambiguousDocumentObjects } from '@artificer-toolkit/shared/utils'
 import type {
   EffectPathAuthored,
   ProficiencyGrantAuthored,
@@ -47,6 +48,7 @@ export const authoredSourceKindsByTable: Readonly<
 > = {
   background_features: ['BACKGROUND'],
   backgrounds: ['BACKGROUND'],
+  charges: effectSubjectKinds.filter((kind) => kind !== 'VEHICLE'),
   class_features: ['CLASS'],
   class_proficiency_grants: ['CLASS'],
   class_resources: ['CLASS'],
@@ -359,6 +361,13 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
       for (const feature of subject.document.features ?? []) addFeature(feature, null)
       break
   }
+
+  // A vehicle has no document identity for a child to name as its parent.
+  if (subject.subjectKind !== 'VEHICLE')
+    for (const { value, label } of unambiguousDocumentObjects(
+      collectDocumentObjects(subject.document, 'charges')
+    ))
+      add('charges', { document_id: subject.document.id, id: value, label })
 
   for (const tableRows of Object.values(rows))
     tableRows?.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))

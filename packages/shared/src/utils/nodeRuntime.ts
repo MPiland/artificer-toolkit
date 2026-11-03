@@ -49,6 +49,41 @@ export function resolveLocalCollectionOptions(
   return options
 }
 
+/**
+ * Every object under `root` that holds an object at `key` with a string `id`, as that object's id and
+ * its owner's label. An id that more than one object carries appears once per carrier.
+ */
+export function collectDocumentObjects(
+  root: unknown,
+  key: string
+): Array<{ id: string; label: string }> {
+  const found: Array<{ id: string; label: string }> = []
+  const visit = (node: unknown) => {
+    if (Array.isArray(node)) return node.forEach(visit)
+    if (!isRuntimeRecord(node)) return
+    const object = node[key]
+    if (isRuntimeRecord(object) && typeof object.id === 'string')
+      found.push({
+        id: object.id,
+        label: typeof node.label === 'string' ? node.label : object.id
+      })
+    Object.values(node).forEach(visit)
+  }
+  visit(root)
+  return found
+}
+
+/** The objects `collectDocumentObjects` finds, minus the ids more than one object carries. */
+export function unambiguousDocumentObjects(
+  objects: readonly { id: string; label: string }[]
+): Array<{ value: string; label: string }> {
+  const counts = new Map<string, number>()
+  for (const { id } of objects) counts.set(id, (counts.get(id) ?? 0) + 1)
+  return objects
+    .filter(({ id }) => counts.get(id) === 1)
+    .map(({ id, label }) => ({ value: id, label }))
+}
+
 export function resolveIdRef(ref: IdRef, scope: NodeRuntimeScope): unknown {
   return getValueAtPath(resolveScopedSource(ref, scope), ref.path)
 }

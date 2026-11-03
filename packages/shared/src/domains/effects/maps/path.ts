@@ -87,6 +87,7 @@ import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
+import { CHARGE_SELECT_SOURCE } from './chargeSource.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
 import { ACTOR_RELATIONSHIP_MODULE_NODE_MAP } from './actorRelationshipModule.js'
@@ -1824,7 +1825,7 @@ function registerOutcomeFields(
     )
     .set(
       'chargeId',
-      text(['chargeId'], 'Charge ID', {
+      selectSingle(['chargeId'], 'Resource pool', CHARGE_SELECT_SOURCE, {
         requiredIf: true,
         showIf: or([
           local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE),
