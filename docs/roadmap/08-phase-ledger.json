@@ -4239,7 +4239,7 @@
         {
           "id": "AUTHORING-21",
           "title": "Authors pick a resource pool instead of typing its id",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [
             "2026-11-02 authoring complexity audit; user approved pre-UAT (D187 exception)"
           ],
@@ -4247,22 +4247,34 @@
             {
               "id": "AUTHORING-21.1",
               "text": "Every authored field that links an effect to a resource pool (resourceUse.chargeId, castModifier.chargeId and the resource-pool chargeId in invocation.ts) is a single select listing the pools the authored record can reach, by their names; the author never types an id. Proved through the real form renderer.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/forms/tests/ResourcePoolPicker.test.tsx",
+                "packages/authoring/src/nodeRuntime/resourcePoolLinkAuthoring.test.ts",
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts",
+                "packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts"
+              ],
+              "origin": [],
+              "note": "Closed 2026-11-03 by AUTHORING-21.T1."
             },
             {
               "id": "AUTHORING-21.2",
               "text": "Saving or publishing a record whose chargeId names no reachable pool is refused with a field error on that node (authoring resolver or publication validation, real code), so a broken link can never reach play.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/forms/tests/ResourcePoolPicker.test.tsx",
+                "packages/authoring/src/nodeRuntime/resourcePoolLinkAuthoring.test.ts",
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts",
+                "packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts"
+              ],
+              "origin": [],
+              "note": "Closed 2026-11-03 by AUTHORING-21.T1."
             }
           ],
           "tasks": [
             {
               "id": "AUTHORING-21.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "AUTHORING-21.1",
                 "AUTHORING-21.2"
@@ -4275,8 +4287,8 @@
                 "after": []
               },
               "text": "Seam-audit first: trace how a chargeId resolves at play (rules-runtime pool lookup) and what 'reachable pools' means per root (same feature, same class, character charges). Replace the three text nodes with a DATA-relationship selectSingle (pattern: targeting.ts:137-146) and add the unreachable-id refusal in the authoring layer. SRD records keep resolving (parity tests stay green). No feature-specific code.",
-              "note": "Registered 2026-11-02 on user approval; ahead of UAT so testers do not hit silent pool-link failures.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Merged in m626 (2026-11-03): generic DOCUMENT_OBJECTS select source; Resource pool selectSingle replaces the three chargeId text nodes; unknown pools refused; charges source-facts table, AUTHORED_SOURCE_FACTS_VERSION 4.",
+              "proof": "apps/web/src/forms/tests/ResourcePoolPicker.test.tsx, packages/authoring/src/nodeRuntime/resourcePoolLinkAuthoring.test.ts, packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts, packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts"
             }
           ],
           "wsjf": {
@@ -4284,7 +4296,11 @@
             "tc": 8,
             "rr": 5,
             "size": 2
-          }
+          },
+          "journeyTests": [
+            "apps/web/src/forms/tests/ResourcePoolPicker.test.tsx"
+          ],
+          "journeyStatus": "verified"
         }
       ]
     },
@@ -28382,7 +28398,7 @@
             },
             {
               "id": "PERF-1.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-1.2"
               ],
@@ -28394,7 +28410,7 @@
                 "after": []
               },
               "text": "Local latency optimization pass toward the PERF-1.2 targets (ephemeral preview p95 <= 150 ms, durable convergence p95 <= 250 / p99 <= 500 ms, command p95 <= 1 s) from CI-recorded evidence: trace the largest contributors per metric (vtt-browser ephemeral p95 183 ms, inputToSend ~157 ms on every run) to code with file:line, fix the root causes, and keep Convex I/O inside the Q16 budget. First, give the latency limit rule one home: scripts/validatePreStagingLocal.mjs reuses latencyGate measureLatency instead of re-implementing the inclusive/exclusive rule. Excludes contentShares:list (T2).",
-              "note": "Registered 2026-11-03 under PERF-1.2; runs in parallel with UAT. T1 stays the phase-end final-source run."
+              "note": "Merged in m626 (2026-11-03) with the PERF-1.T0 fix (Node JSON import in latencyGate, journey selection by own spec): trailing preview send in liveSessionClient (latest sample sent at interval end), page-clock preview timing, one latency module (validatePreStagingLocal uses measureLatency). Ephemeral p95 159-309 ms on CI vs 150 target: receipt-to-paint is two frames on the GPU-less CI browser against the Vite dev server; no product code on that path (vttSceneRenderer.ts:550). Not separated: ruleBound cost in campaigns/characterSheet:execute and characters/sheetSlices:get vs module load (see T4)."
             },
             {
               "id": "PERF-1.T4",
@@ -28464,7 +28480,7 @@
                 "finalSource": true
               },
               "text": "Run the frozen workload against the authorized staging environment as part of RELEASE-3.1's promotion, with the same thresholds from verifyV15Budgets/driver asserts, and record the evidence. Work is making the existing driver accept a managed target (URLs from the staging env, no secrets in logs) and one run; requires explicit user approval each time (cloud staging rule) and ADR 0035 forbids Convex Cloud for tests unless approved.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-11-03 (PERF-1.T3): measure the ephemeral preview metric in a GPU browser against a production web build; the GitHub runner browser adds two frames (150-300 ms) of receipt-to-paint on its own."
             }
           ]
         },

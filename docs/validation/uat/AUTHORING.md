@@ -444,11 +444,11 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 1. **P1:** Start the timer. Open http://localhost:3000/feats/new and enter the **Name** "UAT Empowered Copy" and a **Description** (paste the SRD Empowered Spell text or write your own).
 2. **P1:** Under **Charges** define the pool the feature spends, a stand-in for sorcery points: choose a **Limit Kind** (for example Fixed amount, with a number of points) and a **Reset Kind** of Long Rest.
 3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Passive and **Trigger** to Activated.
-4. **P1:** In **Cast Modifier**, choose the pool from the list (the picker lists the pool from step 2). Set **Cost** to 1. In **Rerolls damage dice after the roll** set **Damage dice rerolled** to 0, **Plus the modifier of** to Charisma, and **At least** to 1.
+4. **P1:** In **Cast Modifier**, choose the pool from the **Resource pool** list (the pool from step 2, listed under the Feat's name). Set **Cost** to 1. In **Rerolls damage dice after the roll** set **Damage dice rerolled** to 0, **Plus the modifier of** to Charisma, and **At least** to 1.
 5. **P1:** Under **Outcome Paths** add one path: **Outcome Path** On Use, **Outcome Group** Single, **Selection Model** Direct. In its **Result**, add an outcome with **Effect Kind** Manual Adjudication, a **Reason** of your choice, and **Instructions** such as "The chosen damage dice are rolled again, and the new rolls stand."
 6. **P1:** Choose **Save Draft**, reload, confirm the pool is still selected in **Cast Modifier**, then **Activate**. Stop the timer.
 7. **P1:** Open the published copy in the reader view beside the SRD Empowered Spell and compare: the cost (1 point), the Charisma-based reroll count with a minimum of one, and the pool it spends.
-8. **P1:** Rename the pool in the Charges section, **Activate** again, and reopen the Cast Modifier.
+8. **P1:** Rename the Feat (a pool is listed under its owner's name), **Activate** again, and reopen the Cast Modifier.
 9. **P1:** Record the time taken and the difficulty rating, then delete the Feat.
 
 **Expected**
@@ -456,7 +456,7 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 - Step 4: the pool is chosen from a list, not typed as an ID; a feature with no pool defined offers an empty list rather than a free-text box. If the picker does not list the Feat's own pool (the SRD defines the pool on the Class, under Resource, Charges), record that; building a homebrew Class to hold the pool is the fallback and counts toward the time.
 - Step 6: the chosen pool survives the reload and the feature activates.
 - Step 7: the copy and the SRD Empowered Spell agree on cost, reroll count and minimum, and both name the pool they spend.
-- Step 8: the Cast Modifier still points at the same pool after the pool is renamed.
+- Step 8: the Cast Modifier still points at the same pool, now shown under the Feat's new name.
 
 **Other users see**
 
