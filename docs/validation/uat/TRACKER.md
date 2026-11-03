@@ -1,6 +1,6 @@
 # UAT tracker
 
-The ordered path through every UAT scenario and exploratory task (188 in all). **Solo** scenarios are assigned to testers, one role and one browser each, by level. **Group** scenarios need several roles at once: the owner runs them alone in the session agendas below, one browser profile per role. This file is the one record of progress; the orchestrator copies accepted results into the ledger's `uat` items. Within a level, run in the order listed; a scenario that says "after session Gn" needs that agenda finished on the same set first, and a "Done in" prerequisite means the same set ran that scenario.
+The ordered path through every UAT scenario and exploratory task (190 in all). **Solo** scenarios are assigned to testers, one role and one browser each, by level. **Group** scenarios need several roles at once: the owner runs them alone in the session agendas below, one browser profile per role. This file is the one record of progress; the orchestrator copies accepted results into the ledger's `uat` items. Within a level, run in the order listed; a scenario that says "after session Gn" needs that agenda finished on the same set first, and a "Done in" prerequisite means the same set ran that scenario.
 
 For each line: tick the box once the scenario has been run, whatever the outcome, and replace **NOT RUN** with **PASSED**, **FAILED**, **BLOCKED** (a gap or an earlier failure stopped it) or **SKIPPED**, plus the date, for example `**PASSED** 2026-11-04`. Failure details go in the Result block at the end of the scenario's file, with the tester, the set number, the role and the scenario ID. How to run: [README](README.md); coverage: [COVERAGE](COVERAGE.md).
 
@@ -17,13 +17,15 @@ For each line: tick the box once the scenario has been run, whatever the outcome
 - [ ] [EXPLORATORY-6](EXPLORATORY/EXPLORATORY-6.md): Find out what went wrong (EXPLORATORY) - role P2, facilitator needed - **NOT RUN**
 - [ ] [EXPLORATORY-7](EXPLORATORY/EXPLORATORY-7.md): Hand over a Character mid-campaign (EXPLORATORY) - role P2, facilitator needed - **NOT RUN**
 
-## Level 1: Single-user basics (35 Solo)
+## Level 1: Single-user basics (37 Solo)
 
 - [ ] [UAT-ACCOUNTS-1](ACCOUNTS/UAT-ACCOUNTS-1.md): Sign in, reload, sign out, sign back in by username (ACCOUNTS) - role P1 - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-2](ACCOUNTS/UAT-ACCOUNTS-2.md): Wrong password and unknown account are refused (ACCOUNTS) - role P1 - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-4](ACCOUNTS/UAT-ACCOUNTS-4.md): Public sign-up is closed (ACCOUNTS) - role none, signed out - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-6](ACCOUNTS/UAT-ACCOUNTS-6.md): Create an account from an invitation (ACCOUNTS) - role OWN, own account - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-5](ACCOUNTS/UAT-ACCOUNTS-5.md): Reset a forgotten password (wrong code, mismatch, then success) (ACCOUNTS) - role OWN, own account - **NOT RUN**
+- [ ] [UAT-ACCOUNTS-14](ACCOUNTS/UAT-ACCOUNTS-14.md): Change your password in Account Settings (ACCOUNTS) - role OWN, own account - **NOT RUN**
+- [ ] [UAT-ACCOUNTS-15](ACCOUNTS/UAT-ACCOUNTS-15.md): Change your email in Account Settings (ACCOUNTS) - role OWN, own account - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-7](ACCOUNTS/UAT-ACCOUNTS-7.md): Choose, change and protect a username (ACCOUNTS) - role OWN, own account - **NOT RUN**
 - [ ] [UAT-ACCOUNTS-13](ACCOUNTS/UAT-ACCOUNTS-13.md): Campaign text follows the same language rules as usernames (ACCOUNTS) - role GM - **NOT RUN**
 - [ ] [UAT-PLATFORM-1](PLATFORM/UAT-PLATFORM-1.md): SRD content is present and browsable (PLATFORM) - role GM - **NOT RUN**

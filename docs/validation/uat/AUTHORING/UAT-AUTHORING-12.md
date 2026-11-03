@@ -2,7 +2,7 @@
 
 Option descriptions and adding a Check and a DC.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 33 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 35 of 190
 
 ## Prerequisites
 

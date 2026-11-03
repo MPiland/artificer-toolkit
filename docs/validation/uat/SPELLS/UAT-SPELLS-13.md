@@ -2,7 +2,7 @@
 
 Reaction spells: Shield and Counterspell, one-roll grants.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 164 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 166 of 190
 
 ## Prerequisites
 

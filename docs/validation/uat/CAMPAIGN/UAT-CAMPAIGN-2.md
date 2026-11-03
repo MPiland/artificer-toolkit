@@ -2,7 +2,7 @@
 
 Invite, accept, leave, remove, rejoin and transfer.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 53 of 188
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 55 of 190
 
 ## Prerequisites
 

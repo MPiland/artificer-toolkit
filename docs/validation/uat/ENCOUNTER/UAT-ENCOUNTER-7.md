@@ -2,7 +2,7 @@
 
 Blueprint edits and who can reach them.
 
-Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 73 of 188
+Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 75 of 190
 
 ## Prerequisites
 

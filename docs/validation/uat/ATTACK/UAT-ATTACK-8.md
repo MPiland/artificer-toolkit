@@ -2,7 +2,7 @@
 
 Grapple, shove and basic actions.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 95 of 188
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 97 of 190
 
 ## Prerequisites
 

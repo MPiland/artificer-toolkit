@@ -2,7 +2,7 @@
 
 Equipment, inventory, attunement and deleting an item.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Group (P1, P2) · Path position 47 of 188
+Level 1 (Single-user basics) · Feature SHEET · Mode: Group (P1, P2) · Path position 49 of 190
 
 ## Prerequisites
 

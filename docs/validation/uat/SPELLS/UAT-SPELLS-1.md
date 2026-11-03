@@ -2,7 +2,7 @@
 
 Build the casters and cast from the Sheet outside an Encounter.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2, P3) · Path position 151 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2, P3) · Path position 153 of 190
 
 ## Prerequisites
 

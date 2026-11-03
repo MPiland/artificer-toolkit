@@ -2,7 +2,7 @@
 
 Author a Fireball-like spell from scratch.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 35 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 37 of 190
 
 ## Prerequisites
 

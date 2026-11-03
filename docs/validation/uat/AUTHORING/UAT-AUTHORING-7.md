@@ -2,7 +2,7 @@
 
 Equipment variants, inheritance and item names.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 30 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 32 of 190
 
 ## Prerequisites
 

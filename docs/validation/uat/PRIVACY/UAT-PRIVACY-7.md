@@ -2,7 +2,7 @@
 
 Other players' Sheets and Campaign roster.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 101 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 103 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Hiding, invisibility and unseen attackers.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 94 of 188
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 96 of 190
 
 ## Prerequisites
 

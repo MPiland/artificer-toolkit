@@ -2,7 +2,7 @@
 
 Seat the whole party in the Sandbox Campaign.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2, P3) · Path position 54 of 188
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2, P3) · Path position 56 of 190
 
 ## Prerequisites
 

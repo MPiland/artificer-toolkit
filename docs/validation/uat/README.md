@@ -14,12 +14,12 @@ UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one
 ## Solo and Group
 
 - **Solo** scenarios need one role. Other roles that only observe are checked afterwards by the owner (the scenario's Cross-role check, listed as an owner follow-up in the tracker). You run them signed in to one account in your normal browser: one prebuilt account from your set, or your own account for the account-security scenarios. Some Solo scenarios and all exploratory tasks also need a **facilitator**, the owner acting as the GM or another player, who follows a numbered script with trigger points ("when the tester says their Character is ready, add it to the Encounter"). You never act as two roles.
-- **Group** scenarios need two or more roles to act at the same live table (137 of 188). The owner runs them alone, one browser profile per role ([Role setup](#role-setup-for-the-owner)), in the session agendas at the end of the tracker.
+- **Group** scenarios need two or more roles to act at the same live table (137 of 190). The owner runs them alone, one browser profile per role ([Role setup](#role-setup-for-the-owner)), in the session agendas at the end of the tracker.
 
 | Level | Name                                 | Solo | Group | First scenario                                        |
 | ----- | ------------------------------------ | ---- | ----- | ----------------------------------------------------- |
 | 0     | Orientation and exploratory tasks    | 8    | 0     | [UAT-ORIENTATION-1](ORIENTATION/UAT-ORIENTATION-1.md) |
-| 1     | Single-user basics                   | 35   | 8     | [UAT-ACCOUNTS-1](ACCOUNTS/UAT-ACCOUNTS-1.md)          |
+| 1     | Single-user basics                   | 37   | 8     | [UAT-ACCOUNTS-1](ACCOUNTS/UAT-ACCOUNTS-1.md)          |
 | 2     | GM setup                             | 4    | 20    | [UAT-CAMPAIGN-1](CAMPAIGN/UAT-CAMPAIGN-1.md)          |
 | 3     | Core play                            | 3    | 60    | [UAT-CAMPAIGN-8](CAMPAIGN/UAT-CAMPAIGN-8.md)          |
 | 4     | Advanced play                        | 0    | 40    | [UAT-ENCOUNTER-6](ENCOUNTER/UAT-ENCOUNTER-6.md)       |

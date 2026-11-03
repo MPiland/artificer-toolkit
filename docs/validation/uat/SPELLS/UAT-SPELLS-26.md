@@ -2,7 +2,7 @@
 
 Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility).
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 177 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 179 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Not a member.
 
-Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 76 of 188
+Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 78 of 190
 
 ## Prerequisites
 

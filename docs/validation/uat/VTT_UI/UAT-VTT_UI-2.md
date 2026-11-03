@@ -2,7 +2,7 @@
 
 Previews, footprints, large tokens and dragging.
 
-Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1, P2) · Path position 114 of 188
+Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1, P2) · Path position 116 of 190
 
 ## Prerequisites
 

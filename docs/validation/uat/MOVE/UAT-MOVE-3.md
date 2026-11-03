@@ -2,7 +2,7 @@
 
 Opportunity attack pauses the move.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 103 of 188
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 105 of 190
 
 ## Prerequisites
 

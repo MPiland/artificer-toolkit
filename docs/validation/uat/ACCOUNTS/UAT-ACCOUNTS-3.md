@@ -2,7 +2,7 @@
 
 Two accounts at once stay isolated, and sign-out ends every tab.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 17 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 19 of 190
 
 ## Prerequisites
 

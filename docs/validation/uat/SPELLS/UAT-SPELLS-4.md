@@ -2,7 +2,7 @@
 
 Area caster cannot see a hidden creature.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1) · Path position 154 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1) · Path position 156 of 190
 
 ## Prerequisites
 

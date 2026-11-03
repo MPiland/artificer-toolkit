@@ -2,7 +2,7 @@
 
 Starting equipment on a new Character.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 48 of 188
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 50 of 190
 
 ## Prerequisites
 

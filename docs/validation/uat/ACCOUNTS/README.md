@@ -15,14 +15,16 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 | 11            | 1     | [UAT-ACCOUNTS-4](UAT-ACCOUNTS-4.md)   | Public sign-up is closed                                               |
 | 12            | 1     | [UAT-ACCOUNTS-6](UAT-ACCOUNTS-6.md)   | Create an account from an invitation                                   |
 | 13            | 1     | [UAT-ACCOUNTS-5](UAT-ACCOUNTS-5.md)   | Reset a forgotten password (wrong code, mismatch, then success)        |
-| 14            | 1     | [UAT-ACCOUNTS-7](UAT-ACCOUNTS-7.md)   | Choose, change and protect a username                                  |
-| 15            | 1     | [UAT-ACCOUNTS-13](UAT-ACCOUNTS-13.md) | Campaign text follows the same language rules as usernames             |
-| 16            | 1     | [UAT-ACCOUNTS-8](UAT-ACCOUNTS-8.md)   | Private profiles stay private; Public profiles show only public fields |
-| 17            | 1     | [UAT-ACCOUNTS-3](UAT-ACCOUNTS-3.md)   | Two accounts at once stay isolated, and sign-out ends every tab        |
-| 18            | 1     | [UAT-ACCOUNTS-9](UAT-ACCOUNTS-9.md)   | Ordinary users cannot use superadmin tools                             |
-| 19            | 1     | [UAT-ACCOUNTS-10](UAT-ACCOUNTS-10.md) | Superadmin moderation                                                  |
-| 183           | 5     | [UAT-ACCOUNTS-11](UAT-ACCOUNTS-11.md) | Refused account deletions                                              |
-| 188           | 5     | [UAT-ACCOUNTS-12](UAT-ACCOUNTS-12.md) | Delete my account, shared history survives                             |
+| 14            | 1     | [UAT-ACCOUNTS-14](UAT-ACCOUNTS-14.md) | Change your password in Account Settings                               |
+| 15            | 1     | [UAT-ACCOUNTS-15](UAT-ACCOUNTS-15.md) | Change your email in Account Settings                                  |
+| 16            | 1     | [UAT-ACCOUNTS-7](UAT-ACCOUNTS-7.md)   | Choose, change and protect a username                                  |
+| 17            | 1     | [UAT-ACCOUNTS-13](UAT-ACCOUNTS-13.md) | Campaign text follows the same language rules as usernames             |
+| 18            | 1     | [UAT-ACCOUNTS-8](UAT-ACCOUNTS-8.md)   | Private profiles stay private; Public profiles show only public fields |
+| 19            | 1     | [UAT-ACCOUNTS-3](UAT-ACCOUNTS-3.md)   | Two accounts at once stay isolated, and sign-out ends every tab        |
+| 20            | 1     | [UAT-ACCOUNTS-9](UAT-ACCOUNTS-9.md)   | Ordinary users cannot use superadmin tools                             |
+| 21            | 1     | [UAT-ACCOUNTS-10](UAT-ACCOUNTS-10.md) | Superadmin moderation                                                  |
+| 185           | 5     | [UAT-ACCOUNTS-11](UAT-ACCOUNTS-11.md) | Refused account deletions                                              |
+| 190           | 5     | [UAT-ACCOUNTS-12](UAT-ACCOUNTS-12.md) | Delete my account, shared history survives                             |
 
 ## Covered elsewhere
 

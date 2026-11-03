@@ -2,7 +2,7 @@
 
 Rolls, private GM rolls and chat limits.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 81 of 188
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 83 of 190
 
 ## Prerequisites
 

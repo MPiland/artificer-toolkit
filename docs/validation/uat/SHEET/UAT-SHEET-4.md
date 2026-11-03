@@ -2,7 +2,7 @@
 
 Roll from the Sheet and choose who sees it.
 
-Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path position 87 of 188
+Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path position 89 of 190
 
 ## Prerequisites
 

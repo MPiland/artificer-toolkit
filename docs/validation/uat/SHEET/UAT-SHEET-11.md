@@ -2,7 +2,7 @@
 
 Sheet during live play and after reconnect.
 
-Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1) · Path position 89 of 188
+Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1) · Path position 91 of 190
 
 ## Prerequisites
 

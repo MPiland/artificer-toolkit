@@ -10,15 +10,15 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                            | Title                                              |
 | ------------- | ----- | ----------------------------------- | -------------------------------------------------- |
-| 52            | 2     | [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) | Create, edit, copy, archive and delete a Campaign  |
-| 53            | 2     | [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) | Invite, accept, leave, remove, rejoin and transfer |
-| 54            | 2     | [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md) | Seat the whole party in the Sandbox Campaign       |
-| 59            | 2     | [UAT-CAMPAIGN-4](UAT-CAMPAIGN-4.md) | Campaign content, sources and removals             |
-| 60            | 2     | [UAT-CAMPAIGN-5](UAT-CAMPAIGN-5.md) | Party inventory and Vehicles                       |
-| 61            | 2     | [UAT-CAMPAIGN-7](UAT-CAMPAIGN-7.md) | The GM plays a Character                           |
-| 62            | 2     | [UAT-CAMPAIGN-6](UAT-CAMPAIGN-6.md) | Announcements                                      |
-| 76            | 3     | [UAT-CAMPAIGN-8](UAT-CAMPAIGN-8.md) | Not a member                                       |
-| 77            | 3     | [UAT-CAMPAIGN-3](UAT-CAMPAIGN-3.md) | Players see only what the GM made visible          |
+| 54            | 2     | [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) | Create, edit, copy, archive and delete a Campaign  |
+| 55            | 2     | [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) | Invite, accept, leave, remove, rejoin and transfer |
+| 56            | 2     | [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md) | Seat the whole party in the Sandbox Campaign       |
+| 61            | 2     | [UAT-CAMPAIGN-4](UAT-CAMPAIGN-4.md) | Campaign content, sources and removals             |
+| 62            | 2     | [UAT-CAMPAIGN-5](UAT-CAMPAIGN-5.md) | Party inventory and Vehicles                       |
+| 63            | 2     | [UAT-CAMPAIGN-7](UAT-CAMPAIGN-7.md) | The GM plays a Character                           |
+| 64            | 2     | [UAT-CAMPAIGN-6](UAT-CAMPAIGN-6.md) | Announcements                                      |
+| 78            | 3     | [UAT-CAMPAIGN-8](UAT-CAMPAIGN-8.md) | Not a member                                       |
+| 79            | 3     | [UAT-CAMPAIGN-3](UAT-CAMPAIGN-3.md) | Players see only what the GM made visible          |
 
 ## Covered elsewhere
 

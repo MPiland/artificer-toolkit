@@ -2,7 +2,7 @@
 
 Counterspell and chains.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path position 134 of 188
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path position 136 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 An authored reaction spell (Absorb Elements).
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 109 of 188
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 111 of 190
 
 ## Prerequisites
 

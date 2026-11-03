@@ -2,7 +2,7 @@
 
 Author a Class and see the Spell guard.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 29 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 31 of 190
 
 ## Prerequisites
 

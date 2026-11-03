@@ -2,7 +2,7 @@
 
 Browse Game Systems and Rules Catalogues.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 24 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 26 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Choice-heavy builds — multiclass and spellcaster.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P2) · Path position 40 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P2) · Path position 42 of 190
 
 ## Prerequisites
 

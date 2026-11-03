@@ -2,7 +2,7 @@
 
 Exhaustion 4 and 6, Petrified resistance, nonmagical defenses and automatic failures.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1) · Path position 160 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1) · Path position 162 of 190
 
 ## Prerequisites
 

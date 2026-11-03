@@ -2,7 +2,7 @@
 
 Chat — Table, Party and Direct.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2, P3) · Path position 80 of 188
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2, P3) · Path position 82 of 190
 
 ## Prerequisites
 

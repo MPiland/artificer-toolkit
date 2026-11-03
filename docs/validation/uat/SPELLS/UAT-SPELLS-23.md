@@ -2,7 +2,7 @@
 
 Manual mode raises no rules prompts.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 174 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 176 of 190
 
 ## Prerequisites
 

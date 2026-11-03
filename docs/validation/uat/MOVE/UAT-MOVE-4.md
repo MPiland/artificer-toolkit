@@ -2,7 +2,7 @@
 
 Undo last token move.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 104 of 188
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 106 of 190
 
 ## Prerequisites
 

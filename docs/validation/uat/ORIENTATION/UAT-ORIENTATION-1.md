@@ -2,7 +2,7 @@
 
 Sign in with the account you were given and check that you see what the role table in the Start here page says that role should see.
 
-Level 0 (Orientation and exploratory tasks) · Feature ORIENTATION · Mode: Solo (any one role) · Path position 1 of 188
+Level 0 (Orientation and exploratory tasks) · Feature ORIENTATION · Mode: Solo (any one role) · Path position 1 of 190
 
 ## Prerequisites
 

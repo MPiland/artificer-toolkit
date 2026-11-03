@@ -2,7 +2,7 @@
 
 GM private rolls and monster rolls.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 98 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 100 of 190
 
 ## Prerequisites
 

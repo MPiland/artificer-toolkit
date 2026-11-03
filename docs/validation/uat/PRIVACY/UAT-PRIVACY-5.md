@@ -2,7 +2,7 @@
 
 Reloads and replays do not leak.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 99 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 101 of 190
 
 ## Prerequisites
 

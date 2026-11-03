@@ -10,17 +10,17 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                        | Title                                                 |
 | ------------- | ----- | ------------------------------- | ----------------------------------------------------- |
-| 44            | 1     | [UAT-SHEET-1](UAT-SHEET-1.md)   | Edit a personal Sheet and reload                      |
-| 45            | 1     | [UAT-SHEET-2](UAT-SHEET-2.md)   | Short and long rest                                   |
-| 46            | 1     | [UAT-SHEET-3](UAT-SHEET-3.md)   | Learn, prepare and cast spells from the Sheet         |
-| 47            | 1     | [UAT-SHEET-6](UAT-SHEET-6.md)   | Equipment, inventory, attunement and deleting an item |
-| 48            | 1     | [UAT-SHEET-7](UAT-SHEET-7.md)   | Starting equipment on a new Character                 |
-| 49            | 1     | [UAT-SHEET-8](UAT-SHEET-8.md)   | Hands, two-handed weapons and shields                 |
-| 50            | 1     | [UAT-SHEET-9](UAT-SHEET-9.md)   | Speed on the overview and the Movement panel          |
-| 51            | 1     | [UAT-SHEET-10](UAT-SHEET-10.md) | Sheet at phone width                                  |
-| 87            | 3     | [UAT-SHEET-4](UAT-SHEET-4.md)   | Roll from the Sheet and choose who sees it            |
-| 88            | 3     | [UAT-SHEET-5](UAT-SHEET-5.md)   | GM Public and Private rolls with reveals              |
-| 89            | 3     | [UAT-SHEET-11](UAT-SHEET-11.md) | Sheet during live play and after reconnect            |
+| 46            | 1     | [UAT-SHEET-1](UAT-SHEET-1.md)   | Edit a personal Sheet and reload                      |
+| 47            | 1     | [UAT-SHEET-2](UAT-SHEET-2.md)   | Short and long rest                                   |
+| 48            | 1     | [UAT-SHEET-3](UAT-SHEET-3.md)   | Learn, prepare and cast spells from the Sheet         |
+| 49            | 1     | [UAT-SHEET-6](UAT-SHEET-6.md)   | Equipment, inventory, attunement and deleting an item |
+| 50            | 1     | [UAT-SHEET-7](UAT-SHEET-7.md)   | Starting equipment on a new Character                 |
+| 51            | 1     | [UAT-SHEET-8](UAT-SHEET-8.md)   | Hands, two-handed weapons and shields                 |
+| 52            | 1     | [UAT-SHEET-9](UAT-SHEET-9.md)   | Speed on the overview and the Movement panel          |
+| 53            | 1     | [UAT-SHEET-10](UAT-SHEET-10.md) | Sheet at phone width                                  |
+| 89            | 3     | [UAT-SHEET-4](UAT-SHEET-4.md)   | Roll from the Sheet and choose who sees it            |
+| 90            | 3     | [UAT-SHEET-5](UAT-SHEET-5.md)   | GM Public and Private rolls with reveals              |
+| 91            | 3     | [UAT-SHEET-11](UAT-SHEET-11.md) | Sheet during live play and after reconnect            |
 
 ## Covered elsewhere
 

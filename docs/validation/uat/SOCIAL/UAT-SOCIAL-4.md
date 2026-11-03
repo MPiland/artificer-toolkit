@@ -2,7 +2,7 @@
 
 Private profiles and masking.
 
-Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (P1, P2, SPARE) · Path position 149 of 188
+Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (P1, P2, SPARE) · Path position 151 of 190
 
 ## Prerequisites
 

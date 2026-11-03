@@ -2,7 +2,7 @@
 
 Withdrawing shared content reconciles assigned Characters.
 
-Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 58 of 188
+Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 60 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 SRD content is present and browsable.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (GM) · Path position 20 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (GM) · Path position 22 of 190
 
 ## Prerequisites
 

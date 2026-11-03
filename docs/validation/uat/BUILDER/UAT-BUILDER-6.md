@@ -2,7 +2,7 @@
 
 Imported custom items keep their kind, properties and damage.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 43 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 45 of 190
 
 ## Prerequisites
 

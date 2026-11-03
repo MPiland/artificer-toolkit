@@ -2,7 +2,7 @@
 
 Level a Character up between Sessions and play the next Session with the new abilities.
 
-Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Mode: Solo (P2) with a facilitator playing GM · Path position 8 of 188
+Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Mode: Solo (P2) with a facilitator playing GM · Path position 8 of 190
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 

@@ -2,7 +2,7 @@
 
 Offline edits recover.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 68 of 188
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 70 of 190
 
 ## Prerequisites
 

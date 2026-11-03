@@ -2,7 +2,7 @@
 
 Show a map to players without presenting.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 85 of 188
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 87 of 190
 
 ## Prerequisites
 

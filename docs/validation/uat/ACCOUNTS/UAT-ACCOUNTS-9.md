@@ -2,7 +2,7 @@
 
 Ordinary users cannot use superadmin tools.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 18 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 20 of 190
 
 ## Prerequisites
 

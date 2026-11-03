@@ -2,7 +2,7 @@
 
 One shared table screen for several players.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2, P3) · Path position 69 of 188
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2, P3) · Path position 71 of 190
 
 ## Prerequisites
 

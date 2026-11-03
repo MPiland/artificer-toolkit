@@ -2,7 +2,7 @@
 
 Non-members, removed players and signed-out visitors.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2, SPARE) · Path position 128 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2, SPARE) · Path position 130 of 190
 
 ## Prerequisites
 

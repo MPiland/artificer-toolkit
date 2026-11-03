@@ -10,8 +10,8 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                    | Title                                                                                                   |
 | ------------- | ----- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 122           | 3     | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive                                                            |
-| 187           | 5     | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
+| 124           | 3     | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive                                                            |
+| 189           | 5     | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
 
 ## Covered elsewhere
 

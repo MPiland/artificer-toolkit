@@ -2,7 +2,7 @@
 
 What a player sees of the Encounter.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 97 of 188
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 99 of 190
 
 ## Prerequisites
 

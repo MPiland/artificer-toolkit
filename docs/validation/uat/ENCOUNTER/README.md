@@ -10,13 +10,13 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                              | Title                                                       |
 | ------------- | ----- | ------------------------------------- | ----------------------------------------------------------- |
-| 72            | 2     | [UAT-ENCOUNTER-3](UAT-ENCOUNTER-3.md) | Prepare, start, delete and persist a Run                    |
-| 73            | 2     | [UAT-ENCOUNTER-7](UAT-ENCOUNTER-7.md) | Blueprint edits and who can reach them                      |
-| 133           | 3     | [UAT-ENCOUNTER-5](UAT-ENCOUNTER-5.md) | Morale                                                      |
-| 139           | 4     | [UAT-ENCOUNTER-6](UAT-ENCOUNTER-6.md) | Roll cards for turn-stage rolls                             |
-| 140           | 4     | [UAT-ENCOUNTER-4](UAT-ENCOUNTER-4.md) | Controllers, dispositions and removing a member             |
-| 141           | 4     | [UAT-ENCOUNTER-1](UAT-ENCOUNTER-1.md) | Assisted and Manual Encounter journeys pass                 |
-| 142           | 4     | [UAT-ENCOUNTER-2](UAT-ENCOUNTER-2.md) | Initiative and optional-combat combinations pass end to end |
+| 74            | 2     | [UAT-ENCOUNTER-3](UAT-ENCOUNTER-3.md) | Prepare, start, delete and persist a Run                    |
+| 75            | 2     | [UAT-ENCOUNTER-7](UAT-ENCOUNTER-7.md) | Blueprint edits and who can reach them                      |
+| 135           | 3     | [UAT-ENCOUNTER-5](UAT-ENCOUNTER-5.md) | Morale                                                      |
+| 141           | 4     | [UAT-ENCOUNTER-6](UAT-ENCOUNTER-6.md) | Roll cards for turn-stage rolls                             |
+| 142           | 4     | [UAT-ENCOUNTER-4](UAT-ENCOUNTER-4.md) | Controllers, dispositions and removing a member             |
+| 143           | 4     | [UAT-ENCOUNTER-1](UAT-ENCOUNTER-1.md) | Assisted and Manual Encounter journeys pass                 |
+| 144           | 4     | [UAT-ENCOUNTER-2](UAT-ENCOUNTER-2.md) | Initiative and optional-combat combinations pass end to end |
 
 ## Covered elsewhere
 

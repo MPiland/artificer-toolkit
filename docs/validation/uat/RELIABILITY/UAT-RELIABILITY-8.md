@@ -2,7 +2,7 @@
 
 The Sheet shows correct rests, ability checks and hit points.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Solo (P1) · Path position 121 of 188
+Level 3 (Core play) · Feature RELIABILITY · Mode: Solo (P1) · Path position 123 of 190
 
 ## Prerequisites
 

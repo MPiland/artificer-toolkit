@@ -2,7 +2,7 @@
 
 Builder and party inventory values are right.
 
-Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 180 of 188
+Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 182 of 190
 
 ## Prerequisites
 

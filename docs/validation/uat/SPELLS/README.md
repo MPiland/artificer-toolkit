@@ -30,33 +30,33 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                                                                                       |
 | ------------- | ----- | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| 151           | 4     | [UAT-SPELLS-1](UAT-SPELLS-1.md)   | Build the casters and cast from the Sheet outside an Encounter                              |
-| 152           | 4     | [UAT-SPELLS-2](UAT-SPELLS-2.md)   | Set up the Spell Arena Encounter (Assisted)                                                 |
-| 153           | 4     | [UAT-SPELLS-3](UAT-SPELLS-3.md)   | Fireball on a group with saves answered by different controllers                            |
-| 154           | 4     | [UAT-SPELLS-4](UAT-SPELLS-4.md)   | Area caster cannot see a hidden creature                                                    |
-| 155           | 4     | [UAT-SPELLS-5](UAT-SPELLS-5.md)   | Cones, lines, Self cubes and aiming on the map                                              |
-| 156           | 4     | [UAT-SPELLS-6](UAT-SPELLS-6.md)   | Cover from walls and manual cover                                                           |
-| 157           | 4     | [UAT-SPELLS-7](UAT-SPELLS-7.md)   | Hold Person, Concentration, damage checks, replacement and end                              |
-| 159           | 4     | [UAT-SPELLS-8](UAT-SPELLS-8.md)   | Attack and check modifiers from conditions                                                  |
-| 160           | 4     | [UAT-SPELLS-9](UAT-SPELLS-9.md)   | Exhaustion 4 and 6, Petrified resistance, nonmagical defenses and automatic failures        |
-| 161           | 4     | [UAT-SPELLS-10](UAT-SPELLS-10.md) | Dying, death saves, healing and kills                                                       |
-| 162           | 4     | [UAT-SPELLS-11](UAT-SPELLS-11.md) | Stabilizing: Spare the Dying, Healer's Kit and first aid                                    |
-| 163           | 4     | [UAT-SPELLS-12](UAT-SPELLS-12.md) | Single-use items and Antitoxin                                                              |
-| 164           | 4     | [UAT-SPELLS-13](UAT-SPELLS-13.md) | Reaction spells: Shield and Counterspell, one-roll grants                                   |
-| 165           | 4     | [UAT-SPELLS-14](UAT-SPELLS-14.md) | Reaction countdown timer                                                                    |
-| 166           | 4     | [UAT-SPELLS-15](UAT-SPELLS-15.md) | Grant spells and their lifetimes                                                            |
-| 167           | 4     | [UAT-SPELLS-16](UAT-SPELLS-16.md) | Grants and Concentration carry over after the Encounter                                     |
-| 168           | 4     | [UAT-SPELLS-17](UAT-SPELLS-17.md) | Two Concentrations with an authored ring                                                    |
-| 169           | 4     | [UAT-SPELLS-18](UAT-SPELLS-18.md) | Dragons, breath weapons and Legendary Resistance                                            |
-| 170           | 4     | [UAT-SPELLS-19](UAT-SPELLS-19.md) | Zones, auras and lasting hazards                                                            |
-| 171           | 4     | [UAT-SPELLS-20](UAT-SPELLS-20.md) | Multi-target spells and teleports                                                           |
-| 172           | 4     | [UAT-SPELLS-21](UAT-SPELLS-21.md) | Invisibility, Sanctuary, Fear and Blindness                                                 |
-| 173           | 4     | [UAT-SPELLS-22](UAT-SPELLS-22.md) | Summons: turns, groups and ends                                                             |
-| 174           | 4     | [UAT-SPELLS-23](UAT-SPELLS-23.md) | Manual mode raises no rules prompts                                                         |
-| 175           | 4     | [UAT-SPELLS-24](UAT-SPELLS-24.md) | Privacy and permissions refusals                                                            |
-| 176           | 4     | [UAT-SPELLS-25](UAT-SPELLS-25.md) | Phone width: Sheet death saves and summons                                                  |
-| 177           | 4     | [UAT-SPELLS-26](UAT-SPELLS-26.md) | Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility) |
-| 178           | 4     | [UAT-SPELLS-27](UAT-SPELLS-27.md) | Racial traits, creature traits and Eldritch Blast                                           |
+| 153           | 4     | [UAT-SPELLS-1](UAT-SPELLS-1.md)   | Build the casters and cast from the Sheet outside an Encounter                              |
+| 154           | 4     | [UAT-SPELLS-2](UAT-SPELLS-2.md)   | Set up the Spell Arena Encounter (Assisted)                                                 |
+| 155           | 4     | [UAT-SPELLS-3](UAT-SPELLS-3.md)   | Fireball on a group with saves answered by different controllers                            |
+| 156           | 4     | [UAT-SPELLS-4](UAT-SPELLS-4.md)   | Area caster cannot see a hidden creature                                                    |
+| 157           | 4     | [UAT-SPELLS-5](UAT-SPELLS-5.md)   | Cones, lines, Self cubes and aiming on the map                                              |
+| 158           | 4     | [UAT-SPELLS-6](UAT-SPELLS-6.md)   | Cover from walls and manual cover                                                           |
+| 159           | 4     | [UAT-SPELLS-7](UAT-SPELLS-7.md)   | Hold Person, Concentration, damage checks, replacement and end                              |
+| 161           | 4     | [UAT-SPELLS-8](UAT-SPELLS-8.md)   | Attack and check modifiers from conditions                                                  |
+| 162           | 4     | [UAT-SPELLS-9](UAT-SPELLS-9.md)   | Exhaustion 4 and 6, Petrified resistance, nonmagical defenses and automatic failures        |
+| 163           | 4     | [UAT-SPELLS-10](UAT-SPELLS-10.md) | Dying, death saves, healing and kills                                                       |
+| 164           | 4     | [UAT-SPELLS-11](UAT-SPELLS-11.md) | Stabilizing: Spare the Dying, Healer's Kit and first aid                                    |
+| 165           | 4     | [UAT-SPELLS-12](UAT-SPELLS-12.md) | Single-use items and Antitoxin                                                              |
+| 166           | 4     | [UAT-SPELLS-13](UAT-SPELLS-13.md) | Reaction spells: Shield and Counterspell, one-roll grants                                   |
+| 167           | 4     | [UAT-SPELLS-14](UAT-SPELLS-14.md) | Reaction countdown timer                                                                    |
+| 168           | 4     | [UAT-SPELLS-15](UAT-SPELLS-15.md) | Grant spells and their lifetimes                                                            |
+| 169           | 4     | [UAT-SPELLS-16](UAT-SPELLS-16.md) | Grants and Concentration carry over after the Encounter                                     |
+| 170           | 4     | [UAT-SPELLS-17](UAT-SPELLS-17.md) | Two Concentrations with an authored ring                                                    |
+| 171           | 4     | [UAT-SPELLS-18](UAT-SPELLS-18.md) | Dragons, breath weapons and Legendary Resistance                                            |
+| 172           | 4     | [UAT-SPELLS-19](UAT-SPELLS-19.md) | Zones, auras and lasting hazards                                                            |
+| 173           | 4     | [UAT-SPELLS-20](UAT-SPELLS-20.md) | Multi-target spells and teleports                                                           |
+| 174           | 4     | [UAT-SPELLS-21](UAT-SPELLS-21.md) | Invisibility, Sanctuary, Fear and Blindness                                                 |
+| 175           | 4     | [UAT-SPELLS-22](UAT-SPELLS-22.md) | Summons: turns, groups and ends                                                             |
+| 176           | 4     | [UAT-SPELLS-23](UAT-SPELLS-23.md) | Manual mode raises no rules prompts                                                         |
+| 177           | 4     | [UAT-SPELLS-24](UAT-SPELLS-24.md) | Privacy and permissions refusals                                                            |
+| 178           | 4     | [UAT-SPELLS-25](UAT-SPELLS-25.md) | Phone width: Sheet death saves and summons                                                  |
+| 179           | 4     | [UAT-SPELLS-26](UAT-SPELLS-26.md) | Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility) |
+| 180           | 4     | [UAT-SPELLS-27](UAT-SPELLS-27.md) | Racial traits, creature traits and Eldritch Blast                                           |
 
 ## Covered elsewhere
 

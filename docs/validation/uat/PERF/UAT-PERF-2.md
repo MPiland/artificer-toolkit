@@ -2,7 +2,7 @@
 
 Four people at a local table feel responsive.
 
-Level 3 (Core play) · Feature PERF · Mode: Group (GM, P1, P2, P3) · Path position 122 of 188
+Level 3 (Core play) · Feature PERF · Mode: Group (GM, P1, P2, P3) · Path position 124 of 190
 
 ## Prerequisites
 

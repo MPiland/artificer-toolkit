@@ -2,7 +2,7 @@
 
 Authoring forms show, hide and require fields as choices change.
 
-Level 1 (Single-user basics) · Feature RULES · Mode: Solo (P1) · Path position 37 of 188
+Level 1 (Single-user basics) · Feature RULES · Mode: Solo (P1) · Path position 39 of 190
 
 ## Prerequisites
 

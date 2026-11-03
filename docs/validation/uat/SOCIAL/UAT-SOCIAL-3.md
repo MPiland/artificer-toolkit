@@ -2,7 +2,7 @@
 
 Blocks and what they do.
 
-Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2, SUPERADMIN) · Path position 148 of 188
+Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2, SUPERADMIN) · Path position 150 of 190
 
 ## Prerequisites
 

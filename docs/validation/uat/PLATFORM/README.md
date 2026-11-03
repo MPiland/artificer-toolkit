@@ -10,11 +10,11 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                            | Title                                                  |
 | ------------- | ----- | ----------------------------------- | ------------------------------------------------------ |
-| 20            | 1     | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable                   |
-| 21            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   |
-| 22            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           |
-| 23            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         |
-| 158           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
+| 22            | 1     | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable                   |
+| 23            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   |
+| 24            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           |
+| 25            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         |
+| 160           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
 
 ## Covered elsewhere
 

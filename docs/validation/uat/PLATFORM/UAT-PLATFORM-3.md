@@ -2,7 +2,7 @@
 
 Artwork is private to its owner until shared.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P2) · Path position 22 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P2) · Path position 24 of 190
 
 ## Prerequisites
 

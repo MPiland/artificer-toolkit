@@ -2,7 +2,7 @@
 
 A reaction pauses a hit; answering resumes it; privacy of the pause.
 
-Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1, P2) · Path position 111 of 188
+Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1, P2) · Path position 113 of 190
 
 ## Prerequisites
 

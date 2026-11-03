@@ -2,7 +2,7 @@
 
 Delete my account, shared history survives.
 
-Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Solo (OWN) with a facilitator playing GM · Path position 188 of 188
+Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Solo (OWN) with a facilitator playing GM · Path position 190 of 190
 
 ## Prerequisites
 

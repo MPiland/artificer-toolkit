@@ -2,7 +2,7 @@
 
 Light, fog, senses and the GM's view preview.
 
-Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1) · Path position 138 of 188
+Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1) · Path position 140 of 190
 
 ## Prerequisites
 

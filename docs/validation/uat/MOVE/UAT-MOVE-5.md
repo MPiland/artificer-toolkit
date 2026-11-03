@@ -2,7 +2,7 @@
 
 Moving outside an Encounter and in a sandbox.
 
-Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1) · Path position 70 of 188
+Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1) · Path position 72 of 190
 
 ## Prerequisites
 

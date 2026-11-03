@@ -2,7 +2,7 @@
 
 Two users act at the same moment.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2) · Path position 118 of 188
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2) · Path position 120 of 190
 
 ## Prerequisites
 

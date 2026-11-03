@@ -2,7 +2,7 @@
 
 Account deletion closes the live table.
 
-Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, DISPOSABLE) · Path position 185 of 188
+Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, DISPOSABLE) · Path position 187 of 190
 
 ## Prerequisites
 

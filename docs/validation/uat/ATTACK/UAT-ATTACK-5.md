@@ -2,7 +2,7 @@
 
 Targeting, hidden creatures and private roll cards.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 93 of 188
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 95 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Phone width: Sheet death saves and summons.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2) · Path position 176 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2) · Path position 178 of 190
 
 ## Prerequisites
 

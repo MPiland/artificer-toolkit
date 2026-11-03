@@ -2,7 +2,7 @@
 
 Reusable effects, grants and modifiers on a System.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 32 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 34 of 190
 
 ## Prerequisites
 

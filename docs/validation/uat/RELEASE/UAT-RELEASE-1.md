@@ -2,7 +2,7 @@
 
 Exact cleanup and final acceptance.
 
-Level 5 (Reliability, performance and release) · Feature RELEASE · Mode: Group (GM, P1, P2, P3) · Path position 186 of 188
+Level 5 (Reliability, performance and release) · Feature RELEASE · Mode: Group (GM, P1, P2, P3) · Path position 188 of 190
 
 ## Prerequisites
 

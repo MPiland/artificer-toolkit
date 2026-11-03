@@ -2,7 +2,7 @@
 
 Build the Characters P2 and P3 will use in the Sandbox Campaign.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (P1, P2, P3) · Path position 41 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (P1, P2, P3) · Path position 43 of 190
 
 ## Prerequisites
 

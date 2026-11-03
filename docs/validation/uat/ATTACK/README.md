@@ -12,17 +12,17 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                                                               |
 | ------------- | ----- | --------------------------------- | ------------------------------------------------------------------- |
-| 91            | 3     | [UAT-ATTACK-1](UAT-ATTACK-1.md)   | Effects, movement, reactions and the turn lifecycle pass end to end |
-| 92            | 3     | [UAT-ATTACK-2](UAT-ATTACK-2.md)   | Players control only their own actors                               |
-| 93            | 3     | [UAT-ATTACK-5](UAT-ATTACK-5.md)   | Targeting, hidden creatures and private roll cards                  |
-| 94            | 3     | [UAT-ATTACK-6](UAT-ATTACK-6.md)   | Hiding, invisibility and unseen attackers                           |
-| 95            | 3     | [UAT-ATTACK-8](UAT-ATTACK-8.md)   | Grapple, shove and basic actions                                    |
-| 96            | 3     | [UAT-ATTACK-10](UAT-ATTACK-10.md) | Multiattack and SRD monster attacks                                 |
-| 130           | 3     | [UAT-ATTACK-7](UAT-ATTACK-7.md)   | Optional combat rules in play                                       |
-| 131           | 3     | [UAT-ATTACK-9](UAT-ATTACK-9.md)   | Class features in play                                              |
-| 132           | 3     | [UAT-ATTACK-11](UAT-ATTACK-11.md) | Weapons in hand, loadouts and Disarm                                |
-| 144           | 4     | [UAT-ATTACK-3](UAT-ATTACK-3.md)   | Assisted warnings and "Do it anyway"                                |
-| 145           | 4     | [UAT-ATTACK-4](UAT-ATTACK-4.md)   | Undo last action and its refusals                                   |
+| 93            | 3     | [UAT-ATTACK-1](UAT-ATTACK-1.md)   | Effects, movement, reactions and the turn lifecycle pass end to end |
+| 94            | 3     | [UAT-ATTACK-2](UAT-ATTACK-2.md)   | Players control only their own actors                               |
+| 95            | 3     | [UAT-ATTACK-5](UAT-ATTACK-5.md)   | Targeting, hidden creatures and private roll cards                  |
+| 96            | 3     | [UAT-ATTACK-6](UAT-ATTACK-6.md)   | Hiding, invisibility and unseen attackers                           |
+| 97            | 3     | [UAT-ATTACK-8](UAT-ATTACK-8.md)   | Grapple, shove and basic actions                                    |
+| 98            | 3     | [UAT-ATTACK-10](UAT-ATTACK-10.md) | Multiattack and SRD monster attacks                                 |
+| 132           | 3     | [UAT-ATTACK-7](UAT-ATTACK-7.md)   | Optional combat rules in play                                       |
+| 133           | 3     | [UAT-ATTACK-9](UAT-ATTACK-9.md)   | Class features in play                                              |
+| 134           | 3     | [UAT-ATTACK-11](UAT-ATTACK-11.md) | Weapons in hand, loadouts and Disarm                                |
+| 146           | 4     | [UAT-ATTACK-3](UAT-ATTACK-3.md)   | Assisted warnings and "Do it anyway"                                |
+| 147           | 4     | [UAT-ATTACK-4](UAT-ATTACK-4.md)   | Undo last action and its refusals                                   |
 
 ## Covered elsewhere
 

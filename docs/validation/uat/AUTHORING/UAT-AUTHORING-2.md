@@ -2,7 +2,7 @@
 
 SRD records are locked but can be copied into an owned draft.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 25 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 27 of 190
 
 ## Prerequisites
 

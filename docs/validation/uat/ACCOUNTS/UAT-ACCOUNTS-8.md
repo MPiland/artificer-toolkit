@@ -2,7 +2,7 @@
 
 Private profiles stay private; Public profiles show only public fields.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, P2) · Path position 16 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, P2) · Path position 18 of 190
 
 ## Prerequisites
 

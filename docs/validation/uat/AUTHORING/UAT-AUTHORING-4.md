@@ -2,7 +2,7 @@
 
 Author, publish and filter a homebrew Spell with artwork.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 28 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 30 of 190
 
 ## Prerequisites
 

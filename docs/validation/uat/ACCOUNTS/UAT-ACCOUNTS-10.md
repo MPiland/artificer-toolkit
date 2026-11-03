@@ -2,7 +2,7 @@
 
 Superadmin moderation.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, SUPERADMIN) · Path position 19 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, SUPERADMIN) · Path position 21 of 190
 
 ## Prerequisites
 

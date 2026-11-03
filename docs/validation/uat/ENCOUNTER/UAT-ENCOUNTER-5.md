@@ -2,7 +2,7 @@
 
 Morale.
 
-Level 3 (Core play) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 133 of 188
+Level 3 (Core play) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 135 of 190
 
 ## Prerequisites
 

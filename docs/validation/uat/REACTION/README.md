@@ -10,10 +10,10 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                            | Title                                                    |
 | ------------- | ----- | ----------------------------------- | -------------------------------------------------------- |
-| 106           | 3     | [UAT-REACTION-2](UAT-REACTION-2.md) | Only the right controller answers; GM Skip decision      |
-| 107           | 3     | [UAT-REACTION-1](UAT-REACTION-1.md) | Shield prompts the right player while the attacker waits |
-| 108           | 3     | [UAT-REACTION-3](UAT-REACTION-3.md) | Roll prompts, Auto-roll on versus off                    |
-| 109           | 3     | [UAT-REACTION-5](UAT-REACTION-5.md) | An authored reaction spell (Absorb Elements)             |
-| 110           | 3     | [UAT-REACTION-7](UAT-REACTION-7.md) | Reconnect while a decision is open                       |
-| 134           | 3     | [UAT-REACTION-4](UAT-REACTION-4.md) | Counterspell and chains                                  |
-| 135           | 3     | [UAT-REACTION-6](UAT-REACTION-6.md) | Disarm evidence from participants                        |
+| 108           | 3     | [UAT-REACTION-2](UAT-REACTION-2.md) | Only the right controller answers; GM Skip decision      |
+| 109           | 3     | [UAT-REACTION-1](UAT-REACTION-1.md) | Shield prompts the right player while the attacker waits |
+| 110           | 3     | [UAT-REACTION-3](UAT-REACTION-3.md) | Roll prompts, Auto-roll on versus off                    |
+| 111           | 3     | [UAT-REACTION-5](UAT-REACTION-5.md) | An authored reaction spell (Absorb Elements)             |
+| 112           | 3     | [UAT-REACTION-7](UAT-REACTION-7.md) | Reconnect while a decision is open                       |
+| 136           | 3     | [UAT-REACTION-4](UAT-REACTION-4.md) | Counterspell and chains                                  |
+| 137           | 3     | [UAT-REACTION-6](UAT-REACTION-6.md) | Disarm evidence from participants                        |

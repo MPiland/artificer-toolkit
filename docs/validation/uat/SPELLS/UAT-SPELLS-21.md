@@ -2,7 +2,7 @@
 
 Invisibility, Sanctuary, Fear and Blindness.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 172 of 188
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 174 of 190
 
 ## Prerequisites
 

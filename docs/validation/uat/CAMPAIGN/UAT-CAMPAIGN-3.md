@@ -2,7 +2,7 @@
 
 Players see only what the GM made visible.
 
-Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 77 of 188
+Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 79 of 190
 
 ## Prerequisites
 

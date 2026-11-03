@@ -10,10 +10,10 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                        | Title                                                 |
 | ------------- | ----- | ------------------------------- | ----------------------------------------------------- |
-| 113           | 3     | [UAT-VTT_UI-1](UAT-VTT_UI-1.md) | Token identity, status rings, facing and system state |
-| 114           | 3     | [UAT-VTT_UI-2](UAT-VTT_UI-2.md) | Previews, footprints, large tokens and dragging       |
-| 115           | 3     | [UAT-VTT_UI-4](UAT-VTT_UI-4.md) | Keyboard, screen reader and low zoom                  |
-| 138           | 3     | [UAT-VTT_UI-3](UAT-VTT_UI-3.md) | Light, fog, senses and the GM's view preview          |
+| 115           | 3     | [UAT-VTT_UI-1](UAT-VTT_UI-1.md) | Token identity, status rings, facing and system state |
+| 116           | 3     | [UAT-VTT_UI-2](UAT-VTT_UI-2.md) | Previews, footprints, large tokens and dragging       |
+| 117           | 3     | [UAT-VTT_UI-4](UAT-VTT_UI-4.md) | Keyboard, screen reader and low zoom                  |
+| 140           | 3     | [UAT-VTT_UI-3](UAT-VTT_UI-3.md) | Light, fog, senses and the GM's view preview          |
 
 ## Covered elsewhere
 

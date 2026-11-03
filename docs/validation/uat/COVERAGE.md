@@ -5,7 +5,7 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 | Feature     | Folder                               | Scenarios | ACs     | Covered by a scenario | of which blocked | Covered elsewhere | Not coverable |
 | ----------- | ------------------------------------ | --------- | ------- | --------------------- | ---------------- | ----------------- | ------------- |
 | PLATFORM    | [PLATFORM](PLATFORM/README.md)       | 5         | 68      | 10                    | 0                | 58                | 0             |
-| ACCOUNTS    | [ACCOUNTS](ACCOUNTS/README.md)       | 13        | 37      | 29                    | 0                | 8                 | 0             |
+| ACCOUNTS    | [ACCOUNTS](ACCOUNTS/README.md)       | 15        | 39      | 31                    | 0                | 8                 | 0             |
 | AUTHORING   | [AUTHORING](AUTHORING/README.md)     | 15        | 59      | 52                    | 0                | 7                 | 0             |
 | RULES       | [RULES](RULES/README.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
 | BUILDER     | [BUILDER](BUILDER/README.md)         | 7         | 14      | 12                    | 0                | 2                 | 0             |
@@ -24,10 +24,10 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 | VTT_UI      | [VTT_UI](VTT_UI/README.md)           | 4         | 13      | 12                    | 0                | 1                 | 0             |
 | PERF        | [PERF](PERF/README.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY](QUALITY/README.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
-| RELEASE     | [RELEASE](RELEASE/README.md)         | 1         | 19      | 5                     | 0                | 9                 | 5             |
-| **Total**   |                                      | **180**   | **720** | **503**               | **1**            | **212**           | **5**         |
+| RELEASE     | [RELEASE](RELEASE/README.md)         | 1         | 20      | 5                     | 0                | 10                | 5             |
+| **Total**   |                                      | **182**   | **723** | **505**               | **1**            | **213**           | **5**         |
 
-Scenarios counted are the scripted ones (180); the orientation scenario and 7 exploratory tasks cover no AC.
+Scenarios counted are the scripted ones (182); the orientation scenario and 7 exploratory tasks cover no AC.
 
 ## AC map
 
@@ -110,7 +110,7 @@ Scenarios counted are the scripted ones (180); the orientation scenario and 7 ex
 </details>
 
 <details>
-<summary>ACCOUNTS: 29 of 37 ACs in scenarios</summary>
+<summary>ACCOUNTS: 31 of 39 ACs in scenarios</summary>
 
 | AC            | Scenarios                                                                                    |
 | ------------- | -------------------------------------------------------------------------------------------- |
@@ -151,6 +151,8 @@ Scenarios counted are the scripted ones (180); the orientation scenario and 7 ex
 | ACCOUNTS-10.3 | [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md)                                               |
 | ACCOUNTS-10.4 | [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md)                                               |
 | ACCOUNTS-10.5 | [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md)                                               |
+| ACCOUNTS-11.1 | [UAT-ACCOUNTS-14](ACCOUNTS/UAT-ACCOUNTS-14.md)                                               |
+| ACCOUNTS-11.2 | [UAT-ACCOUNTS-15](ACCOUNTS/UAT-ACCOUNTS-15.md)                                               |
 
 </details>
 
@@ -895,7 +897,7 @@ Scenarios counted are the scripted ones (180); the orientation scenario and 7 ex
 </details>
 
 <details>
-<summary>RELEASE: 5 of 19 ACs in scenarios</summary>
+<summary>RELEASE: 5 of 20 ACs in scenarios</summary>
 
 | AC          | Scenarios                                 |
 | ----------- | ----------------------------------------- |
@@ -907,6 +909,7 @@ Scenarios counted are the scripted ones (180); the orientation scenario and 7 ex
 | RELEASE-2.3 | Covered elsewhere                         |
 | RELEASE-3.1 | Not coverable                             |
 | RELEASE-3.2 | Not coverable                             |
+| RELEASE-3.3 | Covered elsewhere                         |
 | RELEASE-4.1 | Not coverable                             |
 | RELEASE-4.2 | Not coverable                             |
 | RELEASE-5.1 | Covered elsewhere                         |

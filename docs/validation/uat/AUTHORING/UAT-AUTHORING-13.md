@@ -2,7 +2,7 @@
 
 Author a Fire Bolt-like cantrip from scratch.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 34 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 36 of 190
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Shield prompts the right player while the attacker waits.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 107 of 188
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 109 of 190
 
 ## Prerequisites
 

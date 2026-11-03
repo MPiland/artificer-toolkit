@@ -2,7 +2,7 @@
 
 Token identity, status rings, facing and system state.
 
-Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1, P2) · Path position 113 of 188
+Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1, P2) · Path position 115 of 190
 
 ## Prerequisites
 

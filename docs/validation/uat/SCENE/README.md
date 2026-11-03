@@ -10,15 +10,15 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                      | Title                                       |
 | ------------- | ----- | ----------------------------- | ------------------------------------------- |
-| 63            | 2     | [UAT-SCENE-1](UAT-SCENE-1.md) | Upload a map, calibrate and create a Scene  |
-| 64            | 2     | [UAT-SCENE-2](UAT-SCENE-2.md) | Map upload refusals                         |
-| 65            | 2     | [UAT-SCENE-3](UAT-SCENE-3.md) | Present a Scene and build it live           |
-| 66            | 2     | [UAT-SCENE-4](UAT-SCENE-4.md) | Fog of war off, shared and per player       |
-| 67            | 2     | [UAT-SCENE-5](UAT-SCENE-5.md) | Doors                                       |
-| 68            | 2     | [UAT-SCENE-6](UAT-SCENE-6.md) | Offline edits recover                       |
-| 69            | 2     | [UAT-SCENE-9](UAT-SCENE-9.md) | One shared table screen for several players |
-| 75            | 2     | [UAT-SCENE-7](UAT-SCENE-7.md) | Map ownership and deletion                  |
-| 143           | 4     | [UAT-SCENE-8](UAT-SCENE-8.md) | GM loot tables                              |
+| 65            | 2     | [UAT-SCENE-1](UAT-SCENE-1.md) | Upload a map, calibrate and create a Scene  |
+| 66            | 2     | [UAT-SCENE-2](UAT-SCENE-2.md) | Map upload refusals                         |
+| 67            | 2     | [UAT-SCENE-3](UAT-SCENE-3.md) | Present a Scene and build it live           |
+| 68            | 2     | [UAT-SCENE-4](UAT-SCENE-4.md) | Fog of war off, shared and per player       |
+| 69            | 2     | [UAT-SCENE-5](UAT-SCENE-5.md) | Doors                                       |
+| 70            | 2     | [UAT-SCENE-6](UAT-SCENE-6.md) | Offline edits recover                       |
+| 71            | 2     | [UAT-SCENE-9](UAT-SCENE-9.md) | One shared table screen for several players |
+| 77            | 2     | [UAT-SCENE-7](UAT-SCENE-7.md) | Map ownership and deletion                  |
+| 145           | 4     | [UAT-SCENE-8](UAT-SCENE-8.md) | GM loot tables                              |
 
 ## Covered elsewhere
 

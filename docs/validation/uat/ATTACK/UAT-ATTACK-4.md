@@ -2,7 +2,7 @@
 
 Undo last action and its refusals.
 
-Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 145 of 188
+Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 147 of 190
 
 ## Prerequisites
 

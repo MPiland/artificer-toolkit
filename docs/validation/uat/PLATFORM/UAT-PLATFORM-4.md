@@ -2,7 +2,7 @@
 
 Password reset email is requested from the app.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path position 23 of 188
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path position 25 of 190
 
 ## Prerequisites
 

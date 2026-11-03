@@ -2,7 +2,7 @@
 
 Fog of war off, shared and per player.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2) · Path position 66 of 188
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2) · Path position 68 of 190
 
 ## Prerequisites
 

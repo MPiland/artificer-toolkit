@@ -2,7 +2,7 @@
 
 Multiattack and SRD monster attacks.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 96 of 188
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 98 of 190
 
 ## Prerequisites
 

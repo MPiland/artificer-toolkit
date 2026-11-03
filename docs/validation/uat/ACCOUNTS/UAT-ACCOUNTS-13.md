@@ -2,7 +2,7 @@
 
 Campaign text follows the same language rules as usernames.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (GM) · Path position 15 of 188
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (GM) · Path position 17 of 190
 
 ## Prerequisites
 

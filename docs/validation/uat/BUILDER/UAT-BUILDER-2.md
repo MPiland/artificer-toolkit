@@ -2,7 +2,7 @@
 
 Two windows on one draft cannot overwrite each other.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 39 of 188
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 41 of 190
 
 ## Prerequisites
 

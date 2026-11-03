@@ -2,7 +2,7 @@
 
 Author a Feat, a Race and a Vehicle.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 31 of 188
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 33 of 190
 
 ## Prerequisites
 

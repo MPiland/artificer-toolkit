@@ -10,15 +10,15 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                                                |
 | ------------- | ----- | --------------------------------- | ---------------------------------------------------- |
-| 97            | 3     | [UAT-PRIVACY-1](UAT-PRIVACY-1.md) | What a player sees of the Encounter                  |
-| 98            | 3     | [UAT-PRIVACY-2](UAT-PRIVACY-2.md) | GM private rolls and monster rolls                   |
-| 99            | 3     | [UAT-PRIVACY-5](UAT-PRIVACY-5.md) | Reloads and replays do not leak                      |
-| 100           | 3     | [UAT-PRIVACY-6](UAT-PRIVACY-6.md) | Health display settings                              |
-| 101           | 3     | [UAT-PRIVACY-7](UAT-PRIVACY-7.md) | Other players' Sheets and Campaign roster            |
-| 116           | 3     | [UAT-PRIVACY-9](UAT-PRIVACY-9.md) | A hidden Concentration source stays hidden           |
-| 126           | 3     | [UAT-PRIVACY-4](UAT-PRIVACY-4.md) | Ownership transfer changes who sees what             |
-| 128           | 3     | [UAT-PRIVACY-3](UAT-PRIVACY-3.md) | Non-members, removed players and signed-out visitors |
-| 129           | 3     | [UAT-PRIVACY-8](UAT-PRIVACY-8.md) | Campaign content stays hidden until revealed         |
+| 99            | 3     | [UAT-PRIVACY-1](UAT-PRIVACY-1.md) | What a player sees of the Encounter                  |
+| 100           | 3     | [UAT-PRIVACY-2](UAT-PRIVACY-2.md) | GM private rolls and monster rolls                   |
+| 101           | 3     | [UAT-PRIVACY-5](UAT-PRIVACY-5.md) | Reloads and replays do not leak                      |
+| 102           | 3     | [UAT-PRIVACY-6](UAT-PRIVACY-6.md) | Health display settings                              |
+| 103           | 3     | [UAT-PRIVACY-7](UAT-PRIVACY-7.md) | Other players' Sheets and Campaign roster            |
+| 118           | 3     | [UAT-PRIVACY-9](UAT-PRIVACY-9.md) | A hidden Concentration source stays hidden           |
+| 128           | 3     | [UAT-PRIVACY-4](UAT-PRIVACY-4.md) | Ownership transfer changes who sees what             |
+| 130           | 3     | [UAT-PRIVACY-3](UAT-PRIVACY-3.md) | Non-members, removed players and signed-out visitors |
+| 131           | 3     | [UAT-PRIVACY-8](UAT-PRIVACY-8.md) | Campaign content stays hidden until revealed         |
 
 ## Covered elsewhere
 

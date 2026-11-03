@@ -2,7 +2,7 @@
 
 Reconnect after a dropped connection.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 127 of 188
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 129 of 190
 
 ## Prerequisites
 

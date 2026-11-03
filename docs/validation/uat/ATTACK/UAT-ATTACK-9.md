@@ -2,7 +2,7 @@
 
 Class features in play.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 131 of 188
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 133 of 190
 
 ## Prerequisites
 
