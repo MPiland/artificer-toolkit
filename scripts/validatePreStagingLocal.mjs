@@ -16,28 +16,18 @@ import {
   convexCliArguments,
   convexCliEnvironment,
   convexDeployArguments,
-  convexEnvironmentValue,
   generateAdminKey,
   localConvex,
   yarnSpawn
 } from './convexSelfHosted.mjs'
+import { localSessionWorker, localSessionWorkerBindings } from './localSessionWorker.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 // The local Docker deployment (localConvex) is shared with scripts/resetLocalConvex.ps1 and scripts/runLocalConvexProof.ps1.
-// The documented local Session Worker (apps/session-worker README). Proofs that send Encounter
-// commands or open the tabletop need it. The VTT browser proof starts its own Worker on this port
-// (apps/web/playwright.local-vtt.config.ts), so the lifecycle stops its Worker before that stage.
+// Proofs that send Encounter commands or open the tabletop need the local Session Worker. The VTT
+// browser proof starts its own Worker on that port (apps/web/playwright.local-vtt.config.ts), so the
+// lifecycle stops its Worker before that stage.
 export const selfManagedBrowserProof = 'vtt-browser'
-const localSessionWorker = {
-  allowedOrigins: 'http://localhost:3000,http://127.0.0.1:3000',
-  host: '127.0.0.1',
-  port: 8787,
-  secretNames: [
-    'LIVE_SESSION_TICKET_SECRET',
-    'LIVE_SESSION_WORKER_SECRET',
-    'CONTENT_SNAPSHOT_TOKEN_SECRET'
-  ]
-}
 // The browser proofs open the web app here; the VTT browser proof starts its own on the same port.
 const localWebApp = { port: 3000 }
 // Application secrets loaded from the local environment files; the Worker child does not receive them.
@@ -445,24 +435,16 @@ async function startLocalService({
 
 // The documented local Worker, with its secrets read in memory from the local Convex deployment.
 export async function startLocalSessionWorker(artifactDirectory) {
-  const { allowedOrigins, host, port, secretNames } = localSessionWorker
-  // Read in memory for the Worker child only; the values are never logged or written.
-  const secrets = Object.fromEntries(
-    await Promise.all(secretNames.map(async (name) => [name, await convexEnvironmentValue(name)]))
-  )
-  // Wrangler binds these from process.env; the empty env file keeps the ignored .dev.vars out.
+  const { host, port } = localSessionWorker
+  const bindings = await localSessionWorkerBindings(process.env.CONVEX_SITE_URL)
+  // The empty env file keeps the ignored .dev.vars out.
   const environmentFile = resolve(artifactDirectory, 'local-session-worker.env')
   await writeFile(environmentFile, '')
   const environment = convexCliEnvironment()
   for (const name of loadedEnvironmentNames) delete environment[name]
   delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
   environment.YARN_INJECT_ENVIRONMENT_FILES = environmentFile
-  Object.assign(environment, secrets, {
-    CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
-    CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
-    LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026',
-    LIVE_SESSION_ALLOWED_ORIGINS: allowedOrigins
-  })
+  Object.assign(environment, bindings)
   return startLocalService({
     artifactDirectory,
     environment,
