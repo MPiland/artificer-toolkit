@@ -55,12 +55,12 @@ No limit, retry or command split was changed.
 `apps/apis/convex/characters/sheetCommandBudget.test.ts`, one `ADJUST_HIT_POINTS` after a warm-up
 command:
 
-| Measure                                         | Before  | After   | Budget   |
-| ----------------------------------------------- | ------- | ------- | -------- |
-| `systems` reads                                 | 4       | 2       | ≤ 2      |
-| `campaignMemberships` / `rulesCatalogues` reads | 2 / 2   | 1 / 1   | 1 / 1    |
-| documents read                                  | 55      | 43      |          |
-| bytes read                                      | ~230 KB | ~158 KB | < 180 KB |
+| Measure                                         | Before                                        | After   | Budget   |
+| ----------------------------------------------- | --------------------------------------------- | ------- | -------- |
+| `systems` reads                                 | 4                                             | 2       | ≤ 2      |
+| `campaignMemberships` / `rulesCatalogues` reads | read twice (facts + fingerprint), not counted | 1 / 1   | 1 / 1    |
+| documents read                                  | 55                                            | 43      |          |
+| bytes read                                      | ~230 KB                                       | ~158 KB | < 180 KB |
 
 Local convex-test wall time per command (informational, not asserted) fell from about 80 ms to about
 68 ms on this fixture; the SRD Life Domain Cleric case was about 160 ms before. The red proof is CI Tests run 41850701586, job "Red proof against the phase branch": against the phase-branch code the test fails with `expected 4 to be less than or equal to 2` System reads.
