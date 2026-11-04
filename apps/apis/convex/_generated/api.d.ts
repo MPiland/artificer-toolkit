@@ -12092,6 +12092,14 @@ export declare const api: {
         }
       >;
     };
+    deletion: {
+      remove: FunctionReference<
+        "mutation",
+        "public",
+        { id: string },
+        { ok: true }
+      >;
+    };
     drafts: {
       create: FunctionReference<
         "mutation",
@@ -296473,6 +296481,12 @@ export declare const api: {
           splitCursor?: string | null;
         }
       >;
+      remove: FunctionReference<
+        "mutation",
+        "public",
+        { blueprintId: string },
+        null
+      >;
       update: FunctionReference<
         "mutation",
         "public",
@@ -307552,6 +307566,14 @@ export declare const internal: {
           reset?: boolean;
         },
         any
+      >;
+    };
+    blueprintDeletion: {
+      purgeUpdates: FunctionReference<
+        "mutation",
+        "internal",
+        { blueprintId: string },
+        null
       >;
     };
     continuationSealMigration: {

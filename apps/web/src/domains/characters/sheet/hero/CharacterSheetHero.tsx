@@ -1,10 +1,11 @@
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { ActionIcon, Badge, Text, Title, Tooltip } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
-import { MessageCircle, Settings } from 'lucide-react'
+import { MessageCircle, Settings, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { MediaImageControl } from '#app/components/MediaImage'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
+import { useCharacterDeleteAction } from '../../useCharacterDeleteAction'
 import * as heroStyles from './hero.css'
 
 export function CharacterSheetHero({
@@ -24,6 +25,7 @@ export function CharacterSheetHero({
 }) {
   const navigate = useNavigate()
   const characterParams = buildCharacterRouteParams(characterPublicId, sheet.identity.label)
+  const deleteAction = useCharacterDeleteAction(() => navigate({ to: '/characters' }))
 
   return (
     <section aria-label='Character identity' className={heroStyles.hero}>
@@ -93,7 +95,27 @@ export function CharacterSheetHero({
             </ActionIcon>
           </Tooltip>
         ) : null}
+        {editable ? (
+          <Tooltip label='Delete character'>
+            <ActionIcon
+              aria-label='Delete character'
+              className={heroStyles.heroIconAction}
+              color='red'
+              size='lg'
+              variant='default'
+              onClick={() =>
+                deleteAction.requestDelete({
+                  id: sheet.meta.characterId,
+                  label: sheet.identity.label
+                })
+              }
+            >
+              <Trash2 aria-hidden='true' size={18} />
+            </ActionIcon>
+          </Tooltip>
+        ) : null}
       </div>
+      {deleteAction.confirmation}
     </section>
   )
 }

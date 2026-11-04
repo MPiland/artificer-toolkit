@@ -17,6 +17,7 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 | 44            | 1     | [UAT-BUILDER-4](UAT-BUILDER-4.md) | Removing content a Character uses repairs the Character         |
 | 45            | 1     | [UAT-BUILDER-6](UAT-BUILDER-6.md) | Imported custom items keep their kind, properties and damage    |
 | 60            | 2     | [UAT-BUILDER-5](UAT-BUILDER-5.md) | Withdrawing shared content reconciles assigned Characters       |
+| 61            | 2     | [UAT-BUILDER-8](UAT-BUILDER-8.md) | Permanently delete a Character in a running Encounter           |
 
 ## Covered elsewhere
 

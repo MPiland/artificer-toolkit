@@ -29,9 +29,8 @@ export const assign = mutation({
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const characterId = input.characterId.toLowerCase()
     const record = await readCharacterRow(ctx, characterId)
-    if (!record || (membership.role === 'PLAYER' && record.userId !== userId))
-      throw new Error('Character is unavailable.')
-    const { membership: player } = await requireCampaignAuthority(ctx, campaign.id, record.userId)
+    // Only the owner brings a Character into a party, the GM included (D211).
+    if (!record || record.userId !== userId) throw new Error('Character is unavailable.')
     const current = await ctx.db
       .query('campaignCharacterAssignments')
       .withIndex('by_campaignId_userId', (q) =>
@@ -41,7 +40,7 @@ export const assign = mutation({
     // Assignment retries still validate the complete Character before accepting its binding.
     const character = readCharacterRecord(record) as CharacterAuthored
     if (current?.characterId === characterId) {
-      await readCampaignAssignedCharacter(ctx, campaign, player)
+      await readCampaignAssignedCharacter(ctx, campaign, membership)
       return { ok: true as const }
     }
     if (record.status !== 'ACTIVE' || record.systemId !== campaign.gameSystemId)

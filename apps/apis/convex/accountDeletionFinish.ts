@@ -7,7 +7,7 @@ import {
   readAccountDeletionStep
 } from './accountDeletionJobs'
 import { scheduleOwnerCopyCleanup } from './campaigns/copyJobCleanup'
-import { syncAccountUsage } from './lib/accountUsage'
+import { deleteBlueprintRow } from './encounters/blueprintDeletion'
 import { internalMutation } from './lib/mutations'
 import { resetAccountRateLimits } from './lib/rateLimits'
 import { retainedFeed } from './notifications/feed'
@@ -34,10 +34,7 @@ export const step = internalMutation({
         .take(ACCOUNT_DELETION_BATCH)
     ])
     for (const update of blueprintUpdates) await ctx.db.delete(update._id)
-    for (const blueprint of blueprints) {
-      await ctx.db.delete(blueprint._id)
-      await syncAccountUsage(ctx, 'savedEncounters', blueprint.id)
-    }
+    for (const blueprint of blueprints) await deleteBlueprintRow(ctx, blueprint)
     if (blueprintUpdates.length || blueprints.length) {
       await continueAccountDeletion(ctx, job, true)
       return null

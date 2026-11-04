@@ -90,6 +90,8 @@ export async function verifySocialLifecycle(
       email: false
     })
   }
+  // The owner reports and blocks the invitee from their profile page, which PRIVATE hides (D211).
+  await invitee.client.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
   await cli('authAdmin:setRole', { userId: moderator.userId, role: 'superadmin' }, false)
   const campaign = await owner.client.mutation(api.campaigns.create.create, {
     name: 'Encounter execution fixture',

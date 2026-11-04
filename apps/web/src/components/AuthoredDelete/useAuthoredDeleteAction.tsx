@@ -11,6 +11,7 @@ function resolveQueryKey(resolver: QueryKeyResolver, id: string): QueryKey {
 }
 
 export function useAuthoredDeleteAction({
+  activeConsequence,
   deleteActive,
   deleteDraft,
   detailSubjectQueryKey,
@@ -19,6 +20,7 @@ export function useAuthoredDeleteAction({
   draftQueryKey,
   onDeleted
 }: {
+  activeConsequence?: string
   deleteActive: (id: string) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   detailSubjectQueryKey: QueryKeyResolver
@@ -93,6 +95,7 @@ export function useAuthoredDeleteAction({
   const confirmation = useMemo<ReactNode>(
     () => (
       <AuthoredDeleteConfirmModal
+        activeConsequence={activeConsequence}
         domainLabel={domainLabel}
         isDeleting={deleteMutation.isPending}
         target={target}
@@ -100,7 +103,7 @@ export function useAuthoredDeleteAction({
         onConfirm={() => void confirmDelete()}
       />
     ),
-    [closeDelete, confirmDelete, deleteMutation.isPending, domainLabel, target]
+    [activeConsequence, closeDelete, confirmDelete, deleteMutation.isPending, domainLabel, target]
   )
 
   return {

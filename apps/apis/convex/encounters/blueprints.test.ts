@@ -12,6 +12,8 @@ import type {
   EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
 import { publicationFixture } from '../../tests/fixtures/publication'
+import { drainScheduledWork } from '../../tests/fixtures/accountDeletion'
+import { ACCOUNT_DELETION_BATCH } from '../accountDeletionJobs'
 
 const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
 const authModules = import.meta.glob('/apps/apis/convex/betterAuth/**/*.*s')
@@ -25,6 +27,9 @@ const update = makeFunctionReference<
   UpdateEncounterBlueprintInputDto,
   EncounterBlueprintDto
 >('encounters/blueprints:update')
+const remove = makeFunctionReference<'mutation', { blueprintId: string }, null>(
+  'encounters/blueprints:remove'
+)
 const input = (): CreateEncounterBlueprintInputDto => ({
   gameSystemId: srdSystemRecord.id,
   name: 'Practice',
@@ -154,4 +159,51 @@ describe('native Blueprint commands', () => {
     expect((await first.caller.mutation(create, original)).version).toBe(1)
     expect((await first.caller.mutation(update, edit)).version).toBe(2)
   }, 30000)
+
+  it('lets only the owner permanently delete a Blueprint, its update receipts and its usage', async () => {
+    const { t, first, second } = await publicationFixture(modules, authModules, [])
+    const original = input()
+    const created = await first.caller.mutation(create, original)
+    let edit = {
+      blueprintId: created.id,
+      expectedVersion: 1,
+      commandId: crypto.randomUUID(),
+      name: 'Revised',
+      enemies: original.enemies
+    }
+    // One more receipt than a single purge batch, so the purge has to reschedule itself.
+    for (let version = 1; version <= ACCOUNT_DELETION_BATCH + 1; version++) {
+      await first.caller.mutation(update, edit)
+      edit = { ...edit, expectedVersion: version + 1, commandId: crypto.randomUUID() }
+    }
+    const usage = () =>
+      t.run(async (ctx) => {
+        const profile = await ctx.db
+          .query('userProfiles')
+          .withIndex('by_userId', (q) => q.eq('userId', first.userId))
+          .unique()
+        return profile?.entitlementUsage.savedEncounters
+      })
+    const rows = () =>
+      t.run(async (ctx) => ({
+        blueprints: await ctx.db.query('encounterBlueprints').collect(),
+        updates: await ctx.db.query('encounterBlueprintUpdates').collect()
+      }))
+    expect(await usage()).toBe(1)
+    expect((await rows()).updates).toHaveLength(ACCOUNT_DELETION_BATCH + 1)
+
+    await expect(t.mutation(remove, { blueprintId: created.id })).rejects.toThrow('Unauthenticated')
+    await expect(second.caller.mutation(remove, { blueprintId: created.id })).rejects.toThrow(
+      'unavailable'
+    )
+    expect((await rows()).blueprints).toHaveLength(1)
+
+    await expect(first.caller.mutation(remove, { blueprintId: created.id })).resolves.toBeNull()
+    await drainScheduledWork(t)
+    expect(await rows()).toEqual({ blueprints: [], updates: [] })
+    expect(await usage()).toBe(0)
+    await expect(first.caller.mutation(remove, { blueprintId: created.id })).rejects.toThrow(
+      'unavailable'
+    )
+  }, 60000)
 })

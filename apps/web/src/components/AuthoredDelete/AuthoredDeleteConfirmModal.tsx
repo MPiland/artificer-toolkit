@@ -2,12 +2,15 @@ import { Button, Group, Modal, Stack, Text } from '@mantine/core'
 import type { AuthoredDeleteTarget } from './AuthoredDelete.types'
 
 export function AuthoredDeleteConfirmModal({
+  activeConsequence,
   domainLabel,
   isDeleting,
   onClose,
   onConfirm,
   target
 }: {
+  /** Replaces the default note that a draft survives, for permanent deletes. */
+  activeConsequence?: string
   domainLabel: string
   isDeleting: boolean
   onClose: () => void
@@ -19,7 +22,7 @@ export function AuthoredDeleteConfirmModal({
     target?.kind === 'draft'
       ? `Delete the draft for ${target.label}? The active ${lowerDomain} will stay unchanged if one exists.`
       : target
-        ? `Delete ${target.label}? Any draft for this ${lowerDomain} will stay available.`
+        ? `Delete ${target.label}? ${activeConsequence ?? `Any draft for this ${lowerDomain} will stay available.`}`
         : ''
 
   return (
