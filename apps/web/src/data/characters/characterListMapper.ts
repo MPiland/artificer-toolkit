@@ -60,7 +60,7 @@ function mapCharacterListItemToAuthoredItem(item: CharacterListItem): AuthoredLi
       canView: true,
       canEdit: true,
       canCopy: false,
-      canDelete: false
+      canDelete: true
     }
   }
 }
