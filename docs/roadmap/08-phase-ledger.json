@@ -28651,11 +28651,14 @@
             {
               "id": "PERF-1.4",
               "text": "characters/sheetCommands:execute, and any other public mutation the frozen workload or the browser journeys show near its limit, runs well under the Convex 1 s execution limit. A deterministic budget test that counts reads, writes and work, not wall-clock time, fails if the heaviest Sheet command grows past its recorded budget.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/sheetCommandBudget.test.ts"
+              ],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): a Sheet command hit the 1 s mutation limit in the m-batch Browser journeys run 41767872164; triage the intermittent CI failures before staging"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by PERF-1.T5."
             },
             {
               "id": "PERF-1.5",
@@ -28782,7 +28785,7 @@
             },
             {
               "id": "PERF-1.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-1.4"
               ],
@@ -28793,7 +28796,12 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Profile characters/sheetCommands:execute, which timed out at 1 s in Browser journeys run 41767872164 during account-deletion-browser (convex-function.log in that run's artifacts). Find the heavy work on the path, such as reads, derivation, schema parsing or a scheduled sheetSectionDerivation fan-out, with file:line evidence, and cut it well under the limit without moving logic out of rules-runtime. Add a deterministic budget test (read/write counts or bytes, never wall-clock) that is red before the fix. Check the other public mutations the journeys exercise for the same shape, and list any found near the limit in docs/validation/."
+              "text": "Profile characters/sheetCommands:execute, which timed out at 1 s in Browser journeys run 41767872164 during account-deletion-browser (convex-function.log in that run's artifacts). Find the heavy work on the path, such as reads, derivation, schema parsing or a scheduled sheetSectionDerivation fan-out, with file:line evidence, and cut it well under the limit without moving logic out of rules-runtime. Add a deterministic budget test (read/write counts or bytes, never wall-clock) that is red before the fix. Check the other public mutations the journeys exercise for the same shape, and list any found near the limit in docs/validation/.",
+              "proof": [
+                "apps/apis/convex/characters/sheetCommandBudget.test.ts",
+                "docs/validation/perf-1-t5-sheet-command-budget-2026-11-03.md"
+              ],
+              "note": "Merged 2026-11-04 (m638, merge-slice run 41858823841). Each Sheet command read the 34 KB System document four times (checksummed three times) plus the Character sources twice; the fingerprint now reuses the reads the derivation already made in the same transaction. Sheet HP change: about 230 KB to 158 KB read, System reads 4 to 2. Budget test counts documents and bytes, red against the phase branch."
             },
             {
               "id": "PERF-1.T6",
