@@ -28,7 +28,7 @@
     "deploy:session-worker:production": "yarn workspace @artificer-toolkit/session-worker deploy:production",
     "build:all": "turbo run build --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/web --filter=@artificer-toolkit/session-worker",
     "validate:pre-staging:local": "node scripts/validatePreStagingLocal.mjs",
-    "dev:session-worker": "yarn workspace @artificer-toolkit/session-worker dev",
+    "dev:session-worker": "node scripts/devSessionWorker.mjs",
     "preflight:session-worker:managed": "yarn workspace @artificer-toolkit/session-worker preflight:managed",
     "test:shared": "turbo run test --filter=@artificer-toolkit/shared",
     "test:emails": "turbo run test --filter=@artificer-toolkit/emails",
