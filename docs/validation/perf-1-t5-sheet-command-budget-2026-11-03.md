@@ -63,8 +63,7 @@ command:
 | bytes read                                      | ~230 KB | ~158 KB | < 180 KB |
 
 Local convex-test wall time per command (informational, not asserted) fell from about 80 ms to about
-68 ms on this fixture; the SRD Life Domain Cleric case was about 160 ms before. The red proof is the
-CI "Red proof against the phase branch" job on `ci/perf-1-t5`.
+68 ms on this fixture; the SRD Life Domain Cleric case was about 160 ms before. The red proof is CI Tests run 41850701586, job "Red proof against the phase branch": against the phase-branch code the test fails with `expected 4 to be less than or equal to 2` System reads.
 
 ## Remaining near the limit
 
