@@ -9,9 +9,11 @@ import {
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterBuilderDraftDtoSchema } from '@artificer-toolkit/schema/api/characterBuilder'
 import {
+  characterDeleteInputSchema,
   characterDraftCreateInputSchema,
   characterDraftDiscardInputSchema,
   characterDraftSaveInputSchema,
+  type CharacterDeleteInput,
   type CharacterDraftCreateInput,
   type CharacterDraftDiscardInput,
   type CharacterDraftSaveInput
@@ -58,6 +60,14 @@ export function useDiscardCharacterDraftMutation() {
   return useMutation({
     mutationFn: (input: CharacterDraftDiscardInput) =>
       discard(characterDraftDiscardInputSchema.parse(input))
+  })
+}
+
+export function useDeleteCharacterMutation() {
+  const remove = useConvexMutation(convexApi.characters.deletion.remove)
+
+  return useMutation({
+    mutationFn: (input: CharacterDeleteInput) => remove(characterDeleteInputSchema.parse(input))
   })
 }
 

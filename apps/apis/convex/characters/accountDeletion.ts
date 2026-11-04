@@ -159,20 +159,24 @@ export async function removePrivateCharacter(
 
 /**
  * A room may hold a departed Character's frozen actor, which it removes only once it reads the
- * Character deleted: each former Campaign's live room gets a `CHARACTER` notice when this step
- * commits (D200). Campaign departure has made every membership LEFT.
+ * Character deleted: a live Campaign room gets a `CHARACTER` notice when the deletion commits
+ * (D200).
  */
+export async function notifyCampaignRoom(ctx: MutationCtx, campaignId: string) {
+  const authority = await ctx.db
+    .query('campaignLiveAuthorities')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+    .unique()
+  if (authority?.phase === 'DO_ACTIVE')
+    await scheduleLiveSessionInputInvalidation(ctx, campaignId, ['CHARACTER'])
+}
+
+/** Campaign departure has made every membership LEFT. */
 async function notifyFormerCampaignRooms(ctx: MutationCtx, userId: string) {
   for await (const membership of ctx.db
     .query('campaignMemberships')
-    .withIndex('by_userId_status_joinedAt', (q) => q.eq('userId', userId).eq('status', 'LEFT'))) {
-    const authority = await ctx.db
-      .query('campaignLiveAuthorities')
-      .withIndex('by_campaignId', (q) => q.eq('campaignId', membership.campaignId))
-      .unique()
-    if (authority?.phase === 'DO_ACTIVE')
-      await scheduleLiveSessionInputInvalidation(ctx, membership.campaignId, ['CHARACTER'])
-  }
+    .withIndex('by_userId_status_joinedAt', (q) => q.eq('userId', userId).eq('status', 'LEFT')))
+    await notifyCampaignRoom(ctx, membership.campaignId)
 }
 
 /**
