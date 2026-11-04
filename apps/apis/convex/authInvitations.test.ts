@@ -121,6 +121,26 @@ describe('one-use account invitations', () => {
     ).rejects.toThrow('not enabled')
   })
 
+  // The check and the consumption share one mutation transaction, so the later redeemer finds the link
+  // consumed and gets the ordinary invalid-link refusal, never a second account.
+  it('lets exactly one of two concurrent redemptions create the account', async () => {
+    const f = fixture()
+    await f.issue()
+    const results = await Promise.allSettled([
+      f.t.action(internal.authInvitationActions.redeem, f.input),
+      f.t.action(internal.authInvitationActions.redeem, f.input)
+    ])
+    expect(results.map(({ status }) => status).sort()).toEqual(['fulfilled', 'rejected'])
+    expect(results.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: expect.objectContaining({
+        message: expect.stringContaining('Invalid or expired invitation')
+      })
+    })
+    expect((await f.user())?.accounts).toHaveLength(1)
+    expect(await f.t.run((ctx) => ctx.db.query('userProfiles').take(2))).toHaveLength(1)
+    expect(await f.record()).toBeNull()
+  })
+
   it('rejects invalid, expired and wrong-recipient links without creating a user', async () => {
     const f = fixture()
     await f.issue()
