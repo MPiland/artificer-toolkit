@@ -484,7 +484,13 @@ export const authoredDetailReadEnvelopeSchema = lazySchema(() =>
     z.extend(z.omit(backgroundResponseDtoSchema._zod.def.innerType, { item: true, meta: true }), {
       item: z.nullable(unknownObjectSchema),
       armorClass: creatureComputedArmorClassDtoSchema,
-      meta: z.optional(z.record(z.string(), z.array(detailReferenceOptionDtoSchema)))
+      // Creature abilities add the abbreviation the stat block shows.
+      meta: z.optional(
+        z.record(
+          z.string(),
+          z.array(z.extend(detailReferenceOptionDtoSchema, { short: z.optional(z.string()) }))
+        )
+      )
     })
   )
 )

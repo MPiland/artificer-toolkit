@@ -14,6 +14,7 @@ import { AUTHORED_LENGTH_AMOUNT_MAX } from '@artificer-toolkit/schema/shared/aut
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { sourceImportDefinitionDtoSchema } from '@artificer-toolkit/schema/api/sourceImport'
 import {
+  authoredDetailReadEnvelopeSchema,
   creatureResponseDtoSchema,
   type AuthoredDetailReadInput,
   type AuthoredDetailReadResult
@@ -400,6 +401,19 @@ describe('native Creature publication', () => {
         srdPrintedArmorClass(creature)
       )
     }
+  })
+
+  it('returns every System ability with its abbreviation in Creature detail meta', async () => {
+    const { first } = await fixture()
+    const detail = await first.caller.query(details, {
+      subjectKind: 'CREATURE',
+      id: defaultCreatureId,
+      meta: ['abilities']
+    })
+    const strength = { value: 'STRENGTH', label: 'Strength', short: 'STR' }
+    expect(creatureResponseDtoSchema.parse(detail)?.meta?.abilities).toContainEqual(strength)
+    // convex-test does not check return validators; the deployed one is built from this envelope.
+    expect(authoredDetailReadEnvelopeSchema.parse(detail)?.meta?.abilities).toContainEqual(strength)
   })
 
   it('publishes canonical indexed Creature copies with cloned loadout bindings, source facts, and private active detail', async () => {
