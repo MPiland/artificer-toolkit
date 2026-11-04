@@ -24632,7 +24632,7 @@
             },
             {
               "id": "RELEASE-2.T0b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-2.1"],
               "wsjf": {
                 "bv": 3,
@@ -24643,7 +24643,12 @@
                 "finalSource": true
               },
               "text": "The final lifecycle (scripts/validatePreStagingLocal.mjs nativeProofModes/browserProofModes) keeps its own proof list and skips shove-aside-browser, held-effect-browser, concentration-sheet-browser and summon-turn-browser, which the proof runner and CI run. Build the lifecycle proof stages from the runner ValidateSet (runnerProofs, as scripts/affectedBrowserJourneys.mjs does), keeping only ordering rules local (native before browser, vtt-browser last). Also remove the account-deletion-browser stage-name special case by letting its driver accept any --fixture-attempt name. Regression test in scripts/validatePreStagingLocal.test.mjs: the lifecycle proof set equals the runner set and vtt-browser is last; red before the fix. Found by RELEASE-2.T0.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": [
+                "scripts/validatePreStagingLocal.test.mjs",
+                "scripts/affectedBrowserJourneys.test.mjs"
+              ],
+              "mergedAt": "2026-11-04T22:55:38Z",
+              "note": "Merged 2026-11-04 (m643, merge-slice run 41928112658). The runner -Proof ValidateSet now lives in scripts/runnerProofs.mjs and drives the lifecycle stages, so the four skipped browser proofs run. Red proof RED on 5b4affcac; the follow-up module move shows RED-IMPORT as expected."
             },
             {
               "id": "RELEASE-2.T1",
