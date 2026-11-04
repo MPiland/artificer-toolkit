@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { localChildEnvironment } from './validatePreStagingLocal.mjs'
+import { runnerProofs } from './runnerProofs.mjs'
+// A namespace import, so a lifecycle without the stage list fails this test instead of failing to load.
+import * as lifecycle from './validatePreStagingLocal.mjs'
 
 const loopback = 'http://127.0.0.1:3210'
 
@@ -25,7 +29,7 @@ describe('localChildEnvironment', () => {
   })
 
   it('keeps the Convex deployment selector and deploy key away from every child', () => {
-    const environment = localChildEnvironment({ EXTRA: 'kept' })
+    const environment = lifecycle.localChildEnvironment({ EXTRA: 'kept' })
 
     expect(environment).not.toHaveProperty('CONVEX_DEPLOYMENT')
     expect(environment).not.toHaveProperty('CONVEX_DEPLOY_KEY')
@@ -35,5 +39,27 @@ describe('localChildEnvironment', () => {
       GOMAXPROCS: '2',
       YARN_ENABLE_NETWORK: '0'
     })
+  })
+})
+
+describe('lifecycle proof stages', () => {
+  const runnerSet = runnerProofs(
+    readFileSync(resolve(import.meta.dirname, 'runLocalConvexProof.ps1'), 'utf8')
+  )
+  const proofStages = () => lifecycle.stages.filter(({ proof }) => proof)
+
+  it('runs every proof of the runner -Proof ValidateSet exactly once', () => {
+    expect(
+      proofStages()
+        .map(({ proof }) => proof)
+        .sort()
+    ).toEqual([...runnerSet].sort())
+  })
+
+  it('runs native proofs before browser proofs and the VTT browser proof last', () => {
+    const names = proofStages().map(({ name }) => name)
+    const firstBrowser = names.findIndex((name) => name.startsWith('r08-browser-'))
+    expect(names.slice(firstBrowser).every((name) => name.startsWith('r08-browser-'))).toBe(true)
+    expect(names.at(-1)).toBe(`r08-browser-${lifecycle.selfManagedBrowserProof}`)
   })
 })
