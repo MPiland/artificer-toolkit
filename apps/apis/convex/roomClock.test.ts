@@ -18,3 +18,22 @@ it('keeps the fake clock on real time after the event loop stalls or the clock f
   await sleep(80)
   expect(Math.abs(Date.now() - realNow())).toBeLessThan(250)
 })
+
+/** Real time passes while the event loop keeps stalling, as it does under a busy convex-test build. */
+async function stallFor(ms: number) {
+  const until = performance.now() + ms
+  while (performance.now() < until) {
+    const stallUntil = Math.min(until, performance.now() + 100)
+    while (performance.now() < stallUntil);
+    await sleep(1)
+  }
+}
+
+// fetch's connection pool times its keep-alive with this clock while servers close idle sockets on real
+// time; a late timer reuses a socket the server already closed (`fetch failed`, or a room closed with 1006).
+it('fires a timer on real time after the event loop stalls', async () => {
+  const fired = vi.fn()
+  setTimeout(fired, 500)
+  await stallFor(1_000)
+  expect(fired).toHaveBeenCalledOnce()
+})

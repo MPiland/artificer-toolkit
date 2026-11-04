@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 const script = join(import.meta.dirname, 'watchCi.ps1')
 const repository = join(import.meta.dirname, '..')
@@ -28,6 +28,12 @@ const run = (workflowName, status, conclusion, databaseId) => ({
 // `|` and quotes in gh's --jq arguments.
 describe.skipIf(process.platform === 'win32')('watchCi.ps1', { timeout: 30000 }, () => {
   let directory
+
+  // A fresh runner's first pwsh launch takes up to ~25 s (run 41706160093); the per-watch timeout below
+  // must time the script, not that one-off start.
+  beforeAll(() => {
+    expect(spawnSync('pwsh', ['-NoProfile', '-Command', 'exit 0']).status).toBe(0)
+  }, 120000)
 
   beforeEach(() => {
     directory = mkdtempSync(join(tmpdir(), 'watch-ci-'))
