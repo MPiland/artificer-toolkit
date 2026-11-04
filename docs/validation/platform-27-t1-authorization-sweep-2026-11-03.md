@@ -21,7 +21,7 @@ Every rule except `public` and `development` gets the caller from `ctx.auth` thr
 | Rule        | Count | Meaning                                                                                                                                                      |
 | ----------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | self        |    61 | Reads or writes only the caller's own records, keyed by that identity.                                                                                       |
-| owner       |    63 | The caller must own the record that a client-supplied id names.                                                                                              |
+| owner       |    65 | The caller must own the record that a client-supplied id names.                                                                                              |
 | member      |    77 | The caller must be an active Campaign member. Assignment, visibility and authorship checks narrow this further.                                              |
 | gm          |    67 | The caller must hold the Campaign owner role.                                                                                                                |
 | superadmin  |     5 | `requireSuperadmin`: superadmin role and a verified email (`identity.ts:80-87`).                                                                             |
@@ -150,6 +150,7 @@ Each line lists the function, its rule and the evidence `file:line` (relative to
 - `drafts:create`: self. `drafts:list`: self.
 - `drafts:get`, `drafts:save`, `drafts:discard`: owner. Each compares `draft.userId` with the caller (`characters/drafts.ts:137-278`).
 - `commit:commit`: owner (`characters/documents.ts:297`).
+- `deletion:remove`: owner. It compares the active or draft row's `userId` with the caller before deleting (`characters/deletion.ts:21-32`). It came from BUILDER-5.
 - `builder:activeCharacter`: owner (`characters/builder.ts:36-42`).
 - `list:list`: self (`characters/list.ts:17-21`).
 - `sheet:get`, `panels:get`, `preparationOptions:get`, `rest:preview`, `equipmentOptions:list`, `extraOptions:list`, `sheetCommands:execute`: owner (`characters/sheetInputs.ts:56-73`). With a `campaignId`, CHAR applies instead.
@@ -193,7 +194,7 @@ Each line lists the function, its rule and the evidence `file:line` (relative to
 - `encounters/actionChoices`, `encounters/actionTargetModifiers`: member, and the caller must control the actor (`NOT_ACTOR_CONTROLLER`).
 - `encounters/actorTokenBindings:execute`: gm, enforced in `packages/encounter-persistence/src/actorTokenBindingPersistence.ts:57-64`.
 - `encounters/healthDisplay:share`, `encounters/runs:create`, `encounters/runs:deletePrepared`: gm.
-- `encounters/blueprints`: `list` and `create` are self. `update` is owner.
+- `encounters/blueprints`: `list` and `create` are self. `update` and `remove` are owner. `remove` compares `ownerUserId` with the caller before deleting (`encounters/blueprints.ts:138-148`). It came from PLATFORM-26.
 - `encounters/developmentLifecycle:verifyRollback`: development.
 - `loot/tables`: all three are gm (`requireLootOwner`, `loot/tables.ts:39-78`).
 - `liveSessions/tickets:issue`: member. The ticket's role comes from the membership row (`liveSessions/admission.ts:25-30`).

@@ -150,6 +150,7 @@ const ACCESS: Record<string, Record<string, Access>> = {
   },
   'characters/builder': { activeCharacter: 'owner' },
   'characters/commit': { commit: 'owner' },
+  'characters/deletion': { remove: 'owner' },
   'characters/drafts': {
     create: 'self',
     discard: 'owner',
@@ -213,7 +214,7 @@ const ACCESS: Record<string, Record<string, Access>> = {
   'encounters/actionTargetModifiers': { get: 'member' },
   'encounters/activeReads': { active: 'member', decisionSettlement: 'member' },
   'encounters/actorTokenBindings': { execute: 'gm' },
-  'encounters/blueprints': { create: 'self', list: 'self', update: 'owner' },
+  'encounters/blueprints': { create: 'self', list: 'self', remove: 'owner', update: 'owner' },
   'encounters/developmentLifecycle': { verifyRollback: fixtureOnly },
   'encounters/healthDisplay': { share: 'gm' },
   'encounters/pendingReads': { pendingRuleOccurrence: 'member' },
