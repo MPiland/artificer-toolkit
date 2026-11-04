@@ -288701,7 +288701,10 @@ export declare const api: {
           } | null;
           hasDraft: boolean;
           item: Record<string, any> | null;
-          meta?: Record<string, Array<{ label: string; value: string }>>;
+          meta?: Record<
+            string,
+            Array<{ label: string; short?: string; value: string }>
+          >;
           permissions: {
             canCopy: boolean;
             canDelete: boolean;
