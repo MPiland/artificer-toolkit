@@ -402,6 +402,20 @@ describe('native Creature publication', () => {
     }
   })
 
+  it('returns every System ability with its abbreviation in Creature detail meta', async () => {
+    const { first } = await fixture()
+    const detail = await first.caller.query(details, {
+      subjectKind: 'CREATURE',
+      id: defaultCreatureId,
+      meta: ['abilities']
+    })
+    expect(creatureResponseDtoSchema.parse(detail)?.meta?.abilities).toContainEqual({
+      value: 'STRENGTH',
+      label: 'Strength',
+      short: 'STR'
+    })
+  })
+
   it('publishes canonical indexed Creature copies with cloned loadout bindings, source facts, and private active detail', async () => {
     const { t, first, second } = await fixture()
     const canonicalBefore = await t.run(async (ctx) =>
