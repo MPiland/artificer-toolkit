@@ -27,11 +27,7 @@ The `CONTENT_SNAPSHOTS` R2 binding (`wrangler.jsonc`, per environment) names the
 
 Keep every secret out of browser variables. The protected HTTP boundary compares `LIVE_SESSION_WORKER_SECRET` through the stable `x-artificer-live-session-secret` header. Bootstrap and Scene capture/hydration also require the signed-in user's bearer token. Internal publication and presentation control use the independent Worker secret and their authority fences.
 
-For local development, copy `.dev.vars.example` to an ignored env file and point `CONVEX_SITE_URL` at the existing local Convex site. Then run:
-
-```powershell
-yarn workspace @artificer-toolkit/session-worker dev --local --ip 127.0.0.1 --port 8787 --env-file <absolute-path> --types=false
-```
+For local development, run `yarn dev:session-worker` from the repo root (`scripts/devSessionWorker.mjs`). It checks the local Docker Convex backend, reads the Worker secrets from it in memory and starts the Worker on `127.0.0.1:8787` with the bindings the local lifecycle also uses (`scripts/localSessionWorker.mjs`). No `.dev.vars` is needed or read. Room state persists in `.wrangler/state`; after a local Convex reset, stop the Worker and move that folder aside.
 
 The web app uses `VITE_LIVE_SESSION_WEBSOCKET_URL=ws://127.0.0.1:8787`. The local browser gate starts Vite and Wrangler while reusing the existing local Convex backend.
 
