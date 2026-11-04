@@ -8,7 +8,7 @@ import { canReadAuthoredRoot, readPublishedRootDocument } from '../content/docum
 import { readVerifiedPublicationDocument } from '../content/publicationDocumentRead'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
-import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
+import { requireRulesCatalogueSources } from '../content/catalogueBinding'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority, type CampaignInternalScope } from '../campaigns/authority'
 import { readCampaignSharedAuthorizedRoot } from '../campaigns/contentAccess'
@@ -67,7 +67,7 @@ export async function readCampaignCharacterSources(
 ) {
   const systemId = campaign.gameSystemId
   const [{ sources: platform }, owned] = await Promise.all([
-    requireRulesCatalogueBinding(ctx, {
+    requireRulesCatalogueSources(ctx, {
       systemId,
       primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
       additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds

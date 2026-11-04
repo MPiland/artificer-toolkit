@@ -104,13 +104,19 @@ export async function storeCharacterSheetSections(
     if (campaign && campaignContext === ownerContext && facts.sheetState.partyVisibility.sheet)
       values.push(...projectSlices(current.sheet, { ...ownerContext, viewer: 'PARTY_MEMBER' }))
   }
-  // The facts carry the Character row as this transaction wrote it.
+  // The facts carry the Character row as this transaction wrote it, and the sources and effects
+  // they were derived from.
   const fingerprint =
     inputsFingerprint ??
     (await readCharacterSheetFingerprint(
       ctx,
       { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
-      authorityScope
+      authorityScope,
+      {
+        sources: facts.sourceContext.context.sourceAccess,
+        activeEffects: facts.activeEffects,
+        carriedEffects: facts.concentrationEffects ?? []
+      }
     ))
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
 }

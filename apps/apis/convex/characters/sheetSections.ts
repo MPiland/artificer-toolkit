@@ -79,23 +79,29 @@ export async function readCharacterSheetFingerprint(
   ctx: QueryCtx,
   state: { active: CharacterRecordRow; hasDraft: boolean; publicId: string },
   authorityScope?: CampaignInternalScope,
-  /** Receives the inputs this read loaded, for a derivation in the same transaction to reuse. */
+  /**
+   * Inputs this transaction already read, reused instead of read again; receives the ones this
+   * read loads, for a derivation in the same transaction to reuse.
+   */
   reads?: Partial<CharacterSheetFingerprintReads>
 ) {
   const { active } = state
   const reader = { db: createConvexEncounterStoreReader(ctx) }
   const [system, access, effects, carried] = await Promise.all([
-    ctx.db
-      .query('systems')
-      .withIndex('by_publicId', (q) => q.eq('id', active.systemId))
-      .unique(),
-    readCharacterSources(ctx, active, active.userId, authorityScope),
-    listActiveRuleEffects(
-      reader,
-      { kind: 'CHARACTER', characterId: active.id },
-      { ownerVerified: true }
-    ),
-    listCarriedActiveRuleEffects(reader, active.id)
+    reads?.system !== undefined
+      ? reads.system
+      : ctx.db
+          .query('systems')
+          .withIndex('by_publicId', (q) => q.eq('id', active.systemId))
+          .unique(),
+    reads?.sources ?? readCharacterSources(ctx, active, active.userId, authorityScope),
+    reads?.activeEffects ??
+      listActiveRuleEffects(
+        reader,
+        { kind: 'CHARACTER', characterId: active.id },
+        { ownerVerified: true }
+      ),
+    reads?.carriedEffects ?? listCarriedActiveRuleEffects(reader, active.id)
   ])
   if (reads)
     Object.assign(reads, {
