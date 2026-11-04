@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { runnerProofs } from './affectedBrowserJourneys.mjs'
+import { runnerProofs } from './runnerProofs.mjs'
 // A namespace import, so a lifecycle without the stage list fails this test instead of failing to load.
 import * as lifecycle from './validatePreStagingLocal.mjs'
 

@@ -6,18 +6,16 @@ import { buildImportGraph } from './affectedTests.mjs'
 import {
   acJourneyProblems,
   checkKnownBugs,
-  ciProofsOf,
   JOURNEY_ENTRIES,
   journeyRunReason,
   ledgerTasks,
   GATING_SHARDS,
   PROOF_SPECS,
-  proofNames,
   pushProofs,
-  runnerProofs,
   shardProofs,
   sliceJourneys
 } from './affectedBrowserJourneys.mjs'
+import { ciProofsOf, proofNames, runnerProofs } from './runnerProofs.mjs'
 import PROOF_SECONDS from './browserJourneyDurations.json' with { type: 'json' }
 import KNOWN_BUG_PROOFS from './knownBugProofs.json' with { type: 'json' }
 

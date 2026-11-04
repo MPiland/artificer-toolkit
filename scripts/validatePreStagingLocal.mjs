@@ -10,7 +10,7 @@ import { measureLatency } from '../apps/web/src/test/latencyGate.ts'
 import { verifyBuilderBudgets } from './builderBudgets.mjs'
 import { verifyV15Budgets } from './v15Budgets.mjs'
 import { generatedStatus } from './generatedDrift.mjs'
-import { runnerProofs } from './affectedBrowserJourneys.mjs'
+import { runnerProofs } from './runnerProofs.mjs'
 import {
   assertConvexInstance,
   assertLoopbackUrl,

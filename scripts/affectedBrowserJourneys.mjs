@@ -17,6 +17,7 @@ import { appendFileSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { affectedFiles, buildImportGraph, changesSince, fullRunReason } from './affectedTests.mjs'
+import { ciProofsOf, proofNames, runnerProofs } from './runnerProofs.mjs'
 // Seconds each proof's own step took in CI, which balances the shards; refresh it from a full run with the
 // command in docs/architecture/ci-validation.md#browser-journeys.
 import PROOF_SECONDS from './browserJourneyDurations.json' with { type: 'json' }
@@ -109,27 +110,6 @@ export function journeyRunReason(graph, changed) {
   const entry = [...affected].find((path) => JOURNEY_ENTRIES.includes(path) || convexModule(path))
   return entry ? `the change reaches ${entry}` : null
 }
-
-const PROOF_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
-
-/** Splits a proof name list and checks each name's shape. */
-export function proofNames(text) {
-  const names = text.split(/[\s,]+/).filter(Boolean)
-  const invalid = names.find((name) => !PROOF_NAME.test(name))
-  if (invalid) throw new Error(`${invalid} is not a proof name.`)
-  return names
-}
-
-/** The `-Proof` ValidateSet of scripts/runLocalConvexProof.ps1, the one proof list; its *-browser proofs are the CI proofs. */
-export function runnerProofs(runnerScript) {
-  const set = /\[ValidateSet\(([^)]*)\)\]\[string\]\$Proof\b/.exec(runnerScript)?.[1]
-  if (!set) throw new Error('runLocalConvexProof.ps1 has no -Proof ValidateSet.')
-  return proofNames([...set.matchAll(/'([^']*)'/g)].map(([, name]) => name).join(' '))
-}
-
-/** The CI proofs: the runner's *-browser proofs. */
-export const ciProofsOf = (runnerScript) =>
-  runnerProofs(runnerScript).filter((name) => name.endsWith('-browser'))
 
 /**
  * Why a push runs CI proofs, and which. Every one when the change touches the stack. When it reaches a

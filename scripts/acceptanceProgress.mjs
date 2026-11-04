@@ -7,7 +7,8 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { acJourneyProblems, ciProofsOf } from './affectedBrowserJourneys.mjs'
+import { acJourneyProblems } from './affectedBrowserJourneys.mjs'
+import { ciProofsOf } from './runnerProofs.mjs'
 
 const ledgerRelative = 'docs/roadmap/08-phase-ledger.json'
 const repoRoot = fileURLToPath(new URL('../', import.meta.url))
