@@ -28660,11 +28660,16 @@
             {
               "id": "PERF-1.5",
               "text": "Each intermittent CI failure seen in Phase 8.2 that passed on rerun has a recorded root cause and is either fixed with a regression test or attributed with evidence to the throwaway self-hosted backend or runner, never to a hosted-Convex risk left open. These are: room 1006 and fetch failed (runs 41712055836, 41697786849); watchCi.test.mjs (41706160093); Convex IsolateNotClean in effects-browser (41761359435); recovery-browser invitation redemption (41761359435); and the Sheet command timeout (41767872164).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/roomClock.test.ts",
+                "apps/apis/convex/generatedUsername.test.ts",
+                "apps/apis/convex/authInvitations.test.ts"
+              ],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): a Sheet command hit the 1 s mutation limit in the m-batch Browser journeys run 41767872164; triage the intermittent CI failures before staging"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by PERF-1.T6."
             }
           ],
           "wsjf": {
@@ -28792,7 +28797,7 @@
             },
             {
               "id": "PERF-1.T6",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-1.5"
               ],
@@ -28803,7 +28808,15 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Root-cause the intermittent CI failures listed in PERF-1.5 from their run artifacts. Fix each failure caused by our code or tests with a regression test that fails first (for example the recovery-browser concurrent invitation redemption that refused both redeemers). For each failure attributed to the self-hosted container or the runner, record the evidence. Write the findings in docs/validation/."
+              "text": "Root-cause the intermittent CI failures listed in PERF-1.5 from their run artifacts. Fix each failure caused by our code or tests with a regression test that fails first (for example the recovery-browser concurrent invitation redemption that refused both redeemers). For each failure attributed to the self-hosted container or the runner, record the evidence. Write the findings in docs/validation/.",
+              "proof": [
+                "docs/validation/perf-1-t6-intermittent-ci-2026-11-03.md",
+                "apps/apis/convex/roomClock.test.ts",
+                "apps/apis/convex/generatedUsername.test.ts",
+                "apps/apis/convex/authInvitations.test.ts",
+                "scripts/watchCi.test.mjs"
+              ],
+              "note": "Merged 2026-11-04 (m637, merge-slice run 41850820588). Room 1006/fetch failed: the test fake clock fired undici keep-alive timers late, fixed in localRoomWorker. Invitation redemption: the fixture drew a username only the client policy accepted; product transaction already allows exactly one redeemer (now proved). watchCi.test timeout fixed in the test. IsolateNotClean attributed to the self-hosted isolate pool (rejected before execution). Sheet timeout belongs to PERF-1.T5."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."

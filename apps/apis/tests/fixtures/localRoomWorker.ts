@@ -299,19 +299,17 @@ const realNow = () => performance.timeOrigin + performance.now()
 
 /**
  * The fake clock Convex's scheduler needs, kept on real time. The Worker checks a Live-session
- * ticket (60 s) against the real clock, but `shouldAdvanceTime` adds only 20 ms per interval that
- * fires, so each event-loop stall leaves the fake clock further behind and a long build ends up
- * issuing tickets that are already past their real expiry. Every interval re-reads the real clock.
+ * ticket (60 s) against the real clock, and fetch's connection pool (undici) times its keep-alive
+ * with the faked `setTimeout` while the servers it talks to close idle sockets on real time. A fixed
+ * step per interval falls behind on every event-loop stall, and `setSystemTime` shifts pending timers
+ * with the clock, so neither fires timers on real time. Every interval advances the fake clock to the
+ * real one, firing every timer that came due on the way.
  */
 export function useRealTimeClock() {
   let sync: NodeJS.Timeout | undefined
   beforeEach(() => {
-    vi.useFakeTimers({
-      now: realNow(),
-      shouldAdvanceTime: true,
-      toFake: ['Date', 'setTimeout', 'clearTimeout']
-    })
-    sync = setInterval(() => vi.setSystemTime(realNow()), 20)
+    vi.useFakeTimers({ now: realNow(), toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    sync = setInterval(() => vi.advanceTimersByTime(Math.max(0, realNow() - Date.now())), 20)
     sync.unref()
   })
   afterEach(() => {
