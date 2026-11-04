@@ -57,8 +57,9 @@ drop a pooled connection", ECONNABORTED).
 
 `useRealTimeClock` now advances the fake clock to real time every 20 ms with
 `vi.advanceTimersByTime(realNow() - Date.now())`, which fires every timer that came due on the way.
-`shouldAdvanceTime` was removed, so there is one mechanism. CI's red-proof job reruns
-`roomClock.test.ts` against the phase branch.
+`shouldAdvanceTime` was removed, so there is one mechanism. The red was proved locally (above). CI's
+red-proof job labels every changed file ALREADY-PASSING (run 41845091477), because each fix lives in
+a test helper and that job keeps changed helpers.
 
 **Follow-up:** remove the `post().catch(post)` retry once CI runs stay green with this fix.
 
@@ -141,7 +142,9 @@ correctly.
 
 - The fixture generator now uses the server-authoritative policy.
 - `apps/apis/convex/generatedUsername.test.ts` › "draws again when only the server policy refuses the
-  name" fails against the old generator. The file's other assertions now check the server policy,
+  name" fails against the old generator, which returned `Draft_550717e705e5` because the client
+  check passes it and the server check refuses it (both checked against the built
+  `@artificer-toolkit/shared`). The file's other assertions now check the server policy,
   which is stricter.
 - `apps/apis/convex/authInvitations.test.ts` › "lets exactly one of two concurrent redemptions create
   the account" proves the contract in convex-test. It passes before the fix as well, because the
