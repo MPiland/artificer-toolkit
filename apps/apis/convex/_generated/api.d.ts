@@ -12092,6 +12092,14 @@ export declare const api: {
         }
       >;
     };
+    deletion: {
+      remove: FunctionReference<
+        "mutation",
+        "public",
+        { id: string },
+        { ok: true }
+      >;
+    };
     drafts: {
       create: FunctionReference<
         "mutation",
