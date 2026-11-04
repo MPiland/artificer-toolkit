@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { createWriteStream, existsSync } from 'node:fs'
+import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
@@ -10,6 +10,7 @@ import { measureLatency } from '../apps/web/src/test/latencyGate.ts'
 import { verifyBuilderBudgets } from './builderBudgets.mjs'
 import { verifyV15Budgets } from './v15Budgets.mjs'
 import { generatedStatus } from './generatedDrift.mjs'
+import { runnerProofs } from './affectedBrowserJourneys.mjs'
 import {
   assertConvexInstance,
   assertLoopbackUrl,
@@ -655,7 +656,10 @@ const localConvexStageNames = new Set([
 ])
 
 const releaseProofAttempt = Date.now().toString(36)
-const nativeProofModes = [
+// The proofs of the runner's -Proof ValidateSet that drive Convex and the Worker without the web app.
+// They run before the web app starts; every other runner proof is a browser stage, so a new runner
+// proof joins the lifecycle without an edit here.
+const nativeProofs = new Set([
   'encounter-blueprints',
   'character-concurrency',
   'receipt-ledgers',
@@ -681,48 +685,22 @@ const nativeProofModes = [
   'campaign-assignment-lifecycle',
   'campaign-qualified-currency',
   'campaign-custody-authored-delete'
+])
+const proofRunnerScript = 'scripts/runLocalConvexProof.ps1'
+const proofRunner = ['-NoProfile', '-NonInteractive', '-File', proofRunnerScript]
+const runnerProofSet = runnerProofs(readFileSync(resolve(root, proofRunnerScript), 'utf8'))
+const unknownNativeProof = [...nativeProofs].find((proof) => !runnerProofSet.includes(proof))
+if (unknownNativeProof)
+  throw new Error(`${unknownNativeProof} is not a ${proofRunnerScript} proof.`)
+// Last: the VTT browser proof starts its own Worker on the lifecycle Worker's port.
+const browserProofs = [
+  ...runnerProofSet.filter(
+    (proof) => !nativeProofs.has(proof) && proof !== selfManagedBrowserProof
+  ),
+  selfManagedBrowserProof
 ]
-const browserProofModes = [
-  'auth-browser',
-  'signed-in-request-audit',
-  'profile-browser',
-  'recovery-browser',
-  'social-browser',
-  'account-entitlements',
-  'publication-browser',
-  'publication-class-browser',
-  'publication-feat-browser',
-  'publication-equipment-browser',
-  'campaign-lifecycle',
-  'campaign-custody-browser',
-  'campaign-membership-browser',
-  'campaign-collaboration-browser',
-  'campaign-content-browser',
-  'scene-live-browser',
-  'vtt-map-retention',
-  'movement',
-  'passage',
-  'disarm-browser',
-  'effects-browser',
-  'area-browser',
-  'hide-browser',
-  'player-browser',
-  'heat-metal-browser',
-  'delegated-attack-browser',
-  'account-deletion-browser',
-  'builder-browser',
-  'character-sheet-browser',
-  'character-sheet-spells-browser',
-  'v15-workload',
-  // Last: it starts its own Worker on the lifecycle Worker's port.
-  'vtt-browser'
-]
-const proofRunner = ['-NoProfile', '-NonInteractive', '-File', 'scripts/runLocalConvexProof.ps1']
 function localProofStage(proof, kind) {
-  const proofName =
-    proof === 'account-deletion-browser'
-      ? `account-deletion-browser${releaseProofAttempt}`
-      : `r08-${releaseProofAttempt}-${kind}-${proof}`
+  const proofName = `r08-${releaseProofAttempt}-${kind}-${proof}`
   return {
     ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh', [
       ...proofRunner,
@@ -731,11 +709,12 @@ function localProofStage(proof, kind) {
       '-Proof',
       proof
     ]),
+    proof,
     proofName,
     environment: proof === 'v15-workload' ? { V15_BROWSER_PROOF: '1' } : undefined
   }
 }
-const stages = [
+export const stages = [
   stage('install', 'Install the immutable dependency graph', 'yarn', ['install', '--immutable']),
   stage('workspace-list', 'List the surviving workspaces', 'yarn', [
     'workspaces',
@@ -920,7 +899,9 @@ const stages = [
     'run',
     'content/seed:audit'
   ]),
-  ...nativeProofModes.map((proof) => localProofStage(proof, 'native')),
+  ...runnerProofSet
+    .filter((proof) => nativeProofs.has(proof))
+    .map((proof) => localProofStage(proof, 'native')),
   stage('web-e2e', 'Public web and Storybook end-to-end suite', 'yarn', [
     'workspace',
     '@artificer-toolkit/web',
@@ -930,7 +911,7 @@ const stages = [
     'tests/e2e/storybook/mobileCatalogueLayout.spec.ts',
     'tests/e2e/storybook/notifications.spec.ts'
   ]),
-  ...browserProofModes.map((proof) => localProofStage(proof, 'browser')),
+  ...browserProofs.map((proof) => localProofStage(proof, 'browser')),
 
   stage('vtt-load', 'Local VTT renderer load gate', 'yarn', [
     'workspace',

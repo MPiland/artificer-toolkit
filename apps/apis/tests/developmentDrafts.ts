@@ -5413,7 +5413,8 @@ try {
       .find((argument) => argument.startsWith('--fixture-attempt='))
       ?.slice('--fixture-attempt='.length)
     assert.ok(attempt)
-    assert.match(attempt, /^account-deletion-browser[a-z0-9-]{2,80}$/u)
+    // The runner's -Name pattern: the attempt names a local evidence directory.
+    assert.match(attempt, /^[a-z0-9][a-z0-9-]{2,120}$/u)
     const evidenceDirectory = resolve('local-validation/local-convex-proofs', attempt + '.evidence')
     const [
       { createDevelopmentAccountDeletionFixture },
