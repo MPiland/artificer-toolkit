@@ -10,8 +10,10 @@ import type {
   updateSocialContentPreferenceInputSchema
 } from '@artificer-toolkit/schema/api/socialHub'
 import { socialStoredBlockSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
+import type { SocialBrowseInput } from '@artificer-toolkit/schema/api/socialDiscovery'
+import type { SocialListingPage } from '@artificer-toolkit/schema/api/socialListingList'
 import { fixture as setup } from '../../tests/fixtures/socialAdmission'
-import { api } from '../_generated/api'
+import { api, components } from '../_generated/api'
 
 const getProfile = makeFunctionReference<
   'query',
@@ -28,6 +30,9 @@ const getOwnedListing = makeFunctionReference<
   z.input<typeof socialListingPublicIdInputSchema>,
   SocialListingDto
 >('social/listings:getOwned')
+const browse = makeFunctionReference<'query', SocialBrowseInput, SocialListingPage>(
+  'social/discoveryLists:browse'
+)
 const updatePreference = makeFunctionReference<
   'mutation',
   { input: z.input<typeof updateSocialContentPreferenceInputSchema> },
@@ -111,9 +116,55 @@ async function poisonText(
 }
 
 describe('native Social discovery reads', () => {
+  it('hides PRIVATE accounts and banned hosts from discovery; owners still resolve their own (D211)', async () => {
+    const base = await setup()
+    const ids = await profileIds(base)
+    const paginationOpts = { numItems: 8, cursor: null }
+    const browsed = async () =>
+      (await base.other.caller.query(browse, { paginationOpts })).page.map(
+        (listing) => listing.listingPublicId
+      )
+
+    // An account with no stored choice is PRIVATE.
+    await expect(
+      base.other.caller.query(getProfile, { profilePublicId: ids.owner })
+    ).rejects.toThrow('Social profile not found.')
+    await expect(
+      base.owner.caller.query(getProfile, { profilePublicId: ids.owner })
+    ).resolves.toMatchObject({ profilePublicId: ids.owner })
+    await base.owner.caller.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
+    await expect(
+      base.other.caller.query(getProfile, { profilePublicId: ids.owner })
+    ).resolves.toMatchObject({ profilePublicId: ids.owner })
+    expect(await browsed()).toContain(base.listingId)
+
+    await base.t.run(async (ctx) => {
+      const account = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', base.owner.userId))
+        .unique()
+      if (!account) throw new Error('Missing host account.')
+      await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+        input: {
+          model: 'user',
+          where: [{ field: '_id', value: account.authUserId }],
+          update: { banned: true }
+        }
+      })
+    })
+    await expect(
+      base.other.caller.query(getProfile, { profilePublicId: ids.owner })
+    ).rejects.toThrow('Social profile not found.')
+    await expect(
+      base.other.caller.query(getListing, { listingPublicId: base.listingId })
+    ).rejects.toThrow('Social listing not found.')
+    expect(await browsed()).not.toContain(base.listingId)
+  })
+
   it('requires an active viewer and returns strict public profile/listing projections with live seats', async () => {
     const base = await setup()
     const ids = await profileIds(base)
+    await base.owner.caller.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
     const profile = await base.other.caller.query(getProfile, {
       profilePublicId: ids.owner.toUpperCase()
     })
@@ -189,6 +240,9 @@ describe('native Social discovery reads', () => {
   it('applies symmetric directional blocks to profile and listing discovery', async () => {
     const base = await setup()
     const ids = await profileIds(base)
+    // PUBLIC accounts, so only the block hides them (D211).
+    for (const member of [base.owner, base.other])
+      await member.caller.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
     const memberships = await base.t.run((ctx) => ctx.db.query('campaignMemberships').collect())
     for (const [blockerProfileId, blockedProfileId] of [
       [ids.owner, ids.other],

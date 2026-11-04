@@ -15,7 +15,7 @@ import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { presentListing, requireOwnedCampaign } from './listingDocuments'
 import { readProfile } from './profiles'
-import { hasSocialBlock, presentSocialProfile, requireSocialViewer } from './visibility'
+import { presentSocialProfile, readDiscoverableAccount, requireSocialViewer } from './visibility'
 
 async function discoveryPage(
   ctx: QueryCtx,
@@ -85,8 +85,7 @@ async function discoveryPage(
       )
         return null
       const host = (await readProfile(ctx, row.ownerUserId))?.profile
-      if (!host || host.status !== 'ACTIVE' || (await hasSocialBlock(ctx, viewer.id, host.id)))
-        return null
+      if (!host || !(await readDiscoverableAccount(ctx, viewer, host))) return null
       const campaign = await requireOwnedCampaign(ctx, row.campaignId, row.ownerUserId)
       if (
         campaign.status !== 'ACTIVE' ||

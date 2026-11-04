@@ -1,7 +1,7 @@
 import { socialProfileDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import type { SocialStoredProfile } from '@artificer-toolkit/schema/projections/socialPersistence'
 import type { QueryCtx } from '../_generated/server'
-import { readAuthUser } from '../lib/authUserReads'
+import { isAuthUserBanned, readAuthUser } from '../lib/authUserReads'
 import { requireIdentity } from '../lib/identity'
 import { readProfile } from './profiles'
 
@@ -29,6 +29,25 @@ export async function hasSocialBlock(ctx: QueryCtx, first: string, second: strin
       .unique()
   ])
   return blocks.some((block) => block !== null)
+}
+
+/**
+ * Reads the account behind another viewer's social profile for discovery (D211). Inactive,
+ * blocked and banned profiles return null so callers cannot tell them apart. A ban is read here
+ * rather than written as a suspension because bans are applied outside the app and can expire.
+ */
+export async function readDiscoverableAccount(
+  ctx: QueryCtx,
+  viewer: SocialStoredProfile,
+  profile: SocialStoredProfile
+) {
+  if (profile.status !== 'ACTIVE' || (await hasSocialBlock(ctx, viewer.id, profile.id))) return null
+  const account = await ctx.db
+    .query('userProfiles')
+    .withIndex('by_userId', (q) => q.eq('userId', profile.userId))
+    .unique()
+  const user = account ? await readAuthUser(ctx, account.authUserId) : null
+  return account && user && !isAuthUserBanned(user) ? account : null
 }
 
 export async function presentSocialProfile(ctx: QueryCtx, profile: SocialStoredProfile) {

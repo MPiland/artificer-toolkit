@@ -113,7 +113,7 @@ async function makeRootOwned(base: ReadySheet, subjectId: string, ownerUserId: s
 }
 
 describe('native Campaign Character assignments', () => {
-  it('allows the active player and owner to bind the player Character, and is idempotent', async () => {
+  it('allows only the Character owner to bind it, idempotently; the GM cannot bind a player Character (D211)', async () => {
     const { owner: player, other: gm, campaign, character, assignmentRows } = await setup()
 
     await expect(
@@ -133,7 +133,7 @@ describe('native Campaign Character assignments', () => {
         campaignId: campaign.id,
         characterId: character.id
       })
-    ).resolves.toEqual({ ok: true })
+    ).rejects.toThrow('Character is unavailable.')
     expect(await assignmentRows()).toHaveLength(1)
     expect(await assignmentRows()).toMatchObject([
       {
@@ -229,14 +229,18 @@ describe('native Campaign Character assignments', () => {
       for (const corruption of corruptions) {
         await corruption.apply()
         const before = await snapshot()
-        for (const caller of [base.owner.caller, base.other.caller]) {
+        // A corrupt row fails integrity on read; otherwise the GM is refused for ownership (D211).
+        for (const [caller, refusal] of [
+          [base.owner.caller, /mismatch|checksum|System|required/i],
+          [base.other.caller, /mismatch|checksum|System|required|Character is unavailable/i]
+        ] as const) {
           await expect(
             caller.mutation(assign, {
               campaignId: base.campaign.id,
               characterId: base.character.id
             }),
             `${stage}: ${corruption.label}`
-          ).rejects.toThrow(/mismatch|checksum|System|required/i)
+          ).rejects.toThrow(refusal)
           expect(await snapshot()).toEqual(before)
         }
         await base.t.run(async (ctx) => {
@@ -599,7 +603,7 @@ describe('native Campaign Character assignments', () => {
       characterId: base.character.id
     })
     const before = await base.readState()
-    await base.other.caller.mutation(assign, {
+    await base.owner.caller.mutation(assign, {
       campaignId: base.campaign.id,
       characterId: committed.character.id
     })

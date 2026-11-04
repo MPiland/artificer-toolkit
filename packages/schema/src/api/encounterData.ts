@@ -545,6 +545,9 @@ export const updateEncounterBlueprintInputDtoSchema = lazySchema(() =>
     commandId: postgresUuidSchema
   })
 )
+export const deleteEncounterBlueprintInputDtoSchema = lazySchema(() =>
+  z.strictObject({ blueprintId: postgresUuidSchema })
+)
 
 export const getEncounterInputDtoSchema = lazySchema(() =>
   z.strictObject({
