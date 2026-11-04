@@ -2301,9 +2301,13 @@
         {
           "id": "PLATFORM-26",
           "title": "Delete anything I created",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/ownerDeletionCoverage.test.ts",
+            "apps/apis/convex/encounters/blueprints.test.ts",
+            "apps/web/src/domains/campaigns/vtt/SceneDeleteAction.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [
             "User ruling 2026-11-03: users can permanently delete any content they create"
           ],
@@ -2311,20 +2315,30 @@
             {
               "id": "PLATFORM-26.1",
               "text": "Every kind of record a user creates and owns (authored content, Campaigns, Scenes, Encounter blueprints, vehicles, notebooks, session notes, listings, media and any other owner-created kind) has an owner-only permanent delete with a confirmation, reachable from the UI where that record is managed; deleting it cleans up what depends on it the same way account deletion does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/ownerDeletionCoverage.test.ts",
+                "apps/apis/convex/encounters/blueprints.test.ts",
+                "apps/web/src/domains/campaigns/vtt/SceneDeleteAction.test.tsx"
+              ],
               "origin": [
                 "User ruling 2026-11-03: users can permanently delete any content they create"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by PLATFORM-26.T1."
             },
             {
               "id": "PLATFORM-26.2",
               "text": "A coverage test lists every owner-created table from the schema and fails when one has no owner delete path, so a new content kind cannot ship without delete.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/ownerDeletionCoverage.test.ts",
+                "apps/apis/convex/encounters/blueprints.test.ts",
+                "apps/web/src/domains/campaigns/vtt/SceneDeleteAction.test.tsx"
+              ],
               "origin": [
                 "User ruling 2026-11-03: users can permanently delete any content they create"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by PLATFORM-26.T1."
             }
           ],
           "wsjf": {
@@ -2336,7 +2350,7 @@
           "tasks": [
             {
               "id": "PLATFORM-26.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-26.1",
                 "PLATFORM-26.2"
@@ -2347,16 +2361,22 @@
                 "rr": 5,
                 "size": 3
               },
-              "text": "Inventory every owner-created table and its delete path (API and UI) against the account-deletion cascade; known gap: Encounter blueprints have no delete mutation (encounters/blueprints.ts has only create and update), and scene definitions and vehicles have API deletes whose UI entry points need checking. Add the coverage test first (red on the gaps), then add each missing owner-only delete and its confirmed UI action, reusing the account-deletion cascade per kind. Characters are out of scope here (BUILDER-5). List the inventory and proof files for the ledger."
+              "text": "Inventory every owner-created table and its delete path (API and UI) against the account-deletion cascade; known gap: Encounter blueprints have no delete mutation (encounters/blueprints.ts has only create and update), and scene definitions and vehicles have API deletes whose UI entry points need checking. Add the coverage test first (red on the gaps), then add each missing owner-only delete and its confirmed UI action, reusing the account-deletion cascade per kind. Characters are out of scope here (BUILDER-5). List the inventory and proof files for the ledger.",
+              "proof": [
+                "apps/apis/convex/ownerDeletionCoverage.test.ts",
+                "apps/apis/convex/encounters/blueprints.test.ts",
+                "apps/web/src/domains/campaigns/vtt/SceneDeleteAction.test.tsx"
+              ],
+              "note": "Merged 2026-11-03 (m636, merge-slice run 41771505614). Owner delete for saved encounters and scenes; the coverage test fails on any owner-keyed table without a delete path."
             }
           ]
         },
         {
           "id": "PLATFORM-27",
           "title": "Every backend function checks who may call it",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": [
             "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
           ],
@@ -2364,20 +2384,26 @@
             {
               "id": "PLATFORM-27.1",
               "text": "A coverage test enumerates every public Convex query, mutation and action and fails unless each declares its access rule (signed-in caller from ctx.auth with an owner, membership or role check, or an explicit reviewed public reason); no public function takes a user ID from its arguments as identity, and a new public function cannot ship without a rule.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/publicFunctionAccess.test.ts"
+              ],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by PLATFORM-27.T1."
             },
             {
               "id": "PLATFORM-27.2",
               "text": "An audit of every public function finds and fixes each missing check: signed-out callers are refused where sign-in is required, another user cannot read, change or delete records they do not own or share through a Campaign, and master or seeded content cannot be changed by any user. Each fix lands with a regression test that fails before it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/publicFunctionAccess.test.ts"
+              ],
               "origin": [
                 "User approval 2026-11-03 (D187 growth): close the gap between RLS deny-by-default and per-function Convex authorization before staging"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by PLATFORM-27.T1."
             }
           ],
           "wsjf": {
@@ -2389,7 +2415,7 @@
           "tasks": [
             {
               "id": "PLATFORM-27.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-27.1",
                 "PLATFORM-27.2"
@@ -2400,9 +2426,15 @@
                 "rr": 13,
                 "size": 5
               },
-              "text": "Authorization sweep of apps/apis/convex: list every public query, mutation, action and HTTP route; classify its access rule with file:line evidence; add the coverage test first (red on unclassified functions); fix each gap found (client-supplied identity, missing owner or Campaign-membership check, cross-user reads by a client-supplied id, writes into a container the caller does not own, master/seeded content writes) with failing-first refusal tests (wrong user, signed-out, non-member). Reuse the existing access helpers rather than adding a new layer. Record the inventory and findings in docs/validation/ for the ledger."
+              "text": "Authorization sweep of apps/apis/convex: list every public query, mutation, action and HTTP route; classify its access rule with file:line evidence; add the coverage test first (red on unclassified functions); fix each gap found (client-supplied identity, missing owner or Campaign-membership check, cross-user reads by a client-supplied id, writes into a container the caller does not own, master/seeded content writes) with failing-first refusal tests (wrong user, signed-out, non-member). Reuse the existing access helpers rather than adding a new layer. Record the inventory and findings in docs/validation/ for the ledger.",
+              "proof": [
+                "apps/apis/convex/publicFunctionAccess.test.ts",
+                "docs/validation/platform-27-t1-authorization-sweep-2026-11-03.md"
+              ],
+              "note": "Merged 2026-11-03 (m636, merge-slice run 41771505614). 295 public functions and 14 HTTP routes classified; the coverage test fails on any unclassified function (it caught the two new owner deletes in the first batch). D211 fixes: owner-only Character assignment, PRIVATE accounts hidden from profile lookup (public listings stay discoverable), banned hosts filtered from discovery at read time."
             }
-          ]
+          ],
+          "internalReason": "Authorization hardening: proved by the PLATFORM-27.1 coverage test and the PLATFORM-27.2 refusal tests; it adds no user flow."
         }
       ]
     },
@@ -3192,7 +3224,7 @@
         {
           "id": "ACCOUNTS-11",
           "title": "Change my password or email",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/accountJourneys.test.ts"
           ],
@@ -3234,11 +3266,15 @@
             {
               "id": "ACCOUNTS-11.3",
               "text": "Changing the password signs out every other session of that account; the session that made the change stays signed in.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/accountPassword.test.ts",
+                "apps/apis/convex/accountJourneys.test.ts"
+              ],
               "origin": [
                 "User ruling 2026-11-03: a password change signs out every other session"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by ACCOUNTS-11.T2."
             }
           ],
           "wsjf": {
@@ -3272,7 +3308,7 @@
             },
             {
               "id": "ACCOUNTS-11.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "ACCOUNTS-11.3"
               ],
@@ -3282,7 +3318,12 @@
                 "rr": 8,
                 "size": 1
               },
-              "text": "Revoke other sessions on password change: set the password-change path to revoke other sessions (revokeOtherSessions), update the test that asserted the opposite to the new ruling (a second signed-in session is refused after the change, the changing session keeps working), extend the ACCOUNTS-11 journey with that check, and update the UAT-ACCOUNTS-14 Expected line."
+              "text": "Revoke other sessions on password change: set the password-change path to revoke other sessions (revokeOtherSessions), update the test that asserted the opposite to the new ruling (a second signed-in session is refused after the change, the changing session keeps working), extend the ACCOUNTS-11 journey with that check, and update the UAT-ACCOUNTS-14 Expected line.",
+              "proof": [
+                "apps/apis/convex/accountPassword.test.ts",
+                "apps/apis/convex/accountJourneys.test.ts"
+              ],
+              "note": "Merged 2026-11-03 (m636, merge-slice run 41771505614). Password change revokes every other session; the changing session gets a replacement cookie and stays signed in."
             }
           ]
         }
@@ -6446,9 +6487,12 @@
         {
           "id": "BUILDER-5",
           "title": "Delete my Characters",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/characters/deletion.test.ts",
+            "apps/web/src/domains/characters/useCharacterDeleteAction.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [
             "User ruling 2026-11-03: users can permanently delete any content they create"
           ],
@@ -6456,29 +6500,38 @@
             {
               "id": "BUILDER-5.1",
               "text": "A player can permanently delete their own active Character from the Characters list and from the Sheet after a confirmation that names the Character; it leaves their list at once, its Sheet and Builder links show not found, and it cannot be restored.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/deletion.test.ts"
+              ],
               "origin": [
                 "User ruling 2026-11-03: users can permanently delete any content they create"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by BUILDER-5.T1."
             },
             {
               "id": "BUILDER-5.2",
               "text": "Deleting a Character that belongs to a Campaign releases it from the Party; if it is in a running Encounter its token and effects are removed and the GM and other players see it leave; its portrait and other owned media are deleted. The cascade reuses the account-deletion Character path rather than a second copy.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/deletion.test.ts"
+              ],
               "origin": [
                 "User ruling 2026-11-03: users can permanently delete any content they create"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by BUILDER-5.T1."
             },
             {
               "id": "BUILDER-5.3",
               "text": "Only the Character's owner can delete it; the Campaign's GM, other players and signed-out callers are refused, and deleting one Character never changes the owner's other Characters or any shared or authored content it used.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/deletion.test.ts"
+              ],
               "origin": [
                 "User ruling 2026-11-03: users can permanently delete any content they create"
-              ]
+              ],
+              "note": "Closed 2026-11-04 by BUILDER-5.T1."
             }
           ],
           "wsjf": {
@@ -6490,7 +6543,7 @@
           "tasks": [
             {
               "id": "BUILDER-5.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "BUILDER-5.1",
                 "BUILDER-5.2",
@@ -6502,7 +6555,12 @@
                 "rr": 5,
                 "size": 3
               },
-              "text": "Add an owner-only permanent Character delete: a public mutation in apps/apis/convex/characters that reuses the per-Character cascade in characters/accountDeletion.ts (Campaign release, live Encounter removal and room reconcile, media), a confirmed delete action on the Characters list and the Sheet, refusal tests for GM, other player and signed-out callers, and one journey test (delete from the list while in a Campaign with a running Encounter). Add a UAT scenario file under docs/validation/uat/BUILDER."
+              "text": "Add an owner-only permanent Character delete: a public mutation in apps/apis/convex/characters that reuses the per-Character cascade in characters/accountDeletion.ts (Campaign release, live Encounter removal and room reconcile, media), a confirmed delete action on the Characters list and the Sheet, refusal tests for GM, other player and signed-out callers, and one journey test (delete from the list while in a Campaign with a running Encounter). Add a UAT scenario file under docs/validation/uat/BUILDER.",
+              "proof": [
+                "apps/apis/convex/characters/deletion.test.ts",
+                "docs/validation/uat/BUILDER/UAT-BUILDER-8.md"
+              ],
+              "note": "Merged 2026-11-03 (m636, merge-slice run 41771505614). Owner-only permanent delete of an active or draft Character (characters/deletion:remove); a Campaign Character leaves its Party and open Runs."
             }
           ]
         }
