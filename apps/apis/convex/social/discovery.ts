@@ -14,7 +14,8 @@ import {
 import { query } from '../lib/queries'
 import { readProfile } from './profiles'
 import { presentListing, requireOwnedCampaign } from './listingDocuments'
-import { hasSocialBlock, presentSocialProfile, requireSocialViewer } from './visibility'
+import { readProfileVisibility } from '../lib/identity'
+import { presentSocialProfile, readDiscoverableAccount, requireSocialViewer } from './visibility'
 import { resolveListingSuspension } from './profileInvalidation'
 
 export const getProfile = query({
@@ -27,10 +28,17 @@ export const getProfile = query({
       .query('socialProfiles')
       .withIndex('by_publicId', (q) => q.eq('id', profilePublicId.toLowerCase()))
       .unique()
-    if (!row || row.status !== 'ACTIVE' || (await hasSocialBlock(ctx, viewer.id, row.id)))
-      throw new Error('Social profile not found.')
+    if (!row) throw new Error('Social profile not found.')
     const { _id, _creationTime, ...stored } = row
-    return presentSocialProfile(ctx, socialStoredProfileSchema.parse(stored))
+    const profile = socialStoredProfileSchema.parse(stored)
+    const account = await readDiscoverableAccount(ctx, viewer, profile)
+    // Account PRIVATE wins over social participation; the owner still resolves their own (D211).
+    if (
+      !account ||
+      (profile.userId !== viewer.userId && readProfileVisibility(account) !== 'PUBLIC')
+    )
+      throw new Error('Social profile not found.')
+    return presentSocialProfile(ctx, profile)
   }
 })
 
@@ -48,7 +56,7 @@ export const getListing = query({
     const { _id, _creationTime, ...stored } = row
     const listing = await resolveListingSuspension(ctx, socialStoredListingSchema.parse(stored))
     const host = (await readProfile(ctx, row.ownerUserId))?.profile
-    if (!host || host.status !== 'ACTIVE' || (await hasSocialBlock(ctx, viewer.id, host.id)))
+    if (!host || !(await readDiscoverableAccount(ctx, viewer, host)))
       throw new Error('Social listing not found.')
     const campaign = await requireOwnedCampaign(ctx, row.campaignId, row.ownerUserId)
     const owner = campaign.ownerUserId === viewer.userId
