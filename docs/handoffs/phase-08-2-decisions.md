@@ -2025,3 +2025,14 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
   - Signed-out readers keep access to platform (SRD) reference content and art. The SRD is openly licensed.
   - Any Run member may see whether a decision occurrence was answered or GM-skipped. It is a single flag, and restricting it would require recording addressees per occurrence.
 - **Trigger:** the PLATFORM-27.T1 sweep (`docs/validation/platform-27-t1-authorization-sweep-2026-11-03.md`). The first three rulings are fixed in PLATFORM-27.T1 under AC 27.2, each with a refusal test that fails first.
+
+## D212 (2026-11-03): external UAT runs on a frozen staging build after the staging latency gate
+
+- **Ruling (user):** this amends D210's UAT bullet. UAT runs on staging, so it cannot run beside the optimization pass. Each performance fix would redeploy the build under the testers, and PERF-2's load runs would disturb them. The order is:
+  1. PERF-1 finishes locally.
+  2. Promote to staging.
+  3. PERF-2 gates there. A failure means fix, then re-promote.
+  4. Staging is frozen for UAT.
+- **Testers see one build per round.** UAT fixes ship between tester rounds, never during one.
+- **Owner review is not acceptance.** The owner may walk through the scenarios on a local build at any time to find problems early. That walkthrough is not UAT acceptance, because the owner knows the product too well to stand in for a new user. Acceptance comes from the external testers' runs on the frozen staging build.
+- D210's latency rules (record locally and in CI, gate only on staging) are unchanged.
