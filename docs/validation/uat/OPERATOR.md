@@ -78,7 +78,7 @@ An account invitation has no app screen: it is issued by the internal `authInvit
 
 Each account needs its own browser session, because sign-in is a cookie on `localhost:3000`.
 
-- Use **separate browser profiles**, not tabs: for example Chrome profiles named "UAT GM", "UAT P1" and "UAT P2", and Edge or Firefox for P3. Private or incognito windows of one browser share one session, so they count as one profile at most.
+- Use **one named container (Brave 1.92+ or Firefox) or one browser profile per role**, never plain tabs ([Role setup](README.md#role-setup-for-the-owner)). Private or incognito windows of one browser share one session, so they count as one role at most.
 - Tile the windows so the GM window and at least one player window are visible at once. Scenarios list what every other window must show, and what it must **not** show (hidden tokens, GM private rolls, other players' private data).
 - One person can drive all four windows. Helpers can join only on this machine: the local build is not reachable from other devices, including phones.
 - **Mobile width**: open the browser's developer tools, turn on the device toolbar and pick a 375-pixel-wide phone. Real phones cannot reach the local build.
