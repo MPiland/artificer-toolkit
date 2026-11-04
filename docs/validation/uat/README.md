@@ -64,8 +64,12 @@ Run the scenarios once, in tracker order. Every scenario lists its **Prerequisit
 
 Only the owner (and a facilitator) needs this; a Solo tester uses one normal browser.
 
-- Create one Chrome or Edge profile per role (GM, P1, P2, P3, SPARE), plus one for the tester's own account. Sign each profile into its account once and keep it signed in.
-- Firefox Multi-Account Containers are an accepted alternative. A private window gives only one extra sign-in per browser, so it is not enough on its own.
+Use either setup. Each role needs its own cookies and storage, kept for the whole pass.
+
+- **Firefox containers (one window):** install the Multi-Account Containers extension and create one named container per role (GM, P1, P2, P3, SPARE) plus one for the tester's own account. Open each role's tab in its container, sign in once and keep it signed in. Colour the containers so the tab strip shows who is who.
+- **Browser profiles:** create one Chrome or Edge profile per role, plus one for the tester's own account, and sign each in once.
+- Temporary Containers (a Firefox extension) suit only a one-off new-user step, such as redeeming an invitation as a fresh visitor: a temporary container deletes its sign-in when its last tab closes, so never use one for a role.
+- A private window gives only one extra sign-in per browser, so it is not enough on its own.
 - Each scenario's **Roles used** line lists which profiles to open. Steps switch roles by switching windows, never by signing out.
 - On a facilitated scenario, do only what the numbered script says, when its trigger happens, and do not explain controls.
 
