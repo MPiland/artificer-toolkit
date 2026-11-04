@@ -24,7 +24,7 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 ## Expected
 
 - Step 2: the change is refused with a message that the current password is wrong; nothing changes.
-- Step 3: the change is accepted and confirmed.
+- Step 3: the change is accepted and confirmed, and this window stays signed in. Any other browser or device signed in to the account is signed out and asks for the new password.
 - Step 4: the old password no longer signs in.
 - Step 5: the new password signs in. Keep the new password: your later scenarios use it.
 
@@ -34,7 +34,7 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 
 ## ACs covered
 
-ACCOUNTS-11.1
+ACCOUNTS-11.1, ACCOUNTS-11.3
 
 ## Result
 

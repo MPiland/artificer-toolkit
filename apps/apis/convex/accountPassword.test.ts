@@ -2,7 +2,7 @@ import { createFunctionHandle } from 'convex/server'
 import { convexTest } from '../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import type { AccountPasswordUpdateInput } from '@artificer-toolkit/schema/api/account'
-import { api, components, internal } from './_generated/api'
+import { components, internal } from './_generated/api'
 import { createAuth } from './authFactory.helper'
 import authSchema from './betterAuth/schema'
 import type { Doc as AuthDoc } from './betterAuth/_generated/dataModel'
@@ -10,6 +10,12 @@ import schema from './schema'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
+
+const toCookieHeaders = (setCookies: string[]) =>
+  new Headers({
+    origin: 'http://localhost:3000',
+    cookie: setCookies.map((value) => value.split(';')[0]).join('; ')
+  })
 
 async function fixture() {
   const t = convexTest(schema, import.meta.glob('./**/*.*s'))
@@ -56,14 +62,7 @@ async function fixture() {
         returnHeaders: true
       })
       const responseHeaders: Headers = signedIn.headers
-      const headers = new Headers({ origin: 'http://localhost:3000' })
-      headers.set(
-        'cookie',
-        responseHeaders
-          .getSetCookie()
-          .map((value) => value.split(';')[0])
-          .join('; ')
-      )
+      const headers = toCookieHeaders(responseHeaders.getSetCookie())
       const session: AuthDoc<'session'> | null = await ctx.runQuery(
         components.betterAuth.adapter.findOne,
         {
@@ -83,6 +82,28 @@ async function fixture() {
   const other = users[1]!
   const update = (input: AccountPasswordUpdateInput, headers = owner.headers) =>
     t.run((ctx) => createAuth(ctx).api.updateAccountPassword({ body: input, headers }))
+  const updateReturningHeaders = (input: AccountPasswordUpdateInput) =>
+    t.run(async (ctx) => {
+      const { headers } = await createAuth(ctx).api.updateAccountPassword({
+        body: input,
+        headers: owner.headers,
+        returnHeaders: true
+      })
+      return headers.getSetCookie()
+    })
+  const signInSecondSession = () =>
+    t
+      .run(async (ctx) => {
+        const signedIn = await createAuth(ctx).api.signInEmail({
+          body: { email: owner.user.email, password },
+          headers: new Headers({ origin: 'http://localhost:3000' }),
+          returnHeaders: true
+        })
+        return signedIn.headers.getSetCookie()
+      })
+      .then(toCookieHeaders)
+  const getSession = (headers: Headers) =>
+    t.run((ctx) => createAuth(ctx).api.getSession({ headers }))
   const signIn = (signInPassword: string) =>
     t.run((ctx) =>
       createAuth(ctx).api.signInEmail({
@@ -113,6 +134,9 @@ async function fixture() {
     other,
     password,
     update,
+    updateReturningHeaders,
+    signInSecondSession,
+    getSession,
     signIn,
     snapshot,
     input: {
@@ -124,13 +148,21 @@ async function fixture() {
 }
 
 describe('native account password update', () => {
-  it('updates only the current credential after exact email/password confirmation and preserves every session and other account', async () => {
+  it('updates only the current credential after exact email/password confirmation, signs out every other session of the account and keeps the changing session and other accounts', async () => {
     const base = await fixture()
+    const secondSession = await base.signInSecondSession()
     const before = await base.snapshot()
     for (const page of [before.users, before.accounts, before.sessions])
       expect(page.isDone).toBe(true)
-    const result = await base.update({ ...base.input, email: base.input.email.toUpperCase() })
-    expect(result).toBeNull()
+    await expect(base.getSession(secondSession)).resolves.toMatchObject({
+      user: { id: base.owner.user._id }
+    })
+    // The Convex-auth endpoint returns null; the replacement session arrives only as cookies.
+    const changedHeaders = await base.updateReturningHeaders({
+      ...base.input,
+      email: base.input.email.toUpperCase()
+    })
+    const changingSession = toCookieHeaders(changedHeaders)
     const after = await base.snapshot()
     const afterAccounts: AuthDoc<'account'>[] = after.accounts.page
     const beforeAccounts: AuthDoc<'account'>[] = before.accounts.page
@@ -144,6 +176,7 @@ describe('native account password update', () => {
     })
     expect(after).toEqual({
       ...before,
+      sessions: after.sessions,
       accounts: {
         ...before.accounts,
         page: beforeAccounts.map((entry) =>
@@ -153,17 +186,21 @@ describe('native account password update', () => {
         )
       }
     })
+    const afterSessions: AuthDoc<'session'>[] = after.sessions.page
+    const beforeSessions: AuthDoc<'session'>[] = before.sessions.page
+    expect(afterSessions.filter((entry) => entry.userId === base.owner.user._id)).toHaveLength(1)
+    expect(afterSessions.filter((entry) => entry.userId === base.other.user._id)).toEqual(
+      beforeSessions.filter((entry) => entry.userId === base.other.user._id)
+    )
+    await expect(base.getSession(changingSession)).resolves.toMatchObject({
+      user: { id: base.owner.user._id }
+    })
+    await expect(base.getSession(base.owner.headers)).resolves.toBeNull()
+    await expect(base.getSession(secondSession)).resolves.toBeNull()
     await expect(
-      base.t
-        .withIdentity({ subject: base.owner.user._id, sessionId: base.owner.session._id })
-        .query(api.account.identity, {})
-    ).resolves.toHaveProperty('userId')
-    await expect(
-      base.t
-        .withIdentity({ subject: base.other.user._id, sessionId: base.other.session._id })
-        .query(api.account.identity, {})
-    ).resolves.toHaveProperty('userId')
-    await expect(base.update(base.input)).rejects.toThrow('Invalid password')
+      base.getSession(new Headers({ origin: 'http://localhost:3000', cookie: base.other.cookie }))
+    ).resolves.toMatchObject({ user: { id: base.other.user._id } })
+    await expect(base.update(base.input, changingSession)).rejects.toThrow('Invalid password')
     expect(await base.snapshot()).toEqual(after)
     await expect(base.signIn(base.password)).rejects.toThrow('Invalid email or password')
     await expect(base.signIn(base.input.password)).resolves.toMatchObject({
