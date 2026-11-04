@@ -392,8 +392,8 @@ and the complete local lifecycle remain pending.
 Native account password changes use `POST /api/auth/account/password` with the existing strict
 `AccountPasswordUpdateInput`. Sensitive-session middleware reads the current stored session and user,
 checks the submitted email against that user, and delegates password verification/update to the
-installed Better Auth endpoint. The command preserves all sessions (`revokeOtherSessions: false`)
-and does not sign in again. Native email changes use the installed Better Auth two-address confirmation
+installed Better Auth endpoint. The command revokes every other session of the account (`revokeOtherSessions: true`, ACCOUNTS-11.3) and forwards the replacement session cookies so the changing session stays signed in
+without a separate sign-in. Native email changes use the installed Better Auth two-address confirmation
 flow, retaining the current email until both addresses confirm and preserving existing sessions.
 Final integrated account-deletion acceptance remains pending; these local producers still require
 live backend/browser proof and do not establish full R01/F12 acceptance.
