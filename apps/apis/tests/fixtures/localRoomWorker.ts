@@ -1,3 +1,4 @@
+import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -38,7 +39,6 @@ import {
   type RoomSheetCommand
 } from '../developmentHttpClient'
 import { startLocalR2 } from '../localR2'
-import { createLoopbackServer } from '../loopbackHttpServer'
 
 /**
  * The REAL Session Worker (`apps/session-worker`, its Durable Object room) in local workerd, with
@@ -146,7 +146,7 @@ async function callConvex(
 async function startConvexBridge() {
   let anonymous: RoomCaller | null = null
   const callers = new Map<string, RoomCaller>()
-  const server = createLoopbackServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     try {
       const chunks: Buffer[] = []
       for await (const chunk of request) chunks.push(chunk as Buffer)
@@ -203,6 +203,8 @@ async function startConvexBridge() {
       response.writeHead(502).end(error instanceof Error ? error.message : 'bridge failure')
     }
   })
+  // Idle sockets are left to the clients (why: the keep-alive note in ../localR2.ts).
+  server.keepAliveTimeout = 0
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,

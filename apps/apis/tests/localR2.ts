@@ -1,7 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import type { IncomingMessage } from 'node:http'
-
-import { createLoopbackServer } from './loopbackHttpServer'
+import { createServer, type IncomingMessage } from 'node:http'
 
 // Independent SigV4 verification for presigned PUTs. Actual R2 enforcement is
 // also checked in the bounded dev integration; local tests never use real keys.
@@ -79,7 +77,7 @@ export async function startLocalR2(
       rejectPutKey: null,
       getStatus: null
     }
-  const server = createLoopbackServer((request, response) => {
+  const server = createServer((request, response) => {
     void (async () => {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
 
@@ -193,6 +191,13 @@ export async function startLocalR2(
       response.end()
     })
   })
+  // In tests the client shares this process. Node retires an idle keep-alive socket on a timer while
+  // the client may reuse it until shortly before; a synchronous stretch longer than that margin lets
+  // the timer fire before the server reads a request already sent, and the client sees ECONNRESET.
+  // With no server timeout only the client retires idle sockets; close() still ends them. The other
+  // loopback fixtures (localEmailSink.ts, the Convex bridge in fixtures/localRoomWorker.ts) do the
+  // same. Each fixture stays self-contained: scripts/localConvexFixtures.ps1 runs it alone.
+  server.keepAliveTimeout = 0
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(options.port ?? 0, options.host ?? '127.0.0.1', resolve)

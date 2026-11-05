@@ -1,8 +1,7 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-
-import { createLoopbackServer } from './loopbackHttpServer'
 
 const maxMessageBytes = 256 * 1024
 
@@ -46,7 +45,7 @@ export async function startLocalEmailSink(options: {
     )
   }
 
-  const server = createLoopbackServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     if (request.method === 'GET' && request.url === '/health') {
       return response.writeHead(200).end('artificer-local-email')
     }
@@ -86,6 +85,8 @@ export async function startLocalEmailSink(options: {
       response.writeHead(500).end()
     }
   })
+  // Idle sockets are left to the in-process client (why: the keep-alive note in localR2.ts).
+  server.keepAliveTimeout = 0
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(options.port ?? 0, '127.0.0.1', resolve)
