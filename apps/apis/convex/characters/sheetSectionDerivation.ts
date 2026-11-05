@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { collectCharacterReferencedSpellIds } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
-import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import { v } from 'convex/values'
 import type { MutationCtx } from '../_generated/server'

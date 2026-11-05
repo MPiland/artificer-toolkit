@@ -38,7 +38,7 @@ import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persi
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterReadTransaction } from '../encounters/encounterReadPorts'
 import { readCharacterLiveHold, readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
-import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** Private notes require current ownership, assignment and route authority, without source reads. */
 export async function loadCharacterSheetNotes(

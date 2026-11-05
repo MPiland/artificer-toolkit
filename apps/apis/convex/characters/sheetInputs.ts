@@ -28,7 +28,7 @@ import {
   readCharacterStoredCompilation,
   readReferencedRoot
 } from './context'
-import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** Reuse only within one transaction while source-backed record membership is unchanged. */
 export type CharacterSheetSourceContext = {

@@ -8,7 +8,7 @@ import {
   readVerifiedCharacterBuild
 } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
-import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** The Campaign's assigned, ACTIVE Character in its System, checked from the Character head alone. */
 async function requireAssignedActiveCharacterHead(

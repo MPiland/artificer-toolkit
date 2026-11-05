@@ -3,6 +3,7 @@ import type { CompiledCreature } from '@artificer-toolkit/shared/subjects/compil
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CharacterBuilderContext } from './builderTypes.js'
 import { prepareCharacterBuilderFromContext } from './builderPreparation.js'
+import { CharacterRequiresBuilderRepairError } from './builderRepair.js'
 import { evaluateCharacterRules } from './characterRuleEvaluation.js'
 import type { prepareCharacterRuleSources } from './characterRuleSnapshot.js'
 import {
@@ -18,17 +19,6 @@ import { getPreparedAndKnownSpellIds } from './sheetSpellIds.js'
 export type CharacterSheetBuilderPreparation<TContext extends CharacterBuilderContext> = {
   document: string
   prepared: Awaited<ReturnType<typeof prepareCharacterBuilderFromContext<TContext>>>
-}
-
-/**
- * The stored Character is not Builder-ready over its current sources: a replaced publication can
- * add a required choice the owner has not made yet. The Sheet blocks until the Builder repairs it.
- */
-export class CharacterRequiresBuilderRepairError extends Error {
-  constructor() {
-    super('Character requires Builder repair before the Sheet can be read.')
-    this.name = 'CharacterRequiresBuilderRepairError'
-  }
 }
 
 /** Evaluates already-authorized current inputs without accessing persistence. */

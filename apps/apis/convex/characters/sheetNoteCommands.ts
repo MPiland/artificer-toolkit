@@ -12,7 +12,7 @@ import { readCharacterCollection, readCharacterHead, readCharacterPlayRow } from
 import { writeCharacterNoteRecords } from './characterWrites'
 import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
-import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /**
  * Notes change structure and the Sheet stream, while leaving mechanical facts unchanged. A note edit

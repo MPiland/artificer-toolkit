@@ -15,7 +15,7 @@ import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
 import { scheduleCharacterSheetSections } from './sheetSections'
-import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** Projection preferences replace only typed play state; current mechanical values stay intact. */
 export async function executeCharacterPlayPreferenceCommand(
