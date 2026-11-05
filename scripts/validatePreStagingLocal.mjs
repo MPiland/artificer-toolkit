@@ -19,6 +19,7 @@ import {
   convexDeployArguments,
   generateAdminKey,
   localConvex,
+  readSigningKeysJwks,
   yarnSpawn
 } from './convexSelfHosted.mjs'
 import { localSessionWorker, localSessionWorkerBindings } from './localSessionWorker.mjs'
@@ -750,6 +751,14 @@ export const stages = [
     '-Name',
     `r08-reset-${releaseProofAttempt}`
   ]),
+  // Before the push that evaluates auth.config.ts. The reset keeps the Better Auth signing keys, and a
+  // pinned JWKS stops token verification from fetching them from the backend's own HTTP route.
+  stage(
+    'convex-signing-keys',
+    'Pin the signing keys into JWKS as a managed deployment does',
+    'internal',
+    ['pin-signing-keys']
+  ),
   stage('convex-codegen', 'Generate native Convex bindings', 'yarn', [
     'workspace',
     '@artificer-toolkit/apis',
@@ -1222,6 +1231,18 @@ async function main() {
         }
       } else if (current.name === 'clean-runtime-artifacts') {
         await cleanRuntimeArtifacts(logPath)
+      } else if (current.name === 'convex-signing-keys') {
+        const url = process.env.CONVEX_SELF_HOSTED_URL
+        const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+        const { jwks } = await readSigningKeysJwks({ url, siteUrl: localConvex.siteUrl, adminKey })
+        await run(
+          'yarn',
+          ['workspace', '@artificer-toolkit/apis', 'exec', 'convex', 'env', 'set', 'JWKS'],
+          {
+            logPath,
+            sensitiveArgs: [jwks, ...convexCliArguments(url, adminKey)]
+          }
+        )
       } else {
         if (current.name === 'convex-local-deploy') await verifySourceEnd()
         await run(current.command, current.args, {

@@ -63,3 +63,12 @@ describe('lifecycle proof stages', () => {
     expect(names.at(-1)).toBe(`r08-browser-${lifecycle.selfManagedBrowserProof}`)
   })
 })
+
+describe('lifecycle signing keys', () => {
+  it('pins JWKS after the reset and before the push that evaluates the auth config', () => {
+    const names = lifecycle.stages.map(({ name }) => name)
+    const pin = names.indexOf('convex-signing-keys')
+    expect(pin).toBe(names.indexOf('convex-reset') + 1)
+    expect(pin).toBe(names.indexOf('convex-codegen') - 1)
+  })
+})

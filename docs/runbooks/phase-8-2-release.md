@@ -55,6 +55,11 @@ flowchart LR
    runner resets the isolated local container before the schema push, then deploys and seeds it from
    the protected corpus, so every later stage starts from the seeded corpus alone. Step 3 rules out a
    replacement container.
+   The `convex-signing-keys` stage then pins the Better Auth signing keys, which the reset keeps, into
+   the deployment's `JWKS` value, as a managed deployment does, before the push evaluates
+   `auth.config.ts`. With an empty `JWKS` every token check fetches the keys from the backend's own
+   HTTP route, which distorts the latency baseline. The value holds the private keys and is never
+   logged.
    Before Convex codegen pushes a schema, the runner backs up and resets disposable local fixtures.
    Required fields and removed storage paths can reject old rows during that push; resetting after
    deployment would be too late. After package checks, the runner verifies source identity and deploys
