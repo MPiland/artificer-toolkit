@@ -8,7 +8,10 @@ import {
   useLocalRoomWorker,
   useRealTimeClock
 } from '../../tests/fixtures/localRoomWorker'
-import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
+import {
+  expectBuilderReadyCharacters,
+  reviewDataHarness
+} from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
 useRealTimeClock()
@@ -18,7 +21,7 @@ useRealTimeClock()
 const scenarios = REVIEW_SCENARIOS.slice(0, 2)
 
 it('builds the review Campaigns once and skips every finished one on a re-run', async () => {
-  const { context, counts } = await reviewDataHarness()
+  const { t, context, counts } = await reviewDataHarness()
   const names = scenarios.map((scenario) => scenario.campaign)
   // The admin's role and every spare's Campaigns, as each account reads them.
   const accounts = async () => ({
@@ -48,6 +51,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
       }
     )
   })
+  await expectBuilderReadyCharacters(t)
   const built = await counts()
   const promoted = await accounts()
   const second = await seedReviewData(context, scenarios)

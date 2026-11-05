@@ -1,7 +1,10 @@
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import { components, internal } from '../../convex/_generated/api'
-import { readySheetFixture } from './readyCharacter'
+import { expect } from 'vitest'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { loadCharacterSheetFacts } from '../../convex/characters/sheetFacts'
+import { fixture } from './characters'
 import { createPartyUser } from './partyPlayer'
 import type { ReviewAccount, ReviewContext } from '../developmentReviewData'
 import {
@@ -19,11 +22,12 @@ import {
   seedRoomContentSnapshots
 } from './localRoomWorker'
 
-type TestConvex = Awaited<ReturnType<typeof readySheetFixture>>['t']
+type TestConvex = Awaited<ReturnType<typeof fixture>>['t']
 
 /** The review accounts and room-aware context `seedReviewData` runs against inside convex-test. */
 export async function reviewDataHarness() {
-  const { t } = await readySheetFixture()
+  // No Character exists before the SRD seed, so none is left short of a choice the full SRD adds.
+  const { t } = await fixture()
   register(t)
   registerRetrier(t, 'r2/actionRetrier')
   // The Characters are built from the SRD corpus, as on the seeded local backend.
@@ -41,6 +45,22 @@ export async function reviewDataHarness() {
       runs: (await ctx.db.query('encounterRuns').collect()).length
     }))
   return { t, context, counts }
+}
+
+/** Every review Character a tester opens is Builder-ready over the seeded SRD; its Sheet is playable. */
+export async function expectBuilderReadyCharacters(t: TestConvex) {
+  const unready = await t.run(async (ctx) => {
+    const ids: string[] = []
+    for (const head of await ctx.db.query('characters').collect()) {
+      if (head.status !== 'ACTIVE') continue
+      await loadCharacterSheetFacts(ctx, head.userId, head.id).catch((error: unknown) => {
+        if (!(error instanceof CharacterRequiresBuilderRepairError)) throw error
+        ids.push(head.id)
+      })
+    }
+    return ids
+  })
+  expect(unready).toEqual([])
 }
 
 /** One roster's accounts and context in an already prepared convex-test world; `set` keeps emails apart. */

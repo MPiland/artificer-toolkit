@@ -8,7 +8,10 @@ import {
   useLocalRoomWorker,
   useRealTimeClock
 } from '../../tests/fixtures/localRoomWorker'
-import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
+import {
+  expectBuilderReadyCharacters,
+  reviewDataHarness
+} from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
 useRealTimeClock()
@@ -33,6 +36,7 @@ it('builds the sandbox review Campaign once with its board and play settings', a
       }
     )
   })
+  await expectBuilderReadyCharacters(t)
   const built = await counts()
   // The published board as stored, and the Campaign's play settings as its GM reads them.
   const board = await t.run(async (ctx) => {

@@ -8,7 +8,11 @@ import {
   useLocalRoomWorker,
   useRealTimeClock
 } from '../../tests/fixtures/localRoomWorker'
-import { reviewDataHarness, reviewSetContext } from '../../tests/fixtures/reviewDataHarness'
+import {
+  expectBuilderReadyCharacters,
+  reviewDataHarness,
+  reviewSetContext
+} from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
 useRealTimeClock()
@@ -62,6 +66,7 @@ it('builds independent Campaigns per tester set and skips a finished set', async
 
   expect((await seed(1)).created).toEqual(['Review: Sandbox (set 1)'])
   expect((await seed(2)).created).toEqual(['Review: Sandbox (set 2)'])
+  await expectBuilderReadyCharacters(t)
   const built = await campaigns()
   const [one, two] = ['Review: Sandbox (set 1)', 'Review: Sandbox (set 2)'].map((name) =>
     built.find((row) => row.name === name)
