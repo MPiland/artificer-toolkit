@@ -330,9 +330,12 @@ export function useLocalRoomWorker() {
     started = startWorker()
     return started.then(() => undefined)
   }, STARTUP_TIMEOUT_MS)
-  afterEach(async () => {
+  afterEach(async ({ task }) => {
     if (!attached) return
     const { worker, clients, peers, touched } = attached
+    // A room tells a member nothing of a failure's cause (an activation, a command); its log does.
+    if (task.result?.state === 'fail' && worker.errorLogs.length)
+      console.error(`Room error logs for "${task.name}":\n${worker.errorLogs.join('\n')}`)
     const all = [...clients.values(), ...peers]
     for (const client of all) client.closeRooms()
     for (const client of all) for (const id of client.openedRoomCampaignIds()) touched.add(id)
