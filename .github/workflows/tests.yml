@@ -249,6 +249,9 @@ jobs:
       - name: Stories
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
+      - name: Config
+        if: success() || failure()
+        run: yarn turbo run typecheck:config --filter=@artificer-toolkit/web --only --env-mode=loose
 
   # `yarn lint` at zero warnings on every run: oxlint (.oxlintrc.jsonc) and the repo check scripts it chains,
   # then oxfmt on the files the branch changed since the phase branch (the phase branch is not oxfmt-clean).
