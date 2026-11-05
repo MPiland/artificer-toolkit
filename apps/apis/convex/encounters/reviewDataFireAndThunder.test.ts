@@ -19,7 +19,9 @@ it('builds the area-spell review Campaign once and skips it on a re-run', async 
   const names = scenarios.map((scenario) => scenario.campaign)
 
   const first = await seedReviewData(context, scenarios).catch((error: unknown) => {
-    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
+    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '), {
+      cause: error
+    })
   })
   const built = await counts()
   const second = await seedReviewData(context, scenarios)

@@ -37,7 +37,9 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   expect((await accounts()).adminRole).toBe('user')
 
   const first = await seedReviewData(context, scenarios).catch((error: unknown) => {
-    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
+    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '), {
+      cause: error
+    })
   })
   const built = await counts()
   const promoted = await accounts()

@@ -40,7 +40,9 @@ it('builds independent Campaigns per tester set and skips a finished set', async
   )
   const seed = (set: number) =>
     seedReviewData(contexts.get(set)!, sandboxOf(set)).catch((error: unknown) => {
-      throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
+      throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '), {
+        cause: error
+      })
     })
   const campaigns = () =>
     t.run(async (ctx) =>

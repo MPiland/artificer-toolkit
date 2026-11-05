@@ -22,7 +22,9 @@ it('builds the sandbox review Campaign once with its board and play settings', a
   if (!sandbox) throw new Error('The sandbox review scenario is missing.')
 
   const first = await seedReviewData(context, scenarios).catch((error: unknown) => {
-    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
+    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '), {
+      cause: error
+    })
   })
   const built = await counts()
   // The published board as stored, and the Campaign's play settings as its GM reads them.
