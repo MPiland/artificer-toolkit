@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
   nodeRuntimeResolveRequestDtoSchema
@@ -21,7 +21,6 @@ import {
   normalizeFixtureNodeRuntimeValues,
   resolveFixtureNodeRuntime
 } from '#test/nodeRuntimeResolver'
-import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/tests/srdSourceReader'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout, AuthoringLayoutContent } from '../layout/AuthoringLayout'
 import { AuthoringFormProvider } from '../layout/AuthoringFormProvider'
@@ -130,8 +129,6 @@ const nativeRaceCatalogueItems = [
     systemId: authoredRouteStorySystem.id
   }
 ]
-
-beforeAll(warmFixtureAuthoredSources, 60_000)
 
 beforeEach(() => {
   fieldRenders.clear()

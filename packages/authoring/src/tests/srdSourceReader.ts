@@ -36,31 +36,30 @@ const subjectsByKind = {
 } as const
 type SubjectKind = keyof typeof subjectsByKind
 
-const factsByKind = new Map<SubjectKind, AuthoredNodeRuntimeSourceFacts[]>()
-
 // Mirrors the production import: each SRD record is canonicalized, checksummed and parsed
-// before the shared projection turns it into resolver source facts.
-function readKindFacts(kind: SubjectKind) {
-  const cached = factsByKind.get(kind)
-  if (cached) return cached
-  const facts = subjectsByKind[kind].map((subject) => {
-    const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(subject)))
-    const checksum = checksumRuleDocument(document)
-    return authoredSourceFacts(
-      authoredDocumentVersionSchema.parse({
-        subjectKind: kind,
-        subjectId: subject.id,
-        versionId: fixtureVersionId,
-        version: 1,
-        documentSchemaVersion: 1,
-        checksum,
-        document
-      })
-    )
-  })
-  factsByKind.set(kind, facts)
-  return facts
-}
+// before the shared projection turns it into resolver source facts. That parses about a thousand
+// records, seconds on a loaded machine, so it runs while this module loads rather than inside the
+// first test that resolves, where it would count against that test's timeout.
+const factsByKind = Object.fromEntries(
+  (Object.keys(subjectsByKind) as SubjectKind[]).map((kind) => [
+    kind,
+    subjectsByKind[kind].map((subject) => {
+      const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(subject)))
+      const checksum = checksumRuleDocument(document)
+      return authoredSourceFacts(
+        authoredDocumentVersionSchema.parse({
+          subjectKind: kind,
+          subjectId: subject.id,
+          versionId: fixtureVersionId,
+          version: 1,
+          documentSchemaVersion: 1,
+          checksum,
+          document
+        })
+      )
+    })
+  ])
+) as Record<SubjectKind, AuthoredNodeRuntimeSourceFacts[]>
 
 const rowsByTable = new Map<NodeRuntimeSourceTable, NodeRuntimeQueryRow[]>()
 
@@ -72,15 +71,10 @@ function readAuthoredRows(table: NodeRuntimeSourceTable): NodeRuntimeQueryRow[] 
   const kinds = authoredSourceKindsByTable[table]
   if (!kinds) throw new Error(`Authoring source is not migrated: ${table}.`)
   const rows = sortAuthoredSourceRows(
-    kinds.flatMap((kind) => readKindFacts(kind).flatMap((facts) => facts.rows[table] ?? []))
+    kinds.flatMap((kind) => factsByKind[kind].flatMap((facts) => facts.rows[table] ?? []))
   )
   rowsByTable.set(table, rows)
   return rows
-}
-
-/** Builds every SRD source projection once so the first resolve stays inside UI wait timeouts. */
-export function warmFixtureAuthoredSources() {
-  for (const kind of Object.keys(subjectsByKind) as SubjectKind[]) readKindFacts(kind)
 }
 
 /**
