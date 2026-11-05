@@ -610,6 +610,18 @@ function stage(name, label, command, args, environment) {
   return { args, command, environment, label, name }
 }
 
+// A package suite on the root Vitest config. At its default of one worker per logical core, the
+// authoring parity files, which each build the SRD source projection cold (about 2 s), time out from
+// contention alone; half the cores finishes in the same wall time.
+function packageTestStage(name, label, workspace) {
+  return stage(name, label, 'yarn', [
+    'workspace',
+    `@artificer-toolkit/${workspace}`,
+    'test',
+    '--maxWorkers=50%'
+  ])
+}
+
 function acceptedChangedPaths(status) {
   return status
     .split(/\r?\n/u)
@@ -795,35 +807,18 @@ export const stages = [
     'typecheck:convex'
   ]),
   stage('lint', 'Repository lint', 'yarn', ['lint']),
-  stage('schema-tests', 'Schema tests', 'yarn', ['workspace', '@artificer-toolkit/schema', 'test']),
-  stage('shared-tests', 'Shared tests', 'yarn', ['workspace', '@artificer-toolkit/shared', 'test']),
-
-  stage('source-data-tests', 'Source data tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/source-data',
-    'test'
-  ]),
-  stage('authoring-tests', 'Authoring tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/authoring',
-    'test'
-  ]),
+  packageTestStage('schema-tests', 'Schema tests', 'schema'),
+  packageTestStage('shared-tests', 'Shared tests', 'shared'),
+  packageTestStage('source-data-tests', 'Source data tests', 'source-data'),
+  packageTestStage('authoring-tests', 'Authoring tests', 'authoring'),
   // The tests resolve sibling packages through their dist output, which the `build` stage produced.
-  stage('rules-runtime-tests', 'Rules runtime tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/rules-runtime',
-    'test'
-  ]),
-  stage('encounter-persistence-tests', 'Encounter persistence tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/encounter-persistence',
-    'test'
-  ]),
-  stage('apis-tests', 'API transport tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/apis',
-    'test'
-  ]),
+  packageTestStage('rules-runtime-tests', 'Rules runtime tests', 'rules-runtime'),
+  packageTestStage(
+    'encounter-persistence-tests',
+    'Encounter persistence tests',
+    'encounter-persistence'
+  ),
+  packageTestStage('apis-tests', 'API transport tests', 'apis'),
   ...[1, 2, 3, 4].map((shard) =>
     stage(
       `convex-tests-${shard}`,
@@ -839,12 +834,8 @@ export const stages = [
       ]
     )
   ),
-  stage('design-system-tests', 'Design system tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/design-system',
-    'test'
-  ]),
-  stage('emails-tests', 'Email tests', 'yarn', ['workspace', '@artificer-toolkit/emails', 'test']),
+  packageTestStage('design-system-tests', 'Design system tests', 'design-system'),
+  packageTestStage('emails-tests', 'Email tests', 'emails'),
   stage('session-worker-tests', 'Session Worker tests', 'yarn', [
     'workspace',
     '@artificer-toolkit/session-worker',
