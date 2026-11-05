@@ -23916,7 +23916,7 @@
             },
             {
               "id": "PERF-1.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.1", "PERF-1.2", "PERF-1.3"],
               "wsjf": {
                 "bv": 2,
@@ -23941,7 +23941,8 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it. Agenda: the vtt-browser ephemeral p95 failed three times on the m591 batch (7 proofs in one shard, 388 and 301 ms against 150) and passed in an isolated dispatch on the same SHA, so separate shard load from read cost. The limit stays. Agenda: held-effect-browser failed on the m592 batch because the test clicks Open actions while the drawer reopens after a map pick; the test fix goes with SPELLS-12.T2b. D210 (2026-11-02): this run optimizes and records latency; it gates only on deterministic budgets (4.3 MB I/O, call counts, payload sizes). First agenda item: measure the vtt-browser ephemeral p95 locally at m612 and at the final tip; it failed on CI in m613, m617 and m618 after seven clean batches, so check for a lost-headroom regression and fix it if found."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it. Agenda: the vtt-browser ephemeral p95 failed three times on the m591 batch (7 proofs in one shard, 388 and 301 ms against 150) and passed in an isolated dispatch on the same SHA, so separate shard load from read cost. The limit stays. Agenda: held-effect-browser failed on the m592 batch because the test clicks Open actions while the drawer reopens after a map pick; the test fix goes with SPELLS-12.T2b. D210 (2026-11-02): this run optimizes and records latency; it gates only on deterministic budgets (4.3 MB I/O, call counts, payload sizes). First agenda item: measure the vtt-browser ephemeral p95 locally at m612 and at the final tip; it failed on CI in m613, m617 and m618 after seven clean batches, so check for a lost-headroom regression and fix it if found.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-1.T2",
@@ -24652,7 +24653,7 @@
             },
             {
               "id": "RELEASE-2.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELEASE-2.1", "RELEASE-2.2", "RELEASE-2.3"],
               "wsjf": {
                 "bv": 3,
@@ -24663,7 +24664,8 @@
                 "finalSource": true
               },
               "text": "Run the complete yarn validate:pre-staging:local lifecycle in a heavy-lane batch through scripts/withValidationLock.ps1 from a fresh isolated reset (convex-reset stage, R08.1) and retain the manifest, logs and exit codes. Triage any failure: fix locally, resume from the earliest affected stage with --start-at plus the provenance manifest, and finish with one manifest that passes every stage from the same source identity. Expect one or two reruns.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
