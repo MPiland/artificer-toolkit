@@ -147,6 +147,8 @@ async function startConvexBridge() {
   let anonymous: RoomCaller | null = null
   const callers = new Map<string, RoomCaller>()
   const server = createServer(async (request, response) => {
+    // One connection per request (why: the keep-alive note in ../localR2.ts).
+    response.setHeader('Connection', 'close')
     try {
       const chunks: Buffer[] = []
       for await (const chunk of request) chunks.push(chunk as Buffer)
@@ -203,8 +205,6 @@ async function startConvexBridge() {
       response.writeHead(502).end(error instanceof Error ? error.message : 'bridge failure')
     }
   })
-  // Idle sockets are left to the clients (why: the keep-alive note in ../localR2.ts).
-  server.keepAliveTimeout = 0
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,

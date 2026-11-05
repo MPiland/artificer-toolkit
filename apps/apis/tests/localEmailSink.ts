@@ -46,6 +46,8 @@ export async function startLocalEmailSink(options: {
   }
 
   const server = createServer(async (request, response) => {
+    // One connection per request (why: the keep-alive note in localR2.ts).
+    response.setHeader('Connection', 'close')
     if (request.method === 'GET' && request.url === '/health') {
       return response.writeHead(200).end('artificer-local-email')
     }
@@ -85,8 +87,6 @@ export async function startLocalEmailSink(options: {
       response.writeHead(500).end()
     }
   })
-  // Idle sockets are left to the in-process client (why: the keep-alive note in localR2.ts).
-  server.keepAliveTimeout = 0
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(options.port ?? 0, '127.0.0.1', resolve)

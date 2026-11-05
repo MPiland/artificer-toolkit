@@ -79,6 +79,14 @@ export async function startLocalR2(
     }
   const server = createServer((request, response) => {
     void (async () => {
+      // In tests the client shares this process, and an idle keep-alive socket fails it two ways:
+      // a synchronous stretch can hold Node's idle timer past the client's reuse margin, so the
+      // server drops a socket the client already sent on (`fetch failed`, ECONNRESET); and a test
+      // that fakes `setTimeout` freezes the client pool's timers, so a request queued on the idle
+      // socket waits until the server drops it. One connection per request has neither failure.
+      // The email sink and the Convex bridge (fixtures/localRoomWorker.ts) do the same; each fixture
+      // stays self-contained because scripts/localConvexFixtures.ps1 runs it alone.
+      response.setHeader('Connection', 'close')
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
 
       // Identifies this fixture to scripts/localConvexFixtures.ps1; it exposes no object state.
@@ -191,13 +199,6 @@ export async function startLocalR2(
       response.end()
     })
   })
-  // In tests the client shares this process. Node retires an idle keep-alive socket on a timer while
-  // the client may reuse it until shortly before; a synchronous stretch longer than that margin lets
-  // the timer fire before the server reads a request already sent, and the client sees ECONNRESET.
-  // With no server timeout only the client retires idle sockets; close() still ends them. The other
-  // loopback fixtures (localEmailSink.ts, the Convex bridge in fixtures/localRoomWorker.ts) do the
-  // same. Each fixture stays self-contained: scripts/localConvexFixtures.ps1 runs it alone.
-  server.keepAliveTimeout = 0
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(options.port ?? 0, options.host ?? '127.0.0.1', resolve)
