@@ -1,7 +1,8 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+import { createLoopbackServer } from './loopbackHttpServer'
 
 const maxMessageBytes = 256 * 1024
 
@@ -45,7 +46,7 @@ export async function startLocalEmailSink(options: {
     )
   }
 
-  const server = createServer(async (request, response) => {
+  const server = createLoopbackServer(async (request, response) => {
     if (request.method === 'GET' && request.url === '/health') {
       return response.writeHead(200).end('artificer-local-email')
     }

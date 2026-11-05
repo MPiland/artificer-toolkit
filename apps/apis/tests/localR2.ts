@@ -1,5 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { createServer, type IncomingMessage } from 'node:http'
+import type { IncomingMessage } from 'node:http'
+
+import { createLoopbackServer } from './loopbackHttpServer'
 
 // Independent SigV4 verification for presigned PUTs. Actual R2 enforcement is
 // also checked in the bounded dev integration; local tests never use real keys.
@@ -77,7 +79,7 @@ export async function startLocalR2(
       rejectPutKey: null,
       getStatus: null
     }
-  const server = createServer((request, response) => {
+  const server = createLoopbackServer((request, response) => {
     void (async () => {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
 

@@ -1,4 +1,3 @@
-import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +38,7 @@ import {
   type RoomSheetCommand
 } from '../developmentHttpClient'
 import { startLocalR2 } from '../localR2'
+import { createLoopbackServer } from '../loopbackHttpServer'
 
 /**
  * The REAL Session Worker (`apps/session-worker`, its Durable Object room) in local workerd, with
@@ -146,7 +146,7 @@ async function callConvex(
 async function startConvexBridge() {
   let anonymous: RoomCaller | null = null
   const callers = new Map<string, RoomCaller>()
-  const server = createServer(async (request, response) => {
+  const server = createLoopbackServer(async (request, response) => {
     try {
       const chunks: Buffer[] = []
       for await (const chunk of request) chunks.push(chunk as Buffer)
