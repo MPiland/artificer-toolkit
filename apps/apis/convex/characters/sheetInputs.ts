@@ -28,6 +28,7 @@ import {
   readCharacterStoredCompilation,
   readReferencedRoot
 } from './context'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 
 /** Reuse only within one transaction while source-backed record membership is unchanged. */
 export type CharacterSheetSourceContext = {
@@ -76,8 +77,7 @@ export async function readAuthorizedCharacterSheetState<
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== active.userId)
     throw new Error('Stored Character route identity mismatch.')
-  if (active.status !== 'ACTIVE')
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (active.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
   return { id, active, draft, route }
 }
 

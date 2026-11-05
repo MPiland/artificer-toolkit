@@ -15,6 +15,7 @@ import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
 import { scheduleCharacterSheetSections } from './sheetSections'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 
 /** Projection preferences replace only typed play state; current mechanical values stay intact. */
 export async function executeCharacterPlayPreferenceCommand(
@@ -56,8 +57,7 @@ export async function executeCharacterPlayPreferenceCommand(
     throw new Error('Stored Character draft ownership mismatch.')
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== head.userId)
     throw new Error('Stored Character route identity mismatch.')
-  if (head.status !== 'ACTIVE')
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (head.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
   const { _id: playId, _creationTime: _playCreationTime, ...playFields } = storedPlay
   const play = characterStoredPlayStateSchema.parse(playFields)
   if (play.characterId !== head.id || play.userId !== head.userId)

@@ -9,11 +9,16 @@ import type { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/sche
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
-import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
+import {
+  SRD_CONTENT_SOURCE,
+  SRD_RULES_CATALOGUE
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../_generated/api'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 
@@ -179,6 +184,42 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(totals.reads.byTable.characterSheetSections?.documents).toBe(1)
     expect(totals.reads.bytes).toBeLessThanOrEqual(STORED_SECTION_READ_BYTES)
   }, 60_000)
+
+  it('stores no Sheet for a Character that a content replacement left needing Builder repair', async () => {
+    const { t, owner, createCharacter } = await readyCharacterFixture()
+    const { draft, character } = await createCharacter()
+    await owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character
+    })
+    // The commit queued its derivation. Before it runs, the SRD replaces the fixture's Fighter with
+    // the canonical one, whose Fighting Style is a required choice the Character never made.
+    await importSeededSubjects(t, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [importedSubject({ subjectKind: 'CLASS', ...fighter, document: fighter })]
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+    const stores = await t.run(async (ctx) =>
+      (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+        (job) => job.name === 'characters/sheetSectionDerivation:store'
+      )
+    )
+    expect(stores.map((job) => job.state.kind)).toEqual(['success'])
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('characterSheetDerivations')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+      )
+    ).toBeNull()
+    // The Sheet itself still reports the repair.
+    await expect(
+      owner.caller.query(api.characters.sheet.get, { id: character.id })
+    ).rejects.toThrow('Character requires Builder repair before the Sheet can be read.')
+  })
 
   it('derives live once an input changes outside a Character write', async () => {
     const { t, player, character, input, visibility } = await setup()

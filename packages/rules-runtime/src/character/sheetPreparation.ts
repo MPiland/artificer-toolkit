@@ -20,6 +20,17 @@ export type CharacterSheetBuilderPreparation<TContext extends CharacterBuilderCo
   prepared: Awaited<ReturnType<typeof prepareCharacterBuilderFromContext<TContext>>>
 }
 
+/**
+ * The stored Character is not Builder-ready over its current sources: a replaced publication can
+ * add a required choice the owner has not made yet. The Sheet blocks until the Builder repairs it.
+ */
+export class CharacterRequiresBuilderRepairError extends Error {
+  constructor() {
+    super('Character requires Builder repair before the Sheet can be read.')
+    this.name = 'CharacterRequiresBuilderRepairError'
+  }
+}
+
 /** Evaluates already-authorized current inputs without accessing persistence. */
 export async function prepareCharacterSheetFromContext<
   TContext extends CharacterBuilderContext & {
@@ -48,8 +59,7 @@ export async function prepareCharacterSheetFromContext<
           context,
           sourcePreparation: input.sourcePreparation
         })
-  if (!prepared.resolution.readiness.ready)
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (!prepared.resolution.readiness.ready) throw new CharacterRequiresBuilderRepairError()
   const adjustments = mergeCampaignSheetAdjustments(
     sheetState.adjustments,
     campaignContext.adjustments
