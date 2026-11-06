@@ -41,7 +41,9 @@ flowchart LR
    Package and native Convex typechecks follow, separately from tests, with `GOMAXPROCS=2` and
    Turbo concurrency one. Convex test shards run serially, each in a separate process with one
    worker; every shard retains its own log and result. A failed shard stops later stages.
-   Other package checks and all database/browser proofs remain serial.
+   Other package checks and all database/browser proofs remain serial. Package suites on the root
+   Vitest config run with half the logical cores as workers: at one worker per core the authoring
+   parity files, which each build the SRD source projection cold, time out from contention alone.
    R04.2 (complete rule-corpus and gameplay proof) is the `rules-runtime-tests` and
    `encounter-persistence-tests` package stages, which run against the `build` stage's `dist`
    output, together with the native Encounter, movement, passage, disarm, effects and VTT proofs.
@@ -55,6 +57,11 @@ flowchart LR
    runner resets the isolated local container before the schema push, then deploys and seeds it from
    the protected corpus, so every later stage starts from the seeded corpus alone. Step 3 rules out a
    replacement container.
+   The `convex-signing-keys` stage then pins the Better Auth signing keys, which the reset keeps, into
+   the deployment's `JWKS` value, as a managed deployment does, before the push evaluates
+   `auth.config.ts`. With an empty `JWKS` every token check fetches the keys from the backend's own
+   HTTP route, which distorts the latency baseline. The value holds the private keys and is never
+   logged.
    Before Convex codegen pushes a schema, the runner backs up and resets disposable local fixtures.
    Required fields and removed storage paths can reject old rows during that push; resetting after
    deployment would be too late. After package checks, the runner verifies source identity and deploys

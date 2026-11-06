@@ -12,6 +12,7 @@ import { readCharacterCollection, readCharacterHead, readCharacterPlayRow } from
 import { writeCharacterNoteRecords } from './characterWrites'
 import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /**
  * Notes change structure and the Sheet stream, while leaving mechanical facts unchanged. A note edit
@@ -60,8 +61,7 @@ export async function executeCharacterNoteCommand(
     throw new Error('Stored Character draft ownership mismatch.')
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== active.userId)
     throw new Error('Stored Character route identity mismatch.')
-  if (active.status !== 'ACTIVE')
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (active.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
   if (play.characterId !== active.id || play.userId !== active.userId)
     throw new Error('Stored Character identity mismatch.')
   if (!build) throw new Error('Stored Character build state is unavailable.')

@@ -34,6 +34,15 @@ globalThis.fetch = (input, init) => {
 
 let r2: Awaited<ReturnType<typeof startLocalR2>> | undefined
 
+/**
+ * The file's one loopback R2. Every producer writes here, whenever it runs, and the file's Session
+ * Worker reads here, so an object Convex records as stored is one the Worker can read.
+ */
+export function fileLocalR2() {
+  if (!r2) throw new Error('The local R2 starts before the test file runs.')
+  return r2
+}
+
 beforeAll(async () => {
   r2 = await startLocalR2()
   // Assigned, not stubbed: a test's `vi.unstubAllEnvs()` restores this value.

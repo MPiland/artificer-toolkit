@@ -38,6 +38,7 @@ import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persi
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterReadTransaction } from '../encounters/encounterReadPorts'
 import { readCharacterLiveHold, readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** Private notes require current ownership, assignment and route authority, without source reads. */
 export async function loadCharacterSheetNotes(
@@ -59,8 +60,7 @@ export async function loadCharacterSheetNotes(
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: head.id })
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== head.userId)
     throw new Error('Stored Character route identity mismatch.')
-  if (head.status !== 'ACTIVE')
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (head.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
   const [{ play, fields }, notes, groups] = await Promise.all([
     readVerifiedCharacterBuild(ctx, head),
     readCharacterCollection(ctx, 'characterNotes', head.id),

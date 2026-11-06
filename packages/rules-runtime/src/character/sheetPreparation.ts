@@ -3,6 +3,7 @@ import type { CompiledCreature } from '@artificer-toolkit/shared/subjects/compil
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CharacterBuilderContext } from './builderTypes.js'
 import { prepareCharacterBuilderFromContext } from './builderPreparation.js'
+import { CharacterRequiresBuilderRepairError } from './builderRepair.js'
 import { evaluateCharacterRules } from './characterRuleEvaluation.js'
 import type { prepareCharacterRuleSources } from './characterRuleSnapshot.js'
 import {
@@ -48,8 +49,7 @@ export async function prepareCharacterSheetFromContext<
           context,
           sourcePreparation: input.sourcePreparation
         })
-  if (!prepared.resolution.readiness.ready)
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (!prepared.resolution.readiness.ready) throw new CharacterRequiresBuilderRepairError()
   const adjustments = mergeCampaignSheetAdjustments(
     sheetState.adjustments,
     campaignContext.adjustments

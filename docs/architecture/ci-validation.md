@@ -8,12 +8,13 @@ Slices validate on GitHub runners by pushing to `ci/<slice>` (AGENTS.md Validati
 
 Every Vitest run CI makes is one suite in `SUITES` (`scripts/affectedTests.mjs`). Vitest's own config resolution lists each suite's test files and setup files, so the include globs live only in the configs.
 
-| Suite      | Config                                 | Runs from             | Job                                                   |
-| ---------- | -------------------------------------- | --------------------- | ----------------------------------------------------- |
-| `packages` | `vitest.config.ts`                     | repo root             | Package tests (Worker `src` tests one file at a time) |
-| `convex`   | `apps/apis/vitest.config.ts`           | repo root             | Convex suite, 1 to 4 shards                           |
-| `worker`   | `apps/session-worker/vitest.config.ts` | `apps/session-worker` | Worker tests (workerd)                                |
-| `web`      | `apps/web/vitest.config.ts`, `unit`    | `apps/web`            | Web tests                                             |
+| Suite       | Config                                   | Runs from             | Job                                                      |
+| ----------- | ---------------------------------------- | --------------------- | -------------------------------------------------------- |
+| `packages`  | `vitest.config.ts`                       | repo root             | Package tests (Worker `src` tests one file at a time)    |
+| `convex`    | `apps/apis/vitest.config.ts`             | repo root             | Convex suite, 1 to 4 shards                              |
+| `worker`    | `apps/session-worker/vitest.config.ts`   | `apps/session-worker` | Worker tests (workerd)                                   |
+| `web`       | `apps/web/vitest.config.ts`, `unit`      | `apps/web`            | Web tests                                                |
+| `storybook` | `apps/web/vitest.config.ts`, `storybook` | `apps/web`            | Storybook tests (each story's play function in Chromium) |
 
 The selector fails the run when a tracked `*.test.*` or `*.spec.*` file belongs to no suite. Only `apps/web/tests/**` (Playwright, run locally) is exempt. This replaces the hand-kept package list, which left the `apps/apis/src` and `scripts/*.test.mjs` tests unrun.
 
@@ -24,7 +25,7 @@ Every test file runs when:
 - the branch is a merge batch (`ci/merge-*`);
 - the commit is already on the phase branch (no change since the merge base);
 - the run is dispatched with `full: true`;
-- a change touches a dependency or toolchain file (`package.json`, `yarn.lock`, `.yarnrc.yml`, `.yarn/`, `turbo.json`, `tsconfig*.json`), a Vite or Vitest config, `wrangler.json[c]`, `tests.yml`, a composite action, the selector or `redProof.mjs`, or a file a Vitest config names (a setup file or the Worker test entry).
+- a change touches a dependency or toolchain file (`package.json`, `yarn.lock`, `.yarnrc.yml`, `.yarn/`, `turbo.json`, `tsconfig*.json`), a Vite or Vitest config, Storybook's configuration (`apps/web/.storybook/`, which every story loads without importing it), `wrangler.json[c]`, `tests.yml`, a composite action, the selector or `redProof.mjs`, or a file a Vitest config names (a setup file or the Worker test entry).
 
 Typechecks always run in full, and `cancel-on-type-error` still ends the run early on a type error.
 

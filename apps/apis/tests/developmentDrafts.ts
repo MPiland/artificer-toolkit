@@ -152,6 +152,18 @@ const accounts: Array<{
   client?: DevelopmentHttpClient
   session?: string
 }> = []
+const deletedAccounts = new Set<string>()
+/**
+ * A proof that deletes one of its accounts hands it over here: deletion revoked its sessions and left
+ * nothing to remove, so cleanup must neither authenticate as it nor delete it again.
+ */
+function removeDeletedAccountFromCleanup(email: string) {
+  if (deletedAccounts.has(email)) return
+  const index = accounts.findIndex((account) => account.email === email)
+  assert.notEqual(index, -1)
+  accounts.splice(index, 1)
+  deletedAccounts.add(email)
+}
 const recoveryFixtures: string[] = []
 const socialFixtureGroups: SocialProofCohort[] = []
 const custodySocialFixtureGroups: Array<{
@@ -1263,6 +1275,7 @@ try {
       if (!retired.characterExists && !retired.profileExists) {
         const index = characterFixtures.findIndex((fixture) => fixture.characterId === characterId)
         if (index >= 0) characterFixtures.splice(index, 1)
+        removeDeletedAccountFromCleanup(author.email)
       }
     }
     console.log(JSON.stringify({ receiptLedgers: proof }))
@@ -5579,14 +5592,6 @@ try {
     let historicalChat: unknown
     let historicalSession: unknown
     let historicalRun: unknown
-    let subjectRemovedFromCleanup = false
-    const removeDeletedSubjectFromCleanup = () => {
-      if (subjectRemovedFromCleanup) return
-      const cleanupIndex = accounts.findIndex((account) => account.email === fixture.subject.email)
-      assert.notEqual(cleanupIndex, -1)
-      accounts.splice(cleanupIndex, 1)
-      subjectRemovedFromCleanup = true
-    }
     let journeyError: unknown
     try {
       await verifyAccountDeletionBrowser({
@@ -5735,7 +5740,7 @@ try {
               /Unauthenticated/
             )
             deleted = current
-            removeDeletedSubjectFromCleanup()
+            removeDeletedAccountFromCleanup(fixture.subject.email)
             return
           }
           assert.ok(deleted)
@@ -5777,7 +5782,7 @@ try {
         where: [{ field: 'email', value: fixture.subject.email }],
         select: ['_id', 'email']
       })
-      if (subjectAuthUser === null) removeDeletedSubjectFromCleanup()
+      if (subjectAuthUser === null) removeDeletedAccountFromCleanup(fixture.subject.email)
       const owners = [
         ...(subjectAuthUser === null
           ? []

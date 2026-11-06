@@ -160,6 +160,7 @@ describe('full runs and the suite guard', () => {
       'apps/web/tsconfig.typecheck.tests.json',
       'apps/web/vitest.config.ts',
       'apps/session-worker/wrangler.jsonc',
+      'apps/web/.storybook/preview.tsx',
       '.github/workflows/tests.yml',
       '.github/actions/setup/action.yml',
       'scripts/affectedTests.mjs',

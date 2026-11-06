@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { runnerProofs } from './runnerProofs.mjs'
@@ -61,5 +61,40 @@ describe('lifecycle proof stages', () => {
     const firstBrowser = names.findIndex((name) => name.startsWith('r08-browser-'))
     expect(names.slice(firstBrowser).every((name) => name.startsWith('r08-browser-'))).toBe(true)
     expect(names.at(-1)).toBe(`r08-browser-${lifecycle.selfManagedBrowserProof}`)
+  })
+})
+
+describe('lifecycle package tests', () => {
+  // At one worker per logical core the authoring parity files time out from contention alone.
+  it('bounds the workers of every package suite on the root Vitest config', () => {
+    const testScript = (workspace) => {
+      const name = workspace.replace('@artificer-toolkit/', '')
+      const manifest = ['packages', 'apps']
+        .map((parent) => resolve(import.meta.dirname, '..', parent, name, 'package.json'))
+        .find((path) => existsSync(path))
+      return JSON.parse(readFileSync(manifest, 'utf8')).scripts.test
+    }
+    const rootVitestStages = lifecycle.stages.filter(
+      ({ args }) =>
+        args[0] === 'workspace' &&
+        args[2] === 'test' &&
+        testScript(args[1]).startsWith('yarn --cwd ../.. vitest')
+    )
+
+    expect(rootVitestStages.length).toBeGreaterThan(0)
+    for (const { args, name } of rootVitestStages)
+      expect(
+        args.some((arg) => arg.startsWith('--maxWorkers=')),
+        name
+      ).toBe(true)
+  })
+})
+
+describe('lifecycle signing keys', () => {
+  it('pins JWKS after the reset and before the push that evaluates the auth config', () => {
+    const names = lifecycle.stages.map(({ name }) => name)
+    const pin = names.indexOf('convex-signing-keys')
+    expect(pin).toBe(names.indexOf('convex-reset') + 1)
+    expect(pin).toBe(names.indexOf('convex-codegen') - 1)
   })
 })

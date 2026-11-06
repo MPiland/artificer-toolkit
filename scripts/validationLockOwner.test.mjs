@@ -90,3 +90,38 @@ describe('Enter-ValidationLock', () => {
     expect(pwsh(`(Get-ChildItem -Force '${directory.replaceAll('\\', '/')}').Count`)).toBe('1')
   })
 }, 30_000)
+
+describe('Test-TicketOwnerAlive', () => {
+  let owner
+
+  beforeEach(async () => {
+    owner = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 120000)'], { stdio: 'ignore' })
+    await new Promise((resolve) => owner.once('spawn', resolve))
+  })
+
+  afterEach(() => owner.kill())
+
+  const alive = (ticket) => pwsh(`Write-Output (Test-TicketOwnerAlive '${ticket}')`)
+
+  it('keeps a ticket its live owner queued', () => {
+    expect(alive(pwsh(`Format-QueueTicket 'waiter' ${owner.pid}`))).toBe('True')
+  })
+
+  it('drops a ticket whose pid now belongs to a process started after the ticket was written', () => {
+    // A reboot reuses pids: the queued process is gone, and another process holds its pid.
+    const ticket = pwsh(`Format-QueueTicket 'before-reboot' ${owner.pid}`).replace(
+      /^\d+/,
+      (ticks) => String(BigInt(ticks) - 36_000_000_000n).padStart(20, '0')
+    )
+    expect(alive(ticket)).toBe('False')
+  })
+
+  it('drops a ticket whose owner has exited', async () => {
+    const ticket = pwsh(`Format-QueueTicket 'exited' ${owner.pid}`)
+    await new Promise((resolve) => {
+      owner.once('exit', resolve)
+      owner.kill()
+    })
+    expect(alive(ticket)).toBe('False')
+  })
+}, 30_000)

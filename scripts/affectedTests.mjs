@@ -15,7 +15,8 @@ export const SUITES = [
   { name: 'packages', config: 'vitest.config.ts', root: '.' },
   { name: 'convex', config: 'apps/apis/vitest.config.ts', root: '.' },
   { name: 'worker', config: 'apps/session-worker/vitest.config.ts', root: 'apps/session-worker' },
-  { name: 'web', config: 'apps/web/vitest.config.ts', root: 'apps/web', project: 'unit' }
+  { name: 'web', config: 'apps/web/vitest.config.ts', root: 'apps/web', project: 'unit' },
+  { name: 'storybook', config: 'apps/web/vitest.config.ts', root: 'apps/web', project: 'storybook' }
 ]
 
 /** Playwright specs run locally against a served app (AGENTS.md Validation), not in this workflow. */
@@ -34,6 +35,8 @@ const FULL_RUN = [
   /(^|\/)tsconfig[^/]*\.json$/,
   /(^|\/)vite(st)?\.config\.[cm]?[jt]s$/,
   /(^|\/)wrangler\.jsonc?$/,
+  // Storybook's main, preview and decorators load with every story, which imports none of them.
+  /^apps\/web\/\.storybook\//,
   /^\.github\/(workflows\/tests\.yml|actions\/)/,
   /^scripts\/(affectedTests|redProof)\.mjs$/
 ]

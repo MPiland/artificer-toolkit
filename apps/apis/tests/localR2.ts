@@ -79,6 +79,14 @@ export async function startLocalR2(
     }
   const server = createServer((request, response) => {
     void (async () => {
+      // In tests the client shares this process, and an idle keep-alive socket fails it two ways:
+      // a synchronous stretch can hold Node's idle timer past the client's reuse margin, so the
+      // server drops a socket the client already sent on (`fetch failed`, ECONNRESET); and a test
+      // that fakes `setTimeout` freezes the client pool's timers, so a request queued on the idle
+      // socket waits until the server drops it. One connection per request has neither failure.
+      // The email sink and the Convex bridge (fixtures/localRoomWorker.ts) do the same; each fixture
+      // stays self-contained because scripts/localConvexFixtures.ps1 runs it alone.
+      response.setHeader('Connection', 'close')
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
 
       // Identifies this fixture to scripts/localConvexFixtures.ps1; it exposes no object state.

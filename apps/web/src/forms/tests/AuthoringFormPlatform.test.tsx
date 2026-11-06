@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useState, type ReactElement } from 'react'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSelector } from '@tanstack/react-form'
 import { useRouter } from '@tanstack/react-router'
 import {
@@ -10,7 +10,6 @@ import {
   type NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
-import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/tests/srdSourceReader'
 import { getFunctionName } from 'convex/server'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
@@ -70,8 +69,6 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
     }
   }
 })
-
-beforeAll(warmFixtureAuthoredSources, 60_000)
 
 beforeEach(() => {
   convexMocks.mutation.mockReset().mockResolvedValue({

@@ -8,6 +8,7 @@ import {
   readVerifiedCharacterBuild
 } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** The Campaign's assigned, ACTIVE Character in its System, checked from the Character head alone. */
 async function requireAssignedActiveCharacterHead(
@@ -25,8 +26,7 @@ async function requireAssignedActiveCharacterHead(
   const head = await readCharacterHead(ctx, characterId)
   if (!head || head.userId !== assignment.userId)
     throw new Error('Stored Campaign Character assignment mismatch.')
-  if (head.status !== 'ACTIVE')
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (head.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
   if (head.systemId !== campaign.gameSystemId)
     throw new Error('Stored Campaign Character System mismatch.')
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: head.id })

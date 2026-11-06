@@ -95,6 +95,51 @@ export const convexDeployArguments = [
 export const convexCliArguments = (url, adminKey) => ['--url', url, '--admin-key', adminKey]
 
 /**
+ * The deployment's Better Auth signing keys as the static `JWKS` value a managed deployment pins. With
+ * an empty `JWKS` the backend fetches /api/auth/convex/jwks from itself to verify every token. The
+ * first read of that route creates the key. Returns the value plus every secret it carries (the value
+ * and each private key) for the caller to mask; nothing is printed.
+ */
+export async function readSigningKeysJwks({ url, siteUrl, adminKey }) {
+  assertLoopbackUrl('Convex URL', url)
+  assertLoopbackUrl('Convex site URL', siteUrl)
+  const created = await fetch(new URL('/api/auth/convex/jwks', siteUrl), {
+    signal: AbortSignal.timeout(30_000)
+  })
+  if (!created.ok) throw new Error(`The signing key read failed (HTTP ${created.status}).`)
+  const [executable, args] = yarnSpawn([
+    'workspace',
+    '@artificer-toolkit/apis',
+    'exec',
+    'convex',
+    'run',
+    '--component',
+    'betterAuth',
+    'adapter:findMany',
+    JSON.stringify({ model: 'jwks', paginationOpts: { cursor: null, numItems: 20 } }),
+    ...convexCliArguments(url, adminKey)
+  ])
+  const stored = spawnSync(executable, args, {
+    cwd: resolve(import.meta.dirname, '..'),
+    encoding: 'utf8',
+    env: convexCliEnvironment(),
+    shell: false,
+    windowsHide: true
+  })
+  if (stored.status !== 0) throw new Error(`The signing key query failed (exit ${stored.status}).`)
+  const keys = JSON.parse(stored.stdout).page.map((row) => ({
+    id: row._id,
+    publicKey: row.publicKey,
+    privateKey: row.privateKey,
+    createdAt: row.createdAt,
+    alg: 'RS256'
+  }))
+  if (keys.length === 0) throw new Error('The deployment holds no signing key.')
+  const jwks = JSON.stringify(keys)
+  return { jwks, secrets: [jwks, ...keys.map((key) => key.privateKey)] }
+}
+
+/**
  * Reads one environment value of the selected local deployment (CONVEX_SELF_HOSTED_URL) through its
  * admin query API, with no shell or CLI child that could split the admin key. The value and the key
  * stay in memory; errors name the variable and the cause, never either secret.
