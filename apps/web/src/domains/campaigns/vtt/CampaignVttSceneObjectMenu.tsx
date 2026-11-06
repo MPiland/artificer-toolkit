@@ -1,6 +1,7 @@
 import { Button, Menu } from '@mantine/core'
 import { Check, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useState, type RefObject } from 'react'
+import { Fragment, useRef, useState, type RefObject } from 'react'
+import { flushSync } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
@@ -59,6 +60,8 @@ export function CampaignVttSceneObjectMenu({
   renderer: RefObject<VttSceneRenderer | null>
   scene: CampaignSceneStateDto
 }) {
+  const [menuOpened, setMenuOpened] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const [measurementOriginId, setMeasurementOriginId] = useState<string | null>(null)
   const [measurementAnnouncement, setMeasurementAnnouncement] = useState('')
   const doors = scene.barriers.filter((barrier) => barrier.kind === 'DOOR')
@@ -87,6 +90,8 @@ export function CampaignVttSceneObjectMenu({
       </span>
       <Menu
         classNames={{ dropdown: styles.menuDropdown, label: styles.menuLabel }}
+        opened={menuOpened}
+        onChange={setMenuOpened}
         position='bottom-end'
         shadow='none'
         width={260}
@@ -94,6 +99,7 @@ export function CampaignVttSceneObjectMenu({
       >
         <Menu.Target>
           <Button
+            ref={triggerRef}
             leftSection={<SlidersHorizontal aria-hidden size={16} />}
             size='xs'
             variant='default'
@@ -101,8 +107,22 @@ export function CampaignVttSceneObjectMenu({
             Scene controls
           </Button>
         </Menu.Target>
+        {/* Tab leaves the menu (menu-button pattern). The focus trap would otherwise wrap Tab back to
+            the scroller, so the menu closes and focus returns to the trigger before the trap sees the key;
+            the browser's default Tab then moves on from the trigger. */}
         <Menu.Dropdown>
-          <div aria-label='Scene objects' className={styles.menuScroller} role='group' tabIndex={0}>
+          <div
+            aria-label='Scene objects'
+            className={styles.menuScroller}
+            onKeyDownCapture={(event) => {
+              if (event.key !== 'Tab') return
+              flushSync(() => setMenuOpened(false))
+              triggerRef.current?.focus()
+              event.stopPropagation()
+            }}
+            role='group'
+            tabIndex={0}
+          >
             <Menu.Label>Tokens</Menu.Label>
             {scene.tokens.length ? (
               scene.tokens.map((token) => (
