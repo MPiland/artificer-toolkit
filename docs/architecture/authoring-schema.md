@@ -336,15 +336,19 @@ schema, normalizer and shared compiler in its mutation. Class runs pure normaliz
 an action to fit Convex's CPU limits, using internal queries for trusted source rows. The action
 fingerprints each distinct (table, columns, roots) read before adding current-draft facts; its
 internal commit replays those reads through one source reader and rejects changed fingerprints.
-Publication normalization (PERF-5.T1) checks each select's stored values against only the options
-those values can be (`restrictPlanToOptionValues`, CHECK mode; editors keep full options), so the
-final read of an option table is pinned to the checked ids. `authoredSourceRootsForRead` maps that
-predicate to keyed roots (by id, by catalogue category, or the whole kind), and the Convex reader
-loads only those roots and their facts. An id-and-label read of a root-keyed table is served from
-the root documents alone (`readsRootCatalogueOnly`), since a root's label is written with its facts.
-Two Class reads still scan the whole visible kind because their predicates name no root: Equipment
-narrowed by property, and the RESOURCE facet's `class_resources` ids (see future-enhancements,
-Deferred edge cases).
+Ingress normalization (`normalizeIngressValues`: publication and import staging, PERF-5.T1) checks
+each select's stored values against only the options those values can be
+(`restrictPlanToOptionValues`), so the final read of an option table is pinned to the checked ids.
+Editor normalization (`normalizeNodeRuntimeValues`) still resolves full options; a parity test
+proves both give the same result for every SRD subject and for unknown, mistyped and mixed values.
+`authoredSourceRootsForRead` maps the pinned predicate to keyed roots (by id, by catalogue category,
+or the whole kind), and the Convex reader loads only those roots and their facts. An id-and-label
+read of a table marked `rootRow` is served from the root documents alone (`readsRootCatalogueOnly`),
+since a root's label is written with its facts. A read still scans its whole visible kind when its
+predicate names no root: a chain whose earlier SEED or MAP_VALUES steps are not pinned by the
+checked values, and a table keyed by something other than its root (for Class: Equipment narrowed
+by property, and the RESOURCE facet's `class_resources` ids; see future-enhancements, Deferred edge
+cases).
 This gives normalization a coherent source snapshot at commit and keeps subsequent source changes
 inside Convex OCC, without repeating the expensive traversal or persisting preparation state.
 Publication creates/reuses the existing convention

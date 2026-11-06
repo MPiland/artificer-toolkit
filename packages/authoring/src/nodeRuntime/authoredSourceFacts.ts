@@ -94,39 +94,40 @@ export const authoredSourceKindsByTable: Readonly<
 /**
  * For each table whose rows belong to one root: the column naming that root's public id and, on a
  * root's own row, the column holding its catalogue category. A read that pins one of them needs
- * only the roots it names.
+ * only the roots it names. `rootRow` marks a table holding one row per root, keyed and labelled as
+ * its catalogue entry is.
  */
 export const authoredRootKeyColumns: Readonly<
-  Partial<Record<NodeRuntimeSourceTable, { id: string; category?: string }>>
+  Partial<Record<NodeRuntimeSourceTable, { id: string; category?: string; rootRow?: true }>>
 > = {
   background_features: { id: 'background_id' },
-  backgrounds: { id: 'id' },
+  backgrounds: { id: 'id', rootRow: true },
   charges: { id: 'document_id' },
   class_features: { id: 'class_id' },
   class_proficiency_grants: { id: 'class_id' },
   class_resources: { id: 'class_id' },
   class_specializations: { id: 'class_id' },
-  classes: { id: 'id', category: 'category' },
-  creatures: { id: 'id' },
-  equipment: { id: 'id', category: 'category' },
+  classes: { id: 'id', category: 'category', rootRow: true },
+  creatures: { id: 'id', rootRow: true },
+  equipment: { id: 'id', category: 'category', rootRow: true },
   equipment_effects: { id: 'equipment_id' },
   equipment_features: { id: 'equipment_id' },
   equipment_properties: { id: 'equipment_id' },
   feat_effects: { id: 'feat_id' },
   feat_features: { id: 'feat_id' },
   feat_proficiency_grants: { id: 'feat_id' },
-  feats: { id: 'id' },
+  feats: { id: 'id', rootRow: true },
   race_ancestries: { id: 'race_id' },
   race_features: { id: 'race_id' },
-  races: { id: 'id', category: 'category' },
+  races: { id: 'id', category: 'category', rootRow: true },
   spell_effects: { id: 'spell_id' },
-  spells: { id: 'id' }
+  spells: { id: 'id', rootRow: true }
 }
 
 /** Whether a read of `table` needs only what each root's catalogue entry holds: its id and label. */
 export function readsRootCatalogueOnly(table: NodeRuntimeSourceTable, columns: readonly string[]) {
   return (
-    authoredRootKeyColumns[table]?.id === 'id' &&
+    authoredRootKeyColumns[table]?.rootRow === true &&
     columns.every((column) => column === 'id' || column === 'label')
   )
 }

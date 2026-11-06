@@ -21,7 +21,7 @@ const { subjects } = srdBaselineContent
 
 type Handler = (ctx: unknown, args: unknown) => Promise<unknown>
 type Reads = ReturnType<typeof createDatabaseIoTotals>['reads']
-type MeasuredKind = 'SPELL' | 'FEAT' | 'CREATURE' | 'RACE'
+type MeasuredKind = Exclude<AuthoredPublishDraftInput['subjectKind'], 'CLASS'>
 
 function handlerOf(registered: object): Handler {
   if (!('_handler' in registered) || typeof registered._handler !== 'function')
@@ -110,12 +110,28 @@ const referenceHeavyClass = subjects.classes
   .reduce((heaviest, entry) => (entry.references > heaviest.references ? entry : heaviest))
 
 const measuredSubjects: Readonly<Record<MeasuredKind, string>> = {
-  SPELL: subjects.spells[0]!.id,
-  FEAT: subjects.feats[0]!.id,
+  BACKGROUND: subjects.backgrounds[0]!.id,
   CREATURE: subjects.creatures[0]!.id,
+  EQUIPMENT: subjects.equipment[0]!.id,
+  FEAT: subjects.feats[0]!.id,
   // A Subrace's publish counts its parent's Subraces, so a base Race keeps the measured copies apart.
-  RACE: subjects.races.find((race) => race.category === 'BASE')!.id
+  RACE: subjects.races.find((race) => race.category === 'BASE')!.id,
+  SPELL: subjects.spells[0]!.id,
+  VEHICLE: subjects.vehicles[0]!.id
 }
+
+// Measured with the SRD seed plus two Homebrew rounds; a publish that reads more has regressed.
+const publishDocumentCeiling: Readonly<Record<MeasuredKind, number>> = {
+  BACKGROUND: 38,
+  CREATURE: 31,
+  EQUIPMENT: 29,
+  FEAT: 29,
+  RACE: 41,
+  SPELL: 33,
+  VEHICLE: 29
+}
+// The Bard names 763 records; most of its reads are the referenced spell roots and their facts.
+const classDocumentCeiling = { action: 1_804, commit: 1_213 } as const
 
 // One round of unrelated Homebrew in every kind a measured draft can name.
 async function publishUnrelatedHomebrew(caller: Caller, round: number) {
@@ -127,7 +143,8 @@ async function publishUnrelatedHomebrew(caller: Caller, round: number) {
     ['CREATURE', subjects.creatures],
     ['EQUIPMENT', subjects.equipment],
     ['BACKGROUND', subjects.backgrounds],
-    ['RACE', subjects.races]
+    ['RACE', subjects.races],
+    ['VEHICLE', subjects.vehicles]
   ] as const
   for (const [subjectKind, records] of homebrew)
     for (const record of batch(records))
@@ -178,40 +195,24 @@ describe('publication read budget', () => {
       await draft(caller, 'CLASS', referenceHeavyClass.subject.id, 'Measured CLASS after')
     )
 
-    const summary = (reads: Reads | undefined) => ({
-      documents: reads?.documents,
-      bytes: reads?.bytes,
-      byTable: Object.fromEntries(
-        Object.entries(reads?.byTable ?? {}).map(([table, entry]) => [table, entry.documents])
-      )
-    })
-    console.info(
-      'publication read budget',
-      JSON.stringify({
-        ...Object.fromEntries(
-          kinds.map((kind) => [
-            kind,
-            { before: summary(before[kind]), after: summary(after[kind]) }
-          ])
-        ),
-        CLASS: {
-          subject: referenceHeavyClass.subject.label,
-          references: referenceHeavyClass.references,
-          before: { action: summary(classBefore.action), commit: summary(classBefore.commit) },
-          after: { action: summary(classAfter.action), commit: summary(classAfter.commit) }
-        }
-      })
-    )
-    for (const kind of kinds)
+    for (const kind of kinds) {
       expect(after[kind]?.documents, `${kind} publish documents`).toBe(before[kind]?.documents)
+      expect(after[kind]?.documents, `${kind} publish ceiling`).toBeLessThanOrEqual(
+        publishDocumentCeiling[kind]
+      )
+    }
     // A Class publish keeps two per-kind scans whose predicates name no root: Equipment narrowed
-    // by property (`equipment_properties`) and the RESOURCE facet's `class_resources` ids. Its
-    // category-narrowed Equipment read also sees new Equipment in a category the Class names. So
-    // only roots and their facts grow, at most twice per Class or Equipment root added since.
-    const addedResidualRoots = 2 * HOMEBREW_PER_KIND + 1
-    for (const [read, measuredBefore, measuredAfter] of [
-      ['action', classBefore.action, classAfter.action],
-      ['commit', classBefore.commit, classAfter.commit]
+    // by property (`equipment_properties`, which reads each Equipment root twice) and the RESOURCE
+    // facet's `class_resources` ids. Between the two Class measurements, round 1 and the measured
+    // drafts add 4 Equipment and 4 Class roots, so roots grow by 2 * 4 + 4. The commit mutation
+    // reads each root's facts once; the action's queries are separate transactions, so its facts
+    // grow with its root reads.
+    const addedEquipment = HOMEBREW_PER_KIND + 1
+    const addedClasses = HOMEBREW_PER_KIND + 1
+    const addedRootReads = 2 * addedEquipment + addedClasses
+    for (const [read, measuredBefore, measuredAfter, factsGrowth] of [
+      ['action', classBefore.action, classAfter.action, addedRootReads],
+      ['commit', classBefore.commit, classAfter.commit, addedEquipment + addedClasses]
     ] as const) {
       const growth = (table: string) =>
         (measuredAfter.byTable[table]?.documents ?? 0) -
@@ -223,9 +224,10 @@ describe('publication read budget', () => {
       for (const table of tables)
         if (table !== 'authoredRoots' && table !== 'authoredSourceFacts')
           expect(growth(table), `CLASS ${read} ${table}`).toBe(0)
-      expect(growth('authoredSourceFacts'), `CLASS ${read} facts`).toBe(growth('authoredRoots'))
-      expect(growth('authoredRoots'), `CLASS ${read} roots`).toBeLessThanOrEqual(
-        2 * addedResidualRoots
+      expect(growth('authoredRoots'), `CLASS ${read} roots`).toBe(addedRootReads)
+      expect(growth('authoredSourceFacts'), `CLASS ${read} facts`).toBe(factsGrowth)
+      expect(measuredAfter.documents, `CLASS ${read} ceiling`).toBeLessThanOrEqual(
+        classDocumentCeiling[read]
       )
     }
   }, 900_000)

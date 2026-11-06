@@ -7,7 +7,8 @@ import {
   authoredSourceRootsSchema,
   isNodeRuntimeSourceColumn,
   isNodeRuntimeSourceTable,
-  nodeRuntimeSourceChecksumsSchema
+  nodeRuntimeSourceChecksumsSchema,
+  type AuthoredSourceRoots
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
   authoredPublishDraftInputSchema,
@@ -69,17 +70,24 @@ export const readSourceRows = internalQuery({
   returns: v.string(),
   handler: async (ctx, { systemId, table, columns, roots }): Promise<string> => {
     const { userId } = await requireIdentity(ctx)
-    if (
-      !isNodeRuntimeSourceTable(table) ||
-      !columns.every((column) => isNodeRuntimeSourceColumn(table, column))
-    )
-      throw new Error('Unknown authoring source table.')
     const reader = await createSystemSourceReader(ctx, systemId, userId)
-    return canonicalizeRuleDocument(
-      await reader(table, columns, authoredSourceRootsWhere(table, roots), systemId)
-    )
+    return canonicalizeRuleDocument(await readSource(reader, systemId, { table, columns, roots }))
   }
 })
+
+// The action names each read, so both its queries and the commit's replay accept only manifest columns.
+function readSource(
+  reader: Awaited<ReturnType<typeof createSystemSourceReader>>,
+  systemId: string,
+  { table, columns, roots }: { table: string; columns: string[]; roots: AuthoredSourceRoots }
+) {
+  if (
+    !isNodeRuntimeSourceTable(table) ||
+    !columns.every((column) => isNodeRuntimeSourceColumn(table, column))
+  )
+    throw new Error('Unknown authoring source table.')
+  return reader(table, columns, authoredSourceRootsWhere(table, roots), systemId)
+}
 
 export const commitDraft = internalMutation({
   args: {
@@ -98,13 +106,8 @@ export const commitDraft = internalMutation({
     })
     const state = await readPublicationState(ctx, input)
     const reader = await createSystemSourceReader(ctx, state.draft.systemId, state.userId)
-    for (const { table, columns, roots, checksum } of args.sourceChecksums) {
-      const rows = await reader(
-        table,
-        columns,
-        authoredSourceRootsWhere(table, roots),
-        state.draft.systemId
-      )
+    for (const { checksum, ...read } of args.sourceChecksums) {
+      const rows = await readSource(reader, state.draft.systemId, read)
       if (checksumRuleDocument(rows) !== checksum)
         throw new Error('Authoring sources changed. Reload before publishing.')
     }

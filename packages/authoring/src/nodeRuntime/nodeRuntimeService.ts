@@ -95,7 +95,7 @@ function createScopeResolver(db: NodeRuntimeReader): ScopeResolver {
     const key = JSON.stringify([request.mapId, request.systemId, reads])
     let pending = resolved.get(key)
     if (!pending) {
-      pending = resolveNodeRuntimeScope(db, request)
+      pending = resolveNodeRuntimeScope(db, request, 'EDITOR')
       resolved.set(key, pending)
     }
     return pending
@@ -137,14 +137,14 @@ function collectScopeReads(
 
 /**
  * `EDITOR` resolves every option an editor offers; `CHECK` resolves only the options that could
- * match a select's current value, which is all value normalization compares.
+ * match a select's current value, which is all ingress normalization compares.
  */
-export type OptionResolution = 'EDITOR' | 'CHECK'
+type OptionResolution = 'EDITOR' | 'CHECK'
 
 async function resolveNodeRuntimeScope(
   db: NodeRuntimeReader,
   request: NodeRuntimeResolveRequestDto,
-  optionResolution: OptionResolution = 'EDITOR'
+  optionResolution: OptionResolution
 ): Promise<ResolvedRuntimeScope> {
   const scope = toScope(request)
   const nodeMap = await expandKeyedNodes(db, getRuntimeNodeMap(request.mapId), scope)
@@ -332,28 +332,31 @@ function removePathsOwnedByVisibleNodes(
   return [...retained.values()]
 }
 
-/** `optionResolution` is fixed to `CHECK` in production; `EDITOR` exists to prove they agree. */
 export async function normalizeNodeRuntimeValues(
   db: NodeRuntimeReader,
-  request: NodeRuntimeNormalizeValuesRequestDto,
-  optionResolution: OptionResolution = 'CHECK'
+  request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
   return normalizeParsedValues(
     db,
     nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request),
-    optionResolution
+    'EDITOR'
   )
 }
 
 /**
  * Normalizes an authored document at ingress (publication, import staging): it refuses a value that
  * names a System core code the System does not list, where an editor's normalization clears it.
+ * It reads only the options a document's values can be, so the result equals the editor's.
  */
 export async function normalizeIngressValues(
   db: NodeRuntimeReader,
   request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
-  const normalized = await normalizeNodeRuntimeValues(db, request)
+  const normalized = await normalizeParsedValues(
+    db,
+    nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request),
+    'CHECK'
+  )
   const [refused] = normalized.refusedPaths
   if (refused) {
     const value = isRuntimeRecord(request.values) ? getValueAtPath(request.values, refused) : null
@@ -528,28 +531,35 @@ async function normalizeVisibleGroups(
 
         if (!Array.isArray(groupValue)) continue
 
+        const rowValues = nextValues
         const normalizedRows = await Promise.all(
-          groupValue.map(async (row, index) => {
-            if (!isRuntimeRecord(row)) return row
-
-            const child = await normalizeParsedValues(
-              db,
-              {
-                mapId: childMapId,
-                values: row,
-                parentValues: nextValues,
-                ancestors: childAncestors,
-                systemId: request.systemId
-              },
-              optionResolution
-            )
-            clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
-            refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, index, ...path]))
-            return child.values
-          })
+          groupValue.map((row) =>
+            isRuntimeRecord(row)
+              ? normalizeParsedValues(
+                  db,
+                  {
+                    mapId: childMapId,
+                    values: row,
+                    parentValues: rowValues,
+                    ancestors: childAncestors,
+                    systemId: request.systemId
+                  },
+                  optionResolution
+                )
+              : { values: row, clearedPaths: [], refusedPaths: [] }
+          )
         )
+        // Rows normalize concurrently; their paths join in row order so the first refusal is stable.
+        for (const [index, child] of normalizedRows.entries()) {
+          clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
+          refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, index, ...path]))
+        }
 
-        nextValues = setValueAtPath(nextValues, node.path, normalizedRows)
+        nextValues = setValueAtPath(
+          nextValues,
+          node.path,
+          normalizedRows.map((child) => child.values)
+        )
       }
     }
   }

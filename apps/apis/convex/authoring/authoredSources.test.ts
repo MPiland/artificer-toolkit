@@ -6,13 +6,38 @@ import { importedSubject, publicationFixture } from '../../tests/fixtures/public
 import { api } from '../_generated/api'
 import { createAuthoredSourceReader } from './authoredSources'
 
-const spells = srdBaselineContent.subjects.spells.slice(0, 3)
+const { subjects } = srdBaselineContent
+const spells = subjects.spells.slice(0, 3)
+// Each root table the reader can serve from roots alone, with SRD subjects that stand on their own.
+const rootTables = [
+  { table: 'spells', subjectKind: 'SPELL', records: spells, column: 'magic_school_id' },
+  {
+    table: 'classes',
+    subjectKind: 'CLASS',
+    records: subjects.classes.filter((record) => record.category !== 'SUBCLASS').slice(0, 3),
+    column: 'category'
+  },
+  {
+    table: 'equipment',
+    subjectKind: 'EQUIPMENT',
+    records: subjects.equipment.slice(0, 3),
+    column: 'category'
+  },
+  {
+    table: 'races',
+    subjectKind: 'RACE',
+    records: subjects.races.filter((record) => record.category === 'BASE').slice(0, 3),
+    column: 'category'
+  }
+] as const
 
 async function fixture() {
   return publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
-    [spells.map((spell) => importedSubject({ subjectKind: 'SPELL', ...spell, document: spell }))]
+    rootTables.map(({ subjectKind, records }) =>
+      records.map((record) => importedSubject({ subjectKind, ...record, document: record }))
+    )
   )
 }
 
@@ -53,5 +78,24 @@ describe('authored source reader', () => {
     expect((await read(second.userId, ['id', 'label'])).map((row) => row.label)).toContain(
       'Private homebrew'
     )
+  })
+
+  it('serves every root table its id and label exactly as the facts hold them', async () => {
+    const { t, first } = await fixture()
+    for (const { table, records, column } of rootTables) {
+      const read = (columns: readonly string[]) =>
+        t.run((ctx) =>
+          createAuthoredSourceReader(ctx, srdSystemRecord.id, first.userId)(
+            table,
+            { by: 'ID', ids: records.map((record) => record.id) },
+            columns
+          )
+        )
+      const fromFacts = await read(['id', 'label', column])
+      expect(fromFacts, table).toHaveLength(records.length)
+      expect(await read(['id', 'label']), table).toEqual(
+        fromFacts.map(({ id, label }) => ({ id, label }))
+      )
+    }
   })
 })

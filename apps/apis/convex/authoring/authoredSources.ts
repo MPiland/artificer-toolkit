@@ -23,6 +23,7 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
   let sources: ReturnType<typeof readAuthoringSources> | undefined
   const visibleSources = () => (sources ??= readAuthoringSources(ctx, systemId, userId))
   const rootsById = new Map<string, Promise<AuthoredRoot[]>>()
+  const factsByRoot = new Map<string, Promise<AuthoredNodeRuntimeSourceFacts>>()
   const factsByRead = new Map<string, Promise<AuthoredNodeRuntimeSourceFacts[]>>()
 
   async function readKind(kind: AuthoredRoot['subjectKind']) {
@@ -68,10 +69,10 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
     return root
   }
 
-  async function readFacts(roots: readonly AuthoredRoot[]) {
-    const facts: AuthoredNodeRuntimeSourceFacts[] = []
-    for (const root of roots) facts.push(await readSourceFacts(ctx, root))
-    return facts
+  function readFacts(roots: readonly AuthoredRoot[]) {
+    return Promise.all(
+      roots.map((root) => memo(factsByRoot, root._id, () => readSourceFacts(ctx, root)))
+    )
   }
 
   function readRoot(id: string) {
@@ -105,28 +106,27 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
     return readFacts(await readVisible(roots))
   }
 
+  async function readNamedRoots(
+    kinds: readonly AuthoredRoot['subjectKind'][],
+    ids: readonly string[]
+  ) {
+    const roots = (await Promise.all(ids.map(readRoot))).flat()
+    return roots.filter((root) => kinds.includes(root.subjectKind))
+  }
+
   async function readTableFacts(
     kinds: readonly AuthoredRoot['subjectKind'][],
     roots: AuthoredSourceRoots
   ) {
-    const facts: AuthoredNodeRuntimeSourceFacts[] = []
-    if (roots.by === 'ID')
-      for (const id of roots.ids)
-        facts.push(
-          ...(await memo(factsByRead, `ID ${id}`, async () => readFacts(await readRoot(id))))
-        )
-    else
-      for (const kind of kinds)
-        if (roots.by === 'KIND')
-          facts.push(...(await memo(factsByRead, kind, () => readKind(kind))))
-        else
-          for (const category of roots.categories)
-            facts.push(
-              ...(await memo(factsByRead, `${kind} ${category}`, () =>
-                readCategory(kind, category)
-              ))
-            )
-    return facts
+    if (roots.by === 'ID') return readFacts(await readNamedRoots(kinds, roots.ids))
+    const reads = kinds.flatMap((kind) =>
+      roots.by === 'KIND'
+        ? [memo(factsByRead, kind, () => readKind(kind))]
+        : roots.categories.map((category) =>
+            memo(factsByRead, `${kind} ${category}`, () => readCategory(kind, category))
+          )
+    )
+    return (await Promise.all(reads)).flat()
   }
 
   return async (
@@ -137,13 +137,13 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
     const kinds = authoredSourceKindsByTable[table]
     if (!kinds) throw new Error(`Authoring source is not migrated: ${table}.`)
     // A root's own id and label are on its root document, so those reads skip its facts.
-    if (roots.by === 'ID' && readsRootCatalogueOnly(table, columns)) {
-      const rows: NodeRuntimeQueryRow[] = []
-      for (const id of roots.ids)
-        for (const root of await readRoot(id))
-          if (kinds.includes(root.subjectKind)) rows.push({ id: root.id, label: root.label })
-      return sortAuthoredSourceRows(rows)
-    }
+    if (roots.by === 'ID' && readsRootCatalogueOnly(table, columns))
+      return sortAuthoredSourceRows(
+        (await readNamedRoots(kinds, roots.ids)).map((root): NodeRuntimeQueryRow => ({
+          id: root.id,
+          label: root.label
+        }))
+      )
     const facts = await readTableFacts(kinds, roots)
     return sortAuthoredSourceRows(facts.flatMap((root) => root.rows[table] ?? []))
   }
