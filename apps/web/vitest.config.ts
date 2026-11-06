@@ -89,6 +89,16 @@ export default defineConfig({
               port: 6106,
               strictPort: true
             },
+            commands: {
+              // Chromium terminates service workers at will; MockServiceWorker.stories.tsx proves
+              // mocking survives it.
+              async stopServiceWorkers({ page }) {
+                const session = await page.context().newCDPSession(page)
+                await session.send('ServiceWorker.enable')
+                await session.send('ServiceWorker.stopAllWorkers')
+                await session.detach()
+              }
+            },
             enabled: true,
             fileParallelism: false,
             headless: true,
