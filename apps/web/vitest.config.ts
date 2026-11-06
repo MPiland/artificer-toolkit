@@ -75,6 +75,10 @@ export default defineConfig({
         ],
         test: {
           name: 'storybook',
+          // `.storybook/main.ts`'s `stories`, relative to this directory. The plugin applies them only
+          // when a run starts, so a tool that resolves this config without running it
+          // (scripts/affectedTests.mjs) would otherwise list Vitest's default test files.
+          include: ['src/**/*.stories.@(ts|tsx)'],
           fileParallelism: false,
           maxWorkers: 1,
           browser: {
