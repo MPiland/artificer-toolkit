@@ -9,6 +9,7 @@
 // waits until every Content snapshot the seed marked is built, for browser proofs on a fresh stack.
 // The opt-in `signing-keys` step, CI only, pins the deployment's signing keys into JWKS as a managed
 // deployment does, so token verification stops fetching them from the backend's own HTTP actions.
+// The pre-staging lifecycle pins the local deployment in its own convex-signing-keys stage.
 // --secrets-file appends what that step generates to a throwaway stack's secret list.
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
@@ -25,6 +26,7 @@ import {
   convexDeployArguments,
   generateAdminKey,
   localConvex,
+  readSigningKeysJwks,
   yarnSpawn
 } from './convexSelfHosted.mjs'
 
@@ -122,45 +124,16 @@ const allSteps = {
 }
 
 // Database-backed keys make the backend fetch /api/auth/convex/jwks from itself to verify tokens, up
-// to 2,000 requests a proof. The first read creates the key; the redeploy applies both auth configs.
+// to 2,000 requests a proof. The redeploy applies both auth configs.
 async function pinSigningKeys(log) {
-  const created = await fetch('http://127.0.0.1:3211/api/auth/convex/jwks')
-  if (!created.ok) {
-    log?.write(`Signing key read failed: ${created.status}\n`)
+  let pinned
+  try {
+    pinned = await readSigningKeysJwks({ ...localConvex, adminKey })
+  } catch (error) {
+    log?.write(`${error.message}\n`)
     return 1
   }
-  const [executable, args] = yarnSpawn(
-    convex(
-      'run',
-      '--component',
-      'betterAuth',
-      'adapter:findMany',
-      JSON.stringify({ model: 'jwks', paginationOpts: { cursor: null, numItems: 20 } })
-    )
-  )
-  const stored = spawnSync(executable, args, {
-    cwd: root,
-    encoding: 'utf8',
-    env: convexCliEnvironment(),
-    shell: false
-  })
-  if (stored.status !== 0) {
-    log?.write(redact(stored.stderr ?? ''))
-    return stored.status ?? 1
-  }
-  const keys = JSON.parse(stored.stdout).page.map((row) => ({
-    id: row._id,
-    publicKey: row.publicKey,
-    privateKey: row.privateKey,
-    createdAt: row.createdAt,
-    alg: 'RS256'
-  }))
-  if (keys.length === 0) {
-    log?.write('The deployment holds no signing key.\n')
-    return 1
-  }
-  const jwks = JSON.stringify(keys)
-  const generated = [jwks, ...keys.map((key) => key.privateKey)]
+  const { jwks, secrets: generated } = pinned
   secrets.push(...generated)
   for (const secret of generated) console.log(`::add-mask::${secret}`)
   if (options.secretsFile)

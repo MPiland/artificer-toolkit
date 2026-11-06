@@ -10,9 +10,11 @@ import {
   beginSceneDefinitionInputSchema,
   sceneDefinitionSaveProgressSchema
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
+import { contentSnapshotCatalogueManifestDtoSchema } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { lootDocumentSchema } from '@artificer-toolkit/schema/api/lootTables'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
+import { getContentCatalogueManifest } from '#app/data/contentSnapshots/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
 import {
@@ -126,9 +128,14 @@ const meta = {
     })
     mocked(useConvex).mockReturnValue(client)
     mocked(useAction).mockImplementation((reference) => {
-      if (getFunctionName(reference) !== getFunctionName(api.media.vttMapActions.getDelivery))
-        throw new Error(`Unexpected Scene Editor action: ${getFunctionName(reference)}`)
-      return getDelivery
+      switch (getFunctionName(reference)) {
+        case getFunctionName(api.media.vttMapActions.getDelivery):
+          return getDelivery
+        case getFunctionName(api.contentSnapshots.access.issueAccess):
+          return issueAccess
+        default:
+          throw new Error(`Unexpected Scene Editor action: ${getFunctionName(reference)}`)
+      }
     })
     return () => client.close()
   }
@@ -205,6 +212,8 @@ function renderEditor(
     defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } }
   })
   queryClient.setQueryData(queryKeys.media.vttMap(tabletopMapAssetId), mapDelivery)
+  // The Loot section reads the content catalogue; the Scene owner has no authored sources here.
+  queryClient.setQueryData(getContentCatalogueManifest().queryKey, emptyCatalogueManifest)
   return (
     <QueryClientProvider client={queryClient}>
       <CampaignSceneEditor {...args} />
@@ -216,3 +225,8 @@ const begin = fn()
 const append = fn()
 const publish = fn()
 const getDelivery = fn().mockResolvedValue(tabletopMapDelivery)
+const issueAccess = fn()
+const emptyCatalogueManifest = contentSnapshotCatalogueManifestDtoSchema.parse({
+  userId: tabletopCurrentUserId,
+  sources: []
+})

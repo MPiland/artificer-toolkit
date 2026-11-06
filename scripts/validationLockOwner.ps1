@@ -6,9 +6,10 @@ atomic take-or-reclaim of one lock file. Dot-source it; it runs nothing itself.
 .DESCRIPTION
 A lock file reads "<name> pid <pid> start <unix seconds> since <time>". An owner is the pid plus its
 process start time, so a pid the OS has reused for another process does not keep a dead owner's lock alive.
-A lock is reclaimed only when its owner process is gone or its pid now has a different start time. Locks and
-tickets without a start time (older runners, tickets) are judged by pid alone. A lock whose content cannot
-be read is never reclaimed.
+A lock is reclaimed only when its owner process is gone or its pid now has a different start time. Locks
+without a start time (older runners) are judged by pid alone. A queue ticket is pruned when its pid is gone
+or now runs a process that started after the ticket was written. A lock whose content cannot be read is
+never reclaimed.
 #>
 
 function Get-OwnerStartSeconds([int] $ProcessId) {
@@ -29,6 +30,20 @@ function Test-OwnerAlive([int] $ProcessId, $StartSeconds = $null) {
 
 function Format-LockOwner([string] $Name, [int] $ProcessId = $PID) {
   "$Name pid $ProcessId start $(Get-OwnerStartSeconds $ProcessId) since $(Get-Date -Format s)"
+}
+
+function Format-QueueTicket([string] $Name, [int] $ProcessId = $PID) {
+  '{0:D20}-{1}-{2}' -f [DateTime]::UtcNow.Ticks, $ProcessId, $Name
+}
+
+# A ticket "<UTC ticks written>-<pid>-<name>" is live while its pid runs a process that started before the
+# ticket was written; a process started later holds a reused pid (after a reboot, say), not the waiter.
+function Test-TicketOwnerAlive([string] $Ticket) {
+  $ticks, $ownerPid = $Ticket.Split('-')[0..1]
+  $written = ([DateTimeOffset]::new([long] $ticks, [TimeSpan]::Zero)).ToUnixTimeSeconds()
+  if ($null -eq (Get-Process -Id ([int] $ownerPid) -ErrorAction SilentlyContinue)) { return $false }
+  $started = Get-OwnerStartSeconds ([int] $ownerPid)
+  return $null -eq $started -or $started -le $written + 1
 }
 
 function Test-LockOwnerGone([string] $Content) {

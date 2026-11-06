@@ -103,9 +103,10 @@ const blueprint = encounterBlueprintDtoSchema.parse({
       label: 'Clockwork Sentry',
       systemId: null,
       maxHitPoints: 18,
-      snapshot: {}
+      snapshotIndex: 0
     }
   ],
+  snapshots: [{}],
   createdAt: '2026-08-30T00:00:00.000Z',
   updatedAt: '2026-08-30T00:00:00.000Z',
   setupChecksum: 'a'.repeat(64)

@@ -66,6 +66,8 @@ jobs:
       worker-files: ${{ steps.select.outputs.worker-files }}
       run-web: ${{ steps.select.outputs.run-web }}
       web-files: ${{ steps.select.outputs.web-files }}
+      run-storybook: ${{ steps.select.outputs.run-storybook }}
+      storybook-files: ${{ steps.select.outputs.storybook-files }}
       merge-base: ${{ steps.select.outputs.merge-base }}
       red-files: ${{ steps.select.outputs.red-files }}
       red-suites: ${{ steps.select.outputs.red-suites }}
@@ -208,6 +210,24 @@ jobs:
           set -f
           yarn workspace @artificer-toolkit/web test $WORKERS $FILES
 
+  # Each affected story's play function in Chromium, so a story that drifts from the product fails its slice.
+  storybook:
+    name: Storybook tests
+    needs: build
+    if: needs.build.outputs.run-storybook == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Install Chromium
+        run: yarn workspace @artificer-toolkit/web exec playwright install --with-deps chromium
+      - env:
+          FILES: ${{ needs.build.outputs.storybook-files }}
+        run: |
+          set -f
+          yarn workspace @artificer-toolkit/web test:storybook $FILES
+
   # The account runs at most 20 jobs at once, so typechecks share two sequential jobs instead of one job
   # each; both finish inside the Convex and web test critical path. Every step runs even after a failure,
   # so one run reports all typecheck errors. One tsc at a time: parallel tsc processes exhaust a runner.
@@ -249,6 +269,9 @@ jobs:
       - name: Stories
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
+      - name: Config
+        if: success() || failure()
+        run: yarn turbo run typecheck:config --filter=@artificer-toolkit/web --only --env-mode=loose
 
   # `yarn lint` at zero warnings on every run: oxlint (.oxlintrc.jsonc) and the repo check scripts it chains,
   # then oxfmt on the files the branch changed since the phase branch (the phase branch is not oxfmt-clean).
@@ -367,7 +390,19 @@ jobs:
   # this job can write, and the token reaches only the push step, not the install or the fix commands.
   auto-fix:
     name: Commit format and lint fixes to the ci branch
-    needs: [build, convex, packages, worker, web, typecheck-packages, typecheck-web, lint, red]
+    needs:
+      [
+        build,
+        convex,
+        packages,
+        worker,
+        web,
+        storybook,
+        typecheck-packages,
+        typecheck-web,
+        lint,
+        red
+      ]
     if: >-
       always() && needs.lint.result == 'failure'
       && startsWith(github.ref, 'refs/heads/ci/') && !startsWith(github.ref_name, 'ci/merge-')

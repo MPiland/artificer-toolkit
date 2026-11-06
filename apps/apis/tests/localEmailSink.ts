@@ -46,6 +46,8 @@ export async function startLocalEmailSink(options: {
   }
 
   const server = createServer(async (request, response) => {
+    // One connection per request (why: the keep-alive note in localR2.ts).
+    response.setHeader('Connection', 'close')
     if (request.method === 'GET' && request.url === '/health') {
       return response.writeHead(200).end('artificer-local-email')
     }

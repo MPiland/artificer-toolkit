@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouterState } from '@tanstack/react-router'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authoredCatalogueItemSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
@@ -24,7 +24,6 @@ import {
   normalizeFixtureNodeRuntimeValues,
   resolveFixtureNodeRuntime
 } from '#test/nodeRuntimeResolver'
-import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/tests/srdSourceReader'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
 
@@ -102,8 +101,6 @@ const copiedRaceAuthoringData = {
 }
 const ownedResponse = { ...authoredRouteStoryResponses.race, draft: null, hasDraft: false }
 const ownedRace = ownedResponse.item!
-
-beforeAll(warmFixtureAuthoredSources, 60_000)
 
 beforeEach(() => {
   convexMocks.loadMore.mockClear()

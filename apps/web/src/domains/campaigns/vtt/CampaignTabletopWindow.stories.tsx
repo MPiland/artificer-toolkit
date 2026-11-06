@@ -572,7 +572,9 @@ export const PlacingAZonePreviewsItsArea: Story = {
 
     await pressStage(canvas, 'centre')
     const reopened = await page.findByRole('dialog', { name: 'Place a zone' })
-    await expect(await within(reopened).findByText(/^Centered at/)).toBeVisible()
+    // The drawer fades in, so the text is in the tree before it is visible.
+    const centered = await within(reopened).findByText(/^Centered at/)
+    await waitFor(() => expect(centered).toBeVisible())
     await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
   }
 }
@@ -721,7 +723,7 @@ export const SelectingATokenShowsItsFacingArcs: Story = {
       version: facingFixtures.liveScene.version + 1
     })
     await waitFor(() =>
-      expect(drawnToken(renderer.getDiagnostics(), warden.id).rotationDegrees).toBe(90)
+      expect(drawnToken(renderer.getDiagnostics(), warden.id).facingRotationDegrees).toBeCloseTo(90)
     )
     await expectArcsAt(90)
 

@@ -7,6 +7,8 @@ import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/reac
 import { getFunctionName } from 'convex/server'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { z } from 'zod'
+import { campaignSummaryDtoSchema } from '@artificer-toolkit/schema/api/campaignCore'
+import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import {
   createSocialListingInputSchema,
   updateSocialListingInputSchema,
@@ -53,6 +55,28 @@ const listing = socialListingDtoSchema.parse({
   publishedAt: null,
   version: 2
 })
+const laterCampaign = campaignSummaryDtoSchema.parse({
+  id: 'dddddddd-4444-4444-8444-444444444444',
+  publicId: 'glass-harbor',
+  name: listing.title,
+  description: null,
+  format: 'ONGOING',
+  toneTags: ['HEROIC'],
+  toneDetails: null,
+  contentMaturity: 'STANDARD',
+  gameSystemId: listing.system.systemId,
+  primaryRulesCatalogueId: '77777777-7777-4777-8777-777777777701',
+  additionalRulesCatalogueIds: [],
+  status: 'ACTIVE',
+  role: 'OWNER',
+  version: 1,
+  memberCount: 1,
+  playerCount: 0,
+  createdAt: '2026-08-01T12:00:00.000Z',
+  updatedAt: '2026-08-01T12:00:00.000Z',
+  capabilities: getCampaignCapabilities('ACTIVE', 'OWNER'),
+  assignedCharacter: null
+})
 const names = {
   create: getFunctionName(api.social.listingDrafts.create),
   remove: getFunctionName(api.social.listingDrafts.remove),
@@ -88,20 +112,7 @@ function Fixture({ creating = false }: { creating?: boolean }) {
     if (getFunctionName(reference) !== getFunctionName(api.campaigns.queries.list))
       throw new Error('Unexpected native list')
     return {
-      results:
-        campaignsLoaded && args !== 'skip'
-          ? [
-              {
-                id: 'dddddddd-4444-4444-8444-444444444444',
-                name: listing.title,
-                role: 'OWNER',
-                status: 'ACTIVE',
-                format: 'ONGOING',
-                toneTags: [],
-                contentMaturity: 'STANDARD'
-              }
-            ]
-          : [],
+      results: campaignsLoaded && args !== 'skip' ? [laterCampaign] : [],
       isLoading: false,
       status: campaignsLoaded || args === 'skip' ? 'Exhausted' : 'CanLoadMore',
       loadMore: (count: number) => {

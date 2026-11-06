@@ -75,6 +75,10 @@ export default defineConfig({
         ],
         test: {
           name: 'storybook',
+          // `.storybook/main.ts`'s `stories`, relative to this directory. The plugin applies them only
+          // when a run starts, so a tool that resolves this config without running it
+          // (scripts/affectedTests.mjs) would otherwise list Vitest's default test files.
+          include: ['src/**/*.stories.@(ts|tsx)'],
           fileParallelism: false,
           maxWorkers: 1,
           browser: {
@@ -84,6 +88,16 @@ export default defineConfig({
               host: '127.0.0.1',
               port: 6106,
               strictPort: true
+            },
+            commands: {
+              // Chromium terminates service workers at will; MockServiceWorker.stories.tsx proves
+              // mocking survives it.
+              async stopServiceWorkers({ page }) {
+                const session = await page.context().newCDPSession(page)
+                await session.send('ServiceWorker.enable')
+                await session.send('ServiceWorker.stopAllWorkers')
+                await session.detach()
+              }
             },
             enabled: true,
             fileParallelism: false,

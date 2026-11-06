@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { collectCharacterReferencedSpellIds } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
+import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import { v } from 'convex/values'
 import type { MutationCtx } from '../_generated/server'
@@ -132,7 +133,9 @@ export async function deriveAndStoreCharacterSheet(
   if (pending && pending.token !== token) return null
   if (pending) await ctx.db.delete('characterSheetPendingStores', pending._id)
   const { active } = await loadCharacterState(ctx, characterId)
-  // A deleted Character, or one that needs Builder repair, has no Sheet to store.
+  // A deleted Character, or one that needs Builder repair, has no Sheet to store. Repair is either
+  // recorded (a reconciled loss leaves it a draft) or found below, when a replaced publication left
+  // an active Character short of a required choice; its Sheet reads report the repair.
   if (active?.status !== 'ACTIVE') return null
   // A later write may already have stored the Sheet over the same inputs.
   const reads: Partial<CharacterSheetFingerprintReads> = {}
@@ -150,7 +153,10 @@ export async function deriveAndStoreCharacterSheet(
     active,
     undefined,
     reads
-  )
+  ).catch((error: unknown) => {
+    if (error instanceof CharacterRequiresBuilderRepairError) return null
+    throw error
+  })
   if (facts) await storeCharacterSheetSections(ctx, facts, undefined, state?.fingerprint)
   return null
 }
