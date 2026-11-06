@@ -22949,9 +22949,17 @@
             {
               "id": "RELIABILITY-21.22",
               "text": "campaign-collaboration-browser passes without reruns: the Sheet's manual-roll Roll button stays attached and clickable for a second roll right after a GM-private roll converges.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "User approved 2026-11-06 (D187 growth +1). Roll button 'detached from the DOM' until the 30 s timeout on Browser journeys 42065527092 (ad42590bd) and the 7c605ddb7 shard-2 attempt 2 (ci/release-2-t1), both outside RELEASE-2.T1's diff. Evidence: local-validation/release-2-t1/bj2b and bj-42065527092."
+              "note": "User approved 2026-11-06 (D187 growth +1). Roll button 'detached from the DOM' until the 30 s timeout on Browser journeys 42065527092 (ad42590bd) and the 7c605ddb7 shard-2 attempt 2 (ci/release-2-t1), both outside RELEASE-2.T1's diff. Evidence: local-validation/release-2-t1/bj2b and bj-42065527092.",
+              "proof": ["Closed by RELIABILITY-21.T31 (m644); see the task proof."]
+            },
+            {
+              "id": "RELIABILITY-21.23",
+              "text": "The Playwright Storybook e2e suite (test:e2e:storybook) runs in CI on changes that reach it, and its first story no longer races a cold Storybook dev-server compile: readiness means the story graph is compiled.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "User approved 2026-11-06 (D187 +1). The spells walkthrough drifted for two weeks unseen (run P); the first story took 40.4 s (P) and 33.1 s (Q2) against the 30 s canvas wait. Static storybook build fails: sb.mock is not applied in storybook build. Handoff: docs/validation/release-2-t1-final-local-lifecycle-2026-11-05.md."
             }
           ],
           "tasks": [
@@ -23373,7 +23381,7 @@
             },
             {
               "id": "RELIABILITY-21.T31",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.22"],
               "wsjf": {
                 "bv": 8,
@@ -23382,7 +23390,25 @@
                 "size": 2
               },
               "text": "Bug: root-cause and fix the manual-roll Roll button detaching after a roll. Suspect: CharacterSheetManualRoll.tsx:60 returns null whenever useCharacterSheetRoll() or useCharacterSheetRollDestination() is briefly null while `opened` survives, so the Popover dropdown remounts repeatedly. Fix the source of the flicker or the remount, not the test. Red-first component or story test, then a campaign-collaboration-browser proof run. No retries, raised timeouts or loosened assertions.",
-              "note": "Registered by the orchestrator on 2026-11-06 with user approval (D187 +1)."
+              "note": "Registered by the orchestrator on 2026-11-06 with user approval (D187 +1). Root cause: the natively disabled pending Roll button dropped focus out of the Popover, so Escape no longer closed it and the next open-button click toggled it closed (button detached during the close). Fix: aria-disabled + pending loader, focus kept. Merged in m644 (a66b58c35).",
+              "proof": [
+                "apps/web/src/domains/characters/sheet/dice/CharacterSheetManualRoll.test.tsx (red before the fix on not.toBeDisabled())",
+                "campaign-collaboration-browser green 3x on 8e85cb12a: Browser journeys 42300990893, 42300986150, 42300981998"
+              ],
+              "mergedAt": "2026-11-06"
+            },
+            {
+              "id": "RELIABILITY-21.T32",
+              "text": "Add a CI job for the Playwright Storybook e2e project and remove the cold-compile race at its source (lead option: Vite server.warmup for the story graph plus a readiness URL that answers only once warm-up is done). No raised timeouts, warm-up visits in specs or retries. Workflow change: hand merge.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.23"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered by the orchestrator on 2026-11-06 with user approval. Must merge before the release-candidate lifecycle run."
             }
           ]
         }
@@ -24378,6 +24404,47 @@
             }
           ],
           "internalReason": "Performance fixes with no new user-visible flow; each task carries its own real-code proof and budget test."
+        },
+        {
+          "id": "PERF-5",
+          "title": "Publication reads only what a draft references",
+          "status": "IN_PROGRESS",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": ["RELEASE-2"],
+          "acs": [
+            {
+              "id": "PERF-5.1",
+              "text": "Publishing a Spell, Feat, Creature or Race draft reads only the authored roots its values reference, so its read volume stays flat as unrelated homebrew grows; normalization output is unchanged across every SRD subject.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "User approved 2026-11-06 (fix before staging). Run Q on 125fde862: every publishDraft read 743-1,487 docs (0.8-2.2 MB); under about 3x host load one hit the 1 s mutation limit (publication-equipment proof)."
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 8,
+            "size": 3,
+            "finalSource": true
+          },
+          "tasks": [
+            {
+              "id": "PERF-5.T1",
+              "text": "Value-filtered option plans at publication plus by-id authored-root reads at the system source reader; Class publication fingerprints per read. Equipment property narrowing keeps its scan (deferred edge case). Red-first read-budget tests with convex-test.",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-5.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "finalSource": true
+              },
+              "note": "Design approved 2026-11-06; slice ci/perf-5-t1."
+            }
+          ],
+          "internalReason": "Performance fix with no new user-visible flow; the task carries its real-code read-budget proof."
         }
       ]
     },
@@ -24684,7 +24751,7 @@
                 "finalSource": true
               },
               "text": "Run the complete yarn validate:pre-staging:local lifecycle in a heavy-lane batch through scripts/withValidationLock.ps1 from a fresh isolated reset (convex-reset stage, R08.1) and retain the manifest, logs and exit codes. Triage any failure: fix locally, resume from the earliest affected stage with --start-at plus the provenance manifest, and finish with one manifest that passes every stage from the same source identity. Expect one or two reruns.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Interim fixes merged 2026-11-06 (91aa1940a, runs I-Q2, docs/validation/release-2-t1-final-local-lifecycle-2026-11-05.md). Stays open: the final lifecycle runs on the release candidate after PERF-5.T1 and RELIABILITY-21.T32 merge.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
