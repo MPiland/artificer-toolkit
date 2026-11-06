@@ -103,6 +103,11 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Class publish scans that still grow with Homebrew (PERF-5.T1):** a Class publish reads only the roots its draft names, except in two option reads whose predicates name no root. Each reads one root and one facts document per visible root of its kind:
+  - Equipment narrowed by property (`equipment_properties`) reads every visible Equipment root. Properties are arrays, so no index narrows it.
+  - The RESOURCE facet selects `class_resources` ids, which are not root keys, so it reads every visible Class root.
+  - The Bard (763 references) commit reads 1,208 documents (3.0 MB) under the SRD; each new visible Equipment or Class root adds about two. The 500-root-per-kind guard fails the publish before Convex's limits.
+  - Fix if real catalogues approach that guard: index the property and resource memberships as their own rows.
 - **Spell picker and the turn casting limit (SPELLS-31.T5h-3):** the picker does not preview the limit. The caster sees the overridable warning when they cast.
 - **Hand-rolled table dice on TEST phases (SPELLS-4.T2ps-d1):** table dice in a TEST phase stay System-rolled (D170 style). Letting a player roll them by hand is a later option.
 - **Held die on a sight-governed attack (SPELLS-31.T4c2b):** an attack against an unseen or hidden target skips the after-roll window, as sight-governed saves do. The die stays unspent.

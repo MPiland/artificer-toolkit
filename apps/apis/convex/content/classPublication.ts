@@ -1,10 +1,12 @@
 import { v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { z } from '@artificer-toolkit/schema/zod'
+import { authoredSourceRootsWhere } from '@artificer-toolkit/authoring/nodeRuntime'
 import {
   authoredNodeRuntimeSourceFactsSchema,
+  authoredSourceRootsSchema,
+  isNodeRuntimeSourceColumn,
   isNodeRuntimeSourceTable,
-  nodeRuntimeSourceManifest,
   nodeRuntimeSourceChecksumsSchema
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
@@ -58,14 +60,23 @@ export const prepareDraft = internalQuery({
 })
 
 export const readSourceRows = internalQuery({
-  args: { systemId: v.string(), table: v.string() },
+  args: {
+    systemId: v.string(),
+    table: v.string(),
+    columns: v.array(v.string()),
+    roots: zodToConvex(authoredSourceRootsSchema)
+  },
   returns: v.string(),
-  handler: async (ctx, { systemId, table }): Promise<string> => {
+  handler: async (ctx, { systemId, table, columns, roots }): Promise<string> => {
     const { userId } = await requireIdentity(ctx)
-    if (!isNodeRuntimeSourceTable(table)) throw new Error('Unknown authoring source table.')
+    if (
+      !isNodeRuntimeSourceTable(table) ||
+      !columns.every((column) => isNodeRuntimeSourceColumn(table, column))
+    )
+      throw new Error('Unknown authoring source table.')
     const reader = await createSystemSourceReader(ctx, systemId, userId)
     return canonicalizeRuleDocument(
-      await reader(table, nodeRuntimeSourceManifest[table], undefined, systemId)
+      await reader(table, columns, authoredSourceRootsWhere(table, roots), systemId)
     )
   }
 })
@@ -87,15 +98,14 @@ export const commitDraft = internalMutation({
     })
     const state = await readPublicationState(ctx, input)
     const reader = await createSystemSourceReader(ctx, state.draft.systemId, state.userId)
-    for (const [table, expectedChecksum] of Object.entries(args.sourceChecksums)) {
-      if (!isNodeRuntimeSourceTable(table)) throw new Error('Unknown authoring source table.')
+    for (const { table, columns, roots, checksum } of args.sourceChecksums) {
       const rows = await reader(
         table,
-        nodeRuntimeSourceManifest[table],
-        undefined,
+        columns,
+        authoredSourceRootsWhere(table, roots),
         state.draft.systemId
       )
-      if (checksumRuleDocument(rows) !== expectedChecksum)
+      if (checksumRuleDocument(rows) !== checksum)
         throw new Error('Authoring sources changed. Reload before publishing.')
     }
     const subject = await assertPreparedClassDocument(ctx, state, JSON.parse(args.documentJson))

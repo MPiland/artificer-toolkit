@@ -17,7 +17,13 @@ export type {
   NodeRuntimeQueryWhere,
   NodeRuntimeSourceReader
 } from './nodeRuntimeSourceContract.js'
-export { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
+export {
+  authoredSourceFacts,
+  authoredSourceKindsByTable,
+  authoredSourceRootsForRead,
+  authoredSourceRootsWhere,
+  readsRootCatalogueOnly
+} from './authoredSourceFacts.js'
 export {
   createNodeRuntimeSourceReader,
   sortAuthoredSourceRows,

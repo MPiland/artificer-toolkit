@@ -6,6 +6,8 @@ import type {
 import type {
   ChainedStep,
   ConditionPlan,
+  ContinueChainPlan,
+  NextMapValuesStep,
   RelationshipPlan,
   RootChainPlan,
   StepPlan,
@@ -74,6 +76,144 @@ export async function executeRelationshipPlan(
       return executeChain(db, plan, scope, stream)
     case 'CONDITION':
       return executeConditionPlan(db, plan, scope, stream)
+  }
+}
+
+/**
+ * The plan narrowed to the rows whose option value could be one of `values`. Checking a value
+ * needs only those rows, and the narrowing reaches the reader as a predicate it may serve by key.
+ */
+export function restrictPlanToOptionValues(
+  plan: RelationshipPlan,
+  values: readonly unknown[]
+): RelationshipPlan {
+  const candidates = optionValueCandidates(values)
+  switch (plan.kind) {
+    case 'TABLE':
+      return {
+        ...plan,
+        where: restrictWhere(
+          plan.where,
+          optionValueColumns(
+            plan.selectColumns ?? implicitTableOptionColumns[plan.table] ?? ['id']
+          ),
+          candidates
+        )
+      }
+    case 'MAP_VALUES':
+      return restrictMapValues(plan, candidates)
+    case 'CHAIN':
+      return restrictRootChain(plan, candidates)
+    case 'CONDITION':
+      return restrictCondition(plan, (choice) => restrictPlanToOptionValues(choice, values))
+  }
+}
+
+// A row's option value is its first non-empty id, code or value column (`streamToOptions`).
+function optionValueColumns(columns: readonly string[]): string[] {
+  return ['id', 'code', 'value'].filter((column) => columns.includes(column))
+}
+
+// Option values compare as strings, so a row matches through its stored scalar of either type.
+function optionValueCandidates(values: readonly unknown[]): unknown[] {
+  const candidates = new Set<unknown>()
+  for (const value of values) {
+    const text = String(value)
+    candidates.add(text)
+    const number = Number(text)
+    if (text.trim() !== '' && String(number) === text) candidates.add(number)
+    if (text === 'true' || text === 'false') candidates.add(text === 'true')
+  }
+  return [...candidates]
+}
+
+function restrictWhere(
+  where: WhereExpr | undefined,
+  columns: readonly string[],
+  values: readonly unknown[]
+): WhereExpr | undefined {
+  const [first, ...more] = columns.map((column): WhereExpr => ({
+    kind: 'PREDICATE',
+    column,
+    op: 'IN',
+    values
+  }))
+  if (!first) return where
+  const restriction: WhereExpr =
+    more.length === 0 ? first : { kind: 'OR', expressions: [first, ...more] }
+  return where ? { kind: 'AND', expressions: [where, restriction] } : restriction
+}
+
+function restrictMapValues<P extends NextMapValuesStep>(step: P, values: readonly unknown[]): P {
+  const columns = step.selectColumns ? optionValueColumns(step.selectColumns) : [step.valueColumn]
+  return { ...step, where: restrictWhere(step.where, columns, values) }
+}
+
+// A chain yields its last step's values, so only that step narrows.
+function restrictRootChain(plan: RootChainPlan, values: readonly unknown[]): RootChainPlan {
+  const [first, ...rest] = plan.steps
+  const last = rest.pop()
+  return {
+    ...plan,
+    steps: last
+      ? [first, ...rest, restrictChainedStep(last, values)]
+      : [restrictStep(first, values)]
+  }
+}
+
+function restrictContinueChain(
+  plan: ContinueChainPlan,
+  values: readonly unknown[]
+): ContinueChainPlan {
+  const [first, ...rest] = plan.steps
+  const last = rest.pop()
+  return {
+    ...plan,
+    steps: last
+      ? [first, ...rest, restrictChainedStep(last, values)]
+      : [restrictChainedStep(first, values)]
+  }
+}
+
+function restrictStep(step: StepPlan, values: readonly unknown[]): StepPlan {
+  switch (step.kind) {
+    case 'SEED':
+      return { ...step, where: restrictWhere(step.where, [step.valueColumn], values) }
+    case 'MAP_VALUES':
+      return restrictMapValues(step, values)
+    case 'CHAIN':
+      return restrictRootChain(step, values)
+    case 'CONDITION':
+      return restrictCondition(step, (plan) => restrictStep(plan, values))
+  }
+}
+
+function restrictChainedStep(step: ChainedStep, values: readonly unknown[]): ChainedStep {
+  switch (step.kind) {
+    case 'MAP_VALUES':
+      return restrictMapValues(step, values)
+    case 'CHAIN':
+      return restrictContinueChain(step, values)
+    case 'UNION': {
+      const [first, ...rest] = step.branches
+      return {
+        ...step,
+        branches: [
+          restrictContinueChain(first, values),
+          ...rest.map((branch) => restrictContinueChain(branch, values))
+        ]
+      }
+    }
+    case 'CONDITION':
+      return restrictCondition(step, (plan) => restrictChainedStep(plan, values))
+  }
+}
+
+function restrictCondition<P>(plan: ConditionPlan<P>, restrict: (plan: P) => P): ConditionPlan<P> {
+  return {
+    ...plan,
+    choices: plan.choices.map((choice) => ({ ...choice, plan: restrict(choice.plan) })),
+    fallback: plan.fallback && restrict(plan.fallback)
   }
 }
 
