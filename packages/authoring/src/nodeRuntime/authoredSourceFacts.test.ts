@@ -6,6 +6,7 @@ import {
   authoredNodeRuntimeSourceFactsSchema,
   nodeRuntimeSourceManifest,
   type AuthoredNodeRuntimeSourceFacts,
+  type AuthoredSourceRoots,
   type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
@@ -190,7 +191,7 @@ describe('authoredSourceFacts', () => {
       ['spells', { by: 'ID', ids: ['a', 'b'] }],
       ['equipment', { by: 'CATEGORY', categories: ['ARMOR', 'WEAPON'] }],
       ['conditions', { by: 'KIND' }]
-    ] as const)
+    ] satisfies [NodeRuntimeSourceTable, AuthoredSourceRoots][])
       expect(authoredSourceRootsForRead(table, authoredSourceRootsWhere(table, roots))).toEqual(
         roots
       )

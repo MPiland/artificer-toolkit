@@ -43,12 +43,12 @@ async function seed() {
 
 type Caller = Awaited<ReturnType<typeof seed>>['first']['caller']
 
-async function draft(
+async function draft<Kind extends AuthoredPublishDraftInput['subjectKind']>(
   caller: Caller,
-  subjectKind: AuthoredPublishDraftInput['subjectKind'],
+  subjectKind: Kind,
   subjectId: string,
   label: string
-): Promise<AuthoredPublishDraftInput> {
+): Promise<AuthoredPublishDraftInput & { subjectKind: Kind }> {
   const copy = await caller.mutation(api.content.drafts.duplicate, { subjectKind, subjectId })
   const saved = await caller.mutation(api.content.drafts.save, {
     subjectKind,
@@ -137,7 +137,7 @@ const classDocumentCeiling = { action: 1_804, commit: 1_213 } as const
 async function publishUnrelatedHomebrew(caller: Caller, round: number) {
   const batch = <T>(records: readonly T[]) =>
     records.slice(HOMEBREW_PER_KIND * round, HOMEBREW_PER_KIND * (round + 1))
-  const homebrew = [
+  const homebrew: [MeasuredKind, readonly { id: string }[]][] = [
     ['SPELL', subjects.spells],
     ['FEAT', subjects.feats],
     ['CREATURE', subjects.creatures],
@@ -145,7 +145,7 @@ async function publishUnrelatedHomebrew(caller: Caller, round: number) {
     ['BACKGROUND', subjects.backgrounds],
     ['RACE', subjects.races],
     ['VEHICLE', subjects.vehicles]
-  ] as const
+  ]
   for (const [subjectKind, records] of homebrew)
     for (const record of batch(records))
       await caller.mutation(

@@ -15,7 +15,7 @@ import {
   restrictPlanToOptionValues,
   streamToOptions
 } from './relationshipExecutor.js'
-import { createSrdNodeRuntimeReader, warmFixtureAuthoredSources } from '../tests/srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 // PERF-5.T1: normalization checks a select's values against only the options those values can be,
 // so a publish reads the roots a draft names instead of each referenced kind's whole catalogue.
@@ -141,7 +141,6 @@ describe('option value checks', () => {
   })
 
   it('normalizes every SRD subject at ingress exactly as the editor does', async () => {
-    warmFixtureAuthoredSources()
     const documents = (Object.keys(mapIds) as (keyof typeof mapIds)[]).flatMap((kind) =>
       subjects[kind].map((record: { id: string }) => ({ kind, record }))
     )
@@ -158,7 +157,6 @@ describe('option value checks', () => {
   ] as const)(
     'clears %s at ingress exactly as the editor does',
     async (_name, replacement) => {
-      warmFixtureAuthoredSources()
       let replaced = 0
       for (const kind of Object.keys(mapIds) as (keyof typeof mapIds)[])
         for (const record of subjects[kind].slice(0, 3)) {
@@ -174,7 +172,6 @@ describe('option value checks', () => {
   )
 
   it('keeps only the valid entries of a mixed multi-select at ingress exactly as the editor does', async () => {
-    warmFixtureAuthoredSources()
     let mixed = 0
     for (const kind of Object.keys(mapIds) as (keyof typeof mapIds)[])
       for (const record of subjects[kind].slice(0, 3)) {
