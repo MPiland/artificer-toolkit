@@ -306247,74 +306247,81 @@ export declare const internal: {
           };
           documentJson: string;
           expectedDraftUpdatedAt: string;
-          sourceChecksums: {
-            abilities?: string;
-            ability_definitions?: string;
-            ability_modifier_references?: string;
-            action_traits?: string;
-            alignments?: string;
-            background_features?: string;
-            backgrounds?: string;
-            challenge_ratings?: string;
-            charges?: string;
-            class_features?: string;
-            class_proficiency_grants?: string;
-            class_resources?: string;
-            class_specializations?: string;
-            classes?: string;
-            condition_types?: string;
-            conditions?: string;
-            creature_types?: string;
-            creatures?: string;
-            currencies?: string;
-            damage_types?: string;
-            damages?: string;
-            effect_consume_events?: string;
-            effect_end_events?: string;
-            effect_path_choice_options?: string;
-            effect_path_roll_table_rows?: string;
-            effect_paths?: string;
-            effect_result_block_outcomes?: string;
-            equipment?: string;
-            equipment_effects?: string;
-            equipment_features?: string;
-            equipment_properties?: string;
-            feat_effects?: string;
-            feat_features?: string;
-            feat_proficiency_grants?: string;
-            feats?: string;
-            feature_effects?: string;
-            feature_options?: string;
-            feature_proficiency_grants?: string;
-            features?: string;
-            heritages?: string;
-            languages?: string;
-            magic_schools?: string;
-            option_effects?: string;
-            option_proficiency_grants?: string;
-            options?: string;
-            passives?: string;
-            proficiency_grant_equipment?: string;
-            proficiency_grant_equipment_properties?: string;
-            proficiency_grant_languages?: string;
-            proficiency_grant_skills?: string;
-            race_ancestries?: string;
-            race_ancestry_option_features?: string;
-            race_ancestry_options?: string;
-            race_features?: string;
-            races?: string;
-            rarities?: string;
-            reusable_definitions?: string;
-            roll_influences?: string;
-            roll_modes?: string;
-            senses?: string;
-            sizes?: string;
-            skills?: string;
-            speeds?: string;
-            spell_effects?: string;
-            spell_slot_pools?: string;
-            spells?: string;
-          };
+          sourceChecksums: Array<{
+            checksum: string;
+            columns: Array<string>;
+            roots:
+              | { by: "ID"; ids: Array<string> }
+              | { by: "CATEGORY"; categories: Array<string> }
+              | { by: "KIND" };
+            table:
+              | "abilities"
+              | "ability_definitions"
+              | "ability_modifier_references"
+              | "action_traits"
+              | "alignments"
+              | "background_features"
+              | "backgrounds"
+              | "challenge_ratings"
+              | "charges"
+              | "class_features"
+              | "class_proficiency_grants"
+              | "class_resources"
+              | "class_specializations"
+              | "classes"
+              | "condition_types"
+              | "conditions"
+              | "creature_types"
+              | "creatures"
+              | "currencies"
+              | "damage_types"
+              | "damages"
+              | "effect_consume_events"
+              | "effect_end_events"
+              | "effect_path_choice_options"
+              | "effect_path_roll_table_rows"
+              | "effect_paths"
+              | "effect_result_block_outcomes"
+              | "equipment"
+              | "equipment_effects"
+              | "equipment_features"
+              | "equipment_properties"
+              | "feat_effects"
+              | "feat_features"
+              | "feat_proficiency_grants"
+              | "feats"
+              | "feature_effects"
+              | "feature_options"
+              | "feature_proficiency_grants"
+              | "features"
+              | "heritages"
+              | "languages"
+              | "magic_schools"
+              | "option_effects"
+              | "option_proficiency_grants"
+              | "options"
+              | "passives"
+              | "proficiency_grant_equipment"
+              | "proficiency_grant_equipment_properties"
+              | "proficiency_grant_languages"
+              | "proficiency_grant_skills"
+              | "race_ancestries"
+              | "race_ancestry_option_features"
+              | "race_ancestry_options"
+              | "race_features"
+              | "races"
+              | "rarities"
+              | "reusable_definitions"
+              | "roll_influences"
+              | "roll_modes"
+              | "senses"
+              | "sizes"
+              | "skills"
+              | "speeds"
+              | "spell_effects"
+              | "spell_slot_pools"
+              | "spells";
+          }>;
           subjectId: string;
           subjectKind: "CLASS";
         },
@@ -306352,7 +306359,15 @@ export declare const internal: {
       readSourceRows: FunctionReference<
         "query",
         "internal",
-        { systemId: string; table: string },
+        {
+          columns: Array<string>;
+          roots:
+            | { by: "ID"; ids: Array<string> }
+            | { by: "CATEGORY"; categories: Array<string> }
+            | { by: "KIND" };
+          systemId: string;
+          table: string;
+        },
         string
       >;
     };
