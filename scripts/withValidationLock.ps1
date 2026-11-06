@@ -14,7 +14,7 @@ Every lane uses the main checkout's Turbo cache (.turbo/cache), so worktrees sha
 
 Each waiter queues a ticket in its lane's queue (.validation.queue or .validation.light-queue).
 Only the oldest live tickets, one per slot, may take a lock, so each lane runs in arrival order. A
-ticket whose waiting process has exited is pruned. The batch runs in a child pwsh under a timeout
+ticket whose waiting process has exited (or whose pid a later process reused) is pruned. The batch runs in a child pwsh under a timeout
 with $ErrorActionPreference = 'Stop' and $PSNativeCommandUseErrorActionPreference = $true, so it
 stops at its first failing command unless it opts out by setting $ErrorActionPreference itself.
 The runner removes its own lock and ticket even on failure or timeout. Each lock records its owner's
@@ -60,7 +60,7 @@ $queue = Join-Path $validation ($Lane -eq 'heavy' ? '.validation.queue' : ".vali
 $minimumMB = $light ? 1024 : 0
 $staleMinutes = $light ? 30 : 90
 New-Item -ItemType Directory -Force $queue | Out-Null
-$ticket = Join-Path $queue ('{0:D20}-{1}-{2}' -f [DateTime]::UtcNow.Ticks, $PID, $Name)
+$ticket = Join-Path $queue (Format-QueueTicket $Name)
 New-Item -ItemType File $ticket | Out-Null
 $held = $null
 $exitCode = 1
@@ -68,7 +68,7 @@ $staleWarned = $false
 try {
   while (-not $held) {
     $live = @(Get-ChildItem -LiteralPath $queue -File | Sort-Object Name | Where-Object {
-        $alive = Test-OwnerAlive ([int]$_.Name.Split('-')[1])
+        $alive = Test-TicketOwnerAlive $_.Name
         if (-not $alive) { Remove-Item -LiteralPath $_.FullName -ErrorAction SilentlyContinue }
         $alive
       } | Select-Object -First $locks.Count)
