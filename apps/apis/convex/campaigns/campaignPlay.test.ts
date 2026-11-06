@@ -1,4 +1,4 @@
-import { makeFunctionReference } from 'convex/server'
+import { getFunctionName, makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
   CampaignSessionDto,
@@ -20,6 +20,7 @@ import {
   executeInRoom,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { internal } from '../_generated/api'
 
 useLocalRoomWorker()
 
@@ -109,6 +110,46 @@ it('leaves live authority, presentation and an ACTIVE Run untouched when a Sessi
       expectedVersion: base.run.version,
       reminder: {
         label: 'Resume next sitting',
+        timing: 'ROUND_NUMBER',
+        round: 2,
+        actorId: null,
+        public: false,
+        notes: null,
+        order: 0
+      }
+    }
+  })
+  expect(reminder.projection).toMatchObject({ id: base.run.id, version: base.run.version + 1 })
+})
+
+it('activates the room on content snapshots a scheduled build stored before the room attached', async () => {
+  const base = await createEncounterSceneFixture()
+  await publishSceneSource(base)
+  await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
+  // The builds the content import scheduled come due (2 s) while a slow fixture is still setting up,
+  // so their objects can be stored, and recorded in Convex, before the room attaches.
+  const build = internal.contentSnapshots.actions.build
+  const due = await base.t.run(async (ctx) =>
+    (await ctx.db.system.query('_scheduled_functions').collect()).flatMap((job) =>
+      job.state.kind === 'pending' && job.name === getFunctionName(build)
+        ? [job.args[0] as FunctionArgs<typeof build>]
+        : []
+    )
+  )
+  for (const scope of due) await base.t.action(build, scope)
+  await base.t.finishInProgressScheduledFunctions()
+  expect(
+    await base.t.run(async (ctx) => (await ctx.db.query('contentSnapshotObjects').take(1)).length)
+  ).toBe(1)
+  await attachFixtureRoom(base.t, base.campaign.id)
+  const reminder = await executeInRoom(base.other.caller, {
+    command: {
+      type: 'UPSERT_REMINDER',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: base.run.version,
+      reminder: {
+        label: 'Opening watch',
         timing: 'ROUND_NUMBER',
         round: 2,
         actorId: null,

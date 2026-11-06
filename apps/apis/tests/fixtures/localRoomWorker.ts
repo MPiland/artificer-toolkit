@@ -38,7 +38,7 @@ import {
   RoomCommandRejectedError,
   type RoomSheetCommand
 } from '../developmentHttpClient'
-import { startLocalR2 } from '../localR2'
+import { fileLocalR2 } from '../localServices'
 
 /**
  * The REAL Session Worker (`apps/session-worker`, its Durable Object room) in local workerd, with
@@ -225,7 +225,7 @@ async function startConvexBridge() {
 }
 
 async function startWorker() {
-  const r2 = await startLocalR2()
+  const r2 = fileLocalR2()
   const bridge = await startConvexBridge()
   await mkdir(stateDirectory, { recursive: true })
   const directory = await mkdtemp(resolve(stateDirectory, 'run-'))
@@ -274,7 +274,6 @@ async function startWorker() {
     dispose: async () => {
       await worker.dispose()
       await bridge.close()
-      await r2.close()
       await rm(directory, { force: true, recursive: true })
     }
   }
@@ -364,7 +363,7 @@ export function useLocalRoomWorker() {
 
 /**
  * Points the file's Worker at this test's convex-test instance and gives Convex the room's
- * environment (secrets, the Worker's URL, local R2). A room is keyed by its Campaign ID and keeps
+ * environment (secrets, the Worker's URL, local media storage). A room is keyed by its Campaign ID and keeps
  * its durable state after it closes, as a platform does, so a test whose Campaign ID an earlier test
  * of the file already used (a mocked `crypto.randomUUID` that restarts its sequence) gets a fresh
  * Worker with empty storage.
@@ -381,8 +380,9 @@ export async function attachRoomWorker(t: TestConvex<typeof schema>) {
   }
   const worker = await started
   worker.bridge.serve(t)
+  // Content snapshot objects stay: a build that ran before this attach recorded its objects in
+  // Convex, so a later build skips them, and their content-addressed keys never name another body.
   worker.r2.objects.clear()
-  worker.r2.contentSnapshotObjects.clear()
   worker.errorLogs.length = 0
   stubRoomEnvironment(worker)
   attached = { worker, t, clients: new Map(), peers: [], touched: new Set() }
@@ -395,7 +395,6 @@ function stubRoomEnvironment(worker: RoomWorker) {
   vi.stubEnv('LIVE_SESSION_WORKER_URL', worker.url)
   vi.stubEnv('VITE_LIVE_SESSION_WEBSOCKET_URL', worker.url.replace('http:', 'ws:'))
   vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
-  vi.stubEnv('LOCAL_R2_ENDPOINT', worker.r2.endpoint)
   vi.stubEnv('CONVEX_SITE_URL', LOCAL_CONVEX_SITE_URL)
 }
 
