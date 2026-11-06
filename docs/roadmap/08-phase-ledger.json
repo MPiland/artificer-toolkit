@@ -22757,7 +22757,7 @@
         {
           "id": "RELIABILITY-21",
           "title": "Browser journey product bugs pass in CI",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [".github/workflows/browser-journeys.yml"],
           "journeyStatus": "verified",
           "origin": [],
@@ -22945,6 +22945,13 @@
               "proof": ["Closed by RELIABILITY-21.T26 (m572); see each task's proof."],
               "origin": [],
               "note": "Bug registered by the orchestrator on 2026-10-29: failed in m544, m545, ci/merge-m549, m551 (twice) and on the ci/spells-8-t4 and ci/spells-31-t5i tips, with about 12 queries stalling at 0.8-1.0 s and four timing out. Closed 2026-10-31 by RELIABILITY-21.T26."
+            },
+            {
+              "id": "RELIABILITY-21.22",
+              "text": "campaign-collaboration-browser passes without reruns: the Sheet's manual-roll Roll button stays attached and clickable for a second roll right after a GM-private roll converges.",
+              "status": "TODO",
+              "origin": [],
+              "note": "User approved 2026-11-06 (D187 growth +1). Roll button 'detached from the DOM' until the 30 s timeout on Browser journeys 42065527092 (ad42590bd) and the 7c605ddb7 shard-2 attempt 2 (ci/release-2-t1), both outside RELEASE-2.T1's diff. Evidence: local-validation/release-2-t1/bj2b and bj-42065527092."
             }
           ],
           "tasks": [
@@ -23363,6 +23370,19 @@
               },
               "text": "Bug: root-cause and fix the unhandled convex-test invariant \"Unexpected scheduled function state ... canceled\", which fails a Convex shard after every test in it passes. Seen in content/authoredDeletion.test.ts (m580), a suite 2/4 file (T5i4) and characterRolls.test.ts (T4c1c). No retries or swallowed errors. Prove with a repeat run or a red-first test.",
               "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one. Fix merged in m592 (1d9d29081), but CI labelled sheetSections.test.ts ALREADY-PASSING against the base, so it stays open until a regression test fails before the fix. Merged in m596 (e961f5d60); red proof on ci/reliability-21-t30-red."
+            },
+            {
+              "id": "RELIABILITY-21.T31",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.22"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "text": "Bug: root-cause and fix the manual-roll Roll button detaching after a roll. Suspect: CharacterSheetManualRoll.tsx:60 returns null whenever useCharacterSheetRoll() or useCharacterSheetRollDestination() is briefly null while `opened` survives, so the Popover dropdown remounts repeatedly. Fix the source of the flicker or the remount, not the test. Red-first component or story test, then a campaign-collaboration-browser proof run. No retries, raised timeouts or loosened assertions.",
+              "note": "Registered by the orchestrator on 2026-11-06 with user approval (D187 +1)."
             }
           ]
         }
