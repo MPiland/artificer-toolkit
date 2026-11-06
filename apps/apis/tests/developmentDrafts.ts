@@ -1260,9 +1260,13 @@ try {
           false
         )
       )
+      // The proof deleted the account itself, which revoked its sessions, so cleanup has nothing
+      // left to remove and could not authenticate as it.
       if (!retired.characterExists && !retired.profileExists) {
         const index = characterFixtures.findIndex((fixture) => fixture.characterId === characterId)
         if (index >= 0) characterFixtures.splice(index, 1)
+        const accountIndex = accounts.findIndex((account) => account.email === author.email)
+        if (accountIndex >= 0) accounts.splice(accountIndex, 1)
       }
     }
     console.log(JSON.stringify({ receiptLedgers: proof }))
