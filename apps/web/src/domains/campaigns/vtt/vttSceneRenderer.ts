@@ -1922,11 +1922,10 @@ export async function createVttSceneRenderer(
     if ((!previous?.areaAim && next.areaAim) || (!previous?.targeting && next.targeting)) {
       app.canvas.focus({ preventScroll: true })
     }
-    // The aim draws only the area under the pointer, so the measurements give way as it starts.
-    if (!previous?.areaAim && next.areaAim) destroyChildren(measurementLayer)
-    if (previous?.areaAim && !next.areaAim) {
+    // The aim draws only the area under the pointer, so the measurements give way while it lasts.
+    if (Boolean(previous?.areaAim) !== Boolean(next.areaAim)) {
       destroyChildren(measurementLayer)
-      drawMeasurements(next.scene)
+      if (!next.areaAim) drawMeasurements(next.scene)
     }
     if (previous) clearCommittedRemoteTokenDragPreviews(previous.scene, next.scene)
     clearCommittedRemoteFogPreviews(next.scene)
