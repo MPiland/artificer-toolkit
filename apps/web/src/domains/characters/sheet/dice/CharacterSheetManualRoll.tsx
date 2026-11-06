@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Button,
   Collapse,
+  Loader,
   NumberInput,
   Popover,
   SegmentedControl,
@@ -60,6 +61,7 @@ export function CharacterSheetManualRoll({
   if (!rolls || !destinations) return null
   const { clearManualRoll, executeRoll, hasManualRoll, pending } = rolls
   const { destination, destinationOptions, setDestination } = destinations
+  const rollBlocked = pending || totalDice > 40
 
   return (
     <Popover
@@ -235,13 +237,18 @@ export function CharacterSheetManualRoll({
             <Button disabled={!hasManualRoll} size='xs' variant='default' onClick={clearManualRoll}>
               Clear dice
             </Button>
+            {/* Not natively disabled (nor `loading`, which disables): a disabled button drops focus
+                out of the dropdown, so Escape stops closing the roller. The loader shows pending. */}
             <Button
-              disabled={pending || totalDice > 40}
-              loading={pending}
+              aria-busy={pending}
+              aria-disabled={rollBlocked}
+              data-disabled={rollBlocked}
+              leftSection={pending ? <Loader aria-hidden='true' size={12} /> : undefined}
               size='xs'
-              onClick={() =>
+              onClick={() => {
+                if (rollBlocked) return
                 void executeRoll(toManualRollRequest(rows, supportsD20Mode ? rollMode : undefined))
-              }
+              }}
             >
               Roll
             </Button>
