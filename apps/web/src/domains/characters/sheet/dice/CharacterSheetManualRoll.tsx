@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Button,
   Collapse,
+  Loader,
   NumberInput,
   Popover,
   SegmentedControl,
@@ -237,10 +238,12 @@ export function CharacterSheetManualRoll({
               Clear dice
             </Button>
             {/* Not natively disabled (nor `loading`, which disables): a disabled button drops focus
-                out of the dropdown, so Escape stops closing the roller. */}
+                out of the dropdown, so Escape stops closing the roller. The loader shows pending. */}
             <Button
+              aria-busy={pending}
               aria-disabled={rollBlocked}
               data-disabled={rollBlocked}
+              leftSection={pending ? <Loader aria-hidden='true' size={12} /> : undefined}
               size='xs'
               onClick={() => {
                 if (rollBlocked) return

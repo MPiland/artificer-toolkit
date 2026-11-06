@@ -78,6 +78,7 @@ describe('CharacterSheetManualRoll', () => {
     expect(onRoll).toHaveBeenCalledOnce()
     expect(roll).not.toBeDisabled()
     expect(roll).toHaveAttribute('aria-disabled', 'true')
+    expect(roll).toHaveAttribute('aria-busy', 'true')
     expect(roll).toHaveFocus()
     await user.click(roll)
     expect(onRoll).toHaveBeenCalledOnce()
