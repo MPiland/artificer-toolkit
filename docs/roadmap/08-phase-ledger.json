@@ -22965,9 +22965,9 @@
             {
               "id": "RELIABILITY-21.24",
               "text": "The Sheet reads users hit (sheetSlices.get) and the stored-section writes stay within a per-read module budget enforced by tests, stored sections become current after Character and Campaign-scope changes with one bounded retry, and campaign proofs read current sections under concurrent bursts; latency under real concurrency is gated on staging (D214, D215).",
-              "status": "DONE",
+              "status": "TODO",
               "origin": ["RELEASE-2"],
-              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run.",
+              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run. Reopened 2026-11-07: m649 full backstop (Browser journeys 42399914940) found writes that change Sheet fingerprint inputs without queuing a store (passage, movement, equipment-character, disarm-browser, campaign-lifecycle).",
               "proof": [
                 "Closed by RELIABILITY-21.T33 (m649); restated by user ruling 2026-11-07 (D214)."
               ]
@@ -23490,6 +23490,19 @@
                 "size": 3
               },
               "note": "Caps: characterSpellAccessCandidates.ts:37/:81 (373484013, D175), characterRules.ts:1341/:1347."
+            },
+            {
+              "id": "RELIABILITY-21.T36",
+              "text": "Every write that changes a Character Sheet fingerprint input queues its store, from one declared input list with a structural test; fix the affected-proof selection gap that let T33 merge without these proofs.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.24"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Regression found after T33 (m649). Evidence: local-validation/m649-backstop/."
             }
           ]
         }
