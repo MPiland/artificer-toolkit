@@ -9,6 +9,7 @@ import {
   LIVE_SESSION_PATH_PREFIX,
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
+  type EncounterSessionFrameDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SceneFogPublishCommandInput } from '@artificer-toolkit/schema/api/sceneFog'
@@ -61,10 +62,12 @@ type EncounterMovementBrowserInput = {
   readPlayerPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   /**
    * The reaction offer as the room holds it, checked before the reactor answers: the offer counts
-   * down while a Convex read waits for the checkpoint (D207). `sceneVersion` and `moverPosition`
-   * come from the newest room commit either tab received.
+   * down while a Convex read waits for the checkpoint (D207). `issuedAfter` is the clock just before
+   * the browser action that issues the offer; `sceneVersion` and `moverPosition` come from the newest
+   * room commit either tab received.
    */
   verifyReactionOffer: (issued: {
+    issuedAfter: number
     sceneVersion: number
     moverPosition: { x: number; y: number }
   }) => Promise<void>
@@ -116,6 +119,28 @@ export async function verifyEncounterMovementBrowser(
   let playerConvexSocketForDiagnostics: ConvexSocketTrace | undefined
   let pendingAtFailure: unknown
   let observedSceneVersion = 0
+  // Each tab's room Encounter-session frames, so a stuck decision drawer shows what the room sent.
+  const sessionFrames: Record<'owner' | 'player', unknown[]> = { owner: [], player: [] }
+  const observeSessionFrame = (tab: 'owner' | 'player') => (frame: EncounterSessionFrameDto) => {
+    const frames = sessionFrames[tab]
+    frames.push({
+      at: new Date().toISOString(),
+      stage,
+      ...(frame.held
+        ? {
+            version: frame.version,
+            pending: frame.state.pending && {
+              kind: frame.state.pending.kind,
+              occurrenceId: frame.state.pending.occurrenceId,
+              occurrenceVersion: frame.state.pending.occurrenceVersion
+            },
+            settlement: frame.settlement
+          }
+        : { held: false })
+    })
+    if (frames.length > 40) frames.shift()
+  }
+  let reactionIssuedAfter = 0
   let moverRoomPosition: { version: number; position: { x: number; y: number } } | undefined
   const observeSceneCommit = (commit: RoomSceneCommit) => {
     if (commit.sceneId !== input.scene.id) return
@@ -203,7 +228,8 @@ export async function verifyEncounterMovementBrowser(
         if (frame.command.type === 'MOVE_SCENE_TOKEN') movementCommand ??= frame
       },
       rejection: () => undefined,
-      sceneCommit: observeSceneCommit
+      sceneCommit: observeSceneCommit,
+      session: observeSessionFrame('player')
     })
     captureRoomSceneCommands(owner, {
       command: (frame) => {
@@ -212,7 +238,8 @@ export async function verifyEncounterMovementBrowser(
       rejection: (rejection) => {
         if (rejection.commandId === undoCommand?.command.commandId) undoRejection ??= rejection
       },
-      sceneCommit: observeSceneCommit
+      sceneCommit: observeSceneCommit,
+      session: observeSessionFrame('owner')
     })
 
     await Promise.all([
@@ -229,6 +256,7 @@ export async function verifyEncounterMovementBrowser(
     expect(diagnostics.filter((entry) => entry.includes('Server Error'))).toEqual([])
 
     stage = 'issue voluntary movement'
+    reactionIssuedAfter = Date.now()
     await dragToken(player, input)
     await expect.poll(() => movementCommand).toBeDefined()
     stage = 'await movement decision'
@@ -264,6 +292,8 @@ export async function verifyEncounterMovementBrowser(
       ).toBeVisible()
       await expect.poll(input.readPlayerPending).toBeNull()
       await owner.getByRole('button', { name: 'Open pending decision', exact: true }).click()
+      // The Passage continuation offers the reaction once the contest resolves.
+      reactionIssuedAfter = Date.now()
       await resolveEvidence(owner, input.readPending, 'min', true)
     }
 
@@ -282,6 +312,7 @@ export async function verifyEncounterMovementBrowser(
     await expect(reaction).toBeVisible()
     if (!moverRoomPosition) throw new Error('No room commit reported the mover position.')
     await input.verifyReactionOffer({
+      issuedAfter: reactionIssuedAfter,
       sceneVersion: observedSceneVersion,
       moverPosition: moverRoomPosition.position
     })
@@ -384,6 +415,11 @@ export async function verifyEncounterMovementBrowser(
   } catch (error) {
     failure = error instanceof Error ? error.message : 'Movement reaction browser failed.'
     pendingAtFailure = await Promise.allSettled([input.readPending(), input.readPlayerPending()])
+    // CI keeps the journey log, not the evidence directory.
+    console.error(
+      'Encounter movement failure trace:',
+      JSON.stringify({ stage, pendingAtFailure, sessionFrames }).slice(0, 20_000)
+    )
     await Promise.all([
       owner?.screenshot({
         caret: 'initial',
@@ -420,6 +456,7 @@ export async function verifyEncounterMovementBrowser(
               }
             : null,
           pendingAtFailure,
+          sessionFrames,
           diagnostics,
           unexpectedDiagnostics,
           forbiddenLegacyRequests
@@ -586,6 +623,7 @@ function captureRoomSceneCommands(
     command: (frame: RoomSceneCommandFrame) => void
     rejection: (rejection: RoomCommandRejection) => void
     sceneCommit: (commit: RoomSceneCommit) => void
+    session: (frame: EncounterSessionFrameDto) => void
   }
 ): void {
   page.on('websocket', (socket) => {
@@ -610,6 +648,7 @@ function captureRoomSceneCommands(
       )
       if (!message.success) return
       if (message.data.type === 'COMMAND_REJECTED') capture.rejection(message.data)
+      if (message.data.type === 'ENCOUNTER_SESSION') capture.session(message.data.session)
       if (message.data.type !== 'COMMAND_COMMITTED') return
       const delta = message.data.delta
       if (delta?.scope === 'SCENE') {

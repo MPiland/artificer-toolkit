@@ -3993,7 +3993,7 @@ try {
               })
             )
           },
-          verifyReactionOffer: async ({ sceneVersion, moverPosition }) => {
+          verifyReactionOffer: async ({ issuedAfter, sceneVersion, moverPosition }) => {
             // The room holds the Run, so it is the offer's authority until the Run checkpoints.
             const session = await owner.client.encounterSession(campaign.id, false)
             if (!session.held)
@@ -4007,12 +4007,14 @@ try {
             assert.ok(
               pending.choice.options.some((option) => option.actionId === fixture.reactor.actionId)
             )
-            // D207: the offer counts down the Campaign's reaction time from the commit that issued it.
+            // D207: the offer counts down the Campaign's reaction time from the commit that issued it,
+            // which the browser action started and this read follows (one clock on one machine).
             assert.equal(run.reactionSeconds, reactionSeconds)
             assert.deepEqual(run.afkUserIds, [])
-            assert.equal(
-              Date.parse(pending.answerBy),
-              Date.parse(run.updatedAt) + run.reactionSeconds * 1000
+            const issuedAt = Date.parse(pending.answerBy) - run.reactionSeconds * 1000
+            assert.ok(
+              issuedAfter <= issuedAt && issuedAt <= Date.now(),
+              `The offer must count down ${run.reactionSeconds} s from its issuing commit (answerBy ${pending.answerBy}).`
             )
             const contact = movementContact(
               pending.choice.pathDistance,
