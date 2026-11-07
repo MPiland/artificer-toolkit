@@ -37,7 +37,7 @@ export function readCharacterSheetPendingStore(ctx: Pick<QueryCtx, 'db'>, charac
  * Cancels a queued derivation and its check while they have not started. A derivation already
  * running cannot be cancelled: it checks its token against the pending row instead (`store`).
  */
-export async function cancelCharacterSheetPendingStore(
+async function cancelCharacterSheetPendingStore(
   ctx: SheetStoreScheduling,
   pending: { scheduledId?: Id<'_scheduled_functions'>; checkId?: Id<'_scheduled_functions'> }
 ) {
@@ -46,6 +46,20 @@ export async function cancelCharacterSheetPendingStore(
     const job = await ctx.db.system.get(jobId)
     if (job?.state.kind === 'pending') await ctx.scheduler.cancel(jobId)
   }
+}
+
+/**
+ * Clears a Character's pending store once its Sheet is stored or the Character is deleted. A
+ * Campaign's chain starts its next store once this transaction commits (D215).
+ */
+export async function settleCharacterSheetPendingStore(
+  ctx: SheetStoreScheduling,
+  pending: Doc<'characterSheetPendingStores'>
+) {
+  await cancelCharacterSheetPendingStore(ctx, pending)
+  await ctx.db.delete('characterSheetPendingStores', pending._id)
+  if (pending.campaignId !== undefined)
+    await scheduleNextCampaignCharacterSheetStore(ctx, pending.campaignId, 0)
 }
 
 /**
@@ -79,7 +93,13 @@ export async function scheduleCharacterSheetSections(
 ) {
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending) await cancelCharacterSheetPendingStore(ctx, pending)
-  const store = { characterId, token: crypto.randomUUID(), retried: false }
+  // A store that replaces one in a Campaign's chain stays in it, so it starts the next on landing.
+  const store = {
+    characterId,
+    token: crypto.randomUUID(),
+    retried: false,
+    ...(pending?.campaignId === undefined ? {} : { campaignId: pending.campaignId })
+  }
   const jobs = await scheduleCharacterSheetStore(ctx, store, CHARACTER_SHEET_STORE_DELAY_MS)
   if (pending)
     await ctx.db.replace('characterSheetPendingStores', pending._id, { ...store, ...jobs })

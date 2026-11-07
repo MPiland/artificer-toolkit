@@ -37,6 +37,7 @@ import {
   replaceCharacterDraftPayload,
   resolveCharacterId
 } from './documents'
+import { scheduleCharacterSheetSections } from './sheetSectionStores'
 import type { CharacterRow } from './stateDocuments'
 
 function parseDraftPayload(
@@ -117,6 +118,8 @@ async function openDraft(
   })
   await ctx.db.insert('characterDrafts', stored)
   await syncAccountUsage(ctx, 'personalCharacters', characterId)
+  // The Sheet shows that a Builder draft is open (ADR 0041).
+  if (active?.status === 'ACTIVE') await scheduleCharacterSheetSections(ctx, characterId)
   return characterBuilderDraftDtoSchema.parse({
     ...stored,
     draftState: active?.status === 'ACTIVE' ? 'ACTIVE_WITH_DRAFT' : 'DRAFT_ONLY',
@@ -273,6 +276,7 @@ export const discard = mutation({
         await deleteCharacterDraftPayload(ctx, draft)
         await ctx.db.delete(draft._id)
         await syncAccountUsage(ctx, 'personalCharacters', draft.characterId)
+        if (active?.status === 'ACTIVE') await scheduleCharacterSheetSections(ctx, id)
       }
     }
     return { ok: true as const }

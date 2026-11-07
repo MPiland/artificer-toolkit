@@ -28,9 +28,8 @@ import {
   type CharacterSheetSectionValue
 } from './sheetSections'
 import {
-  cancelCharacterSheetPendingStore,
   readCharacterSheetPendingStore,
-  scheduleNextCampaignCharacterSheetStore,
+  settleCharacterSheetPendingStore,
   verifyCharacterSheetStore
 } from './sheetSectionStores'
 import type { CharacterRecordRow } from './stateDocuments'
@@ -68,10 +67,7 @@ export async function storeCharacterSheetSections(
 ) {
   const characterId = facts.active.id
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
-  if (pending) {
-    await cancelCharacterSheetPendingStore(ctx, pending)
-    await ctx.db.delete('characterSheetPendingStores', pending._id)
-  }
+  if (pending) await settleCharacterSheetPendingStore(ctx, pending)
   const campaign = facts.sourceContext.context.sourceAccess.campaign
   const ownerContext: CharacterSheetCampaignContext = {
     ...facts.campaignContext,
@@ -138,14 +134,8 @@ export async function deriveAndStoreCharacterSheet(
   // A newer write queued its own derivation; this one began before it could be cancelled.
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending && pending.token !== token) return null
-  if (pending) {
-    // Landing cancels the check; a store that fails rolls this back, and the check queues it again.
-    await cancelCharacterSheetPendingStore(ctx, pending)
-    await ctx.db.delete('characterSheetPendingStores', pending._id)
-    // A Campaign change queued the party as a chain: the next store starts once this one commits.
-    if (pending.campaignId !== undefined)
-      await scheduleNextCampaignCharacterSheetStore(ctx, pending.campaignId, 0)
-  }
+  // Landing cancels the check; a store that fails rolls this back, and the check queues it again.
+  if (pending) await settleCharacterSheetPendingStore(ctx, pending)
   const { active } = await loadCharacterState(ctx, characterId)
   // A deleted Character, or one that needs Builder repair, has no Sheet to store. Repair is either
   // recorded (a reconciled loss leaves it a draft) or found below, when a replaced publication left

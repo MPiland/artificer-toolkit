@@ -41,7 +41,9 @@ Approved by the user on 2026-11-07 (RELIABILITY-21.T33). A Campaign-scope finger
 
 Triggers run for every tracked mutation, so a new write path needs no extra call. The queued store lives in its own small module because every tracked mutation loads it.
 
-A Campaign change queues its party as a chain, so at most one of the Campaign's stores runs at a time. Each assigned Character without a pending store gets a pending row carrying the `campaignId` and no job. The first row is scheduled after the usual delay. Each store, once it commits, starts the next waiting row. Parallel stores contended on the same Campaign rows and multiplied each other's facts and commit time 3 to 5 times, and 2 of 42 timed out (run 42389041471). A Character whose store is already pending is left alone, because that store has not committed and will read the change.
+A Campaign change queues its party as a chain, so at most one of the Campaign's stores runs at a time. Each assigned Character without a pending store gets a pending row carrying the `campaignId` and no job. The first row is scheduled after the usual delay. Each store, once it commits, starts the next waiting row. Parallel stores contended on the same Campaign rows and multiplied each other's facts and commit time 3 to 5 times, and 2 of 42 timed out (run 42389041471). A Character whose store is already pending is left alone, because that store has not committed and will read the change. A Character write that replaces a chain row's store keeps the row's `campaignId`, and deleting a Character clears its row the way a landing store does, so neither stalls the chain.
+
+Opening or discarding an edit draft over an active Character queues a store, because the fingerprint and the Sheet carry whether a Builder draft is open. Draft saves still queue nothing.
 
 Every scheduled store has a check, scheduled 2 s after the store is due (`characterSheetPendingStores.checkId`):
 
