@@ -20,15 +20,17 @@ import { projectCharacterPreparationOptions } from './preparationOptions'
 import { loadCharacterSheetFacts } from './sheetFacts'
 import { projectCharacterSheetFacts } from './sheetPreparation'
 import {
-  cancelCharacterSheetPendingStore,
   characterSheetSection,
   readCharacterSheetFingerprint,
   readCharacterSheetStoreState,
   type CharacterSheetFingerprintReads,
-  readCharacterSheetPendingStore,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
 } from './sheetSections'
+import {
+  cancelCharacterSheetPendingStore,
+  readCharacterSheetPendingStore
+} from './sheetSectionStores'
 import type { CharacterRecordRow } from './stateDocuments'
 
 // Notes are owner-only and read without derivation (`loadCharacterSheetNotes`).

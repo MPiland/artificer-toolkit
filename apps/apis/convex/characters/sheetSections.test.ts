@@ -9,6 +9,7 @@ import type { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/sche
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import {
   SRD_CONTENT_SOURCE,
@@ -18,7 +19,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { api, internal } from '../_generated/api'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  makePublishedRootOwned
+} from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 
@@ -546,5 +551,70 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect((await readDerivation())!.sections).toEqual(sections)
 
     expect((await rederive())!.sections).toEqual(derivation!.sections)
+  }, 60_000)
+
+  it('queues every assigned Character after a share, a membership change or a currency change', async () => {
+    const { t, player, gm, party, campaign, character } = await setup()
+    const readCommon = () =>
+      t.run((ctx) =>
+        readStoredCharacterSheetSection(ctx, {
+          userId: player.userId,
+          lookupId: character.id,
+          campaignId: campaign.id,
+          section: characterSheetSection.slice('COMMON')
+        })
+      )
+    const readPending = () =>
+      t.run(async (ctx) =>
+        (await ctx.db.query('characterSheetPendingStores').collect()).map((row) => row.characterId)
+      )
+    // Each change moves the Character's fingerprint outside a Character write; the same mutation
+    // queues its derivation, which lands and serves stored sections again (ADR 0041, D215).
+    const expectQueuedThenCurrent = async (change: () => Promise<unknown>) => {
+      expect(await readCommon()).not.toBeNull()
+      await change()
+      expect(await readPending()).toEqual([character.id])
+      expect(await readCommon()).toBeNull()
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+      expect(await readPending()).toEqual([])
+      expect(await readCommon()).not.toBeNull()
+    }
+
+    await t.run((ctx) => makePublishedRootOwned(ctx, acolyte.id, gm.userId))
+    await expectQueuedThenCurrent(() =>
+      gm.caller.mutation(api.campaigns.contentShares.share, {
+        campaignId: campaign.id,
+        subjectKind: 'BACKGROUND',
+        subjectId: acolyte.id
+      })
+    )
+    await expectQueuedThenCurrent(async () => {
+      const { version, accessStartedAt } = await t.run(async (ctx) => ({
+        version: (await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+          .unique())!.version,
+        accessStartedAt: (await ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_campaignId_userId', (q) =>
+            q.eq('campaignId', campaign.id).eq('userId', party.userId)
+          )
+          .unique())!.accessStartedAt
+      }))
+      await party.caller.mutation(api.campaigns.membershipDeparture.leave, {
+        campaignId: campaign.id,
+        expectedCampaignVersion: version,
+        expectedMembershipAccessStartedAt: accessStartedAt,
+        commandId: crypto.randomUUID()
+      })
+    })
+    await expectQueuedThenCurrent(() =>
+      gm.caller.mutation(api.campaigns.currencySystems.save, {
+        campaignId: campaign.id,
+        label: 'Campaign tokens',
+        isReference: true,
+        denominations: [{ label: 'Token', abbreviation: 'tk', scaleInReference: 1 }]
+      })
+    )
   }, 60_000)
 })

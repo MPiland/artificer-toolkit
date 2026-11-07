@@ -10,6 +10,11 @@ import {
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
+import {
+  characterSheetCampaignFields,
+  scheduleCampaignCharacterSheetSections,
+  scheduleCharacterSheetSections
+} from '../characters/sheetSectionStores'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
 import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
 import { withDomainRejections } from './domainRejectionTransport'
@@ -295,6 +300,25 @@ triggers.register('campaignMemberships', async (ctx, change) => {
   if (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role) return
   await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.campaignId }, false)
 })
+
+// Campaign-scope inputs of assigned Characters' Sheet fingerprints queue their stored sections in
+// the same transaction (ADR 0041 amendment, D215). A Campaign content head revision queues them
+// where it is marked (`markContentSnapshotScope`).
+triggers.register('campaigns', async (ctx, change) => {
+  if (
+    change.operation === 'update' &&
+    JSON.stringify(characterSheetCampaignFields(change.oldDoc)) !==
+      JSON.stringify(characterSheetCampaignFields(change.newDoc))
+  )
+    await scheduleCampaignCharacterSheetSections(ctx, change.newDoc.id)
+})
+triggers.register('campaignCurrencySystems', async (ctx, change) => {
+  await scheduleCampaignCharacterSheetSections(ctx, (change.newDoc ?? change.oldDoc).campaignId)
+})
+for (const tableName of ['campaignCharacterStates', 'campaignCharacterAssignments'] as const)
+  triggers.register(tableName, async (ctx, change) => {
+    await scheduleCharacterSheetSections(ctx, (change.newDoc ?? change.oldDoc).characterId)
+  })
 
 registerScope('campaigns', (_, document) => campaignScope(document.id))
 registerScope('campaignMemberships', (_, document) => campaignScope(document.campaignId))

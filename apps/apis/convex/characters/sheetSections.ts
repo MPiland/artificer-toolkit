@@ -3,12 +3,10 @@ import type { CharacterSheetSlice } from '@artificer-toolkit/schema/api/characte
 import type { CharacterSheetSectionViewer } from '@artificer-toolkit/schema/projections/characterSheetSections'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
-import { makeFunctionReference } from 'convex/server'
 import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
 } from '@artificer-toolkit/encounter-persistence/effectReads'
-import type { Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCampaignCharacterState } from '../campaigns/characterState'
@@ -17,6 +15,7 @@ import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readCharacterSheetState } from './documents'
 import { readAuthorizedCharacterSheetState } from './sheetInputs'
 import { readCharacterSources } from './sourceReads'
+import { characterSheetCampaignFields } from './sheetSectionStores'
 import type { Doc } from '../_generated/dataModel'
 import type { CharacterRecordRow } from './stateDocuments'
 
@@ -137,19 +136,7 @@ export async function readCharacterSheetFingerprint(
     hasDraft: state.hasDraft,
     publicId: state.publicId,
     systemChecksum: system?.checksum ?? null,
-    // Only the Campaign fields Sheet derivation reads: notebook and counter patches must not miss.
-    campaign: campaign
-      ? {
-          id: campaign.id,
-          ownerUserId: campaign.ownerUserId,
-          gameSystemId: campaign.gameSystemId,
-          status: campaign.status,
-          contentMaturity: campaign.contentMaturity ?? null,
-          attunementSlotOverride: campaign.attunementSlotOverride ?? null,
-          primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
-          additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
-        }
-      : null,
+    campaign: campaign ? characterSheetCampaignFields(campaign) : null,
     contentRevisions: scopes.map((scope, index) => [
       scope.scope,
       scope.scopeId,
@@ -303,53 +290,4 @@ export async function writeCharacterSheetSections(
     checksumCanonicalJson(stored.sections) !== checksumCanonicalJson(derivation.sections)
   )
     await ctx.db.replace('characterSheetDerivations', stored._id, derivation)
-}
-
-const storeReference = makeFunctionReference<
-  'mutation',
-  { characterId: string; token: string },
-  null
->('characters/sheetSectionDerivation:store')
-
-/** How long a queued derivation waits, so a burst of writes (a Builder session) derives once. */
-export const CHARACTER_SHEET_STORE_DELAY_MS = 300
-
-export function readCharacterSheetPendingStore(ctx: QueryCtx, characterId: string) {
-  return ctx.db
-    .query('characterSheetPendingStores')
-    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-    .unique()
-}
-
-/**
- * Cancels a queued derivation that has not started. One already running cannot be cancelled: it
- * checks its token against the pending row instead (`store`).
- */
-export async function cancelCharacterSheetPendingStore(
-  ctx: MutationCtx,
-  pending: { scheduledId: Id<'_scheduled_functions'> }
-) {
-  const job = await ctx.db.system.get(pending.scheduledId)
-  if (job?.state.kind === 'pending') await ctx.scheduler.cancel(pending.scheduledId)
-}
-
-/**
- * Queues the Sheet's derivation after a Character write; reads derive live until it lands. A newer
- * write cancels the pending derivation and queues its own, so a Character has one at a time.
- */
-export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
-  const pending = await readCharacterSheetPendingStore(ctx, characterId)
-  if (pending) await cancelCharacterSheetPendingStore(ctx, pending)
-  const token = crypto.randomUUID()
-  const scheduledId = await ctx.scheduler.runAfter(CHARACTER_SHEET_STORE_DELAY_MS, storeReference, {
-    characterId,
-    token
-  })
-  if (pending)
-    await ctx.db.replace('characterSheetPendingStores', pending._id, {
-      characterId,
-      scheduledId,
-      token
-    })
-  else await ctx.db.insert('characterSheetPendingStores', { characterId, scheduledId, token })
 }
