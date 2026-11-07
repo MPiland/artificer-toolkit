@@ -42,7 +42,11 @@ import {
   type SectionedNodeGroup,
   type SteppedNodeGroup
 } from '@artificer-toolkit/shared/utils'
-import { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
+import {
+  executeRelationshipPlan,
+  restrictPlanToOptionValues,
+  streamToOptions
+} from './relationshipExecutor.js'
 import { getRuntimeNodeMap } from './mapRegistry.js'
 import { systemCoreCodeTables } from './systemSourceRows.js'
 
@@ -91,7 +95,7 @@ function createScopeResolver(db: NodeRuntimeReader): ScopeResolver {
     const key = JSON.stringify([request.mapId, request.systemId, reads])
     let pending = resolved.get(key)
     if (!pending) {
-      pending = resolveNodeRuntimeScope(db, request)
+      pending = resolveNodeRuntimeScope(db, request, 'EDITOR')
       resolved.set(key, pending)
     }
     return pending
@@ -131,9 +135,16 @@ function collectScopeReads(
   }
 }
 
+/**
+ * `EDITOR` resolves every option an editor offers; `CHECK` resolves only the options that could
+ * match a select's current value, which is all ingress normalization compares.
+ */
+type OptionResolution = 'EDITOR' | 'CHECK'
+
 async function resolveNodeRuntimeScope(
   db: NodeRuntimeReader,
-  request: NodeRuntimeResolveRequestDto
+  request: NodeRuntimeResolveRequestDto,
+  optionResolution: OptionResolution
 ): Promise<ResolvedRuntimeScope> {
   const scope = toScope(request)
   const nodeMap = await expandKeyedNodes(db, getRuntimeNodeMap(request.mapId), scope)
@@ -145,7 +156,7 @@ async function resolveNodeRuntimeScope(
     const resolvedSections: NodeRuntimeSectionDto[] = []
 
     for (const section of step.sections) {
-      const nodes = await resolveSectionNodes(db, section, scope, clearPaths)
+      const nodes = await resolveSectionNodes(db, section, scope, clearPaths, optionResolution)
       resolvedSections.push({
         id: section.id,
         label: section.label,
@@ -325,18 +336,27 @@ export async function normalizeNodeRuntimeValues(
   db: NodeRuntimeReader,
   request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
-  return normalizeParsedValues(db, nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request))
+  return normalizeParsedValues(
+    db,
+    nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request),
+    'EDITOR'
+  )
 }
 
 /**
  * Normalizes an authored document at ingress (publication, import staging): it refuses a value that
  * names a System core code the System does not list, where an editor's normalization clears it.
+ * It reads only the options a document's values can be, so the result equals the editor's.
  */
 export async function normalizeIngressValues(
   db: NodeRuntimeReader,
   request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
-  const normalized = await normalizeNodeRuntimeValues(db, request)
+  const normalized = await normalizeParsedValues(
+    db,
+    nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request),
+    'CHECK'
+  )
   const [refused] = normalized.refusedPaths
   if (refused) {
     const value = isRuntimeRecord(request.values) ? getValueAtPath(request.values, refused) : null
@@ -351,9 +371,10 @@ export async function normalizeIngressValues(
 // each child again would re-walk and re-serialize the whole record, its parent and its ancestors.
 async function normalizeParsedValues(
   db: NodeRuntimeReader,
-  parsedRequest: NodeRuntimeNormalizeValuesRequestDto
+  parsedRequest: NodeRuntimeNormalizeValuesRequestDto,
+  optionResolution: OptionResolution
 ): Promise<NormalizedValues> {
-  const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
+  const resolved = await resolveNodeRuntimeScope(db, parsedRequest, optionResolution)
   const keyedNormalized = normalizeKeyedEntries(
     parsedRequest.mapId,
     isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {},
@@ -365,7 +386,8 @@ async function normalizeParsedValues(
     db,
     hiddenNormalized.values,
     resolved.steps,
-    parsedRequest
+    parsedRequest,
+    optionResolution
   )
 
   return {
@@ -471,7 +493,8 @@ async function normalizeVisibleGroups(
   db: NodeRuntimeReader,
   values: Record<string, unknown>,
   steps: readonly NodeRuntimeStepDto[],
-  request: NodeRuntimeNormalizeValuesRequestDto
+  request: NodeRuntimeNormalizeValuesRequestDto,
+  optionResolution: OptionResolution
 ): Promise<NormalizedValues> {
   let nextValues = values
   const clearedPaths: RuntimePath[] = []
@@ -489,13 +512,17 @@ async function normalizeVisibleGroups(
         if (node.groupKind === 'OBJECT') {
           if (!isRuntimeRecord(groupValue)) continue
 
-          const child = await normalizeParsedValues(db, {
-            mapId: childMapId,
-            values: groupValue,
-            parentValues: nextValues,
-            ancestors: childAncestors,
-            systemId: request.systemId
-          })
+          const child = await normalizeParsedValues(
+            db,
+            {
+              mapId: childMapId,
+              values: groupValue,
+              parentValues: nextValues,
+              ancestors: childAncestors,
+              systemId: request.systemId
+            },
+            optionResolution
+          )
           nextValues = setValueAtPath(nextValues, node.path, child.values)
           clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, ...path]))
           refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, ...path]))
@@ -504,24 +531,35 @@ async function normalizeVisibleGroups(
 
         if (!Array.isArray(groupValue)) continue
 
+        const rowValues = nextValues
         const normalizedRows = await Promise.all(
-          groupValue.map(async (row, index) => {
-            if (!isRuntimeRecord(row)) return row
-
-            const child = await normalizeParsedValues(db, {
-              mapId: childMapId,
-              values: row,
-              parentValues: nextValues,
-              ancestors: childAncestors,
-              systemId: request.systemId
-            })
-            clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
-            refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, index, ...path]))
-            return child.values
-          })
+          groupValue.map((row) =>
+            isRuntimeRecord(row)
+              ? normalizeParsedValues(
+                  db,
+                  {
+                    mapId: childMapId,
+                    values: row,
+                    parentValues: rowValues,
+                    ancestors: childAncestors,
+                    systemId: request.systemId
+                  },
+                  optionResolution
+                )
+              : { values: row, clearedPaths: [], refusedPaths: [] }
+          )
         )
+        // Rows normalize concurrently; their paths join in row order so the first refusal is stable.
+        for (const [index, child] of normalizedRows.entries()) {
+          clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
+          refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, index, ...path]))
+        }
 
-        nextValues = setValueAtPath(nextValues, node.path, normalizedRows)
+        nextValues = setValueAtPath(
+          nextValues,
+          node.path,
+          normalizedRows.map((child) => child.values)
+        )
       }
     }
   }
@@ -558,12 +596,13 @@ async function resolveSectionNodes(
   db: NodeRuntimeReader,
   section: SectionedNodeGroup,
   scope: NodeRuntimeScope,
-  clearPaths: RuntimePath[]
+  clearPaths: RuntimePath[],
+  optionResolution: OptionResolution
 ): Promise<NodeRuntimeNodeDto[]> {
   const nodes: NodeRuntimeNodeDto[] = []
 
   for (const entry of section.nodes) {
-    nodes.push(await resolveNode(db, entry.id, entry.node, scope, clearPaths))
+    nodes.push(await resolveNode(db, entry.id, entry.node, scope, clearPaths, optionResolution))
   }
 
   return nodes
@@ -574,7 +613,8 @@ async function resolveNode(
   id: string,
   node: RuntimeNodeEntry,
   scope: NodeRuntimeScope,
-  clearPaths: RuntimePath[]
+  clearPaths: RuntimePath[],
+  optionResolution: OptionResolution
 ): Promise<NodeRuntimeNodeDto> {
   const visible = evaluateConditionIf(node.showIf, scope)
   const required =
@@ -628,12 +668,22 @@ async function resolveNode(
     node.type === 'SELECT_NUMBER' ||
     node.type === 'SELECT_MULTI'
   ) {
+    const unknownOptions = unknownOptionsPolicy(node.source)
+    const checked = [getValueAtPath(scope.values, node.path)]
+      .flat()
+      .filter((value) => value != null && value !== '')
+    const source =
+      optionResolution === 'EDITOR'
+        ? node.source
+        : unknownOptions === 'PRESERVE' || checked.length === 0
+          ? undefined
+          : restrictSourceToOptionValues(node.source, checked)
     return {
       ...baseNode,
       kind: 'INPUT',
       type: node.type,
-      options: visible ? await resolveOptions(db, node.source, scope) : [],
-      unknownOptions: unknownOptionsPolicy(node.source),
+      options: visible && source ? await resolveOptions(db, source, scope) : [],
+      unknownOptions,
       constraints: node.constraints,
       authoring: resolveInputAuthoringMeta(node.authoring)
     }
@@ -664,6 +714,36 @@ function unknownOptionsPolicy(source: NodeSelectSource): 'PRESERVE' | 'REFUSE' |
   if (source.kind !== 'DATA') return undefined
   if (source.preserveUnknownOptions) return 'PRESERVE'
   return readsOnlyCoreCodes(source.relationship) ? 'REFUSE' : undefined
+}
+
+// Only the rows behind `values` can decide whether `values` are options.
+function restrictSourceToOptionValues(
+  source: NodeSelectSource,
+  values: readonly unknown[]
+): NodeSelectSource {
+  const restrictFilter = (filter: InlineFilter | undefined) =>
+    filter && { ...filter, by: restrictPlanToOptionValues(filter.by, values) }
+  switch (source.kind) {
+    case 'DATA':
+      return {
+        ...source,
+        relationship: restrictPlanToOptionValues(source.relationship, values),
+        filter: restrictFilter(source.filter)
+      }
+    case 'INLINE_OPTIONS':
+      return { ...source, filter: restrictFilter(source.filter) }
+    case 'INLINE_GROUPS':
+      return {
+        ...source,
+        optionGroups: source.optionGroups.map((group) => ({
+          ...group,
+          filter: restrictFilter(group.filter)
+        }))
+      }
+    case 'LOCAL_COLLECTION':
+    case 'DOCUMENT_OBJECTS':
+      return source
+  }
 }
 
 async function resolveOptions(

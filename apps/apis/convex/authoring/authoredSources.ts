@@ -1,9 +1,12 @@
 import {
   authoredSourceKindsByTable,
-  sortAuthoredSourceRows
+  readsRootCatalogueOnly,
+  sortAuthoredSourceRows,
+  type NodeRuntimeQueryRow
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import type {
   AuthoredNodeRuntimeSourceFacts,
+  AuthoredSourceRoots,
   NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { Doc } from '../_generated/dataModel'
@@ -13,19 +16,21 @@ import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'
 
+type AuthoredRoot = Doc<'authoredRoots'>
+
 export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, userId: string) {
   // Request-local sharing only: never retain private facts between users or mutations.
   let sources: ReturnType<typeof readAuthoringSources> | undefined
-  const rootsByKind = new Map<
-    Doc<'authoredRoots'>['subjectKind'],
-    Promise<AuthoredNodeRuntimeSourceFacts[]>
-  >()
+  const visibleSources = () => (sources ??= readAuthoringSources(ctx, systemId, userId))
+  const rootsById = new Map<string, Promise<AuthoredRoot[]>>()
+  const factsByRoot = new Map<string, Promise<AuthoredNodeRuntimeSourceFacts>>()
+  const factsByRead = new Map<string, Promise<AuthoredNodeRuntimeSourceFacts[]>>()
 
-  async function readKind(kind: Doc<'authoredRoots'>['subjectKind']) {
+  async function readKind(kind: AuthoredRoot['subjectKind']) {
     const facts: AuthoredNodeRuntimeSourceFacts[] = []
     // ponytail: current inline selectors require the complete <=500 visible roots per
     // kind. Add paginated source selection before raising this limit, never truncate.
-    for (const source of await (sources ??= readAuthoringSources(ctx, systemId, userId))) {
+    for (const source of await visibleSources()) {
       const roots = await contentStream(ctx.db)
         .query('authoredRoots')
         .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
@@ -38,26 +43,117 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
         .take(501 - facts.length)
       if (facts.length + roots.length > 500)
         throw new Error('Authoring options require paginated search.')
-      for (const root of roots) {
-        if (root.systemId !== systemId) throw new Error('Stored authoring System mismatch.')
-        facts.push(await readSourceFacts(ctx, root))
-      }
+      facts.push(...(await readFacts(roots.map(assertSystem))))
     }
     return facts
   }
 
-  return async (table: NodeRuntimeSourceTable) => {
+  // The same visibility as the per-kind scan: a readable source, its owner and a completed import.
+  async function readVisible(roots: readonly AuthoredRoot[]) {
+    const bySource = new Map((await visibleSources()).map((source) => [source.id, source]))
+    const visible: AuthoredRoot[] = []
+    for (const root of roots) {
+      const source = bySource.get(root.contentSourceId)
+      if (
+        source &&
+        root.ownerUserId === (source.kind === 'USER' ? source.ownerUserId : undefined) &&
+        (await isImportRowVisible(ctx, root.importJobId))
+      )
+        visible.push(assertSystem(root))
+    }
+    return visible
+  }
+
+  function assertSystem(root: AuthoredRoot) {
+    if (root.systemId !== systemId) throw new Error('Stored authoring System mismatch.')
+    return root
+  }
+
+  function readFacts(roots: readonly AuthoredRoot[]) {
+    return Promise.all(
+      roots.map((root) => memo(factsByRoot, root._id, () => readSourceFacts(ctx, root)))
+    )
+  }
+
+  function readRoot(id: string) {
+    return memo(rootsById, id, async () =>
+      readVisible(
+        await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', id))
+          .collect()
+      )
+    )
+  }
+
+  // Every write keeps `catalogue.category` equal to the document category the facts project.
+  async function readCategory(kind: AuthoredRoot['subjectKind'], category: string) {
+    const roots: AuthoredRoot[] = []
+    for (const ownerUserId of [undefined, userId])
+      roots.push(
+        ...(await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_system_kind_owner_category_name_id', (q) =>
+            q
+              .eq('systemId', systemId)
+              .eq('subjectKind', kind)
+              .eq('ownerUserId', ownerUserId)
+              .eq('catalogue.category', category)
+          )
+          .take(501 - roots.length))
+      )
+    if (roots.length > 500) throw new Error('Authoring options require paginated search.')
+    return readFacts(await readVisible(roots))
+  }
+
+  async function readNamedRoots(
+    kinds: readonly AuthoredRoot['subjectKind'][],
+    ids: readonly string[]
+  ) {
+    const roots = (await Promise.all(ids.map(readRoot))).flat()
+    return roots.filter((root) => kinds.includes(root.subjectKind))
+  }
+
+  async function readTableFacts(
+    kinds: readonly AuthoredRoot['subjectKind'][],
+    roots: AuthoredSourceRoots
+  ) {
+    if (roots.by === 'ID') return readFacts(await readNamedRoots(kinds, roots.ids))
+    const reads = kinds.flatMap((kind) =>
+      roots.by === 'KIND'
+        ? [memo(factsByRead, kind, () => readKind(kind))]
+        : roots.categories.map((category) =>
+            memo(factsByRead, `${kind} ${category}`, () => readCategory(kind, category))
+          )
+    )
+    return (await Promise.all(reads)).flat()
+  }
+
+  return async (
+    table: NodeRuntimeSourceTable,
+    roots: AuthoredSourceRoots,
+    columns: readonly string[]
+  ) => {
     const kinds = authoredSourceKindsByTable[table]
     if (!kinds) throw new Error(`Authoring source is not migrated: ${table}.`)
-    const rows = []
-    for (const kind of kinds) {
-      let pending = rootsByKind.get(kind)
-      if (!pending) {
-        pending = readKind(kind)
-        rootsByKind.set(kind, pending)
-      }
-      for (const facts of await pending) rows.push(...(facts.rows[table] ?? []))
-    }
-    return sortAuthoredSourceRows(rows)
+    // A root's own id and label are on its root document, so those reads skip its facts.
+    if (roots.by === 'ID' && readsRootCatalogueOnly(table, columns))
+      return sortAuthoredSourceRows(
+        (await readNamedRoots(kinds, roots.ids)).map((root): NodeRuntimeQueryRow => ({
+          id: root.id,
+          label: root.label
+        }))
+      )
+    const facts = await readTableFacts(kinds, roots)
+    return sortAuthoredSourceRows(facts.flatMap((root) => root.rows[table] ?? []))
   }
+}
+
+function memo<T>(cache: Map<string, Promise<T>>, key: string, read: () => Promise<T>) {
+  let pending = cache.get(key)
+  if (!pending) {
+    pending = read()
+    cache.set(key, pending)
+  }
+  return pending
 }

@@ -73,11 +73,29 @@ export const nodeRuntimeSourceManifest = {
 
 export type NodeRuntimeSourceTable = keyof typeof nodeRuntimeSourceManifest
 
+/**
+ * The authored roots one resolver read needs: the roots it names, the roots of the categories it
+ * names, or every visible root of the table's kinds.
+ */
+export const authoredSourceRootsSchema = lazySchema(() =>
+  z.discriminatedUnion('by', [
+    z.strictObject({ by: z.literal('ID'), ids: z.array(z.string()) }),
+    z.strictObject({ by: z.literal('CATEGORY'), categories: z.array(z.string()) }),
+    z.strictObject({ by: z.literal('KIND') })
+  ])
+)
+
+export type AuthoredSourceRoots = z.infer<typeof authoredSourceRootsSchema>
+
 /** Request-only read set checked atomically before committing prepared authoring. */
 export const nodeRuntimeSourceChecksumsSchema = lazySchema(() =>
-  z.partialRecord(
-    z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),
-    projectionChecksumSchema
+  z.array(
+    z.strictObject({
+      table: z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),
+      columns: z.array(z.string()),
+      roots: authoredSourceRootsSchema,
+      checksum: projectionChecksumSchema
+    })
   )
 )
 

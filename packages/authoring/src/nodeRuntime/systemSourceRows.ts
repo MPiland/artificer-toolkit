@@ -1,7 +1,9 @@
+import type { AuthoredSourceRoots } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
+import { authoredSourceRootsForRead } from './authoredSourceFacts.js'
 
 /**
  * The code-owned policy vocabulary of the System (rules-runtime `systemCoreCodeRegistry`). The
@@ -111,8 +113,14 @@ export function createNodeRuntimeSourceReader({
   system,
   coreCodes
 }: {
+  /**
+   * Rows of `table` from at least the `roots` named, holding at least `columns`; the executor
+   * applies the exact predicate.
+   */
   readAuthoredRows: (
-    table: NodeRuntimeSourceTable
+    table: NodeRuntimeSourceTable,
+    roots: AuthoredSourceRoots,
+    columns: readonly string[]
   ) => readonly NodeRuntimeQueryRow[] | Promise<readonly NodeRuntimeQueryRow[]>
   readReusableDefinitions: () => Promise<readonly { id: string; label: string }[]>
   system: SystemAuthoredDto
@@ -123,14 +131,15 @@ export function createNodeRuntimeSourceReader({
   // Nested feature maps share this read for the life of one reader.
   let definitions: Promise<NodeRuntimeQueryRow[]> | undefined
 
-  return async (table, columns, _where, scopeSystemId) => {
+  return async (table, columns, where, scopeSystemId) => {
     if (scopeSystemId?.toLowerCase() !== systemId) throw new Error('Authoring System mismatch.')
     const rows =
       table === 'reusable_definitions'
         ? await (definitions ??= readReusableDefinitions().then((rows) =>
             sortAuthoredSourceRows(rows.map(({ id, label }) => ({ id, label })))
           ))
-        : (vocabulary[table] ?? (await readAuthoredRows(table)))
+        : (vocabulary[table] ??
+          (await readAuthoredRows(table, authoredSourceRootsForRead(table, where), columns)))
     // The shared executor applies the validated predicate; this reader only supplies trusted facts.
     return rows.map((row) =>
       Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
