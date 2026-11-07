@@ -166,11 +166,8 @@ const ACCESS: Record<string, Record<string, Access>> = {
   'characters/rest': { preview: 'owner' },
   'characters/sheet': { get: 'owner' },
   'characters/sheetCommands': { execute: 'owner' },
-  'characters/sheetSlices': {
-    concentrationRoomRoute: 'owner',
-    get: 'owner',
-    liveAuthority: 'owner'
-  },
+  'characters/sheetLive': { concentrationRoomRoute: 'owner', liveAuthority: 'owner' },
+  'characters/sheetSlices': { get: 'owner' },
   'content/catalogue': {
     counts: {
       public:
