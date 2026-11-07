@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { STORY_WARMUP_PATH } from './src/test/storybook/storyWarmup'
 
 const appBaseURL = process.env.APP_E2E_BASE_URL ?? 'http://127.0.0.1:3000'
 const appUrl = new URL(appBaseURL)
@@ -8,7 +9,7 @@ const appWebServer = {
   name: 'app',
   command: `yarn exec vite dev --host ${appUrl.hostname} --port ${appPort}`,
   url: new URL('/zod-csp-bootstrap.js', appBaseURL).toString(),
-  // APP_E2E_BASE_URL names a web app a proof harness already started (developmentCharacterBrowser.ts).
+  // APP_E2E_BASE_URL names a web app a proof harness already started (developmentAppBrowser.ts).
   reuseExistingServer: !process.env.CI || Boolean(process.env.APP_E2E_BASE_URL),
   timeout: 120_000,
   cwd: '.'
@@ -17,7 +18,8 @@ const appWebServer = {
 const storybookWebServer = {
   name: 'storybook',
   command: 'yarn exec storybook dev --port 6006 --ci --host 127.0.0.1',
-  url: 'http://127.0.0.1:6006',
+  // Answers 503 until every story module is transformed, so no first test pays the cold compile.
+  url: `http://127.0.0.1:6006${STORY_WARMUP_PATH}`,
   reuseExistingServer: !process.env.CI,
   timeout: 120_000,
   cwd: '.'
@@ -72,8 +74,9 @@ function getScopedWebServers() {
 
   return [
     matchesProjectSelection('app', requestedProjects) ? appWebServer : null,
-    matchesProjectSelection('storybook', requestedProjects) ||
-    matchesProjectSelection('storybook-vtt-hardware', requestedProjects)
+    ['storybook', 'storybook-vtt-load', 'storybook-vtt-hardware'].some((project) =>
+      matchesProjectSelection(project, requestedProjects)
+    )
       ? storybookWebServer
       : null
   ].filter((server): server is typeof appWebServer | typeof storybookWebServer => Boolean(server))
@@ -120,6 +123,17 @@ export default defineConfig({
     {
       name: 'storybook',
       testDir: './tests/e2e/storybook',
+      // The VTT load workload is a perf record (D210), not a correctness journey.
+      testIgnore: /vttLoad\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://127.0.0.1:6006'
+      }
+    },
+    {
+      name: 'storybook-vtt-load',
+      testDir: './tests/e2e/storybook',
+      testMatch: /vttLoad\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:6006'

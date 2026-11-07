@@ -2,7 +2,7 @@
 // A slice runs only the Vitest files whose static import graph reaches a file it changed since the
 // phase branch; merge batches, pushes already on the phase branch and config changes run every file.
 //   node scripts/affectedTests.mjs --base <ref> [--branch <name>] [--full]
-// Writes `full`, `run-<suite>`, `<suite>-files` and `convex-shards`, and the red job's `merge-base`,
+// Writes `full`, `run-<suite>`, `<suite>-files`, `run-storybook-e2e` and `convex-shards`, and the red job's `merge-base`,
 // `red-files` and `red-suites`, to $GITHUB_OUTPUT when set.
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync, statSync } from 'node:fs'
@@ -19,8 +19,15 @@ export const SUITES = [
   { name: 'storybook', config: 'apps/web/vitest.config.ts', root: 'apps/web', project: 'storybook' }
 ]
 
-/** Playwright specs run locally against a served app (AGENTS.md Validation), not in this workflow. */
+/**
+ * Playwright specs, which no Vitest suite runs: the Storybook journeys run in this workflow's Storybook
+ * e2e job (storybookE2eRuns), the app journeys in browser proofs (browser-journeys.yml).
+ */
 export const LOCAL_ONLY = /^apps\/web\/tests\//
+
+/** The Playwright Storybook journeys and the config that serves them; vttLoad is a perf record (D210). */
+const STORYBOOK_E2E =
+  /^apps\/web\/(tests\/e2e\/storybook\/(?!vttLoad\.)[^/]+\.spec\.ts|playwright\.config\.ts)$/
 
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/
 
@@ -344,6 +351,16 @@ export function selectTests(graph, suites, changed) {
   )
 }
 
+/**
+ * Whether the Playwright Storybook journeys run. They open stories by URL, which no import graph sees,
+ * so any affected story runs them all, as does a change their specs or Playwright config import.
+ */
+export function storybookE2eRuns(graph, tracked, changed, selectedStories) {
+  if (selectedStories.length > 0) return true
+  const affected = affectedFiles(graph, changed)
+  return tracked.some((path) => STORYBOOK_E2E.test(path) && affected.has(path))
+}
+
 /** Why `changed` needs the full run, or null. */
 export function fullRunReason(changed, suites) {
   const setupFiles = new Set(suites.flatMap(({ setupFiles }) => setupFiles))
@@ -466,9 +483,11 @@ async function main() {
   fullReason ??= branch.startsWith('ci/merge-') ? `${branch} is a merge batch` : null
   fullReason ??= changed.length === 0 ? `HEAD is already on ${base}` : null
   fullReason ??= fullRunReason(changed, suites)
-  const selected = fullReason
-    ? Object.fromEntries(suites.map(({ name, tests }) => [name, tests]))
-    : selectTests(buildImportGraph(root, tracked), suites, changed)
+  const graph = fullReason ? null : buildImportGraph(root, tracked)
+  const selected = graph
+    ? selectTests(graph, suites, changed)
+    : Object.fromEntries(suites.map(({ name, tests }) => [name, tests]))
+  const storybookE2e = !graph || storybookE2eRuns(graph, tracked, changed, selected.storybook)
 
   const lines = [
     fullReason
@@ -476,7 +495,8 @@ async function main() {
       : `${changed.length} files changed since ${base} (${mergeBase.slice(0, 9)}).`,
     ...suites.map(
       ({ name, tests }) => `${name}: ${selected[name].length} of ${tests.length} test files`
-    )
+    ),
+    `storybook-e2e: ${storybookE2e ? 'runs' : 'skipped'}`
   ]
   console.log(lines.join('\n'))
   if (!fullReason)
@@ -499,6 +519,7 @@ async function main() {
         `red-files=${red.files.join(' ')}`,
         `red-suites=${JSON.stringify(red.suites)}`,
         `convex-shards=${JSON.stringify(convexShards(selected.convex.length, Boolean(fullReason)))}`,
+        `run-storybook-e2e=${storybookE2e}`,
         ...Object.entries(selected).flatMap(([name, files]) => [
           `run-${name}=${files.length > 0}`,
           // Paths relative to the directory the suite's Vitest runs from; empty on a full run.

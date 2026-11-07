@@ -2014,6 +2014,7 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Deterministic budgets still gate everywhere:** Convex I/O per session (4.3 MB, D209), call counts and payload sizes do not depend on host load.
 - **Trigger:** the `vtt-browser` ephemeral p95 assertion refused m613, m617 and m618 (198 to 342 ms) and passed on reruns of the same commits; it also failed on the m591 batch. PERF-1.T0 makes the journeys record instead of fail; PERF-1.T1 first compares the local ephemeral p95 at m612 and at the final tip, in case lost headroom points to a regression.
 - **UAT (user):** the owner and a few external testers run UAT on the unoptimized build, in parallel with the optimization pass, since it tests UX and flow order. External testers use staging with scripted scenarios (steps and expected results) plus a few open goal tasks; React Flow node authoring is postponed until after UAT.
+
 ## D211 (2026-11-03): authorization rulings from the PLATFORM-27 sweep
 
 - **Ruling (user):** only a Character's owner can assign it to a Campaign. The GM can still unassign it. A Character never becomes visible to a party unless its owner chooses that.
@@ -2036,3 +2037,14 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Testers see one build per round.** UAT fixes ship between tester rounds, never during one.
 - **Owner review is not acceptance.** The owner may walk through the scenarios on a local build at any time to find problems early. That walkthrough is not UAT acceptance, because the owner knows the product too well to stand in for a new user. Acceptance comes from the external testers' runs on the frozen staging build.
 - D210's latency rules (record locally and in CI, gate only on staging) are unchanged.
+
+## D213 (2026-11-06): the pre-staging gate is one green full CI run on the RC tip
+
+- **Ruling (user):** the correctness gate before staging promotion is one full CI run on the release-candidate tip, with every workflow green. A multi-hour local lifecycle is no longer required. It replaces the AGENTS.md rule that promotion needs a complete `yarn validate:pre-staging:local` run.
+- **The full run means:**
+  - Tests dispatched with `-f full=true`. This covers every typecheck, every Vitest suite, lint, boundaries and the Playwright Storybook journeys.
+  - Live backend on the same tip: codegen parity, deploy, seed and the SRD audit.
+  - Browser journeys dispatched with no proof named. This runs every CI proof: the browser proofs, the native proofs and the auth-confirmation spec. It finishes with a post-proof SRD audit.
+- **Performance is not part of this gate.** `vtt-load` and the `v15-workload` proof only record numbers (D210). The latency gate is PERF-2 on staging.
+- **The local lifecycle stays as a tool.** `yarn validate:pre-staging:local` still runs the same stages against the local container. Use it for the user's review data or to reproduce a CI failure locally.
+- RELIABILITY-21.T32 (AC RELIABILITY-21.23) brought the lifecycle's remaining correctness stages into CI: the Storybook e2e job, native and unsuffixed runner proofs as CI proofs, the auth-confirmation proof and the post-proof audit.

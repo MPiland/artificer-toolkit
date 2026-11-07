@@ -10,7 +10,7 @@ import { measureLatency } from '../apps/web/src/test/latencyGate.ts'
 import { verifyBuilderBudgets } from './builderBudgets.mjs'
 import { verifyV15Budgets } from './v15Budgets.mjs'
 import { generatedStatus } from './generatedDrift.mjs'
-import { runnerProofs } from './runnerProofs.mjs'
+import { NATIVE_PROOFS, runnerProofs } from './runnerProofs.mjs'
 import {
   assertConvexInstance,
   assertLoopbackUrl,
@@ -669,36 +669,9 @@ const localConvexStageNames = new Set([
 ])
 
 const releaseProofAttempt = Date.now().toString(36)
-// The proofs of the runner's -Proof ValidateSet that drive Convex and the Worker without the web app.
-// They run before the web app starts; every other runner proof is a browser stage, so a new runner
-// proof joins the lifecycle without an edit here.
-const nativeProofs = new Set([
-  'encounter-blueprints',
-  'character-concurrency',
-  'receipt-ledgers',
-  'notification-delivery',
-  'session-control',
-  'campaign-inventory',
-  'equipment-capacity',
-  'equipment-character',
-  'publication',
-  'publication-class',
-  'publication-feat',
-  'publication-equipment',
-  'encounter-lifecycle',
-  'checkpoint',
-  'checkpoint-large',
-  'encounter-action-contention',
-  'encounter-reaction-contention',
-  'campaign-item-producers',
-  'campaign-vehicle-producers',
-  'campaign-inventory-read-probe',
-  'campaign-membership-custody',
-  'campaign-currency-lifecycle',
-  'campaign-assignment-lifecycle',
-  'campaign-qualified-currency',
-  'campaign-custody-authored-delete'
-])
+// Native proofs run before the web app starts; every other runner proof is a browser stage, so a new
+// runner proof joins the lifecycle without an edit here.
+const nativeProofs = new Set(NATIVE_PROOFS)
 const proofRunnerScript = 'scripts/runLocalConvexProof.ps1'
 const proofRunner = ['-NoProfile', '-NonInteractive', '-File', proofRunnerScript]
 const runnerProofSet = runnerProofs(readFileSync(resolve(root, proofRunnerScript), 'utf8'))
@@ -902,14 +875,10 @@ export const stages = [
   ...runnerProofSet
     .filter((proof) => nativeProofs.has(proof))
     .map((proof) => localProofStage(proof, 'native')),
-  stage('web-e2e', 'Public web and Storybook end-to-end suite', 'yarn', [
+  stage('web-e2e', 'Storybook end-to-end suite', 'yarn', [
     'workspace',
     '@artificer-toolkit/web',
-    'test:e2e',
-    'tests/e2e/app/authConfirmation.spec.ts',
-    'tests/e2e/storybook/authoringWalkthrough.spec.ts',
-    'tests/e2e/storybook/mobileCatalogueLayout.spec.ts',
-    'tests/e2e/storybook/notifications.spec.ts'
+    'test:e2e:storybook'
   ]),
   ...browserProofs.map((proof) => localProofStage(proof, 'browser')),
 

@@ -27,6 +27,19 @@ flowchart LR
 
 ## Final local source
 
+**Current (D213, 2026-11-06):** the pre-staging correctness gate is one full CI run on the RC tip,
+with every workflow green:
+
+- `gh workflow run tests.yml --ref ci/<rc> -f full=true`;
+- Live backend on the same tip;
+- `gh workflow run browser-journeys.yml --ref ci/<rc>`, which runs every CI proof (browser, native and
+  auth confirmation) and then the post-proof SRD audit.
+
+See [CI validation](../architecture/ci-validation.md). Step 4's local lifecycle is no longer a gate.
+It stays a tool for the user's local review data and for reproducing a CI failure on this machine.
+Performance (`vtt-load`, `v15-workload`) only records numbers here, as D210 says, and gates on staging
+(PERF-2).
+
 1. Apply only the reviewed, explicitly approved local removal packets. Retain their before archives,
    manifests, hashes, native exit codes, and complete logs. Local deletion does not authorize deleting
    a managed service or its data.
@@ -35,7 +48,7 @@ flowchart LR
    durable session-host compatibility.
 3. Keep the existing Docker container, volume, and media helper. Do not create replacement
    infrastructure or restart Docker to clear fixtures.
-4. Run `yarn validate:pre-staging:local`. It cleans runtime outputs and builds the workspaces before
+4. Optional local reproduction (not a gate, D213): `yarn validate:pre-staging:local`. It cleans runtime outputs and builds the workspaces before
    generating artifacts, because the generators import compiled workspace packages. The build uses
    committed generated files; regeneration must preserve their exact bytes or the gate fails.
    Package and native Convex typechecks follow, separately from tests, with `GOMAXPROCS=2` and

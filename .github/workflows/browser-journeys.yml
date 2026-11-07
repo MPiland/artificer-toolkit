@@ -7,7 +7,8 @@
 # app, scripts/runLocalConvexProof.ps1) runs unchanged under pwsh on Linux. The container shares the
 # runner's host network, so its Node actions reach the host Worker at host.docker.internal:8787.
 # Every ci/** push runs the `select` job (scripts/affectedBrowserJourneys.mjs), which picks CI proofs
-# (the *-browser proofs of scripts/runLocalConvexProof.ps1, the one proof list). A slice whose changes
+# (every scripts/runLocalConvexProof.ps1 proof but the record-only workloads, scripts/runnerProofs.mjs;
+# native proofs run without the web app). A slice whose changes
 # since the phase branch reach a journey through the Tests workflow's import graph runs the journeys its
 # task's acceptance criteria name (the ledger's AC `journeys`); a stack change and a ci/merge-* batch run
 # every CI proof; otherwise the run passes with no proof. A dispatch runs the named proofs (any
@@ -157,6 +158,10 @@ jobs:
             echo "- $proof: $result in $((SECONDS - started)) s$label" >> "$GITHUB_STEP_SUMMARY"
           done < <(jq -r '.[] | [.proof, .knownBug] | @tsv' <<< "$PROOFS")
           exit "$failed"
+      # The lifecycle's post-browser audit: no proof may leave the canonical SRD source changed.
+      - name: Reaudit the SRD source after the proofs
+        if: ${{ !cancelled() }}
+        run: node scripts/liveBackendValidation.mjs --steps=audit --log-dir=browser-journey-logs/live-backend-post --secrets-file="$RUNNER_TEMP/throwaway-secrets"
       - name: Evidence holds no generated secret
         if: always()
         env:

@@ -1,6 +1,6 @@
-// Runs one native browser proof against the LOCAL Docker Convex deployment without the full
+// Runs one runner proof against the LOCAL Docker Convex deployment without the full
 // pre-staging lifecycle: optionally deploys the current source to the local container, starts the
-// documented Worker (127.0.0.1:8787) and web app (localhost:3000) with the same secret handling as
+// documented Worker (127.0.0.1:8787) and, for a browser proof, web app (localhost:3000) with the same secret handling as
 // scripts/validatePreStagingLocal.mjs, runs scripts/runLocalConvexProof.ps1, then stops only the
 // services it started. It never resets or reseeds the container.
 //
@@ -8,6 +8,7 @@
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { convexCliArguments, convexDeployArguments } from './convexSelfHosted.mjs'
+import { NATIVE_PROOFS } from './runnerProofs.mjs'
 import {
   assertLocalLifecycleTarget,
   ensureLocalConvexFixtures,
@@ -44,10 +45,11 @@ await ensureLocalConvexFixtures(artifactDirectory)
 
 const services = []
 try {
-  // The self-managed proof starts its own Worker and web app on the same ports.
+  // The self-managed proof starts its own Worker and web app on the same ports; a native proof drives
+  // Convex and the Worker without the web app.
   if (proof !== selfManagedBrowserProof) {
     services.push(await startLocalSessionWorker(artifactDirectory))
-    services.push(await startLocalWebApp(artifactDirectory))
+    if (!NATIVE_PROOFS.includes(proof)) services.push(await startLocalWebApp(artifactDirectory))
   }
   await run(
     'pwsh',
