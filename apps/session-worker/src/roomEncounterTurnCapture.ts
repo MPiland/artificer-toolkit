@@ -25,7 +25,7 @@ import {
 import {
   readCharacterEffect,
   readEncounterEffect
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { isCharacterDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'

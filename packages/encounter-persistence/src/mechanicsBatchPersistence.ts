@@ -31,7 +31,8 @@ import {
   endGrantsOnHitPointsRegained,
   spendEffectUses
 } from './consumedGrantPersistence.js'
-import { createActiveRuleEffectStore, listActiveRuleEffects } from './effectStore.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 

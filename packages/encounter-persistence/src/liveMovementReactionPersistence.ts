@@ -22,7 +22,7 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import {
   applyFailedCounterSpends,
   failedCounterSpends,

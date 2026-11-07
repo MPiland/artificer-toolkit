@@ -6,7 +6,7 @@ import type { CharacterTurnFacts } from '@artificer-toolkit/rules-runtime/charac
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import { readRunActor, readRunActors } from './documents.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type { EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 

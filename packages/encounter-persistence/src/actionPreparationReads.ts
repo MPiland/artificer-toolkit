@@ -42,7 +42,7 @@ import {
 } from './actionSceneInputs.js'
 import { rejectDomain } from './domainRejections.js'
 import { refuseStaleCharacterAction } from './staleCharacterAction.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
 import { readEncounterSpellPins } from './spellPins.js'

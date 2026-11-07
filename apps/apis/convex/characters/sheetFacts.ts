@@ -3,7 +3,7 @@ import type { QueryCtx } from '../_generated/server'
 import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import { readSystem } from '../content/systemDocuments'
 import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import type { CharacterSheetFingerprintReads } from './sheetSections'

@@ -1,5 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
-import { readCharacterEffect } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readCharacterEffect } from '@artificer-toolkit/encounter-persistence/effectReads'
 import { withEncounterActorIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {

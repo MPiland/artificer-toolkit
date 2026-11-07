@@ -105,7 +105,8 @@ import {
   grantedActionId,
   nextGrantedActionUseKey
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
-import { listActiveRuleEffects, readActiveEffectsByActorId } from './effectStore.js'
+import { readActiveEffectsByActorId } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { readTurnUses } from './turnMovement.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { CampaignAuthority, EncounterTurnReadTransaction } from './ports.js'

@@ -17,7 +17,7 @@ import {
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readActorConcentrationEffects } from './concentrationListing.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import type { EncounterProjectionTransaction } from './ports.js'
 import type { EncounterReadContext } from './store.js'

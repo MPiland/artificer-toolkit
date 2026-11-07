@@ -4,7 +4,7 @@ import { expect, it, vi } from 'vitest'
 import {
   readCharacterEffect,
   readEncounterEffect
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { convexTest } from '../../tests/convexTest'

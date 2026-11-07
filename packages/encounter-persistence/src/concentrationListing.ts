@@ -8,7 +8,7 @@ import {
   listCarriedActiveRuleEffects,
   readDependentEffects,
   readMaintainedStatesByDefinition
-} from './effectStore.js'
+} from './effectReads.js'
 import type { EncounterReadContext } from './store.js'
 
 /** How many Concentrations an Encounter actor keeps now; 0 when it holds none. */

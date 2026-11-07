@@ -40,7 +40,7 @@ import {
 } from './actionCommitRecords.js'
 import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
 import { insertSpellCastCheck } from './spellCastCheckPersistence.js'

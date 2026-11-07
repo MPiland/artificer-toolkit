@@ -2,7 +2,7 @@ import { readEncounterMaintenanceCapture } from '@artificer-toolkit/encounter-pe
 import {
   readCharacterEffect,
   readEncounterEffect
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import type { EncounterReadTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 

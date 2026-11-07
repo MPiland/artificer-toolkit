@@ -1,7 +1,7 @@
 import migrations from '@convex-dev/migrations/test'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import { readMaintainedState } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readMaintainedState } from '@artificer-toolkit/encounter-persistence/effectReads'
 import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { convexTest } from '../../tests/convexTest'

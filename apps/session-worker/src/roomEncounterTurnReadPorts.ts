@@ -2,7 +2,7 @@ import type {
   EncounterTurnReadPorts,
   EncounterTurnReadTransaction
 } from '@artificer-toolkit/encounter-persistence/ports'
-import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
 import { MAX_BASIC_ACTION_CHOICES } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'

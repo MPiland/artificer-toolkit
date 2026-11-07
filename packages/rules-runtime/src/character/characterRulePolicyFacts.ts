@@ -1,7 +1,4 @@
-import {
-  characterRulePolicyInputSchema,
-  type CharacterRulePolicyInput
-} from '@artificer-toolkit/schema/api/characterRules'
+import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledCreature, CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 
@@ -72,21 +69,21 @@ interface CharacterRulePolicyFactsPreparation {
 }
 
 /**
- * Parsed facts per loaded context, keyed by the facts before parsing. A transaction evaluates one
- * Character several times over the same context (Builder reconciliation, the Sheet, then the write
- * after a command), and parsing is deterministic, so unchanged facts are parsed once. The same parsed
- * object comes back, which lets the policy output be reused too (`evaluateCharacterRules`).
+ * Facts per loaded context, keyed by their content. A transaction evaluates one Character several
+ * times over the same context (Builder reconciliation, the Sheet, then the write after a command), so
+ * unchanged facts come back as the same object, which lets the policy output be reused
+ * (`evaluateCharacterRules`). The facts are built here from typed, already-validated sources and are
+ * not parsed again: parsing them was about half of a Sheet read's CPU (RELIABILITY-21.T33).
  */
-const parsedFactsByContext = new WeakMap<object, Map<string, CharacterRulePolicyInput>>()
+const factsByContext = new WeakMap<object, Map<string, CharacterRulePolicyInput>>()
 
-function parseCharacterRulePolicyFacts(context: object, unparsed: unknown) {
-  let parsed = parsedFactsByContext.get(context)
-  if (!parsed) parsedFactsByContext.set(context, (parsed = new Map()))
-  const key = JSON.stringify(unparsed)
-  const cached = parsed.get(key)
+function reuseCharacterRulePolicyFacts(context: object, facts: CharacterRulePolicyInput) {
+  let known = factsByContext.get(context)
+  if (!known) factsByContext.set(context, (known = new Map()))
+  const key = JSON.stringify(facts)
+  const cached = known.get(key)
   if (cached) return cached
-  const facts = characterRulePolicyInputSchema.parse(unparsed)
-  parsed.set(key, facts)
+  known.set(key, facts)
   return facts
 }
 
@@ -140,7 +137,7 @@ export function composeCharacterRulePolicyFacts(
   })
   const abilityDefinitions =
     context.vocabularySnapshot?.document.abilities.map(({ id, code }) => ({ id, code })) ?? []
-  const facts = parseCharacterRulePolicyFacts(context, {
+  const facts = reuseCharacterRulePolicyFacts(context, {
     contractVersion: 4,
     abilityDefinitions,
     grantFoldFacts,

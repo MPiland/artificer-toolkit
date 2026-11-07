@@ -18,7 +18,8 @@ import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runti
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { isDepartedCharacterActor, readDeadCharacterIds } from './characterStates.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
-import { createActiveRuleEffectStore, listActiveRuleEffects } from './effectStore.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
 import { readRuleRollRouting } from './ruleRollCards.js'
 

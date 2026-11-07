@@ -7,7 +7,7 @@ import { makeFunctionReference } from 'convex/server'
 import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import type { Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
