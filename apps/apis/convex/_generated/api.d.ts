@@ -305831,6 +305831,12 @@ export declare const internal: {
         { characterId: string; userId: string },
         null
       >;
+      sheetSectionsState: FunctionReference<
+        "query",
+        "internal",
+        { characterId: string },
+        "CURRENT" | "NO_SHEET" | "QUEUED" | "MISSING" | "FAILED"
+      >;
     };
     developmentReceiptLedgers: {
       create: FunctionReference<
