@@ -113,6 +113,8 @@ export type CommandRoom = {
   readEncounterSession: () => Promise<EncounterSessionFrameDto>
   /** Resolves once the room has admitted this member and sent its first STATE_SYNC. */
   whenReady: () => Promise<void>
+  /** Resolves when the room closes this socket because the member's Campaign access ended; any other end rejects. */
+  whenEvicted: () => Promise<void>
   /** The Scene as the room last reported it to this socket, or null before the room has sent one. */
   scene: () => { id: string; version: number } | null
   /** Holds the Encounter session subscription, re-sent after the room asks to authenticate again. */
@@ -295,6 +297,7 @@ export function openCommandRoom(options: {
   // Admitted and synced: set by STATE_SYNC, cleared when the room asks to authenticate again.
   let synced = false
   const readyWaiters: { resolve: () => void; reject: (error: Error) => void }[] = []
+  const evictionWaiters: { resolve: () => void; reject: (error: Error) => void }[] = []
   let encounterTimeline: boolean | null = null
   let encounterSubscribed = false
   let sequence: number | null = null
@@ -335,6 +338,7 @@ export function openCommandRoom(options: {
     }
     sessionReads.clear()
     for (const waiter of readyWaiters.splice(0)) waiter.reject(error)
+    for (const waiter of evictionWaiters.splice(0)) waiter.reject(error)
     socket?.close(1000, 'Development driver closed the Session room.')
     options.onClosed()
   }
@@ -347,6 +351,7 @@ export function openCommandRoom(options: {
       pendingReads.size === 0 &&
       sessionReads.size === 0 &&
       readyWaiters.length === 0 &&
+      evictionWaiters.length === 0 &&
       !failure &&
       !options.holdOpen
     ) {
@@ -637,6 +642,8 @@ export function openCommandRoom(options: {
         setTimeout(() => void join(attempt + 1).catch(joinFailed), 250 * 2 ** attempt)
         return
       }
+      if (admitted && event.code === 1008 && event.reason === roomAccessEndedReason)
+        for (const waiter of evictionWaiters.splice(0)) waiter.resolve()
       // The room evicts a member whose Campaign access changed (an ownership transfer). Like the
       // browser, rejoin with a fresh ticket and resend what waits: its command ID makes a repeat an
       // exact replay, and the room plans it for the access the member holds now.
@@ -725,6 +732,14 @@ export function openCommandRoom(options: {
     return new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject }))
   }
 
+  const whenEvicted = () => {
+    if (failure) return Promise.reject(failure)
+    // The watcher keeps the room open until the eviction arrives.
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = null
+    return new Promise<void>((resolve, reject) => evictionWaiters.push({ resolve, reject }))
+  }
+
   const readEncounter = async (read: EncounterReadDto): Promise<EncounterReadResultDto> => {
     await whenReady()
     const requestId = crypto.randomUUID()
@@ -774,6 +789,7 @@ export function openCommandRoom(options: {
     close,
     scene: () => roomScene,
     whenReady,
+    whenEvicted,
     readEncounter,
     readEncounterSession,
     subscribeEncounterSession(timeline) {
@@ -912,6 +928,19 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     super.clearAuth()
     this.#accessToken = null
     this.#fetchToken = null
+  }
+
+  /**
+   * Joins the Campaign's room and returns the eviction of this member, to subscribe before a
+   * departure commits: Convex notifies the room after the commit (EVICT_USER, fire-and-forget).
+   */
+  async watchEviction(campaignId: string): Promise<{ evicted: Promise<void> }> {
+    const room = this.#room(campaignId)
+    const evicted = room.whenEvicted()
+    // Awaited by the caller after the departure; handled here so an early failure is not unhandled.
+    evicted.catch(() => undefined)
+    await room.whenReady()
+    return { evicted }
   }
 
   override mutation<
