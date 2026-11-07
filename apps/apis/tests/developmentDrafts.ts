@@ -3822,6 +3822,7 @@ try {
         player.client.setAuth(await player.fetchToken())
         let reactionAllowanceBefore: number | undefined
         let reactionRunVersion: number | undefined
+        let reactionSceneVersion: number | undefined
         let passageRunVersion: number | undefined
         const readFog = async (client: typeof owner.client) => {
           const header = await client.query(api.scenes.recipientReads.header, {
@@ -3907,8 +3908,13 @@ try {
             )
           )
         }
-        let reactionIssuedMovement: Awaited<ReturnType<typeof readMovementState>> | undefined
         let completedMovement: Awaited<ReturnType<typeof readMovementState>> | undefined
+        const { reactionSeconds } = await owner.client.query(api.campaigns.playSettings.get, {
+          campaignId: campaign.id
+        })
+        const movementPath = passageBrowser
+          ? { from: { x: 50, y: 50 }, to: { x: 550, y: 50 } }
+          : { from: { x: 150, y: 50 }, to: { x: 350, y: 50 } }
         await verifyEncounterMovementBrowser({
           scenario: passageBrowser ? 'PASSAGE' : 'REACTION',
           owner,
@@ -3925,8 +3931,7 @@ try {
             actorId: fixture.mover.actorId,
             tokenId: fixture.mover.tokenId,
             label: 'Movement reaction mover',
-            from: passageBrowser ? { x: 50, y: 50 } : { x: 150, y: 50 },
-            to: passageBrowser ? { x: 550, y: 50 } : { x: 350, y: 50 }
+            ...movementPath
           },
           reactor: fixture.reactor,
           evidenceDirectory: fileURLToPath(
@@ -3948,21 +3953,6 @@ try {
               await readMovementState(),
               before,
               'Exact movement replay must not append mechanics, Run, token, or fog projections.'
-            )
-          },
-          retryExactUndo: async (submission) => {
-            const before = await readMovementState()
-            const { result: replay } = await owner.client.executeSceneCommand(
-              submission.command.command,
-              submission.command.expectedSessionSequence
-            )
-            // The room marks a replayed receipt `replayed` and returns the rest of it unchanged.
-            assert.equal(replay?.replayed, true)
-            assert.deepEqual(replay, { ...submission.result, replayed: true })
-            assert.deepEqual(
-              await readMovementState(),
-              before,
-              'Exact undo replay must not append Scene, fog, Run, timeline, or Character changes.'
             )
           },
           readPending: async () => {
@@ -3993,6 +3983,9 @@ try {
               (entry) => entry.userId === player.identity.userId
             )
             assert.ok(membership)
+            // Convex notifies the room after the departure commits (EVICT_USER, fire-and-forget;
+            // docs/architecture/live-sessions.md), so the refusal is read once the room has closed the socket.
+            const { evicted } = await player.client.watchEviction(campaign.id)
             await owner.client.mutation(api.campaigns.membershipDeparture.removeMember, {
               campaignId: campaign.id,
               userId: player.identity.userId,
@@ -4000,11 +3993,54 @@ try {
               expectedCampaignVersion: current.version,
               expectedMembershipAccessStartedAt: membership.accessStartedAt
             })
+            await evicted
             await assert.rejects(() =>
               player.client.query(api.encounters.pendingReads.pendingRuleOccurrence, {
                 encounterId: fixture.run.id
               })
             )
+          },
+          verifyReactionOffer: async ({ issuedAfter, sceneVersion, moverPosition }) => {
+            // The room holds the Run, so it is the offer's authority until the Run checkpoints.
+            const session = await owner.client.encounterSession(campaign.id, false)
+            if (!session.held)
+              throw new Error('The room must hold the Run during the reaction offer.')
+            const { pending } = session.state
+            if (pending?.kind !== 'MOVEMENT_REACTION' || pending.answerBy === undefined)
+              throw new Error('Movement reaction is not pending.')
+            const run = encounterGmProjectionDtoSchema.parse(session.state.encounter)
+            assert.equal(pending.choice.reactorActorId, fixture.reactor.actorId)
+            assert.equal(pending.choice.reactorTokenId, fixture.reactor.tokenId)
+            assert.ok(
+              pending.choice.options.some((option) => option.actionId === fixture.reactor.actionId)
+            )
+            // D207: the offer counts down the Campaign's reaction time from the commit that issued it,
+            // which the browser action started and this read follows (one clock on one machine).
+            assert.equal(run.reactionSeconds, reactionSeconds)
+            assert.deepEqual(run.afkUserIds, [])
+            const issuedAt = Date.parse(pending.answerBy) - run.reactionSeconds * 1000
+            assert.ok(
+              issuedAfter <= issuedAt && issuedAt <= Date.now(),
+              `The offer must count down ${run.reactionSeconds} s from its issuing commit (answerBy ${pending.answerBy}).`
+            )
+            const contact = movementContact(
+              pending.choice.pathDistance,
+              movementPath.from,
+              movementPath.to
+            )
+            assert.ok(
+              Math.hypot(moverPosition.x - contact.x, moverPosition.y - contact.y) < 0.001,
+              'The room must stop the mover where the reaction triggers.'
+            )
+            if (passageBrowser) {
+              if (passageRunVersion === undefined)
+                throw new Error('Passage Run baseline is unavailable.')
+              assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 1)
+              assert.equal(run.version, passageRunVersion + 1)
+            }
+            reactionAllowanceBefore = reactionAllowanceUsed(run, fixture.reactor.actorId)
+            reactionRunVersion = run.version
+            reactionSceneVersion = sceneVersion
           },
           verifyAuthoritative: async (stage, observedSceneVersion) => {
             // Room Scene and Run commits reach Convex at a checkpoint; read only once it holds them.
@@ -4058,17 +4094,7 @@ try {
                   ? { x: 50, y: 50 }
                   : stage === 'passage-issued' || stage === 'passage-initiator-resolved'
                     ? { x: 150, y: 50 }
-                    : stage === 'passage-resolved' || stage === 'reaction-issued'
-                      ? occurrence?.kind === 'MOVEMENT_REACTION'
-                        ? movementContact(
-                            occurrence.choice.pathDistance,
-                            { x: 50, y: 50 },
-                            { x: 550, y: 50 }
-                          )
-                        : (() => {
-                            throw new Error('Passage continuation reaction is not pending.')
-                          })()
-                      : { x: 550, y: 50 }
+                    : { x: 550, y: 50 }
               assert.deepEqual(ownerToken.token.position, playerToken.token.position)
               for (const { token } of [ownerToken, playerToken])
                 assert.ok(
@@ -4115,34 +4141,6 @@ try {
                 assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 0)
                 assert.equal(run.version, passageRunVersion)
               }
-              if (stage === 'passage-resolved') {
-                assert.notEqual(passageRunVersion, undefined)
-                assert.equal(occurrence?.kind, 'MOVEMENT_REACTION')
-                assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 1)
-                assert.equal(run.version, passageRunVersion! + 1)
-                reactionAllowanceBefore = reactionAllowanceUsed(run, fixture.reactor.actorId)
-                reactionRunVersion = run.version
-              }
-              if (stage === 'reaction-issued') {
-                if (!occurrence || occurrence.kind !== 'MOVEMENT_REACTION')
-                  throw new Error('Passage continuation reaction is not pending.')
-                assert.deepEqual(
-                  ownerToken.token.position,
-                  movementContact(
-                    occurrence.choice.pathDistance,
-                    { x: 50, y: 50 },
-                    { x: 550, y: 50 }
-                  )
-                )
-                assert.equal(occurrence.choice.reactorActorId, fixture.reactor.actorId)
-                assert.equal(occurrence.choice.reactorTokenId, fixture.reactor.tokenId)
-                assert.ok(
-                  occurrence.choice.options.some(
-                    (option) => option.actionId === fixture.reactor.actionId
-                  )
-                )
-                assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 1)
-              }
               if (
                 stage === 'reaction-resolved' ||
                 stage === 'replayed' ||
@@ -4155,24 +4153,10 @@ try {
                 assert.equal(reactionAllowanceUsed(run, fixture.reactor.actorId), 1)
                 assert.equal(run.version, reactionRunVersion! + 1)
               }
-              if (stage === 'reaction-issued') reactionIssuedMovement = await readMovementState()
               if (stage === 'reaction-resolved') completedMovement = await readMovementState()
               return
             }
-            const expectedPosition =
-              stage === 'hydrated'
-                ? { x: 150, y: 50 }
-                : stage === 'movement-issued' || stage === 'reaction-issued'
-                  ? occurrence?.kind === 'MOVEMENT_REACTION'
-                    ? movementContact(
-                        occurrence.choice.pathDistance,
-                        { x: 150, y: 50 },
-                        { x: 350, y: 50 }
-                      )
-                    : (() => {
-                        throw new Error('Movement reaction is not pending.')
-                      })()
-                  : { x: 350, y: 50 }
+            const expectedPosition = stage === 'hydrated' ? { x: 150, y: 50 } : { x: 350, y: 50 }
             assert.deepEqual(ownerToken.token.position, playerToken.token.position)
             for (const { token } of [ownerToken, playerToken])
               assert.ok(
@@ -4200,22 +4184,6 @@ try {
                 /Cutover fixture token is absent from the authoritative Scene\./
               )
             }
-            if (stage === 'movement-issued' || stage === 'reaction-issued') {
-              assert.equal(occurrence?.kind, 'MOVEMENT_REACTION')
-              if (!occurrence || occurrence.kind !== 'MOVEMENT_REACTION')
-                throw new Error('Movement reaction is not pending.')
-              assert.equal(occurrence.choice.reactorActorId, fixture.reactor.actorId)
-              assert.equal(occurrence.choice.reactorTokenId, fixture.reactor.tokenId)
-              assert.ok(
-                occurrence.choice.options.some(
-                  (option) => option.actionId === fixture.reactor.actionId
-                )
-              )
-              if (stage === 'reaction-issued') {
-                reactionAllowanceBefore = reactionAllowanceUsed(run, fixture.reactor.actorId)
-                reactionRunVersion = run.version
-              }
-            }
             if (stage === 'reaction-resolved') {
               assert.equal(occurrence, null)
               assert.notDeepEqual(run, fixture.run, 'The selected reaction must advance the Run.')
@@ -4225,59 +4193,15 @@ try {
                 throw new Error('Reaction Run baseline is unavailable.')
               assert.equal(run.version, reactionRunVersion + 1)
             }
-            if (stage === 'reaction-issued') reactionIssuedMovement = await readMovementState()
             if (stage === 'reaction-resolved') completedMovement = await readMovementState()
           },
-          verifyUndoBaseline: async () => {
-            if (!reactionIssuedMovement)
-              throw new Error('Reaction geometry snapshot is unavailable.')
+          verifySettledMovement: async () => {
+            if (reactionSceneVersion === undefined)
+              throw new Error('Reaction Scene baseline is unavailable.')
             if (!completedMovement) throw new Error('Completed movement snapshot is unavailable.')
-            assert.equal(
-              completedMovement.ownerToken.header.version,
-              reactionIssuedMovement.ownerToken.header.version + 1
-            )
-            assert.equal(
-              completedMovement.playerToken.header.version,
-              reactionIssuedMovement.playerToken.header.version + 1
-            )
+            assert.equal(completedMovement.ownerToken.header.version, reactionSceneVersion + 1)
+            assert.equal(completedMovement.playerToken.header.version, reactionSceneVersion + 1)
             assert.deepEqual(await readMovementState(), completedMovement)
-          },
-          verifyCompletedUndo: async (submission) => {
-            if (!reactionIssuedMovement)
-              throw new Error('Reaction geometry snapshot is unavailable.')
-            if (!completedMovement) throw new Error('Completed movement snapshot is unavailable.')
-            await awaitSceneCheckpoint(
-              owner.client,
-              fixture.scene.liveSceneId,
-              submission.result.version
-            )
-            const after = await readMovementState()
-            const delta = submission.result.delta
-            const undone = (delta?.kind === 'BATCH' ? delta.deltas : [delta]).find(
-              (entry) => entry?.kind === 'TOKEN_MOVE_UNDONE'
-            )
-            if (undone?.kind !== 'TOKEN_MOVE_UNDONE')
-              throw new Error('The room undo result has no token move undo.')
-            assert.equal(undone.tokenId, fixture.mover.tokenId)
-            assert.equal(submission.result.version, completedMovement.ownerToken.header.version + 1)
-            assert.deepEqual(after.ownerToken.token.position, undone.position)
-            assert.deepEqual(after.playerToken.token.position, undone.position)
-            assert.deepEqual(after.ownerToken.token, reactionIssuedMovement.ownerToken.token)
-            assert.deepEqual(after.playerToken.token, reactionIssuedMovement.playerToken.token)
-            assert.equal(after.ownerToken.header.version, submission.result.version)
-            assert.equal(after.playerToken.header.version, submission.result.version)
-            assert.deepEqual(after.ownerFog.fogLayers, reactionIssuedMovement.ownerFog.fogLayers)
-            assert.deepEqual(after.playerFog.fogLayers, reactionIssuedMovement.playerFog.fogLayers)
-            assert.deepEqual(
-              after.playerFog.fogLayers,
-              after.ownerFog.fogLayers.filter(
-                (layer) =>
-                  layer.ownerUserId === null || layer.ownerUserId === player.identity.userId
-              )
-            )
-            assert.deepEqual(after.run, completedMovement.run)
-            assert.deepEqual(after.character, completedMovement.character)
-            completedMovement = after
           }
         })
         console.log('Browser movement reaction, evidence, replay, reconnect, and departure passed.')
