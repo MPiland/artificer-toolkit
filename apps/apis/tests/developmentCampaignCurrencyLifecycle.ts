@@ -18,6 +18,7 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 
 type Identity = { kind?: 'RULESET' | 'CAMPAIGN'; campaignCurrencySystemId?: string }
@@ -177,32 +178,44 @@ export async function verifyCampaignCurrencyLifecycle(
     }
   }
   const read = async () => {
-    const [campaign, catalogue, fleet, characters, inventoryAudit, events] = await Promise.all([
-      owner.query(api.campaigns.queries.get, { id: campaignId }),
-      systems(),
-      vehicles(),
-      Promise.all(
-        characterIds.map(async (id, index) => {
-          const player = players[index]
-          assert.ok(player)
-          const [active, sheet, draft, fence] = await Promise.all([
-            player.client.query(api.characters.builder.activeCharacter, { id }),
-            player.client.query(api.characters.sheet.get, { id }),
-            player.client.query(api.characters.drafts.get, { id }),
-            player.client.query(api.campaigns.inventoryOwners.version, {
-              input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
-            })
-          ])
-          assert.ok(active && sheet)
-          assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
-          assert.equal(sheet.meta.streamVersion, fence.version)
-          return { id, active, sheet, draft, fence }
-        })
-      ),
-      audit(),
-      history()
-    ])
+    const [campaign, catalogue, fleet, characterSlices, inventoryAudit, events] = await Promise.all(
+      [
+        owner.query(api.campaigns.queries.get, { id: campaignId }),
+        systems(),
+        vehicles(),
+        Promise.all(
+          characterIds.map(async (id, index) => {
+            const player = players[index]
+            assert.ok(player)
+            const [active, sheet, draft, fence] = await Promise.all([
+              player.client.query(api.characters.builder.activeCharacter, { id }),
+              readCharacterSheetSlices(player.client, { id }, ['INVENTORY', 'NOTES']),
+              player.client.query(api.characters.drafts.get, { id }),
+              player.client.query(api.campaigns.inventoryOwners.version, {
+                input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
+              })
+            ])
+            assert.ok(active && sheet)
+            assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
+            assert.equal(sheet.meta.streamVersion, fence.version)
+            return { id, active, sheet, draft, fence }
+          })
+        ),
+        audit(),
+        history()
+      ]
+    )
     assert.ok(campaign)
+    // No slice carries the whole Sheet DTO, so whole-Sheet compares read it in full once the burst
+    // has settled.
+    const characters = []
+    for (const [index, entry] of characterSlices.entries()) {
+      const player = players[index]
+      assert.ok(player)
+      const fullSheet = await player.client.query(api.characters.sheet.get, { id: entry.id })
+      assert.ok(fullSheet)
+      characters.push({ ...entry, fullSheet })
+    }
     const shared = async (vehicleId?: string) => {
       const [heldItems, currencies, fence] = await Promise.all([
         items(vehicleId),
@@ -448,27 +461,30 @@ export async function verifyCampaignCurrencyLifecycle(
           ]
         })
       const expectedSheet = {
-        ...old.sheet,
-        meta: { ...old.sheet.meta, streamVersion: old.sheet.meta.streamVersion + Number(affected) },
+        ...old.fullSheet,
+        meta: {
+          ...old.fullSheet.meta,
+          streamVersion: old.fullSheet.meta.streamVersion + Number(affected)
+        },
         inventory: {
-          ...old.sheet.inventory,
-          currencies: rewriteSheet(old.sheet.inventory.currencies),
-          ...(old.sheet.inventory.containers === undefined
+          ...old.fullSheet.inventory,
+          currencies: rewriteSheet(old.fullSheet.inventory.currencies),
+          ...(old.fullSheet.inventory.containers === undefined
             ? {}
             : {
-                containers: old.sheet.inventory.containers.map((container) => ({
+                containers: old.fullSheet.inventory.containers.map((container) => ({
                   ...container,
                   currencies: rewriteSheet(container.currencies)
                 }))
               })
         },
         reference: {
-          ...old.sheet.reference,
-          currencyOptions: updated.sheet.reference.currencyOptions
+          ...old.fullSheet.reference,
+          currencyOptions: updated.fullSheet.reference.currencyOptions
         }
       }
       assert.deepEqual(
-        updated.sheet,
+        updated.fullSheet,
         expectedSheet,
         'Own Sheet mechanics, private notes, physical contents and unrelated holdings must remain literal.'
       )

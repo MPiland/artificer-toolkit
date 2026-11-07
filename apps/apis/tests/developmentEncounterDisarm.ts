@@ -33,6 +33,7 @@ import {
   type DevelopmentClient,
   executeEncounterCommand
 } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import { createDisarmCreature, createDisarmWeapon } from './fixtures/disarmCreature'
 
 const actionChoices = makeFunctionReference<
@@ -425,10 +426,13 @@ export async function verifyEncounterDisarm({
     const [ownerRun, playerRun, sheet, character] = await Promise.all([
       owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
       player.query(api.encounters.projectionReads.get, { encounterId: run.id }),
-      player.query(api.characters.sheet.get, { id: characterId }),
+      readCharacterSheetSlices(player, { id: characterId }, ['INVENTORY']),
       player.query(api.characters.builder.activeCharacter, { id: characterId })
     ])
     assert.ok(sheet && character)
+    // No slice carries the whole Sheet DTO, so whole-snapshot compares read it in full once the
+    // burst has settled.
+    const fullSheet = await player.query(api.characters.sheet.get, { id: characterId })
     const projection = encounterPlayerProjectionDtoSchema.parse(playerRun)
     assert.deepEqual(projection, playerRun)
     for (const actor of projection.actors) {
@@ -443,6 +447,7 @@ export async function verifyEncounterDisarm({
       run: encounterGmProjectionDtoSchema.parse(ownerRun),
       playerRun,
       sheet,
+      fullSheet,
       character
     }
   }

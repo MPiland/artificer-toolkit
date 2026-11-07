@@ -17,6 +17,7 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 
 type Owner = InventoryOwnerRefDto
@@ -170,7 +171,7 @@ export async function verifyCampaignQualifiedCurrencyCustody(
     }
   }
   const read = async () => {
-    const [campaign, systems, vehicles, partyItems, partyCurrencies, characters, audit] =
+    const [campaign, systems, vehicles, partyItems, partyCurrencies, characterSlices, audit] =
       await Promise.all([
         owner.query(api.campaigns.queries.get, { id: campaignId }),
         listSystems(),
@@ -183,7 +184,7 @@ export async function verifyCampaignQualifiedCurrencyCustody(
             assert.ok(player, 'Each Character must have its own Player client.')
             const [active, sheet] = await Promise.all([
               player.client.query(api.characters.builder.activeCharacter, { id }),
-              player.client.query(api.characters.sheet.get, { id })
+              readCharacterSheetSlices(player.client, { id }, ['INVENTORY', 'NOTES'])
             ])
             assert.ok(active && sheet, 'Own active Character and Sheet reads must both succeed.')
             assert.equal(sheet.meta.characterId, id)
@@ -194,6 +195,16 @@ export async function verifyCampaignQualifiedCurrencyCustody(
         readAudit()
       ])
     assert.ok(campaign)
+    // No slice carries the whole Sheet DTO, so whole-Sheet compares read it in full once the burst
+    // has settled.
+    const characters = []
+    for (const entry of characterSlices) {
+      const player = players[characterIds.indexOf(entry.id)]
+      assert.ok(player, 'Each Character must have its own Player client.')
+      const fullSheet = await player.client.query(api.characters.sheet.get, { id: entry.id })
+      assert.ok(fullSheet, 'Own full Sheet read must succeed.')
+      characters.push({ ...entry, fullSheet })
+    }
     assert.equal(partyItems.version, partyCurrencies.version)
     const cargo = await Promise.all(
       vehicles.map(async (metadata) => {
@@ -503,8 +514,8 @@ export async function verifyCampaignQualifiedCurrencyCustody(
         }
       }
       assert.deepEqual(
-        withoutQualifiedSheet(next.sheet, namespace),
-        withoutQualifiedSheet(previous.sheet, namespace),
+        withoutQualifiedSheet(next.fullSheet, namespace),
+        withoutQualifiedSheet(previous.fullSheet, namespace),
         'Own Sheet items/private state/other currencies must remain literal.'
       )
       const sheetAmount = next.sheet.inventory.currencies

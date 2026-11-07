@@ -10,6 +10,7 @@ import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/ap
 import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
 import { developmentCli as cli } from './developmentCli'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import { verifyCampaignInventory } from './developmentCampaignInventory'
 import { verifyCampaignVehicleLifecycle } from './developmentCampaignVehicleLifecycle'
 import { verifyCampaignSharedEquipmentRetention } from './developmentCampaignSharedEquipmentRetention'
@@ -205,14 +206,20 @@ export async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     const [source, destination, sourceSheet, destinationSheet, audit] = await Promise.all([
       first.client.query(api.characters.builder.activeCharacter, { id: sourceId }),
       second.client.query(api.characters.builder.activeCharacter, { id: destinationId }),
-      first.client.query(api.characters.sheet.get, { id: sourceId }),
-      second.client.query(api.characters.sheet.get, { id: destinationId }),
+      readCharacterSheetSlices(first.client, { id: sourceId }, ['COMMON']),
+      readCharacterSheetSlices(second.client, { id: destinationId }, ['COMMON']),
       cohort.owner.query(api.campaigns.inventoryAudit.list, {
         campaignId: cohort.campaignId,
         limit: 32
       })
     ])
     assert.ok(source && destination && sourceSheet && destinationSheet)
+    // No slice carries the whole Sheet DTO, so whole-read compares use a full read taken once the
+    // burst has settled.
+    const sourceFullSheet = await first.client.query(api.characters.sheet.get, { id: sourceId })
+    const destinationFullSheet = await second.client.query(api.characters.sheet.get, {
+      id: destinationId
+    })
     const events = [...audit.events]
     let cursor = audit.nextCursor
     const cursors = new Set<string>()
@@ -232,6 +239,8 @@ export async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
       destination,
       sourceSheet,
       destinationSheet,
+      sourceFullSheet,
+      destinationFullSheet,
       events,
       partyItems,
       partyCurrencies,

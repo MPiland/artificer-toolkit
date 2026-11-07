@@ -13,6 +13,7 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 
 type Page<T> = { page: T[]; isDone: boolean; continueCursor: string; version?: number }
@@ -176,19 +177,40 @@ export async function verifyCampaignAssignmentLifecycle(
       first.client.query(api.characters.drafts.get, { id: originalId }),
       second.client.query(api.characters.drafts.get, { id: secondId }),
       first.client.query(api.characters.drafts.get, { id: replacementId }),
-      restrictedRead(() => first.client.query(api.characters.sheet.get, { id: originalId })),
-      restrictedRead(() => second.client.query(api.characters.sheet.get, { id: secondId })),
-      restrictedRead(() => first.client.query(api.characters.sheet.get, { id: replacementId })),
       restrictedRead(() =>
-        owner.query(api.campaigns.characterSheet.get, { campaignId, characterId: originalId })
+        readCharacterSheetSlices(first.client, { id: originalId }, ['COMMON', 'NOTES'])
+      ),
+      restrictedRead(() => readCharacterSheetSlices(second.client, { id: secondId }, ['COMMON'])),
+      restrictedRead(() =>
+        readCharacterSheetSlices(first.client, { id: replacementId }, ['COMMON'])
       ),
       restrictedRead(() =>
-        owner.query(api.campaigns.characterSheet.get, { campaignId, characterId: replacementId })
+        readCharacterSheetSlices(owner, { id: originalId, campaignId }, ['COMMON', 'INVENTORY'])
+      ),
+      restrictedRead(() =>
+        readCharacterSheetSlices(owner, { id: replacementId, campaignId }, ['COMMON'])
       ),
       audit(),
       history(owner, secondId),
       restrictedRead(() => history(first.client, originalId))
     ])
+    // The burst reads Sheet slices; no slice carries the whole DTO, so whole-Sheet compares read it
+    // in full once the burst has settled.
+    const firstFullSheet = await restrictedRead(() =>
+      first.client.query(api.characters.sheet.get, { id: originalId })
+    )
+    const secondFullSheet = await restrictedRead(() =>
+      second.client.query(api.characters.sheet.get, { id: secondId })
+    )
+    const replacementFullSheet = await restrictedRead(() =>
+      first.client.query(api.characters.sheet.get, { id: replacementId })
+    )
+    const firstCampaignFullSheet = await restrictedRead(() =>
+      owner.query(api.campaigns.characterSheet.get, { campaignId, characterId: originalId })
+    )
+    const replacementCampaignFullSheet = await restrictedRead(() =>
+      owner.query(api.campaigns.characterSheet.get, { campaignId, characterId: replacementId })
+    )
     assert.ok(campaign && firstActive && secondActive && replacementActive)
     const firstCharacter = firstCharacters.find((entry) => entry.id === originalId)
     assert.ok(
@@ -222,6 +244,11 @@ export async function verifyCampaignAssignmentLifecycle(
       replacementSheet,
       firstCampaignSheet,
       replacementCampaignSheet,
+      firstFullSheet,
+      secondFullSheet,
+      replacementFullSheet,
+      firstCampaignFullSheet,
+      replacementCampaignFullSheet,
       audit: rows,
       history: events,
       replacementHistory: replacementEvents
@@ -333,7 +360,7 @@ export async function verifyCampaignAssignmentLifecycle(
       'All physical IDs, raw retained rules, nested placement, qualified unrelated coins and private state remain exact.'
     )
     assert.deepEqual(after.secondActive, before.secondActive)
-    assert.deepEqual(after.secondSheet, before.secondSheet)
+    assert.deepEqual(after.secondFullSheet, before.secondFullSheet)
     assert.deepEqual(after.secondDraft, before.secondDraft)
     assert.deepEqual(after.replacementActive, before.replacementActive)
     assert.deepEqual(after.replacementDraft, before.replacementDraft)
@@ -814,7 +841,7 @@ export async function verifyCampaignAssignmentLifecycle(
     assert.equal(repairedDraft.payload.character.intent.background.backgroundId, '')
     assert.equal(repairedDraft.payload.character.label, 'Assignment private saved draft')
     assert.equal(
-      JSON.stringify(replaced.firstCampaignSheet).includes('Assignment private note'),
+      JSON.stringify(replaced.firstCampaignFullSheet).includes('Assignment private note'),
       false
     )
     assert.equal(JSON.stringify(replaced.history).includes('Assignment private note'), false)
@@ -882,7 +909,7 @@ export async function verifyCampaignAssignmentLifecycle(
       replacementVersion
     )
     assert.deepEqual(reassigned.replacementActive, initial.replacementActive)
-    assert.deepEqual(reassigned.replacementSheet, initial.replacementSheet)
+    assert.deepEqual(reassigned.replacementFullSheet, initial.replacementFullSheet)
 
     const partyForFinal = await owner.query(api.campaigns.inventoryOwners.version, {
       input: { campaignId, owner: { kind: 'CAMPAIGN', campaignId } }
