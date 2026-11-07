@@ -22974,6 +22974,13 @@
               "status": "TODO",
               "origin": ["RELEASE-2"],
               "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run."
+            },
+            {
+              "id": "RELIABILITY-21.26",
+              "text": "Any Bard, including a College of Lore Bard at level 3 and above and any Bard at level 18 to 20, builds and evaluates against the full SRD spell catalogue, and the spell-access candidate count is bounded by the Character's spell selections, not by catalogue size.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "User approved 2026-11-06 (D187 +1), proper fix before staging. Found by RELIABILITY-21.T33 parity test: level-3 Lore Bard has 1,013 candidates (cap 999); prepareCharacterBuilder throws ZodError at spellAccessDecisions[1000]. Cause: appendGrantCandidates (characterSpellRuleFacts.ts:199) emits one candidate per listed spell for every CHOSEN Magical Secrets grant, reached or not."
             }
           ],
           "tasks": [
@@ -23449,6 +23456,19 @@
                 "size": 2
               },
               "note": "Evidence: encounterMovement.ts:309 predicate wait, :510 \"Selected reaction completed without evidence.\", :235 Overrun · Action button."
+            },
+            {
+              "id": "RELIABILITY-21.T35",
+              "text": "Emit spell-access candidates only for spells a CHOSEN grant has selected, and resolve the pickable pool separately for the Builder picker; red-first real-code test with a level-3 Lore Bard and a level-20 Bard against the full SRD catalogue; flip the expected failures in characterRulePolicyParseParity.test.ts.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.26"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "note": "Caps: characterSpellAccessCandidates.ts:37/:81 (373484013, D175), characterRules.ts:1341/:1347."
             }
           ]
         }
