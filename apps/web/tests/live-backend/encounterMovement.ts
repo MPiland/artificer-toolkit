@@ -34,11 +34,8 @@ export type EncounterMovementAccount = {
 
 type EncounterMovementStage =
   | 'hydrated'
-  | 'movement-issued'
   | 'passage-issued'
   | 'passage-initiator-resolved'
-  | 'passage-resolved'
-  | 'reaction-issued'
   | 'reaction-resolved'
   | 'replayed'
   | 'reconnected'
@@ -62,6 +59,15 @@ type EncounterMovementBrowserInput = {
   retryExactMovement: (frame: RoomSceneCommandFrame) => Promise<void>
   readPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   readPlayerPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
+  /**
+   * The reaction offer as the room holds it, checked before the reactor answers: the offer counts
+   * down while a Convex read waits for the checkpoint (D207). `sceneVersion` and `moverPosition`
+   * come from the newest room commit either tab received.
+   */
+  verifyReactionOffer: (issued: {
+    sceneVersion: number
+    moverPosition: { x: number; y: number }
+  }) => Promise<void>
   /** `observedSceneVersion` is the newest Scene version a room commit reported to either tab. */
   verifyAuthoritative: (
     stage: EncounterMovementStage,
@@ -76,6 +82,13 @@ type EncounterMovementBrowserInput = {
 type RoomSceneCommandFrame = {
   command: SceneCommandInputDto | SceneFogPublishCommandInput
   expectedSessionSequence: number
+}
+
+/** A Scene commit a tab received from the room, with the token moves its delta carried. */
+type RoomSceneCommit = {
+  sceneId: string
+  version: number
+  tokenMoves: { tokenId: string; position: { x: number; y: number } }[]
 }
 
 type RoomCommandRejection = Extract<
@@ -103,8 +116,13 @@ export async function verifyEncounterMovementBrowser(
   let playerConvexSocketForDiagnostics: ConvexSocketTrace | undefined
   let pendingAtFailure: unknown
   let observedSceneVersion = 0
-  const observeSceneVersion = (sceneId: string, version: number) => {
-    if (sceneId === input.scene.id) observedSceneVersion = Math.max(observedSceneVersion, version)
+  let moverRoomPosition: { version: number; position: { x: number; y: number } } | undefined
+  const observeSceneCommit = (commit: RoomSceneCommit) => {
+    if (commit.sceneId !== input.scene.id) return
+    observedSceneVersion = Math.max(observedSceneVersion, commit.version)
+    const moved = commit.tokenMoves.filter((move) => move.tokenId === input.mover.tokenId).at(-1)
+    if (moved && commit.version >= (moverRoomPosition?.version ?? 0))
+      moverRoomPosition = { version: commit.version, position: moved.position }
   }
   const verifyAuthoritative = (stage: EncounterMovementStage) =>
     input.verifyAuthoritative(stage, observedSceneVersion)
@@ -185,7 +203,7 @@ export async function verifyEncounterMovementBrowser(
         if (frame.command.type === 'MOVE_SCENE_TOKEN') movementCommand ??= frame
       },
       rejection: () => undefined,
-      sceneVersion: observeSceneVersion
+      sceneCommit: observeSceneCommit
     })
     captureRoomSceneCommands(owner, {
       command: (frame) => {
@@ -194,7 +212,7 @@ export async function verifyEncounterMovementBrowser(
       rejection: (rejection) => {
         if (rejection.commandId === undoCommand?.command.commandId) undoRejection ??= rejection
       },
-      sceneVersion: observeSceneVersion
+      sceneCommit: observeSceneCommit
     })
 
     await Promise.all([
@@ -220,7 +238,9 @@ export async function verifyEncounterMovementBrowser(
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toBeVisible()
-    await verifyAuthoritative(input.scenario === 'PASSAGE' ? 'passage-issued' : 'movement-issued')
+    // A movement reaction's countdown runs from the commit that offers it (D207), so its issued
+    // state is read from the room below, not from Convex after a checkpoint wait.
+    if (input.scenario === 'PASSAGE') await verifyAuthoritative('passage-issued')
 
     if (input.scenario === 'PASSAGE') {
       stage = 'select Passage option'
@@ -245,7 +265,6 @@ export async function verifyEncounterMovementBrowser(
       await expect.poll(input.readPlayerPending).toBeNull()
       await owner.getByRole('button', { name: 'Open pending decision', exact: true }).click()
       await resolveEvidence(owner, input.readPending, 'min', true)
-      await verifyAuthoritative('passage-resolved')
     }
 
     stage = 'verify private reaction audience'
@@ -261,7 +280,11 @@ export async function verifyEncounterMovementBrowser(
       exact: true
     })
     await expect(reaction).toBeVisible()
-    await verifyAuthoritative('reaction-issued')
+    if (!moverRoomPosition) throw new Error('No room commit reported the mover position.')
+    await input.verifyReactionOffer({
+      sceneVersion: observedSceneVersion,
+      moverPosition: moverRoomPosition.position
+    })
 
     stage = 'resolve reaction evidence'
     await reaction.click()
@@ -562,7 +585,7 @@ function captureRoomSceneCommands(
   capture: {
     command: (frame: RoomSceneCommandFrame) => void
     rejection: (rejection: RoomCommandRejection) => void
-    sceneVersion: (sceneId: string, version: number) => void
+    sceneCommit: (commit: RoomSceneCommit) => void
   }
 ): void {
   page.on('websocket', (socket) => {
@@ -589,8 +612,21 @@ function captureRoomSceneCommands(
       if (message.data.type === 'COMMAND_REJECTED') capture.rejection(message.data)
       if (message.data.type !== 'COMMAND_COMMITTED') return
       const delta = message.data.delta
-      if (delta?.scope === 'SCENE') capture.sceneVersion(delta.result.sceneId, delta.result.version)
-      else if (delta?.scope === 'SCENE_VERSION') capture.sceneVersion(delta.sceneId, delta.version)
+      if (delta?.scope === 'SCENE') {
+        const { result } = delta
+        const changes =
+          result.delta?.kind === 'BATCH' ? result.delta.deltas : result.delta ? [result.delta] : []
+        capture.sceneCommit({
+          sceneId: result.sceneId,
+          version: result.version,
+          tokenMoves: changes.flatMap((change) =>
+            change.kind === 'TOKEN_MOVED'
+              ? [{ tokenId: change.tokenId, position: change.position }]
+              : []
+          )
+        })
+      } else if (delta?.scope === 'SCENE_VERSION')
+        capture.sceneCommit({ sceneId: delta.sceneId, version: delta.version, tokenMoves: [] })
     })
   })
 }
