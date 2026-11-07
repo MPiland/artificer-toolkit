@@ -54,7 +54,6 @@ const characterSpellAccessCandidateSchema = lazySchema(() =>
     ),
     selectionKind: z.enum(['GRANTED', 'CHOSEN']),
     authoringMode: z.enum(['ALL', 'SELECTED']),
-    selectedByCharacter: booleanSchema,
     scalingKind: z.enum(['NONE', 'PER_LEVEL']),
     scalingSource: z.nullable(
       z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])

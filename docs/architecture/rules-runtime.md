@@ -1938,6 +1938,15 @@ features from their compiled definitions, and Feats, Background features and sel
 FEAT, BACKGROUND or OPTION, plus `acquiredParentId` for OPTION. `findCompiledSpellGrant` is the one lookup from an
 access to its authored grant, used by charge resolution and the Sheet projection.
 
+**Spell access candidates are bounded by selections (RELIABILITY-21.T35).** A CHOSEN spell grant contributes one
+candidate per spell the Character picked (`getChosenGrantTargetIds`); its authored list does not become
+candidates, so the contract carries no selected flag. A GRANTED grant contributes its listed spells as before. The Builder's picker
+offers and validates a chosen grant's list through `resolveCharacterChosenGrantChoices`, so an off-list pick is
+refused there (`CHOSEN_GRANT_SELECTION_INVALID`), and a recorded pick for an unreached source still reaches the
+policy and is excluded with its level reason (`SOURCE_LEVEL_LOCKED`, `PROGRESSION_LEVEL_LOCKED`). Candidate count
+therefore scales with a Character's picks, not the catalogue: Magical Secrets lists most SRD spells, and the
+candidate and decision caps (999 sequence) hold for a level 20 Bard.
+
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
 `PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter

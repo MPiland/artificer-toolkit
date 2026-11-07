@@ -195,7 +195,6 @@ describe('Character rule contracts', () => {
           specializationRestrictionIds: null,
           selectionKind: 'GRANTED',
           authoringMode: 'SELECTED',
-          selectedByCharacter: false,
           scalingKind: 'NONE',
           scalingSource: null,
           progressionLevel: null,

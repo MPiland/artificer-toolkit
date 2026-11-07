@@ -34,6 +34,14 @@ describe('chosen-feature spell access (SPELLS-31.T5t)', () => {
       for (const feature of owner.features ?? []) {
         for (const option of feature.options ?? []) {
           if (!option.spells?.length) continue
+          const acquired = srdFeature({
+            owner: owner.category === 'SUBCLASS' ? 'SUBCLASS' : 'CLASS',
+            classLabel: characterClass.label,
+            subclassLabel: owner.label,
+            featureLabel: feature.label,
+            level: 20,
+            optionLabels: [option.label]
+          })
           const character = evaluateSrdCharacter({
             classes: [
               {
@@ -42,19 +50,28 @@ describe('chosen-feature spell access (SPELLS-31.T5t)', () => {
                 ...(owner.category === 'SUBCLASS' ? { subclass: owner.label } : {})
               }
             ],
-            features: [
-              srdFeature({
-                owner: owner.category === 'SUBCLASS' ? 'SUBCLASS' : 'CLASS',
-                classLabel: characterClass.label,
-                subclassLabel: owner.label,
-                featureLabel: feature.label,
-                level: 20,
-                optionLabels: [option.label]
-              })
-            ]
+            features: [acquired]
           })
+          // A chosen grant's candidates are the Character's picks (RELIABILITY-21.T35).
+          const chosenGrantSelections = option.spells
+            .filter((grant) => grant.selectionKind === 'CHOSEN')
+            .map((grant) => {
+              if (grant.scalingKind !== 'NONE' || grant.authoringModeKind !== 'SELECTED')
+                throw new Error(`${option.label} needs a census pick for its grant shape.`)
+              return {
+                id: grant.id,
+                grantId: grant.id,
+                source: {
+                  kind: 'OPTION' as const,
+                  acquiredParentId: acquired.acquisitionId!,
+                  optionId: option.id
+                },
+                timing: acquired.timing,
+                targetIds: (grant.spellIds ?? []).slice(0, grant.count)
+              }
+            })
           const { spellAccessCandidates } = buildCharacterSpellRuleFacts(
-            character.snapshot,
+            { ...character.snapshot, chosenGrantSelections },
             srdRegistry
           )
           const fromOption = spellAccessCandidates.filter(
