@@ -22757,7 +22757,7 @@
         {
           "id": "RELIABILITY-21",
           "title": "Browser journey product bugs pass in CI",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [".github/workflows/browser-journeys.yml"],
           "journeyStatus": "verified",
           "origin": [],
@@ -24778,30 +24778,36 @@
         {
           "id": "RELEASE-2",
           "title": "Final local lifecycle passes on one source",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": ["R08", "REL-1", "REL-2", "REL-3", "REL-4", "REL-6", "VS-9"],
           "acs": [
             {
               "text": "The complete development lifecycle passes from a fresh, isolated Convex development deployment.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-2.T1: D213 full CI run on RC tip ccc73867e; see the task proof."
+              ],
               "origin": ["R08.1", "G5-CODE-LIFECYCLE"],
               "id": "RELEASE-2.1"
             },
             {
               "text": "The lifecycle runs on one final source state shared by the R01–R05 release audits, and later source changes rerun it from the earliest affected stage.",
-              "status": "IN_PROGRESS",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-2.T1: D213 full CI run on RC tip ccc73867e; see the task proof."
+              ],
               "origin": ["R08.2", "G5-RELEASE-MANIFEST"],
               "id": "RELEASE-2.2"
             },
             {
               "id": "RELEASE-2.3",
               "text": "The complete native rule-corpus and gameplay proof passes in the same R08 source state.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-2.T1: D213 full CI run on RC tip ccc73867e; see the task proof."
+              ],
               "origin": ["R04.2"],
               "note": "Moved from PLATFORM-9.2 on 2026-10-29 (user): the native rule-corpus and gameplay proof is a real check of the final source."
             }
@@ -24852,7 +24858,7 @@
             },
             {
               "id": "RELEASE-2.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-2.1", "RELEASE-2.2", "RELEASE-2.3"],
               "wsjf": {
                 "bv": 3,
@@ -24864,7 +24870,11 @@
               },
               "text": "Run the complete yarn validate:pre-staging:local lifecycle in a heavy-lane batch through scripts/withValidationLock.ps1 from a fresh isolated reset (convex-reset stage, R08.1) and retain the manifest, logs and exit codes. Triage any failure: fix locally, resume from the earliest affected stage with --start-at plus the provenance manifest, and finish with one manifest that passes every stage from the same source identity. Expect one or two reruns.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Interim fixes merged 2026-11-06 (91aa1940a, runs I-Q2, docs/validation/release-2-t1-final-local-lifecycle-2026-11-05.md). Stays open: the final lifecycle runs on the release candidate after PERF-5.T1 and RELIABILITY-21.T32 merge.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "D213 gate on RC tip ccc73867e (ci/release-2-t1), all green: Tests full=true 42423488514, Live backend 42423478779, Browser journeys (every CI proof, 61 passed, 0 failed, no known-bug labels) 42423490943; post-proof SRD reaudit green"
+              ]
             }
           ]
         },
