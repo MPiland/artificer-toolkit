@@ -60,6 +60,29 @@ it('transforms the static and dynamic imports of the entries before resolving', 
     expect(transformed(server, url)).toBe(true)
 })
 
+it('follows a virtual entry given in its browser URL form, as builder-vite serves the iframe entry', async () => {
+  writeProject(graph)
+  vite = await createServer({
+    configFile: false,
+    root,
+    logLevel: 'silent',
+    server: { middlewareMode: true, hmr: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+    plugins: [
+      {
+        name: 'virtual-entry',
+        resolveId: (id) => (id === 'virtual:entry' ? '\0virtual:entry' : undefined),
+        load: (id) => (id === '\0virtual:entry' ? "import '/entry.ts'\n" : undefined)
+      }
+    ]
+  })
+
+  const result = await transformModuleGraph(vite, ['/@id/__x00__virtual:entry'])
+
+  expect(result).toEqual({ modules: 5, failures: [] })
+  expect(transformed(vite, '/c.ts')).toBe(true)
+})
+
 it('reports a module that fails to transform and still transforms the rest', async () => {
   writeProject({ ...graph, 'c.ts': 'export const c = \n' })
   const server = await startVite([])

@@ -20,11 +20,13 @@ export async function transformModuleGraph(server: ViteDevServer, entries: reado
     const next = await Promise.all(
       fresh.map(async (url) => {
         try {
-          await environment.transformRequest(url)
+          // Browser URLs wrap virtual ids (`/@id/__x00__virtual:…`); Vite's transform middleware
+          // unwraps them the same way before transforming.
+          const id = url.replace(/^\/@id\/__x00__/, '\0').replace(/^\/@id\//, '')
+          await environment.transformRequest(id)
           // Import analysis records the static and literal dynamic imports in the module graph;
           // TransformResult.deps is filled only by the SSR transform.
-          const imported =
-            (await environment.moduleGraph.getModuleByUrl(url))?.importedModules ?? []
+          const imported = (await environment.moduleGraph.getModuleByUrl(id))?.importedModules ?? []
           return [...imported].map((module) => module.url)
         } catch (error) {
           failures.push(`${url}: ${error instanceof Error ? error.message : String(error)}`)
