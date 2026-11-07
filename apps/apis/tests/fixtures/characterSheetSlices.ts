@@ -78,7 +78,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * Reads the requested Sheet slices concurrently, as the web does, and reassembles them into one
  * partial Sheet. Every slice picks from the same Sheet DTO, so a key several slices share carries
  * the same value in each; the objects they pick from (`meta`, `reference`, `resources`, `spells`)
- * are merged key by key. Returns null when any slice is unavailable to the reader.
+ * are merged key by key. Waits for current stored sections first. Returns null when any slice is
+ * unavailable to the reader.
  */
 export async function readCharacterSheetSlices<const Slices extends readonly CharacterSheetSlice[]>(
   client: DevelopmentClient,

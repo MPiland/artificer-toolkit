@@ -2048,3 +2048,11 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Performance is not part of this gate.** `vtt-load` and the `v15-workload` proof only record numbers (D210). The latency gate is PERF-2 on staging.
 - **The local lifecycle stays as a tool.** `yarn validate:pre-staging:local` still runs the same stages against the local container. Use it for the user's review data or to reproduce a CI failure locally.
 - RELIABILITY-21.T32 (AC RELIABILITY-21.23) brought the lifecycle's remaining correctness stages into CI: the Storybook e2e job, native and unsuffixed runner proofs as CI proofs, the auth-confirmation proof and the post-proof audit.
+
+## D214 (2026-11-07): Sheet read latency closes as a module budget; staging gates the timing
+
+- **Ruling (user):** RELIABILITY-21.24 closes as a per-read module budget, not a CI timing. The `sheetReadModuleBoundary` tests bundle `characters/sheet`, `characters/sheetSlices` and the queued store (`characters/sheetSectionDerivation`) and fail when one reaches the Encounter turn, grant or movement modules, or passes its byte ceiling: 3.3 MB for each read, 4.0 MB for the store.
+- **Why not a CI timing:** self-hosted Convex loads a function's whole module graph on each call. Measured on `51e0b11f5`: about 20 ms of Sheet compute, about 65 ms of module load for the 3 MB read bundle, and 36 functions running in a 1.2 s window on the runner's 2 cores. A read's wall time there measures host load, as D210 found for the journeys.
+- **CI campaign proofs check correctness.** Before a concurrent Sheet read they subscribe until the Character's stored sections are current (`characters/development:sheetSectionsState`), so a burst after an assign or any fingerprint-changing write serves stored sections instead of every read deriving at once. Stale sections with no queued store, or a store that ended without storing, fail the proof. No polling, retries or longer timeouts.
+- **Latency under real concurrency** is gated on staging by PERF-2 (D210, D212).
+- **Deferred:** splitting the slice read into a stored-section query and a separate fallback query (about 1.95 MB instead of 2.97 MB) is in `docs/roadmap/future-enhancements.md`.
