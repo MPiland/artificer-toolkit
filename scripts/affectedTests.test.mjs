@@ -10,7 +10,8 @@ import {
   convexShards,
   fullRunReason,
   redProof,
-  selectTests
+  selectTests,
+  storybookE2eRuns
 } from './affectedTests.mjs'
 
 let root
@@ -135,6 +136,26 @@ describe('affected test selection', () => {
       'apps/app/src/scan.test.ts',
       'apps/app/src/view.test.ts'
     ])
+  })
+
+  it('runs the Storybook journeys for an affected story, spec or Playwright config, not the VTT load record', () => {
+    const tracked = write({
+      ...workspace,
+      'apps/web/tests/e2e/storybook/flow.spec.ts': "import { open } from './storyPage'\n",
+      'apps/web/tests/e2e/storybook/storyPage.ts': 'export const open = 1\n',
+      'apps/web/tests/e2e/storybook/vttLoad.spec.ts': "import { fps } from './fps'\n",
+      'apps/web/tests/e2e/storybook/fps.ts': 'export const fps = 60\n',
+      'apps/web/playwright.config.ts': "import { path } from './src/warmup'\n",
+      'apps/web/src/warmup.ts': 'export const path = 1\n'
+    })
+    const graph = buildImportGraph(root, tracked)
+    const runs = (changed, stories = []) => storybookE2eRuns(graph, tracked, changed, stories)
+
+    expect(runs(['apps/web/tests/e2e/storybook/storyPage.ts'])).toBe(true)
+    expect(runs(['apps/web/src/warmup.ts'])).toBe(true)
+    expect(runs(['apps/app/src/view.ts'], ['apps/app/src/view.stories.tsx'])).toBe(true)
+    expect(runs(['apps/web/tests/e2e/storybook/fps.ts'])).toBe(false)
+    expect(runs(['apps/app/src/view.ts'])).toBe(false)
   })
 
   it('runs a whole suite when its setup files are affected', () => {

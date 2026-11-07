@@ -4,7 +4,8 @@
 // through the Tests workflow's import graph (scripts/affectedTests.mjs) runs the journeys named by the
 // acceptance criteria its task closes (the ledger's AC `journeys`, RELIABILITY-21.19); a change to the
 // stack the job starts, and a merge batch push, run every CI proof. A dispatch runs the proofs it names,
-// or every CI proof. The CI proofs are the *-browser proofs of scripts/runLocalConvexProof.ps1; a
+// or every CI proof. The CI proofs are the scripts/runLocalConvexProof.ps1 proofs but the record-only
+// workloads (scripts/runnerProofs.mjs); a
 // scripts/knownBugProofs.json entry runs without gating, and a push that removes one runs that proof. The
 // selected proofs are packed onto a few shared stacks (shardProofs), since booting a stack costs more
 // than most proofs.
@@ -61,6 +62,10 @@ export const PROOF_SPECS = {
   'vtt-browser': [
     /^apps\/web\/tests\/managed-vtt\//,
     /^apps\/web\/playwright\.local-vtt\.config\.ts$/
+  ],
+  'auth-confirmation-browser': [
+    /^apps\/web\/tests\/e2e\/app\/authConfirmation\.spec\.ts$/,
+    APP_SPECS_CONFIG
   ],
   'builder-browser': [/^apps\/web\/tests\/e2e\/app\/characterBuilder\.spec\.ts$/, APP_SPECS_CONFIG],
   'character-sheet-browser': [
@@ -141,7 +146,7 @@ export function pushProofs(graph, changed, ciProofs, baseKnownBugs, knownBugs, n
 }
 
 /** Gating runners a run uses at most; known-bug proofs take one more (RELIABILITY-21.18). */
-export const GATING_SHARDS = 5
+export const GATING_SHARDS = 8
 
 /**
  * Packs proofs onto shared stacks. Known-bug proofs share one non-gating shard, so a known bug never
@@ -217,7 +222,7 @@ export function acJourneyProblems(ledger, ciProofs) {
       )
       .map(
         ({ id, journeys }) =>
-          `${id} journeys must list CI proofs (the *-browser proofs of scripts/runLocalConvexProof.ps1), not ${JSON.stringify(journeys)}.`
+          `${id} journeys must list CI proofs (the scripts/runLocalConvexProof.ps1 proofs but record-only workloads), not ${JSON.stringify(journeys)}.`
       )
   )
 }

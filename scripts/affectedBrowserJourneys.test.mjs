@@ -15,7 +15,13 @@ import {
   shardProofs,
   sliceJourneys
 } from './affectedBrowserJourneys.mjs'
-import { ciProofsOf, proofNames, runnerProofs } from './runnerProofs.mjs'
+import {
+  NATIVE_PROOFS,
+  RECORD_ONLY_PROOFS,
+  ciProofsOf,
+  proofNames,
+  runnerProofs
+} from './runnerProofs.mjs'
 import PROOF_SECONDS from './browserJourneyDurations.json' with { type: 'json' }
 import KNOWN_BUG_PROOFS from './knownBugProofs.json' with { type: 'json' }
 
@@ -242,7 +248,7 @@ describe('acJourneyProblems', () => {
   })
 
   it.each([
-    ['a proof outside the CI list', ['movement']],
+    ['a proof outside the CI list', ['v15-workload']],
     ['an unknown name', ['vtt']],
     ['an empty list', []],
     ['a bare name', 'vtt-browser']
@@ -277,10 +283,16 @@ describe('known-bug proofs', () => {
     JSON.parse(readFileSync(resolve(root, 'docs/roadmap/08-phase-ledger.json'), 'utf8'))
   )
 
-  it('reads the CI proofs from the runner ValidateSet', () => {
+  it('reads the CI proofs from the runner ValidateSet: browser and native proofs, no record-only workload', () => {
+    const runner = runnerProofs(
+      readFileSync(resolve(root, 'scripts/runLocalConvexProof.ps1'), 'utf8')
+    )
     expect(ciProofs).toContain('player-browser')
     expect(ciProofs).toContain('vtt-browser')
-    expect(ciProofs.every((name) => name.endsWith('-browser'))).toBe(true)
+    expect(ciProofs).toContain('movement')
+    expect(ciProofs).toEqual(expect.arrayContaining(NATIVE_PROOFS))
+    expect(ciProofs).not.toContain('v15-workload')
+    expect(ciProofs).toEqual(runner.filter((proof) => !RECORD_ONLY_PROOFS.includes(proof)))
   })
 
   it('names an open registered task for every entry', () => {
@@ -294,7 +306,7 @@ describe('known-bug proofs', () => {
       { 'player-browser': 'RELIABILITY-99.T1' },
       /must name a registered task/
     ],
-    ['a proof outside the CI list', { movement: 'RELIABILITY-21.T1' }, /is not a CI proof/]
+    ['a proof outside the CI list', { 'v15-workload': 'RELIABILITY-21.T1' }, /is not a CI proof/]
   ])('refuses an entry with %s', (_, entry, message) => {
     expect(() => checkKnownBugs(entry, ciProofs, tasks)).toThrow(message)
   })
@@ -313,7 +325,7 @@ describe('shardProofs', () => {
   const allProofs = runnerProofs(
     readFileSync(resolve(root, 'scripts/runLocalConvexProof.ps1'), 'utf8')
   )
-  const ciProofs = allProofs.filter((name) => name.endsWith('-browser'))
+  const ciProofs = allProofs.filter((name) => !RECORD_ONLY_PROOFS.includes(name))
   const shards = shardProofs(ciProofs, KNOWN_BUG_PROOFS, PROOF_SECONDS)
   const names = (shard) => shard.proofs.map(({ proof }) => proof)
 
