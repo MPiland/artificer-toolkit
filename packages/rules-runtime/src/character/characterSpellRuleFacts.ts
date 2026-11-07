@@ -55,12 +55,6 @@ function collectSpecializationRestrictionIds(restrictions: unknown): string[] | 
   return found ? [...new Set(ids)] : null
 }
 
-export function isCharacterSpellActionAccessCandidate(
-  candidate: CharacterSpellAccessCandidate
-): boolean {
-  return candidate.selectionKind !== 'CHOSEN' || candidate.selectedByCharacter
-}
-
 export function collectCharacterRuleInputSpellIds(input: {
   referenceSpellIds?: readonly string[]
   spellAccessCandidates: readonly CharacterSpellAccessCandidate[]
@@ -68,9 +62,7 @@ export function collectCharacterRuleInputSpellIds(input: {
 }): ReadonlySet<string> {
   return new Set([
     ...(input.spellSources ?? []).map((source) => source.spellId),
-    ...input.spellAccessCandidates
-      .filter(isCharacterSpellActionAccessCandidate)
-      .map((candidate) => candidate.spellId),
+    ...input.spellAccessCandidates.map((candidate) => candidate.spellId),
     ...(input.referenceSpellIds ?? [])
   ])
 }
@@ -169,7 +161,7 @@ function appendGrantCandidates(params: {
   const specializationRestrictionIds = collectSpecializationRestrictionIds(grant.restrictions)
   // A chosen grant's candidates are the Character's picks; the Builder offers and validates the
   // grant's listed spells (chosenGrantChoiceResolver), so a list the size of the catalogue stays there.
-  const selectedByCharacter = grant.selectionKind === 'CHOSEN'
+  const chosen = grant.selectionKind === 'CHOSEN'
 
   const append = (
     spellIds: readonly string[],
@@ -195,7 +187,6 @@ function appendGrantCandidates(params: {
         specializationRestrictionIds,
         selectionKind: grant.selectionKind,
         authoringMode,
-        selectedByCharacter,
         scalingKind: grant.scalingKind,
         scalingSource: grant.scalingKind === 'PER_LEVEL' ? grant.scalingSource : null,
         progressionLevel,
@@ -220,7 +211,7 @@ function appendGrantCandidates(params: {
 
   if (grant.scalingKind === 'NONE') {
     append(
-      selectedByCharacter
+      chosen
         ? getChosenGrantTargetIds(snapshot, grant.id, provenance)
         : grant.authoringModeKind === 'SELECTED'
           ? (grant.spellIds ?? [])
@@ -233,7 +224,7 @@ function appendGrantCandidates(params: {
 
   for (const level of grant.levels) {
     append(
-      selectedByCharacter
+      chosen
         ? getChosenGrantTargetIds(snapshot, grant.id, provenance, level.level)
         : level.authoringModeKind === 'SELECTED'
           ? (level.spellIds ?? [])

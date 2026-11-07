@@ -38,10 +38,7 @@ function denialReason(
   ) {
     return 'PROGRESSION_LEVEL_LOCKED'
   }
-  if (
-    (candidate.selectionKind === 'CHOSEN' && !candidate.selectedByCharacter) ||
-    (candidate.selectionKind === 'GRANTED' && candidate.authoringMode !== 'SELECTED')
-  ) {
+  if (candidate.selectionKind === 'GRANTED' && candidate.authoringMode !== 'SELECTED') {
     return 'TARGET_NOT_SELECTED'
   }
   return 'ACCESS_GRANTED'

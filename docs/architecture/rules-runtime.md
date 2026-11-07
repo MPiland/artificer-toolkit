@@ -1939,8 +1939,8 @@ FEAT, BACKGROUND or OPTION, plus `acquiredParentId` for OPTION. `findCompiledSpe
 access to its authored grant, used by charge resolution and the Sheet projection.
 
 **Spell access candidates are bounded by selections (RELIABILITY-21.T35).** A CHOSEN spell grant contributes one
-candidate per spell the Character picked (`getChosenGrantTargetIds`), always `selectedByCharacter`; its authored
-list does not become candidates. A GRANTED grant contributes its listed spells as before. The Builder's picker
+candidate per spell the Character picked (`getChosenGrantTargetIds`); its authored list does not become
+candidates, so the contract carries no selected flag. A GRANTED grant contributes its listed spells as before. The Builder's picker
 offers and validates a chosen grant's list through `resolveCharacterChosenGrantChoices`, so an off-list pick is
 refused there (`CHOSEN_GRANT_SELECTION_INVALID`), and a recorded pick for an unreached source still reaches the
 policy and is excluded with its level reason (`SOURCE_LEVEL_LOCKED`, `PROGRESSION_LEVEL_LOCKED`). Candidate count

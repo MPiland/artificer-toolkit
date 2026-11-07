@@ -5,10 +5,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import {
-  isCharacterSpellActionAccessCandidate,
-  type CharacterSpellAccessCandidate
-} from './characterSpellRuleFacts.js'
+import type { CharacterSpellAccessCandidate } from './characterSpellRuleFacts.js'
 import { createSpellCastCandidateList, spellCastMode } from '../spellCastCandidates.js'
 
 type ResourcePoolCandidate = CharacterRulePolicyInput['resourcePoolCandidates'][number]
@@ -51,7 +48,6 @@ export function buildCharacterSpellCastRuleFacts(params: {
   }
 
   for (const access of params.spellAccessCandidates) {
-    if (!isCharacterSpellActionAccessCandidate(access)) continue
     const spell = spellById.get(access.spellId)
     if (!spell) continue
     const source: CharacterSpellSourceRef = {

@@ -96,7 +96,6 @@ describe('Spell access candidates over the full SRD catalogue', () => {
       (selection) => selection.targetIds
     )
     expect(chosen.map((candidate) => candidate.spellId).sort()).toEqual([...pickedIds].sort())
-    expect(chosen.every((candidate) => candidate.selectedByCharacter)).toBe(true)
     const included = new Set(output.spellAccess.map((access) => access.accessId))
     expect(chosen.every((candidate) => included.has(candidate.accessId))).toBe(true)
   }, 60_000)
