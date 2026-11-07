@@ -20,6 +20,8 @@ const storybookWebServer = {
   command: 'yarn exec storybook dev --port 6006 --ci --host 127.0.0.1',
   // Answers 503 until every story module is transformed, so no first test pays the cold compile.
   url: `http://127.0.0.1:6006${STORY_WARMUP_PATH}`,
+  // Keeps the `[story-warmup]` summary in the run log.
+  stdout: 'pipe' as const,
   reuseExistingServer: !process.env.CI,
   timeout: 120_000,
   cwd: '.'

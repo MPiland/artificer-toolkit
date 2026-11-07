@@ -20,8 +20,12 @@ export async function transformModuleGraph(server: ViteDevServer, entries: reado
     const next = await Promise.all(
       fresh.map(async (url) => {
         try {
-          const result = await environment.transformRequest(url)
-          return [...(result?.deps ?? []), ...(result?.dynamicDeps ?? [])]
+          await environment.transformRequest(url)
+          // Import analysis records the static and literal dynamic imports in the module graph;
+          // TransformResult.deps is filled only by the SSR transform.
+          const imported =
+            (await environment.moduleGraph.getModuleByUrl(url))?.importedModules ?? []
+          return [...imported].map((module) => module.url)
         } catch (error) {
           failures.push(`${url}: ${error instanceof Error ? error.message : String(error)}`)
           return []
