@@ -22964,10 +22964,13 @@
             },
             {
               "id": "RELIABILITY-21.24",
-              "text": "Campaign reads issued in concurrent bursts (characters.sheet.get in the campaign-assignment-lifecycle proof, and the custody-deletion reads) stay well under the 1 s Convex function limit on a 2-core CI runner.",
-              "status": "TODO",
+              "text": "The Sheet reads users hit (sheetSlices.get) and the stored-section writes stay within a per-read module budget enforced by tests, stored sections become current after Character and Campaign-scope changes with one bounded retry, and campaign proofs read current sections under concurrent bursts; latency under real concurrency is gated on staging (D214, D215).",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run."
+              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run.",
+              "proof": [
+                "Closed by RELIABILITY-21.T33 (m649); restated by user ruling 2026-11-07 (D214)."
+              ]
             },
             {
               "id": "RELIABILITY-21.25",
@@ -23443,7 +23446,7 @@
             {
               "id": "RELIABILITY-21.T33",
               "text": "Bound characters.sheet.get (and the other campaign reads that hit the 1 s limit under concurrent load) at the read path, with a red-first convex-test read budget; remove the campaign-assignment-lifecycle known-bug label.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.24"],
               "wsjf": {
                 "bv": 8,
@@ -23451,7 +23454,12 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Evidence: developmentCampaignAssignmentLifecycle.ts:179-181; developmentCampaignAuthoredCustodyDeletion.ts:201 (flaky)."
+              "note": "Evidence: developmentCampaignAssignmentLifecycle.ts:179-181; developmentCampaignAuthoredCustodyDeletion.ts:201 (flaky).",
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "Sheet read and store bundles bounded by sheetReadModuleBoundary byte ceilings (red at merge-base); stores read state once, run one at a time per Campaign, self-heal once (D214, D215, ADR 0041 Amendment 1); red-first convex-tests",
+                "Green on 0dc98fdd7: Tests 42396356466, Live 42396356272, Browser journeys 42396356283; campaign proofs twice each green; 136 stores p50 346 ms, p90 721 ms, 3 first-attempt timeouts all healed; merged 244cd6ed8 (m649, merge-slice run 42399817677)"
+              ]
             },
             {
               "id": "RELIABILITY-21.T34",
