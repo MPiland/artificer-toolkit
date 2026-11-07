@@ -94,7 +94,7 @@ export function getCharacterSheetSlice<Slice extends CharacterSheetSlice>(
 export function getCharacterSheetLiveAuthority(id: string, campaignId: string | null | undefined) {
   return {
     ...convexQuery(
-      convexApi.characters.sheetSlices.liveAuthority,
+      convexApi.characters.sheetLive.liveAuthority,
       campaignId ? { id, campaignId } : 'skip'
     ),
     gcTime: 0
@@ -108,7 +108,7 @@ export function getCharacterConcentrationRoomRoute(
 ) {
   return {
     ...convexQuery(
-      convexApi.characters.sheetSlices.concentrationRoomRoute,
+      convexApi.characters.sheetLive.concentrationRoomRoute,
       campaignId ? { id, campaignId } : 'skip'
     ),
     gcTime: 0

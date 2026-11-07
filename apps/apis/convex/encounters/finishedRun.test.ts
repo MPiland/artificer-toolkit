@@ -588,10 +588,10 @@ it('routes a caster to no room while no live Run holds a carried grant, and show
   const foreign = await addForeignPlayer(fixture)
   const input = { id: character.id, campaignId: campaign.id }
   expect(
-    await player.caller.query(api.characters.sheetSlices.concentrationRoomRoute, input)
+    await player.caller.query(api.characters.sheetLive.concentrationRoomRoute, input)
   ).toBeNull()
   // A party member who is not the caster's player learns nothing about the route.
-  expect(await foreign.query(api.characters.sheetSlices.concentrationRoomRoute, input)).toBeNull()
+  expect(await foreign.query(api.characters.sheetLive.concentrationRoomRoute, input)).toBeNull()
 }, 60_000)
 
 it('refuses to end a Concentration the Character does not hold (SPELLS-5.11)', async () => {

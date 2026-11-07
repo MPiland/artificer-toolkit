@@ -3,7 +3,6 @@ import {
   type CharacterSpellCastActions
 } from '@artificer-toolkit/rules-runtime/character/characterSpellCastActions'
 import { sheetSpellCastSummonPlacement } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
-import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { loadCharacterSheet } from './sheetPreparation'
 
 type LoadedCharacterSheet = NonNullable<Awaited<ReturnType<typeof loadCharacterSheet>>>
@@ -27,7 +26,7 @@ export function readSheetSpellSummonPlacement(
       ruleEvaluation: current.ruleEvaluation,
       policyOutput: current.ruleEvaluation.output,
       spellsById: current.spellsById,
-      characterLevel: characterTotalLevel(current),
+      characterLevel: current.ruleEvaluation.facts.totalLevel,
       conditionDefinitionIds: (current.resolution.registry.system?.conditionTypes ?? []).map(
         (condition) => condition.id
       ),
