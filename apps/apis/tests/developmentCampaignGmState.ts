@@ -17,6 +17,13 @@ import { getCharacterSheetAdjustmentSlotKey } from '@artificer-toolkit/rules-run
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api'
 import type { DevelopmentClient } from './developmentClient'
+import { awaitCurrentCharacterSheet } from './fixtures/characterSheetSlices'
+
+/**
+ * `frozen`: convex-test holds every scheduled job pending and the inspection carries the scheduler
+ * table. `live`: the self-hosted backend runs its stores.
+ */
+type CampaignProofScheduler = 'frozen' | 'live'
 
 type TableMap = Record<string, Array<Record<string, unknown>>>
 type Snapshot = { campaign: TableMap; personal: TableMap }
@@ -36,6 +43,7 @@ export async function verifyCampaignGmState(input: {
   characterId: string
   unrelatedCharacterId: string
   inspect: () => Promise<DevelopmentCampaignInspection>
+  scheduler: CampaignProofScheduler
   onStage?: (label: string, details: Record<string, unknown>) => void
 }): Promise<void> {
   const scope = { campaignId: input.campaignId, characterId: input.characterId }
@@ -142,6 +150,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -172,6 +181,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -202,6 +212,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -237,6 +248,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -310,6 +322,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -346,6 +359,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -408,6 +422,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -430,6 +445,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -455,6 +471,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -480,6 +497,7 @@ export async function verifyCampaignGmState(input: {
   current = await assertCommit({
     before: current,
     inspect: input.inspect,
+    scheduler: input.scheduler,
     campaignId: input.campaignId,
     characterId: input.characterId,
     ownerUserId: input.ownerUserId,
@@ -543,6 +561,7 @@ function conditionEvent(
 async function assertCommit(input: {
   before: Snapshot
   inspect: () => Promise<DevelopmentCampaignInspection>
+  scheduler: CampaignProofScheduler
   campaignId: string
   characterId: string
   ownerUserId: string
@@ -630,33 +649,39 @@ async function assertCommit(input: {
     if (rows.length > 0) expectedPersonal[table] = rows
     else delete expectedPersonal[table]
   }
-  // A queued store comes with the check that queues it again if it fails; cancelling a queued
-  // store cancels its check too (D215).
-  const storeState = (row: Record<string, unknown>) => {
-    const [args] = Array.isArray(row.args) ? row.args : []
-    return (row.name === 'characters/sheetSectionDerivation:store' ||
-      row.name === 'characters/sheetSectionDerivation:verify') &&
-      isRecordValue(args) &&
-      matchesCharacter(args, input.characterId) &&
-      isRecordValue(row.state)
-      ? row.state.kind
-      : null
+  if (input.scheduler === 'live') {
+    // Self-hosted stores run and its inspection carries no scheduler table: the Sheet settles
+    // current, and stale sections with no store queued fail the proof (D215).
+    await awaitCurrentCharacterSheet(input.characterId)
+  } else {
+    // A queued store comes with the check that queues it again if it fails; cancelling a queued
+    // store cancels its check too (D215).
+    const storeState = (row: Record<string, unknown>) => {
+      const [args] = Array.isArray(row.args) ? row.args : []
+      return (row.name === 'characters/sheetSectionDerivation:store' ||
+        row.name === 'characters/sheetSectionDerivation:verify') &&
+        isRecordValue(args) &&
+        matchesCharacter(args, input.characterId) &&
+        isRecordValue(row.state)
+        ? row.state.kind
+        : null
+    }
+    const beforeScheduled = expectedPersonal._scheduled_functions ?? []
+    // The state write queues the Character's derivation (D215). An adjustment re-evaluates the
+    // Character in the same write, and that inline store cancels it; a condition leaves it queued.
+    const scheduledIds = new Set(beforeScheduled.map((row) => String(row._id)))
+    const queued = (after.personal._scheduled_functions ?? []).filter(
+      (row) => !scheduledIds.has(String(row._id))
+    )
+    const queuedState = input.event.type.startsWith('CAMPAIGN_ADJUSTMENT_') ? 'canceled' : 'pending'
+    assert.deepEqual(queued.map(storeState), [queuedState, queuedState])
+    expectedPersonal._scheduled_functions = [
+      ...beforeScheduled.map((row) =>
+        storeState(row) === 'pending' ? { ...row, state: { kind: 'canceled' } } : row
+      ),
+      ...queued
+    ]
   }
-  const beforeScheduled = expectedPersonal._scheduled_functions ?? []
-  // The state write queues the Character's derivation (D215). An adjustment re-evaluates the
-  // Character in the same write, and that inline store cancels it; a condition leaves it queued.
-  const scheduledIds = new Set(beforeScheduled.map((row) => String(row._id)))
-  const queued = (after.personal._scheduled_functions ?? []).filter(
-    (row) => !scheduledIds.has(String(row._id))
-  )
-  const queuedState = input.event.type.startsWith('CAMPAIGN_ADJUSTMENT_') ? 'canceled' : 'pending'
-  assert.deepEqual(queued.map(storeState), [queuedState, queuedState])
-  expectedPersonal._scheduled_functions = [
-    ...beforeScheduled.map((row) =>
-      storeState(row) === 'pending' ? { ...row, state: { kind: 'canceled' } } : row
-    ),
-    ...queued
-  ]
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
   assert.deepEqual(normalize(after.personal), normalize(expectedPersonal))

@@ -18,7 +18,7 @@ import {
   type AuthorizedCharacterSheetState
 } from './sheetInputs'
 import { readCharacterSources } from './sourceReads'
-import { characterSheetCampaignFields } from './sheetSectionStores'
+import { characterSheetCampaignFields } from './sheetFingerprintInputs'
 import type { Doc } from '../_generated/dataModel'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 
@@ -77,7 +77,8 @@ export type CharacterSheetFingerprintReads = {
 /**
  * A checksum of every stored input a Character's Sheet derivation reads: the Character, its draft
  * and route, its effects and carried Concentration, its Campaign state and the System, sources and
- * Campaign content it resolves against (content-head revisions stand for authored content).
+ * Campaign content it resolves against (content-head revisions stand for authored content). Every
+ * table it reads is declared in `characterSheetInputs`, whose triggers queue a store on each write.
  */
 export async function readCharacterSheetFingerprint(
   ctx: QueryCtx,

@@ -695,6 +695,7 @@ export async function verifyCampaignLifecycle(input: {
     characterId,
     unrelatedCharacterId,
     inspect: () => inspect(campaign.id),
+    scheduler: 'live',
     onStage: (name, details) => stage('gm-' + name, details)
   })
   const deletionOverlay = await owner.mutation(api.campaigns.gmWrites.saveAdjustment, {

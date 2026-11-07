@@ -22,7 +22,7 @@ const sheetSectionsState = makeFunctionReference<
  * Sections that are stale with no store queued, or whose queued store failed, fail the proof. The
  * in-process convex-test client runs no scheduled store, so only the self-hosted backend waits.
  */
-async function awaitCurrentCharacterSheet(characterId: string) {
+export async function awaitCurrentCharacterSheet(characterId: string) {
   const url = process.env.CONVEX_SELF_HOSTED_URL
   const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
   if (!url && !adminKey) return

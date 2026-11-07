@@ -26,7 +26,6 @@ import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
 import type { storeCharacterSheetSections } from './sheetSectionDerivation'
-import { scheduleCharacterSheetSections } from './sheetSectionStores'
 import {
   writeCharacterOperationalRecords,
   writeCharacterOperationalStructure
@@ -217,7 +216,6 @@ export async function writeCharacterRecord(
     : await ctx.db.insert('characterPlayStates', nextPlayRecord)
   // A DRAFT Character needs Builder repair and has no readable Sheet; it keeps its last stats.
   if (record.status !== 'ACTIVE' || input.stats !== undefined) {
-    if (record.status === 'ACTIVE') await scheduleCharacterSheetSections(ctx, record.id)
     return {
       row: { ...(await ctx.db.get(rowId))!, ...nextRecord, play: (await ctx.db.get(playId))! },
       facts: null
@@ -247,14 +245,14 @@ export async function writeCharacterRecord(
     : { ...facts.active, play: { ...facts.active.play, ...stats } }
   const written = { row, facts: { ...facts, active: row } }
   // Stored sections project the Sheet's own evaluation: active sources with their prose. Any
-  // other evaluation (resolution scope, commit's referenced content) queues that derivation.
+  // other evaluation (resolution scope, commit's referenced content) leaves the derivation the
+  // writes above queued (`characterSheetInputs`).
   if (
     input.storeSheetSections &&
     (reader.catalogScope ?? 'active') === 'active' &&
     facts.prepared.context.presentation
   )
     await input.storeSheetSections(ctx, written.facts, reader.authorityScope)
-  else await scheduleCharacterSheetSections(ctx, record.id)
   return written
 }
 
@@ -288,6 +286,4 @@ export async function writeCharacterNoteRecords(
     _id,
     characterStoredPlayStateSchema.parse({ ...fields, streamVersion, updatedAt })
   )
-  // Notes are part of the Character's checksum, so its stored sections need a new fingerprint.
-  await scheduleCharacterSheetSections(ctx, head.id)
 }

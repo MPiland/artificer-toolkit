@@ -7,11 +7,16 @@ import {
   internalMutation as rawInternalMutation,
   mutation as rawMutation
 } from '../_generated/server'
-import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
+import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import {
-  characterSheetCampaignFields,
+  characterSheetInputs,
+  type CharacterSheetInput,
+  type CharacterSheetStoreTarget
+} from '../characters/sheetFingerprintInputs'
+import {
+  readCharacterSheetPendingStore,
   scheduleCampaignCharacterSheetSections,
   scheduleCharacterSheetSections
 } from '../characters/sheetSectionStores'
@@ -48,6 +53,9 @@ const transactionTriggerState = new WeakMap<
     liveRoomInputs: Map<string, Set<LiveSessionInputScope>>
     /** Changed Characters, mapped to their Campaign through the assignment when it succeeds. */
     liveRoomCharacterIds: Set<string>
+    /** Each Character's Sheet store this transaction queued, so its other writes queue no more. */
+    sheetStoreJobs: Map<string, Id<'_scheduled_functions'>>
+    queuedSheetCampaignIds: Set<string>
   }
 >()
 
@@ -59,7 +67,9 @@ function triggerState(db: GenericDatabaseWriter<DataModel>) {
       refreshedScopes: new Set(),
       markedContentScopes: new Set(),
       liveRoomInputs: new Map(),
-      liveRoomCharacterIds: new Set()
+      liveRoomCharacterIds: new Set(),
+      sheetStoreJobs: new Map(),
+      queuedSheetCampaignIds: new Set()
     }
     transactionTriggerState.set(db, state)
   }
@@ -225,7 +235,8 @@ triggers.register('importJobs', async (ctx, change) => {
 })
 
 // Content snapshots (ADR 0036): one mark per scope per transaction; `markContentSnapshotScope`
-// bumps the head revision and schedules the coalesced build.
+// bumps the head revision and schedules the coalesced build. The head is written through the
+// tracked writer: its revision is a Sheet fingerprint input.
 async function markContentScope(
   ctx: TriggerContext,
   ref: ContentSnapshotScopeRef,
@@ -234,8 +245,7 @@ async function markContentScope(
   const { markedContentScopes } = triggerState(ctx.innerDb)
   const key = `${ref.scope}:${ref.scopeId}`
   if (markedContentScopes.has(key)) return
-  if (await markContentSnapshotScope({ db: ctx.innerDb, scheduler: ctx.scheduler }, ref, create))
-    markedContentScopes.add(key)
+  if (await markContentSnapshotScope(ctx, ref, create)) markedContentScopes.add(key)
 }
 
 async function markAuthoredContent(
@@ -301,24 +311,42 @@ triggers.register('campaignMemberships', async (ctx, change) => {
   await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.campaignId }, false)
 })
 
-// Campaign-scope inputs of assigned Characters' Sheet fingerprints queue their stored sections in
-// the same transaction (ADR 0041 amendment, D215). A Campaign content head revision queues them
-// where it is marked (`markContentSnapshotScope`).
-triggers.register('campaigns', async (ctx, change) => {
+/**
+ * Queues a Sheet store once per Character or Campaign per transaction (D215). A later write queues
+ * again only when the store this transaction queued is gone: a Sheet command stores its sections in
+ * the same transaction and settles it.
+ */
+async function queueCharacterSheetStore(ctx: TriggerContext, target: CharacterSheetStoreTarget) {
+  const scheduling = { db: ctx.innerDb, scheduler: ctx.scheduler }
+  const { sheetStoreJobs, queuedSheetCampaignIds } = triggerState(ctx.innerDb)
+  if ('campaignId' in target) {
+    if (queuedSheetCampaignIds.has(target.campaignId)) return
+    queuedSheetCampaignIds.add(target.campaignId)
+    await scheduleCampaignCharacterSheetSections(scheduling, target.campaignId)
+    return
+  }
+  const { characterId } = target
+  const queued = sheetStoreJobs.get(characterId)
   if (
-    change.operation === 'update' &&
-    JSON.stringify(characterSheetCampaignFields(change.oldDoc)) !==
-      JSON.stringify(characterSheetCampaignFields(change.newDoc))
+    queued !== undefined &&
+    (await readCharacterSheetPendingStore(scheduling, characterId))?.scheduledId === queued
   )
-    await scheduleCampaignCharacterSheetSections(ctx, change.newDoc.id)
-})
-triggers.register('campaignCurrencySystems', async (ctx, change) => {
-  await scheduleCampaignCharacterSheetSections(ctx, (change.newDoc ?? change.oldDoc).campaignId)
-})
-for (const tableName of ['campaignCharacterStates', 'campaignCharacterAssignments'] as const)
+    return
+  sheetStoreJobs.set(characterId, await scheduleCharacterSheetSections(scheduling, characterId))
+}
+
+// Every Sheet fingerprint input queues the stores its write moves, in the same transaction, however
+// the write is made (ADR 0041 Amendment 1, D215).
+function registerCharacterSheetInput(tableName: TableNames) {
+  const input: CharacterSheetInput<TableNames> | undefined = characterSheetInputs[tableName]
+  if (!input || !('queue' in input)) return
   triggers.register(tableName, async (ctx, change) => {
-    await scheduleCharacterSheetSections(ctx, (change.newDoc ?? change.oldDoc).characterId)
+    for (const target of await input.queue(ctx.innerDb, change))
+      await queueCharacterSheetStore(ctx, target)
   })
+}
+for (const tableName of Object.keys(characterSheetInputs) as TableNames[])
+  registerCharacterSheetInput(tableName)
 
 registerScope('campaigns', (_, document) => campaignScope(document.id))
 registerScope('campaignMemberships', (_, document) => campaignScope(document.campaignId))

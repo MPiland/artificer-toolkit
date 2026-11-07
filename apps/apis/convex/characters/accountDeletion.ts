@@ -147,13 +147,14 @@ export async function removePrivateCharacter(
     .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
     .unique()
   if (derivation) await ctx.db.delete(derivation._id)
-  const pendingStore = await readCharacterSheetPendingStore(ctx, characterId)
-  if (pendingStore) await settleCharacterSheetPendingStore(ctx, pendingStore)
   if (active) {
     await ctx.db.delete(active.play._id)
     await ctx.db.delete(active._id)
   }
   await ctx.db.delete(route._id)
+  // Last: every delete above is a Sheet input write that queues a store (`characterSheetInputs`).
+  const pendingStore = await readCharacterSheetPendingStore(ctx, characterId)
+  if (pendingStore) await settleCharacterSheetPendingStore(ctx, pendingStore)
   await syncAccountUsage(ctx, 'personalCharacters', characterId)
 }
 

@@ -3,7 +3,6 @@ import { v } from 'convex/values'
 import type { ContentSnapshotScope } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { internal } from '../_generated/api'
 import type { DataModel } from '../_generated/dataModel'
-import { scheduleCampaignCharacterSheetSections } from '../characters/sheetSectionStores'
 
 /** Coalesces a burst of publishes into one build. */
 export const CONTENT_SNAPSHOT_BUILD_DELAY_MS = 2_000
@@ -42,6 +41,8 @@ export async function scheduleContentSnapshotBuild(
 
 /**
  * Records that a scope's published content changed and schedules a build unless one is pending.
+ * The revision is a Sheet fingerprint input, so callers pass a tracked writer whose trigger queues
+ * the stores it moves (`characterSheetInputs`).
  * `create` is false for changes that only affect an existing scope (Campaign settings, members, a
  * source record), so they never create heads for scopes that have no content.
  */
@@ -72,8 +73,5 @@ export async function markContentSnapshotScope(
     if (!scheduled)
       await scheduleContentSnapshotBuild(scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
   }
-  // The revision is a Sheet fingerprint input of every Character assigned to the Campaign (D215).
-  if (ref.scope === 'CAMPAIGN')
-    await scheduleCampaignCharacterSheetSections({ db, scheduler }, ref.scopeId)
   return true
 }

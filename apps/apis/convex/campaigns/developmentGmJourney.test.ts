@@ -137,7 +137,8 @@ it('proves native GM overlays through public Campaign handlers', async () => {
     campaignId: campaign.id,
     characterId: base.character.id,
     unrelatedCharacterId,
-    inspect
+    inspect,
+    scheduler: 'frozen'
   })
 }, 30_000)
 
