@@ -267,7 +267,9 @@ export async function writeCharacterSheetSections(
     const json = JSON.stringify(withoutStreamVersion(section, value))
     return { viewer, section, checksum: sha256Hex(json), json }
   })
-  console.log(`T33 serialize+sha256 ${sections.length} date=${Date.now() - hashStart[0]} perf=${(performance.now() - hashStart[1]).toFixed(1)}`)
+  console.log(
+    `T33 serialize+sha256 ${sections.length} date=${Date.now() - hashStart[0]} perf=${(performance.now() - hashStart[1]).toFixed(1)}`
+  )
   for (const { json, ...identity } of sections) {
     if (storedChecksums.get(key(identity)) === identity.checksum) continue
     const existing = await readSectionRow(ctx, characterId, identity.viewer, identity.section)

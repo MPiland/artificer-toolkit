@@ -136,7 +136,9 @@ export async function storeCharacterSheetSections(
     ))
   t33('fingerprint')
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
-  t33(`write sections=${values.length} bytes=${values.reduce((n, v) => n + JSON.stringify(v.value).length, 0)}`)
+  t33(
+    `write sections=${values.length} bytes=${values.reduce((n, v) => n + JSON.stringify(v.value).length, 0)}`
+  )
 }
 
 /** Derives the Sheet once over its own sources and stores its sections. */
