@@ -33,6 +33,13 @@ import {
 } from './sheetSectionStores'
 import type { CharacterRecordRow } from './stateDocuments'
 
+const T33_LOADED = [Date.now(), performance.now()]
+let t33Last = [0, 0]
+function t33(label: string) {
+  const now = [Date.now(), performance.now()]
+  console.log(`T33 ${label} date=${now[0] - t33Last[0]} perf=${(now[1] - t33Last[1]).toFixed(1)}`)
+  t33Last = now
+}
 // Notes are owner-only and read without derivation (`loadCharacterSheetNotes`).
 function projectSlices(
   sheet: ReturnType<typeof projectCharacterSheetFacts>['sheet'],
@@ -85,9 +92,12 @@ export async function storeCharacterSheetSections(
     facts.sourceContext.context
   )
   const values: CharacterSheetSectionValue[] = []
+  t33('facts')
   for (const campaignContext of contexts) {
     const current = projectCharacterSheetFacts({ ...facts, campaignContext })
+    t33(`sheetProjection ${campaignContext.viewer}`)
     values.push(...projectSlices(current.sheet, campaignContext))
+    t33(`viewerSlices ${campaignContext.viewer}`)
     const viewed = projectCharacterSheetForViewer(current.sheet, campaignContext)
     for (const target of listCharacterSheetPanelTargets(viewed)) {
       // The Sheet evaluates only the Spells it references; another listed Spell's panel (a
@@ -99,13 +109,16 @@ export async function storeCharacterSheetSections(
         value: projectCharacterSheetPanel(current, target)
       })
     }
+    t33(`panels ${campaignContext.viewer}`)
     values.push({
       viewer: campaignContext.viewer,
       section: characterSheetSection.preparation,
       value: await projectCharacterPreparationOptions(ctx, current)
     })
+    t33(`preparation ${campaignContext.viewer}`)
     if (campaign && campaignContext === ownerContext && facts.sheetState.partyVisibility.sheet)
       values.push(...projectSlices(current.sheet, { ...ownerContext, viewer: 'PARTY_MEMBER' }))
+    t33(`partySlices ${campaignContext.viewer}`)
   }
   // The facts carry the Character row as this transaction wrote it, and the sources and effects
   // they were derived from.
@@ -121,7 +134,9 @@ export async function storeCharacterSheetSections(
         carriedEffects: facts.concentrationEffects ?? []
       }
     ))
+  t33('fingerprint')
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
+  t33(`write sections=${values.length} bytes=${values.reduce((n, v) => n + JSON.stringify(v.value).length, 0)}`)
 }
 
 /** Derives the Sheet once over its own sources and stores its sections. */
@@ -130,6 +145,8 @@ export async function deriveAndStoreCharacterSheet(
   characterId: string,
   token: string
 ) {
+  t33Last = T33_LOADED
+  t33('moduleLoad->handler')
   // A newer write queued its own derivation; this one began before it could be cancelled.
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending && pending.token !== token) return null
@@ -142,6 +159,7 @@ export async function deriveAndStoreCharacterSheet(
   // A later write may already have stored the Sheet over the same inputs.
   const reads: Partial<CharacterSheetFingerprintReads> = {}
   const state = await readCharacterSheetStoreState(ctx, active.userId, characterId, reads)
+  t33('fingerprintRead')
   if (state?.current) return null
   // The facts reuse the System, sources and effects the fingerprint just read.
   const facts = await loadCharacterSheetFacts(
