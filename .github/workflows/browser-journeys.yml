@@ -166,6 +166,7 @@ jobs:
         if: always()
         env:
           PROOFS: ${{ toJSON(matrix.proofs) }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           [ -f "$RUNNER_TEMP/throwaway-secrets" ] || exit 0
           mkdir -p browser-journey-logs
@@ -178,6 +179,12 @@ jobs:
               [ -e "$path" ] && cp -R "$path" "browser-journey-logs/$proof/"
             done
           done
+          # A failed shard also keeps its proofs' screenshots and diagnostics. Proof folders are not named
+          # by proof, so the shard's whole tree is kept; trace zips and private fixtures stay out because
+          # the secret check below cannot read them.
+          if [ "$JOB_STATUS" != success ] && [ -d local-validation/local-convex-proofs ]; then
+            rsync -a --exclude='*.zip' --exclude='*.private.*' local-validation/local-convex-proofs/ browser-journey-logs/diagnostics/
+          fi
           if grep -rlFf "$RUNNER_TEMP/throwaway-secrets" browser-journey-logs; then
             echo 'A generated secret reached the evidence; it is not uploaded.' >&2
             rm -rf browser-journey-logs
