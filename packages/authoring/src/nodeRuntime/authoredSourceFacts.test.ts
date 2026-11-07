@@ -6,12 +6,20 @@ import {
   authoredNodeRuntimeSourceFactsSchema,
   nodeRuntimeSourceManifest,
   type AuthoredNodeRuntimeSourceFacts,
+  type AuthoredSourceRoots,
   type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
+import {
+  authoredRootKeyColumns,
+  authoredSourceFacts,
+  authoredSourceKindsByTable,
+  authoredSourceRootsForRead,
+  authoredSourceRootsWhere,
+  readsRootCatalogueOnly
+} from './authoredSourceFacts.js'
 
 const checksum = 'a'.repeat(64)
 /**
@@ -118,6 +126,86 @@ describe('authoredSourceFacts', () => {
       AUTHORED_SOURCE_FACTS_VERSION
     )
     expect(checksumRuleDocument(shape)).toBe(factsShapeByVersion[AUTHORED_SOURCE_FACTS_VERSION])
+  })
+
+  it('keys every root-owned row by its own root, so a read by root key returns all of its rows', () => {
+    const keyed = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
+      subjects.flatMap((document: { id: string; category?: unknown }) => {
+        const facts = authoredSourceFacts(
+          version(subjectKinds[kind as keyof typeof subjectKinds], document)
+        )
+        return (Object.keys(authoredRootKeyColumns) as NodeRuntimeSourceTable[]).flatMap(
+          (table) => {
+            const keys = authoredRootKeyColumns[table]
+            return (facts.rows[table] ?? []).map((row) => ({
+              table,
+              owner: [document.id, keys?.category ? document.category : undefined],
+              key: [row[keys?.id ?? ''], keys?.category ? row[keys.category] : undefined]
+            }))
+          }
+        )
+      })
+    )
+
+    expect(keyed.length).toBeGreaterThan(1000)
+    expect(keyed.filter(({ owner, key }) => JSON.stringify(owner) !== JSON.stringify(key))).toEqual(
+      []
+    )
+  })
+
+  it('derives the roots a read pins and replays them as an equivalent predicate', () => {
+    const pinned = {
+      kind: 'AND',
+      expressions: [
+        { kind: 'PREDICATE', column: 'magic_school_id', op: '=', value: 'evocation' },
+        { kind: 'PREDICATE', column: 'id', op: 'IN', values: ['b', 'a', 'b', 7] }
+      ]
+    } as const
+
+    expect(authoredSourceRootsForRead('spells', pinned)).toEqual({ by: 'ID', ids: ['a', 'b'] })
+    expect(
+      authoredSourceRootsForRead('equipment', {
+        kind: 'PREDICATE',
+        column: 'category',
+        op: '=',
+        value: 'WEAPON'
+      })
+    ).toEqual({ by: 'CATEGORY', categories: ['WEAPON'] })
+    expect(
+      authoredSourceRootsForRead('spells', {
+        kind: 'OR',
+        expressions: [{ kind: 'PREDICATE', column: 'id', op: '=', value: 'a' }]
+      })
+    ).toEqual({ by: 'KIND' })
+    expect(
+      authoredSourceRootsForRead('spells', {
+        kind: 'PREDICATE',
+        column: 'id',
+        op: '!=',
+        value: 'a'
+      })
+    ).toEqual({ by: 'KIND' })
+    expect(authoredSourceRootsForRead('conditions', pinned)).toEqual({ by: 'KIND' })
+
+    for (const [table, roots] of [
+      ['spells', { by: 'ID', ids: ['a', 'b'] }],
+      ['equipment', { by: 'CATEGORY', categories: ['ARMOR', 'WEAPON'] }],
+      ['conditions', { by: 'KIND' }]
+    ] satisfies [NodeRuntimeSourceTable, AuthoredSourceRoots][])
+      expect(authoredSourceRootsForRead(table, authoredSourceRootsWhere(table, roots))).toEqual(
+        roots
+      )
+    expect(() => authoredSourceRootsWhere('spells', { by: 'CATEGORY', categories: ['A'] })).toThrow(
+      'Authoring source roots do not key spells.'
+    )
+  })
+
+  it("serves only a root table's id and label from the root itself", () => {
+    expect(readsRootCatalogueOnly('spells', ['id', 'label'])).toBe(true)
+    expect(readsRootCatalogueOnly('classes', ['id'])).toBe(true)
+    expect(readsRootCatalogueOnly('spells', ['id', 'label', 'magic_school_id'])).toBe(false)
+    expect(readsRootCatalogueOnly('class_resources', ['id', 'label'])).toBe(false)
+    expect(readsRootCatalogueOnly('conditions', ['id', 'label'])).toBe(false)
   })
 
   it('projects a triggering-weapon damage outcome with no fixed damage type', () => {

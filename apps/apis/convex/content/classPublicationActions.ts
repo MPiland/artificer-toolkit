@@ -2,13 +2,17 @@ import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { z } from '@artificer-toolkit/schema/zod'
 import {
   authoredSourceFacts,
+  authoredSourceRootsForRead,
   normalizeIngressValues,
   type NodeRuntimeQueryRow,
-  type NodeRuntimeSourceReader,
-  type NodeRuntimeSourceTable
+  type NodeRuntimeSourceReader
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
-import { nodeRuntimeSourceChecksumsSchema } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
+import {
+  nodeRuntimeSourceChecksumsSchema,
+  type AuthoredSourceRoots,
+  type NodeRuntimeSourceTable
+} from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
   authoredPublishDraftInputSchema,
   authoredPublicationResultSchema,
@@ -54,21 +58,39 @@ export const publishDraft = action({
       ...authored,
       checksum: draftChecksum
     })
-    const rows = new Map<NodeRuntimeSourceTable, Promise<NodeRuntimeQueryRow[]>>()
-    const reader: NodeRuntimeSourceReader = async (table, columns, _where, scopeSystemId) => {
+    // Each distinct read is fingerprinted, so the commit replays exactly the roots normalization saw.
+    const reads = new Map<
+      string,
+      {
+        table: NodeRuntimeSourceTable
+        columns: readonly string[]
+        roots: AuthoredSourceRoots
+        rows: Promise<NodeRuntimeQueryRow[]>
+      }
+    >()
+    const reader: NodeRuntimeSourceReader = async (table, columns, where, scopeSystemId) => {
       if (scopeSystemId?.toLowerCase() !== prepared.systemId)
         throw new Error('Authoring System mismatch.')
-      let pending = rows.get(table)
-      if (!pending) {
-        pending = ctx
-          .runQuery(internal.content.classPublication.readSourceRows, {
-            systemId: prepared.systemId,
-            table
-          })
-          .then((value) => sourceRowsSchema.parse(JSON.parse(value)))
-        rows.set(table, pending)
+      const roots = authoredSourceRootsForRead(table, where)
+      const key = JSON.stringify([table, columns, roots])
+      let read = reads.get(key)
+      if (!read) {
+        read = {
+          table,
+          columns,
+          roots,
+          rows: ctx
+            .runQuery(internal.content.classPublication.readSourceRows, {
+              systemId: prepared.systemId,
+              table,
+              columns: [...columns],
+              roots
+            })
+            .then((value) => sourceRowsSchema.parse(JSON.parse(value)))
+        }
+        reads.set(key, read)
       }
-      return [...(await pending), ...(draftFacts.rows[table] ?? [])].map((row) =>
+      return [...(await read.rows), ...(draftFacts.rows[table] ?? [])].map((row) =>
         Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
       )
     }
@@ -92,13 +114,13 @@ export const publishDraft = action({
     const subject = parsePublicationDocument('CLASS', normalized.values)
     const checksum = checksumRuleDocument(subject.document)
     const sourceChecksums = nodeRuntimeSourceChecksumsSchema.parse(
-      Object.fromEntries(
-        await Promise.all(
-          [...rows].map(async ([table, sourceRows]) => [
-            table,
-            checksumRuleDocument(await sourceRows)
-          ])
-        )
+      await Promise.all(
+        [...reads.values()].map(async ({ table, columns, roots, rows }) => ({
+          table,
+          columns,
+          roots,
+          checksum: checksumRuleDocument(await rows)
+        }))
       )
     )
     return ctx.runMutation(internal.content.classPublication.commitDraft, {

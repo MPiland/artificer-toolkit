@@ -117,12 +117,29 @@ describe('native Background publication', () => {
     'rejects invalid definition %s evidence during authored publication without consuming the draft',
     async (corruption) => {
       const { t, first } = await fixture()
-      const draft = await copyDraft(first.caller)
       const definition = sourceImportDefinitionDtoSchema.parse(SRD_REUSABLE_DEFINITIONS[0])
       await t.mutation(internal.content.import.importDefinitions, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         definitions: [definition]
       })
+      // Publication reads only the definitions a draft names, so the draft's feature names it.
+      const copy = await copyDraft(first.caller)
+      const { features = [] } = backgroundAuthoredDtoSchema.parse(copy.payload)
+      const draft = await first.caller.mutation(api.content.drafts.save, {
+        subjectKind: 'BACKGROUND',
+        subjectId: copy.subjectId,
+        systemId: copy.systemId,
+        label: copy.label,
+        payload: {
+          ...copy.payload,
+          features: features.map((feature, index) =>
+            index === 0 ? { ...feature, ruleDefinitionIds: [definition.id] } : feature
+          )
+        }
+      })
+      expect(
+        backgroundAuthoredDtoSchema.parse(draft.payload).features?.[0]?.ruleDefinitionIds
+      ).toEqual([definition.id])
       await t.run(async (ctx) => {
         const stored = await ctx.db
           .query('reusableDefinitions')

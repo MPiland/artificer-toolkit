@@ -518,7 +518,14 @@ describe('native Class publication', () => {
         counts: await ctx.db.query('authoredCatalogueCounts').collect(),
         ownerCounts: await ctx.db.query('authoredCatalogueOwnerCounts').collect(),
         usage: await ctx.db.query('accountUsageEntries').collect(),
-        jobs: await ctx.db.system.query('_scheduled_functions').collect()
+        // The publish's snapshot build runs on its own timer, so a job's run state may advance
+        // between snapshots; a rejected delete must still add, drop, move or cancel no job.
+        jobs: (await ctx.db.system.query('_scheduled_functions').collect()).map(
+          ({ state, completedTime: _completedTime, ...job }) => ({
+            ...job,
+            canceled: state.kind === 'canceled'
+          })
+        )
       }))
     const before = await snapshot()
     await expect(
@@ -1023,6 +1030,35 @@ describe('native Class publication', () => {
       })
     ).rejects.toThrow('Canonical content conflict.')
   })
+
+  it('rejects a Class publish when a referenced root is removed before commit', async () => {
+    const { t, first } = await fixture()
+    const draft = await copyDraft(first.caller, fighter.id)
+    const [removedId] = equipmentIds
+    const originalNormalize = nodeRuntime.normalizeIngressValues
+    const normalizeSpy = vi
+      .spyOn(nodeRuntime, 'normalizeIngressValues')
+      .mockImplementation(async (...args) => {
+        const normalized = await originalNormalize(...args)
+        await t.run(async (ctx) => {
+          const root = await ctx.db
+            .query('authoredRoots')
+            .withIndex('by_publicId', (q) => q.eq('id', removedId!))
+            .unique()
+          if (!root) throw new Error('Missing Equipment fixture')
+          await ctx.db.delete(root._id)
+        })
+        return normalized
+      })
+
+    try {
+      await expect(first.caller.action(publish, publicationInput(draft))).rejects.toThrow(
+        'Authoring sources changed'
+      )
+    } finally {
+      normalizeSpy.mockRestore()
+    }
+  }, 15_000)
 
   it('rejects a Class publish when an observed source changes before commit', async () => {
     const { t, first } = await fixture()

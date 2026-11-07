@@ -2,6 +2,7 @@ import {
   AUTHORED_SOURCE_FACTS_VERSION,
   authoredNodeRuntimeSourceFactsSchema,
   type AuthoredNodeRuntimeSourceFacts,
+  type AuthoredSourceRoots,
   type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
@@ -11,6 +12,7 @@ import type {
   ProficiencyGrantAuthored,
   ResultBlockAuthored
 } from '@artificer-toolkit/shared/authored'
+import type { NodeRuntimeQueryWhere } from './nodeRuntimeSourceContract.js'
 
 type Scalar = string | number | boolean | null
 type Row = Record<string, Scalar>
@@ -87,6 +89,87 @@ export const authoredSourceKindsByTable: Readonly<
   races: ['RACE'],
   spell_effects: ['SPELL'],
   spells: ['SPELL']
+}
+
+/**
+ * For each table whose rows belong to one root: the column naming that root's public id and, on a
+ * root's own row, the column holding its catalogue category. A read that pins one of them needs
+ * only the roots it names. `rootRow` marks a table holding one row per root, keyed and labelled as
+ * its catalogue entry is.
+ */
+export const authoredRootKeyColumns: Readonly<
+  Partial<Record<NodeRuntimeSourceTable, { id: string; category?: string; rootRow?: true }>>
+> = {
+  background_features: { id: 'background_id' },
+  backgrounds: { id: 'id', rootRow: true },
+  charges: { id: 'document_id' },
+  class_features: { id: 'class_id' },
+  class_proficiency_grants: { id: 'class_id' },
+  class_resources: { id: 'class_id' },
+  class_specializations: { id: 'class_id' },
+  classes: { id: 'id', category: 'category', rootRow: true },
+  creatures: { id: 'id', rootRow: true },
+  equipment: { id: 'id', category: 'category', rootRow: true },
+  equipment_effects: { id: 'equipment_id' },
+  equipment_features: { id: 'equipment_id' },
+  equipment_properties: { id: 'equipment_id' },
+  feat_effects: { id: 'feat_id' },
+  feat_features: { id: 'feat_id' },
+  feat_proficiency_grants: { id: 'feat_id' },
+  feats: { id: 'id', rootRow: true },
+  race_ancestries: { id: 'race_id' },
+  race_features: { id: 'race_id' },
+  races: { id: 'id', category: 'category', rootRow: true },
+  spell_effects: { id: 'spell_id' },
+  spells: { id: 'id', rootRow: true }
+}
+
+/** Whether a read of `table` needs only what each root's catalogue entry holds: its id and label. */
+export function readsRootCatalogueOnly(table: NodeRuntimeSourceTable, columns: readonly string[]) {
+  return (
+    authoredRootKeyColumns[table]?.rootRow === true &&
+    columns.every((column) => column === 'id' || column === 'label')
+  )
+}
+
+/** The roots a read of `table` needs, from the root key or category its predicate pins. */
+export function authoredSourceRootsForRead(
+  table: NodeRuntimeSourceTable,
+  where: NodeRuntimeQueryWhere | undefined
+): AuthoredSourceRoots {
+  const keys = authoredRootKeyColumns[table]
+  const ids = keys && pinnedStrings(where, keys.id)
+  if (ids) return { by: 'ID', ids }
+  const categories = keys?.category === undefined ? undefined : pinnedStrings(where, keys.category)
+  if (categories) return { by: 'CATEGORY', categories }
+  return { by: 'KIND' }
+}
+
+/** The predicate that reads exactly `roots`, so a checked read replays on the same roots. */
+export function authoredSourceRootsWhere(
+  table: NodeRuntimeSourceTable,
+  roots: AuthoredSourceRoots
+): NodeRuntimeQueryWhere | undefined {
+  if (roots.by === 'KIND') return undefined
+  const column =
+    roots.by === 'ID' ? authoredRootKeyColumns[table]?.id : authoredRootKeyColumns[table]?.category
+  if (!column) throw new Error(`Authoring source roots do not key ${table}.`)
+  const values = roots.by === 'ID' ? roots.ids : roots.categories
+  return { kind: 'PREDICATE', column, op: 'IN', values }
+}
+
+// Root keys and categories are strings, so a pinned value of another type matches no root.
+function pinnedStrings(
+  where: NodeRuntimeQueryWhere | undefined,
+  column: string
+): string[] | undefined {
+  if (where?.kind === 'AND')
+    return where.expressions
+      .map((expression) => pinnedStrings(expression, column))
+      .find((values) => values !== undefined)
+  if (where?.kind !== 'PREDICATE' || where.column !== column || where.op === '!=') return undefined
+  const values = where.op === 'IN' ? where.values : [where.value]
+  return [...new Set(values.filter((value): value is string => typeof value === 'string'))].sort()
 }
 
 function projectionRows() {

@@ -22960,6 +22960,20 @@
               "status": "TODO",
               "origin": ["RELEASE-2"],
               "note": "User approved 2026-11-06 (D187 +1). The spells walkthrough drifted for two weeks unseen (run P); the first story took 40.4 s (P) and 33.1 s (Q2) against the 30 s canvas wait. Static storybook build fails: sb.mock is not applied in storybook build. Handoff: docs/validation/release-2-t1-final-local-lifecycle-2026-11-05.md."
+            },
+            {
+              "id": "RELIABILITY-21.24",
+              "text": "Campaign reads issued in concurrent bursts (characters.sheet.get in the campaign-assignment-lifecycle proof, and the custody-deletion reads) stay well under the 1 s Convex function limit on a 2-core CI runner.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run."
+            },
+            {
+              "id": "RELIABILITY-21.25",
+              "text": "The movement and passage encounter browser proofs pass: the movement reaction completes with evidence and the Overrun action is offered during passage.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run."
             }
           ],
           "tasks": [
@@ -23409,6 +23423,32 @@
                 "size": 2
               },
               "note": "Registered by the orchestrator on 2026-11-06 with user approval. Must merge before the release-candidate lifecycle run."
+            },
+            {
+              "id": "RELIABILITY-21.T33",
+              "text": "Bound characters.sheet.get (and the other campaign reads that hit the 1 s limit under concurrent load) at the read path, with a red-first convex-test read budget; remove the campaign-assignment-lifecycle known-bug label.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.24"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Evidence: developmentCampaignAssignmentLifecycle.ts:179-181; developmentCampaignAuthoredCustodyDeletion.ts:201 (flaky)."
+            },
+            {
+              "id": "RELIABILITY-21.T34",
+              "text": "Fix the movement and passage journeys at their root cause (product bug gets a real-code regression test; journey drift is corrected to cited intent); remove their known-bug labels.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.25"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Evidence: encounterMovement.ts:309 predicate wait, :510 \"Selected reaction completed without evidence.\", :235 Overrun · Action button."
             }
           ]
         }
@@ -24408,7 +24448,7 @@
         {
           "id": "PERF-5",
           "title": "Publication reads only what a draft references",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "origin": ["RELEASE-2"],
@@ -24416,9 +24456,10 @@
             {
               "id": "PERF-5.1",
               "text": "Publishing a Spell, Feat, Creature or Race draft reads only the authored roots its values reference, so its read volume stays flat as unrelated homebrew grows; normalization output is unchanged across every SRD subject.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "User approved 2026-11-06 (fix before staging). Run Q on 125fde862: every publishDraft read 743-1,487 docs (0.8-2.2 MB); under about 3x host load one hit the 1 s mutation limit (publication-equipment proof)."
+              "note": "User approved 2026-11-06 (fix before staging). Run Q on 125fde862: every publishDraft read 743-1,487 docs (0.8-2.2 MB); under about 3x host load one hit the 1 s mutation limit (publication-equipment proof).",
+              "proof": ["Closed by PERF-5.T1 (m646); see the task proof."]
             }
           ],
           "wsjf": {
@@ -24432,7 +24473,7 @@
             {
               "id": "PERF-5.T1",
               "text": "Value-filtered option plans at publication plus by-id authored-root reads at the system source reader; Class publication fingerprints per read. Equipment property narrowing keeps its scan (deferred edge case). Red-first read-budget tests with convex-test.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-5.1"],
               "wsjf": {
                 "bv": 8,
@@ -24441,7 +24482,12 @@
                 "size": 3,
                 "finalSource": true
               },
-              "note": "Design approved 2026-11-06; slice ci/perf-5-t1."
+              "note": "Design approved 2026-11-06; slice ci/perf-5-t1.",
+              "mergedAt": "2026-11-06",
+              "proof": [
+                "Red-first convex-test read budgets (publicationReadBudget.test.ts, optionValueChecks.test.ts) with absolute ceilings",
+                "Green on 006168b44: Tests, Live backend, Browser journeys; merged 08b762311 (m646, merge-slice run 42319204027)"
+              ]
             }
           ],
           "internalReason": "Performance fix with no new user-visible flow; the task carries its real-code read-budget proof."

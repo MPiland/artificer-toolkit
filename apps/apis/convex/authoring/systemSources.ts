@@ -36,8 +36,8 @@ export async function createSystemSourceReader(
       actionTrait: systemCoreCodeRegistry.entries(systemId, 'actionTrait'),
       size: systemCoreCodeRegistry.entries(systemId, 'size')
     },
-    readAuthoredRows: async (table) => [
-      ...(await authored(table)),
+    readAuthoredRows: async (table, roots, columns) => [
+      ...(await authored(table, roots, columns)),
       ...(currentDraftFacts?.rows[table] ?? [])
     ],
     readReusableDefinitions: () => readDefinitionOptions(ctx, systemId, userId)
