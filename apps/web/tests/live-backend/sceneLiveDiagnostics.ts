@@ -8,9 +8,9 @@ const campaignNotFound =
 const consoleDeparture = new RegExp(
   `^player verify departed player refusal: console (?:(?:Convex)?Error: )?\\[CONVEX Q\\(${departedPlayerReads}\\)\\](?: \\[Request ID: [a-f0-9]+\\])? ${campaignNotFound}(?:\\n\\s+(?:Called by client|at [^\\n]+))*\\s*$`
 )
-/** The sync socket's `QueryFailed` frame, labelled with the query's name. */
+/** The sync socket's `QueryFailed` frame, labelled with the query's name; it may carry the throw's stack frames. */
 const socketDeparture = new RegExp(
-  `^player verify departed player refusal: ${departedPlayerReads}: \\[Request ID: [a-f0-9]+\\] ${campaignNotFound}\\n+$`
+  `^player verify departed player refusal: ${departedPlayerReads}: \\[Request ID: [a-f0-9]+\\] ${campaignNotFound}(?:\\n\\s+at [^\\n]+)*\\n+$`
 )
 
 /** Only failures deliberately caused by the offline and departure assertions are expected. */
