@@ -3971,6 +3971,9 @@ try {
               (entry) => entry.userId === player.identity.userId
             )
             assert.ok(membership)
+            // Convex notifies the room after the departure commits (EVICT_USER, fire-and-forget;
+            // docs/architecture/live-sessions.md), so the refusal is read once the room has closed the socket.
+            const { evicted } = await player.client.watchEviction(campaign.id)
             await owner.client.mutation(api.campaigns.membershipDeparture.removeMember, {
               campaignId: campaign.id,
               userId: player.identity.userId,
@@ -3978,6 +3981,7 @@ try {
               expectedCampaignVersion: current.version,
               expectedMembershipAccessStartedAt: membership.accessStartedAt
             })
+            await evicted
             await assert.rejects(() =>
               player.client.query(api.encounters.pendingReads.pendingRuleOccurrence, {
                 encounterId: fixture.run.id
