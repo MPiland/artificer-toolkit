@@ -306033,6 +306033,12 @@ export declare const internal: {
         { characterId: string; token: string },
         null
       >;
+      verify: FunctionReference<
+        "mutation",
+        "internal",
+        { campaignId?: string; characterId: string; token: string },
+        null
+      >;
     };
   };
   content: {
