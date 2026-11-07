@@ -3943,21 +3943,6 @@ try {
               'Exact movement replay must not append mechanics, Run, token, or fog projections.'
             )
           },
-          retryExactUndo: async (submission) => {
-            const before = await readMovementState()
-            const { result: replay } = await owner.client.executeSceneCommand(
-              submission.command.command,
-              submission.command.expectedSessionSequence
-            )
-            // The room marks a replayed receipt `replayed` and returns the rest of it unchanged.
-            assert.equal(replay?.replayed, true)
-            assert.deepEqual(replay, { ...submission.result, replayed: true })
-            assert.deepEqual(
-              await readMovementState(),
-              before,
-              'Exact undo replay must not append Scene, fog, Run, timeline, or Character changes.'
-            )
-          },
           readPending: async () => {
             const pending = await owner.client.query(
               api.encounters.pendingReads.pendingRuleOccurrence,
@@ -4221,7 +4206,7 @@ try {
             if (stage === 'reaction-issued') reactionIssuedMovement = await readMovementState()
             if (stage === 'reaction-resolved') completedMovement = await readMovementState()
           },
-          verifyUndoBaseline: async () => {
+          verifySettledMovement: async () => {
             if (!reactionIssuedMovement)
               throw new Error('Reaction geometry snapshot is unavailable.')
             if (!completedMovement) throw new Error('Completed movement snapshot is unavailable.')
@@ -4234,43 +4219,6 @@ try {
               reactionIssuedMovement.playerToken.header.version + 1
             )
             assert.deepEqual(await readMovementState(), completedMovement)
-          },
-          verifyCompletedUndo: async (submission) => {
-            if (!reactionIssuedMovement)
-              throw new Error('Reaction geometry snapshot is unavailable.')
-            if (!completedMovement) throw new Error('Completed movement snapshot is unavailable.')
-            await awaitSceneCheckpoint(
-              owner.client,
-              fixture.scene.liveSceneId,
-              submission.result.version
-            )
-            const after = await readMovementState()
-            const delta = submission.result.delta
-            const undone = (delta?.kind === 'BATCH' ? delta.deltas : [delta]).find(
-              (entry) => entry?.kind === 'TOKEN_MOVE_UNDONE'
-            )
-            if (undone?.kind !== 'TOKEN_MOVE_UNDONE')
-              throw new Error('The room undo result has no token move undo.')
-            assert.equal(undone.tokenId, fixture.mover.tokenId)
-            assert.equal(submission.result.version, completedMovement.ownerToken.header.version + 1)
-            assert.deepEqual(after.ownerToken.token.position, undone.position)
-            assert.deepEqual(after.playerToken.token.position, undone.position)
-            assert.deepEqual(after.ownerToken.token, reactionIssuedMovement.ownerToken.token)
-            assert.deepEqual(after.playerToken.token, reactionIssuedMovement.playerToken.token)
-            assert.equal(after.ownerToken.header.version, submission.result.version)
-            assert.equal(after.playerToken.header.version, submission.result.version)
-            assert.deepEqual(after.ownerFog.fogLayers, reactionIssuedMovement.ownerFog.fogLayers)
-            assert.deepEqual(after.playerFog.fogLayers, reactionIssuedMovement.playerFog.fogLayers)
-            assert.deepEqual(
-              after.playerFog.fogLayers,
-              after.ownerFog.fogLayers.filter(
-                (layer) =>
-                  layer.ownerUserId === null || layer.ownerUserId === player.identity.userId
-              )
-            )
-            assert.deepEqual(after.run, completedMovement.run)
-            assert.deepEqual(after.character, completedMovement.character)
-            completedMovement = after
           }
         })
         console.log('Browser movement reaction, evidence, replay, reconnect, and departure passed.')

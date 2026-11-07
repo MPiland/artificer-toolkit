@@ -8,13 +8,11 @@ import {
 import {
   LIVE_SESSION_PATH_PREFIX,
   liveSessionWebSocketClientMessageDtoSchema,
-  liveSessionWebSocketServerMessageDtoSchema
+  liveSessionWebSocketServerMessageDtoSchema,
+  type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SceneFogPublishCommandInput } from '@artificer-toolkit/schema/api/sceneFog'
-import type {
-  SceneCommandInputDto,
-  SceneCommandResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   captureDiagnostics,
@@ -62,7 +60,6 @@ type EncounterMovementBrowserInput = {
   reactor: { actorId: string; tokenId: string; actionId: string }
   evidenceDirectory: string
   retryExactMovement: (frame: RoomSceneCommandFrame) => Promise<void>
-  retryExactUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
   readPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   readPlayerPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   /** `observedSceneVersion` is the newest Scene version a room commit reported to either tab. */
@@ -70,8 +67,8 @@ type EncounterMovementBrowserInput = {
     stage: EncounterMovementStage,
     observedSceneVersion: number
   ) => Promise<void>
-  verifyCompletedUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
-  verifyUndoBaseline: () => Promise<void>
+  /** The authoritative token, fog, Run and Character still match the settled movement. */
+  verifySettledMovement: () => Promise<void>
   revokePlayer: () => Promise<void>
 }
 
@@ -81,10 +78,10 @@ type RoomSceneCommandFrame = {
   expectedSessionSequence: number
 }
 
-type EncounterMovementUndoSubmission = {
-  command: RoomSceneCommandFrame
-  result: SceneCommandResultDto
-}
+type RoomCommandRejection = Extract<
+  LiveSessionWebSocketServerMessageDto,
+  { type: 'COMMAND_REJECTED' }
+>
 
 type EncounterMovementBrowserResult = { globalDiagnostics: string[] }
 
@@ -102,7 +99,7 @@ export async function verifyEncounterMovementBrowser(
   let player: Page | undefined
   let movementCommand: RoomSceneCommandFrame | undefined
   let undoCommand: RoomSceneCommandFrame | undefined
-  let undoResult: SceneCommandResultDto | undefined
+  let undoRejection: RoomCommandRejection | undefined
   let playerConvexSocketForDiagnostics: ConvexSocketTrace | undefined
   let pendingAtFailure: unknown
   let observedSceneVersion = 0
@@ -187,15 +184,15 @@ export async function verifyEncounterMovementBrowser(
       command: (frame) => {
         if (frame.command.type === 'MOVE_SCENE_TOKEN') movementCommand ??= frame
       },
-      result: () => undefined,
+      rejection: () => undefined,
       sceneVersion: observeSceneVersion
     })
     captureRoomSceneCommands(owner, {
       command: (frame) => {
         if (frame.command.type === 'UNDO_LAST_SCENE_MOVE') undoCommand ??= frame
       },
-      result: (result) => {
-        if (result.commandId === undoCommand?.command.commandId) undoResult ??= result
+      rejection: (rejection) => {
+        if (rejection.commandId === undoCommand?.command.commandId) undoRejection ??= rejection
       },
       sceneVersion: observeSceneVersion
     })
@@ -232,7 +229,10 @@ export async function verifyEncounterMovementBrowser(
       ).toBeVisible()
       await player.getByRole('button', { name: 'Open pending decision', exact: true }).click()
       await expect(player.getByText('Passage choice', { exact: true })).toBeVisible()
-      await player.getByRole('button', { name: 'Overrun · Action', exact: true }).click()
+      // Passage options name the rule, the mover's authored check and its cost (MOVE-4.T1).
+      await player
+        .getByRole('button', { name: 'Overrun · Strength (Athletics) · Action', exact: true })
+        .click()
       await expect.poll(async () => (await input.readPlayerPending())?.kind).toBe('D20_EVIDENCE')
       await resolveEvidence(player, input.readPlayerPending, 'max', true)
       await verifyAuthoritative('passage-initiator-resolved')
@@ -297,37 +297,29 @@ export async function verifyEncounterMovementBrowser(
     await Promise.all([assertScene(owner, input.scene.name), assertScene(player, input.scene.name)])
     await verifyAuthoritative('reconnected')
 
-    stage = 'undo completed token move'
+    // A Scene undo restores only the token, so the room refuses one for a move that settled
+    // Encounter mechanics (SPELLS-17.6, docs/architecture/rules-runtime.md); this move did.
+    stage = 'refuse undo of settled token move'
     await expect(
       player.getByRole('button', { name: 'Undo last token move', exact: true })
     ).toHaveCount(0)
     const undo = owner.getByRole('button', { name: 'Undo last token move', exact: true })
     await expect(undo).toBeVisible()
-    await input.verifyUndoBaseline()
+    await input.verifySettledMovement()
     await undo.click()
     await expect.poll(() => undoCommand).toBeDefined()
-    await expect.poll(() => undoResult).toBeDefined()
-    if (!undoCommand || !undoResult)
-      throw new Error('Browser did not expose the submitted undo command and result.')
-    expect(undoResult.commandId).toBe(undoCommand.command.commandId)
-    expect(undoResult.sceneId).toBe(undoCommand.command.sceneId)
-    expect(undoResult.replayed).toBe(false)
-    await Promise.all([
-      expect(
-        owner
-          .getByRole('region', { name: `Live scene: ${input.scene.name}` })
-          .getByText(`v${undoResult.version}`, { exact: true })
-      ).toBeVisible(),
-      expect(
-        player
-          .getByRole('region', { name: `Live scene: ${input.scene.name}` })
-          .getByText(`v${undoResult.version}`, { exact: true })
-      ).toBeVisible()
-    ])
-    await input.verifyCompletedUndo({ command: undoCommand, result: undoResult })
-
-    stage = 'retry exact undo command'
-    await input.retryExactUndo({ command: undoCommand, result: undoResult })
+    await expect.poll(() => undoRejection).toBeDefined()
+    if (!undoCommand || !undoRejection)
+      throw new Error('Browser did not expose the submitted undo command and its refusal.')
+    expect(undoRejection.commandId).toBe(undoCommand.command.commandId)
+    expect(undoRejection.code).toBe('INVALID_COMMAND')
+    await expect(
+      owner.getByText(
+        'This move settled Encounter mechanics and cannot be undone as a Scene move.',
+        { exact: true }
+      )
+    ).toBeVisible()
+    await input.verifySettledMovement()
 
     await Promise.all([
       owner.screenshot({
@@ -397,7 +389,7 @@ export async function verifyEncounterMovementBrowser(
           failure,
           movementCommand,
           undoCommand,
-          undoResult,
+          undoRejection,
           playerConvexSocket: playerConvexSocketForDiagnostics
             ? {
                 closed: playerConvexSocketForDiagnostics.closed,
@@ -569,7 +561,7 @@ function captureRoomSceneCommands(
   page: Page,
   capture: {
     command: (frame: RoomSceneCommandFrame) => void
-    result: (result: SceneCommandResultDto) => void
+    rejection: (rejection: RoomCommandRejection) => void
     sceneVersion: (sceneId: string, version: number) => void
   }
 ): void {
@@ -593,13 +585,12 @@ function captureRoomSceneCommands(
       const message = liveSessionWebSocketServerMessageDtoSchema.safeParse(
         parseFrame(payload.toString())
       )
-      if (!message.success || message.data.type !== 'COMMAND_COMMITTED') return
+      if (!message.success) return
+      if (message.data.type === 'COMMAND_REJECTED') capture.rejection(message.data)
+      if (message.data.type !== 'COMMAND_COMMITTED') return
       const delta = message.data.delta
-      if (delta?.scope === 'SCENE') {
-        capture.result(delta.result)
-        capture.sceneVersion(delta.result.sceneId, delta.result.version)
-      } else if (delta?.scope === 'SCENE_VERSION')
-        capture.sceneVersion(delta.sceneId, delta.version)
+      if (delta?.scope === 'SCENE') capture.sceneVersion(delta.result.sceneId, delta.result.version)
+      else if (delta?.scope === 'SCENE_VERSION') capture.sceneVersion(delta.sceneId, delta.version)
     })
   })
 }
