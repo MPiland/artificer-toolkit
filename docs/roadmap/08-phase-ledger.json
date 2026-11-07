@@ -22957,9 +22957,10 @@
             {
               "id": "RELIABILITY-21.23",
               "text": "The Playwright Storybook e2e suite (test:e2e:storybook) runs in CI on changes that reach it, and its first story no longer races a cold Storybook dev-server compile: readiness means the story graph is compiled.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "User approved 2026-11-06 (D187 +1). The spells walkthrough drifted for two weeks unseen (run P); the first story took 40.4 s (P) and 33.1 s (Q2) against the 30 s canvas wait. Static storybook build fails: sb.mock is not applied in storybook build. Handoff: docs/validation/release-2-t1-final-local-lifecycle-2026-11-05.md."
+              "note": "User approved 2026-11-06 (D187 +1). The spells walkthrough drifted for two weeks unseen (run P); the first story took 40.4 s (P) and 33.1 s (Q2) against the 30 s canvas wait. Static storybook build fails: sb.mock is not applied in storybook build. Handoff: docs/validation/release-2-t1-final-local-lifecycle-2026-11-05.md.",
+              "proof": ["Closed by RELIABILITY-21.T32 (m648); see the task proof."]
             },
             {
               "id": "RELIABILITY-21.24",
@@ -22971,9 +22972,12 @@
             {
               "id": "RELIABILITY-21.25",
               "text": "The movement and passage encounter browser proofs pass: the movement reaction completes with evidence and the Overrun action is offered during passage.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run."
+              "note": "Found when RELIABILITY-21.T32 ran all 61 CI proofs; deterministic over 3 Browser journeys runs (42316456266, 42320257526, 42323236970) on ci/reliability-21-t32. User approved 2026-11-06 (D187 +2), fix before the RC CI run.",
+              "proof": [
+                "Closed by RELIABILITY-21.T34 (m647); both proofs pass without known-bug labels on the T32 tip c7fe6e57f."
+              ]
             },
             {
               "id": "RELIABILITY-21.26",
@@ -23421,7 +23425,7 @@
             {
               "id": "RELIABILITY-21.T32",
               "text": "Add a CI job for the Playwright Storybook e2e project and remove the cold-compile race at its source (lead option: Vite server.warmup for the story graph plus a readiness URL that answers only once warm-up is done). No raised timeouts, warm-up visits in specs or retries. Workflow change: hand merge.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.23"],
               "wsjf": {
                 "bv": 5,
@@ -23429,7 +23433,12 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered by the orchestrator on 2026-11-06 with user approval. Must merge before the release-candidate lifecycle run."
+              "note": "Registered by the orchestrator on 2026-11-06 with user approval. Must merge before the release-candidate lifecycle run.",
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "Storybook e2e CI job with storyWarmup readiness (2897 modules, 0 failed); D213 full-CI pre-staging gate; failed-shard diagnostics upload",
+                "Green on c7fe6e57f: Tests 42348068094, Browser journeys 42348068082, Live 42346678480 (fe3188cf7, later diff Storybook spec only); hand-merged as m648"
+              ]
             },
             {
               "id": "RELIABILITY-21.T33",
@@ -23447,7 +23456,7 @@
             {
               "id": "RELIABILITY-21.T34",
               "text": "Fix the movement and passage journeys at their root cause (product bug gets a real-code regression test; journey drift is corrected to cited intent); remove their known-bug labels.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.25"],
               "wsjf": {
                 "bv": 8,
@@ -23455,7 +23464,11 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Evidence: encounterMovement.ts:309 predicate wait, :510 \"Selected reaction completed without evidence.\", :235 Overrun · Action button."
+              "note": "Evidence: encounterMovement.ts:309 predicate wait, :510 \"Selected reaction completed without evidence.\", :235 Overrun · Action button.",
+              "mergedAt": "2026-11-06",
+              "proof": [
+                "Movement and passage journeys follow D207 timed reactions; green on 08f3ae8f9 (movement 42337931554, passage 42337933359); merged f5d0ea2bc (m647, merge-slice run 42342432603)"
+              ]
             },
             {
               "id": "RELIABILITY-21.T35",
