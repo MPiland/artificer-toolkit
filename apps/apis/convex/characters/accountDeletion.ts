@@ -11,7 +11,10 @@ import { internalMutation } from '../lib/mutations'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { retireCharacterReceipts } from './receiptCleanup'
-import { cancelCharacterSheetPendingStore, readCharacterSheetPendingStore } from './sheetSections'
+import {
+  readCharacterSheetPendingStore,
+  settleCharacterSheetPendingStore
+} from './sheetSectionStores'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
@@ -145,10 +148,7 @@ export async function removePrivateCharacter(
     .unique()
   if (derivation) await ctx.db.delete(derivation._id)
   const pendingStore = await readCharacterSheetPendingStore(ctx, characterId)
-  if (pendingStore) {
-    await cancelCharacterSheetPendingStore(ctx, pendingStore)
-    await ctx.db.delete('characterSheetPendingStores', pendingStore._id)
-  }
+  if (pendingStore) await settleCharacterSheetPendingStore(ctx, pendingStore)
   if (active) {
     await ctx.db.delete(active.play._id)
     await ctx.db.delete(active._id)

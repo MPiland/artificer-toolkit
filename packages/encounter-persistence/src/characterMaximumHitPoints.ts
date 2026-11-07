@@ -3,7 +3,7 @@ import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnE
 import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/shared/hitPointMaximumFraction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterCharacterPlay } from './characterPlay.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 /**

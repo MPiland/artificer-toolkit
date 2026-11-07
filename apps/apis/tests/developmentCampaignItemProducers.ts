@@ -15,6 +15,7 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { api } from '../convex/_generated/api.js'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 
 type CharacterCommand =
   | Omit<
@@ -157,7 +158,7 @@ export async function verifyCampaignItemProducers(
     const vehicles = await collectPages((cursor) =>
       owner.query(api.campaigns.vehicles.list, pagination(cursor))
     )
-    const [party, characters, auditRows] = await Promise.all([
+    const [party, characterSlices, auditRows] = await Promise.all([
       readShared(),
       Promise.all(
         characterIds.map(async (id, index) => {
@@ -165,7 +166,7 @@ export async function verifyCampaignItemProducers(
           assert.ok(player)
           const [active, sheet, draft, fence] = await Promise.all([
             player.client.query(api.characters.builder.activeCharacter, { id }),
-            player.client.query(api.characters.sheet.get, { id }),
+            readCharacterSheetSlices(player.client, { id }, ['COMMON']),
             player.client.query(api.characters.drafts.get, { id }),
             owner.query(api.campaigns.inventoryOwners.version, {
               input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
@@ -179,6 +180,16 @@ export async function verifyCampaignItemProducers(
       ),
       audit()
     ])
+    // No slice carries the whole Sheet DTO, so whole-Sheet compares read it in full once the burst
+    // has settled.
+    const characters = []
+    for (const [index, entry] of characterSlices.entries()) {
+      const player = players[index]
+      assert.ok(player)
+      const fullSheet = await player.client.query(api.characters.sheet.get, { id: entry.id })
+      assert.ok(fullSheet)
+      characters.push({ ...entry, fullSheet })
+    }
     const cargo = await Promise.all(
       vehicles.map(async (vehicle) => ({ vehicle, state: await readShared(vehicle.id) }))
     )
@@ -537,9 +548,12 @@ export async function verifyCampaignItemProducers(
   const secondFinal = character(final, otherCharacterId)
   assert.deepEqual(firstFinal.active.state, firstInitial.active.state)
   assert.deepEqual(firstFinal.active.intent, firstInitial.active.intent)
-  assert.deepEqual(firstFinal.sheet, {
-    ...firstInitial.sheet,
-    meta: { ...firstInitial.sheet.meta, streamVersion: firstInitial.sheet.meta.streamVersion + 4 }
+  assert.deepEqual(firstFinal.fullSheet, {
+    ...firstInitial.fullSheet,
+    meta: {
+      ...firstInitial.fullSheet.meta,
+      streamVersion: firstInitial.fullSheet.meta.streamVersion + 4
+    }
   })
   assert.deepEqual(
     firstFinal.draft,
@@ -547,7 +561,7 @@ export async function verifyCampaignItemProducers(
     'Draft IDs, payload, and private notes must remain exact.'
   )
   assert.deepEqual(secondFinal.active, secondInitial.active)
-  assert.deepEqual(secondFinal.sheet, secondInitial.sheet)
+  assert.deepEqual(secondFinal.fullSheet, secondInitial.fullSheet)
   assert.deepEqual(secondFinal.draft, secondInitial.draft)
   assert.deepEqual(final.party.items.page, initial.party.items.page)
   assert.deepEqual(final.party.currencies.page, initial.party.currencies.page)

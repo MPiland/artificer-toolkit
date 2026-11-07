@@ -25,7 +25,7 @@ import {
   readCharacterEffect,
   readEncounterEffect,
   readMaintainedState
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { applyJsonDelta } from '@artificer-toolkit/encounter-persistence/jsonDelta'

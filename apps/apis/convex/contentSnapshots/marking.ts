@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 import type { ContentSnapshotScope } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { internal } from '../_generated/api'
 import type { DataModel } from '../_generated/dataModel'
+import { scheduleCampaignCharacterSheetSections } from '../characters/sheetSectionStores'
 
 /** Coalesces a burst of publishes into one build. */
 export const CONTENT_SNAPSHOT_BUILD_DELAY_MS = 2_000
@@ -61,15 +62,18 @@ export async function markContentSnapshotScope(
       buildScheduledAt: now
     })
     await scheduleContentSnapshotBuild(scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
-    return true
+  } else {
+    const scheduled =
+      head.buildScheduledAt !== undefined && head.buildScheduledAt >= now - BUILD_LEASE_MS
+    await db.patch(head._id, {
+      revision: head.revision + 1,
+      ...(scheduled ? {} : { buildScheduledAt: now })
+    })
+    if (!scheduled)
+      await scheduleContentSnapshotBuild(scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
   }
-  const scheduled =
-    head.buildScheduledAt !== undefined && head.buildScheduledAt >= now - BUILD_LEASE_MS
-  await db.patch(head._id, {
-    revision: head.revision + 1,
-    ...(scheduled ? {} : { buildScheduledAt: now })
-  })
-  if (!scheduled)
-    await scheduleContentSnapshotBuild(scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+  // The revision is a Sheet fingerprint input of every Character assigned to the Campaign (D215).
+  if (ref.scope === 'CAMPAIGN')
+    await scheduleCampaignCharacterSheetSections({ db, scheduler }, ref.scopeId)
   return true
 }

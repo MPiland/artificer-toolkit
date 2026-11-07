@@ -19996,13 +19996,30 @@ export declare const api: {
         }
       >;
     };
-    sheetSlices: {
+    sheetLive: {
       concentrationRoomRoute: FunctionReference<
         "query",
         "public",
         { campaignId?: string; id: string },
         null | { campaignId: string; encounterId: string }
       >;
+      liveAuthority: FunctionReference<
+        "query",
+        "public",
+        { campaignId?: string; id: string },
+        null | {
+          campaignId: string;
+          characterId: string;
+          checkpointSequence: number;
+          checkpointStreamVersion: number;
+          checkpointedAt: string | null;
+          encounterIds: Array<string>;
+          epoch: string;
+          phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+        }
+      >;
+    };
+    sheetSlices: {
       get: FunctionReference<
         "query",
         "public",
@@ -22171,21 +22188,6 @@ export declare const api: {
             };
             slice: "NOTES";
           }
-      >;
-      liveAuthority: FunctionReference<
-        "query",
-        "public",
-        { campaignId?: string; id: string },
-        null | {
-          campaignId: string;
-          characterId: string;
-          checkpointSequence: number;
-          checkpointStreamVersion: number;
-          checkpointedAt: string | null;
-          encounterIds: Array<string>;
-          epoch: string;
-          phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-        }
       >;
     };
   };
@@ -305829,6 +305831,12 @@ export declare const internal: {
         { characterId: string; userId: string },
         null
       >;
+      sheetSectionsState: FunctionReference<
+        "query",
+        "internal",
+        { characterId: string },
+        "CURRENT" | "NO_SHEET" | "QUEUED" | "MISSING" | "FAILED"
+      >;
     };
     developmentReceiptLedgers: {
       create: FunctionReference<
@@ -306023,6 +306031,12 @@ export declare const internal: {
         "mutation",
         "internal",
         { characterId: string; token: string },
+        null
+      >;
+      verify: FunctionReference<
+        "mutation",
+        "internal",
+        { campaignId?: string; characterId: string; token: string },
         null
       >;
     };

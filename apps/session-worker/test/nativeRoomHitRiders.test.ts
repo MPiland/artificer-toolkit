@@ -1,5 +1,5 @@
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
-import { readEncounterEffect } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readEncounterEffect } from '@artificer-toolkit/encounter-persistence/effectReads'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {

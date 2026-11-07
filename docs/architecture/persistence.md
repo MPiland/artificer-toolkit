@@ -619,7 +619,7 @@ vision dependencies. See [Character](character.md#draft-autosave-adr-0036-s8--lo
 
 ### Held Character authority
 
-See [Live room and checkpoints](#live-room-and-checkpoints) for `liveCharacterHolds`. `sheetSlices.liveAuthority`
+See [Live room and checkpoints](#live-room-and-checkpoints) for `liveCharacterHolds`. `sheetLive.liveAuthority`
 reads head, holds and typed play only, exposing routing metadata to the owner and GM and null to party readers;
 `campaigns/queries.liveAuthority` serves Campaign-level pages. `checkpointedAt` records the last acknowledged
 checkpoint. Membership, controller and account-deletion departures reconcile in the room (D74).

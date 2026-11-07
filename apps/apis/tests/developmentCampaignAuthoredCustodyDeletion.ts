@@ -20,6 +20,7 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { api } from '../convex/_generated/api.js'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 
 type Currency = FunctionReturnType<typeof api.campaigns.partyInventory.currencies>['page'][number]
 type Item = FunctionReturnType<typeof api.campaigns.partyInventory.items>['page'][number]
@@ -182,7 +183,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
       shares,
       partyItems,
       partyCurrencies,
-      characters,
+      characterSlices,
       history,
       playerHistory,
       audit,
@@ -200,7 +201,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
           assert.ok(author)
           const [character, sheet, fence] = await Promise.all([
             author.client.query(api.characters.builder.activeCharacter, { id }),
-            author.client.query(api.characters.sheet.get, { id }),
+            readCharacterSheetSlices(author.client, { id }, ['INVENTORY', 'NOTES']),
             author.client.query(api.campaigns.inventoryOwners.version, {
               input: {
                 campaignId,
@@ -230,6 +231,17 @@ export async function verifyCampaignAuthoredCustodyDeletion(
       )
     ])
     assert.ok(campaign)
+    // No slice carries the whole Sheet DTO, so whole-entry compares read it in full once the burst
+    // has settled.
+    const characters = []
+    for (const [index, entry] of characterSlices.entries()) {
+      const author = players[index]
+      assert.ok(author)
+      characters.push({
+        ...entry,
+        fullSheet: await author.client.query(api.characters.sheet.get, { id: entry.id })
+      })
+    }
     const shared = async (vehicleId?: string) => {
       const [items, currencies, fence] = await Promise.all([
         vehicleId === undefined ? Promise.resolve(partyItems) : readItems(vehicleId),

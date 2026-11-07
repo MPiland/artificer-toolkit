@@ -3,7 +3,7 @@ import type { QueryCtx } from '../_generated/server'
 import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import { readSystem } from '../content/systemDocuments'
 import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import type { CharacterSheetFingerprintReads } from './sheetSections'
@@ -40,7 +40,8 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     referenceSpellIds,
     reads?.system && reads.sources
       ? { system: deriveOnce(reads.system, readSystem), sources: reads.sources }
-      : undefined
+      : undefined,
+    reads?.authorized
   )
   if (!loaded) return null
   const evaluated = await prepareCharacterSheetFromContext({

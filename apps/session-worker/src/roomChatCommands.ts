@@ -5,7 +5,7 @@ import {
   readConversationEntryReplay
 } from '@artificer-toolkit/encounter-persistence/conversationPersistence'
 import { presentChatEntries } from '@artificer-toolkit/encounter-persistence/conversationPresentation'
-import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
 import {
   readRollNoticeCreatureLabel,
   readRollRevealRefusal,

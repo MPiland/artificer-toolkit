@@ -22,7 +22,7 @@ import { optionalCombatPolicyCapabilityRegistry } from '@artificer-toolkit/rules
 import { campaignDefinitions } from './actionPreparationReads.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActors } from './documents.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { admitGmEncounterCommand, commitGmEncounterCommand } from './gmEncounterCommands.js'
 import type { EncounterWriteTransaction } from './ports.js'
 import { recordRuleRollCard } from './ruleRollCards.js'

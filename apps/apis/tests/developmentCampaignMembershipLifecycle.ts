@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import { generateValidUsername } from './fixtures/generatedUsername'
 import { api } from '../convex/_generated/api.js'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
@@ -210,8 +211,11 @@ export async function verifyCampaignMembershipLifecycle(
       [player0CharacterId, player1CharacterId].map(async (characterId, index) => ({
         characterId,
         streamVersion:
-          (await playerAccounts[index]!.client.query(api.characters.sheet.get, { id: characterId }))
-            ?.meta.streamVersion ?? null
+          (
+            await readCharacterSheetSlices(playerAccounts[index]!.client, { id: characterId }, [
+              'COMMON'
+            ])
+          )?.meta.streamVersion ?? null
       }))
     )
     return {

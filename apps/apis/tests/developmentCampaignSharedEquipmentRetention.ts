@@ -12,6 +12,7 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
 import { api } from '../convex/_generated/api.js'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 
 export async function verifyCampaignSharedEquipmentRetention(
   cohort: CampaignCustodyCohort
@@ -91,10 +92,13 @@ export async function verifyCampaignSharedEquipmentRetention(
         paginationOpts
       }),
       player.query(api.characters.builder.activeCharacter, { id: characterId }),
-      player.query(api.characters.sheet.get, { id: characterId }),
+      readCharacterSheetSlices(player, { id: characterId }, ['INVENTORY']),
       owner.query(api.campaigns.queries.get, { id: campaignId })
     ])
     assert.ok(character && sheet && campaign)
+    // No slice carries the whole Sheet DTO, so whole-read compares use a full read taken once the
+    // burst has settled.
+    const fullSheet = await player.query(api.characters.sheet.get, { id: characterId })
     for (const page of [partyItems, partyCurrencies, vehicleItems, vehicleCurrencies])
       assert.equal(page.isDone, true)
     return {
@@ -104,6 +108,7 @@ export async function verifyCampaignSharedEquipmentRetention(
       vehicleCurrencies,
       character,
       sheet,
+      fullSheet,
       campaign
     }
   }

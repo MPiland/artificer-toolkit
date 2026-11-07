@@ -4,7 +4,7 @@
 - **Date:** 2026-10-28
 - **Scope:** `apps/apis/convex/characters` (Character writes and Sheet reads), `campaigns/characterSheet.ts`, `packages/schema/src/projections/characterSheetSections.ts`
 - **Builds on:** [ADR 0036](0036-versioned-content-snapshots-and-browser-builder.md), whose content-snapshot heads stand for the authored content a Sheet resolves against
-- **Verification:** `apps/apis/convex/characters/sheetSections.test.ts` (stored and live parity for owner, GM and party viewers; a stored read's I/O budget; fallback once an input changes outside a Character write)
+- **Verification:** `apps/apis/convex/characters/sheetSections.test.ts` (stored and live parity for owner, GM and party viewers; a stored read's I/O budget; fallback once an input changes outside a Character write; a derivation queued for every assigned Character after a Campaign-scope change)
 
 ## Context
 
@@ -30,6 +30,31 @@ Projection after derivation costs under 1 ms per section. Rules evaluation does 
 7. **A write stores every section, panels included, in its own transaction.** Queuing the panels saved about 54 ms of a Sheet command (305 to 251 ms in convex-test), but it was tried and reverted. The queued store re-evaluated the whole Sheet and rewrote the derivation row. That second invalidation reran every subscribed slice read, and under CI load those reads hit Convex's 1 s query limit. The Sheet editor then held a stale stream version and its next command was rejected (vtt-browser run 40756050318). A store serializes each section once, with plain `JSON.stringify`, and checksums that string. Projection builds each section in a fixed key order, so a checksum is stable across derivations; canonical JSON cost about 5 ms of each command for no gain (RELIABILITY-21.16). The store fingerprints the row the write produced instead of reading the Character back. A trial on 2026-10-29 (RELIABILITY-21.T16) moved Sheet commands to the queued derivation as well, and it was reverted. Commands got cheaper: `sheetCommands:execute` went from 468 / 1123 ms to 434 / 932 ms, median / max. Play commands come more than the 300 ms delay apart, though, so each still paid a whole derivation, and the vtt store ran at 915 / 1062 ms. About half the vtt slice reads landed in the gap and derived live, at 780 to 1009 ms against 357 ms stored (BJ 40910806558).
 8. **Not stored.** Notes (private, read without sources); the Proficiencies panel (it resolves the whole catalogue); panel targets the Sheet does not list (cast-level and passive entries); and the panel of a listed Spell the Character does not reference (a full-list Spell not learned or prepared), since the Sheet evaluates only referenced Spells (`collectCharacterReferencedSpellIds`). These always derive live.
 
+## Amendment 1 (2026-11-07, D215): Campaign-scope changes queue a derivation
+
+Approved by the user on 2026-11-07 (RELIABILITY-21.T33). A Campaign-scope fingerprint input no longer leaves its Characters' sections stale until their next write: the mutation that changes it queues the derivation of every Character assigned to the Campaign (`scheduleCampaignCharacterSheetSections` in `characters/sheetSectionStores.ts`). The derivation is deduplicated per Character through `characterSheetPendingStores`, and the party size bounds it. The inputs, and where each one queues:
+
+- the Campaign content head revision, which moves on a share or unshare, a membership status or role change, and a System, owner or catalogue change: `markContentSnapshotScope`;
+- the Campaign fields the Sheet reads (`characterSheetCampaignFields`, also used by the fingerprint): the `campaigns` trigger in `lib/mutations.ts`;
+- the Campaign currency systems: the `campaignCurrencySystems` trigger;
+- the Campaign Character state and the assignment: the `campaignCharacterStates` and `campaignCharacterAssignments` triggers, which queue that one Character.
+
+Triggers run for every tracked mutation, so a new write path needs no extra call. The queued store lives in its own small module because every tracked mutation loads it.
+
+A Campaign change queues its party as a chain, so at most one of the Campaign's stores runs at a time. Each assigned Character without a pending store gets a pending row carrying the `campaignId` and no job. The first row is scheduled after the usual delay. Each store, once it commits, starts the next waiting row. Parallel stores contended on the same Campaign rows and multiplied each other's facts and commit time 3 to 5 times, and 2 of 42 timed out (run 42389041471). A Character whose store is already pending is left alone, because that store has not committed and will read the change. A Character write that replaces a chain row's store keeps the row's `campaignId`, and deleting a Character clears its row the way a landing store does, so neither stalls the chain.
+
+Opening or discarding an edit draft over an active Character queues a store, because the fingerprint and the Sheet carry whether a Builder draft is open. Draft saves still queue nothing.
+
+Every scheduled store has a check, scheduled 2 s after the store is due (`characterSheetPendingStores.checkId`):
+
+- a store that lands cancels its check, so a normal store costs no extra function call;
+- a store that fails or times out rolls the cancel back, so the check runs;
+- while the store is still pending or running, the check looks again;
+- a failed or canceled store whose pending row is still current is queued once more (`retried`);
+- after a second failure the row is dropped and logged, the sections stay stale (reads derive live until the next write), and the chain moves on.
+
+The queued store reads its inputs once: the authorized Character state, System, sources and effects that decided whether it runs are reused by the facts load and by the write. The pending-store shape changed, so local data is reset after merge (D196).
+
 ## Consequences
 
 - A Sheet read touches no authored content: it reads authority rows, the fingerprint inputs and one section.
@@ -37,6 +62,6 @@ Projection after derivation costs under 1 ms per section. Rules evaluation does 
 - Accepted residuals, each a correct live fallback until the next Character write:
   - a write that queues the derivation, until that derivation runs;
   - live-table checkpoint writes to a held Character's play state;
-  - Campaign or source changes outside a Character write (catalogue edits, membership changes, published content) change the fingerprint.
+  - source-scope changes outside a Character write (a source record edit, its published content, an SRD reseed) change the fingerprint of every Character that reads the source. Campaign-scope changes queue a derivation instead (Amendment 1).
 - Derivation trusts verified documents (RELIABILITY-21.T25, AC RELIABILITY-21.20). Publish and seed parse a publication or System document once, before they checksum and store it. A Sheet derivation verifies the stored checksum and uses the typed document without parsing it again; a mismatch is refused. The parse was about 20 of 72 ms of CPU per store locally (publication about 13 ms, System about 7 ms), 5 to 6 times that on CI. The queued store also reuses the fingerprint it read to decide whether to run, so it fingerprints the Character's inputs once instead of twice. On CI (BJ 41144697084 against the phase tip, BJ 41144699479), median / max: `characterSheet:execute` in vtt 596 / 913 to 370 / 407 ms, `sheetSlices:get` in vtt 295 / 361 to 198 / 394 ms, the account-deletion store 552 / 1051 to 463 / 697 ms and `sheetCommands:execute` there 478 / 916 to 418 / 740 ms. The post-commit Builder store's read volume is not trimmed here: Spell roots are most of it (a local Cleric store read 567 KB, 386 KB in roots), and cutting it moves `authoringSources` off `authoredRoots`, a stored-shape change tracked in its own task.
 - No migration: pre-launch local data is reset after merge (D196). A Character without stored sections reads live until its next write.

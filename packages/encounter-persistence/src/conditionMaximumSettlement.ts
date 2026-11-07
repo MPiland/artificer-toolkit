@@ -8,7 +8,7 @@ import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/share
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterState } from '@artificer-toolkit/shared/subjects/authored'
 import { readRunState } from './documents.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type { EncounterReadPorts } from './ports.js'
 import type { EncounterReadContext } from './store.js'
 

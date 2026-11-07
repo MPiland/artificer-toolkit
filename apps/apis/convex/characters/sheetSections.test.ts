@@ -9,6 +9,7 @@ import type { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/sche
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import {
   SRD_CONTENT_SOURCE,
@@ -17,10 +18,27 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../_generated/api'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
-import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { createPartyPlayer, createPartyUser } from '../../tests/fixtures/partyPlayer'
+import {
+  importedSubject,
+  importSeededSubjects,
+  makePublishedRootOwned
+} from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
+import {
+  characterSheetSection,
+  readCharacterSheetStoreState,
+  readStoredCharacterSheetSection
+} from './sheetSections'
+import {
+  CHARACTER_SHEET_STORE_CHECK_MS,
+  CHARACTER_SHEET_STORE_DELAY_MS,
+  scheduleCharacterSheetSections
+} from './sheetSectionStores'
+import { deriveAndStoreCharacterSheet, storeCharacterSheetSections } from './sheetSectionDerivation'
+import { loadCharacterSheetFacts } from './sheetFacts'
+import { removePrivateCharacter } from './accountDeletion'
+import { loadCharacterState } from './documents'
 
 /**
  * A stored section read checks authority and the derivation's inputs (the System document is 34 KB
@@ -92,8 +110,69 @@ async function setup() {
       for (const row of await ctx.db.query('characterSheetDerivations').collect())
         await ctx.db.delete(row._id)
     })
+  let members = 0
+  /** Another player's Character, assigned to the Campaign with its Sheet stored. */
+  const assignAnotherCharacter = async () => {
+    members += 1
+    const member = await createPartyUser(t, {
+      username: `PartyMember${members}`,
+      email: `party-member-${members}@example.invalid`
+    })
+    const another = await base.createCharacter(undefined, member.caller)
+    await member.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: another.draft.id,
+      mode: 'create',
+      character: another.character
+    })
+    await t.run(async (ctx) => {
+      await ctx.db.insert('campaignMemberships', {
+        campaignId: campaign.id,
+        userId: member.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: campaign.createdAt,
+        joinedAt: campaign.createdAt,
+        leftAt: null
+      })
+      await ctx.db.insert('campaignCharacterAssignments', {
+        campaignId: campaign.id,
+        userId: member.userId,
+        characterId: another.character.id,
+        assignedAt: campaign.createdAt
+      })
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    return { ...another.character, userId: member.userId }
+  }
   await t.finishAllScheduledFunctions(vi.runAllTimers)
-  return { t, player, gm, party, campaign, character, input, visibility, forgetDerivation }
+  return {
+    t,
+    player,
+    gm,
+    party,
+    campaign,
+    character,
+    input,
+    visibility,
+    forgetDerivation,
+    assignAnotherCharacter
+  }
+}
+
+const SHEET_STORE = 'characters/sheetSectionDerivation:store'
+
+/** A Campaign-scope change: it moves every assigned Character's fingerprint (D215). */
+function saveCampaignCurrency(
+  gm: Awaited<ReturnType<typeof setup>>['gm'],
+  campaignId: string,
+  label: string
+) {
+  return gm.caller.mutation(api.campaigns.currencySystems.save, {
+    campaignId,
+    label,
+    isReference: true,
+    denominations: [{ label: 'Token', abbreviation: 'tk', scaleInReference: 1 }]
+  })
 }
 
 describe('Stored Character Sheet sections (ADR 0041)', () => {
@@ -277,10 +356,11 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
           section
         })
       )
+    // Each queued store also schedules the check that queues it again if it fails (D215).
     const readQueue = () =>
       t.run(async (ctx) => ({
         scheduled: (await ctx.db.system.query('_scheduled_functions').collect())
-          .filter((row) => row.state.kind === 'pending')
+          .filter((row) => row.state.kind === 'pending' && row.name === SHEET_STORE)
           .map((row) => row._id),
         pending: (await ctx.db.query('characterSheetPendingStores').collect()).map(
           (row) => row.scheduledId
@@ -350,24 +430,25 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       const [row] = await ctx.db.query('characterSheetPendingStores').take(1)
       return row!
     })
+    const scheduledId = queued.scheduledId
+    if (!scheduledId) throw new Error('A Character write schedules its store.')
     // The derivation runs, so the job is no longer pending. Point the Character's pending row at it
     // again, as a write racing the running job sees it.
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    const finished = await t.run((ctx) => ctx.db.system.get(queued.scheduledId))
+    const finished = await t.run((ctx) => ctx.db.system.get(scheduledId))
     expect(finished?.state.kind).toBe('success')
     await t.run((ctx) =>
       ctx.db.insert('characterSheetPendingStores', {
         characterId: queued.characterId,
-        scheduledId: queued.scheduledId,
-        token: queued.token
+        scheduledId,
+        token: queued.token,
+        retried: false
       })
     )
     await createNote(first.streamVersion, 'Session two')
     // convex-test, like Convex, cancels only a pending job; cancelling a started one trips its
     // "Unexpected scheduled function state" invariant.
-    expect((await t.run((ctx) => ctx.db.system.get(queued.scheduledId)))?.state.kind).toBe(
-      'success'
-    )
+    expect((await t.run((ctx) => ctx.db.system.get(scheduledId)))?.state.kind).toBe('success')
   }, 60_000)
 
   it("stores a Sheet command's sections in its own transaction, leaving no gap", async () => {
@@ -419,13 +500,20 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
   }, 60_000)
 
-  it('queues no derivation for a Builder draft save', async () => {
+  it('queues a derivation when an edit draft opens or is discarded, and none for its saves', async () => {
     const { t, player, character } = await setup()
     const readPending = () => t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())
+    const readCurrent = async () =>
+      (await t.run((ctx) => readCharacterSheetStoreState(ctx, player.userId, character.id)))
+        ?.current
+    // The Sheet shows whether a Builder draft is open, so opening one changes its sections.
     const edit = await player.caller.mutation(api.characters.drafts.create, {
       id: character.id,
       systemId: character.systemId
     })
+    expect(await readPending()).toHaveLength(1)
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readCurrent()).toBe(true)
     await player.caller.mutation(api.characters.drafts.save, {
       expectedDraftId: edit.id,
       characterId: character.id,
@@ -433,6 +521,14 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       character: { ...character, label: 'Unsaved edit', status: 'DRAFT' }
     })
     expect(await readPending()).toEqual([])
+    expect(await readCurrent()).toBe(true)
+    await player.caller.mutation(api.characters.drafts.discard, {
+      id: character.id,
+      expectedDraftId: edit.id
+    })
+    expect(await readPending()).toHaveLength(1)
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readCurrent()).toBe(true)
   }, 60_000)
 
   it('replays a Sheet command without rewriting the Character or queueing a derivation', async () => {
@@ -546,5 +642,337 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect((await readDerivation())!.sections).toEqual(sections)
 
     expect((await rederive())!.sections).toEqual(derivation!.sections)
+  }, 60_000)
+
+  it('reads each store input once and stores what a fresh derivation stores', async () => {
+    const { t, player, character, forgetDerivation } = await setup()
+    const readStored = () =>
+      t.run(async (ctx) => {
+        const derivation = await ctx.db
+          .query('characterSheetDerivations')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+        const sections = await ctx.db
+          .query('characterSheetSections')
+          .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', character.id))
+          .collect()
+        return {
+          fingerprint: derivation?.fingerprint,
+          sections: derivation?.sections,
+          rows: sections.map(({ viewer, section, checksum, json }) => ({
+            viewer,
+            section,
+            checksum,
+            json
+          }))
+        }
+      })
+    // A fresh derivation loads every input itself and fingerprints them on its own.
+    await forgetDerivation()
+    await t.run(async (ctx) => {
+      const facts = await loadCharacterSheetFacts(ctx, player.userId, character.id)
+      await storeCharacterSheetSections(ctx, facts!)
+    })
+    const fresh = await readStored()
+    expect(fresh.fingerprint).toBeDefined()
+
+    // A stale derivation, so the store reads an existing row and rewrites it.
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query('characterSheetDerivations').collect())
+        await ctx.db.patch(row._id, { fingerprint: 'stale' })
+    })
+    const totals = createDatabaseIoTotals()
+    await t.run((ctx) =>
+      deriveAndStoreCharacterSheet(
+        { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+        character.id,
+        crypto.randomUUID()
+      )
+    )
+    expect(await readStored()).toEqual(fresh)
+    const repeated = Object.entries(totals.reads.byTable)
+      .filter(([, table]) => table.documents > table.distinct)
+      .map(([name, table]) => [name, table.documents, table.distinct])
+      .sort()
+    // The store reads each of its own inputs once. These repeats belong to code shared with the
+    // Builder and Sheet read paths, outside the store: the source-access read checks the Campaign
+    // assignment, route and Character again, and the preparation manifest reads the content head.
+    expect(repeated).toEqual([
+      ['authoredRouteIds', 3, 2],
+      ['campaignCharacterAssignments', 3, 1],
+      ['characters', 2, 1],
+      ['contentSnapshotHeads', 2, 1]
+    ])
+  }, 60_000)
+
+  it('queues every assigned Character after a share, a membership change or a currency change', async () => {
+    const { t, player, gm, party, campaign, character } = await setup()
+    const readCommon = () =>
+      t.run((ctx) =>
+        readStoredCharacterSheetSection(ctx, {
+          userId: player.userId,
+          lookupId: character.id,
+          campaignId: campaign.id,
+          section: characterSheetSection.slice('COMMON')
+        })
+      )
+    const readPending = () =>
+      t.run(async (ctx) =>
+        (await ctx.db.query('characterSheetPendingStores').collect()).map((row) => row.characterId)
+      )
+    // Each change moves the Character's fingerprint outside a Character write; the same mutation
+    // queues its derivation, which lands and serves stored sections again (ADR 0041, D215).
+    const expectQueuedThenCurrent = async (change: () => Promise<unknown>) => {
+      expect(await readCommon()).not.toBeNull()
+      await change()
+      expect(await readPending()).toEqual([character.id])
+      expect(await readCommon()).toBeNull()
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+      expect(await readPending()).toEqual([])
+      expect(await readCommon()).not.toBeNull()
+    }
+
+    await t.run((ctx) => makePublishedRootOwned(ctx, acolyte.id, gm.userId))
+    await expectQueuedThenCurrent(() =>
+      gm.caller.mutation(api.campaigns.contentShares.share, {
+        campaignId: campaign.id,
+        subjectKind: 'BACKGROUND',
+        subjectId: acolyte.id
+      })
+    )
+    await expectQueuedThenCurrent(async () => {
+      const { version, accessStartedAt } = await t.run(async (ctx) => ({
+        version: (await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+          .unique())!.version,
+        accessStartedAt: (await ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_campaignId_userId', (q) =>
+            q.eq('campaignId', campaign.id).eq('userId', party.userId)
+          )
+          .unique())!.accessStartedAt
+      }))
+      await party.caller.mutation(api.campaigns.membershipDeparture.leave, {
+        campaignId: campaign.id,
+        expectedCampaignVersion: version,
+        expectedMembershipAccessStartedAt: accessStartedAt,
+        commandId: crypto.randomUUID()
+      })
+    })
+    await expectQueuedThenCurrent(() =>
+      gm.caller.mutation(api.campaigns.currencySystems.save, {
+        campaignId: campaign.id,
+        label: 'Campaign tokens',
+        isReference: true,
+        denominations: [{ label: 'Token', abbreviation: 'tk', scaleInReference: 1 }]
+      })
+    )
+  }, 60_000)
+
+  it("runs a Campaign change's stores one at a time, and every assigned Character ends current", async () => {
+    const { t, player, gm, campaign, character, assignAnotherCharacter } = await setup()
+    const members = [
+      { id: character.id, userId: player.userId },
+      await assignAnotherCharacter(),
+      await assignAnotherCharacter()
+    ]
+    const party = members.map(({ id }) => id)
+    const queuedStores = () =>
+      t.run(async (ctx) =>
+        (await ctx.db.system.query('_scheduled_functions').collect())
+          .filter(
+            (job) =>
+              job.name === SHEET_STORE &&
+              (job.state.kind === 'pending' || job.state.kind === 'inProgress')
+          )
+          .map((job) => (job.args[0] as { characterId: string }).characterId)
+      )
+    const readPending = () =>
+      t.run(async (ctx) => (await ctx.db.query('characterSheetPendingStores').collect()).length)
+
+    await saveCampaignCurrency(gm, campaign.id, 'Campaign tokens')
+    expect(await readPending()).toBe(party.length)
+    const started: string[] = []
+    for (let step = 0; step < 50 && (await readPending()) > 0; step += 1) {
+      const queued = await queuedStores()
+      expect(queued.length).toBeLessThanOrEqual(1)
+      for (const characterId of queued)
+        if (!started.includes(characterId)) started.push(characterId)
+      vi.advanceTimersByTime(CHARACTER_SHEET_STORE_DELAY_MS)
+      await t.finishInProgressScheduledFunctions()
+    }
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readPending()).toBe(0)
+    expect(started.toSorted()).toEqual(party.toSorted())
+    const current = await t.run((ctx) =>
+      Promise.all(
+        members.map(
+          async ({ id, userId }) => (await readCharacterSheetStoreState(ctx, userId, id))?.current
+        )
+      )
+    )
+    expect(current).toEqual(party.map(() => true))
+  }, 120_000)
+
+  it("keeps a Campaign change's stores moving when a Character write requeues the running one", async () => {
+    const { t, player, gm, campaign, character, assignAnotherCharacter } = await setup()
+    const members = [
+      { id: character.id, userId: player.userId },
+      await assignAnotherCharacter(),
+      await assignAnotherCharacter()
+    ]
+    await saveCampaignCurrency(gm, campaign.id, 'Campaign tokens')
+    // A Character write lands while the first store of the chain is scheduled.
+    await t.run(async (ctx) => {
+      const head = (await ctx.db.query('characterSheetPendingStores').collect()).find(
+        (row) => row.scheduledId !== undefined
+      )
+      await scheduleCharacterSheetSections(ctx, head!.characterId)
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(
+      await t.run(
+        async (ctx) => (await ctx.db.query('characterSheetPendingStores').collect()).length
+      )
+    ).toBe(0)
+    const current = await t.run((ctx) =>
+      Promise.all(
+        members.map(
+          async ({ id, userId }) => (await readCharacterSheetStoreState(ctx, userId, id))?.current
+        )
+      )
+    )
+    expect(current).toEqual(members.map(() => true))
+  }, 120_000)
+
+  it("keeps a Campaign change's stores moving when the Character of the running one is deleted", async () => {
+    const { t, player, gm, campaign, character, assignAnotherCharacter } = await setup()
+    const members = [
+      { id: character.id, userId: player.userId },
+      await assignAnotherCharacter(),
+      await assignAnotherCharacter()
+    ]
+    await saveCampaignCurrency(gm, campaign.id, 'Campaign tokens')
+    // The first store's Character leaves the Campaign and is deleted before its store runs.
+    const deletedId = await t.run(async (ctx) => {
+      const head = (await ctx.db.query('characterSheetPendingStores').collect()).find(
+        (row) => row.scheduledId !== undefined
+      )
+      if (!head) throw new Error('A Campaign change schedules its first store.')
+      const assignment = await ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_characterId', (q) => q.eq('characterId', head.characterId))
+        .unique()
+      await ctx.db.delete(assignment!._id)
+      const { active, draft } = await loadCharacterState(ctx, head.characterId)
+      const owner = members.find(({ id }) => id === head.characterId)!
+      await removePrivateCharacter(ctx, owner.userId, head.characterId, active, draft)
+      return head.characterId
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(
+      await t.run(
+        async (ctx) => (await ctx.db.query('characterSheetPendingStores').collect()).length
+      )
+    ).toBe(0)
+    const remaining = members.filter(({ id }) => id !== deletedId)
+    const current = await t.run((ctx) =>
+      Promise.all(
+        remaining.map(
+          async ({ id, userId }) => (await readCharacterSheetStoreState(ctx, userId, id))?.current
+        )
+      )
+    )
+    expect(current).toEqual(remaining.map(() => true))
+  }, 120_000)
+
+  /** Removes the Character's route, so its store fails; restoring it lets the store succeed. */
+  const breakStores = async (t: Awaited<ReturnType<typeof setup>>['t'], characterId: string) => {
+    const route = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('authoredRouteIds')
+        .withIndex('by_subjectId', (q) => q.eq('subjectId', characterId))
+        .unique()
+      await ctx.db.delete(row!._id)
+      return row!
+    })
+    return () =>
+      t.run(async (ctx) => {
+        const { _id, _creationTime, ...fields } = route
+        await ctx.db.insert('authoredRouteIds', fields)
+      })
+  }
+  /** The states of the Character's store jobs scheduled since `earlier` listed every job. */
+  const storeStates = (
+    t: Awaited<ReturnType<typeof setup>>['t'],
+    characterId: string,
+    earlier: ReadonlySet<string>
+  ) =>
+    t.run(async (ctx) =>
+      (await ctx.db.system.query('_scheduled_functions').collect())
+        .filter(
+          (job) =>
+            job.name === SHEET_STORE &&
+            !earlier.has(job._id) &&
+            (job.args[0] as { characterId: string }).characterId === characterId
+        )
+        .map((job) => job.state.kind)
+    )
+  const listJobs = async (
+    t: Awaited<ReturnType<typeof setup>>['t']
+  ): Promise<ReadonlySet<string>> =>
+    new Set(
+      await t.run(async (ctx) =>
+        (await ctx.db.system.query('_scheduled_functions').collect()).map((job) => job._id)
+      )
+    )
+
+  it('queues a failed store once more, and the Character ends current', async () => {
+    const { t, player, gm, campaign, character } = await setup()
+    const before = await listJobs(t)
+    await saveCampaignCurrency(gm, campaign.id, 'Campaign tokens')
+    const restore = await breakStores(t, character.id)
+    // The store is due; its check runs CHARACTER_SHEET_STORE_CHECK_MS after it was due.
+    await vi.advanceTimersByTimeAsync(CHARACTER_SHEET_STORE_CHECK_MS)
+    await t.finishInProgressScheduledFunctions()
+    expect(await storeStates(t, character.id, before)).toEqual(['failed'])
+    await restore()
+    // Its check will queue it again, so proofs waiting on the Sheet keep waiting (D214).
+    expect(
+      await t.query(internal.characters.development.sheetSectionsState, {
+        characterId: character.id
+      })
+    ).toBe('QUEUED')
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await storeStates(t, character.id, before)).toEqual(['failed', 'success'])
+    const state = await t.run((ctx) =>
+      readCharacterSheetStoreState(ctx, player.userId, character.id)
+    )
+    expect(state?.current).toBe(true)
+  }, 60_000)
+
+  it('leaves a store that fails twice stale and recorded, without queueing it again', async () => {
+    const { t, player, gm, campaign, character } = await setup()
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const before = await listJobs(t)
+    await saveCampaignCurrency(gm, campaign.id, 'Campaign tokens')
+    const restore = await breakStores(t, character.id)
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await storeStates(t, character.id, before)).toEqual(['failed', 'failed'])
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining(character.id))
+    logged.mockRestore()
+    await restore()
+    const pending = await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())
+    expect(pending).toEqual([])
+    const state = await t.run((ctx) =>
+      readCharacterSheetStoreState(ctx, player.userId, character.id)
+    )
+    expect(state?.current).toBe(false)
+    expect(
+      await t.query(internal.characters.development.sheetSectionsState, {
+        characterId: character.id
+      })
+    ).toBe('MISSING')
   }, 60_000)
 })

@@ -26,7 +26,7 @@ import { isDepartedCharacterActor } from './characterStates.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActors, readRunState } from './documents.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 

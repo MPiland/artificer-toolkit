@@ -16,6 +16,7 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { api } from '../convex/_generated/api.js'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 import type { DevelopmentClient } from './developmentClient'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 
 async function pages<T>(
   load: (cursor: string | null) => Promise<{ page: T[]; isDone: boolean; continueCursor: string }>
@@ -150,7 +151,7 @@ export async function verifyCampaignVehicleProducers(
       currentShares,
       auditRows,
       party,
-      characters
+      characterSlices
     ] = await Promise.all([
       vehicleOptions(owner),
       vehicleOptions(firstPlayer.client),
@@ -167,7 +168,7 @@ export async function verifyCampaignVehicleProducers(
           assert.ok(player)
           const [active, sheet, draft, fence] = await Promise.all([
             player.client.query(api.characters.builder.activeCharacter, { id }),
-            player.client.query(api.characters.sheet.get, { id }),
+            readCharacterSheetSlices(player.client, { id }, ['COMMON']),
             player.client.query(api.characters.drafts.get, { id }),
             owner.query(api.campaigns.inventoryOwners.version, {
               input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
@@ -180,6 +181,16 @@ export async function verifyCampaignVehicleProducers(
         })
       )
     ])
+    // No slice carries the whole Sheet DTO, so whole-snapshot compares read it in full once the
+    // burst has settled.
+    const characters = []
+    for (const [index, entry] of characterSlices.entries()) {
+      const player = players[index]
+      assert.ok(player)
+      const fullSheet = await player.client.query(api.characters.sheet.get, { id: entry.id })
+      assert.ok(fullSheet)
+      characters.push({ ...entry, fullSheet })
+    }
     const cargo = await Promise.all(
       ownerVehicles.map(async (vehicle) => ({ vehicle, state: await readShared(vehicle.id) }))
     )

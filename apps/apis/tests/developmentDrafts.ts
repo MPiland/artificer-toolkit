@@ -49,6 +49,7 @@ import {
   type CampaignCustodyCohort
 } from './developmentCampaignCustody'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import { generateValidUsername } from './fixtures/generatedUsername'
 import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
 import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
@@ -3887,15 +3888,19 @@ try {
             owner.client.query(api.encounters.projectionReads.get, {
               encounterId: fixture.run.id
             }),
-            player.client.query(api.characters.sheet.get, { id: characterId })
+            readCharacterSheetSlices(player.client, { id: characterId }, ['COMMON'])
           ])
+          // No slice carries the whole Sheet DTO, so whole-state compares read it in full once the
+          // burst has settled.
+          const fullSheet = await player.client.query(api.characters.sheet.get, { id: characterId })
           return {
             ownerToken,
             playerToken,
             ownerFog,
             playerFog,
             run,
-            character
+            character,
+            fullSheet
           }
         }
         const assertRecipientConvergence = async () => {

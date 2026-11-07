@@ -7,6 +7,7 @@ import type { CharacterStateDto } from '@artificer-toolkit/schema/subjects/chara
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { DevelopmentClient } from './developmentClient'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
+import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import { api } from '../convex/_generated/api.js'
 
 export async function verifyEquipmentCharacterDeletion({
@@ -120,10 +121,13 @@ export async function verifyEquipmentCharacterDeletion({
   const [after, remainingDraft, sheet] = await Promise.all([
     owner.query(api.characters.builder.activeCharacter, { id: characterId }),
     owner.query(api.characters.drafts.get, { id: characterId }),
-    owner.query(api.characters.sheet.get, { id: characterId })
+    readCharacterSheetSlices(owner, { id: characterId }, ['COMMON', 'INVENTORY'])
   ])
+  // No slice carries the whole Sheet DTO, so the whole-Sheet compare below reads it in full once
+  // the burst has settled.
+  const fullSheet = await owner.query(api.characters.sheet.get, { id: characterId })
   assert.ok(
-    after && remainingDraft && sheet,
+    after && remainingDraft && sheet && fullSheet,
     'Independent Character must retain its playable Sheet and draft.'
   )
   assert.equal(remainingDraft.id, saved.id)
@@ -184,7 +188,7 @@ export async function verifyEquipmentCharacterDeletion({
     await owner.query(api.characters.drafts.get, { id: characterId }),
     remainingDraft
   )
-  assert.deepEqual(await owner.query(api.characters.sheet.get, { id: characterId }), sheet)
+  assert.deepEqual(await owner.query(api.characters.sheet.get, { id: characterId }), fullSheet)
   await execute({
     type: 'UPDATE_INVENTORY_ITEM',
     itemId: pack.id,

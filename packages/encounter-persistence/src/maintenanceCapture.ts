@@ -13,7 +13,7 @@ import {
   readCharacterEffect,
   readEncounterEffect,
   readMaintainedStatesByDefinition
-} from './effectStore.js'
+} from './effectReads.js'
 
 /**
  * Reads each owner capture the command sealed (each from the source or the target, once) and adds

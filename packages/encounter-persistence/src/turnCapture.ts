@@ -12,7 +12,7 @@ import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLi
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { EncounterReadContext } from './store.js'
 import { readRunActors } from './documents.js'
-import { readMaintainedState } from './effectStore.js'
+import { readMaintainedState } from './effectReads.js'
 import { readSpatialEffect } from './spatialEffectStore.js'
 
 type TurnRequest = Extract<

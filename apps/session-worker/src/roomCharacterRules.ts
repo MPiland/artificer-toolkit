@@ -5,7 +5,7 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {

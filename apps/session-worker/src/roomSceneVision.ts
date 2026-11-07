@@ -1,6 +1,6 @@
 import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
 import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import {
   createActorSensePinner,

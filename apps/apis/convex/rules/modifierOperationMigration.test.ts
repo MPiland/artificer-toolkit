@@ -5,7 +5,7 @@ import { buildCharacterGrantFoldModifierFacts } from '@artificer-toolkit/rules-r
 import {
   readCharacterEffect,
   readEncounterEffect
-} from '@artificer-toolkit/encounter-persistence/effectStore'
+} from '@artificer-toolkit/encounter-persistence/effectReads'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { modifierGrantDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'

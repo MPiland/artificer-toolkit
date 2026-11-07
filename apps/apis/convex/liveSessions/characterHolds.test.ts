@@ -35,7 +35,7 @@ const liveAuthority = makeFunctionReference<
   'query',
   z.infer<typeof characterSheetLiveAuthorityReadInputSchema>,
   CharacterSheetLiveAuthorityDto | null
->('characters/sheetSlices:liveAuthority')
+>('characters/sheetLive:liveAuthority')
 
 // Seed canonical Run lifecycle facts; the tests exercise real indexed records and transactions.
 async function writeRunLifecycle(

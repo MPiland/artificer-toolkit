@@ -1,6 +1,6 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readActorConcentrations } from '@artificer-toolkit/encounter-persistence/concentrationListing'
-import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
 import type { RoomCharacterConcentrations } from './roomCharacterSheetProjection.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 

@@ -1,92 +1,97 @@
-import {
-  characterActionModelInputSchema,
-  characterActionModelOutputSchema,
-  type CharacterActionModelInput,
-  type CharacterActionModelOutput
+import type {
+  CharacterActionModelInput,
+  CharacterActionModelOutput
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
 import { resolveDnd5eActionMechanic } from './characterActionMechanics.js'
 
-/** Pure D&D 5e (2014) Character-action policy over an already-resolved Character snapshot. */
+/**
+ * Pure D&D 5e (2014) Character-action policy over an already-resolved Character snapshot. Its input
+ * comes from the typed policy facts, so neither side is parsed again (RELIABILITY-21.T33).
+ */
 export function evaluateDnd5e2014CharacterActions(
   input: CharacterActionModelInput
 ): CharacterActionModelOutput {
-  const parsedInput = characterActionModelInputSchema.parse(input)
-  const actionDecisions = parsedInput.candidates.map((candidate) => {
-    const resourceUse = candidate.resourceUse
-    const sourceActive = parsedInput.activeSourceIds.includes(candidate.sourceId)
-    const equipmentActive =
-      candidate.equipment !== null &&
-      parsedInput.activeEquipmentInstanceIds.includes(candidate.equipment.itemInstanceId)
-    const sourceAvailable =
-      candidate.activationSourceKind === 'ACTIVE_SOURCE'
-        ? sourceActive
-        : candidate.activationSourceKind === 'ACTIVE_EQUIPMENT'
-          ? equipmentActive
-          : sourceActive && equipmentActive
-    const resource =
-      resourceUse === null || resourceUse.poolId === null
-        ? null
-        : (parsedInput.resources.find((pool) => pool.poolId === resourceUse.poolId) ?? null)
-    const resourceAvailable =
-      resourceUse === null ||
-      (resource !== null &&
-        resource.state === 'RESOLVED' &&
-        (resource.remaining ?? 0) >= resourceUse.cost)
-    const reasonCode = !sourceAvailable
-      ? candidate.equipment !== null &&
-        candidate.equipment.requiresEquipped &&
-        !candidate.equipment.equipped
-        ? 'SOURCE_NOT_EQUIPPED'
-        : candidate.equipment !== null &&
-            (candidate.equipment.requiresAttunement || candidate.equipment.requiresAttuned) &&
-            !candidate.equipment.attuned
-          ? 'SOURCE_NOT_ATTUNED'
-          : 'SOURCE_REQUIREMENTS_NOT_MET'
-      : resourceUse !== null &&
-          (resourceUse.poolId === null || resource === null || resource.state !== 'RESOLVED')
-        ? 'RESOURCE_MISSING'
-        : !resourceAvailable
-          ? 'INSUFFICIENT_RESOURCE'
-          : null
-    const ammunitionStacks = candidate.equipment?.ammunitionStacks ?? []
-    const attackContext = {
-      spellcasting: parsedInput.spellcasting,
-      spellCastLevel: null,
-      spellDamageBonus: 0,
-      spell: null
+  const actionDecisions: CharacterActionModelOutput['actionDecisions'] = input.candidates.map(
+    (candidate) => {
+      const resourceUse = candidate.resourceUse
+      const sourceActive = input.activeSourceIds.includes(candidate.sourceId)
+      const equipmentActive =
+        candidate.equipment !== null &&
+        input.activeEquipmentInstanceIds.includes(candidate.equipment.itemInstanceId)
+      const sourceAvailable =
+        candidate.activationSourceKind === 'ACTIVE_SOURCE'
+          ? sourceActive
+          : candidate.activationSourceKind === 'ACTIVE_EQUIPMENT'
+            ? equipmentActive
+            : sourceActive && equipmentActive
+      const resource =
+        resourceUse === null || resourceUse.poolId === null
+          ? null
+          : (input.resources.find((pool) => pool.poolId === resourceUse.poolId) ?? null)
+      const resourceAvailable =
+        resourceUse === null ||
+        (resource !== null &&
+          resource.state === 'RESOLVED' &&
+          (resource.remaining ?? 0) >= resourceUse.cost)
+      const reasonCode = !sourceAvailable
+        ? candidate.equipment !== null &&
+          candidate.equipment.requiresEquipped &&
+          !candidate.equipment.equipped
+          ? 'SOURCE_NOT_EQUIPPED'
+          : candidate.equipment !== null &&
+              (candidate.equipment.requiresAttunement || candidate.equipment.requiresAttuned) &&
+              !candidate.equipment.attuned
+            ? 'SOURCE_NOT_ATTUNED'
+            : 'SOURCE_REQUIREMENTS_NOT_MET'
+        : resourceUse !== null &&
+            (resourceUse.poolId === null || resource === null || resource.state !== 'RESOLVED')
+          ? 'RESOURCE_MISSING'
+          : !resourceAvailable
+            ? 'INSUFFICIENT_RESOURCE'
+            : null
+      const ammunitionStacks = candidate.equipment?.ammunitionStacks ?? []
+      const attackContext = {
+        spellcasting: input.spellcasting,
+        spellCastLevel: null,
+        spellDamageBonus: 0,
+        spell: null
+      }
+      const boundResource =
+        sourceAvailable &&
+        resourceUse !== null &&
+        resource !== null &&
+        resource.state === 'RESOLVED'
+      return {
+        sequence: candidate.sequence,
+        actionId: candidate.actionId,
+        effectId: candidate.effectId,
+        sourceId: candidate.sourceId,
+        source: candidate.source,
+        mechanicsOwner: candidate.mechanicsOwner,
+        status: reasonCode === null ? 'AVAILABLE' : 'UNAVAILABLE',
+        reasonCode,
+        resourcePoolId: boundResource ? resource.poolId : null,
+        resourceCost: boundResource && resourceUse !== null ? resourceUse.cost : null,
+        mechanic: resolveDnd5eActionMechanic(input, candidate, attackContext),
+        // The attack as each ammunition stack that fits would make it: its bonuses reach this attack alone.
+        ...(ammunitionStacks.length === 0
+          ? {}
+          : {
+              ammunitionMechanics: ammunitionStacks.map((stack) => ({
+                itemInstanceId: stack.itemInstanceId,
+                mechanic: resolveDnd5eActionMechanic(input, candidate, {
+                  ...attackContext,
+                  ammunition: stack
+                })
+              }))
+            })
+      }
     }
-    const boundResource =
-      sourceAvailable && resourceUse !== null && resource !== null && resource.state === 'RESOLVED'
-    return {
-      sequence: candidate.sequence,
-      actionId: candidate.actionId,
-      effectId: candidate.effectId,
-      sourceId: candidate.sourceId,
-      source: candidate.source,
-      mechanicsOwner: candidate.mechanicsOwner,
-      status: reasonCode === null ? 'AVAILABLE' : 'UNAVAILABLE',
-      reasonCode,
-      resourcePoolId: boundResource ? resource.poolId : null,
-      resourceCost: boundResource && resourceUse !== null ? resourceUse.cost : null,
-      mechanic: resolveDnd5eActionMechanic(parsedInput, candidate, attackContext),
-      // The attack as each ammunition stack that fits would make it: its bonuses reach this attack alone.
-      ...(ammunitionStacks.length === 0
-        ? {}
-        : {
-            ammunitionMechanics: ammunitionStacks.map((stack) => ({
-              itemInstanceId: stack.itemInstanceId,
-              mechanic: resolveDnd5eActionMechanic(parsedInput, candidate, {
-                ...attackContext,
-                ammunition: stack
-              })
-            }))
-          })
-    }
-  })
-  const spellCastMechanics = parsedInput.spellCandidates.map((candidate) => {
-    const spell = parsedInput.spellEffects.find((entry) => entry.spellId === candidate.spellId)
-    const sourceMechanics = parsedInput.spellMechanics.find(
+  )
+  const spellCastMechanics = input.spellCandidates.map((candidate) => {
+    const spell = input.spellEffects.find((entry) => entry.spellId === candidate.spellId)
+    const sourceMechanics = input.spellMechanics.find(
       (entry) =>
         entry.source.spellId === candidate.source.spellId &&
         entry.source.sourceKind === candidate.source.sourceKind &&
@@ -112,30 +117,30 @@ export function evaluateDnd5e2014CharacterActions(
       source: candidate.source,
       castLevel: candidate.castLevel,
       mechanics: (spell?.effects ?? []).map((effect) =>
-        resolveDnd5eActionMechanic(parsedInput, effect, castContext)
+        resolveDnd5eActionMechanic(input, effect, castContext)
       ),
       ...(spell?.repeatedEffects && {
         repeatMechanics: spell.repeatedEffects.map((effect) =>
-          resolveDnd5eActionMechanic(parsedInput, effect, castContext)
+          resolveDnd5eActionMechanic(input, effect, castContext)
         )
       })
     }
   })
-  const spellReferenceMechanics = parsedInput.spellEffects.map((spell, sequence) => ({
+  const spellReferenceMechanics = input.spellEffects.map((spell, sequence) => ({
     sequence,
     spellId: spell.spellId,
     readsCastLevel: spell.readsCastLevel,
     mechanics: spell.effects.map((effect) =>
-      resolveDnd5eActionMechanic(parsedInput, effect, {
-        spellcasting: parsedInput.spellcasting,
+      resolveDnd5eActionMechanic(input, effect, {
+        spellcasting: input.spellcasting,
         spellCastLevel: null,
         spellDamageBonus: 0,
         spell
       })
     )
   }))
-  const spellCastDecisions = parsedInput.spellCandidates.map((candidate) => {
-    const eligibleSlots = parsedInput.spellSlots.filter(
+  const spellCastDecisions = input.spellCandidates.map((candidate) => {
+    const eligibleSlots = input.spellSlots.filter(
       (slot) =>
         slot.max > 0 &&
         (candidate.baseEntry
@@ -152,20 +157,23 @@ export function evaluateDnd5e2014CharacterActions(
     const resource =
       candidate.resourceOwnerKey === null
         ? null
-        : (parsedInput.resources.find(
+        : (input.resources.find(
             (pool) => pool.poolId === candidate.resourceOwnerKey && pool.state === 'RESOLVED'
           ) ?? null)
     const resourceRemaining = resource?.remaining ?? null
     const poolSlot =
       candidate.slotPoolCode === null
         ? null
-        : (parsedInput.spellSlots.find(
+        : (input.spellSlots.find(
             (slot) =>
               slot.slotKey === candidate.slotPoolCode &&
               slot.max > 0 &&
               slot.level >= candidate.castLevel
           ) ?? null)
-    const decision = parsedInput.spellcastingLocked
+    const decision: Pick<
+      CharacterActionModelOutput['spellCastDecisions'][number],
+      'status' | 'reasonCode'
+    > = input.spellcastingLocked
       ? { status: 'UNAVAILABLE', reasonCode: 'SPELLCASTING_LOCKED' }
       : candidate.spellLevel === 0
         ? { status: 'AVAILABLE', reasonCode: 'CANTRIP' }
@@ -221,10 +229,5 @@ export function evaluateDnd5e2014CharacterActions(
             : null
     }
   })
-  return characterActionModelOutputSchema.parse({
-    actionDecisions,
-    spellCastMechanics,
-    spellReferenceMechanics,
-    spellCastDecisions
-  })
+  return { actionDecisions, spellCastMechanics, spellReferenceMechanics, spellCastDecisions }
 }

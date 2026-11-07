@@ -9,7 +9,7 @@ import { encounterEndedRelationships } from '@artificer-toolkit/rules-runtime/en
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readHolderEndState } from './concentrationEnd.js'
 import { readRunActors, readRunState } from './documents.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import type {
   EncounterCharacterWriteTransaction,
   EncounterPersistenceTransaction

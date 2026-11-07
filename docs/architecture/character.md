@@ -76,7 +76,7 @@ Membership, controller and account-deletion departures reconcile in the room (D7
 hold rows, but native lifecycle cleanup needs proof. The new schema needs the guarded local
 reset/seed/codegen lifecycle. No generated check or integrated execution gate has run; S7/S8 remain open.
 
-The focused [sheetSlices.liveAuthority](../../apps/apis/convex/characters/sheetSlices.ts) query now
+The focused [sheetLive.liveAuthority](../../apps/apis/convex/characters/sheetLive.ts) query now
 reads head, epoch-matching holds and validated typed play to return owner/GM routing metadata:
 Campaign/epoch/phase, held Run IDs, checkpoint sequence/time and acknowledged play stream. Party
 readers receive null. It loads neither mechanics nor owned collections. Authority `checkpointedAt`
@@ -897,6 +897,13 @@ the Campaign fields and state the Sheet reads, rule effects) still matches; othe
 current-source preparation and policy as before. A miss is therefore slower but never stale: an
 unresolved structural source still blocks the Sheet. This query does not persist repairs, advance
 the stream or consume a draft.
+Self-hosted Convex evaluates a function's whole module graph on every run, so the slice read, the
+personal `characters/sheet:get` read and the queued store keep the Encounter turn, grant and
+movement modules out of their graphs (RELIABILITY-21.T33). Live routing (`liveAuthority`,
+`concentrationRoomRoute`) lives in [sheetLive.ts](../../apps/apis/convex/characters/sheetLive.ts),
+apart from the slice read. Effect reads come from `encounter-persistence/effectReads`, not the effect
+store. `sheetReadModuleBoundary.test.ts` holds each graph to its excluded modules and byte ceiling.
+The web reads only the slices; `characters/sheet:get` serves tests and proofs.
 
 The shared read envelope and DTOs live in `schema/api/characterSheetSlices`. The backend's Builder context loader retains
 the selected Creature/Vehicle maps for the final policy/projection call without adding those records

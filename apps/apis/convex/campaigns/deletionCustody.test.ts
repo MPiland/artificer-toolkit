@@ -723,18 +723,54 @@ describe('native Campaign custody deletion', () => {
       // Archive always schedules the room close; its run state is the only scheduler change.
       const roomControl = 'liveSessions/control:send'
       const snapshotBuild = 'contentSnapshots/actions:build'
+      const sheetStore = 'characters/sheetSectionDerivation:store'
+      const sheetCheck = 'characters/sheetSectionDerivation:verify'
+      const unrelated = (row: (typeof after.scheduled)[number]) =>
+        row.name !== roomControl &&
+        row.name !== snapshotBuild &&
+        row.name !== sheetStore &&
+        row.name !== sheetCheck
       expect(
         after.scheduled.filter(
-          (row) =>
-            !row.name?.startsWith('campaigns/deletionJobs:') &&
-            row.name !== roomControl &&
-            row.name !== snapshotBuild
+          (row) => !row.name?.startsWith('campaigns/deletionJobs:') && unrelated(row)
         )
-      ).toEqual(
-        expectedSnapshot.scheduled.filter(
-          (row) => row.name !== roomControl && row.name !== snapshotBuild
-        )
+      ).toEqual(expectedSnapshot.scheduled.filter(unrelated))
+      // Leaving the Campaign changes the Character's Sheet fingerprint, so the deletion queues its
+      // derivation (D215); each later queuing write in the same deletion replaces the one before.
+      const expectedStoreIds = new Set(
+        expectedSnapshot.scheduled.filter((row) => row.name === sheetStore).map((row) => row._id)
       )
+      expect(
+        after.scheduled.filter((row) => expectedStoreIds.has(row._id)),
+        'Sheet stores before the deletion'
+      ).toEqual(expectedSnapshot.scheduled.filter((row) => row.name === sheetStore))
+      const stores = after.scheduled.filter(
+        (row) => row.name === sheetStore && !expectedStoreIds.has(row._id)
+      )
+      expect(stores.map((row) => row.args)).toEqual(
+        stores.map(() => [{ characterId: base.character.id, token: expect.any(String) }])
+      )
+      expect(stores.map((row) => row.state.kind).sort()).toEqual([
+        ...stores.slice(1).map(() => 'canceled'),
+        'success'
+      ])
+      // Each store has one check (D215). A write that replaced the store cancelled it; the store
+      // that landed cancelled it or, when the fake clock started both at once, it found the store
+      // done and queued nothing: the store states above hold no second attempt.
+      const expectedCheckIds = new Set(
+        expectedSnapshot.scheduled.filter((row) => row.name === sheetCheck).map((row) => row._id)
+      )
+      const checks = after.scheduled.filter(
+        (row) => row.name === sheetCheck && !expectedCheckIds.has(row._id)
+      )
+      expect(checks.map((row) => row.args)).toEqual(
+        stores.map((store) => [
+          { characterId: base.character.id, token: (store.args[0] as { token: string }).token }
+        ])
+      )
+      const checkStates = checks.map((row) => row.state.kind)
+      expect(checkStates.filter((kind) => kind !== 'canceled' && kind !== 'success')).toEqual([])
+      expect(checkStates.filter((kind) => kind === 'success').length).toBeLessThanOrEqual(1)
       expect(
         after.scheduled.filter((row) => row.name === roomControl).map((row) => row.args)
       ).toEqual(

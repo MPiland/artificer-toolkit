@@ -26,7 +26,7 @@ import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
 import type { storeCharacterSheetSections } from './sheetSectionDerivation'
-import { scheduleCharacterSheetSections } from './sheetSections'
+import { scheduleCharacterSheetSections } from './sheetSectionStores'
 import {
   writeCharacterOperationalRecords,
   writeCharacterOperationalStructure
