@@ -5,6 +5,7 @@ import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { api } from '../_generated/api'
+import { withSceneVisionTracking } from '../lib/mutations'
 import { executeCharacterSheetCommandAcknowledgement } from './sheetCommands'
 import * as sheetFacts from './sheetFacts'
 import * as receipts from './sheetCommandReceipts'
@@ -37,7 +38,8 @@ describe('Character play preference acknowledgements', () => {
       try {
         const acknowledgement = await owner.caller.run((ctx) =>
           executeCharacterSheetCommandAcknowledgement(
-            { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+            // Counted beneath the trigger layer, as a tracked mutation runs, so queued stores count.
+            withSceneVisionTracking({ ...ctx, db: countDatabaseIo(ctx.db, totals) }),
             owner.userId,
             input
           )
@@ -46,12 +48,15 @@ describe('Character play preference acknowledgements', () => {
         expect(acknowledgement).not.toHaveProperty('panels')
         expect(acknowledgement.streamVersion).toBe(common.expectedVersion + 1)
         expect(evaluate).not.toHaveBeenCalled()
-        // The pending store is the Character's one queued Sheet derivation (ADR 0041).
+        // The pending store is the Character's one queued Sheet derivation (ADR 0041). `get` is the
+        // play-state trigger's before/after read and `sceneVisionRevisions` its revision bump.
         expect(Object.keys(totals.reads.byTable).sort()).toEqual([
           'authoredRouteIds',
           'characterPlayStates',
           'characterSheetPendingStores',
-          'characters'
+          'characters',
+          'get',
+          'sceneVisionRevisions'
         ])
         const after = await readState()
         expect({ ...after.character!, play: before.character!.play }).toEqual(before.character)

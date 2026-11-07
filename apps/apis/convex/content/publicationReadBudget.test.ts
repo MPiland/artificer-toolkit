@@ -121,17 +121,19 @@ const measuredSubjects: Readonly<Record<MeasuredKind, string>> = {
 }
 
 // Measured with the SRD seed plus two Homebrew rounds; a publish that reads more has regressed.
+// T36: each includes the content-snapshot head trigger's two re-reads and its source lookup.
 const publishDocumentCeiling: Readonly<Record<MeasuredKind, number>> = {
-  BACKGROUND: 38,
-  CREATURE: 31,
-  EQUIPMENT: 29,
-  FEAT: 29,
-  RACE: 41,
-  SPELL: 33,
-  VEHICLE: 29
+  BACKGROUND: 41,
+  CREATURE: 34,
+  EQUIPMENT: 32,
+  FEAT: 32,
+  RACE: 44,
+  SPELL: 36,
+  VEHICLE: 32
 }
 // The Bard names 763 records; most of its reads are the referenced spell roots and their facts.
-const classDocumentCeiling = { action: 1_804, commit: 1_213 } as const
+// T36: the commit includes the content-snapshot head trigger's two re-reads and source lookup.
+const classDocumentCeiling = { action: 1_804, commit: 1_216 } as const
 
 // One round of unrelated Homebrew in every kind a measured draft can name.
 async function publishUnrelatedHomebrew(caller: Caller, round: number) {

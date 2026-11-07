@@ -294,6 +294,17 @@ it('publishes Run and Character play deltas with Character history, then replays
     (row) => row.scope === 'CHARACTER' && row.id === base.character.id
   )
   if (!beforeCharacterRevision) throw new Error('Missing fixture Character revision.')
+  const pendingStore = () =>
+    base.t.run((ctx) =>
+      ctx.db
+        .query('characterSheetPendingStores')
+        .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
+        .unique()
+    )
+  const beforeStore = await pendingStore()
+  // The play write queues the Character's Sheet store; faked timers hold it pending, so the replay
+  // snapshots below compare.
+  vi.useFakeTimers()
   const committed = await base.t.mutation(publish, input)
   expect(committed.status).toBe('COMMITTED')
   // The mutation reports its own transaction cost to the room's meter (D85).
@@ -319,6 +330,10 @@ it('publishes Run and Character play deltas with Character history, then replays
   expect(after.invalidations).toEqual(before.invalidations)
   expect(after.run).toEqual({ ...run.row, ...run.nextStored })
   expect(after.play).toEqual({ ...play.row, ...play.next })
+  // Room play is a Sheet fingerprint input, so its write queues the Character's store (D215).
+  const queuedStore = await pendingStore()
+  expect(queuedStore?.scheduledId).toBeDefined()
+  expect(queuedStore?.scheduledId).not.toBe(beforeStore?.scheduledId)
   const checkpointLedgers = after.ledgers.filter(
     (ledger) => ledger.checkpointId === input.checkpointId
   )
@@ -350,7 +365,6 @@ it('publishes Run and Character play deltas with Character history, then replays
   })
 
   const beforeReplay = await snapshot(base)
-  vi.useFakeTimers()
   vi.setSystemTime(Date.now() + 1_000)
   const replayed = await base.t.mutation(publish, input)
   expect(replayed.status).toBe('REPLAYED')

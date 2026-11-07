@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 // Queued Sheet section stores (ADR 0041). Kept apart from the fingerprint and derivation code
 // because every tracked mutation queues through here (`lib/mutations.ts` triggers) and loads it.
 
-/** Content-head marking queues through the unwrapped writer, so only these two are required. */
+/** Triggers queue through the unwrapped writer, so only these two are required. */
 type SheetStoreScheduling = Pick<MutationCtx, 'db' | 'scheduler'>
 
 const storeReference = makeFunctionReference<
@@ -104,6 +104,7 @@ export async function scheduleCharacterSheetSections(
   if (pending)
     await ctx.db.replace('characterSheetPendingStores', pending._id, { ...store, ...jobs })
   else await ctx.db.insert('characterSheetPendingStores', { ...store, ...jobs })
+  return jobs.scheduledId
 }
 
 /**
@@ -187,18 +188,4 @@ export async function verifyCharacterSheetStore(
     await ctx.db.delete('characterSheetPendingStores', pending._id)
   }
   if (campaignId !== undefined) await scheduleNextCampaignCharacterSheetStore(ctx, campaignId, 0)
-}
-
-/** The Campaign fields a Sheet derivation reads; notebook and counter patches leave them alone. */
-export function characterSheetCampaignFields(campaign: Doc<'campaigns'>) {
-  return {
-    id: campaign.id,
-    ownerUserId: campaign.ownerUserId,
-    gameSystemId: campaign.gameSystemId,
-    status: campaign.status,
-    contentMaturity: campaign.contentMaturity ?? null,
-    attunementSlotOverride: campaign.attunementSlotOverride ?? null,
-    primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
-    additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
-  }
 }

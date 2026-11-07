@@ -14,7 +14,6 @@ import { readCharacterHead, readCharacterPlay, readCharacterPlayRow } from './st
 import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
-import { scheduleCharacterSheetSections } from './sheetSectionStores'
 import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** Projection preferences replace only typed play state; current mechanical values stay intact. */
@@ -92,7 +91,6 @@ export async function executeCharacterPlayPreferenceCommand(
       updatedAt: occurredAt
     })
   )
-  await scheduleCharacterSheetSections(ctx, head.id)
   return writeCharacterCommandReceipt(ctx, {
     ...scope,
     streamVersion,
