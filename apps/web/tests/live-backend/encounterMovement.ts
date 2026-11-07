@@ -8,13 +8,12 @@ import {
 import {
   LIVE_SESSION_PATH_PREFIX,
   liveSessionWebSocketClientMessageDtoSchema,
-  liveSessionWebSocketServerMessageDtoSchema
+  liveSessionWebSocketServerMessageDtoSchema,
+  type EncounterSessionFrameDto,
+  type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SceneFogPublishCommandInput } from '@artificer-toolkit/schema/api/sceneFog'
-import type {
-  SceneCommandInputDto,
-  SceneCommandResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   captureDiagnostics,
@@ -36,11 +35,8 @@ export type EncounterMovementAccount = {
 
 type EncounterMovementStage =
   | 'hydrated'
-  | 'movement-issued'
   | 'passage-issued'
   | 'passage-initiator-resolved'
-  | 'passage-resolved'
-  | 'reaction-issued'
   | 'reaction-resolved'
   | 'replayed'
   | 'reconnected'
@@ -62,16 +58,26 @@ type EncounterMovementBrowserInput = {
   reactor: { actorId: string; tokenId: string; actionId: string }
   evidenceDirectory: string
   retryExactMovement: (frame: RoomSceneCommandFrame) => Promise<void>
-  retryExactUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
   readPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   readPlayerPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
+  /**
+   * The reaction offer as the room holds it, checked before the reactor answers: the offer counts
+   * down while a Convex read waits for the checkpoint (D207). `issuedAfter` is the clock just before
+   * the browser action that issues the offer; `sceneVersion` and `moverPosition` come from the newest
+   * room commit either tab received.
+   */
+  verifyReactionOffer: (issued: {
+    issuedAfter: number
+    sceneVersion: number
+    moverPosition: { x: number; y: number }
+  }) => Promise<void>
   /** `observedSceneVersion` is the newest Scene version a room commit reported to either tab. */
   verifyAuthoritative: (
     stage: EncounterMovementStage,
     observedSceneVersion: number
   ) => Promise<void>
-  verifyCompletedUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
-  verifyUndoBaseline: () => Promise<void>
+  /** The authoritative token, fog, Run and Character still match the settled movement. */
+  verifySettledMovement: () => Promise<void>
   revokePlayer: () => Promise<void>
 }
 
@@ -81,10 +87,17 @@ type RoomSceneCommandFrame = {
   expectedSessionSequence: number
 }
 
-type EncounterMovementUndoSubmission = {
-  command: RoomSceneCommandFrame
-  result: SceneCommandResultDto
+/** A Scene commit a tab received from the room, with the token moves its delta carried. */
+type RoomSceneCommit = {
+  sceneId: string
+  version: number
+  tokenMoves: { tokenId: string; position: { x: number; y: number } }[]
 }
+
+type RoomCommandRejection = Extract<
+  LiveSessionWebSocketServerMessageDto,
+  { type: 'COMMAND_REJECTED' }
+>
 
 type EncounterMovementBrowserResult = { globalDiagnostics: string[] }
 
@@ -102,12 +115,39 @@ export async function verifyEncounterMovementBrowser(
   let player: Page | undefined
   let movementCommand: RoomSceneCommandFrame | undefined
   let undoCommand: RoomSceneCommandFrame | undefined
-  let undoResult: SceneCommandResultDto | undefined
+  let undoRejection: RoomCommandRejection | undefined
   let playerConvexSocketForDiagnostics: ConvexSocketTrace | undefined
   let pendingAtFailure: unknown
   let observedSceneVersion = 0
-  const observeSceneVersion = (sceneId: string, version: number) => {
-    if (sceneId === input.scene.id) observedSceneVersion = Math.max(observedSceneVersion, version)
+  // Each tab's room Encounter-session frames, so a stuck decision drawer shows what the room sent.
+  const sessionFrames: Record<'owner' | 'player', unknown[]> = { owner: [], player: [] }
+  const observeSessionFrame = (tab: 'owner' | 'player') => (frame: EncounterSessionFrameDto) => {
+    const frames = sessionFrames[tab]
+    frames.push({
+      at: new Date().toISOString(),
+      stage,
+      ...(frame.held
+        ? {
+            version: frame.version,
+            pending: frame.state.pending && {
+              kind: frame.state.pending.kind,
+              occurrenceId: frame.state.pending.occurrenceId,
+              occurrenceVersion: frame.state.pending.occurrenceVersion
+            },
+            settlement: frame.settlement
+          }
+        : { held: false })
+    })
+    if (frames.length > 40) frames.shift()
+  }
+  let reactionIssuedAfter = 0
+  let moverRoomPosition: { version: number; position: { x: number; y: number } } | undefined
+  const observeSceneCommit = (commit: RoomSceneCommit) => {
+    if (commit.sceneId !== input.scene.id) return
+    observedSceneVersion = Math.max(observedSceneVersion, commit.version)
+    const moved = commit.tokenMoves.filter((move) => move.tokenId === input.mover.tokenId).at(-1)
+    if (moved && commit.version >= (moverRoomPosition?.version ?? 0))
+      moverRoomPosition = { version: commit.version, position: moved.position }
   }
   const verifyAuthoritative = (stage: EncounterMovementStage) =>
     input.verifyAuthoritative(stage, observedSceneVersion)
@@ -187,17 +227,19 @@ export async function verifyEncounterMovementBrowser(
       command: (frame) => {
         if (frame.command.type === 'MOVE_SCENE_TOKEN') movementCommand ??= frame
       },
-      result: () => undefined,
-      sceneVersion: observeSceneVersion
+      rejection: () => undefined,
+      sceneCommit: observeSceneCommit,
+      session: observeSessionFrame('player')
     })
     captureRoomSceneCommands(owner, {
       command: (frame) => {
         if (frame.command.type === 'UNDO_LAST_SCENE_MOVE') undoCommand ??= frame
       },
-      result: (result) => {
-        if (result.commandId === undoCommand?.command.commandId) undoResult ??= result
+      rejection: (rejection) => {
+        if (rejection.commandId === undoCommand?.command.commandId) undoRejection ??= rejection
       },
-      sceneVersion: observeSceneVersion
+      sceneCommit: observeSceneCommit,
+      session: observeSessionFrame('owner')
     })
 
     await Promise.all([
@@ -214,6 +256,7 @@ export async function verifyEncounterMovementBrowser(
     expect(diagnostics.filter((entry) => entry.includes('Server Error'))).toEqual([])
 
     stage = 'issue voluntary movement'
+    reactionIssuedAfter = Date.now()
     await dragToken(player, input)
     await expect.poll(() => movementCommand).toBeDefined()
     stage = 'await movement decision'
@@ -223,7 +266,9 @@ export async function verifyEncounterMovementBrowser(
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toBeVisible()
-    await verifyAuthoritative(input.scenario === 'PASSAGE' ? 'passage-issued' : 'movement-issued')
+    // A movement reaction's countdown runs from the commit that offers it (D207), so its issued
+    // state is read from the room below, not from Convex after a checkpoint wait.
+    if (input.scenario === 'PASSAGE') await verifyAuthoritative('passage-issued')
 
     if (input.scenario === 'PASSAGE') {
       stage = 'select Passage option'
@@ -232,7 +277,10 @@ export async function verifyEncounterMovementBrowser(
       ).toBeVisible()
       await player.getByRole('button', { name: 'Open pending decision', exact: true }).click()
       await expect(player.getByText('Passage choice', { exact: true })).toBeVisible()
-      await player.getByRole('button', { name: 'Overrun · Action', exact: true }).click()
+      // Passage options name the rule, the mover's authored check and its cost (MOVE-4.T1).
+      await player
+        .getByRole('button', { name: 'Overrun · Strength (Athletics) · Action', exact: true })
+        .click()
       await expect.poll(async () => (await input.readPlayerPending())?.kind).toBe('D20_EVIDENCE')
       await resolveEvidence(player, input.readPlayerPending, 'max', true)
       await verifyAuthoritative('passage-initiator-resolved')
@@ -244,8 +292,9 @@ export async function verifyEncounterMovementBrowser(
       ).toBeVisible()
       await expect.poll(input.readPlayerPending).toBeNull()
       await owner.getByRole('button', { name: 'Open pending decision', exact: true }).click()
+      // The Passage continuation offers the reaction once the contest resolves.
+      reactionIssuedAfter = Date.now()
       await resolveEvidence(owner, input.readPending, 'min', true)
-      await verifyAuthoritative('passage-resolved')
     }
 
     stage = 'verify private reaction audience'
@@ -261,7 +310,12 @@ export async function verifyEncounterMovementBrowser(
       exact: true
     })
     await expect(reaction).toBeVisible()
-    await verifyAuthoritative('reaction-issued')
+    if (!moverRoomPosition) throw new Error('No room commit reported the mover position.')
+    await input.verifyReactionOffer({
+      issuedAfter: reactionIssuedAfter,
+      sceneVersion: observedSceneVersion,
+      moverPosition: moverRoomPosition.position
+    })
 
     stage = 'resolve reaction evidence'
     await reaction.click()
@@ -297,37 +351,29 @@ export async function verifyEncounterMovementBrowser(
     await Promise.all([assertScene(owner, input.scene.name), assertScene(player, input.scene.name)])
     await verifyAuthoritative('reconnected')
 
-    stage = 'undo completed token move'
+    // A Scene undo restores only the token, so the room refuses one for a move that settled
+    // Encounter mechanics (SPELLS-17.6, docs/architecture/rules-runtime.md); this move did.
+    stage = 'refuse undo of settled token move'
     await expect(
       player.getByRole('button', { name: 'Undo last token move', exact: true })
     ).toHaveCount(0)
     const undo = owner.getByRole('button', { name: 'Undo last token move', exact: true })
     await expect(undo).toBeVisible()
-    await input.verifyUndoBaseline()
+    await input.verifySettledMovement()
     await undo.click()
     await expect.poll(() => undoCommand).toBeDefined()
-    await expect.poll(() => undoResult).toBeDefined()
-    if (!undoCommand || !undoResult)
-      throw new Error('Browser did not expose the submitted undo command and result.')
-    expect(undoResult.commandId).toBe(undoCommand.command.commandId)
-    expect(undoResult.sceneId).toBe(undoCommand.command.sceneId)
-    expect(undoResult.replayed).toBe(false)
-    await Promise.all([
-      expect(
-        owner
-          .getByRole('region', { name: `Live scene: ${input.scene.name}` })
-          .getByText(`v${undoResult.version}`, { exact: true })
-      ).toBeVisible(),
-      expect(
-        player
-          .getByRole('region', { name: `Live scene: ${input.scene.name}` })
-          .getByText(`v${undoResult.version}`, { exact: true })
-      ).toBeVisible()
-    ])
-    await input.verifyCompletedUndo({ command: undoCommand, result: undoResult })
-
-    stage = 'retry exact undo command'
-    await input.retryExactUndo({ command: undoCommand, result: undoResult })
+    await expect.poll(() => undoRejection).toBeDefined()
+    if (!undoCommand || !undoRejection)
+      throw new Error('Browser did not expose the submitted undo command and its refusal.')
+    expect(undoRejection.commandId).toBe(undoCommand.command.commandId)
+    expect(undoRejection.code).toBe('INVALID_COMMAND')
+    await expect(
+      owner.getByText(
+        'This move settled Encounter mechanics and cannot be undone as a Scene move.',
+        { exact: true }
+      )
+    ).toBeVisible()
+    await input.verifySettledMovement()
 
     await Promise.all([
       owner.screenshot({
@@ -369,6 +415,11 @@ export async function verifyEncounterMovementBrowser(
   } catch (error) {
     failure = error instanceof Error ? error.message : 'Movement reaction browser failed.'
     pendingAtFailure = await Promise.allSettled([input.readPending(), input.readPlayerPending()])
+    // CI keeps the journey log, not the evidence directory.
+    console.error(
+      'Encounter movement failure trace:',
+      JSON.stringify({ stage, pendingAtFailure, sessionFrames }).slice(0, 20_000)
+    )
     await Promise.all([
       owner?.screenshot({
         caret: 'initial',
@@ -397,7 +448,7 @@ export async function verifyEncounterMovementBrowser(
           failure,
           movementCommand,
           undoCommand,
-          undoResult,
+          undoRejection,
           playerConvexSocket: playerConvexSocketForDiagnostics
             ? {
                 closed: playerConvexSocketForDiagnostics.closed,
@@ -405,6 +456,7 @@ export async function verifyEncounterMovementBrowser(
               }
             : null,
           pendingAtFailure,
+          sessionFrames,
           diagnostics,
           unexpectedDiagnostics,
           forbiddenLegacyRequests
@@ -569,8 +621,9 @@ function captureRoomSceneCommands(
   page: Page,
   capture: {
     command: (frame: RoomSceneCommandFrame) => void
-    result: (result: SceneCommandResultDto) => void
-    sceneVersion: (sceneId: string, version: number) => void
+    rejection: (rejection: RoomCommandRejection) => void
+    sceneCommit: (commit: RoomSceneCommit) => void
+    session: (frame: EncounterSessionFrameDto) => void
   }
 ): void {
   page.on('websocket', (socket) => {
@@ -593,13 +646,26 @@ function captureRoomSceneCommands(
       const message = liveSessionWebSocketServerMessageDtoSchema.safeParse(
         parseFrame(payload.toString())
       )
-      if (!message.success || message.data.type !== 'COMMAND_COMMITTED') return
+      if (!message.success) return
+      if (message.data.type === 'COMMAND_REJECTED') capture.rejection(message.data)
+      if (message.data.type === 'ENCOUNTER_SESSION') capture.session(message.data.session)
+      if (message.data.type !== 'COMMAND_COMMITTED') return
       const delta = message.data.delta
       if (delta?.scope === 'SCENE') {
-        capture.result(delta.result)
-        capture.sceneVersion(delta.result.sceneId, delta.result.version)
+        const { result } = delta
+        const changes =
+          result.delta?.kind === 'BATCH' ? result.delta.deltas : result.delta ? [result.delta] : []
+        capture.sceneCommit({
+          sceneId: result.sceneId,
+          version: result.version,
+          tokenMoves: changes.flatMap((change) =>
+            change.kind === 'TOKEN_MOVED'
+              ? [{ tokenId: change.tokenId, position: change.position }]
+              : []
+          )
+        })
       } else if (delta?.scope === 'SCENE_VERSION')
-        capture.sceneVersion(delta.sceneId, delta.version)
+        capture.sceneCommit({ sceneId: delta.sceneId, version: delta.version, tokenMoves: [] })
     })
   })
 }
