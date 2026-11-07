@@ -427,15 +427,17 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       const [row] = await ctx.db.query('characterSheetPendingStores').take(1)
       return row!
     })
+    const scheduledId = queued.scheduledId
+    if (!scheduledId) throw new Error('A Character write schedules its store.')
     // The derivation runs, so the job is no longer pending. Point the Character's pending row at it
     // again, as a write racing the running job sees it.
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    const finished = await t.run((ctx) => ctx.db.system.get(queued.scheduledId))
+    const finished = await t.run((ctx) => ctx.db.system.get(scheduledId))
     expect(finished?.state.kind).toBe('success')
     await t.run((ctx) =>
       ctx.db.insert('characterSheetPendingStores', {
         characterId: queued.characterId,
-        scheduledId: queued.scheduledId,
+        scheduledId,
         token: queued.token,
         retried: false
       })
@@ -443,9 +445,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     await createNote(first.streamVersion, 'Session two')
     // convex-test, like Convex, cancels only a pending job; cancelling a started one trips its
     // "Unexpected scheduled function state" invariant.
-    expect((await t.run((ctx) => ctx.db.system.get(queued.scheduledId)))?.state.kind).toBe(
-      'success'
-    )
+    expect((await t.run((ctx) => ctx.db.system.get(scheduledId)))?.state.kind).toBe('success')
   }, 60_000)
 
   it("stores a Sheet command's sections in its own transaction, leaving no gap", async () => {

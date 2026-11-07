@@ -81,9 +81,8 @@ export async function readAuthorizedCharacterSheetState<
   return { id, active, draft, route }
 }
 
-export type AuthorizedCharacterSheetState = NonNullable<
-  Awaited<ReturnType<typeof readAuthorizedCharacterSheetState>>
->
+export type AuthorizedCharacterSheetState<TRow extends CharacterRecordRow = CharacterRow> =
+  NonNullable<Awaited<ReturnType<typeof readAuthorizedCharacterSheetState<TRow>>>>
 
 /** Loads authorized stored inputs without Builder readiness or Character rule evaluation. */
 export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow = CharacterRow>(
@@ -99,7 +98,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   referenceSpellIds: readonly string[] = [],
   ruleInputs?: CharacterReferencedReads['ruleInputs'],
   /** The same authorized read, already made in this transaction for the same arguments. */
-  priorAuthorized?: AuthorizedCharacterSheetState
+  priorAuthorized?: AuthorizedCharacterSheetState<TRow>
 ) {
   if (priorAuthorized && priorAuthorized.id !== lookupId)
     throw new Error('Character Sheet authorized state binding mismatch.')
