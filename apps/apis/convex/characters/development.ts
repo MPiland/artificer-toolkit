@@ -14,8 +14,8 @@ import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 /**
  * Where a Character's stored Sheet sections stand, for proofs that subscribe until a queued store
  * lands before they read the Sheet concurrently (D214). NO_SHEET: nothing to store (not active, or
- * it needs Builder repair). MISSING: stale with no store queued. FAILED: its queued store ended
- * without storing.
+ * it needs Builder repair). MISSING: stale with no store queued. FAILED: its queued store's retry
+ * ended without storing (D215).
  */
 export const sheetSectionsState = internalQuery({
   args: { characterId: v.string() },
@@ -42,7 +42,10 @@ export const sheetSectionsState = internalQuery({
     // A Campaign change's chain holds a Character's store without a job until its turn (D215).
     if (!pending.scheduledId) return 'QUEUED'
     const job = await ctx.db.system.get(pending.scheduledId)
-    return job?.state.kind === 'pending' || job?.state.kind === 'inProgress' ? 'QUEUED' : 'FAILED'
+    // A first attempt that ended without storing is queued again by its check (D215).
+    return job?.state.kind === 'pending' || job?.state.kind === 'inProgress' || !pending.retried
+      ? 'QUEUED'
+      : 'FAILED'
   }
 })
 

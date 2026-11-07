@@ -848,6 +848,12 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     await t.finishInProgressScheduledFunctions()
     expect(await storeStates(t, character.id, before)).toEqual(['failed'])
     await restore()
+    // Its check will queue it again, so proofs waiting on the Sheet keep waiting (D214).
+    expect(
+      await t.query(internal.characters.development.sheetSectionsState, {
+        characterId: character.id
+      })
+    ).toBe('QUEUED')
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await storeStates(t, character.id, before)).toEqual(['failed', 'success'])
     const state = await t.run((ctx) =>
@@ -873,5 +879,10 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       readCharacterSheetStoreState(ctx, player.userId, character.id)
     )
     expect(state?.current).toBe(false)
+    expect(
+      await t.query(internal.characters.development.sheetSectionsState, {
+        characterId: character.id
+      })
+    ).toBe('MISSING')
   }, 60_000)
 })
