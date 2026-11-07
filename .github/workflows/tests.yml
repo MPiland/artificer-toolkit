@@ -68,6 +68,7 @@ jobs:
       web-files: ${{ steps.select.outputs.web-files }}
       run-storybook: ${{ steps.select.outputs.run-storybook }}
       storybook-files: ${{ steps.select.outputs.storybook-files }}
+      run-storybook-e2e: ${{ steps.select.outputs.run-storybook-e2e }}
       merge-base: ${{ steps.select.outputs.merge-base }}
       red-files: ${{ steps.select.outputs.red-files }}
       red-suites: ${{ steps.select.outputs.red-suites }}
@@ -227,6 +228,29 @@ jobs:
         run: |
           set -f
           yarn workspace @artificer-toolkit/web test:storybook $FILES
+
+  # The Playwright Storybook journeys against `storybook dev`. Its web server waits on the story warm-up
+  # (apps/web/src/test/storybook/storyWarmup.ts), so the first story never races a cold compile.
+  storybook-e2e:
+    name: Storybook e2e
+    needs: build
+    if: needs.build.outputs.run-storybook-e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Install Chromium
+        run: yarn workspace @artificer-toolkit/web exec playwright install --with-deps chromium
+      - name: Storybook e2e
+        run: yarn workspace @artificer-toolkit/web test:e2e:storybook --output=../../local-validation/storybook-e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: storybook-e2e-results
+          path: local-validation/storybook-e2e/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # The account runs at most 20 jobs at once, so typechecks share two sequential jobs instead of one job
   # each; both finish inside the Convex and web test critical path. Every step runs even after a failure,
@@ -398,6 +422,7 @@ jobs:
         worker,
         web,
         storybook,
+        storybook-e2e,
         typecheck-packages,
         typecheck-web,
         lint,

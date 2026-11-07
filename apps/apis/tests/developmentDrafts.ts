@@ -1516,6 +1516,13 @@ try {
           false
         )
     })
+  } else if (process.argv.includes('--auth-confirmation-browser')) {
+    const { appBrowserEvidenceDirectory, runAppBrowserSpec } =
+      await import('./developmentAppBrowser')
+    await runAppBrowserSpec({
+      evidenceDirectory: appBrowserEvidenceDirectory('auth-confirmation-browser'),
+      spec: 'authConfirmation.spec.ts'
+    })
   } else if (process.argv.includes('--character-builder-browser')) {
     const author = await createAuthor()
     characterBrowserAuthors.push({

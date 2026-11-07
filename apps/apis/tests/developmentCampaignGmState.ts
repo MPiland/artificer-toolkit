@@ -617,17 +617,21 @@ async function assertCommit(input: {
   )
   // The same evaluation re-derives that Character's stored Sheet sections (ADR 0041); every other
   // Character's stay as they were. Storing them cancels that Character's queued derivation.
+  // A snapshot omits an empty table, so an expected table stays absent while it has no rows.
   for (const table of [
     'characterSheetSections',
     'characterSheetDerivations',
     'characterSheetPendingStores'
-  ])
-    expectedPersonal[table] = [
+  ]) {
+    const rows = [
       ...(expectedPersonal[table] ?? []).filter((row) => !matchesCharacter(row, input.characterId)),
       ...targetRows(after.personal, table, input.characterId)
     ]
-  expectedPersonal._scheduled_functions = (expectedPersonal._scheduled_functions ?? []).map(
-    (row) => {
+    if (rows.length > 0) expectedPersonal[table] = rows
+    else delete expectedPersonal[table]
+  }
+  if (expectedPersonal._scheduled_functions)
+    expectedPersonal._scheduled_functions = expectedPersonal._scheduled_functions.map((row) => {
       const [args] = Array.isArray(row.args) ? row.args : []
       if (
         row.name !== 'characters/sheetSectionDerivation:store' ||
@@ -638,8 +642,7 @@ async function assertCommit(input: {
       )
         return row
       return { ...row, state: { kind: 'canceled' } }
-    }
-  )
+    })
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
   assert.deepEqual(normalize(after.personal), normalize(expectedPersonal))
