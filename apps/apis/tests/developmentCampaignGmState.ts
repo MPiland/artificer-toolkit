@@ -630,19 +630,31 @@ async function assertCommit(input: {
     if (rows.length > 0) expectedPersonal[table] = rows
     else delete expectedPersonal[table]
   }
-  if (expectedPersonal._scheduled_functions)
-    expectedPersonal._scheduled_functions = expectedPersonal._scheduled_functions.map((row) => {
-      const [args] = Array.isArray(row.args) ? row.args : []
-      if (
-        row.name !== 'characters/sheetSectionDerivation:store' ||
-        !isRecordValue(args) ||
-        !matchesCharacter(args, input.characterId) ||
-        !isRecordValue(row.state) ||
-        row.state.kind !== 'pending'
-      )
-        return row
-      return { ...row, state: { kind: 'canceled' } }
-    })
+  const storeState = (row: Record<string, unknown>) => {
+    const [args] = Array.isArray(row.args) ? row.args : []
+    return row.name === 'characters/sheetSectionDerivation:store' &&
+      isRecordValue(args) &&
+      matchesCharacter(args, input.characterId) &&
+      isRecordValue(row.state)
+      ? row.state.kind
+      : null
+  }
+  const beforeScheduled = expectedPersonal._scheduled_functions ?? []
+  // The state write queues the Character's derivation (D215). An adjustment re-evaluates the
+  // Character in the same write, and that inline store cancels it; a condition leaves it queued.
+  const scheduledIds = new Set(beforeScheduled.map((row) => String(row._id)))
+  const queued = (after.personal._scheduled_functions ?? []).filter(
+    (row) => !scheduledIds.has(String(row._id))
+  )
+  assert.deepEqual(queued.map(storeState), [
+    input.event.type.startsWith('CAMPAIGN_ADJUSTMENT_') ? 'canceled' : 'pending'
+  ])
+  expectedPersonal._scheduled_functions = [
+    ...beforeScheduled.map((row) =>
+      storeState(row) === 'pending' ? { ...row, state: { kind: 'canceled' } } : row
+    ),
+    ...queued
+  ]
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
   assert.deepEqual(normalize(after.personal), normalize(expectedPersonal))

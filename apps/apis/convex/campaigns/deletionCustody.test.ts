@@ -723,18 +723,33 @@ describe('native Campaign custody deletion', () => {
       // Archive always schedules the room close; its run state is the only scheduler change.
       const roomControl = 'liveSessions/control:send'
       const snapshotBuild = 'contentSnapshots/actions:build'
+      const sheetStore = 'characters/sheetSectionDerivation:store'
+      const unrelated = (row: (typeof after.scheduled)[number]) =>
+        row.name !== roomControl && row.name !== snapshotBuild && row.name !== sheetStore
       expect(
         after.scheduled.filter(
-          (row) =>
-            !row.name?.startsWith('campaigns/deletionJobs:') &&
-            row.name !== roomControl &&
-            row.name !== snapshotBuild
+          (row) => !row.name?.startsWith('campaigns/deletionJobs:') && unrelated(row)
         )
-      ).toEqual(
-        expectedSnapshot.scheduled.filter(
-          (row) => row.name !== roomControl && row.name !== snapshotBuild
-        )
+      ).toEqual(expectedSnapshot.scheduled.filter(unrelated))
+      // Leaving the Campaign changes the Character's Sheet fingerprint, so the deletion queues its
+      // derivation (D215); each later queuing write in the same deletion replaces the one before.
+      const expectedStoreIds = new Set(
+        expectedSnapshot.scheduled.filter((row) => row.name === sheetStore).map((row) => row._id)
       )
+      expect(
+        after.scheduled.filter((row) => expectedStoreIds.has(row._id)),
+        'Sheet stores before the deletion'
+      ).toEqual(expectedSnapshot.scheduled.filter((row) => row.name === sheetStore))
+      const stores = after.scheduled.filter(
+        (row) => row.name === sheetStore && !expectedStoreIds.has(row._id)
+      )
+      expect(stores.map((row) => row.args)).toEqual(
+        stores.map(() => [{ characterId: base.character.id, token: expect.any(String) }])
+      )
+      expect(stores.map((row) => row.state.kind).sort()).toEqual([
+        ...stores.slice(1).map(() => 'canceled'),
+        'success'
+      ])
       expect(
         after.scheduled.filter((row) => row.name === roomControl).map((row) => row.args)
       ).toEqual(
