@@ -112,12 +112,22 @@ describe('Character draft autosave budget', () => {
     )
     expect(totals.reads.bytes + totals.writes.bytes).toBeLessThanOrEqual(AUTOSAVE_BUDGET_BYTES)
     // Only the caller's profile and the draft head are read: never the old payload, the active
-    // Character, the System or a document by id.
-    expect(Object.keys(totals.reads.byTable).sort()).toEqual(['characterDrafts', 'userProfiles'])
+    // Character or the System. T36: the draft head is a Sheet input table, so its trigger reads the
+    // head again before and after the replace (`get`, no document not already read).
+    expect(Object.keys(totals.reads.byTable).sort()).toEqual([
+      'characterDrafts',
+      'get',
+      'userProfiles'
+    ])
     expect(totals.reads.byTable.characterDrafts?.documents).toBe(1)
-    // The head and the payload document are replaced in place; nothing is inserted or deleted.
-    expect(Object.keys(totals.writes.byTable).sort()).toEqual(['replace'])
-    expect(totals.writes.documents).toBe(2)
+    expect(totals.reads.byTable.get?.documents).toBe(2)
+    expect(totals.reads.byTable.get?.distinct).toBe(0)
+    // The head (through its trigger, by table) and the payload document are replaced in place;
+    // nothing is inserted or deleted, and no Sheet store is queued.
+    expect(totals.writes.byTable).toEqual({
+      characterDrafts: expect.objectContaining({ documents: 1 }),
+      replace: expect.objectContaining({ documents: 1 })
+    })
 
     // An edit draft also reads its active row, whose status sets the returned `draftState`.
     await owner.caller.mutation(api.characters.drafts.discard, {
@@ -161,10 +171,19 @@ describe('Character draft autosave budget', () => {
     expect(editTotals.reads.bytes + editTotals.writes.bytes).toBeLessThanOrEqual(
       AUTOSAVE_BUDGET_BYTES
     )
+    // T36: the head trigger's re-reads (`get`) touch no new document. An autosave changes no Sheet
+    // input of the ACTIVE Character, so it queues no Sheet store.
     expect(Object.keys(editTotals.reads.byTable).sort()).toEqual([
       'characterDrafts',
       'characters',
+      'get',
       'userProfiles'
     ])
+    expect(editTotals.reads.byTable.get?.documents).toBe(2)
+    expect(editTotals.reads.byTable.get?.distinct).toBe(0)
+    expect(editTotals.writes.byTable).toEqual({
+      characterDrafts: expect.objectContaining({ documents: 1 }),
+      replace: expect.objectContaining({ documents: 1 })
+    })
   })
 })

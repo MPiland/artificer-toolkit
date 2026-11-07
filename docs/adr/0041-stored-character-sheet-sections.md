@@ -34,17 +34,20 @@ Projection after derivation costs under 1 ms per section. Rules evaluation does 
 
 Approved by the user on 2026-11-07 (RELIABILITY-21.T33). A Campaign-scope fingerprint input no longer leaves its Characters' sections stale until their next write: the mutation that changes it queues the derivation of every Character assigned to the Campaign (`scheduleCampaignCharacterSheetSections` in `characters/sheetSectionStores.ts`). The derivation is deduplicated per Character through `characterSheetPendingStores`, and the party size bounds it.
 
-**The input list is declared once (RELIABILITY-21.T36).** `characterSheetInputs` in `characters/sheetFingerprintInputs.ts`, beside the fingerprint, names every table the fingerprint reads and, for each, which stores a change queues: that Character, a Campaign's party, or the USER source owner's Characters. `lib/mutations.ts` registers one trigger per declared table, so every tracked write queues in its own transaction and a new write path needs no call of its own. Each Character and each Campaign is queued once per transaction. The structural test (`sheetFingerprintInputs.test.ts`) records the tables a personal and a Campaign fingerprint read and fails on any table missing from the declaration. The declaration:
+**The input list is declared once (RELIABILITY-21.T36).** `characterSheetInputs` in `characters/sheetFingerprintInputs.ts`, beside the fingerprint, names every table the fingerprint reads and, for each, which stores a change queues: that Character, a Campaign's party, or the USER source owner's Characters. `lib/mutations.ts` registers one trigger per declared table, so every tracked write queues in its own transaction and a new write path needs no call of its own. Each Character and each Campaign is queued once per transaction. The structural test (`sheetFingerprintInputs.test.ts`) records the tables a personal and a Campaign fingerprint read and fails on any table missing from the declaration. Each trigger queues only when the write moves what the Sheet reads: an insert or delete, or a change in the fields named below. The declaration:
 
-- the Character, its build state, its collections and its route id: that Character;
+- the Character head, while the Character is or becomes ACTIVE (a DRAFT-status Character has no Sheet): that Character;
+- its build state when the row's checksum moves, any change to its collection rows, and its route id while it is ACTIVE (a new Character's route and draft exist before its Sheet): that Character;
 - its play state, only when the play checksum moves (the stream version and stored stats are outside the fingerprint);
-- an edit draft's insert or delete, since the Sheet shows whether one is open; a draft save queues nothing;
+- an ACTIVE Character's draft insert or delete, since the Sheet shows whether one is open; a draft save queues nothing;
 - an active rule effect: its owner and, while it carries Concentration, its caster;
-- the Campaign Character state and the assignment: that Character;
+- the Campaign Character state when its checksum moves, and any change to the assignment: that Character;
 - the Campaign fields the Sheet reads (`characterSheetCampaignFields`), the currency systems, and an owner's membership status or role: the Campaign's party;
 - a content-snapshot head revision: the Campaign's party for a Campaign head (a share or unshare, a membership, System, owner or catalogue change), and the owner's Characters in that System for a USER source head;
 - a USER source record: its owner's Characters in that System;
 - not queued, with the reason recorded in the declaration: Campaign deletion jobs (authority refuses every read while one runs, and its assignment deletes queue each Character), and Systems and platform catalogues (they change only when a deployment seeds them).
+
+**Cost per write.** Registering a table makes convex-helpers read the written row again: two gets for each patch or replace (before and after), one for each insert or delete. A declared table pays this on every tracked write, queued or not, and a queued write adds its target lookup and one pending-store row per Character per transaction. Draft autosave pays the two gets of the draft head (no payload read). A publish pays the two gets of its content-snapshot head plus the source lookup, three documents. The budget tests (`draftSaveBudget.test.ts`, `publicationReadBudget.test.ts`) state those reads exactly.
 
 Every tracked mutation loads the declaration and the queued store, so both stay in small modules that import no derivation code. Only `untrackedInternalMutation` skips the triggers, and its checkpoint publish and rollback wrap their writes in the tracked database, so live-table checkpoint writes queue too.
 

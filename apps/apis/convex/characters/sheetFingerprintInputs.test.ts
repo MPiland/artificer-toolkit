@@ -1,4 +1,9 @@
 import { makeFunctionReference, type GenericDatabaseReader } from 'convex/server'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import {
+  aidAtSecondLevel,
+  plannedModifierGrant
+} from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
@@ -12,6 +17,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { api, internal } from '../_generated/api'
 import type { DataModel, TableNames } from '../_generated/dataModel'
 import { markContentSnapshotScope } from '../contentSnapshots/marking'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { withSceneVisionTracking } from '../lib/mutations'
 import schema from '../schema'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -132,41 +138,49 @@ describe('Character Sheet fingerprint inputs', () => {
     const caster = await commit()
     await storeCurrent(character.id)
     await storeCurrent(caster.id)
-    const now = new Date().toISOString()
-    const checksum = 'a'.repeat(64)
+    const storeJobs = () =>
+      t.run(async (ctx) =>
+        (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+          (job) => job.name === 'characters/sheetSectionDerivation:store'
+        )
+      )
+    const earlier = new Set((await storeJobs()).map((job) => job._id))
+    // Two effects the caster maintains on the Character, written in one tracked transaction.
+    const encounterId = crypto.randomUUID()
+    const actorId = crypto.randomUUID()
     await t.run(async (rawCtx) => {
-      const ctx = withSceneVisionTracking(rawCtx)
-      const id = await ctx.db.insert('characterActiveRuleEffects', {
-        id: crypto.randomUUID(),
-        createdOrdinal: 1,
-        version: 1,
-        definitionJson: '{}',
-        definitionChecksum: checksum,
-        lifecycle: { schemaVersion: 1, remainingTicks: null },
-        lifecycleChecksum: checksum,
-        createdAt: now,
-        updatedAt: now,
-        characterId: character.id,
-        concentrationCasterCharacterId: caster.id,
-        maintainedEffectStateId: null,
-        sourceEncounterId: null
+      const store = createActiveRuleEffectStore({
+        db: createConvexEncounterStore(withSceneVisionTracking(rawCtx))
       })
-      await ctx.db.patch(id, { version: 2 })
+      for (let index = 0; index < 2; index += 1)
+        await store.create({
+          id: crypto.randomUUID(),
+          owner: { kind: 'CHARACTER', characterId: character.id },
+          definition: plannedModifierGrant({
+            encounterId,
+            sourceActorId: actorId,
+            holderActorId: actorId,
+            lifecycle: {},
+            effect: aidAtSecondLevel(),
+            rounds: 30,
+            lifetimeScope: 'OWNER'
+          }).definition,
+          lifecycle: {
+            schemaVersion: 1,
+            remainingTicks: 30,
+            concentrationCasterCharacterId: caster.id
+          }
+        })
     })
     expect(await sheetState(character.id)).toBe('QUEUED')
     expect(await sheetState(caster.id)).toBe('QUEUED')
-    const jobs = await t.run(async (ctx) =>
-      (await ctx.db.system.query('_scheduled_functions').collect()).filter(
-        (job) => job.name === 'characters/sheetSectionDerivation:store'
-      )
-    )
-    // The second write in the transaction keeps each Character's queued store.
+    const jobs = (await storeJobs()).filter((job) => !earlier.has(job._id))
+    // The second effect in the transaction keeps each Character's queued store.
     for (const characterId of [character.id, caster.id])
       expect(
         jobs
           .filter((job) => JSON.stringify(job.args).includes(characterId))
           .map((job) => job.state.kind)
-          .filter((kind) => kind === 'pending' || kind === 'canceled')
       ).toEqual(['pending'])
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await sheetState(character.id)).toBe('CURRENT')

@@ -4,6 +4,7 @@ import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
+import { withSceneVisionTracking } from '../lib/mutations'
 import { executeCharacterSheetCommandAcknowledgement } from './sheetCommands'
 import * as sheetFacts from './sheetFacts'
 import * as receipts from './sheetCommandReceipts'
@@ -33,7 +34,8 @@ describe('Character note command access', () => {
     try {
       const acknowledgement = await owner.caller.run((ctx) =>
         executeCharacterSheetCommandAcknowledgement(
-          { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+          // Counted beneath the trigger layer, as a tracked mutation runs, so queued stores count.
+          withSceneVisionTracking({ ...ctx, db: countDatabaseIo(ctx.db, totals) }),
           owner.userId,
           input
         )
@@ -72,7 +74,8 @@ describe('Character note command access', () => {
     const totals = createDatabaseIoTotals()
     await owner.caller.run((ctx) =>
       executeCharacterSheetCommandAcknowledgement(
-        { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+        // Counted beneath the trigger layer, as a tracked mutation runs, so queued stores count.
+        withSceneVisionTracking({ ...ctx, db: countDatabaseIo(ctx.db, totals) }),
         owner.userId,
         {
           id: character.id,
@@ -95,12 +98,16 @@ describe('Character note command access', () => {
     expect(totals.reads.byTable.characters?.distinct).toBe(1)
     // One new note row and the default group, then the build counts with its structure clock and
     // the play clock, and the Character's one queued Sheet derivation (ADR 0041); the head and
-    // everything else stay unwritten.
+    // everything else stay unwritten. A trigger writes a registered table in the explicit-table
+    // form, so the two replaces count under their tables.
     expect(totals.writes.byTable.characterNotes?.documents).toBe(1)
     expect(totals.writes.byTable.characterNoteGroups?.documents).toBe(1)
-    expect(totals.writes.byTable.replace?.documents).toBe(2)
+    expect(totals.writes.byTable.characterBuildStates?.documents).toBe(1)
+    expect(totals.writes.byTable.characterPlayStates?.documents).toBe(1)
+    expect(totals.writes.byTable.replace).toBeUndefined()
     expect(totals.writes.byTable.characterSheetPendingStores?.documents).toBe(1)
-    expect(totals.writes.byTable.patch).toBeUndefined()
+    // The play-state trigger's scene vision revision bump, the one id-form patch.
+    expect(totals.writes.byTable.patch).toEqual({ documents: 1, distinct: 1, bytes: 51 })
     expect(totals.writes.byTable.delete).toBeUndefined()
     const after = await readState()
     const written = readCharacterRecord(after.character!)

@@ -29,14 +29,35 @@ export type CharacterSheetInput<TableName extends TableNames> =
 
 type CharacterRowTable =
   | CharacterCollectionTable
+  | 'characterPlayStates'
   | 'characterBuildStates'
   | 'campaignCharacterStates'
   | 'campaignCharacterAssignments'
 
-const ownCharacter = {
-  queue: (_: unknown, { oldDoc, newDoc }: SheetInputChange<CharacterRowTable>) => [
-    { characterId: (newDoc ?? oldDoc)!.characterId }
-  ]
+/**
+ * The row's own Character, when a write inserts or deletes the row or changes what the Sheet reads
+ * from it (`read`, the whole row by default); a write that leaves that alone queues nothing.
+ */
+function ownCharacter<TableName extends CharacterRowTable>(
+  read: (doc: Doc<TableName>) => unknown = (doc) => doc
+) {
+  return {
+    queue: (_: unknown, { oldDoc, newDoc }: SheetInputChange<TableName>) =>
+      !oldDoc || !newDoc || JSON.stringify(read(oldDoc)) !== JSON.stringify(read(newDoc))
+        ? [{ characterId: (newDoc ?? oldDoc)!.characterId }]
+        : []
+  }
+}
+
+const allFields = ownCharacter()
+
+/** The Character, while it is ACTIVE: a new Character's draft and route exist before its Sheet. */
+async function activeCharacter(db: GenericDatabaseReader<DataModel>, characterId: string) {
+  const character = await db
+    .query('characters')
+    .withIndex('by_publicId', (q) => q.eq('id', characterId))
+    .unique()
+  return character?.status === 'ACTIVE' ? [{ characterId }] : []
 }
 
 /** A USER source belongs to its owner's Characters in its System; PLATFORM sources are seeded. */
@@ -65,35 +86,35 @@ async function ownedCharacters(
 
 export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetInput<TableName> } =
   {
+    // A DRAFT-status Character has no Sheet until its first commit makes it ACTIVE.
     characters: {
-      queue: (_, { oldDoc, newDoc }) => [{ characterId: (newDoc ?? oldDoc)!.id }]
+      queue: (_, { oldDoc, newDoc }) =>
+        oldDoc?.status === 'ACTIVE' || newDoc?.status === 'ACTIVE'
+          ? [{ characterId: (newDoc ?? oldDoc)!.id }]
+          : []
     },
     // The fingerprint reads the play checksum, not the stream version or the stored stats.
-    characterPlayStates: {
-      queue: (_, { oldDoc, newDoc }) =>
-        oldDoc?.checksum === newDoc?.checksum
-          ? []
-          : [{ characterId: (newDoc ?? oldDoc)!.characterId }]
-    },
-    characterBuildStates: ownCharacter,
-    characterInventoryItems: ownCharacter,
-    characterCurrencyGroups: ownCharacter,
-    characterClassSpellStates: ownCharacter,
-    characterSpellCustomizations: ownCharacter,
-    characterCreatureInstances: ownCharacter,
-    characterVehicleInstances: ownCharacter,
-    characterNotes: ownCharacter,
-    characterNoteGroups: ownCharacter,
-    characterExtraEquipment: ownCharacter,
-    // The Sheet shows whether a Builder draft is open; a draft save changes nothing it reads.
+    characterPlayStates: ownCharacter<'characterPlayStates'>((play) => play.checksum),
+    characterBuildStates: ownCharacter<'characterBuildStates'>((build) => build.checksum),
+    characterInventoryItems: allFields,
+    characterCurrencyGroups: allFields,
+    characterClassSpellStates: allFields,
+    characterSpellCustomizations: allFields,
+    characterCreatureInstances: allFields,
+    characterVehicleInstances: allFields,
+    characterNotes: allFields,
+    characterNoteGroups: allFields,
+    characterExtraEquipment: allFields,
+    // An active Character's Sheet shows whether a Builder draft is open; a draft save changes
+    // nothing it reads.
     characterDrafts: {
-      queue: (_, { oldDoc, newDoc }) =>
-        oldDoc && newDoc ? [] : [{ characterId: (newDoc ?? oldDoc)!.characterId }]
+      queue: (db, { oldDoc, newDoc }) =>
+        oldDoc && newDoc ? [] : activeCharacter(db, (newDoc ?? oldDoc)!.characterId)
     },
     authoredRouteIds: {
-      queue: (_, { oldDoc, newDoc }) => {
+      queue: (db, { oldDoc, newDoc }) => {
         const route = (newDoc ?? oldDoc)!
-        return route.subjectKind === 'CHARACTER' ? [{ characterId: route.subjectId }] : []
+        return route.subjectKind === 'CHARACTER' ? activeCharacter(db, route.subjectId) : []
       }
     },
     // An effect is read by its owner's Sheet and, while it carries Concentration, its caster's.
@@ -109,8 +130,8 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
           )
         ].map((characterId) => ({ characterId }))
     },
-    campaignCharacterStates: ownCharacter,
-    campaignCharacterAssignments: ownCharacter,
+    campaignCharacterStates: ownCharacter<'campaignCharacterStates'>((state) => state.checksum),
+    campaignCharacterAssignments: allFields,
     campaigns: {
       queue: (_, { oldDoc, newDoc }) =>
         oldDoc &&
@@ -143,6 +164,7 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
           : sourceOwnerCharacters(db, head.scopeId)
       }
     },
+    // The derivation reads the whole source row, so any change to it queues.
     contentSources: {
       queue: (db, { oldDoc, newDoc }) => ownedCharacters(db, (newDoc ?? oldDoc)!)
     },

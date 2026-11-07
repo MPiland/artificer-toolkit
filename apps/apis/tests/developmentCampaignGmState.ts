@@ -636,7 +636,8 @@ async function assertCommit(input: {
   )
   // The same evaluation re-derives that Character's stored Sheet sections (ADR 0041); every other
   // Character's stay as they were. Storing them cancels that Character's queued derivation.
-  // A snapshot omits an empty table, so an expected table stays absent while it has no rows.
+  // The self-hosted inspection omits an empty table and the convex-test one keeps it, so an
+  // expected table without rows takes the inspection's shape.
   for (const table of [
     'characterSheetSections',
     'characterSheetDerivations',
@@ -646,7 +647,7 @@ async function assertCommit(input: {
       ...(expectedPersonal[table] ?? []).filter((row) => !matchesCharacter(row, input.characterId)),
       ...targetRows(after.personal, table, input.characterId)
     ]
-    if (rows.length > 0) expectedPersonal[table] = rows
+    if (rows.length > 0 || table in after.personal) expectedPersonal[table] = rows
     else delete expectedPersonal[table]
   }
   if (input.scheduler === 'live') {
