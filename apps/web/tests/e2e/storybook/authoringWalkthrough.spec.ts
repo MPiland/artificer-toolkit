@@ -317,8 +317,8 @@ test.describe('route-backed authored domain workspace', () => {
 })
 
 async function expandRailBranch(page: Page, scope: Locator, name: RegExp) {
-  const link = scope.getByRole('link', { name }).first()
-  const target = (await link.count()) > 0 ? link : scope.getByRole('button', { name }).first()
+  // A branch row is a link or a button; `or` keeps retrying while a just-expanded group renders.
+  const target = scope.getByRole('link', { name }).or(scope.getByRole('button', { name })).first()
   await expect(target).toBeVisible()
   const branch = target.locator('xpath=..').locator('button[aria-expanded]')
   await expect(branch).toBeVisible()
