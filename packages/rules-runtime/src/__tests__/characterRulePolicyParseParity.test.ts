@@ -61,26 +61,13 @@ async function expectParsedParity(base: ClassAuthored, level: number) {
   })
 }
 
-/**
- * With the whole SRD spell catalogue a Bard holds 844 spell access candidates, and College of Lore
- * adds enough at level 3 that the policy output's spell access decisions pass their 999 sequence cap,
- * so evaluation throws in `characterRulePolicyOutputSchema.parse`. Found by this test and reported
- * under RELIABILITY-21.T33; these flip to passing once that is fixed, and then join `cases`.
- */
-const exceedsSpellAccessSequence = (base: ClassAuthored, level: number) =>
-  base.label === 'Bard' && level >= 3
 const cases = baseClasses.flatMap((base) =>
   LEVELS.map((level) => [base.label, level, base] as const)
 )
 
 describe('Character rule policy parse parity', () => {
-  it.each(cases.filter(([, level, base]) => !exceedsSpellAccessSequence(base, level)))(
+  it.each(cases)(
     '%s level %i facts and action model equal their parsed form',
-    (_label, level, base) => expectParsedParity(base, level),
-    30_000
-  )
-  it.fails.each(cases.filter(([, level, base]) => exceedsSpellAccessSequence(base, level)))(
-    '%s level %i exceeds the spell access decision sequence cap',
     (_label, level, base) => expectParsedParity(base, level),
     30_000
   )
