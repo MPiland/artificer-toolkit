@@ -39,6 +39,8 @@ export const sheetSectionsState = internalQuery({
     if (state.current) return 'CURRENT'
     const pending = await readCharacterSheetPendingStore(ctx, characterId)
     if (!pending) return 'MISSING'
+    // A Campaign change's chain holds a Character's store without a job until its turn (D215).
+    if (!pending.scheduledId) return 'QUEUED'
     const job = await ctx.db.system.get(pending.scheduledId)
     return job?.state.kind === 'pending' || job?.state.kind === 'inProgress' ? 'QUEUED' : 'FAILED'
   }

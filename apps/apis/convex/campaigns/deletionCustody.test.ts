@@ -724,8 +724,12 @@ describe('native Campaign custody deletion', () => {
       const roomControl = 'liveSessions/control:send'
       const snapshotBuild = 'contentSnapshots/actions:build'
       const sheetStore = 'characters/sheetSectionDerivation:store'
+      const sheetCheck = 'characters/sheetSectionDerivation:verify'
       const unrelated = (row: (typeof after.scheduled)[number]) =>
-        row.name !== roomControl && row.name !== snapshotBuild && row.name !== sheetStore
+        row.name !== roomControl &&
+        row.name !== snapshotBuild &&
+        row.name !== sheetStore &&
+        row.name !== sheetCheck
       expect(
         after.scheduled.filter(
           (row) => !row.name?.startsWith('campaigns/deletionJobs:') && unrelated(row)
@@ -750,6 +754,23 @@ describe('native Campaign custody deletion', () => {
         ...stores.slice(1).map(() => 'canceled'),
         'success'
       ])
+      // Each store has one check (D215). A write that replaced the store cancelled it; the store
+      // that landed cancelled it or, when the fake clock started both at once, it found the store
+      // done and queued nothing: the store states above hold no second attempt.
+      const expectedCheckIds = new Set(
+        expectedSnapshot.scheduled.filter((row) => row.name === sheetCheck).map((row) => row._id)
+      )
+      const checks = after.scheduled.filter(
+        (row) => row.name === sheetCheck && !expectedCheckIds.has(row._id)
+      )
+      expect(checks.map((row) => row.args)).toEqual(
+        stores.map((store) => [
+          { characterId: base.character.id, token: (store.args[0] as { token: string }).token }
+        ])
+      )
+      const checkStates = checks.map((row) => row.state.kind)
+      expect(checkStates.filter((kind) => kind !== 'canceled' && kind !== 'success')).toEqual([])
+      expect(checkStates.filter((kind) => kind === 'success').length).toBeLessThanOrEqual(1)
       expect(
         after.scheduled.filter((row) => row.name === roomControl).map((row) => row.args)
       ).toEqual(

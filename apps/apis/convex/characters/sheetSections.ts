@@ -13,11 +13,14 @@ import { readCampaignCharacterState } from '../campaigns/characterState'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readCharacterSheetState } from './documents'
-import { readAuthorizedCharacterSheetState } from './sheetInputs'
+import {
+  readAuthorizedCharacterSheetState,
+  type AuthorizedCharacterSheetState
+} from './sheetInputs'
 import { readCharacterSources } from './sourceReads'
 import { characterSheetCampaignFields } from './sheetSectionStores'
 import type { Doc } from '../_generated/dataModel'
-import type { CharacterRecordRow } from './stateDocuments'
+import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 
 // ADR 0041: a Character write stores its derived Sheet per viewer and section; reads serve a stored
 // section only while every input it was derived from is unchanged, and derive it otherwise.
@@ -67,6 +70,8 @@ export type CharacterSheetFingerprintReads = {
   sources: Awaited<ReturnType<typeof readCharacterSources>>
   activeEffects: Awaited<ReturnType<typeof listActiveRuleEffects>>
   carriedEffects: Awaited<ReturnType<typeof listCarriedActiveRuleEffects>>
+  /** The owner's authorized Character, draft and route, read by the store-state check. */
+  authorized: AuthorizedCharacterSheetState
 }
 
 /**
@@ -227,10 +232,20 @@ export async function readCharacterSheetStoreState(
   ctx: QueryCtx,
   userId: string,
   characterId: string,
-  reads?: Partial<CharacterSheetFingerprintReads>
+  reads?: Partial<CharacterSheetFingerprintReads>,
+  /** The active row this transaction already read, used instead of reading it again. */
+  active?: CharacterRow
 ) {
-  const authorized = await readAuthorizedCharacterSheetState(ctx, userId, characterId)
+  const authorized = await readAuthorizedCharacterSheetState(
+    ctx,
+    userId,
+    characterId,
+    undefined,
+    undefined,
+    active
+  )
   if (!authorized) return null
+  if (reads) reads.authorized = authorized
   const [derivation, fingerprint] = await Promise.all([
     readDerivationRow(ctx, characterId),
     readCharacterSheetFingerprint(
@@ -244,7 +259,7 @@ export async function readCharacterSheetStoreState(
       reads
     )
   ])
-  return { current: derivation?.fingerprint === fingerprint, fingerprint }
+  return { current: derivation?.fingerprint === fingerprint, fingerprint, derivation }
 }
 
 /** Replaces the Character's stored sections, writing only those whose checksum changed. */
@@ -252,11 +267,13 @@ export async function writeCharacterSheetSections(
   ctx: MutationCtx,
   characterId: string,
   fingerprint: string,
-  values: readonly CharacterSheetSectionValue[]
+  values: readonly CharacterSheetSectionValue[],
+  /** The derivation row this transaction already read, null when there is none. */
+  read?: Doc<'characterSheetDerivations'> | null
 ) {
   const key = (section: { viewer: string; section: string }) =>
     `${section.viewer} ${section.section}`
-  const stored = await readDerivationRow(ctx, characterId)
+  const stored = read !== undefined ? read : await readDerivationRow(ctx, characterId)
   const storedChecksums = new Map(
     (stored?.sections ?? []).map((section) => [key(section), section.checksum])
   )

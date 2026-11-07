@@ -29,7 +29,9 @@ import {
 } from './sheetSections'
 import {
   cancelCharacterSheetPendingStore,
-  readCharacterSheetPendingStore
+  readCharacterSheetPendingStore,
+  scheduleNextCampaignCharacterSheetStore,
+  verifyCharacterSheetStore
 } from './sheetSectionStores'
 import type { CharacterRecordRow } from './stateDocuments'
 
@@ -58,8 +60,11 @@ export async function storeCharacterSheetSections(
   ctx: MutationCtx,
   facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>,
   authorityScope?: CampaignInternalScope,
-  /** The fingerprint of the inputs these facts were loaded from, when the caller already read it. */
-  inputsFingerprint?: string
+  /** The store state read before these facts were loaded: their inputs' fingerprint and the row. */
+  storeState?: Pick<
+    NonNullable<Awaited<ReturnType<typeof readCharacterSheetStoreState>>>,
+    'fingerprint' | 'derivation'
+  >
 ) {
   const characterId = facts.active.id
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
@@ -110,7 +115,7 @@ export async function storeCharacterSheetSections(
   // The facts carry the Character row as this transaction wrote it, and the sources and effects
   // they were derived from.
   const fingerprint =
-    inputsFingerprint ??
+    storeState?.fingerprint ??
     (await readCharacterSheetFingerprint(
       ctx,
       { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
@@ -121,7 +126,7 @@ export async function storeCharacterSheetSections(
         carriedEffects: facts.concentrationEffects ?? []
       }
     ))
-  await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
+  await writeCharacterSheetSections(ctx, characterId, fingerprint, values, storeState?.derivation)
 }
 
 /** Derives the Sheet once over its own sources and stores its sections. */
@@ -133,7 +138,14 @@ export async function deriveAndStoreCharacterSheet(
   // A newer write queued its own derivation; this one began before it could be cancelled.
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending && pending.token !== token) return null
-  if (pending) await ctx.db.delete('characterSheetPendingStores', pending._id)
+  if (pending) {
+    // Landing cancels the check; a store that fails rolls this back, and the check queues it again.
+    await cancelCharacterSheetPendingStore(ctx, pending)
+    await ctx.db.delete('characterSheetPendingStores', pending._id)
+    // A Campaign change queued the party as a chain: the next store starts once this one commits.
+    if (pending.campaignId !== undefined)
+      await scheduleNextCampaignCharacterSheetStore(ctx, pending.campaignId, 0)
+  }
   const { active } = await loadCharacterState(ctx, characterId)
   // A deleted Character, or one that needs Builder repair, has no Sheet to store. Repair is either
   // recorded (a reconciled loss leaves it a draft) or found below, when a replaced publication left
@@ -141,9 +153,9 @@ export async function deriveAndStoreCharacterSheet(
   if (active?.status !== 'ACTIVE') return null
   // A later write may already have stored the Sheet over the same inputs.
   const reads: Partial<CharacterSheetFingerprintReads> = {}
-  const state = await readCharacterSheetStoreState(ctx, active.userId, characterId, reads)
+  const state = await readCharacterSheetStoreState(ctx, active.userId, characterId, reads, active)
   if (state?.current) return null
-  // The facts reuse the System, sources and effects the fingerprint just read.
+  // The facts reuse the authorized state, System, sources and effects the state check just read.
   const facts = await loadCharacterSheetFacts(
     ctx,
     active.userId,
@@ -159,7 +171,7 @@ export async function deriveAndStoreCharacterSheet(
     if (error instanceof CharacterRequiresBuilderRepairError) return null
     throw error
   })
-  if (facts) await storeCharacterSheetSections(ctx, facts, undefined, state?.fingerprint)
+  if (facts) await storeCharacterSheetSections(ctx, facts, undefined, state ?? undefined)
   return null
 }
 
@@ -167,4 +179,13 @@ export const store = internalMutation({
   args: { characterId: v.string(), token: v.string() },
   returns: v.null(),
   handler: (ctx, { characterId, token }) => deriveAndStoreCharacterSheet(ctx, characterId, token)
+})
+
+export const verify = internalMutation({
+  args: { characterId: v.string(), token: v.string(), campaignId: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, check) => {
+    await verifyCharacterSheetStore(ctx, check)
+    return null
+  }
 })

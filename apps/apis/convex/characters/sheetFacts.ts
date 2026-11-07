@@ -40,7 +40,8 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     referenceSpellIds,
     reads?.system && reads.sources
       ? { system: deriveOnce(reads.system, readSystem), sources: reads.sources }
-      : undefined
+      : undefined,
+    reads?.authorized
   )
   if (!loaded) return null
   const evaluated = await prepareCharacterSheetFromContext({

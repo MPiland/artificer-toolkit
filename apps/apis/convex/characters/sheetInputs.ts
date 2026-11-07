@@ -81,6 +81,10 @@ export async function readAuthorizedCharacterSheetState<
   return { id, active, draft, route }
 }
 
+export type AuthorizedCharacterSheetState = NonNullable<
+  Awaited<ReturnType<typeof readAuthorizedCharacterSheetState>>
+>
+
 /** Loads authorized stored inputs without Builder readiness or Character rule evaluation. */
 export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow = CharacterRow>(
   ctx: QueryCtx,
@@ -93,16 +97,22 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   /** The row this transaction just wrote, evaluated without reading it back. */
   written?: TRow,
   referenceSpellIds: readonly string[] = [],
-  ruleInputs?: CharacterReferencedReads['ruleInputs']
+  ruleInputs?: CharacterReferencedReads['ruleInputs'],
+  /** The same authorized read, already made in this transaction for the same arguments. */
+  priorAuthorized?: AuthorizedCharacterSheetState
 ) {
-  const authorized = await readAuthorizedCharacterSheetState(
-    ctx,
-    userId,
-    lookupId,
-    campaignId,
-    authorityScope,
-    written
-  )
+  if (priorAuthorized && priorAuthorized.id !== lookupId)
+    throw new Error('Character Sheet authorized state binding mismatch.')
+  const authorized =
+    priorAuthorized ??
+    (await readAuthorizedCharacterSheetState(
+      ctx,
+      userId,
+      lookupId,
+      campaignId,
+      authorityScope,
+      written
+    ))
   if (!authorized) return null
   const { id, active, draft, route } = authorized
   // Validated DTOs use literal starting-equipment sources for the authored string enum.

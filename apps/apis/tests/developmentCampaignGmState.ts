@@ -630,9 +630,12 @@ async function assertCommit(input: {
     if (rows.length > 0) expectedPersonal[table] = rows
     else delete expectedPersonal[table]
   }
+  // A queued store comes with the check that queues it again if it fails; cancelling a queued
+  // store cancels its check too (D215).
   const storeState = (row: Record<string, unknown>) => {
     const [args] = Array.isArray(row.args) ? row.args : []
-    return row.name === 'characters/sheetSectionDerivation:store' &&
+    return (row.name === 'characters/sheetSectionDerivation:store' ||
+      row.name === 'characters/sheetSectionDerivation:verify') &&
       isRecordValue(args) &&
       matchesCharacter(args, input.characterId) &&
       isRecordValue(row.state)
@@ -646,9 +649,8 @@ async function assertCommit(input: {
   const queued = (after.personal._scheduled_functions ?? []).filter(
     (row) => !scheduledIds.has(String(row._id))
   )
-  assert.deepEqual(queued.map(storeState), [
-    input.event.type.startsWith('CAMPAIGN_ADJUSTMENT_') ? 'canceled' : 'pending'
-  ])
+  const queuedState = input.event.type.startsWith('CAMPAIGN_ADJUSTMENT_') ? 'canceled' : 'pending'
+  assert.deepEqual(queued.map(storeState), [queuedState, queuedState])
   expectedPersonal._scheduled_functions = [
     ...beforeScheduled.map((row) =>
       storeState(row) === 'pending' ? { ...row, state: { kind: 'canceled' } } : row

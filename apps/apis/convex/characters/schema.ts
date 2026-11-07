@@ -94,12 +94,21 @@ export const characterTables = {
   characterSheetSections: defineTable(
     zodToConvexFields(characterSheetSectionRecordSchema.shape)
   ).index('by_characterId_viewer_section', ['characterId', 'viewer', 'section']),
-  // The one queued Sheet derivation per Character; a newer write cancels and replaces it.
+  // The one queued Sheet derivation per Character; a newer write cancels and replaces it. A
+  // Campaign-scope change queues the party in a chain (`campaignId`): one store runs at a time and
+  // the others wait without a scheduled job until it finishes. `checkId` is the check that queues a
+  // failed store again; a store that lands cancels it (D215).
   characterSheetPendingStores: defineTable({
     characterId: v.string(),
-    scheduledId: v.id('_scheduled_functions'),
-    token: v.string()
-  }).index('by_characterId', ['characterId']),
+    token: v.string(),
+    scheduledId: v.optional(v.id('_scheduled_functions')),
+    checkId: v.optional(v.id('_scheduled_functions')),
+    campaignId: v.optional(v.string()),
+    /** Set once a failed or canceled store was queued again; a second failure is not retried. */
+    retried: v.boolean()
+  })
+    .index('by_characterId', ['characterId'])
+    .index('by_campaignId', ['campaignId']),
   characterCommandReceipts: defineTable(
     zodToConvexFields(characterCommandReceiptHeaderSchema.shape)
   )

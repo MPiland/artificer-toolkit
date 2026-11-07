@@ -41,6 +41,18 @@ Approved by the user on 2026-11-07 (RELIABILITY-21.T33). A Campaign-scope finger
 
 Triggers run for every tracked mutation, so a new write path needs no extra call. The queued store lives in its own small module because every tracked mutation loads it.
 
+A Campaign change queues its party as a chain, so at most one of the Campaign's stores runs at a time. Each assigned Character without a pending store gets a pending row carrying the `campaignId` and no job. The first row is scheduled after the usual delay. Each store, once it commits, starts the next waiting row. Parallel stores contended on the same Campaign rows and multiplied each other's facts and commit time 3 to 5 times, and 2 of 42 timed out (run 42389041471). A Character whose store is already pending is left alone, because that store has not committed and will read the change.
+
+Every scheduled store has a check, scheduled 2 s after the store is due (`characterSheetPendingStores.checkId`):
+
+- a store that lands cancels its check, so a normal store costs no extra function call;
+- a store that fails or times out rolls the cancel back, so the check runs;
+- while the store is still pending or running, the check looks again;
+- a failed or canceled store whose pending row is still current is queued once more (`retried`);
+- after a second failure the row is dropped and logged, the sections stay stale (reads derive live until the next write), and the chain moves on.
+
+The queued store reads its inputs once: the authorized Character state, System, sources and effects that decided whether it runs are reused by the facts load and by the write. The pending-store shape changed, so local data is reset after merge (D196).
+
 ## Consequences
 
 - A Sheet read touches no authored content: it reads authority rows, the fingerprint inputs and one section.
