@@ -19,6 +19,9 @@ import {
   recordConvexTraffic,
   type ConvexCall
 } from './support/convexTraffic'
+import { CHARACTER_BUILDER_TIMING_MEASURE } from '../../../src/domains/characters/builder/core/characterBuilder.performance'
+import { CLIENT_PERFORMANCE_MEASURE } from '../../../src/lib/clientPerformanceMeasures'
+import { recordThrottledClientLatency } from '../../throttledClientLatency'
 
 test.describe('MVP character Builder to Sheet', () => {
   test.describe.configure({ mode: 'serial' })
@@ -345,6 +348,46 @@ test.describe('MVP character Builder to Sheet', () => {
     })
     await expect(featuresPanel.getByText('Improved Critical', { exact: true })).toBeVisible()
     await expect(featuresPanel.getByText('Breath Weapon', { exact: true })).toBeVisible()
+  })
+
+  // PERF-6.3: evidence only. Each pass records its measures and never fails the run (D210).
+  test('records content parse and Builder evaluation latency under CPU throttling', async ({
+    authenticatedPage: page,
+    characterCleanup
+  }) => {
+    test.setTimeout(300_000)
+    const characterName = `MVP Throttled ${Date.now()}`
+    characterCleanup.trackLabel(characterName)
+
+    await recordThrottledClientLatency(
+      page,
+      'Spell catalogue',
+      [CLIENT_PERFORMANCE_MEASURE.CONTENT_SNAPSHOT_PARSE],
+      async () => {
+        await page.goto('/spells', { waitUntil: 'domcontentloaded' })
+        await expect(page.getByText(/\d+ spells \/ \d+ SRD/)).toBeVisible({ timeout: 60_000 })
+      }
+    )
+    await recordThrottledClientLatency(
+      page,
+      'Builder',
+      [
+        CHARACTER_BUILDER_TIMING_MEASURE.RESOLUTION,
+        CLIENT_PERFORMANCE_MEASURE.CONTENT_SNAPSHOT_PARSE
+      ],
+      async () => {
+        await startNewCharacter(
+          page,
+          { name: 'Throttled Human Fighter', classCount: 1 },
+          characterName,
+          characterCleanup
+        )
+        await goToBuilderStep(page, 'Race')
+        await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Human')
+        await goToBuilderStep(page, 'Classes')
+        await selectBuilderCatalogOptionAndResolve(page, 'Add Class', 'Choose a class', 'Fighter')
+      }
+    )
   })
 })
 

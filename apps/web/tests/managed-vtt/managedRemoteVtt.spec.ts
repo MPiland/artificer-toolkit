@@ -8,7 +8,9 @@ import {
   type Response
 } from '@playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
-import { enforcedLatencyMisses, measureLatency } from '../../src/test/latencyGate'
+import { enforcedLatencyMisses, measureLatency, summarizeTimings } from '../../src/test/latencyGate'
+import { CLIENT_PERFORMANCE_MEASURE } from '../../src/lib/clientPerformanceMeasures'
+import { recordThrottledClientLatency } from '../throttledClientLatency'
 
 const campaignName = requiredValue('MANAGED_VTT_CAMPAIGN_NAME')
 const gmCredentials = credentials('GM')
@@ -136,6 +138,15 @@ test('connects three users through the live room and recovers a reversible scene
       contentType: 'application/json'
     })
     console.info(`Managed VTT convergence timings: ${JSON.stringify(convergenceSummary)}`)
+
+    // PERF-6.3: one throttled reopen after every D210 measurement, so throttling slows nothing measured.
+    const { tabletop } = managedPaths
+    await recordThrottledClientLatency(
+      player2.page,
+      'Tabletop',
+      [CLIENT_PERFORMANCE_MEASURE.VTT_SCENE_RENDER],
+      () => openTabletop(player2, { tabletop })
+    )
 
     await Promise.all([gm.context.close(), player.context.close(), player2.context.close()])
     timings.authorityReleaseWaitMs = authorityReleaseWaitMs
@@ -963,21 +974,6 @@ async function readMaxHitPoints(page: Page): Promise<number> {
   const match = (await readout.innerText()).match(/HP\s*-?\d+\s*\/\s*(-?\d+)/)
   if (!match) throw new Error('The managed smoke Character has no visible HP readout.')
   return Number(match[1])
-}
-
-function nearestRank(values: readonly number[], percentile: number): number {
-  if (values.length === 0) throw new Error('Managed convergence timing has no samples.')
-  return [...values].sort((left, right) => left - right)[Math.ceil(values.length * percentile) - 1]!
-}
-
-function summarizeTimings(values: readonly number[]) {
-  return {
-    max: Math.max(...values),
-    p50: nearestRank(values, 0.5),
-    p95: nearestRank(values, 0.95),
-    p99: nearestRank(values, 0.99),
-    raw: values
-  }
 }
 
 async function openManagedClient(

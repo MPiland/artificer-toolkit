@@ -94,6 +94,7 @@ import { createVttAreaAimGesture } from './vttAreaAimGesture'
 import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
 import { clampVttZoomScale } from './vttZoom.model'
+import { createVttFrameEntries } from './vttFrameEntries'
 
 export type CampaignVttMode = 'PLAY' | 'EDIT'
 export type CampaignVttTool =
@@ -579,24 +580,12 @@ export async function createVttSceneRenderer(
     if (!animating && pings.size === 0) app.ticker.stop()
   }
   app.ticker.add(onTickerUpdate)
+  const frameEntries = createVttFrameEntries(remoteTokenDragPreviews, () => current?.scene.id)
   const previewRenderObserver = {
     postrender(options: { container: Container }) {
       if (options.container !== app.stage) return
       framePending = false
-      for (const preview of remoteTokenDragPreviews.values()) {
-        if (preview.renderedSequence === preview.sequence) continue
-        preview.renderedSequence = preview.sequence
-        // Record after Pixi submits the updated preview, so browser proofs can observe its paint.
-        performance.mark('artificer:vtt-token-preview-rendered', {
-          detail: {
-            sceneId: current?.scene.id,
-            tokenId: preview.tokenId,
-            sequence: preview.sequence,
-            position: preview.target
-          }
-        })
-        performance.clearMarks('artificer:vtt-token-preview-rendered')
-      }
+      frameEntries.frameRendered()
     }
   }
   app.renderer.runners.postrender.add(previewRenderObserver)
@@ -1889,6 +1878,7 @@ export async function createVttSceneRenderer(
   }
 
   function draw(next: VttSceneRendererUpdate): void {
+    const drawStartedAt = performance.now()
     requestRender()
     if (
       current &&
@@ -1932,6 +1922,7 @@ export async function createVttSceneRenderer(
     if (previous && sameSceneRenderInputs(previous, next)) {
       return
     }
+    frameEntries.redrawStarted(drawStartedAt)
     if (drag) {
       const token = next.scene.tokens.find((candidate) => candidate.id === drag?.tokenId)
       if (
