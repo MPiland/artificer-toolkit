@@ -24571,7 +24571,7 @@
             },
             {
               "id": "PERF-6.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24582,8 +24582,13 @@
                 "finalSource": true
               },
               "text": "Profile fix 1: move characterSheet:basics into its own small module and serve its four fields from stored data (Character row fields written at Builder commit, or a stored identity section written by store) instead of a derivation, so its read set excludes the System, sources and effects. Budget: <= 7 documents and <= 10 KB (convex-test), module floor <= 20 ms (functionBundleBudget.test.ts), CI user p95 <= 100 ms, 0 timeouts.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Ruling 2026-11-08: read budget <= 7 documents (one each from seven tables incl. the identity userProfiles row every authenticated query reads) and <= 10 KB; the T1 budget omitted the identity read."
+              "note": "Ruling 2026-11-08: read budget <= 7 documents (one each from seven tables incl. the identity userProfiles row every authenticated query reads) and <= 10 KB; the T1 budget omitted the identity read. Fix: roster basics moved to campaigns/characterBasics:get; classSummary and totalLevel are stored on characterPlayStates beside maximumHitPoints by every writer that evaluates the Character (resolveCharacterPlayRecordStats). Stored-shape change: local reset and reseed. A published Class rename reaches the roster on the Character's next write (deferred edge case in future-enhancements.md).",
+              "mergedAt": "2026-11-08",
+              "proof": [
+                "apps/apis/convex/campaigns/partyVisibility.test.ts (campaigns/characterBasics:get reads exactly one document from each of userProfiles, authoredRouteIds, campaigns, campaignMemberships, campaignCharacterAssignments, characters, characterPlayStates: <= 7 documents and <= 10 KB; non-member and removed-assignment refusals)",
+                "apps/apis/convex/functionBundleBudget.test.ts (characterBasics module floor <= 20 ms; local warm floor 2-3 ms against the Sheet module 104-144 ms)",
+                "Green on 855ece475: Tests 42497828775, Live 42497828762, Browser journeys 42497828784; merged c3dbdcea2 (m659, merge-slice run 42499655826)"
+              ]
             },
             {
               "id": "PERF-6.T3",
