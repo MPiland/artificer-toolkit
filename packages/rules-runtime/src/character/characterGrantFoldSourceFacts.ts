@@ -2,6 +2,7 @@ import type {
   CharacterGrantFoldInput,
   CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { equipmentCategoryCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import type {
   CompiledFeatGrant,
@@ -109,9 +110,11 @@ export function buildCharacterGrantFoldProficiencyFacts(
       matchIds: targetIds.map((targetId) =>
         normalizeTarget ? normalizeTarget(grant.proficiencyKind, targetId) : targetId
       ),
+      // The authored category is an identifier the node map limits to equipment categories; the fold
+      // does not parse its input, so it is narrowed where it enters.
       category:
-        grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY
-          ? (grant.category ?? null)
+        grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY && grant.category != null
+          ? equipmentCategoryCodeSchema.parse(grant.category)
           : null,
       scaling: grant.level === 'DOUBLE' ? 'DOUBLE' : grant.level === 'HALF' ? 'HALF' : 'FULL'
     }
