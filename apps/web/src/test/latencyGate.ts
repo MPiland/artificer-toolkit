@@ -31,6 +31,22 @@ export interface LatencyMeasure {
 
 export const latencyLimits: Readonly<Record<LatencyLimitName, number>> = limits
 
+function nearestRank(values: readonly number[], percentile: number): number {
+  if (values.length === 0) throw new Error('A latency summary needs at least one sample.')
+  return [...values].sort((left, right) => left - right)[Math.ceil(values.length * percentile) - 1]!
+}
+
+/** The nearest-rank summary every browser journey latency record uses. */
+export function summarizeTimings(values: readonly number[]) {
+  return {
+    max: Math.max(...values),
+    p50: nearestRank(values, 0.5),
+    p95: nearestRank(values, 0.95),
+    p99: nearestRank(values, 0.99),
+    raw: values
+  }
+}
+
 /** Scene and rule limits are exclusive; every other limit is inclusive. */
 const exclusiveLimits: ReadonlySet<LatencyLimitName> = new Set([
   'sceneConvergenceP95',
