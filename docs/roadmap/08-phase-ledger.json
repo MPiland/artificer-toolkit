@@ -24919,7 +24919,7 @@
           "tasks": [
             {
               "id": "RELEASE-3.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELEASE-3.1"],
               "wsjf": {
                 "bv": 3,
@@ -24930,7 +24930,8 @@
                 "finalSource": true
               },
               "text": "Prepare the staging promotion packet without deploying: write the exact target list (Convex, web Worker, session Worker, R2, Resend) from the final local manifest, record prior deployment ids for rollback, build the Worker staging package (check:deployed-config), and design plus commit a bounded managed-smoke and cold-isolate SSR CPU measurement script (signed-in pages, D75/D80 thresholds) that uses disposable fixtures and the product's own commands. Agent-doable; local only.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "RELEASE-3.T2",
