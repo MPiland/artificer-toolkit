@@ -355,6 +355,44 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     )
   }, 120_000)
 
+  it('refuses a party member a hidden Sheet from its stored sections, deriving nothing', async () => {
+    const { t, player, party, character, input, visibility } = await setup()
+    await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'SET_PARTY_VISIBILITY',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        visibility: { sheet: false, health: 'HIDDEN' }
+      }
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const reads = [
+      (ctx: QueryCtx) =>
+        handlerOf<CharacterSheetSliceResponseDto | null>(sheetSlicesQuery)(ctx, {
+          id: character.id,
+          campaignId: input.campaignId,
+          slice: 'COMMON'
+        }),
+      (ctx: QueryCtx) => handlerOf<CharacterSheetResponseDto>(campaignSheetQuery)(ctx, input)
+    ]
+    for (const read of reads) {
+      const totals = createDatabaseIoTotals()
+      await expect(
+        party.caller.run((ctx) =>
+          read(
+            inOwnTransaction(
+              ctx as unknown as QueryCtx,
+              countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+            )
+          )
+        )
+      ).rejects.toThrow('Assigned Character not found.')
+      expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
+      expect(totals.reads.bytes).toBeLessThanOrEqual(STORED_SECTION_READ_BYTES)
+    }
+  }, 120_000)
+
   it('serves the whole Sheet from its stored slices to every viewer, as a live derivation does', async () => {
     const { player, gm, party, character, input, forgetDerivation } = await setup()
     const getSheet = handlerOf<CharacterSheetResponseDto>(campaignSheetQuery)

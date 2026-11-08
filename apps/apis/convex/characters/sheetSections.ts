@@ -219,7 +219,8 @@ async function readCurrentStoredReader(
 /**
  * The sections as stored for this reader, after the same authority the derived read applies, while
  * they are current or, for `whileQueued` reads, while a queued store will replace them (ADR 0041
- * Amendment 2). Undefined on any miss, and the caller derives them (which also reports access and
+ * Amendment 2). Throws the derived reads' refusal for a party reader whose Sheet is hidden.
+ * Undefined on any miss, and the caller derives them (which also reports the other access and
  * Builder repair errors: a store that finds repair settles its queue and stores nothing).
  */
 export async function readStoredCharacterSheetSections(
@@ -251,7 +252,8 @@ export async function readStoredCharacterSheetSections(
   if (!reader) return undefined
   const { head, play } = reader
   const { partyVisibility } = readCharacterPlay(play)
-  if (input.party && !partyVisibility.sheet) return undefined
+  // The derived reads refuse the same reader with the same error, after deriving the whole Sheet.
+  if (input.party && !partyVisibility.sheet) throw new Error('Assigned Character not found.')
   const viewer: CharacterSheetSectionViewer = input.party
     ? 'PARTY_MEMBER'
     : head.userId === input.userId
