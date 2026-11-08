@@ -23517,6 +23517,46 @@
               ]
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-22",
+          "title": "Convex tests that need Node builtins live outside the deployed functions folder",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-22.1",
+              "text": "No test file under apps/apis/convex imports a Node builtin; the nine that did (authRecovery, schemaBoundary, roomClock, functionBundleBudget, campaigns/announcements, characters/sheetAccessBaseline, content/seed, content/seedReplace, liveSessions/encounterActorCapProjection) run from a folder outside convex/ in the same CI suite with unchanged assertions, and a structural test fails if a convex/ test imports a Node builtin.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-22.T1",
+              "text": "Move the nine Node-builtin Convex tests out of apps/apis/convex (for example apps/apis/tests/), repoint their convex-test module globs and relative imports at ../convex, add the folder to the apis Vitest config and its CI suite and affected-test selection, and add the structural guard test. Assertions unchanged. Starts after PERF-6.T8 merges (it edits functionBundleBudget.test.ts).",
+              "status": "TODO",
+              "closes": ["RELIABILITY-22.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["PERF-6.T8"]
+              },
+              "note": "User approved 2026-11-08: the Convex plugin lint hook rejects edits to convex/*.test.ts files that import node: builtins (false positive for Vitest files), which blocked T3 and T8."
+            }
+          ],
+          "internalReason": "Test placement only; no user-visible flow."
         }
       ]
     },
@@ -24614,7 +24654,7 @@
             },
             {
               "id": "PERF-6.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24624,7 +24664,8 @@
                 "after": ["PERF-6.T2"],
                 "finalSource": true
               },
-              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready."
+              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T5",
@@ -24650,7 +24691,7 @@
             },
             {
               "id": "PERF-6.T6",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24660,11 +24701,12 @@
                 "after": ["PERF-6.T3"],
                 "finalSource": true
               },
-              "text": "Profile fix 5: Campaign departure and unshare (removeCampaignSharesAndReconcile, contentShareRemoval.ts:202) read up to 1,765 documents in one transaction. Split the reconcile into one scheduled step per Character (equipment retain plus source-loss reconcile); the membership-removal transaction removes the shares and queues the steps, keeping D81 departure semantics. Budget: <= 200 documents per transaction, CI p95 <= 500 ms, 0 timeouts."
+              "text": "Profile fix 5: Campaign departure and unshare (removeCampaignSharesAndReconcile, contentShareRemoval.ts:202) read up to 1,765 documents in one transaction. Split the reconcile into one scheduled step per Character (equipment retain plus source-loss reconcile); the membership-removal transaction removes the shares and queues the steps, keeping D81 departure semantics. Budget: <= 200 documents per transaction, CI p95 <= 500 ms, 0 timeouts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T7",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 3,
@@ -24674,11 +24716,12 @@
                 "after": ["PERF-6.T1"],
                 "finalSource": true
               },
-              "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test."
+              "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T8",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24688,7 +24731,8 @@
                 "after": ["PERF-6.T3"],
                 "finalSource": true
               },
-              "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts."
+              "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T9",
@@ -24728,7 +24772,7 @@
             },
             {
               "id": "PERF-6.T10",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.3"],
               "wsjf": {
                 "bv": 5,
@@ -24737,7 +24781,8 @@
                 "size": 2,
                 "finalSource": true
               },
-              "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run, alongside the D210 wall-clock evidence."
+              "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run, alongside the D210 wall-clock evidence.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
