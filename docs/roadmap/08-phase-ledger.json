@@ -24964,7 +24964,8 @@
             },
             {
               "id": "RELEASE-3.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["RELEASE-3.3"],
               "wsjf": {
                 "bv": 5,
