@@ -25,10 +25,11 @@ export function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
   } as QueryCtx
 }
 
-export function handlerOf<Result>(
+/** A registered function's handler, run in the caller's transaction (a mutation's takes `MutationCtx`). */
+export function handlerOf<Result, Ctx = QueryCtx>(
   registered: object
-): (ctx: QueryCtx, args: unknown) => Promise<Result> {
+): (ctx: Ctx, args: unknown) => Promise<Result> {
   if (!('_handler' in registered) || typeof registered._handler !== 'function')
     throw new Error('Missing registered query handler.')
-  return registered._handler as (ctx: QueryCtx, args: unknown) => Promise<Result>
+  return registered._handler as (ctx: Ctx, args: unknown) => Promise<Result>
 }

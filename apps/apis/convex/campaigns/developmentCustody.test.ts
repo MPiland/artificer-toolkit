@@ -1069,7 +1069,8 @@ describe('development custody fixture cleanup', () => {
     expect(Date.parse(reconciliation.createdAt)).toBeGreaterThanOrEqual(
       Date.parse(leaveProof.departure.expectedMembershipAccessStartedAt)
     )
-    expect(Date.parse(reconciliation.createdAt)).toBeLessThanOrEqual(
+    // The departing Character settles in the step its departure queued (D81, PERF-6.T6).
+    expect(Date.parse(reconciliation.createdAt)).toBeGreaterThanOrEqual(
       Date.parse(leaveRemoval.createdAt)
     )
     expect(reconciliationPayload.streamVersion).toBeLessThanOrEqual(

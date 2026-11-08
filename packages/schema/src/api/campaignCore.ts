@@ -387,6 +387,7 @@ export const campaignContentRemovalReceiptDtoSchema = lazySchema(() =>
         sharedBy: uuidSchema
       })
     ),
+    /** Characters reconciled in the removal's own transaction (authored deletion). */
     affectedCharacters: z.array(
       z.strictObject({
         characterId: uuidSchema,
@@ -394,6 +395,11 @@ export const campaignContentRemovalReceiptDtoSchema = lazySchema(() =>
         streamVersion: versionSchema
       })
     ),
+    /**
+     * Characters whose reconcile the removal queued (unshare and departure, ADR 0013). Each step
+     * records `CAMPAIGN_CHARACTER_RECONCILED` with this receipt's `eventId` when it changes them.
+     */
+    pendingCharacterReconcileIds: z.optional(z.array(uuidSchema)),
     pendingVehicleCleanupIds: z.optional(z.array(uuidSchema)),
     evacuatedVehicles: z.array(
       z.strictObject({

@@ -512,18 +512,10 @@ export const removeFixtureState = internalMutation({
               !['VEHICLE', 'EQUIPMENT'].includes(removed.subjectKind) ||
               removed.sharedBy !== departingUserId
           ) ||
-          new Set(receipt.affectedCharacters.map((character) => character.characterId)).size !==
-            receipt.affectedCharacters.length ||
-          receipt.affectedCharacters.some((affected) => {
-            const index = characterIds.indexOf(affected.characterId)
-            const character = characters[index]
-            return (
-              index < 0 ||
-              !character ||
-              affected.status !== 'ACTIVE' ||
-              affected.streamVersion > character.play.streamVersion
-            )
-          })
+          receipt.affectedCharacters.length !== 0 ||
+          new Set(receipt.pendingCharacterReconcileIds).size !==
+            (receipt.pendingCharacterReconcileIds ?? []).length ||
+          (receipt.pendingCharacterReconcileIds ?? []).some((id) => !characterIds.includes(id))
         )
           throw new Error('Fixture membership removal receipt mismatch.')
         for (const removed of receipt.removedShares) {
@@ -629,21 +621,14 @@ export const removeFixtureState = internalMutation({
         !['VEHICLE', 'EQUIPMENT', 'BACKGROUND'].includes(share.subjectKind) ||
         !cohort.has(share.sharedBy) ||
         (share.subjectKind === 'VEHICLE' && share.sharedBy !== input.ownerUserId) ||
-        (share.subjectKind === 'BACKGROUND' && receipt.affectedCharacters.length !== 0) ||
-        (share.subjectKind === 'VEHICLE' && receipt.affectedCharacters.length !== 0) ||
+        receipt.affectedCharacters.length !== 0 ||
+        (share.subjectKind === 'BACKGROUND' &&
+          receipt.pendingCharacterReconcileIds !== undefined) ||
+        (share.subjectKind === 'VEHICLE' && receipt.pendingCharacterReconcileIds !== undefined) ||
         (share.subjectKind !== 'VEHICLE' && receipt.evacuatedVehicles.length !== 0) ||
-        new Set(receipt.affectedCharacters.map((character) => character.characterId)).size !==
-          receipt.affectedCharacters.length ||
-        receipt.affectedCharacters.some((affected) => {
-          const index = characterIds.indexOf(affected.characterId)
-          const character = characters[index]
-          return (
-            index < 0 ||
-            !character ||
-            affected.status !== 'ACTIVE' ||
-            affected.streamVersion > character.play.streamVersion
-          )
-        }) ||
+        new Set(receipt.pendingCharacterReconcileIds).size !==
+          (receipt.pendingCharacterReconcileIds ?? []).length ||
+        (receipt.pendingCharacterReconcileIds ?? []).some((id) => !characterIds.includes(id)) ||
         checksumCanonicalJson(payload) !== checksumCanonicalJson({ receipt }) ||
         removal.inputFingerprint !==
           checksumCanonicalJson({
@@ -1047,7 +1032,7 @@ export const removeFixtureState = internalMutation({
           !event.visibleInHistory ||
           event.visibility !== 'SUBJECT' ||
           event.inventoryAudit !== undefined ||
-          event.commandId !== undefined ||
+          event.commandId === undefined ||
           event.inputFingerprint !== undefined ||
           payload.characterId !== event.subjectCharacterId ||
           (payload.status !== 'ACTIVE' && payload.status !== 'DRAFT') ||
@@ -1160,8 +1145,7 @@ export const removeFixtureState = internalMutation({
               event.subjectCharacterId === departure.departingCharacterId &&
               payload.reason === departure.reason &&
               Number.isFinite(Date.parse(event.createdAt)) &&
-              Date.parse(event.createdAt) >= departure.accessStartedAt &&
-              Date.parse(event.createdAt) <= departure.createdAt
+              Date.parse(event.createdAt) >= departure.createdAt
           )
       const departure = departures[0]
       const characterIndex = event.subjectCharacterId
@@ -1178,11 +1162,10 @@ export const removeFixtureState = internalMutation({
         )
       )
         throw new Error('Fixture membership Character source ownership mismatch.')
-      const affected = removalEventId
-        ? departure?.receipt.affectedCharacters.find(
-            (entry) => entry.characterId === event.subjectCharacterId
-          )
-        : undefined
+      const queued =
+        removalEventId !== undefined &&
+        event.subjectCharacterId !== null &&
+        (departure?.receipt.pendingCharacterReconcileIds ?? []).includes(event.subjectCharacterId)
       if (
         departures.length !== 1 ||
         !departure ||
@@ -1191,14 +1174,11 @@ export const removeFixtureState = internalMutation({
         event.actorUserId !==
           (departure.reason === 'MEMBER_LEFT' ? departure.departingUserId : input.ownerUserId) ||
         !Number.isFinite(Date.parse(event.createdAt)) ||
-        (removalEventId
-          ? Date.parse(event.createdAt) < departure.createdAt
-          : Date.parse(event.createdAt) < departure.accessStartedAt ||
-            Date.parse(event.createdAt) > departure.createdAt) ||
+        Date.parse(event.createdAt) < departure.createdAt ||
         !event.visibleInHistory ||
         event.visibility !== 'SUBJECT' ||
         event.inventoryAudit !== undefined ||
-        event.commandId !== undefined ||
+        event.commandId === undefined ||
         event.inputFingerprint !== undefined ||
         payload.reason !== departure.reason ||
         (payload.status !== 'ACTIVE' && payload.status !== 'DRAFT') ||
@@ -1209,9 +1189,8 @@ export const removeFixtureState = internalMutation({
         typeof payload.draftOnly !== 'boolean' ||
         (removalEventId
           ? payload.characterId !== undefined ||
-            !affected ||
-            affected.status !== payload.status ||
-            affected.streamVersion !== payload.streamVersion ||
+            !queued ||
+            payload.streamVersion > character.play.streamVersion ||
             checksumCanonicalJson(payload) !==
               checksumCanonicalJson({
                 reason: departure.reason,
@@ -1243,8 +1222,8 @@ export const removeFixtureState = internalMutation({
       recognizedReconciliationIds.add(event.id)
     }
     for (const [removalEventId, departure] of departureRemovals) {
-      for (const affected of departure.receipt.affectedCharacters) {
-        if (!recognizedReconciledCharacters.has(`${removalEventId}:${affected.characterId}`))
+      for (const characterId of departure.receipt.pendingCharacterReconcileIds ?? []) {
+        if (!recognizedReconciledCharacters.has(`${removalEventId}:${characterId}`))
           throw new Error('Fixture membership removal lacks a Character reconciliation receipt.')
       }
     }

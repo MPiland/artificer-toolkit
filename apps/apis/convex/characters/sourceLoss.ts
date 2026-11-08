@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { evaluateCharacterRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import {
+  equalCharacterPlayRecordStats,
   resolveCharacterPlayRecordStats,
   type CharacterPlayRecordStats
 } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
@@ -146,27 +147,19 @@ async function saveDraft(input: {
   )
 }
 
-/** Reconciles one owned Character inside its caller's atomic source-removal transaction. */
-export async function reconcileCharacterSourceLoss(input: {
-  ctx: MutationCtx
-  record: CharacterRow
-  targets: readonly CharacterSourceLossTarget[]
-  /** Departure changes source/overlay authority even when no authored root was lost. */
-  stateAfterContextChange?: CharacterAuthored['state']
-}): Promise<CharacterSourceLossResult | null> {
-  const targets = canonicalTargets(input.targets)
-  const original = readCharacterRecord(input.record) as CharacterAuthored
-  const current = input.stateAfterContextChange
-    ? { ...original, state: input.stateAfterContextChange }
-    : original
-  const campaign = await readCharacterCampaign(input.ctx, current, current.userId)
-  const draftRecord = await input.ctx.db
+/** The Character's draft, carrying the held rules its active record retained, and both choice maps. */
+async function readSourceLossSubjects(
+  ctx: MutationCtx,
+  record: CharacterRow,
+  current: CharacterAuthored
+) {
+  const draftRecord = await ctx.db
     .query('characterDrafts')
     .withIndex('by_characterId', (q) => q.eq('characterId', current.id))
     .unique()
   if (draftRecord && draftRecord.userId !== current.userId)
     throw new Error('Stored Character draft ownership mismatch.')
-  const draft = draftRecord ? await readCharacterDraft(input.ctx, draftRecord, input.record) : null
+  const draft = draftRecord ? await readCharacterDraft(ctx, draftRecord, record) : null
   const retainedByItemId = new Map(current.state.equipment.inventory.map((item) => [item.id, item]))
   const draftCharacterWithRetainedRules: CharacterAuthored | null = draft
     ? ({
@@ -185,10 +178,96 @@ export async function reconcileCharacterSourceLoss(input: {
         }
       } as CharacterAuthored)
     : null
-  const currentChoiceKinds = await readCharacterAuthoredChoiceKinds(input.ctx, current)
+  const currentChoiceKinds = await readCharacterAuthoredChoiceKinds(ctx, current)
   const draftChoiceKinds = draft
-    ? await readCharacterAuthoredChoiceKinds(input.ctx, draftCharacterWithRetainedRules!)
+    ? await readCharacterAuthoredChoiceKinds(ctx, draftCharacterWithRetainedRules!)
     : new Map<string, CharacterSourceLossTarget['subjectKind']>()
+  return {
+    draftRecord,
+    draft,
+    draftCharacterWithRetainedRules,
+    currentChoiceKinds,
+    draftChoiceKinds
+  }
+}
+
+/**
+ * Whether removing these sources reaches the Character's build or its draft: the test a Campaign
+ * removal runs before it queues the Character's reconcile. It reads no Builder inputs.
+ */
+export async function characterReferencesSourceLoss(
+  ctx: MutationCtx,
+  record: CharacterRow,
+  targets: readonly CharacterSourceLossTarget[]
+): Promise<boolean> {
+  const current = readCharacterRecord(record) as CharacterAuthored
+  const subjects = await readSourceLossSubjects(ctx, record, current)
+  return (
+    referencedTargets(current, targets, subjects.currentChoiceKinds).length > 0 ||
+    (subjects.draftCharacterWithRetainedRules !== null &&
+      referencedTargets(
+        subjects.draftCharacterWithRetainedRules,
+        targets,
+        subjects.draftChoiceKinds
+      ).length > 0)
+  )
+}
+
+/**
+ * Writes a Campaign context change that must commit with the authority change (held rules retained
+ * before a source goes, currency returned at departure) ahead of the Character's scheduled
+ * reconcile. Both are structure, so a live hold does not refuse it. Play and the stream version
+ * stay; the reconcile counts this write as its change (`persistedContextChange`). Returns whether
+ * anything was written.
+ */
+export async function persistCharacterContextChange(
+  ctx: MutationCtx,
+  record: CharacterRow,
+  state: CharacterAuthored['state']
+): Promise<boolean> {
+  const document = readCharacterRecord(record) as CharacterAuthored
+  const next = { ...document, state }
+  if (
+    checksumRuleDocument(JSON.parse(JSON.stringify(next))) ===
+    checksumRuleDocument(JSON.parse(JSON.stringify(document)))
+  )
+    return false
+  const { maximumHitPoints, speeds, classSummary, totalLevel } = record.play
+  await writeCharacterRecord(ctx, {
+    current: record,
+    fields: {
+      streamVersion: record.play.streamVersion,
+      updatedAt: nextTimestamp(record.updatedAt)
+    },
+    document: next,
+    stats: { maximumHitPoints, speeds, classSummary, totalLevel }
+  })
+  return true
+}
+
+/** Reconciles one owned Character after its sources or its Campaign context changed. */
+export async function reconcileCharacterSourceLoss(input: {
+  ctx: MutationCtx
+  record: CharacterRow
+  targets: readonly CharacterSourceLossTarget[]
+  /** Departure changes source/overlay authority even when no authored root was lost. */
+  stateAfterContextChange?: CharacterAuthored['state']
+  /** An earlier transaction wrote the context change (`persistCharacterContextChange`). */
+  persistedContextChange?: boolean
+}): Promise<CharacterSourceLossResult | null> {
+  const targets = canonicalTargets(input.targets)
+  const original = readCharacterRecord(input.record) as CharacterAuthored
+  const current = input.stateAfterContextChange
+    ? { ...original, state: input.stateAfterContextChange }
+    : original
+  const campaign = await readCharacterCampaign(input.ctx, current, current.userId)
+  const {
+    draftRecord,
+    draft,
+    draftCharacterWithRetainedRules,
+    currentChoiceKinds,
+    draftChoiceKinds
+  } = await readSourceLossSubjects(input.ctx, input.record, current)
   const canonicalLosses = referencedTargets(current, targets, currentChoiceKinds)
   const draftLosses = draft
     ? referencedTargets(draftCharacterWithRetainedRules!, targets, draftChoiceKinds)
@@ -287,21 +366,27 @@ export async function reconcileCharacterSourceLoss(input: {
   const committed = characterAuthoredDtoSchema.parse({ ...character, status })
   const encoded: unknown = JSON.parse(JSON.stringify(committed))
   const checksum = checksumRuleDocument(encoded)
-  const changed = checksum !== checksumRuleDocument(JSON.parse(JSON.stringify(original)))
+  const changed =
+    input.persistedContextChange === true ||
+    checksum !== checksumRuleDocument(JSON.parse(JSON.stringify(original)))
   const streamVersion = input.record.play.streamVersion + (changed ? 1 : 0)
-  const written = changed
-    ? await writeCharacterRecord(input.ctx, {
-        current: input.record,
-        fields: {
-          label: committed.label,
-          status,
-          streamVersion,
-          updatedAt: nextTimestamp(input.record.updatedAt)
-        },
-        document: committed,
-        ...(stats === undefined ? {} : { stats })
-      })
-    : null
+  // Departed Campaign adjustments and attunement can move the stored maximums alone.
+  const statsChanged =
+    stats !== undefined && !equalCharacterPlayRecordStats(stats, input.record.play)
+  const written =
+    changed || statsChanged
+      ? await writeCharacterRecord(input.ctx, {
+          current: input.record,
+          fields: {
+            label: committed.label,
+            status,
+            streamVersion,
+            updatedAt: nextTimestamp(input.record.updatedAt)
+          },
+          document: committed,
+          ...(stats === undefined ? {} : { stats })
+        })
+      : null
   // The structure clock moves only when the structure does (a play-only change leaves it).
   const updatedAt = written?.row.updatedAt ?? input.record.updatedAt
 
@@ -378,18 +463,4 @@ export async function reconcileCreateOnlyCharacterDraftSourceLoss(input: {
     })
   )
   return canonicalTargets(losses)
-}
-
-/** Compatibility name for the direct-unshare producer. */
-export async function reconcileAssignedCharacterSourceLoss(input: {
-  ctx: MutationCtx
-  campaign: Doc<'campaigns'>
-  record: CharacterRow
-  targets: readonly CharacterSourceLossTarget[]
-  stateAfterContextChange?: CharacterAuthored['state']
-}): Promise<CharacterSourceLossResult | null> {
-  const result = await reconcileCharacterSourceLoss(input)
-  if (result && result.campaign?.id !== input.campaign.id)
-    throw new Error('Stored Campaign Character assignment mismatch.')
-  return result
 }

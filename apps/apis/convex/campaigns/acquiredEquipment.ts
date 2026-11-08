@@ -7,7 +7,7 @@ import {
 import { readCampaignInventory } from './partyInventoryDocuments'
 import { readVehicleCleanupLock } from './vehicleCleanupDocuments'
 import { retainPartyEquipmentRules } from './partyEquipmentRetention'
-import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
+import { acquiredRulesDrawOnSources } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 
 /** Populate/refresh acquired rules before current share or publication authority disappears. */
 export async function retainCampaignEquipmentRules(
@@ -29,18 +29,13 @@ export async function retainCampaignEquipmentRules(
     if (seen.has(item.id)) throw new Error('Stored acquired Equipment identities are duplicated.')
     seen.add(item.id)
     const retainedRulesJson = await retainPartyEquipmentRules(ctx, campaign, item)
-    const retained = readAcquiredEquipmentRules(
-      retainedRulesJson,
-      item.equipmentId,
-      campaign.gameSystemId
-    )
     if (
       retainedRulesJson !== item.retainedRulesJson &&
-      retained.sources.some((source) =>
-        ruleTargets.some(
-          (target) =>
-            target.subjectKind === source.subjectKind && target.subjectId === source.subjectId
-        )
+      acquiredRulesDrawOnSources(
+        retainedRulesJson,
+        item.equipmentId,
+        campaign.gameSystemId,
+        ruleTargets
       )
     ) {
       await ctx.db.patch(item._id, { retainedRulesJson })

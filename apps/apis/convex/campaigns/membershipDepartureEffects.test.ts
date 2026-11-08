@@ -24,6 +24,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import {
   importedSubject,
@@ -146,6 +147,7 @@ describe('native Campaign membership departure effects', () => {
       commandId: crypto.randomUUID()
     }
     expect(await base.other.caller.mutation(removeMember, request)).toEqual({ ok: true })
+    await runDueScheduledWork(base.t)
     const after = await base.t.run(async (ctx) => ({
       memberships: await ctx.db.query('campaignMemberships').collect(),
       campaign: (await ctx.db.query('campaigns').collect())[0],
@@ -185,6 +187,7 @@ describe('native Campaign membership departure effects', () => {
       actorUserId: base.other.userId
     })
     expect(await base.other.caller.mutation(removeMember, request)).toEqual({ ok: true })
+    await runDueScheduledWork(base.t)
     expect(
       await base.t.run(async (ctx) => ({
         memberships: await ctx.db.query('campaignMemberships').collect(),
@@ -322,6 +325,7 @@ describe('native Campaign membership departure effects', () => {
       commandId: crypto.randomUUID()
     }
     expect(await base.other.caller.mutation(removeMember, request)).toEqual({ ok: true })
+    await runDueScheduledWork(base.t)
     const state = await base.t.run(async (ctx) => ({
       campaign: await ctx.db
         .query('campaigns')

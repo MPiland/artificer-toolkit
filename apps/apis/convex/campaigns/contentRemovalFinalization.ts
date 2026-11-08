@@ -21,7 +21,10 @@ export async function finalizeCampaignContentRemoval(input: {
   reason: 'UNSHARE' | 'AUTHORED_DELETED' | 'MEMBER_LEFT' | 'MEMBER_REMOVED'
   departingMembership?: Pick<Doc<'campaignMemberships'>, 'userId' | 'accessStartedAt'>
   removedShares: CampaignContentRemovalReceiptDto['removedShares']
+  /** Reconciled in this transaction (authored deletion). */
   characterResults: CharacterSourceLossResult[]
+  /** Reconciles the producer queues after this transaction (unshare and departure). */
+  pendingCharacterReconcileIds?: readonly string[]
   vehicles: Doc<'campaignVehicles'>[]
   commandId?: string
   inputFingerprint?: string
@@ -34,6 +37,7 @@ export async function finalizeCampaignContentRemoval(input: {
     departingMembership,
     removedShares,
     characterResults,
+    pendingCharacterReconcileIds = [],
     vehicles,
     commandId,
     inputFingerprint
@@ -152,7 +156,10 @@ export async function finalizeCampaignContentRemoval(input: {
     removedShares,
     affectedCharacters,
     evacuatedVehicles,
-    ...(pendingVehicleCleanupIds.length ? { pendingVehicleCleanupIds } : {})
+    ...(pendingVehicleCleanupIds.length ? { pendingVehicleCleanupIds } : {}),
+    ...(pendingCharacterReconcileIds.length
+      ? { pendingCharacterReconcileIds: [...pendingCharacterReconcileIds].sort() }
+      : {})
   })
   await ctx.db.patch(campaign._id, {
     version: campaignVersion,
