@@ -15,7 +15,12 @@ import {
   readCharacterSheetState,
   resolveCharacterId
 } from './documents'
-import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
+import {
+  readCharacterHead,
+  readCharacterPlayRow,
+  type CharacterRecordRow,
+  type CharacterRow
+} from './stateDocuments'
 import { loadCharacterBuilderContext, type CharacterSourceContext } from './builderContext'
 import {
   collectCharacterReferencedSpellIds,
@@ -40,6 +45,42 @@ export type CharacterSheetSourceContext = {
 }
 
 /**
+ * The Sheet authority shared by full and head-only reads: the Character's owner, or the GM of its
+ * Campaign when `campaignId` is given. Null when it is not theirs; the route when it is.
+ */
+async function authorizeCharacterSheetHead(
+  ctx: QueryCtx,
+  input: {
+    id: string
+    owner: Pick<CharacterRecordRow, 'userId' | 'status'>
+    draft: { userId: string } | null
+    userId: string
+    campaignId?: string
+    authorityScope?: import('../campaigns/authority').CampaignInternalScope
+  }
+) {
+  const { id, owner, draft, userId, campaignId } = input
+  if (campaignId) {
+    const { assignment } = await requireCampaignCharacterAuthority(
+      ctx,
+      campaignId,
+      id,
+      userId,
+      input.authorityScope
+    )
+    if (assignment.userId !== owner.userId)
+      throw new Error('Stored Campaign Character assignment mismatch.')
+  } else if (owner.userId !== userId) return null
+  if (draft && draft.userId !== owner.userId)
+    throw new Error('Stored Character draft ownership mismatch.')
+  const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
+  if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== owner.userId)
+    throw new Error('Stored Character route identity mismatch.')
+  if (owner.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
+  return route
+}
+
+/**
  * The ACTIVE Character the caller may read on the Sheet, its draft and route, without source reads:
  * its owner, or the GM of its Campaign when `campaignId` is given. Null when it is not theirs.
  */
@@ -61,24 +102,44 @@ export async function readAuthorizedCharacterSheetState<
   const { draft } = stored
   if (!active) return null
   if (written && written.id !== id) throw new Error('Written Character row identity mismatch.')
-  if (campaignId) {
-    const { assignment } = await requireCampaignCharacterAuthority(
-      ctx,
-      campaignId,
-      id,
-      userId,
-      authorityScope
-    )
-    if (assignment.userId !== active.userId)
-      throw new Error('Stored Campaign Character assignment mismatch.')
-  } else if (active.userId !== userId) return null
-  if (draft && draft.userId !== active.userId)
-    throw new Error('Stored Character draft ownership mismatch.')
-  const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
-  if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== active.userId)
-    throw new Error('Stored Character route identity mismatch.')
-  if (active.status !== 'ACTIVE') throw new CharacterRequiresBuilderRepairError()
-  return { id, active, draft, route }
+  const route = await authorizeCharacterSheetHead(ctx, {
+    id,
+    owner: active,
+    draft,
+    userId,
+    campaignId,
+    authorityScope
+  })
+  return route ? { id, active, draft, route } : null
+}
+
+/**
+ * The same authority over the Character's head and play row alone, without its build or owned
+ * collections, so the read costs the same whatever the Character holds.
+ */
+export async function readAuthorizedCharacterSheetHead(
+  ctx: QueryCtx,
+  userId: string,
+  id: string,
+  campaignId?: string
+) {
+  const [head, { draft }] = await Promise.all([
+    readCharacterHead(ctx, id),
+    loadCharacterState(ctx, id, false)
+  ])
+  if (!head) return null
+  const route = await authorizeCharacterSheetHead(ctx, {
+    id,
+    owner: head,
+    draft,
+    userId,
+    campaignId
+  })
+  if (!route) return null
+  const play = await readCharacterPlayRow(ctx, id)
+  if (play.userId !== head.userId || play.characterId !== head.id)
+    throw new Error('Stored Character identity mismatch.')
+  return { head, play }
 }
 
 export type AuthorizedCharacterSheetState<TRow extends CharacterRecordRow = CharacterRow> =

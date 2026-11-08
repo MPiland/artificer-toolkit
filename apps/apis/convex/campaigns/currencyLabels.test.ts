@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InventoryOwnerRefDto } from '@artificer-toolkit/schema/api/campaignInventory'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -16,6 +16,9 @@ const clubCurrency = srdSystemRecord.currencies.find(({ id }) => id === clubPric
 if (!gold || !clubCurrency) throw new Error('Expected SRD gold and the Club price currency.')
 
 describe('Campaign currency labels', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it('names a System and a Campaign currency that share one id by their own identity', async () => {
     const base = await readySheetFixture()
     const campaign = await base.other.caller.mutation(api.campaigns.create.create, {
@@ -124,6 +127,9 @@ describe('Campaign currency labels', () => {
         })
       ])
     )
+    // A transfer queues the Character's Sheet store, and the slice serves the stored one until it
+    // lands (ADR 0041 Amendment 2).
+    await base.t.finishAllScheduledFunctions(vi.runAllTimers)
     const sheet = await base.owner.caller.query(api.characters.sheetSlices.get, {
       campaignId,
       id: base.character.id,

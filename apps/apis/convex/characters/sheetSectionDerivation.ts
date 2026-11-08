@@ -1,8 +1,4 @@
 import {
-  characterSheetSliceSchema,
-  type CharacterSheetSlice
-} from '@artificer-toolkit/schema/api/characterSheetSlices'
-import {
   projectCharacterSheetForViewer,
   type CharacterSheetCampaignContext
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -23,6 +19,7 @@ import {
   characterSheetSection,
   readCharacterSheetFingerprint,
   readCharacterSheetStoreState,
+  storedCharacterSheetSlices,
   type CharacterSheetFingerprintReads,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
@@ -34,19 +31,21 @@ import {
 } from './sheetSectionStores'
 import type { CharacterRecordRow } from './stateDocuments'
 
-// Notes are owner-only and read without derivation (`loadCharacterSheetNotes`).
+// The NOTES slice is owner-only and read without derivation (`loadCharacterSheetNotes`); the
+// whole Sheet composes the six slices with the viewer projection's notes.
 function projectSlices(
   sheet: ReturnType<typeof projectCharacterSheetFacts>['sheet'],
   context: CharacterSheetCampaignContext
 ): CharacterSheetSectionValue[] {
   const viewed = projectCharacterSheetForViewer(sheet, context)
-  return characterSheetSliceSchema.options
-    .filter((slice): slice is Exclude<CharacterSheetSlice, 'NOTES'> => slice !== 'NOTES')
-    .map((slice) => ({
+  return [
+    ...storedCharacterSheetSlices.map((slice) => ({
       viewer: context.viewer,
       section: characterSheetSection.slice(slice),
       value: projectCharacterSheetSlice(viewed, slice)
-    }))
+    })),
+    { viewer: context.viewer, section: characterSheetSection.notes, value: viewed.notes }
+  ]
 }
 
 /**
@@ -145,7 +144,7 @@ export async function deriveAndStoreCharacterSheet(
   const reads: Partial<CharacterSheetFingerprintReads> = {}
   const state = await readCharacterSheetStoreState(ctx, active.userId, characterId, reads, active)
   if (state?.current) return null
-  // The facts reuse the authorized state, System, sources and effects the state check just read.
+  // The facts reuse the authorized state, sources and effects the state check just read.
   const facts = await loadCharacterSheetFacts(
     ctx,
     active.userId,

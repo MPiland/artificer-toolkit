@@ -19,13 +19,27 @@ const sheetSectionsState = makeFunctionReference<
 /**
  * Subscribes until a Character's stored Sheet sections are current, so slice reads after a write
  * serve stored sections as a settled Sheet does instead of all deriving the fallback at once (D214).
- * Sections that are stale with no store queued, or whose queued store failed, fail the proof. The
- * in-process convex-test client runs no scheduled store, so only the self-hosted backend waits.
+ * Sections that are stale with no store queued, or whose queued store failed, fail the proof.
+ * In-process, `client` runs the internal query in its own transaction and the wait polls while
+ * convex-test runs the queued store on its timer; a fixture that seeds content directly queues no
+ * store, so a MISSING Sheet there derives live.
  */
-export async function awaitCurrentCharacterSheet(characterId: string) {
+export async function awaitCurrentCharacterSheet(characterId: string, client?: DevelopmentClient) {
   const url = process.env.CONVEX_SELF_HOSTED_URL
   const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
-  if (!url && !adminKey) return
+  if (!url && !adminKey) {
+    if (!client) return
+    for (let attempt = 0; attempt < 400; attempt += 1) {
+      const state = await client.query(sheetSectionsState, { characterId })
+      if (state === 'FAILED')
+        throw new Error(
+          `Character ${characterId} Sheet sections are stale: its queued store failed.`
+        )
+      if (state !== 'QUEUED') return
+      await new Promise((resolve) => setTimeout(resolve, 25))
+    }
+    throw new Error(`Character ${characterId} Sheet store is still queued.`)
+  }
   const target = developmentTarget(process.env)
   if (target.mode !== 'local' || url !== target.deploymentUrl.origin || !adminKey)
     throw new Error('Sheet section waits require the selected local backend and key.')
@@ -86,7 +100,7 @@ export async function readCharacterSheetSlices<const Slices extends readonly Cha
   input: Omit<CharacterSheetSliceReadInput, 'slice'>,
   slices: Slices
 ): Promise<CharacterSheetSlicesData<Slices> | null> {
-  await awaitCurrentCharacterSheet(input.id)
+  await awaitCurrentCharacterSheet(input.id, client)
   const responses = await Promise.all(
     slices.map((slice) => client.query(api.characters.sheetSlices.get, { ...input, slice }))
   )

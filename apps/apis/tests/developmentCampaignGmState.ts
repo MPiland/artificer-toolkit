@@ -641,6 +641,7 @@ async function assertCommit(input: {
   for (const table of [
     'characterSheetSections',
     'characterSheetDerivations',
+    'characterSheetSectionChecksums',
     'characterSheetPendingStores'
   ]) {
     const rows = [

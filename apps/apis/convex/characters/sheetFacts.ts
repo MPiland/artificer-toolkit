@@ -4,8 +4,6 @@ import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
 } from '@artificer-toolkit/encounter-persistence/effectReads'
-import { readSystem } from '../content/systemDocuments'
-import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import type { CharacterSheetFingerprintReads } from './sheetSections'
 import { loadCharacterSheetInputs, type CharacterSheetSourceContext } from './sheetInputs'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
@@ -38,9 +36,7 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     authorityScope,
     written,
     referenceSpellIds,
-    reads?.system && reads.sources
-      ? { system: deriveOnce(reads.system, readSystem), sources: reads.sources }
-      : undefined,
+    reads?.sources ? { sources: reads.sources } : undefined,
     reads?.authorized
   )
   if (!loaded) return null

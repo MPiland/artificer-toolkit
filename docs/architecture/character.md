@@ -86,14 +86,11 @@ null before the epoch's first acknowledgement. Pages outside the room use the Ca
 [campaigns/queries.liveAuthority](../../apps/apis/convex/campaigns/queries.ts) query only to route to the
 room; they show no saved-at time (ADR 0035 A28, see [live sessions](live-sessions.md)).
 
-Public `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` acknowledgements now use
-[sheetPlayPreferences](../../apps/apis/convex/characters/sheetPlayPreferences.ts) in current source.
-They read head/play, current assignment authority, route/draft ownership and receipt facts without
-assembling owned collections or evaluating mechanics. The typed play checksum, stream and play clock
-advance atomically with the existing receipt; structure checksums/clocks, derived stats and unrelated
-play fields remain intact. Current authority precedes replay. Assigned GMs may set inspiration, while
-party visibility remains the Character owner's choice. The full Sheet executor remains for protected
-comparators and internal consumers. Focused source coverage is present; execution evidence is pending.
+Public `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` commands run through the full Sheet executor
+(`executeCharacterSheetCommand`) and store the Character's Sheet sections inline, so a reader never
+sees its own toggle revert while a store is queued (PERF-6.T4, ADR 0041 Amendment 2). Current
+authority precedes replay. Assigned GMs may set inspiration, while party visibility remains the
+Character owner's choice.
 
 Campaign assignment preserves identity separately from play eligibility. An active Encounter actor is
 removed when its Character/account is deleted, while completed turns, rolls, Session records and other
