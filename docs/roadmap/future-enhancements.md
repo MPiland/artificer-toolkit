@@ -456,6 +456,10 @@ Melee-hit retaliation dice are system-rolled even when the zone source rolls by 
 
 A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
 
+### Conditions in the GM turn order (RELEASE-8.T2 walk, 2026-11-07)
+
+The GM sees a combatant's conditions only in the token hover tooltip (`vttTokenPresentation.model.ts`). The turn-order drawer (`CampaignTabletopEncounterDrawer.tsx`) lists grants and concentration but no conditions, so a paralyzed Goblin looks normal there. Show each combatant's active conditions as compact chips in the turn-order rows, from the same presentation model the tooltip uses.
+
 ### Undo for contested actions (D105)
 
 Undo refuses every CONTESTED_ACTION root: Grapple, Shove, Disarm and the contested escape. A generic contest revert would restore the spent attack, the applied conditions, the forced movement and the grapple hold, the same way for every contest.
