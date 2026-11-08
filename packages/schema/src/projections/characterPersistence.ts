@@ -91,6 +91,14 @@ export const characterStoredPlayStateSchema = lazySchema(() =>
         })
       )
       .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)),
+    /**
+     * The Sheet identity's class summary and total level, stored beside `maximumHitPoints` and
+     * rewritten with it, so the party roster (`campaigns/characterBasics`) reads them without a
+     * derivation (PERF-6.2). Builder commit and source loss change the classes; published-content
+     * label changes reach it on the Character's next write.
+     */
+    classSummary: z.string(),
+    totalLevel: z.number().check(z.int()).check(z.nonnegative()),
     state: characterPlayStateSchema,
     checksum: projectionChecksumSchema,
     /** The play clock: it advances only when the play state changes. */

@@ -14,6 +14,8 @@ const play: EncounterStoreDocuments['characterPlayStates'] = {
   streamVersion: 7,
   maximumHitPoints: 10,
   speeds: [{ speedId: '00000000-0000-4000-8000-000000000003', amount: 30, unit: 'FEET' as const }],
+  classSummary: 'Fighter 1',
+  totalLevel: 1,
   state: {
     hitpoints: { current: 10, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
     equipped: [],

@@ -10,7 +10,10 @@ import {
   readCharacterSheetState,
   readCharacterSheetStructure
 } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import {
+  equalCharacterPlayRecordStats,
+  resolveCharacterPlayRecordStats
+} from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -103,10 +106,6 @@ export async function writeRoomCharacterPlay(input: {
     transaction,
     { reconcile: false }
   )
-  const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
-  if (
-    stats.maximumHitPoints !== play.maximumHitPoints ||
-    canonicalizeJson(stats.speeds) !== canonicalizeJson(play.speeds)
-  )
-    await store.store.patch(localPlay._id, stats)
+  const stats = resolveCharacterPlayRecordStats(facts)
+  if (!equalCharacterPlayRecordStats(stats, play)) await store.store.patch(localPlay._id, stats)
 }

@@ -277,7 +277,7 @@ defeat arm does; two rule roots raised from one action refuse the undo (adjust m
 
 - **Character play state.** A Character is a `characters` row (structure, clocked by `updatedAt`) and a
   `characterPlayStates` row (hit points, resources, slots, conditions, exhaustion, inspiration, item-use state,
-  party visibility, `maximumHitPoints`, `speeds`, Sheet spell summons (`spellSummons`, D190), clocked by `streamVersion`). `writeCharacterRecord` is
+  party visibility, `maximumHitPoints`, `speeds`, `classSummary`, `totalLevel`, Sheet spell summons (`spellSummons`, D190), clocked by `streamVersion`). `writeCharacterRecord` is
   the only writer and rewrites only the record whose checksum changed, so a play change never writes the
   document. See [Character play state](character.md#character-play-state-adr-0035-amendment-12--local-implementation).
 - **No stored projection.** `encounterRuns` holds Run state only. Projections are built on read
@@ -602,9 +602,10 @@ lives in `packages/schema`, independent of the full mechanics graph.
 Character; `writeCharacterNoteRecords` writes a note edit through only the note and note-group rows, the Build
 counts, the structure clock and, outside live play, the play clock (SHEET-7). A note never changes rules
 inputs, so it keeps the stored stats. In the same transaction `writeCharacterRecord` evaluates the written
-Character (`resolveCharacterRecordStats`, `packages/rules-runtime/src/character/characterRecordStats.ts`) and
-stores on the play record `maximumHitPoints` (the Sheet's effective maximum before Encounter reductions) and
-`speeds` (every typed speed in feet, `{speedId, amount, unit: FEET}`, the Encounter movement allowances, D38 and SPELLS-5.6; the room and Convex compare them structurally). Callers keep authority, replay, receipts and the one-stream-advance rule. A DRAFT Character keeps
+Character (`resolveCharacterPlayRecordStats`, `packages/rules-runtime/src/character/characterRecordStats.ts`) and
+stores on the play record `maximumHitPoints` (the Sheet's effective maximum before Encounter reductions),
+`speeds` (every typed speed in feet, `{speedId, amount, unit: FEET}`, the Encounter movement allowances, D38 and SPELLS-5.6; the room and Convex compare them structurally),
+and the Sheet identity's `classSummary` and `totalLevel`, which the party roster serves without a derivation (PERF-6.T2). Builder commit, source loss and the room's reconciliation of a Builder commit made while the table held the Character are the writers that change them. Callers keep authority, replay, receipts and the one-stream-advance rule. A DRAFT Character keeps
 its last stored stats. Campaign-owned inputs (GM adjustments, attunement override, assignment, departure) refresh
 the stats without advancing the stream. Rules never read the stored values; projections display them. A
 published-content change reaches a Character's stored stats on its next write while the Sheet always shows the

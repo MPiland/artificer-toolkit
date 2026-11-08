@@ -46,7 +46,9 @@ export async function writeCharacterRecord(
     sheetState: next.sheetState,
     stats: {
       maximumHitPoints: next.maximumHitPoints ?? row.play.maximumHitPoints,
-      speeds: next.speeds ?? row.play.speeds
+      speeds: next.speeds ?? row.play.speeds,
+      classSummary: row.play.classSummary,
+      totalLevel: row.play.totalLevel
     }
   })
 }

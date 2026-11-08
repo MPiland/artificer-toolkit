@@ -1015,6 +1015,20 @@ export declare const api: {
         { ok: true }
       >;
     };
+    characterBasics: {
+      get: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string; characterId: string },
+        {
+          characterId: string;
+          classSummary: string;
+          label: string;
+          sheetVisible: boolean;
+          totalLevel: number;
+        }
+      >;
+    };
     characterControllers: {
       setControllers: FunctionReference<
         "mutation",
@@ -1028,18 +1042,6 @@ export declare const api: {
       >;
     };
     characterSheet: {
-      basics: FunctionReference<
-        "query",
-        "public",
-        { campaignId: string; characterId: string },
-        {
-          characterId: string;
-          classSummary: string;
-          label: string;
-          sheetVisible: boolean;
-          totalLevel: number;
-        }
-      >;
       execute: FunctionReference<
         "mutation",
         "public",

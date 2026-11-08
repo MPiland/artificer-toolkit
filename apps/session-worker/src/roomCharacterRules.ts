@@ -6,14 +6,16 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
-import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import {
+  equalCharacterPlayRecordStats,
+  resolveCharacterPlayRecordStats
+} from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {
   readCharacterInventoryBase,
   readCharacterPlay
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterStoredPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomInputs } from './roomInputs.js'
@@ -78,7 +80,8 @@ export async function prepareRoomLiveCharacterSheet(
     )
       throw new Error('Room Character reconciliation base is stale.')
     const state = readCharacterPlay(play)
-    const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
+    // A Builder commit while the table held the Character left these for this reconciliation.
+    const stats = resolveCharacterPlayRecordStats(facts)
     const resourcePools = new Set(
       facts.ruleEvaluation.output.resources.map((resource) => resource.poolId)
     )
@@ -119,11 +122,7 @@ export async function prepareRoomLiveCharacterSheet(
     }
     const checksum = checksumRuleDocument(nextState)
     const stateChanged = checksum !== play.checksum
-    if (
-      stateChanged ||
-      stats.maximumHitPoints !== play.maximumHitPoints ||
-      canonicalizeJson(stats.speeds) !== canonicalizeJson(play.speeds)
-    ) {
+    if (stateChanged || !equalCharacterPlayRecordStats(stats, play)) {
       const { _id, _creationTime, ...fields } = play
       await store.store.replace(
         _id,
