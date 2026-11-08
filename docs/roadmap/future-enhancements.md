@@ -92,6 +92,10 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Open before adopting:** there is one staging environment, so two features in UAT at once need a queue or per-feature preview environments. Staging is Convex Cloud, so each UAT deploy needs the owner's approval (ADR 0035) and counts against the free plan. A feature branch that waits on UAT rebases onto production before its staging deploy.
 - **Journeys that cross features** (for example an Encounter that uses ATTACK and MOVE) belong to the feature that completes last, which reruns the earlier features' affected scenarios as regression.
 
+## Data migrations before alpha (user approval, 2026-11-08)
+
+Candidate, not yet registered. From the first real users on, every stored-shape change ships a migration (D196 ends then). CI proves each one on a throwaway backend: deploy the previous release, seed it, deploy the new code, run the migration and check the migrated rows. No local machine load. Needs launch-prep scoping: the migration tool (for example `@convex-dev/migrations`), how the previous release is chosen, and which seeded rows the check covers.
+
 ## Post-launch
 
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.

@@ -1,4 +1,9 @@
-param([Parameter(Mandatory)][ValidatePattern('^[a-z0-9][a-z0-9-]{2,62}$')][string]$Name)
+param(
+  [Parameter(Mandatory)][ValidatePattern('^[a-z0-9][a-z0-9-]{2,62}$')][string]$Name,
+  # Limits the reset to these tables ('table' or 'component/table'), for the light refresh after a
+  # change to tables the code rebuilds (D196). Omitted, every nonempty table is emptied.
+  [string[]]$Tables
+)
 # Backs up, then empties every nonempty app and component table of the LOCAL Convex deployment.
 # Local development data only: refuses any target other than the phase82-local-linux container.
 # Better Auth JWKS and system tables are preserved. Evidence goes to local-validation/convex-reset/.
@@ -91,6 +96,9 @@ try {
     Invoke-LocalConvex -Arguments @('export', '--path', "$stem.before.zip") -LogPath "$stem.backup.log" -Label 'Local backup' -ExportPath "$stem.before.zip"
     $manifest.backupSha256 = (Get-FileHash -LiteralPath "$stem.before.zip" -Algorithm SHA256).Hash
     $tables = @(Get-ResetTables -Snapshot "$stem.before.zip")
+    if ($Tables) {
+      $tables = @($tables | Where-Object { $(if ($_.component) { "$($_.component)/$($_.table)" } else { $_.table }) -in $Tables })
+    }
     $manifest.plannedTables = $tables
     for ($index = 0; $index -lt $tables.Count; $index++) {
       $entry = $tables[$index]
