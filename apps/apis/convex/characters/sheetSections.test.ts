@@ -367,14 +367,16 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       }
     })
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    const reads = [
-      (ctx: QueryCtx) =>
+    const reads: ((
+      ctx: QueryCtx
+    ) => Promise<CharacterSheetSliceResponseDto | CharacterSheetResponseDto | null>)[] = [
+      (ctx) =>
         handlerOf<CharacterSheetSliceResponseDto | null>(sheetSlicesQuery)(ctx, {
           id: character.id,
           campaignId: input.campaignId,
           slice: 'COMMON'
         }),
-      (ctx: QueryCtx) => handlerOf<CharacterSheetResponseDto>(campaignSheetQuery)(ctx, input)
+      (ctx) => handlerOf<CharacterSheetResponseDto>(campaignSheetQuery)(ctx, input)
     ]
     for (const read of reads) {
       const totals = createDatabaseIoTotals()
