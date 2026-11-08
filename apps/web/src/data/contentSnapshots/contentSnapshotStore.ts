@@ -46,6 +46,10 @@ export function createContentSnapshotStore(options: {
   const fetchObject = options.fetch ?? ((url: string, init: RequestInit) => fetch(url, init))
   const cacheStorage =
     options.caches === undefined ? (typeof caches === 'undefined' ? null : caches) : options.caches
+  // Cache Storage is best-effort: browsers may refuse it (quota, private mode, partitioning), so a
+  // refused cache step falls back to the network or to bytes already verified.
+  const openCache = async () =>
+    cacheStorage ? cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME).catch(() => null) : null
   const cacheKey = (part: ContentSnapshotPart, sha256: string) =>
     `${options.contentOrigin}${CACHE_KEY_PATH}${part}/${sha256}`
   const parsed = new Map<
@@ -74,17 +78,19 @@ export function createContentSnapshotStore(options: {
 
   async function verifiedRead(location: ContentSnapshotLocation): Promise<ContentSnapshotObject> {
     const { header, ref } = location
-    const cache = cacheStorage ? await cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME) : null
-    const cached = await cache?.match(cacheKey(header.part, ref.sha256))
-    let bytes = cached ? await cached.arrayBuffer() : null
+    const cache = await openCache()
+    const cached = await cache?.match(cacheKey(header.part, ref.sha256)).catch(() => undefined)
+    let bytes = cached ? await cached.arrayBuffer().catch(() => null) : null
     if (!bytes || (await sha256Hex(bytes)) !== ref.sha256) {
       bytes = await download(location)
       if ((await sha256Hex(bytes)) !== ref.sha256)
         throw new ContentSnapshotLoadError(header.kind, 'Content failed its integrity check.')
-      await cache?.put(
-        cacheKey(header.part, ref.sha256),
-        new Response(bytes, { headers: { 'content-type': 'application/json' } })
-      )
+      await cache
+        ?.put(
+          cacheKey(header.part, ref.sha256),
+          new Response(bytes, { headers: { 'content-type': 'application/json' } })
+        )
+        .catch(() => undefined)
     }
     const object = JSON.parse(new TextDecoder().decode(bytes)) as ContentSnapshotObject
     // The hash already binds the header; this guards a manifest that names the wrong location.
@@ -128,11 +134,12 @@ export function createContentSnapshotStore(options: {
     ): Promise<void> {
       for (const [sha256, entry] of parsed)
         if (parts.includes(entry.part) && !sha256s.has(sha256)) parsed.delete(sha256)
-      const cache = cacheStorage ? await cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME) : null
+      const cache = await openCache()
       if (!cache) return
-      for (const request of await cache.keys()) {
+      for (const request of await cache.keys().catch(() => [])) {
         const [part, sha256] = new URL(request.url).pathname.slice(CACHE_KEY_PATH.length).split('/')
-        if (findOption(parts, part) && !sha256s.has(sha256!)) await cache.delete(request)
+        if (findOption(parts, part) && !sha256s.has(sha256!))
+          await cache.delete(request).catch(() => false)
       }
     }
   }

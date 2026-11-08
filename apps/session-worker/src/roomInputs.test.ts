@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   liveRoomCharacterPartSchema,
   liveRoomDefinitionSchema,
@@ -22,12 +22,18 @@ import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneL
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { RoomEncounterStore, SCENE_EVIDENCE_ROW, type RoomRecord } from './roomEncounterStore.js'
 import { SCENE_COMMAND_RETENTION_MS } from './roomSceneRecords.js'
+import { RoomContentSnapshots } from './roomContentSnapshots.js'
 import { RoomInputs, RoomInputsUnheldError } from './roomInputs.js'
 import {
   ROOM_SCENE_DEFINITION_ENTITY,
   ROOM_SCENE_DEFINITION_HEADER
 } from './roomSceneDefinition.js'
 import { characterPageFixture } from './testing/characterPageFixture.js'
+import {
+  contentSnapshotBucket,
+  contentSnapshotFixtureIds,
+  raceDocuments
+} from './testing/contentSnapshotFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import {
@@ -436,6 +442,8 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
     /** Called before each Character is served, to change the Campaign during the hydrate. */
     onCharacterPage: (_characterId: string) => {},
     label: 1,
+    /** The content manifest the Campaign and every Character serve, when a test stores real objects. */
+    content: null as ContentSnapshotManifestDto | null,
     unassigned: new Set<string>(),
     deleted: new Set<string>(),
     characters: new Map<string, LiveRoomInputsDocument[]>([
@@ -561,7 +569,8 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
                 ({ scope }) => scope !== 'PLAY'
               ),
               inputs: offset === 0 ? characterInputs(characterId, state.label) : null,
-              contentSnapshots: offset === 0 ? atRevision(characterManifest, state.label) : null,
+              contentSnapshots:
+                offset === 0 ? atRevision(state.content ?? characterManifest, state.label) : null,
               documents: effects.slice(offset, end)
             }
           ],
@@ -574,7 +583,7 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
           kind: 'CAMPAIGN_PLAY',
           revisions: revisions(state.label),
           contentSnapshots: atRevision(
-            {
+            state.content ?? {
               systemId: uuid(3),
               sources: [],
               campaign: { id: CAMPAIGN, contentMaturity: 'STANDARD', head: null }
@@ -1968,6 +1977,51 @@ describe('room inputs (ADR 0035 S2)', () => {
         logRows: store.logRows,
         records: store.records('ROOM_INPUT')
       }).toEqual(before)
+    })
+
+    it('reads a source shared by the Campaign and every Character once per object, before and after hibernation', async () => {
+      const { systemId, sourceId } = contentSnapshotFixtureIds
+      const bucket = contentSnapshotBucket()
+      const source = bucket.add(raceDocuments('SOURCE', sourceId), true)
+      const get = vi.fn(bucket.get)
+      // Each room instance has its own loader, as `nativeLiveSessionRoom.ts` builds it.
+      const loader = () => {
+        const snapshots = new RoomContentSnapshots({
+          CONTENT_SNAPSHOTS: { get },
+          CONVEX_SITE_URL: 'http://127.0.0.1:3211'
+        })
+        return (manifest: ContentSnapshotManifestDto) => snapshots.load(manifest, CAMPAIGN)
+      }
+      const convex = open([FIRST_CHARACTER, SECOND_CHARACTER])
+      convex.state.content = {
+        systemId,
+        sources: [{ contentSourceId: sourceId, kind: 'PLATFORM', head: source.head }],
+        campaign: { id: CAMPAIGN, contentMaturity: 'STANDARD', head: null }
+      }
+      const inputs = new RoomInputs(convex.store, convex.read, loader())
+      await inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      // Three manifests (the Campaign and two Characters) carry the one source head.
+      expect(get).toHaveBeenCalledTimes(bucket.stored.size)
+
+      get.mockClear()
+      convex.reads.length = 0
+      const woken = new RoomInputs(new RoomEncounterStore(convex.storage), convex.read, loader())
+      // The first command after a wake reads the Campaign's and its Characters' content together.
+      const [campaignObjects, ...characters] = await Promise.all([
+        woken.contentObjects(null, revisions(1)),
+        woken.character(FIRST_CHARACTER, revisions(1, FIRST_CHARACTER)),
+        woken.character(SECOND_CHARACTER, revisions(1, SECOND_CHARACTER))
+      ])
+      expect(campaignObjects.map(({ scope, part }) => [scope, part])).toEqual([
+        ['SOURCE', 'index'],
+        ['SOURCE', 'documents']
+      ])
+      expect(characters.map(({ inputs }) => inputs)).toEqual([
+        characterInputs(FIRST_CHARACTER),
+        characterInputs(SECOND_CHARACTER)
+      ])
+      expect(convex.reads).toEqual([])
+      expect(get).toHaveBeenCalledTimes(bucket.stored.size)
     })
 
     it('reads a scope again when nothing is observed', async () => {

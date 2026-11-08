@@ -2,7 +2,7 @@
 
 > **Status:** prepared 2026-11-07, local only. Nothing was deployed, read from or written to Convex Cloud, Cloudflare, R2 or Resend.
 >
-> **Scope:** the exact target list, rollback capture, Worker staging package evidence and the managed smoke plus cold-isolate SSR CPU measurement that RELEASE-3.T2 runs. Feeds AC RELEASE-3.1 (and RELEASE-3.T4, which needs the prior Convex deployment id).
+> **Scope:** the exact target list, rollback capture, Worker staging package evidence and the managed smoke plus cold-isolate SSR CPU measurement that RELEASE-3.T2 runs. Feeds AC RELEASE-3.1. RELEASE-3.T4 found staging empty, so the first promotion is a fresh deploy behind a pre-flight check (below).
 >
 > **Update when:** a target name, the build, the smoke script or a threshold changes before T2 runs.
 >
@@ -40,17 +40,19 @@ Names marked **committed** come from the repository. Names marked **PLACEHOLDER*
 
 ## Rollback capture (run by the operator before any deploy)
 
-All are read-only. Paste each result into the T2 manifest; T4 takes the Convex source identity from the first row.
+All are read-only. Paste each result into the T2 manifest.
 
-| Capture                          | Command (operator)                                                                                                                                                                                     | Result |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| Convex staging deployed source   | **PLACEHOLDER**: the commit the staging push was last built from (deploy record or `npx convex deployment ...` history for `<CONVEX_SLUG>`; the Convex dashboard's Deployment History shows the same). |        |
-| Web Worker active version        | `npx wrangler deployments list --name artificer-web-staging` and `npx wrangler versions list --name artificer-web-staging`                                                                             |        |
-| Session Worker active version    | `yarn workspace @artificer-toolkit/session-worker exec wrangler deployments list --env staging` (and `versions list`)                                                                                  |        |
-| Web Worker secrets present       | `npx wrangler secret list --name artificer-web-staging` (names only)                                                                                                                                   |        |
-| Session Worker secrets present   | `yarn workspace @artificer-toolkit/session-worker exec wrangler secret list --env staging` (names only)                                                                                                |        |
-| R2 buckets exist and are private | Cloudflare dashboard, or `npx wrangler r2 bucket list`; confirm no public access and the CORS rule on the media bucket                                                                                 |        |
-| Resend sending domain verified   | Resend dashboard                                                                                                                                                                                       |        |
+**Pre-flight (first promotion only, right before the first deploy).** [RELEASE-3.T4](release-3-t4-upgrade-readiness-2026-11-07.md) found that staging holds no source and no data, so the first promotion is a fresh deploy with nothing to migrate. Confirm that this is still true: in the Convex dashboard for `<CONVEX_SLUG>`, the Functions page lists no deployed functions and the Data page lists no tables (system tables aside). If either is not empty, stop. T4's narrowing diff and local rehearsal must run against the deployed commit first.
+
+| Capture                          | Command (operator)                                                                                                                                                                                                                                                                                                         | Result |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Convex staging deployed source   | Before the first promotion: "none", confirmed by the pre-flight above. **After the deploy**, record the commit T2 deployed here. Every later promotion diffs the stored schema from that commit and migrates any narrowing change ([T4, later promotions](release-3-t4-upgrade-readiness-2026-11-07.md#later-promotions)). |        |
+| Web Worker active version        | `npx wrangler deployments list --name artificer-web-staging` and `npx wrangler versions list --name artificer-web-staging`                                                                                                                                                                                                 |        |
+| Session Worker active version    | `yarn workspace @artificer-toolkit/session-worker exec wrangler deployments list --env staging` (and `versions list`)                                                                                                                                                                                                      |        |
+| Web Worker secrets present       | `npx wrangler secret list --name artificer-web-staging` (names only)                                                                                                                                                                                                                                                       |        |
+| Session Worker secrets present   | `yarn workspace @artificer-toolkit/session-worker exec wrangler secret list --env staging` (names only)                                                                                                                                                                                                                    |        |
+| R2 buckets exist and are private | Cloudflare dashboard, or `npx wrangler r2 bucket list`; confirm no public access and the CORS rule on the media bucket                                                                                                                                                                                                     |        |
+| Resend sending domain verified   | Resend dashboard                                                                                                                                                                                                                                                                                                           |        |
 
 Restore is `wrangler rollback <version-id>` per Worker and the Convex dashboard's deployment history, as the [runbook](../runbooks/phase-8-2-release.md#rollback) says. Capture the ids before the first deploy so a failed smoke can roll all three back.
 
@@ -112,7 +114,7 @@ A wall-clock figure (`wallMs` in `requests.json`) is recorded for evidence only.
 
 ## Placeholders the operator fills at T2
 
-1. `<CONVEX_SLUG>` and the prior deployed source commit of the Convex staging deployment (input to T4).
+1. `<CONVEX_SLUG>`, the empty-deployment pre-flight result, and after the deploy the Convex source commit T2 deployed (the base for the next promotion's upgrade-in-place diff).
 2. `<STAGING_WEB_ORIGIN>` and the committed `routes` entry for `artificer-web-staging`, plus the `web-staging` GitHub environment values.
 3. Prior active version ids of both Workers (rollback table above).
 4. Product media and content-snapshot R2 bucket names; Resend account and sending domain.
