@@ -377,6 +377,70 @@ describe('content snapshot builds', () => {
     }
   }, 30_000)
 
+  it('pages a Campaign scope in subject order, and a full last page is not done', async () => {
+    const { t, server, owner, publish, settle } = await setup()
+    try {
+      const campaign = await owner.caller.mutation(api.campaigns.create.create, {
+        name: 'Snapshot share pages',
+        format: 'ONGOING',
+        toneTags: ['HEROIC'],
+        contentMaturity: 'STANDARD',
+        gameSystemId: srdSystemRecord.id,
+        primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+      })
+      const shared: string[] = []
+      for (let index = 0; index < 4; index++) {
+        const id = await publish('RACE', homebrew(elf))
+        shared.push(id)
+        await owner.caller.mutation(api.campaigns.contentShares.share, {
+          campaignId: campaign.id,
+          subjectKind: 'RACE',
+          subjectId: id
+        })
+      }
+      await settle()
+      const readPages = async (numItems: number) => {
+        const pages: { ids: string[]; isDone: boolean }[] = []
+        let cursor: string | null = null
+        for (let isDone = false; !isDone;) {
+          const page:
+            | { sources: string[]; continueCursor: string; isDone: boolean }
+            | { pendingCompilation: true } = await t.query(
+            internal.contentSnapshots.heads.readScopeKind,
+            {
+              scope: 'CAMPAIGN' as const,
+              scopeId: campaign.id,
+              kind: 'RACE' as const,
+              paginationOpts: { numItems, cursor }
+            }
+          )
+          if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
+          pages.push({
+            ids: page.sources.map(
+              (json) => (JSON.parse(json) as { document: { id: string } }).document.id
+            ),
+            isDone: page.isDone
+          })
+          cursor = page.continueCursor
+          isDone = page.isDone
+        }
+        return pages
+      }
+      const [first, second, third, fourth] = [...shared].sort()
+      expect(await readPages(2)).toEqual([
+        { ids: [first, second], isDone: false },
+        { ids: [third, fourth], isDone: false },
+        { ids: [], isDone: true }
+      ])
+      expect(await readPages(3)).toEqual([
+        { ids: [first, second, third], isDone: false },
+        { ids: [fourth], isDone: true }
+      ])
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
   it('bounds every page of a large source scope by roots and bytes, and still builds the scope', async () => {
     // RELIABILITY-20.5's page bounds, well under the 1 s query limit on CI's self-hosted runtime.
     const PAGE_MAX_ROOTS = 15
