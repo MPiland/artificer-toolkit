@@ -24707,7 +24707,7 @@
             },
             {
               "id": "PERF-6.T7",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 3,
@@ -24718,7 +24718,8 @@
                 "finalSource": true
               },
               "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-08",
+              "proof": "Merged m663 (d69fc71bd). characterGrantFold and characterPolicy drop their self re-validation parses; characterDefenses builds its output pre-sorted with the schema sort helpers; equipment category codes are parsed at the grant-fact boundary; characterRulePolicyParseParity.test.ts proves parity. Cleric policy eval 6.27 to 0.99 ms at level 1 and 7.51 to 1.03 ms at level 5. Green: Tests 42518421845, Browser journeys 42518421886, 42516646291, 42516646209, 42516646159."
             },
             {
               "id": "PERF-6.T8",
@@ -24769,7 +24770,7 @@
                 "finalSource": true
               },
               "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding). If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; it changes what the rules context holds, so trace the Builder catalogue and grant consumers first).",
-              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin."
+              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin. Recurred 2026-11-08 in merge batch m662 (Browser journeys 42521151283, passage, same step): activeReads:active (request fa79463fee8fa6e6) and scenes/sceneBindings:get (request 841e4d7c67fa71d7) both timed out at 1 s; m662 was refused and T7 merged on retry as m663. Two hits in about three runs: this now blocks merges, so T11 starts as soon as T8 lands."
             },
             {
               "id": "PERF-6.T10",
