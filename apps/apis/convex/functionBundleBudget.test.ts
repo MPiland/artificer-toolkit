@@ -18,7 +18,7 @@ const functionEntries = globSync('**/*.ts', { cwd: import.meta.dirname })
     return !file.startsWith('_generated/') && base !== 'schema.ts' && base.split('.').length === 2
   })
 
-function zodInputs(entry: string) {
+function bundleInputs(entry: string) {
   const usesNode = /^(['"])use node\1/m.test(readFileSync(join(import.meta.dirname, entry), 'utf8'))
   const bundle = buildSync({
     absWorkingDir: import.meta.dirname,
@@ -39,7 +39,11 @@ function zodInputs(entry: string) {
       path: `/${input.replaceAll('\\', '/')}`,
       bytesInOutput
     }))
-    .filter(({ path, bytesInOutput }) => bytesInOutput > 0 && path.includes('/node_modules/zod/'))
+    .filter(({ bytesInOutput }) => bytesInOutput > 0)
+}
+
+function zodInputs(entry: string) {
+  return bundleInputs(entry).filter(({ path }) => path.includes('/node_modules/zod/'))
 }
 
 it.each(functionEntries)('keeps non-English zod locales out of the %s bundle', (entry) => {
@@ -66,3 +70,16 @@ it.each([
     zodInputs(entry).reduce((total, { bytesInOutput }) => total + bytesInOutput, 0)
   ).toBeLessThan(120 * 1024)
 })
+
+// Evaluating the app schema costs 43–58 ms per call (PERF-6.T1), so these modules page their
+// tables with index range reads instead of convex-helpers streams over it (PERF-6.T3).
+it.each(['contentSnapshots/heads.ts', 'campaigns/accountDeparture.ts'])(
+  'keeps the app schema out of the %s bundle',
+  (entry) => {
+    expect(
+      bundleInputs(entry)
+        .map(({ path }) => path)
+        .filter((path) => path === '/schema.ts')
+    ).toEqual([])
+  }
+)
