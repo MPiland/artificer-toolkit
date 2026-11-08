@@ -1093,6 +1093,9 @@ default runtime. This workspace sets
 workspace's own `node_modules`, not a dependency hoisted to the monorepo root. A normal Yarn
 install must therefore leave Sharp locally resolvable before codegen/deployment. Do not replace
 this with manually copied native binaries or a platform-specific image-processing implementation.
+A known consequence is a second copy of the same zod version in each function bundle (the
+workspace's own, used by convex-helpers, beside the root one the packages use). It adds about 33 KB
+per bundle and no measurable module floor (PERF-6.T8), so it is not deduplicated.
 
 The Windows local executor failed with `EPERM` while creating a directory symbolic link for external
 dependencies, before any Sharp handler ran. Local verification can use the
