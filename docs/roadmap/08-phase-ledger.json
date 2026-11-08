@@ -24581,12 +24581,13 @@
                 "after": ["PERF-6.T1"],
                 "finalSource": true
               },
-              "text": "Profile fix 1: move characterSheet:basics into its own small module and serve its four fields from stored data (Character row fields written at Builder commit, or a stored identity section written by store) instead of a derivation, so its read set excludes the System, sources and effects. Budget: <= 6 documents and <= 10 KB (convex-test), module floor <= 20 ms (functionBundleBudget.test.ts), CI user p95 <= 100 ms, 0 timeouts.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Profile fix 1: move characterSheet:basics into its own small module and serve its four fields from stored data (Character row fields written at Builder commit, or a stored identity section written by store) instead of a derivation, so its read set excludes the System, sources and effects. Budget: <= 7 documents and <= 10 KB (convex-test), module floor <= 20 ms (functionBundleBudget.test.ts), CI user p95 <= 100 ms, 0 timeouts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Ruling 2026-11-08: read budget <= 7 documents (one each from seven tables incl. the identity userProfiles row every authenticated query reads) and <= 10 KB; the T1 budget omitted the identity read."
             },
             {
               "id": "PERF-6.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24597,7 +24598,14 @@
                 "finalSource": true
               },
               "text": "Profile fix 2: remove the app schema from function modules. contentSnapshots/heads.ts (convex-helpers stream) and campaigns/vehicleCleanup.ts (paginator) import ../schema, adding 43-58 ms to every call of heads, vehicleCleanup, accountDeparture and the departure mutations. Use index range reads or a one-table schema. Budget: module floor -40 to -55 ms, heads and accountDeparture added to functionBundleBudget.test.ts, CI user p50 for readScopeKind and readBuildStart <= 80 ms.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-08",
+              "proof": [
+                "apps/apis/convex/functionBundleBudget.test.ts (app schema.ts absent from the contentSnapshots/heads and campaigns/accountDeparture bundles; red against the phase branch)",
+                "apps/apis/convex/contentSnapshots/build.test.ts (Campaign-scope page order and termination) and campaigns/vehicleCleanup.test.ts (33-row probe limit); behavior pinned unchanged",
+                "Local warm module floor p50: heads 110 -> 5 ms, accountDeparture 153 -> 46 ms",
+                "Green on df9c5a9e9: Tests 42492676946, Live 42492676955, Browser journeys 42492676994; merged 5c9b9ea9c (m658, merge-slice run 42494850599)"
+              ],
+              "note": "heads pages Campaign shares with an index range read keyed by subjectId; vehicleCleanup probes each range lazily to 33 rows or 1 MiB. social/blockLists and social/admissionLists still import the app schema (public mergedStream pages with client cursors; not profiled hot): re-measured under PERF-6.T11."
             },
             {
               "id": "PERF-6.T4",
@@ -24625,8 +24633,9 @@
                 "after": ["PERF-6.T1"],
                 "finalSource": true
               },
-              "text": "Profile fixes 4 and 7: readClassListSpellRoots (characters/context.ts:272) reads the full root of every Spell on a Character's class lists in every derivation, and classPublication:readSourceRows reads two documents per Spell. Carry the list fields the Sheet and publication need on authoredSpellClasses rows written at publication; read full roots only for Spells the Character references; canonicalise only the rows the commit compares. Budget: SRD Cleric derivation <= 170 documents and <= 250 KB (from 274 / 485 KB) in a sheetReadBudget.test.ts case, largest SRD list readSourceRows <= 100 documents and <= 200 KB, CI store p95 <= 500 ms, readSourceRows p95 <= 250 ms. Stored-shape change: reset and reseed local after merge.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Profile fixes 4 and 7: readClassListSpellRoots (characters/context.ts:272) reads the full root of every Spell on a Character's class lists in every derivation, and classPublication:readSourceRows reads two documents per Spell. Carry the list fields the Sheet and publication need on authoredSpellClasses rows written at publication; read full roots only for Spells the Character references; canonicalise only the rows the commit compares. Budget: SRD Cleric derivation <= 175 documents and <= 340 KB (from 274 / 496 KB) in a sheetReadBudget.test.ts case, largest SRD list readSourceRows <= 360 documents and <= 500 KB (from 750 / 790), CI store p95 <= 500 ms, readSourceRows p95 <= 250 ms. Stored-shape change: reset and reseed local after merge.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Ruling 2026-11-08: the prepare pool displays list Spells with prose, so rows carry the selector entry plus identity and list Spells read no roots (option A); one aggregate document per list was rejected (whole-list rewrites conflict during imports). readSourceRows reads labels from the rows and memoizes import-job visibility per request."
             },
             {
               "id": "PERF-6.T6",
@@ -24703,7 +24712,7 @@
                 "after": ["PERF-6.T2", "PERF-6.T3", "PERF-6.T8", "PERF-6.T9"],
                 "finalSource": true
               },
-              "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions).",
+              "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding).",
               "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope."
             },
             {
