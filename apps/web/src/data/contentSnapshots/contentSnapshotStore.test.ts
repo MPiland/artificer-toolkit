@@ -108,6 +108,72 @@ describe('content snapshot store', () => {
     expect(entries.size).toBe(0)
   })
 
+  it.each(['open', 'match', 'put'] as const)(
+    'reads verified objects when Cache Storage refuses %s',
+    async (step) => {
+      const object = snapshot('SOURCE', 'Grappler')
+      const cache = await memoryCaches().caches.open()
+      const refused = async () => {
+        throw new DOMException('Cache Storage refused the call.', 'InvalidAccessError')
+      }
+      const fetch = serving(object.json)
+      const store = createContentSnapshotStore({
+        contentOrigin: ORIGIN,
+        getToken: async () => 'token',
+        fetch,
+        caches:
+          step === 'open'
+            ? { open: refused }
+            : { open: async () => ({ ...cache, [step]: refused }) }
+      })
+
+      await expect(store.read(object.location(true))).resolves.toMatchObject({
+        roots: [{ label: 'Grappler' }]
+      })
+      expect(fetch).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it('still rejects a tampered object when Cache Storage refuses every call', async () => {
+    const object = snapshot('SOURCE', 'Grappler')
+    const store = createContentSnapshotStore({
+      contentOrigin: ORIGIN,
+      getToken: async () => 'token',
+      fetch: serving(snapshot('SOURCE', 'Tampered').json),
+      caches: {
+        open: async () => {
+          throw new DOMException('Cache Storage refused the call.', 'InvalidAccessError')
+        }
+      }
+    })
+
+    await expect(store.read(object.location(true))).rejects.toMatchObject({
+      name: 'ContentSnapshotLoadError',
+      message: 'Content failed its integrity check.'
+    })
+  })
+
+  it('skips eviction when Cache Storage refuses to list its keys', async () => {
+    const { entries, caches } = memoryCaches()
+    const cache = await caches.open()
+    entries.set(`${ORIGIN}/content-snapshot-sha256/index/retired`, new Response('{}'))
+    const store = createContentSnapshotStore({
+      contentOrigin: ORIGIN,
+      getToken: async () => 'token',
+      caches: {
+        open: async () => ({
+          ...cache,
+          keys: async () => {
+            throw new DOMException('Cache Storage refused the call.', 'InvalidAccessError')
+          }
+        })
+      }
+    })
+
+    await expect(store.retain(new Set(), ['index'])).resolves.toBeUndefined()
+    expect(entries.size).toBe(1)
+  })
+
   it('keeps verified objects by hash and evicts hashes the manifest no longer names', async () => {
     const kept = snapshot('SOURCE', 'Grappler')
     const dropped = snapshot('SOURCE', 'Retired feat')
