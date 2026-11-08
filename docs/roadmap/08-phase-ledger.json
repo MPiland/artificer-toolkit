@@ -23517,6 +23517,46 @@
               ]
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-22",
+          "title": "Convex tests that need Node builtins live outside the deployed functions folder",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-22.1",
+              "text": "No test file under apps/apis/convex imports a Node builtin; the nine that did (authRecovery, schemaBoundary, roomClock, functionBundleBudget, campaigns/announcements, characters/sheetAccessBaseline, content/seed, content/seedReplace, liveSessions/encounterActorCapProjection) run from a folder outside convex/ in the same CI suite with unchanged assertions, and a structural test fails if a convex/ test imports a Node builtin.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-22.T1",
+              "text": "Move the nine Node-builtin Convex tests out of apps/apis/convex (for example apps/apis/tests/), repoint their convex-test module globs and relative imports at ../convex, add the folder to the apis Vitest config and its CI suite and affected-test selection, and add the structural guard test. Assertions unchanged. Starts after PERF-6.T8 merges (it edits functionBundleBudget.test.ts).",
+              "status": "TODO",
+              "closes": ["RELIABILITY-22.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["PERF-6.T8"]
+              },
+              "note": "User approved 2026-11-08: the Convex plugin lint hook rejects edits to convex/*.test.ts files that import node: builtins (false positive for Vitest files), which blocked T3 and T8."
+            }
+          ],
+          "internalReason": "Test placement only; no user-visible flow."
         }
       ]
     },
@@ -24538,9 +24578,10 @@
             {
               "id": "PERF-6.3",
               "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "User approved 2026-11-07: user hardware matters on the client, not for Convex functions."
+              "note": "User approved 2026-11-07: user hardware matters on the client, not for Convex functions. Closed 2026-11-08 by PERF-6.T10. Worker-side figures (Builder evaluation, worker content parse) are labelled not throttled: Chromium refuses CPU throttling on workers.",
+              "proof": ["Closed by PERF-6.T10 (m661); see the task proof."]
             }
           ],
           "wsjf": {
@@ -24614,7 +24655,7 @@
             },
             {
               "id": "PERF-6.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24624,7 +24665,8 @@
                 "after": ["PERF-6.T2"],
                 "finalSource": true
               },
-              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready."
+              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T5",
@@ -24650,7 +24692,7 @@
             },
             {
               "id": "PERF-6.T6",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24660,11 +24702,12 @@
                 "after": ["PERF-6.T3"],
                 "finalSource": true
               },
-              "text": "Profile fix 5: Campaign departure and unshare (removeCampaignSharesAndReconcile, contentShareRemoval.ts:202) read up to 1,765 documents in one transaction. Split the reconcile into one scheduled step per Character (equipment retain plus source-loss reconcile); the membership-removal transaction removes the shares and queues the steps, keeping D81 departure semantics. Budget: <= 200 documents per transaction, CI p95 <= 500 ms, 0 timeouts."
+              "text": "Profile fix 5: Campaign departure and unshare (removeCampaignSharesAndReconcile, contentShareRemoval.ts:202) read up to 1,765 documents in one transaction. Split the reconcile into one scheduled step per Character (equipment retain plus source-loss reconcile); the membership-removal transaction removes the shares and queues the steps, keeping D81 departure semantics. Budget: <= 200 documents per transaction, CI p95 <= 500 ms, 0 timeouts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T7",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 3,
@@ -24674,11 +24717,12 @@
                 "after": ["PERF-6.T1"],
                 "finalSource": true
               },
-              "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test."
+              "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T8",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24688,7 +24732,8 @@
                 "after": ["PERF-6.T3"],
                 "finalSource": true
               },
-              "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts."
+              "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T9",
@@ -24724,11 +24769,11 @@
                 "finalSource": true
               },
               "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding). If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; it changes what the rules context holds, so trace the Builder catalogue and grant consumers first).",
-              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope."
+              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin."
             },
             {
               "id": "PERF-6.T10",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PERF-6.3"],
               "wsjf": {
                 "bv": 5,
@@ -24737,7 +24782,11 @@
                 "size": 2,
                 "finalSource": true
               },
-              "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run, alongside the D210 wall-clock evidence."
+              "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run, alongside the D210 wall-clock evidence.",
+              "mergedAt": "2026-11-08",
+              "proof": [
+                "apps/web/tests/throttledClientLatency.ts runs one 6x CPU-throttled pass in builder-browser (characterBuilder.spec.ts) and vtt-browser (managedRemoteVtt.spec.ts) and records content-snapshot parse, Builder resolution latency and tabletop scene render as a D210-shaped JSON line plus a run-summary bullet, never failing the run; unit tests src/test/clientLatency.test.ts; measures named in src/lib/clientPerformanceMeasures.ts; documented in docs/architecture/ci-validation.md. Evidence: Browser journeys 42512704761 and 42517711026, full dispatch 42513838886 (m661)."
+              ]
             }
           ]
         },
