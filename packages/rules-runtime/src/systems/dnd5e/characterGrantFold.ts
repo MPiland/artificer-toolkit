@@ -1,10 +1,8 @@
-import {
-  characterGrantFoldInputSchema,
-  characterGrantFoldOutputSchema,
-  type CharacterGrantFoldInput,
-  type CharacterGrantFoldOutput,
-  type CharacterGrantFoldRestriction,
-  type CharacterGrantFoldSource
+import type {
+  CharacterGrantFoldInput,
+  CharacterGrantFoldOutput,
+  CharacterGrantFoldRestriction,
+  CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
@@ -93,13 +91,15 @@ function drawnSourceState(
 
 /**
  * Folds a holder's grant sources. Creatures fold their feature grants through the same option as
- * Characters, so `holderKind` only answers `HOLDER_KIND` restrictions.
+ * Characters, so `holderKind` only answers `HOLDER_KIND` restrictions. Callers build the input from
+ * validated sources (Character facts, published Creatures, active-effect records parsed when read), so
+ * neither it nor the output is parsed here (PERF-6.T7); `characterRulePolicyParseParity.test.ts` holds
+ * both to their schemas.
  */
 export function evaluateDnd5e2014CharacterGrantFold(
   input: CharacterGrantFoldInput,
   holderKind: 'CHARACTER' | 'CREATURE' = 'CHARACTER'
 ): CharacterGrantFoldOutput {
-  const parsedInput = characterGrantFoldInputSchema.parse(input)
   const acc: CharacterGrantFoldOutput = {
     proficiencies: [],
     senses: [],
@@ -125,8 +125,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
    * modifiers already accepted from earlier sources (race before class, feat and equipment).
    */
   const abilityValue = (abilityId: string | null): number => {
-    const base =
-      Object.entries(parsedInput.base.abilities).find(([key]) => key === abilityId)?.[1] ?? 0
+    const base = Object.entries(input.base.abilities).find(([key]) => key === abilityId)?.[1] ?? 0
     let score = base
     let set: number | null = null
     for (const modifier of acc.modifiers) {
@@ -172,7 +171,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
   }
 
   const equipmentMatches = (condition: RestrictionCondition): boolean =>
-    parsedInput.base.equipment.some(
+    input.base.equipment.some(
       (item) =>
         item.equipped &&
         (condition.mode === 'ALL' ||
@@ -192,31 +191,27 @@ export function evaluateDnd5e2014CharacterGrantFold(
         return inRange(abilityValue(condition.abilityId), condition.min, condition.max)
       case 'HERITAGE':
         return (
-          condition.mode === 'ALL' ||
-          someSelected(condition.requiredIds, parsedInput.base.heritageIds)
+          condition.mode === 'ALL' || someSelected(condition.requiredIds, input.base.heritageIds)
         )
       case 'CHARACTER_LEVEL':
-        return inRange(totalClassLevel(parsedInput), condition.min, condition.max)
+        return inRange(totalClassLevel(input), condition.min, condition.max)
       case 'CLASS_LEVEL':
-        return parsedInput.base.classes.some(
+        return input.base.classes.some(
           (entry) =>
             condition.classIds.includes(entry.classId) &&
             inRange(entry.level, condition.min, condition.max)
         )
       case 'FEAT_OBTAINED':
-        return someSelected(condition.requiredIds, [
-          ...parsedInput.base.featIds,
-          ...acc.unlockedFeatIds
-        ])
+        return someSelected(condition.requiredIds, [...input.base.featIds, ...acc.unlockedFeatIds])
       case 'FEATURE_OBTAINED':
-        return someSelected(condition.requiredIds, parsedInput.base.featureIds)
+        return someSelected(condition.requiredIds, input.base.featureIds)
       case 'OPTION_OBTAINED':
         return (
-          someSelected(condition.requiredIds, parsedInput.base.featureIds) &&
-          someSelected(condition.secondaryRequiredIds, parsedInput.base.optionIds)
+          someSelected(condition.requiredIds, input.base.featureIds) &&
+          someSelected(condition.secondaryRequiredIds, input.base.optionIds)
         )
       case 'SUBCLASS_SPECIALIZATION':
-        return parsedInput.base.classes.some(
+        return input.base.classes.some(
           ({ subclassId, specializationId }) =>
             subclassId !== null &&
             (condition.requiredIds.length === 0 || condition.requiredIds.includes(subclassId)) &&
@@ -225,13 +220,13 @@ export function evaluateDnd5e2014CharacterGrantFold(
         )
       case 'SPELL_OBTAINED':
         return someSelected(condition.requiredIds, [
-          ...parsedInput.upstreamSpellIds,
+          ...input.upstreamSpellIds,
           ...acc.unlockedSpellIds
         ])
       case 'CAN_CAST_SPELL':
         return (
-          parsedInput.base.classes.some((entry) => entry.spellcasting) ||
-          parsedInput.upstreamSpellIds.length > 0 ||
+          input.base.classes.some((entry) => entry.spellcasting) ||
+          input.upstreamSpellIds.length > 0 ||
           acc.unlockedSpellIds.length > 0
         )
       case 'PROFICIENCY':
@@ -249,7 +244,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'SIZE':
         return (
           condition.mode === 'ALL' ||
-          (parsedInput.base.size !== null && condition.requiredIds.includes(parsedInput.base.size))
+          (input.base.size !== null && condition.requiredIds.includes(input.base.size))
         )
       case 'ITEM_IDENTITY':
       case 'ITEM_CATEGORY':
@@ -428,7 +423,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
         acc.proficiencies.push(proficiency)
       }
     }
-    const senseLevel = activeLevel ?? totalClassLevel(parsedInput)
+    const senseLevel = activeLevel ?? totalClassLevel(input)
     for (const operation of source.senses) {
       const senseIds: string[] = []
       applyScalingTargets(operation, senseLevel, senseIds)
@@ -463,7 +458,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
     scheduled.push({ rank, position: position++, apply })
   }
 
-  parsedInput.classes.forEach((record, classIndex) => {
+  input.classes.forEach((record, classIndex) => {
     schedule('CLASS', () => {
       if (record.base != null) {
         applySource(
@@ -483,17 +478,15 @@ export function evaluateDnd5e2014CharacterGrantFold(
       }
     })
   })
-  const background = parsedInput.background
+  const background = input.background
   if (background !== null)
     schedule('BACKGROUND', () => applySource(background, undefined, undefined))
-  for (const feature of parsedInput.features) {
+  for (const feature of input.features) {
     schedule(feature.sourceKind, () => {
       const activeLevel =
         feature.sourceKind === 'FEAT'
-          ? Math.max(totalClassLevel(parsedInput), 1)
-          : (feature.sourceClassLevel ??
-            feature.timingLevel ??
-            Math.max(totalClassLevel(parsedInput), 1))
+          ? Math.max(totalClassLevel(input), 1)
+          : (feature.sourceClassLevel ?? feature.timingLevel ?? Math.max(totalClassLevel(input), 1))
       if (feature.definition != null) applySource(feature.definition, undefined, activeLevel)
       for (const option of feature.selectedOptions) applySource(option, undefined, activeLevel)
       if (feature.sourceKind === 'FEAT' && feature.featDefinition != null) {
@@ -501,14 +494,14 @@ export function evaluateDnd5e2014CharacterGrantFold(
       }
     })
   }
-  if (parsedInput.equipmentItems.length > 0) {
+  if (input.equipmentItems.length > 0) {
     schedule('EQUIPMENT', () => {
-      const activeLevel = Math.max(parsedInput.base.totalLevel, 1)
+      const activeLevel = Math.max(input.base.totalLevel, 1)
       const activeItems: Array<{
         item: CharacterGrantFoldInput['equipmentItems'][number]
         sourceState: SourceState
       }> = []
-      for (const item of parsedInput.equipmentItems) {
+      for (const item of input.equipmentItems) {
         if (item.requiresAttunement && !item.attuned) continue
         const sourceState = {
           carried: true,
@@ -550,9 +543,9 @@ export function evaluateDnd5e2014CharacterGrantFold(
       }
     })
   }
-  for (const source of parsedInput.activeEffects)
+  for (const source of input.activeEffects)
     schedule('ACTIVE_EFFECT', () => applySource(source, undefined, undefined))
   scheduled.sort((left, right) => left.rank - right.rank || left.position - right.position)
   for (const source of scheduled) source.apply()
-  return characterGrantFoldOutputSchema.parse(acc)
+  return acc
 }
