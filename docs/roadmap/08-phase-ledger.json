@@ -24512,6 +24512,61 @@
           "internalReason": "Performance fixes with no new user-visible flow; each task carries its own real-code proof and budget test."
         },
         {
+          "id": "PERF-6",
+          "title": "Hot Convex functions stay small and fast",
+          "status": "IN_PROGRESS",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": ["RELEASE-2"],
+          "internalReason": "Performance work with no new user-visible flow; each task carries real-code read-budget proofs and CI-recorded timings.",
+          "acs": [
+            {
+              "id": "PERF-6.1",
+              "text": "The functions that brush the 1 s limit on CI (characterSheetStore, sheetSlices:get, basics, classPublication:readSourceRows, accountDeparture:step, and any other function over 500 ms in the last three full Tests runs) are profiled, with each one's time split into module load, documents and bytes read, and JavaScript compute, and the findings recorded under docs/validation/.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "User approved 2026-11-07: the near-limit timeouts are a design smell to fix, not CI noise to rerun."
+            },
+            {
+              "id": "PERF-6.2",
+              "text": "Each profiled function stays within a deterministic read budget (documents and bytes read) enforced by a convex-test that fails CI when exceeded, and its CI-recorded timing meets query p95 <= 250 ms and mutation p95 <= 500 ms on the GitHub runners; the top offenders are fixed at the cause (compute moved out of reads, served reads small and precomputed).",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "User approved 2026-11-07: CI is the conservative bar for backend timing (Convex runs on Convex's servers, not user hardware); timing is recorded and acted on, the read budget is the hard gate."
+            },
+            {
+              "id": "PERF-6.3",
+              "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run.",
+              "status": "TODO",
+              "origin": ["RELEASE-2"],
+              "note": "User approved 2026-11-07: user hardware matters on the client, not for Convex functions."
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 8,
+            "size": 5,
+            "finalSource": true
+          },
+          "tasks": [
+            {
+              "id": "PERF-6.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-6.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "finalSource": true
+              },
+              "text": "Profile the near-limit Convex functions from the last three full Tests runs' convex-function logs and on the local Docker backend; split each one's time into module load, documents/bytes read and compute; record the findings and a per-function fix proposal in docs/validation/perf-6-t1-hot-function-profile-2026-11-07.md. Fix tasks are registered from the findings.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            }
+          ]
+        },
+        {
           "id": "PERF-5",
           "title": "Publication reads only what a draft references",
           "status": "DONE",
@@ -25336,7 +25391,8 @@
             },
             {
               "id": "RELEASE-8.T8",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["RELEASE-8.2"],
               "wsjf": {
                 "bv": 8,
@@ -25347,7 +25403,7 @@
                 "finalSource": true
               },
               "text": "Fix RELEASE-8.T2 finding F6: on the live tabletop the remaining-movement readout (D37 'Movement X / 30 ft') stays stale after a bound VOLUNTARY move until a reload. The server records the move (reload shows it), but the client's room encounter session state (useCampaignLiveSession heldEncounterSession, read by CampaignVttStage readActiveTurn) is not refreshed after MOVE_SCENE_TOKEN. Find whether the room omits the encounter-state push or the client drops it, fix it at that layer, and prove it with a test that fails before the fix.",
-              "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (GM drag of the current Goblin: frame VOLUNTARY with expectedEncounterVersion 7; readout 5 ft before reload, 20 ft after). Bug fix blocking AC RELEASE-8.2; no new scope."
+              "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (GM drag of the current Goblin: frame VOLUNTARY with expectedEncounterVersion 7; readout 5 ft before reload, 20 ft after). Bug fix blocking AC RELEASE-8.2; no new scope. Diagnosis 2026-11-07: not a stale view. The ENCOUNTER_SESSION push arrives 14.5-17 s late because the first command after a Session DO wake reloads every content-snapshot object once per manifest (153 sequential R2 fetches, 15.1 s; roomInputs.ts #readContent, roomContentSnapshots.ts:88-157). Ruling: load each object once per sha256 across manifests with bounded parallelism, proved by a GET-counting Worker test; DO SQLite persistence only if wake latency stays over budget afterwards."
             },
             {
               "id": "RELEASE-8.T5",
