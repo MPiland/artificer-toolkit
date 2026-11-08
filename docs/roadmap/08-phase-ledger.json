@@ -24919,7 +24919,7 @@
           "tasks": [
             {
               "id": "RELEASE-3.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-3.1"],
               "wsjf": {
                 "bv": 3,
@@ -24930,8 +24930,7 @@
                 "finalSource": true
               },
               "text": "Prepare the staging promotion packet without deploying: write the exact target list (Convex, web Worker, session Worker, R2, Resend) from the final local manifest, record prior deployment ids for rollback, build the Worker staging package (check:deployed-config), and design plus commit a bounded managed-smoke and cold-isolate SSR CPU measurement script (signed-in pages, D75/D80 thresholds) that uses disposable fixtures and the product's own commands. Agent-doable; local only.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Done 2026-11-07 (m652): packet docs/validation/release-3-t1-promotion-packet-2026-11-07.md, managed smoke scripts/managedSmoke.mjs with policy tests scripts/managedSmokePolicy.test.mjs; Worker staging package built (dry run). Cold-isolate gate: every request, cold or warm, stays under the Workers Free 10 ms cap and p75 <= 10 ms (C2); D75's 2-8 ms anonymous figure is recorded, not gated. Operator fills the packet placeholders at T2."
             },
             {
               "id": "RELEASE-3.T2",
