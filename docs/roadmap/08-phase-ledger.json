@@ -23517,6 +23517,46 @@
               ]
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-22",
+          "title": "Convex tests that need Node builtins live outside the deployed functions folder",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-22.1",
+              "text": "No test file under apps/apis/convex imports a Node builtin; the nine that did (authRecovery, schemaBoundary, roomClock, functionBundleBudget, campaigns/announcements, characters/sheetAccessBaseline, content/seed, content/seedReplace, liveSessions/encounterActorCapProjection) run from a folder outside convex/ in the same CI suite with unchanged assertions, and a structural test fails if a convex/ test imports a Node builtin.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-22.T1",
+              "text": "Move the nine Node-builtin Convex tests out of apps/apis/convex (for example apps/apis/tests/), repoint their convex-test module globs and relative imports at ../convex, add the folder to the apis Vitest config and its CI suite and affected-test selection, and add the structural guard test. Assertions unchanged. Starts after PERF-6.T8 merges (it edits functionBundleBudget.test.ts).",
+              "status": "TODO",
+              "closes": ["RELIABILITY-22.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["PERF-6.T8"]
+              },
+              "note": "User approved 2026-11-08: the Convex plugin lint hook rejects edits to convex/*.test.ts files that import node: builtins (false positive for Vitest files), which blocked T3 and T8."
+            }
+          ],
+          "internalReason": "Test placement only; no user-visible flow."
         }
       ]
     },
