@@ -142,12 +142,17 @@ describe('browser journey selection', () => {
     })
 
     it.each([
-      ['its own spec', 'apps/web/tests/managed-vtt/managedRemoteVtt.spec.ts', 'vtt-browser'],
-      ['a file its spec imports', 'apps/web/src/test/latencyGate.ts', 'vtt-browser'],
-      ['its Playwright config', 'apps/web/playwright.local-vtt.config.ts', 'vtt-browser'],
-      ['its own spec', 'apps/web/tests/e2e/app/characterBuilder.spec.ts', 'builder-browser']
-    ])('runs a journey when %s changes, whatever the criteria name', (_, path, proof) => {
-      expect(pushProofs(graph, [path], ciProofs, {}, {}, []).proofs).toEqual([proof])
+      ['its own spec', 'apps/web/tests/managed-vtt/managedRemoteVtt.spec.ts', ['vtt-browser']],
+      // Both specs import the latency summary (D210, PERF-6.3), so both journeys run.
+      [
+        'a file its spec imports',
+        'apps/web/src/test/latencyGate.ts',
+        ['builder-browser', 'vtt-browser']
+      ],
+      ['its Playwright config', 'apps/web/playwright.local-vtt.config.ts', ['vtt-browser']],
+      ['its own spec', 'apps/web/tests/e2e/app/characterBuilder.spec.ts', ['builder-browser']]
+    ])('runs a journey when %s changes, whatever the criteria name', (_, path, proofs) => {
+      expect(pushProofs(graph, [path], ciProofs, {}, {}, []).proofs).toEqual(proofs)
     })
 
     it('names only tracked proof specs', () => {
