@@ -13,7 +13,7 @@ import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
-import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
+import { characterSheetSection, readStoredCharacterSheetSections } from './sheetSections'
 
 export function projectCharacterSheetPanel(
   current: NonNullable<Awaited<ReturnType<typeof loadCharacterSheet>>>,
@@ -93,11 +93,13 @@ export const get = query({
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = characterSheetPanelInputSchema.parse(args)
-    const stored = await readStoredCharacterSheetSection(ctx, {
-      userId,
-      lookupId: input.id,
-      section: characterSheetSection.panel(input.target)
-    })
+    const [stored] =
+      (await readStoredCharacterSheetSections(ctx, {
+        userId,
+        lookupId: input.id,
+        sections: [characterSheetSection.panel(input.target)],
+        whileQueued: true
+      })) ?? []
     if (stored !== undefined) return characterSheetPanelDtoSchema.parse(stored)
     const current = await loadCharacterSheet(
       ctx,

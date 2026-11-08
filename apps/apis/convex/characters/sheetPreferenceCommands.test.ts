@@ -1,85 +1,55 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CharacterSheetExecuteInput } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
-import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { characterSheetSliceResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
-import { api } from '../_generated/api'
-import { withSceneVisionTracking } from '../lib/mutations'
-import { executeCharacterSheetCommandAcknowledgement } from './sheetCommands'
-import * as sheetFacts from './sheetFacts'
+import { api, internal } from '../_generated/api'
+import { characterSheetSection, readStoredCharacterSheetSections } from './sheetSections'
+import { readCharacterSheetPendingStore } from './sheetSectionStores'
 import * as receipts from './sheetCommandReceipts'
 
-describe('Character play preference acknowledgements', () => {
+describe('Character play preference commands', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it.each(['SET_INSPIRATION', 'SET_PARTY_VISIBILITY'] as const)(
-    'commits and replays %s through head/play reads without mechanical preparation',
+    'stores %s inline: the stored COMMON slice is current and no store is queued',
     async (type) => {
       const { t, owner, character, readState } = await readySheetFixture()
-      const before = await readState()
-      const route = await t.run((ctx) =>
-        ctx.db
-          .query('authoredRouteIds')
-          .withIndex('by_subjectId', (q) => q.eq('subjectId', character.id))
-          .unique()
-      )
+      // The create commit queues the Character's first store.
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
       const common = {
         commandId: crypto.randomUUID(),
-        expectedVersion: before.character!.play.streamVersion
+        expectedVersion: (await readState()).character!.play.streamVersion
       }
-      const input: CharacterSheetExecuteInput = {
-        id: route!.publicId,
+      const { streamVersion } = await owner.caller.mutation(api.characters.sheetCommands.execute, {
+        id: character.id,
         command:
           type === 'SET_INSPIRATION'
             ? { ...common, type, inspired: true }
             : { ...common, type, visibility: { sheet: true, health: 'BAR' } }
-      }
-      const totals = createDatabaseIoTotals()
-      const evaluate = vi.spyOn(sheetFacts, 'loadCharacterSheetFacts')
-      try {
-        const acknowledgement = await owner.caller.run((ctx) =>
-          executeCharacterSheetCommandAcknowledgement(
-            // Counted beneath the trigger layer, as a tracked mutation runs, so queued stores count.
-            withSceneVisionTracking({ ...ctx, db: countDatabaseIo(ctx.db, totals) }),
-            owner.userId,
-            input
-          )
-        )
-        expect(acknowledgement).not.toHaveProperty('sheet')
-        expect(acknowledgement).not.toHaveProperty('panels')
-        expect(acknowledgement.streamVersion).toBe(common.expectedVersion + 1)
-        expect(evaluate).not.toHaveBeenCalled()
-        // The pending store is the Character's one queued Sheet derivation (ADR 0041). `get` is the
-        // play-state trigger's before/after read and `sceneVisionRevisions` its revision bump.
-        expect(Object.keys(totals.reads.byTable).sort()).toEqual([
-          'authoredRouteIds',
-          'characterPlayStates',
-          'characterSheetPendingStores',
-          'characters',
-          'get',
-          'sceneVisionRevisions'
-        ])
-        const after = await readState()
-        expect({ ...after.character!, play: before.character!.play }).toEqual(before.character)
-        const expectedState =
-          type === 'SET_INSPIRATION'
-            ? { ...before.character!.play.state, inspiration: true }
-            : { ...before.character!.play.state, partyVisibility: { sheet: true, health: 'BAR' } }
-        expect(readCharacterPlay(after.character!.play)).toEqual(expectedState)
-        expect(after.character!.play.maximumHitPoints).toBe(before.character!.play.maximumHitPoints)
-        expect(after.character!.play.speeds).toEqual(before.character!.play.speeds)
-        expect(Date.parse(after.character!.play.updatedAt)).toBeGreaterThan(
-          Date.parse(before.character!.play.updatedAt)
-        )
-        expect(after.receipts).toHaveLength(before.receipts.length + 1)
-        const replay = await owner.caller.run((ctx) =>
-          executeCharacterSheetCommandAcknowledgement(ctx, owner.userId, input)
-        )
-        expect(replay).toEqual(acknowledgement)
-        expect(await readState()).toEqual(after)
-        expect(evaluate).not.toHaveBeenCalled()
-      } finally {
-        evaluate.mockRestore()
-      }
+      })
+      expect(streamVersion).toBe(common.expectedVersion + 1)
+      expect(await t.run((ctx) => readCharacterSheetPendingStore(ctx, character.id))).toBeNull()
+      expect(
+        await t.query(internal.characters.development.sheetSectionsState, {
+          characterId: character.id
+        })
+      ).toBe('CURRENT')
+      const [stored] =
+        (await t.run((ctx) =>
+          readStoredCharacterSheetSections(ctx, {
+            userId: owner.userId,
+            lookupId: character.id,
+            sections: [characterSheetSection.slice('COMMON')],
+            whileQueued: false
+          })
+        )) ?? []
+      const slice = characterSheetSliceResponseDtoSchema.parse(stored)
+      if (slice.slice !== 'COMMON') throw new Error('Expected the COMMON slice.')
+      expect(slice.data.meta.streamVersion).toBe(streamVersion)
+      if (type === 'SET_INSPIRATION') expect(slice.data.overview.inspiration).toBe(true)
+      else expect(slice.data.meta.partyVisibility).toEqual({ sheet: true, health: 'BAR' })
     }
   )
 

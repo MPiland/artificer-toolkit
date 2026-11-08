@@ -64,9 +64,9 @@ export type CharacterReferencedReads = {
   unreadableRootIds: Set<string>
   /** Roots by public id, read once per transaction. */
   roots: Map<string, Doc<'authoredRoots'> | null>
-  /** The System and source access, read once per transaction. */
+  /** The System and source access, read once per transaction; the System is read when absent. */
   ruleInputs?: {
-    system: Awaited<ReturnType<typeof requireSystem>>
+    system?: Awaited<ReturnType<typeof requireSystem>>
     sources: Awaited<ReturnType<typeof readCharacterSources>>
   }
 }

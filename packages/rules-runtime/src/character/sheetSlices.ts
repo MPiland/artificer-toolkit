@@ -70,7 +70,7 @@ export function projectCharacterSheetSlice(
         slice,
         data: {
           meta,
-          resources: { items: resources.items },
+          resources: { items: resources.items, hitDice: resources.hitDice },
           reference: {
             features: reference.features,
             proficiencies: reference.proficiencies,
@@ -87,5 +87,44 @@ export function projectCharacterSheetSlice(
           notes: sheet.notes
         }
       }
+  }
+}
+
+/**
+ * The viewer's whole Sheet from the six slices `projectCharacterSheetSlice` selected from it and the
+ * notes of the same projection: every Sheet field is in one of them.
+ */
+export function composeCharacterSheet(
+  slices: readonly CharacterSheetSliceResponseDto[],
+  notes: CharacterSheetResponseDto['notes']
+): CharacterSheetResponseDto {
+  const data = <Slice extends Exclude<CharacterSheetSlice, 'NOTES'>>(slice: Slice) => {
+    const found = slices.find(
+      (candidate): candidate is Extract<CharacterSheetSliceResponseDto, { slice: Slice }> =>
+        candidate.slice === slice
+    )
+    if (!found) throw new Error(`Character Sheet slice ${slice} is missing.`)
+    return found.data
+  }
+  const common = data('COMMON')
+  const inventory = data('INVENTORY')
+  const features = data('FEATURES')
+  return {
+    ...(common.publicId === undefined ? {} : { publicId: common.publicId }),
+    meta: common.meta,
+    identity: common.identity,
+    overview: common.overview,
+    actions: data('ACTIONS').actions,
+    resources: features.resources,
+    spells: data('SPELLS').spells,
+    inventory: inventory.inventory,
+    extras: data('EXTRAS').extras,
+    reference: {
+      ...features.reference,
+      conditionOptions: common.reference.conditionOptions,
+      equipmentOptions: inventory.reference.equipmentOptions,
+      currencyOptions: inventory.reference.currencyOptions
+    },
+    notes
   }
 }

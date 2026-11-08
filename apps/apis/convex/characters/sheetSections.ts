@@ -1,5 +1,11 @@
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
-import type { CharacterSheetSlice } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import {
+  characterSheetSliceResponseDtoSchema,
+  characterSheetSliceSchema,
+  type CharacterSheetSlice
+} from '@artificer-toolkit/schema/api/characterSheetSlices'
+import { characterSheetNotesDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
+import { composeCharacterSheet } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import type { CharacterSheetSectionViewer } from '@artificer-toolkit/schema/projections/characterSheetSections'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
@@ -12,15 +18,17 @@ import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCampaignCharacterState } from '../campaigns/characterState'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { readCharacterSheetState } from './documents'
+import { resolveCharacterId } from './documents'
 import {
+  readAuthorizedCharacterSheetHead,
   readAuthorizedCharacterSheetState,
   type AuthorizedCharacterSheetState
 } from './sheetInputs'
+import { readCharacterSheetPendingStore } from './sheetSectionStores'
 import { readCharacterSources } from './sourceReads'
 import { characterSheetCampaignFields } from './sheetFingerprintInputs'
 import type { Doc } from '../_generated/dataModel'
-import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
+import { readCharacterPlay, type CharacterRecordRow, type CharacterRow } from './stateDocuments'
 
 // ADR 0041: a Character write stores its derived Sheet per viewer and section; reads serve a stored
 // section only while every input it was derived from is unchanged, and derive it otherwise.
@@ -28,8 +36,15 @@ import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 export const characterSheetSection = {
   slice: (slice: Exclude<CharacterSheetSlice, 'NOTES'>) => `SLICE:${slice}`,
   panel: (target: CharacterSheetPanelTargetDto) => `PANEL:${canonicalizeJson(target)}`,
-  preparation: 'PREPARATION'
+  preparation: 'PREPARATION',
+  /** The viewer projection's notes, which the whole Sheet adds to its six slices. */
+  notes: 'NOTES'
 } as const
+
+/** The slices a derivation stores for every viewer; NOTES is owner-only and read live. */
+export const storedCharacterSheetSlices = characterSheetSliceSchema.options.filter(
+  (slice): slice is Exclude<CharacterSheetSlice, 'NOTES'> => slice !== 'NOTES'
+)
 
 export type CharacterSheetSectionValue = {
   viewer: CharacterSheetSectionViewer
@@ -66,7 +81,6 @@ function withoutStreamVersion(section: string, value: unknown): unknown {
 
 /** Inputs the fingerprint read that a derivation in the same transaction reuses instead of re-reading. */
 export type CharacterSheetFingerprintReads = {
-  system: Doc<'systems'> | null
   sources: Awaited<ReturnType<typeof readCharacterSources>>
   activeEffects: Awaited<ReturnType<typeof listActiveRuleEffects>>
   carriedEffects: Awaited<ReturnType<typeof listCarriedActiveRuleEffects>>
@@ -92,13 +106,12 @@ export async function readCharacterSheetFingerprint(
 ) {
   const { active } = state
   const reader = { db: createConvexEncounterStoreReader(ctx) }
-  const [system, access, effects, carried] = await Promise.all([
-    reads?.system !== undefined
-      ? reads.system
-      : ctx.db
-          .query('systems')
-          .withIndex('by_publicId', (q) => q.eq('id', active.systemId))
-          .unique(),
+  const [systemChecksum, access, effects, carried] = await Promise.all([
+    // The checksum row, not the 34 KB System document it stands for.
+    ctx.db
+      .query('systemChecksums')
+      .withIndex('by_systemId', (q) => q.eq('systemId', active.systemId))
+      .unique(),
     reads?.sources ?? readCharacterSources(ctx, active, active.userId, authorityScope),
     reads?.activeEffects ??
       listActiveRuleEffects(
@@ -110,7 +123,6 @@ export async function readCharacterSheetFingerprint(
   ])
   if (reads)
     Object.assign(reads, {
-      system,
       sources: access,
       activeEffects: effects,
       carriedEffects: carried
@@ -141,7 +153,7 @@ export async function readCharacterSheetFingerprint(
     },
     hasDraft: state.hasDraft,
     publicId: state.publicId,
-    systemChecksum: system?.checksum ?? null,
+    systemChecksum: systemChecksum?.checksum ?? null,
     campaign: campaign ? characterSheetCampaignFields(campaign) : null,
     contentRevisions: scopes.map((scope, index) => [
       scope.scope,
@@ -176,11 +188,41 @@ function readDerivationRow(ctx: QueryCtx, characterId: string) {
     .unique()
 }
 
+function readSectionChecksumsRow(ctx: QueryCtx, characterId: string) {
+  return ctx.db
+    .query('characterSheetSectionChecksums')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+    .unique()
+}
+
+/** The authorized Character while its stored sections match its current inputs. */
+async function readCurrentStoredReader(
+  ctx: QueryCtx,
+  userId: string,
+  id: string,
+  campaignId?: string
+) {
+  const [authorized, derivation] = await Promise.all([
+    readAuthorizedCharacterSheetState(ctx, userId, id, campaignId),
+    readDerivationRow(ctx, id)
+  ])
+  if (!authorized || !derivation) return null
+  const { active, draft, route } = authorized
+  const fingerprint = await readCharacterSheetFingerprint(ctx, {
+    active,
+    hasDraft: draft !== null,
+    publicId: route.publicId
+  })
+  return derivation.fingerprint === fingerprint ? { head: active, play: active.play } : null
+}
+
 /**
- * The section as stored for this reader while it is current, after the same authority the derived
- * read applies; undefined on any miss, and the caller derives it (which also reports access errors).
+ * The sections as stored for this reader, after the same authority the derived read applies, while
+ * they are current or, for `whileQueued` reads, while a queued store will replace them (ADR 0041
+ * Amendment 2). Undefined on any miss, and the caller derives them (which also reports access and
+ * Builder repair errors: a store that finds repair settles its queue and stores nothing).
  */
-export async function readStoredCharacterSheetSection(
+export async function readStoredCharacterSheetSections(
   ctx: QueryCtx,
   input: {
     userId: string
@@ -188,41 +230,72 @@ export async function readStoredCharacterSheetSection(
     campaignId?: string
     /** Another member reading through "Party can view"; `userId` is then the Character owner. */
     party?: boolean
-    section: string
+    sections: readonly string[]
+    /**
+     * Serve the last stored sections, with the current stream version, while the Character's store
+     * is queued: the Sheet keeps showing a value instead of deriving live in the write-to-store gap,
+     * and the queued store replaces it reactively. One-shot reads that must see the write leave it off.
+     */
+    whileQueued: boolean
   }
-): Promise<unknown> {
-  const authorized = await readAuthorizedCharacterSheetState(
-    ctx,
-    input.userId,
-    input.lookupId,
-    input.campaignId
-  )
-  if (!authorized) return undefined
-  const { active } = authorized
-  if (input.party && !readCharacterSheetState(active).partyVisibility.sheet) return undefined
+): Promise<unknown[] | undefined> {
+  const id = await resolveCharacterId(ctx, input.lookupId)
+  if (!id) return undefined
+  const pending = input.whileQueued ? await readCharacterSheetPendingStore(ctx, id) : null
+  // Every write that moves the fingerprint queues the store in its own transaction, so a queued
+  // store means the rows are at most that store behind and the read needs only the head's
+  // authority; without one the rows must match the current inputs.
+  const reader = pending
+    ? await readAuthorizedCharacterSheetHead(ctx, input.userId, id, input.campaignId)
+    : await readCurrentStoredReader(ctx, input.userId, id, input.campaignId)
+  if (!reader) return undefined
+  const { head, play } = reader
+  const { partyVisibility } = readCharacterPlay(play)
+  if (input.party && !partyVisibility.sheet) return undefined
   const viewer: CharacterSheetSectionViewer = input.party
     ? 'PARTY_MEMBER'
-    : active.userId === input.userId
+    : head.userId === input.userId
       ? 'CHARACTER_OWNER'
       : 'CAMPAIGN_OWNER'
-  const [derivation, row, fingerprint] = await Promise.all([
-    readDerivationRow(ctx, active.id),
-    readSectionRow(ctx, active.id, viewer, input.section),
-    readCharacterSheetFingerprint(ctx, {
-      active,
-      hasDraft: authorized.draft !== null,
-      publicId: authorized.route.publicId
-    })
-  ])
-  if (!derivation || !row || derivation.fingerprint !== fingerprint) return undefined
-  const entry = derivation.sections.find(
-    (section) => section.viewer === viewer && section.section === input.section
+  const rows = await Promise.all(
+    input.sections.map((section) => readSectionRow(ctx, id, viewer, section))
   )
-  if (entry?.checksum !== row.checksum) return undefined
-  const value: unknown = JSON.parse(row.json)
-  const holder = streamVersionHolder(input.section, value)
-  if (holder) holder.streamVersion = active.play.streamVersion
-  return value
+  const values: unknown[] = []
+  // A store writes the rows and the derivation in one transaction and deletes the rows it no
+  // longer derives, so every stored row belongs to the stored derivation.
+  for (const [index, section] of input.sections.entries()) {
+    const row = rows[index]
+    if (!row) return undefined
+    const value: unknown = JSON.parse(row.json)
+    const holder = streamVersionHolder(section, value)
+    if (holder) holder.streamVersion = play.streamVersion
+    values.push(value)
+  }
+  return values
+}
+
+/**
+ * The reader's whole Sheet composed from its stored slices and notes while they are current. Never
+ * while a store is queued: its readers are one-shot reads that must see the write before it.
+ */
+export async function readStoredCharacterSheet(
+  ctx: QueryCtx,
+  input: Omit<Parameters<typeof readStoredCharacterSheetSections>[1], 'sections' | 'whileQueued'>
+) {
+  const stored = await readStoredCharacterSheetSections(ctx, {
+    ...input,
+    sections: [
+      ...storedCharacterSheetSlices.map(characterSheetSection.slice),
+      characterSheetSection.notes
+    ],
+    whileQueued: false
+  })
+  if (!stored) return undefined
+  const notes = characterSheetNotesDtoSchema.parse(stored.pop())
+  return composeCharacterSheet(
+    stored.map((slice) => characterSheetSliceResponseDtoSchema.parse(slice)),
+    notes
+  )
 }
 
 /**
@@ -274,9 +347,12 @@ export async function writeCharacterSheetSections(
 ) {
   const key = (section: { viewer: string; section: string }) =>
     `${section.viewer} ${section.section}`
-  const stored = read !== undefined ? read : await readDerivationRow(ctx, characterId)
+  const [stored, checksums] = await Promise.all([
+    read !== undefined ? read : readDerivationRow(ctx, characterId),
+    readSectionChecksumsRow(ctx, characterId)
+  ])
   const storedChecksums = new Map(
-    (stored?.sections ?? []).map((section) => [key(section), section.checksum])
+    (checksums?.sections ?? []).map((section) => [key(section), section.checksum])
   )
   const sections = values.map(({ viewer, section, value }) => {
     // Projection builds each section in a fixed key order, so plain serialisation is as stable
@@ -292,20 +368,24 @@ export async function writeCharacterSheetSections(
     else await ctx.db.insert('characterSheetSections', row)
   }
   const kept = new Set(sections.map(key))
-  for (const section of stored?.sections ?? []) {
+  for (const section of checksums?.sections ?? []) {
     if (kept.has(key(section))) continue
     const existing = await readSectionRow(ctx, characterId, section.viewer, section.section)
     if (existing) await ctx.db.delete('characterSheetSections', existing._id)
   }
-  const derivation = {
-    characterId,
-    fingerprint,
-    sections: sections.map(({ viewer, section, checksum }) => ({ viewer, section, checksum }))
-  }
-  if (!stored) await ctx.db.insert('characterSheetDerivations', derivation)
-  else if (
-    stored.fingerprint !== fingerprint ||
-    checksumCanonicalJson(stored.sections) !== checksumCanonicalJson(derivation.sections)
-  )
-    await ctx.db.replace('characterSheetDerivations', stored._id, derivation)
+  const identities = sections.map(({ viewer, section, checksum }) => ({
+    viewer,
+    section,
+    checksum
+  }))
+  if (!checksums)
+    await ctx.db.insert('characterSheetSectionChecksums', { characterId, sections: identities })
+  else if (checksumCanonicalJson(checksums.sections) !== checksumCanonicalJson(identities))
+    await ctx.db.replace('characterSheetSectionChecksums', checksums._id, {
+      characterId,
+      sections: identities
+    })
+  if (!stored) await ctx.db.insert('characterSheetDerivations', { characterId, fingerprint })
+  else if (stored.fingerprint !== fingerprint)
+    await ctx.db.replace('characterSheetDerivations', stored._id, { characterId, fingerprint })
 }

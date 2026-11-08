@@ -72,7 +72,7 @@ export const characterSheetExtrasSliceDtoSchema = lazySchema(() =>
 export const characterSheetFeaturesDtoSchema = lazySchema(() =>
   z.strictObject({
     ...z.pick(characterSheetResponseDtoSchema, { meta: true }).shape,
-    resources: z.pick(characterSheetResponseDtoSchema.shape.resources, { items: true }),
+    resources: characterSheetResponseDtoSchema.shape.resources,
     reference: z.pick(characterSheetReferenceDtoSchema, {
       features: true,
       proficiencies: true,
