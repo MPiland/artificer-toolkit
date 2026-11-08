@@ -180,6 +180,12 @@ the bounded smoke (`scripts/managedSmoke.mjs`) with its signed-in SSR CPU thresh
 Fill its placeholders before asking. Then:
 
 1. Confirm every target before deployment and preserve its current deployment identifier for rollback.
+   Staging upgrades in place and is never reset or reseeded (RELEASE-3.3). Before the first promotion,
+   confirm read-only in the Convex dashboard that staging has no deployed functions and no tables (system
+   tables aside), as the [RELEASE-3.T4 readiness record](../validation/release-3-t4-upgrade-readiness-2026-11-07.md)
+   requires. If either is not empty, stop and run T4's narrowing diff first. Record the Convex source commit
+   each promotion deploys. The next promotion diffs the stored schema from that commit, ships a migration
+   for each narrowing change, and rehearses it locally before it deploys.
 2. Build the Worker staging package with
    `yarn workspace @artificer-toolkit/session-worker build:staging`; deploy only through the pinned,
    official project tooling. Record the exact commands and native exits in the promotion manifest.
