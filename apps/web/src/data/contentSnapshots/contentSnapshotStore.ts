@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { ContentSnapshotLocation } from './manifestObjects'
 import { findOption } from '#app/forms/utils/valueGuards'
+import { CLIENT_PERFORMANCE_MEASURE } from '#app/lib/clientPerformanceMeasures'
 
 /** Cache Storage holding verified snapshot objects; cleared whole at sign-out (privateContent.ts). */
 export const CONTENT_SNAPSHOT_CACHE_NAME = 'artificer-content-snapshots-v1'
@@ -92,7 +93,12 @@ export function createContentSnapshotStore(options: {
         )
         .catch(() => undefined)
     }
+    const parseStartedAt = performance.now()
     const object = JSON.parse(new TextDecoder().decode(bytes)) as ContentSnapshotObject
+    performance.measure(CLIENT_PERFORMANCE_MEASURE.CONTENT_SNAPSHOT_PARSE, {
+      start: parseStartedAt,
+      detail: { kind: header.kind, part: header.part, bytes: bytes.byteLength }
+    })
     // The hash already binds the header; this guards a manifest that names the wrong location.
     if (
       object.scope !== header.scope ||
