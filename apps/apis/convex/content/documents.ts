@@ -205,7 +205,8 @@ export async function deleteDraftPayloadByHead(
 }
 export async function canReadAuthoredRoot(
   ctx: QueryCtx,
-  root: Doc<'authoredRoots'>,
+  /** A root, or a row carrying its visibility facts (`authoredSpellClasses`). */
+  root: Pick<Doc<'authoredRoots'>, 'importJobId' | 'ownerUserId' | 'contentSourceId' | 'systemId'>,
   userId: string | null,
   currentSource?: Doc<'contentSources'>,
   currentImportJobId?: string

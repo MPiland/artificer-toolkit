@@ -371,9 +371,13 @@ exact replay also maintain strict root catalogue metadata for level, verified ma
 unique Class UUIDs and casting time. Missing or stale Spell metadata, System school identity, or
 readable same-System Class identity fails closed.
 Native Class deletion preserves the former SQL foreign-key restriction semantically:
-`authoredSpellClasses` indexes each published Spell/Class pair by both UUIDs. The shared catalogue
-publication/import transaction replaces those pairs, and active Spell deletion removes them while
-retaining any working draft. The root's optional `spellClassesIndexed: true` marker covers empty
+`authoredSpellClasses` indexes each published Spell/Class pair by both UUIDs. Each pair also
+carries the Spell's selector entry (the content-snapshot Spell index entry), its current version
+identity and the root's import job and owner (`authoredSpellClassRowSchema`), so Character Class
+lists and authoring Spell labels read the pair, not the Spell root (PERF-6.T5). Only Spells a
+Character references read their roots and compilations. The shared catalogue
+publication/import transaction replaces those pairs, so a republish rewrites every pair from the
+new root, and active Spell deletion removes them while retaining any working draft. The root's optional `spellClassesIndexed: true` marker covers empty
 Class lists too. Exact canonical replay and the existing paged catalogue backfill populate missing
 markers and pairs from validated immutable documents. Class deletion rejects while any Spell in its
 System lacks that marker, then uses the Class index to reject a surviving reference before writing.

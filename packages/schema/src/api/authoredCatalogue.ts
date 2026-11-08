@@ -15,8 +15,10 @@ import {
 import {
   contentSnapshotBackgroundIndexEntrySchema,
   contentSnapshotClassIndexEntrySchema,
-  contentSnapshotRaceIndexEntrySchema
+  contentSnapshotRaceIndexEntrySchema,
+  contentSnapshotSpellIndexEntrySchema
 } from './contentSnapshots.js'
+import { authoredCurrentSourceIdentitySchema } from './authoredPublication.js'
 
 // Derived browse and selector facts; full documents remain the mechanics input.
 export const authoredCatalogueFamilySchema = lazySchema(() =>
@@ -257,6 +259,24 @@ export const authoredCatalogueSourceCountsSchema = lazySchema(() =>
     .check(z.maxLength(8))
 )
 
+/**
+ * One Class list membership of a Spell (`authoredSpellClasses`), written with the Spell's current
+ * version: its selector entry and root identity, so a Class list reads no Spell root. Every
+ * publication, replay and removal of the Spell rewrites or deletes all of its rows.
+ */
+export const authoredSpellClassRowSchema = lazySchema(() =>
+  z.strictObject({
+    spellId: postgresUuidSchema,
+    classId: postgresUuidSchema,
+    /** The Spell root's import job and owner, which its visibility reads. */
+    importJobId: z.optional(z.string()),
+    ownerUserId: z.optional(z.string()),
+    source: authoredCurrentSourceIdentitySchema,
+    entry: contentSnapshotSpellIndexEntrySchema
+  })
+)
+
+export type AuthoredSpellClassRow = z.infer<typeof authoredSpellClassRowSchema>
 export type AuthoredCatalogueMetadata = z.infer<typeof authoredCatalogueMetadataSchema>
 export type AuthoredCatalogueSearchBackfillResult = z.infer<
   typeof authoredCatalogueSearchBackfillResultSchema

@@ -1,8 +1,11 @@
 import {
   authoredCatalogueMetadataSchema,
   authoredCatalogueOwnerCountsSchema,
+  authoredSpellClassRowSchema,
   type AuthoredCatalogueMetadata
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
+import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
@@ -167,6 +170,40 @@ export function readRootCatalogue(root: Doc<'authoredRoots'>) {
   return { ...metadata, publishedActive }
 }
 
+/** A Spell's selector facts from catalogue facts bound to its root's current label. */
+export function spellIndexEntry(
+  root: Pick<Doc<'authoredRoots'>, 'id' | 'label'>,
+  metadata: AuthoredCatalogueMetadata
+): ContentSnapshotIndexEntry<'SPELL'> {
+  if (
+    !metadata.spell ||
+    metadata.description === null ||
+    metadata.spell.selectionVersion !== 1 ||
+    metadata.nameKey !== root.label.toLowerCase()
+  )
+    throw new Error('Spell selector facts are missing or stale.')
+  const {
+    selectionVersion: _selectionVersion,
+    magicSchoolNameKey: _schoolKey,
+    ...facts
+  } = metadata.spell
+  return { id: root.id, label: root.label, ...facts, description: metadata.description }
+}
+
+/** The current version a reader of this root pins. */
+export function authoredRootSourceIdentity(
+  root: Doc<'authoredRoots'>
+): AuthoredCurrentSourceIdentity {
+  return {
+    subjectKind: root.subjectKind,
+    subjectId: root.id,
+    systemId: root.systemId,
+    contentSourceId: root.contentSourceId,
+    versionId: root.currentVersionPublicId,
+    checksum: root.checksum
+  }
+}
+
 function validateOwnerCounts(counts: Doc<'authoredCatalogueOwnerCounts'>) {
   const { _id, _creationTime, ...stored } = counts
   return authoredCatalogueOwnerCountsSchema.parse(stored)
@@ -328,9 +365,18 @@ export async function syncCatalogueMetadata(
       .collect()
     for (const row of classes)
       if (await isImportRowVisible(ctx, row.importJobId)) await ctx.db.delete(row._id)
-    for (const classId of metadata.spell.classIds) {
-      await ctx.db.insert('authoredSpellClasses', { spellId: root.id, classId })
+    const carried = {
+      spellId: root.id,
+      importJobId: root.importJobId,
+      ownerUserId: root.ownerUserId,
+      source: authoredRootSourceIdentity(root),
+      entry: spellIndexEntry(root, metadata)
     }
+    for (const classId of metadata.spell.classIds)
+      await ctx.db.insert(
+        'authoredSpellClasses',
+        storedForm(authoredSpellClassRowSchema.parse({ ...carried, classId }))
+      )
   }
   await ctx.db.patch(root._id, {
     catalogue: authoredCatalogueMetadataSchema.parse(metadata),

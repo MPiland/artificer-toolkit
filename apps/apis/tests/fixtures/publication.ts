@@ -29,8 +29,11 @@ import {
 } from '../../convex/content/publicationDocument'
 import { compileCurrentEquipment } from '../../convex/content/equipmentRelationships'
 import {
+  authoredRootSourceIdentity,
   catalogueMetadata,
+  readRootCatalogue,
   removeCatalogueMetadata,
+  spellIndexEntry,
   syncCatalogueMetadata
 } from '../../convex/content/catalogueMetadata'
 import { compileCurrentRace } from '../../convex/content/raceRelationships'
@@ -105,6 +108,38 @@ export async function importSeededSubjects(
   const result = await t.mutation(internal.content.import.importSubjects, args)
   await syncImportedDerived(t, args.subjects)
   return result
+}
+
+/**
+ * A Spell's Class list rows beside the rows its published root says they must be: one per Class
+ * the root lists, each carrying the root's selector entry, version identity and visibility facts.
+ */
+export function readSpellClassRows(t: Pick<TestConvex<typeof schema>, 'run'>, spellId: string) {
+  return t.run(async (ctx) => {
+    const root = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (query) => query.eq('id', spellId))
+      .unique()
+    const rows = (
+      await ctx.db
+        .query('authoredSpellClasses')
+        .withIndex('by_spellId', (query) => query.eq('spellId', spellId))
+        .collect()
+    )
+      .map(({ _id: _rowId, _creationTime: _created, ...row }) => row)
+      .sort((left, right) => left.classId.localeCompare(right.classId))
+    if (!root) return { rows, expected: [] }
+    const catalogue = readRootCatalogue(root)
+    const expected = [...(catalogue.spell?.classIds ?? [])].sort().map((classId) => ({
+      spellId,
+      classId,
+      importJobId: root.importJobId,
+      ownerUserId: root.ownerUserId,
+      source: authoredRootSourceIdentity(root),
+      entry: spellIndexEntry(root, catalogue)
+    }))
+    return { rows, expected }
+  })
 }
 
 export async function corruptPublishedVersionPayload(ctx: MutationCtx, subjectId: string) {

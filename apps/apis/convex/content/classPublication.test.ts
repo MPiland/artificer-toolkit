@@ -34,6 +34,7 @@ import {
   importedSubject,
   importSeededSubjects,
   publicationFixture,
+  readSpellClassRows,
   setVersionCompilation,
   versionWithCompilation
 } from '../../tests/fixtures/publication'
@@ -483,13 +484,6 @@ describe('native Class publication', () => {
       await t.mutation(internal.content.import.syncClassDerived, classDerived(subject))
     const base = await copyDraft(first.caller, fighter.id)
     await first.caller.action(publish, publicationInput(base))
-    await first.caller.mutation(api.content.drafts.save, {
-      subjectKind: 'CLASS',
-      subjectId: base.subjectId,
-      systemId: base.systemId,
-      label: base.label,
-      payload: base.payload
-    })
     const spellDraft = await first.caller.mutation(api.content.drafts.duplicate, {
       subjectKind: 'SPELL',
       subjectId: fireball.id
@@ -507,6 +501,26 @@ describe('native Class publication', () => {
       expectedDraftUpdatedAt: authoredPublishDraftInputSchema.shape.expectedDraftUpdatedAt.parse(
         linkedSpell.updatedAt
       )
+    })
+    const linkedRows = await readSpellClassRows(t, linkedSpell.subjectId)
+    expect(linkedRows.rows).toEqual(linkedRows.expected)
+    expect(linkedRows.rows.map((row) => row.classId)).toEqual([base.subjectId])
+    // A Class republish changes no Spell, so its list rows stay as their roots wrote them.
+    const republishedClass = await first.caller.mutation(api.content.drafts.save, {
+      subjectKind: 'CLASS',
+      subjectId: base.subjectId,
+      systemId: base.systemId,
+      label: base.label,
+      payload: { ...base.payload, features: [] }
+    })
+    await first.caller.action(publish, publicationInput(republishedClass))
+    expect(await readSpellClassRows(t, linkedSpell.subjectId)).toEqual(linkedRows)
+    await first.caller.mutation(api.content.drafts.save, {
+      subjectKind: 'CLASS',
+      subjectId: base.subjectId,
+      systemId: base.systemId,
+      label: base.label,
+      payload: base.payload
     })
     const snapshot = () =>
       t.run(async (ctx) => ({
@@ -571,6 +585,8 @@ describe('native Class publication', () => {
       before.versions.find((version) => version.id === linkedSpell.subjectId)
     )
     expect(after.classes).toEqual(before.classes)
+    // The Spell root keeps its Class list facts, so its row still matches it.
+    expect(await readSpellClassRows(t, linkedSpell.subjectId)).toEqual(linkedRows)
     // The list row joins Class labels from the visible entries, so the deleted Class is left off.
     expect(await readVisibleCatalogue(t, first.caller, 'SPELL', { source: 'OWNED' })).toEqual([
       expect.objectContaining({

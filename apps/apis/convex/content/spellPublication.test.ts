@@ -34,6 +34,7 @@ import {
   importedSubject,
   importSeededSubjects,
   publicationFixture,
+  readSpellClassRows,
   versionWithCompilation
 } from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
@@ -469,6 +470,37 @@ describe('native Spell publication', () => {
       version: 2,
       checksum: result.checksum
     })
+  })
+
+  it('keeps each Class list row equal to its published Spell root through republish and unpublish', async () => {
+    const { t, first } = await fixture()
+    const draft = await copyDraft(first.caller)
+    await first.caller.mutation(publish, publicationInput(draft))
+    const published = await readSpellClassRows(t, draft.subjectId)
+    expect(published.rows).toEqual(published.expected)
+    expect(published.rows.map((row) => row.classId)).toEqual([...fireball.classIds].sort())
+    const republished = await first.caller.mutation(api.content.drafts.save, {
+      subjectKind: 'SPELL',
+      subjectId: draft.subjectId,
+      systemId: draft.systemId,
+      label: 'Republished Fireball',
+      payload: { ...draft.payload, classIds: [wizard.id], description: 'Republished' }
+    })
+    await first.caller.mutation(publish, publicationInput(republished))
+    const after = await readSpellClassRows(t, draft.subjectId)
+    expect(after.rows).toEqual(after.expected)
+    expect(after.rows).toEqual([
+      expect.objectContaining({
+        classId: wizard.id,
+        entry: expect.objectContaining({
+          label: 'Republished Fireball',
+          description: 'Republished',
+          classIds: [wizard.id]
+        })
+      })
+    ])
+    await first.caller.mutation(deleteActive, { subjectKind: 'SPELL', subjectId: draft.subjectId })
+    expect(await readSpellClassRows(t, draft.subjectId)).toEqual({ rows: [], expected: [] })
   })
 
   it('publishes the depth-22 Prismatic Wall document without flattening its mechanics', async () => {

@@ -21,7 +21,8 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readRootCatalogue } from '../content/catalogueMetadata'
+import { readRootCatalogue, spellIndexEntry } from '../content/catalogueMetadata'
+import { readVisibleSpellClassRow, spellClassRowRootFacts } from '../content/spellClassRows'
 import { requireParentRoots } from '../content/relationshipReads'
 import { readSourceFacts } from '../content/sourceFacts'
 import { requireSystem } from '../content/systemDocuments'
@@ -33,6 +34,7 @@ import { isImportRowVisible } from '../imports/visibility'
 
 import {
   canReadCharacterRoot,
+  canReadCharacterSource,
   readCharacterSources,
   recordCharacterSourceIdentity,
   readCharacterSourceRoots,
@@ -94,26 +96,6 @@ export async function readCharacterStoredCompilation(ctx: QueryCtx, root: Doc<'a
       `Character source compilation is missing or stale: ${root.subjectKind} ${root.id}.`
     )
   return { checksum: root.checksum, compilation }
-}
-
-/** A Spell's selector facts from its root's checksum-bound catalogue. */
-export function readSpellIndexEntry(
-  root: Doc<'authoredRoots'>
-): ContentSnapshotIndexEntry<'SPELL'> {
-  const metadata = readRootCatalogue(root)
-  if (
-    !metadata.spell ||
-    metadata.description === null ||
-    metadata.spell.selectionVersion !== 1 ||
-    metadata.nameKey !== root.label.toLowerCase()
-  )
-    throw new Error('Character Spell selector facts are missing or stale.')
-  const {
-    selectionVersion: _selectionVersion,
-    magicSchoolNameKey: _schoolKey,
-    ...facts
-  } = metadata.spell
-  return { id: root.id, label: root.label, ...facts, description: metadata.description }
 }
 
 /** Current authorized source context; Character ownership is not a Campaign GM grant. */
@@ -269,26 +251,55 @@ export async function loadCharacterRuleContext(
     return readCharacterSourceRoots(ctx, character.systemId, sources, kind)
   }
 
-  /** The Spells on the Character's class lists plus the required ones; authorized by the caller. */
-  async function readClassListSpellRoots(
+  /**
+   * The Spells on the Character's class lists plus the required ones. A Spell's list row carries
+   * its selector entry and root identity, so an own or enabled source grants it without its root.
+   * Required Spells, Spells on no Class list and Spells only a Campaign share could grant read
+   * their roots, which the caller authorizes.
+   */
+  async function readClassListSpells(
     classSpellLists: CharacterClassSpellLists,
     requiredSpellIds: ReadonlySet<string>
   ) {
-    const spellIds = new Set([...classSpellLists.spellIds, ...requiredSpellIds])
+    // An unfinished or failed import's rows can sit beside a Spell's visible rows until cleanup.
+    const rows = new Map<string, Doc<'authoredSpellClasses'>>()
     for (const classId of classSpellLists.classIds)
       for await (const row of ctx.db
         .query('authoredSpellClasses')
         .withIndex('by_classId', (q) => q.eq('classId', classId)))
-        if (await isImportRowVisible(ctx, row.importJobId)) spellIds.add(row.spellId)
+        if (await isImportRowVisible(ctx, row.importJobId)) rows.set(row.spellId, row)
+    const rootIds = new Set(requiredSpellIds)
+    for (const id of classSpellLists.spellIds) {
+      if (rows.has(id) || rootIds.has(id)) continue
+      const row = await readVisibleSpellClassRow(ctx, id)
+      if (row) rows.set(id, row)
+      else rootIds.add(id)
+    }
+    const entries: ContentSnapshotIndexEntry<'SPELL'>[] = []
+    for (const [id, row] of rows) {
+      if (rootIds.has(id)) continue
+      if (
+        await canReadCharacterSource(
+          ctx,
+          spellClassRowRootFacts(row),
+          character.systemId,
+          userId,
+          sources
+        )
+      ) {
+        sourceIdentities.set(id, row.source)
+        entries.push(row.entry)
+      } else if (sources.campaign !== null) rootIds.add(id)
+    }
     const roots = await Promise.all(
-      [...spellIds].map(async (id) => {
+      [...rootIds].map(async (id) => {
         const root = await readRootById(id)
         return root?.subjectKind === 'SPELL' && (await isImportRowVisible(ctx, root.importJobId))
           ? root
           : null
       })
     )
-    return roots.filter((root) => root !== null)
+    return { entries, roots: roots.filter((root) => root !== null) }
   }
 
   const prepared = await prepareCharacterRuleContext(character, system, previousSources, {
@@ -332,14 +343,17 @@ export async function loadCharacterRuleContext(
           const root = await readRootById(id)
           if (spell?.subjectKind !== 'SPELL' || !root) continue
           spells.push(spell)
-          entries.push(readSpellIndexEntry(root))
+          entries.push(spellIndexEntry(root, readRootCatalogue(root)))
         }
         return { entries, publications: spells }
       }
-      const catalogueRoots =
-        spellCatalogue === 'complete'
-          ? await visibleRoots('SPELL')
-          : await readClassListSpellRoots(classSpellLists, requiredSpellIds)
+      let catalogueRoots: Doc<'authoredRoots'>[]
+      if (spellCatalogue === 'complete') catalogueRoots = await visibleRoots('SPELL')
+      else {
+        const listed = await readClassListSpells(classSpellLists, requiredSpellIds)
+        entries.push(...listed.entries)
+        catalogueRoots = listed.roots
+      }
       for (const root of catalogueRoots) {
         if (
           !(await canReadCharacterRoot(
@@ -352,7 +366,7 @@ export async function loadCharacterRuleContext(
           ))
         )
           continue
-        entries.push(readSpellIndexEntry(root))
+        entries.push(spellIndexEntry(root, readRootCatalogue(root)))
         if (requiredSpellIds.has(root.id)) {
           const spell = await readRuleRoot(root)
           if (spell?.subjectKind === 'SPELL') spells.push(spell)
