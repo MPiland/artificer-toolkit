@@ -16,7 +16,7 @@ const evidencePath =
 // notification feed and a settings page. Every child inherits `defaultSsr: false`; the sample covers
 // each loader shape that could regress it. Entity detail routes need fixtures and share these loaders'
 // mechanism, so they are covered by the static policy test (-ssrPolicy.test.ts).
-const signedInPaths = (systemId: string) => [
+export const signedInPaths = (systemId: string) => [
   '/home',
   '/systems',
   `/systems/${systemId}`,

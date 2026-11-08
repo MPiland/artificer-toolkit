@@ -173,7 +173,11 @@ It is idempotent. A Campaign with its final `Review data ready` Session is skipp
 ## Staging promotion
 
 After R08 and the local V15 portion are green, request authorization naming the exact Convex, web,
-Worker, R2, and email targets plus the final local manifest. Then:
+Worker, R2, and email targets plus the final local manifest. The
+[RELEASE-3.T1 promotion packet](../validation/release-3-t1-promotion-packet-2026-11-07.md) holds the
+target list, the read-only rollback captures to run first, the Worker staging package evidence, and
+the bounded smoke (`scripts/managedSmoke.mjs`) with its signed-in SSR CPU thresholds (D75, gate C2).
+Fill its placeholders before asking. Then:
 
 1. Confirm every target before deployment and preserve its current deployment identifier for rollback.
 2. Build the Worker staging package with
@@ -187,7 +191,9 @@ Worker, R2, and email targets plus the final local manifest. Then:
 3. Verify managed environment variables, secrets, private R2 permissions/CORS, Resend delivery,
    Worker admission, public-network behavior, and the unchanged managed V15 workload.
 4. Run one bounded R09 smoke against disposable fixtures and remove those fixtures through the product.
-   Do not reset, patch, tune, or iteratively debug application behavior in staging.
+   `node scripts/managedSmoke.mjs run` then `evaluate` does this and the cold-isolate signed-in SSR CPU
+   measurement; it refuses without an explicit staging web origin. Do not reset, patch, tune, or
+   iteratively debug application behavior in staging.
 
 A correctness failure returns to local implementation and the complete affected local lifecycle before
 another promotion attempt. A managed integration/configuration failure may be corrected in the owning

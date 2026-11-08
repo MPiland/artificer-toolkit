@@ -124,7 +124,9 @@ export type AdminCall = (
 ) => Promise<unknown>
 
 /** Calls a deployment function with the managed admin key, which stays in memory and out of errors. */
-export function managedAdminCall(target: ReviewTarget & { mode: 'managed' }): AdminCall {
+export function managedAdminCall(
+  target: Pick<ReviewTarget & { mode: 'managed' }, 'deploymentUrl' | 'adminKey'>
+): AdminCall {
   return async (name, args, component = false) => {
     assert.match(name, /^[\w./-]+:[\w]+$/, 'The admin function name is invalid.')
     const response = await fetch(new URL('/api/function', target.deploymentUrl), {
