@@ -24523,9 +24523,10 @@
             {
               "id": "PERF-6.1",
               "text": "The functions that brush the 1 s limit on CI (characterSheetStore, sheetSlices:get, basics, classPublication:readSourceRows, accountDeparture:step, and any other function over 500 ms in the last three full Tests runs) are profiled, with each one's time split into module load, documents and bytes read, and JavaScript compute, and the findings recorded under docs/validation/.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "User approved 2026-11-07: the near-limit timeouts are a design smell to fix, not CI noise to rerun."
+              "note": "User approved 2026-11-07: the near-limit timeouts are a design smell to fix, not CI noise to rerun.",
+              "proof": ["Closed by PERF-6.T1 (m656); see its proof."]
             },
             {
               "id": "PERF-6.2",
@@ -24552,7 +24553,7 @@
           "tasks": [
             {
               "id": "PERF-6.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.1"],
               "wsjf": {
                 "bv": 8,
@@ -24562,7 +24563,11 @@
                 "finalSource": true
               },
               "text": "Profile the near-limit Convex functions from the last three full Tests runs' convex-function logs and on the local Docker backend; split each one's time into module load, documents/bytes read and compute; record the findings and a per-function fix proposal in docs/validation/perf-6-t1-hot-function-profile-2026-11-07.md. Fix tasks are registered from the findings.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "docs/validation/perf-6-t1-hot-function-profile-2026-11-07.md (native capture of Browser journeys m650-m652, 182,687 completions; module floors; convex-test split; ten ranked fixes with budgets)",
+                "Green on edf719280: Tests and Browser journeys; merged 2b25f406e (m656, merge-slice run 42446854573; m654 refused on the activeReads:active timeout, rerun green)"
+              ]
             },
             {
               "id": "PERF-6.T2",
