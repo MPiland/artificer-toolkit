@@ -13,6 +13,8 @@ import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterStat
 import { EQUIPMENT_PROPERTY_CODE, nextEquipSlot } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { pinnedRetainedRulesJson } from '@artificer-toolkit/rules-runtime/testing/pinnedRetainedRules'
+import { resolveCharacterRecordSummary } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import type { ClassAuthored, EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -356,6 +358,18 @@ export function characterOwnerRowFor({
           streamVersion: capturedPage.inputs.streamVersion,
           maximumHitPoints,
           speeds: fixtureSpeeds,
+          ...resolveCharacterRecordSummary({
+            summary: {
+              totalLevel: classLevel,
+              classes: [
+                {
+                  classLabel: (characterClass ?? fighter).label,
+                  classLevel,
+                  ...(characterSubclass && { subclassLabel: characterSubclass.label })
+                }
+              ]
+            }
+          }),
           state: play,
           checksum: checksumRuleDocument(play),
           updatedAt

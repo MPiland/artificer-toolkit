@@ -10,7 +10,7 @@ import { createCampaignDetail } from '../campaignDetail.fixtures'
 import { CampaignParty } from './CampaignParty'
 
 const names = {
-  basics: getFunctionName(convexApi.campaigns.characterSheet.basics),
+  basics: getFunctionName(convexApi.campaigns.characterBasics.get),
   sheetSlice: getFunctionName(convexApi.characters.sheetSlices.get)
 }
 

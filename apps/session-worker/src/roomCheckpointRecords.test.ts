@@ -81,6 +81,8 @@ const characterPlay = (): RoomDocument => ({
     streamVersion: 7,
     maximumHitPoints: 10,
     speeds: [{ speedId: uuid(5), amount: 30, unit: 'FEET' }],
+    classSummary: 'Fighter 1',
+    totalLevel: 1,
     state: {
       hitpoints: { current: 10, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],

@@ -133,6 +133,8 @@ describe('Character play state split', () => {
       streamVersion: 1,
       maximumHitPoints: 10,
       speeds: [{ speedId: '00000000-0000-4000-8000-000000000003', amount: 30, unit: 'FEET' }],
+      classSummary: 'Fighter 1',
+      totalLevel: 1,
       state,
       checksum: checksumRuleDocument(state),
       updatedAt: '2026-09-29T00:00:00.000Z'

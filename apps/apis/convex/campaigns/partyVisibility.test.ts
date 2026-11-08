@@ -6,10 +6,8 @@ import type {
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/schema/api/campaignLiveState'
-import type {
-  CampaignCharacterBasicsDto,
-  campaignCharacterSheetExecuteInputSchema
-} from '@artificer-toolkit/schema/api/campaignCharacterSheet'
+import type { campaignCharacterSheetExecuteInputSchema } from '@artificer-toolkit/schema/api/campaignCharacterSheet'
+import type { CampaignCharacterBasicsDto } from '@artificer-toolkit/schema/api/campaignCharacterBasics'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type {
   CharacterSheetCommandResponseDto,
@@ -19,7 +17,11 @@ import type { CharacterPartyVisibilityDto } from '@artificer-toolkit/schema/api/
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
-import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import type { QueryCtx } from '../_generated/server'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
+import { handlerOf, inOwnTransaction } from '../../tests/fixtures/queryTransaction'
+import { get as basicsQuery } from './characterBasics'
+import { createPartyPlayer, createPartyUser } from '../../tests/fixtures/partyPlayer'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -34,7 +36,7 @@ const basics = makeFunctionReference<
   'query',
   z.input<typeof listCampaignAdjustmentsInputSchema>,
   CampaignCharacterBasicsDto
->('campaigns/characterSheet:basics')
+>('campaigns/characterBasics:get')
 const execute = makeFunctionReference<
   'mutation',
   z.input<typeof campaignCharacterSheetExecuteInputSchema>,
@@ -212,6 +214,13 @@ describe('Party can view (ADR 0034 decision 5)', () => {
       )
       expect(roster).toEqual(expected)
     }
+    // The stored roster fields are the Sheet identity's own derivation, written at Builder commit.
+    const { identity } = await player.caller.query(get, input)
+    expect(await gm.caller.query(basics, input)).toMatchObject({
+      label: identity.label,
+      classSummary: identity.classSummary,
+      totalLevel: identity.totalLevel
+    })
     await setVisibility({ sheet: true, health: 'HIDDEN' })
     expect(await party.caller.query(basics, input)).toEqual({ ...expected, sheetVisible: true })
 
@@ -227,5 +236,62 @@ describe('Party can view (ADR 0034 decision 5)', () => {
       ctx.db.patch(outsider!._id, { status: 'LEFT', leftAt: new Date().toISOString() })
     )
     await expect(party.caller.query(basics, input)).rejects.toThrow()
+  }, 60_000)
+
+  it('refuses the roster basics to a non-member and for a Character not assigned here', async () => {
+    const { t, gm, player, input } = await setup()
+    const stranger = await createPartyUser(t, {
+      username: 'Stranger',
+      email: 'stranger-roster@example.invalid'
+    })
+    await expect(stranger.caller.query(basics, input)).rejects.toThrow('Campaign not found')
+
+    const assignment = await t.run(async (ctx) =>
+      ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_characterId', (q) => q.eq('characterId', input.characterId))
+        .unique()
+    )
+    await t.run((ctx) => ctx.db.delete(assignment!._id))
+    for (const member of [gm, player])
+      await expect(member.caller.query(basics, input)).rejects.toThrow(
+        'Assigned Character not found.'
+      )
+  }, 60_000)
+
+  // PERF-6.T2: the roster subscribes one basics query per assigned Character. It derived the whole
+  // Sheet (System, sources, effects) for four fields, so every write reran each subscription at the
+  // Sheet's cost. It reads the caller's profile, the Campaign's authority, the assignment, the
+  // Character head and its play record, and nothing else.
+  it('reads only authority, the assignment, the head and the play record', async () => {
+    const { party, input } = await setup()
+    const handler = handlerOf<CampaignCharacterBasicsDto>(basicsQuery)
+    const totals = createDatabaseIoTotals()
+    const roster = await party.caller.run((ctx) =>
+      handler(
+        inOwnTransaction(
+          ctx as unknown as QueryCtx,
+          countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+        ),
+        input
+      )
+    )
+    expect(roster.characterId).toBe(input.characterId)
+    expect(
+      Object.fromEntries(
+        Object.entries(totals.reads.byTable).map(([table, entry]) => [table, entry.documents])
+      )
+    ).toEqual({
+      userProfiles: 1,
+      authoredRouteIds: 1,
+      campaigns: 1,
+      campaignMemberships: 1,
+      campaignCharacterAssignments: 1,
+      characters: 1,
+      characterPlayStates: 1
+    })
+    // Six for the query's own read set plus the caller's profile, which every authenticated query reads.
+    expect(totals.reads.documents).toBeLessThanOrEqual(7)
+    expect(totals.reads.bytes).toBeLessThanOrEqual(10 * 1024)
   }, 60_000)
 })

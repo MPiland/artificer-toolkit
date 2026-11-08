@@ -1,12 +1,10 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/schema/api/campaignLiveState'
 import {
-  campaignCharacterBasicsDtoSchema,
   campaignCharacterSheetExecuteInputSchema,
   campaignCharacterSheetPanelInputSchema,
   campaignCharacterRestPreviewInputSchema,
-  campaignCharacterSheetRollInputSchema,
-  type CampaignCharacterBasicsDto
+  campaignCharacterSheetRollInputSchema
 } from '@artificer-toolkit/schema/api/campaignCharacterSheet'
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { characterSheetResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
@@ -90,29 +88,6 @@ export const get = query({
         party ? { ...current.campaignContext, viewer: 'PARTY_MEMBER' } : current.campaignContext
       )
     )
-  }
-})
-
-/** Public roster basics (name, level, class) for any active member (ADR 0034 decision 5). */
-export const basics = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(campaignCharacterBasicsDtoSchema),
-  handler: async (ctx, args): Promise<CampaignCharacterBasicsDto> => {
-    const { userId } = await requireIdentity(ctx)
-    const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
-    const { current } = await readCampaignCharacterSheetForMember(
-      ctx,
-      userId,
-      campaignId,
-      characterId
-    )
-    return campaignCharacterBasicsDtoSchema.parse({
-      characterId: current.active.id,
-      label: current.sheet.identity.label,
-      classSummary: current.sheet.identity.classSummary,
-      totalLevel: current.sheet.identity.totalLevel,
-      sheetVisible: current.sheetState.partyVisibility.sheet
-    })
   }
 })
 

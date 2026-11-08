@@ -2,6 +2,7 @@
 import { buildSync } from 'esbuild'
 import { globSync, readFileSync } from 'node:fs'
 import { basename, join, sep } from 'node:path'
+import vm from 'node:vm'
 import { expect, it } from 'vitest'
 
 // Convex evaluates a function's whole module graph on every call (D59), so each function pays for
@@ -18,22 +19,25 @@ const functionEntries = globSync('**/*.ts', { cwd: import.meta.dirname })
     return !file.startsWith('_generated/') && base !== 'schema.ts' && base.split('.').length === 2
   })
 
-function zodInputs(entry: string) {
+function bundleOptions(entry: string) {
   const usesNode = /^(['"])use node\1/m.test(readFileSync(join(import.meta.dirname, entry), 'utf8'))
-  const bundle = buildSync({
+  return {
     absWorkingDir: import.meta.dirname,
     entryPoints: [`./${entry}`],
     bundle: true,
-    platform: usesNode ? 'node' : 'browser',
+    platform: usesNode ? ('node' as const) : ('browser' as const),
     external: usesNode ? convexConfig.node.externalPackages : [],
-    format: 'esm',
+    format: 'esm' as const,
     minifySyntax: true,
     minifyIdentifiers: true,
     conditions: ['source'],
-    write: false,
-    metafile: true,
-    logLevel: 'silent'
-  })
+    write: false as const,
+    logLevel: 'silent' as const
+  }
+}
+
+function zodInputs(entry: string) {
+  const bundle = buildSync({ ...bundleOptions(entry), metafile: true })
   return Object.entries(Object.values(bundle.metafile.outputs)[0].inputs)
     .map(([input, { bytesInOutput }]) => ({
       path: `/${input.replaceAll('\\', '/')}`,
@@ -65,4 +69,47 @@ it.each([
   expect(
     zodInputs(entry).reduce((total, { bytesInOutput }) => total + bytesInOutput, 0)
   ).toBeLessThan(120 * 1024)
+})
+
+// A module's floor is its top-level evaluation, which every call pays before its handler runs. An
+// isolate reuses compiled code, so each run evaluates the bundle in a fresh context from a warm code
+// cache, and the fastest of 12 runs is the floor (the PERF-6.T1 method).
+function moduleFloorMs(entry: string) {
+  const code = buildSync({ ...bundleOptions(entry), format: 'iife' }).outputFiles[0].text
+  const cachedData = new vm.Script(code, { produceCachedData: true }).createCachedData()
+  const runs = Array.from({ length: 12 }, () => {
+    const context = vm.createContext({
+      console,
+      TextEncoder,
+      TextDecoder,
+      URL,
+      URLSearchParams,
+      crypto,
+      structuredClone,
+      atob,
+      btoa,
+      setTimeout,
+      clearTimeout,
+      queueMicrotask,
+      Response,
+      Request,
+      Headers,
+      fetch,
+      performance,
+      AbortController,
+      Blob,
+      ReadableStream,
+      process: { env: {} }
+    })
+    const startedAt = performance.now()
+    new vm.Script(code, { cachedData }).runInContext(context)
+    return performance.now() - startedAt
+  })
+  return Math.min(...runs)
+}
+
+// The party roster subscribes one basics query per assigned Character. Inside the Sheet module it paid
+// the Sheet graph's 104-144 ms floor on every run (PERF-6.T2).
+it.each(['campaigns/characterBasics.ts'])('keeps the %s module floor within 20 ms', (entry) => {
+  expect(moduleFloorMs(entry)).toBeLessThanOrEqual(20)
 })
