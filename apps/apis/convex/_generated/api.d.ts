@@ -7351,6 +7351,7 @@ export declare const api: {
             vehicleId: string;
           }>;
           eventId: string;
+          pendingCharacterReconcileIds?: Array<string>;
           pendingVehicleCleanupIds?: Array<string>;
           removedShares: Array<{
             sharedBy: string;
@@ -305234,6 +305235,46 @@ export declare const internal: {
         null
       >;
     };
+    characterReconcileSteps: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          actorUserId: string;
+          campaignId: string;
+          change:
+            | {
+                kind: "SOURCES_REMOVED";
+                removalEventId: string;
+                removed: Array<{
+                  subjectId: string;
+                  subjectKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "CREATURE"
+                    | "EQUIPMENT"
+                    | "FEAT"
+                    | "RACE"
+                    | "SPELL"
+                    | "VEHICLE";
+                }>;
+              }
+            | { kind: "DEPARTED" };
+          characterId: string;
+          persistedContextChange: boolean;
+          reason:
+            | "UNSHARE"
+            | "MEMBER_LEFT"
+            | "MEMBER_REMOVED"
+            | "CHARACTER_REPLACED"
+            | "CHARACTER_UNASSIGNED"
+            | "CHARACTER_DELETED"
+            | "CAMPAIGN_DELETED";
+          stepId: string;
+        },
+        null
+      >;
+    };
     clockGrantExpiry: {
       endExpired: FunctionReference<
         "mutation",
@@ -305326,6 +305367,7 @@ export declare const internal: {
             vehicleId: string;
           }>;
           eventId: string;
+          pendingCharacterReconcileIds?: Array<string>;
           pendingVehicleCleanupIds?: Array<string>;
           removedShares: Array<{
             sharedBy: string;
