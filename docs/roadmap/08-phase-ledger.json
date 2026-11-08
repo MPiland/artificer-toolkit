@@ -24667,23 +24667,30 @@
             },
             {
               "id": "PERF-6.T9",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
-                "bv": 3,
-                "tc": 3,
-                "rr": 5,
-                "size": 1,
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
                 "after": ["PERF-6.T1"],
                 "finalSource": true
               },
-              "text": "Profile fix 10: profile authoring/nodeRuntime:resolve (714 documents at p50) and encounters/activeReads:active (CPU), set their read budgets and register fixes if they miss the PERF-6.2 targets."
+              "text": "Profile fix 10, raised 2026-11-07: encounters/activeReads:active times out over 1 s in the movement and passage Browser journeys (T8 run 42440987364 first attempt, merge batch 42443398777), blocking merges. Profile it (CPU and reads), fix it at the cause with a deterministic convex-test budget that fails before the fix (CI user p95 <= 250 ms, 0 timeouts). Record nodeRuntime:resolve (714 documents at p50) read profile and a proposed budget; register its fix if it misses the PERF-6.2 targets.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T10",
               "status": "TODO",
               "closes": ["PERF-6.3"],
-              "wsjf": { "bv": 5, "tc": 3, "rr": 5, "size": 2, "finalSource": true },
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "finalSource": true
+              },
               "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run, alongside the D210 wall-clock evidence."
             }
           ]
@@ -25080,8 +25087,10 @@
             {
               "id": "RELEASE-3.3",
               "text": "Staging upgrades in place: every stored-schema change that narrows what staging already holds since its deployed source ships a migration, proved by a local rehearsal that deploys the release over staging-shaped data and runs the migrations; promotion and re-promotion never reset or reseed staging.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-3.T4 (m655); see its proof. Re-promotions follow docs/validation/release-3-t4-upgrade-readiness-2026-11-07.md#later-promotions."
+              ],
               "origin": ["User approval 2026-11-03 (D187 growth)"]
             }
           ],
@@ -25141,8 +25150,7 @@
             },
             {
               "id": "RELEASE-3.T4",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["RELEASE-3.3"],
               "wsjf": {
                 "bv": 5,
@@ -25152,7 +25160,14 @@
                 "after": ["RELEASE-3.T1"],
                 "finalSource": true
               },
-              "text": "Upgrade-in-place readiness: diff the stored Convex schema between staging's deployed source (from RELEASE-3.T1's prior deployment ids) and the release source; list every narrowing change; add a migration for each that lacks one; rehearse locally by deploying staging's source to the local container, building data in that shape, deploying the release on top and running the migrations to completion with the SRD audit green. Local only."
+              "text": "Upgrade-in-place readiness: diff the stored Convex schema between staging's deployed source (from RELEASE-3.T1's prior deployment ids) and the release source; list every narrowing change; add a migration for each that lacks one; rehearse locally by deploying staging's source to the local container, building data in that shape, deploying the release on top and running the migrations to completion with the SRD audit green. Local only.",
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "docs/validation/release-3-t4-upgrade-readiness-2026-11-07.md (staging beaming-pig-820 holds no source or data, user-confirmed 2026-11-07; no narrowing change possible; the rehearsal is the D213 Live run 42423478779 on ccc73867e, a fresh deploy onto an empty backend)",
+                "T2 pre-flight added to the T1 packet and the release runbook: read-only check that staging has no functions and no tables, else stop and run the narrowing diff",
+                "Green on fb97c0309: Tests 42443383793, Browser journeys 42443383775; merged (m655, merge-slice run 42444582369, merge 812ac1f7c)"
+              ],
+              "note": "Reduced path (user confirmed staging was never deployed or seeded, 2026-11-07): no local rehearsal for an empty target; later promotions follow the readiness record procedure."
             }
           ]
         },
@@ -25357,9 +25372,9 @@
         {
           "id": "RELEASE-8",
           "title": "Review data for the owner's UI review",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": [],
           "acs": [
             {
@@ -25372,8 +25387,10 @@
             },
             {
               "text": "Before staging promotion, an agent smoke-checks every review Campaign's surfaces on the final local build and fixes or registers findings; the owner's acceptance happens through staging UAT, not a local review.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-8.T2, RELEASE-8.T7, RELEASE-8.T8 (m653, m655); see each task's proof."
+              ],
               "origin": [],
               "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback.",
               "id": "RELEASE-8.2"
@@ -25481,7 +25498,7 @@
             },
             {
               "id": "RELEASE-8.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-8.2"],
               "wsjf": {
                 "bv": 5,
@@ -25492,8 +25509,12 @@
                 "finalSource": true
               },
               "text": "After the final reset, run the review-data script against the local container and walk each review Campaign's surfaces in the Browser pane (Builder, Sheet, Scene, Encounter, live turn); fix or register findings and record the checked build identity. Agent-run; no owner sign-off (that is staging UAT).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback. Findings: F1 fixed by RELEASE-8.T7; F6 fixed by RELEASE-8.T8; F3 to future-enhancements; F4 and F5 re-checked at staging UAT; F2 (seed-fixture copy labels in apps/apis/tests/developmentCharacterFixture.ts) is local dev tooling (labels appended with the Character id, probably for per-owner uniqueness); its fix is handled outside the ledger.",
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "docs/validation/release-8-t2-local-review-walk-2026-11-07.md (walk 1 on 7e0de0d3a, re-walk on ff1fc5c3f with RELEASE-8.T7; every review Campaign Scene, Encounter and live turn, Builder new draft and three Sheets pass)",
+                "Merged (m655, merge-slice run 42444582369, merge 812ac1f7c)"
+              ]
             },
             {
               "id": "RELEASE-8.T7",
@@ -25517,8 +25538,7 @@
             },
             {
               "id": "RELEASE-8.T8",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["RELEASE-8.2"],
               "wsjf": {
                 "bv": 8,
@@ -25529,7 +25549,14 @@
                 "finalSource": true
               },
               "text": "Fix RELEASE-8.T2 finding F6: on the live tabletop the remaining-movement readout (D37 'Movement X / 30 ft') stays stale after a bound VOLUNTARY move until a reload. The server records the move (reload shows it), but the client's room encounter session state (useCampaignLiveSession heldEncounterSession, read by CampaignVttStage readActiveTurn) is not refreshed after MOVE_SCENE_TOKEN. Find whether the room omits the encounter-state push or the client drops it, fix it at that layer, and prove it with a test that fails before the fix.",
-              "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (GM drag of the current Goblin: frame VOLUNTARY with expectedEncounterVersion 7; readout 5 ft before reload, 20 ft after). Bug fix blocking AC RELEASE-8.2; no new scope. Diagnosis 2026-11-07: not a stale view. The ENCOUNTER_SESSION push arrives 14.5-17 s late because the first command after a Session DO wake reloads every content-snapshot object once per manifest (153 sequential R2 fetches, 15.1 s; roomInputs.ts #readContent, roomContentSnapshots.ts:88-157). Ruling: load each object once per sha256 across manifests with bounded parallelism, proved by a GET-counting Worker test; DO SQLite persistence only if wake latency stays over budget afterwards."
+              "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (GM drag of the current Goblin: frame VOLUNTARY with expectedEncounterVersion 7; readout 5 ft before reload, 20 ft after). Bug fix blocking AC RELEASE-8.2; no new scope. Diagnosis 2026-11-07: not a stale view. The ENCOUNTER_SESSION push arrives 14.5-17 s late because the first command after a Session DO wake reloads every content-snapshot object once per manifest (153 sequential R2 fetches, 15.1 s; roomInputs.ts #readContent, roomContentSnapshots.ts:88-157). Ruling: load each object once per sha256 across manifests with bounded parallelism, proved by a GET-counting Worker test; DO SQLite persistence only if wake latency stays over budget afterwards. Cause: the readout was not stale; the push arrived 14-17 s late because the first command after a Session DO wake read ~153 content snapshot objects one by one. Fix (option A): RoomContentSnapshots reads each object once by sha256 across manifests with bounded concurrency. Option B (DO SQLite persistence) not needed unless staging wake latency stays over budget. Follow-up diagnosis of a local replacement-epoch reconnect loop went to future-enhancements (deferred edge case; needs two DO storages on one Convex).",
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "apps/session-worker/src/roomInputs.test.ts (hydrate then wake over a read-counting R2: 6 reads before, 2 after; no Convex reads on the first command after wake)",
+                "apps/session-worker/src/roomContentSnapshots.test.ts (shared objects read once across manifests, at most 6 at a time; failed reads retried on the next load)",
+                "apps/session-worker/test/nativeRoomTurnMovementPush.test.ts",
+                "Green on b65796b93: Tests 42440972912, full Browser journeys dispatch 42440987364; merged (m655, merge-slice run 42444582369, merge 812ac1f7c)"
+              ]
             },
             {
               "id": "RELEASE-8.T5",
@@ -25566,7 +25593,8 @@
               "proof": ["docs/validation/uat/TESTERS.md"],
               "note": "Merged 2026-11-03 (m632, merge-slice run 41734787118). Docs-only: TESTERS.md tester guide, linked from the UAT Start here page; no passwords in the repository."
             }
-          ]
+          ],
+          "internalReason": "Review data and an agent smoke walk for the owner; the owner accepts the play surfaces through staging UAT, whose scenarios are the journeys."
         }
       ]
     }
