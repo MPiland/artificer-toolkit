@@ -25335,6 +25335,21 @@
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
+              "id": "RELEASE-8.T8",
+              "status": "TODO",
+              "closes": ["RELEASE-8.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": ["RELEASE-8.T2"],
+                "finalSource": true
+              },
+              "text": "Fix RELEASE-8.T2 finding F6: on the live tabletop the remaining-movement readout (D37 'Movement X / 30 ft') stays stale after a bound VOLUNTARY move until a reload. The server records the move (reload shows it), but the client's room encounter session state (useCampaignLiveSession heldEncounterSession, read by CampaignVttStage readActiveTurn) is not refreshed after MOVE_SCENE_TOKEN. Find whether the room omits the encounter-state push or the client drops it, fix it at that layer, and prove it with a test that fails before the fix.",
+              "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (GM drag of the current Goblin: frame VOLUNTARY with expectedEncounterVersion 7; readout 5 ft before reload, 20 ft after). Bug fix blocking AC RELEASE-8.2; no new scope."
+            },
+            {
               "id": "RELEASE-8.T5",
               "status": "DONE",
               "closes": ["RELEASE-8.4"],
