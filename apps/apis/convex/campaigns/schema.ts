@@ -64,6 +64,15 @@ export const campaignTables = {
     liveAuthorityId: v.optional(v.id('campaignLiveAuthorities'))
   }).index('by_campaignId', ['campaignId']),
   ...vehicleCleanupTables,
+  /** A queued Character reconcile step (PERF-6.T6). Its step deletes the row when it commits. */
+  campaignCharacterReconciles: defineTable({
+    stepId: v.string(),
+    scheduledId: v.id('_scheduled_functions'),
+    /** Runs queued so far, the first included. */
+    attempts: v.number(),
+    /** Set once the last allowed run failed: the step stays pending and is not queued again. */
+    exhaustedAt: v.optional(v.string())
+  }).index('by_stepId', ['stepId']),
   campaignLiveAuthorities: defineTable({
     campaignId: zodToConvex(postgresUuidSchema),
     epoch: zodToConvex(postgresUuidSchema),

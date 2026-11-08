@@ -728,12 +728,14 @@ describe('native Campaign custody deletion', () => {
       const sheetStore = 'characters/sheetSectionDerivation:store'
       const sheetCheck = 'characters/sheetSectionDerivation:verify'
       const reconcileStep = 'campaigns/characterReconcileSteps:run'
+      const reconcileCheck = 'campaigns/characterReconcileSteps:verify'
       const unrelated = (row: (typeof after.scheduled)[number]) =>
         row.name !== roomControl &&
         row.name !== snapshotBuild &&
         row.name !== sheetStore &&
         row.name !== sheetCheck &&
-        row.name !== reconcileStep
+        row.name !== reconcileStep &&
+        row.name !== reconcileCheck
       expect(
         after.scheduled.filter(
           (row) => !row.name?.startsWith('campaigns/deletionJobs:') && unrelated(row)
@@ -756,6 +758,19 @@ describe('native Campaign custody deletion', () => {
             reason: 'CAMPAIGN_DELETED',
             state: 'success'
           }))
+      )
+      // Each step's check found its step settled and queued nothing more.
+      expect(
+        after.scheduled
+          .filter((row) => row.name === reconcileCheck)
+          .map((row) => ({
+            characterId: rowString(row.args[0], 'characterId'),
+            state: row.state.kind
+          }))
+      ).toEqual(
+        before.tables.campaignCharacterAssignments
+          ?.filter((row) => rowString(row, 'campaignId') === target.id)
+          .map((row) => ({ characterId: rowString(row, 'characterId'), state: 'success' }))
       )
       // Leaving the Campaign changes the Character's Sheet fingerprint, so the deletion queues its
       // derivation (D215); each later queuing write in the same deletion replaces the one before.

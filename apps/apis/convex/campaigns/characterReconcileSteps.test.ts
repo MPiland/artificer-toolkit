@@ -37,7 +37,7 @@ import {
 import { handlerOf } from '../../tests/fixtures/queryTransaction'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { unassign } from './assignments'
-import { run } from './characterReconcileSteps'
+import { CHARACTER_RECONCILE_ATTEMPTS, run, verify } from './characterReconcileSteps'
 import { unshare } from './contentShareRemoval'
 import { removeMember } from './membershipDeparture'
 
@@ -83,6 +83,79 @@ async function queuedSteps(caller: Transaction) {
       (job) => job.name === 'campaigns/characterReconcileSteps:run' && job.state.kind === 'pending'
     )
     .map((job) => campaignCharacterReconcileStepSchema.parse(job.args[0]))
+}
+
+/** The states of the step's runs, in the order they were queued. */
+async function stepRuns(caller: Transaction, stepId: string) {
+  return (await caller.run((ctx) => ctx.db.system.query('_scheduled_functions').collect()))
+    .filter(
+      (job) =>
+        job.name === 'campaigns/characterReconcileSteps:run' &&
+        campaignCharacterReconcileStepSchema.parse(job.args[0]).stepId === stepId
+    )
+    .map((job) => job.state.kind)
+}
+
+function pendingStep(caller: Transaction, stepId: string) {
+  return caller.run((ctx) =>
+    ctx.db
+      .query('campaignCharacterReconciles')
+      .withIndex('by_stepId', (q) => q.eq('stepId', stepId))
+      .unique()
+  )
+}
+
+/** A second row with the Campaign's id, so a step's Campaign read fails; the returned call repairs it. */
+async function breakSteps(caller: Transaction, campaignId: string) {
+  const duplicate = await caller.run(async (ctx) => {
+    const row = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', campaignId))
+      .unique()
+    if (!row) throw new Error('Missing Campaign.')
+    const { _id, _creationTime, ...fields } = row
+    return ctx.db.insert('campaigns', fields)
+  })
+  return () => caller.run((ctx) => ctx.db.delete(duplicate))
+}
+
+/** Five attuned clubs, over the System's limit of three, which a departed Character's step trims. */
+async function overAttune(base: Awaited<ReturnType<typeof readySheetFixture>>) {
+  const itemIds = Array.from({ length: 5 }, () => crypto.randomUUID())
+  await base.t.run((ctx) =>
+    editCharacterRecord(ctx, base.character.id, (document) => ({
+      ...document,
+      state: {
+        ...document.state,
+        equipment: {
+          ...document.state.equipment,
+          inventory: [
+            ...document.state.equipment.inventory,
+            ...itemIds.map((id) => ({ id, equipmentId: club.id, quantity: 1 }))
+          ],
+          attuned: itemIds
+        }
+      }
+    }))
+  )
+  return itemIds
+}
+
+async function readAttuned(base: Awaited<ReturnType<typeof readySheetFixture>>) {
+  return readCharacterRecord((await base.readState()).character!).state.equipment.attuned
+}
+
+/** An over-attuned Character unassigned from a fresh Campaign, with its DEPARTED step queued and held. */
+async function departedStep() {
+  const base = await readySheetFixture()
+  const campaign = await gmCampaign(base)
+  await seatPlayer(base, campaign, base.owner.userId, base.character.id)
+  const itemIds = await overAttune(base)
+  holdScheduledWork()
+  await measure(base.owner.caller, unassign, { campaignId: campaign.id })
+  const [step, ...others] = await queuedSteps(base.t)
+  if (!step || others.length) throw new Error('Expected one queued step.')
+  return { base, campaign, step, itemIds }
 }
 
 /** The Characters and the Campaign's history, which a duplicate step must leave unchanged. */
@@ -278,32 +351,14 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     const base = await readySheetFixture()
     const campaign = await gmCampaign(base)
     await seatPlayer(base, campaign, base.owner.userId, base.character.id)
-    const itemIds = Array.from({ length: 5 }, () => crypto.randomUUID())
-    await base.t.run((ctx) =>
-      editCharacterRecord(ctx, base.character.id, (document) => ({
-        ...document,
-        state: {
-          ...document.state,
-          equipment: {
-            ...document.state.equipment,
-            inventory: [
-              ...document.state.equipment.inventory,
-              ...itemIds.map((id) => ({ id, equipmentId: club.id, quantity: 1 }))
-            ],
-            attuned: itemIds
-          }
-        }
-      }))
-    )
+    const itemIds = await overAttune(base)
     const before = await base.readState()
 
     holdScheduledWork()
     const departure = await measure(base.owner.caller, unassign, { campaignId: campaign.id })
     console.info('PERF-6.T6 unassign reads', departure.reads)
     expect(departure.reads).toBeLessThanOrEqual(TRANSACTION_READ_DOCUMENTS)
-    expect(
-      readCharacterRecord((await base.readState()).character!).state.equipment.attuned
-    ).toEqual(itemIds)
+    expect(await readAttuned(base)).toEqual(itemIds)
 
     const { steps, reconciled } = await runStepsTwice(base.t, campaign.id, [base.character.id])
     expect(steps).toEqual([
@@ -319,6 +374,48 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
       expect.arrayContaining(itemIds)
     )
     expect((await base.readState()).receipts).toEqual(before.receipts)
+  })
+
+  it('queues a failed step again, which then completes; the settled step queued again is a no-op', async () => {
+    const { base, campaign, step, itemIds } = await departedStep()
+    const restore = await breakSteps(base.t, campaign.id)
+    await runDueScheduledWork(base.t)
+    expect(await stepRuns(base.t, step.stepId)).toEqual(['failed'])
+    expect(await pendingStep(base.t, step.stepId)).toMatchObject({ attempts: 1 })
+    expect(await readAttuned(base)).toEqual(itemIds)
+    await restore()
+    // The step's check, which runs after its run was queued, queues the run again.
+    await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
+    expect(await stepRuns(base.t, step.stepId)).toEqual(['failed', 'success'])
+    expect(await pendingStep(base.t, step.stepId)).toBeNull()
+    expect(await readAttuned(base)).toEqual(itemIds.slice(0, 3))
+    const settled = await snapshot(base.t, campaign.id, [base.character.id])
+    for (const registered of [run, verify])
+      expect((await measure<null>(base.t, registered, step)).writes).toBe(0)
+    expect(await stepRuns(base.t, step.stepId)).toEqual(['failed', 'success'])
+    expect(await snapshot(base.t, campaign.id, [base.character.id])).toEqual(settled)
+  })
+
+  it('leaves a step whose every run fails pending, marked exhausted and logged once', async () => {
+    const { base, campaign, step } = await departedStep()
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const stepLogs = () =>
+      logged.mock.calls.filter(([message]) => String(message).includes(step.stepId))
+    await breakSteps(base.t, campaign.id)
+    await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
+    expect(await stepRuns(base.t, step.stepId)).toEqual(
+      Array.from({ length: CHARACTER_RECONCILE_ATTEMPTS }, () => 'failed')
+    )
+    expect(await pendingStep(base.t, step.stepId)).toMatchObject({
+      attempts: CHARACTER_RECONCILE_ATTEMPTS,
+      exhaustedAt: expect.any(String)
+    })
+    expect(stepLogs()).toHaveLength(1)
+    // A later check neither queues it again nor logs it again.
+    expect((await measure<null>(base.t, verify, step)).writes).toBe(0)
+    expect(await stepRuns(base.t, step.stepId)).toHaveLength(CHARACTER_RECONCILE_ATTEMPTS)
+    expect(stepLogs()).toHaveLength(1)
+    logged.mockRestore()
   })
 
   it("keeps an SRD Life Cleric's removals, departure and steps within budget", async () => {

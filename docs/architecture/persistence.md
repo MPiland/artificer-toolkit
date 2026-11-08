@@ -971,8 +971,11 @@ actor-bound command fingerprint: it removes the share and dependent children, re
 Characters and evacuates Vehicle cargo to party custody. For each Character that held or references a lost
 source it queues a step (`campaigns/characterReconcileSteps:run`), listed in the receipt's
 `pendingCharacterReconcileIds`. The step prunes lost selections from the Character and its draft; an Active
-Character that can no longer be prepared becomes a repair DRAFT. It records its reconcile event under its step id,
-so a duplicate step is a no-op. It drops sources shared again or now owned (ADR 0013, 2026-11-08). The
+Character that can no longer be prepared becomes a repair DRAFT. Each step has a `campaignCharacterReconciles`
+row that its run deletes when it commits, so a duplicate or re-queued run of a settled step is a no-op. A check
+(`characterReconcileSteps:verify`, the D215 Sheet store pattern) queues a run that failed or timed out again, up
+to three runs; after that the row stays, marked `exhaustedAt`, and is logged once. The step drops sources shared
+again or now owned (ADR 0013, 2026-11-08). The
 transaction reads at most 200 documents for the largest seeded party. Deleting an authored root runs the same
 per-Campaign finalization, reconciling inline. Acquired
 Equipment keeps working through server-owned `retainedRulesJson` on held items, so source loss never removes held items;
