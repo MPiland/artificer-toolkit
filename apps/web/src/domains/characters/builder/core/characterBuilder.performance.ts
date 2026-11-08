@@ -50,8 +50,11 @@ export function completeCharacterBuilderTiming({
   }
 }
 
+/** Proof builds measure too, so browser journeys can record Builder latency (PERF-6.3). */
 function canMeasureCharacterBuilderTiming(): boolean {
-  return isDevelopmentBuild() && typeof performance !== 'undefined'
+  return (
+    (isDevelopmentBuild() || import.meta.env.MODE === 'proof') && typeof performance !== 'undefined'
+  )
 }
 
 function isCharacterBuilderTimingDebugEnabled(): boolean {
