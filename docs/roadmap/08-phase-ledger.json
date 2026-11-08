@@ -24672,7 +24672,7 @@
             },
             {
               "id": "PERF-6.T9",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24683,7 +24683,28 @@
                 "finalSource": true
               },
               "text": "Profile fix 10, raised 2026-11-07: encounters/activeReads:active times out over 1 s in the movement and passage Browser journeys (T8 run 42440987364 first attempt, merge batch 42443398777), blocking merges. Profile it (CPU and reads), fix it at the cause with a deterministic convex-test budget that fails before the fix (CI user p95 <= 250 ms, 0 timeouts). Record nodeRuntime:resolve (714 documents at p50) read profile and a proposed budget; register its fix if it misses the PERF-6.2 targets.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "apps/apis/convex/encounters/activeReadBudget.test.ts (real readActiveEncounterSession for GM and player: <= 34 documents and <= 56,000 bytes; base code read 89/81 documents and 78/73 KB)",
+                "docs/validation/perf-6-t9-active-reads-profile-2026-11-07.md (CI tail is the removeMember invalidation herd plus the module floor; 2 of 3 reads were repeats; nodeRuntime:resolve read profile and proposed budget)",
+                "Green on fc8277da4: Tests 42450055571, Live 42451816585, full Browser journeys dispatch 42450062117; merged de35984ad (m657, merge-slice run 42452508004)"
+              ],
+              "note": "Fix: auth plus the session read model run over memoizeTransactionReads(ctx.db), so each identical read is served once and deriveOnce derives once; result, authorization and reactive read set unchanged. Follow-ups registered as PERF-6.T11."
+            },
+            {
+              "id": "PERF-6.T11",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["PERF-6.T2", "PERF-6.T3", "PERF-6.T8", "PERF-6.T9"],
+                "finalSource": true
+              },
+              "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions).",
+              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope."
             },
             {
               "id": "PERF-6.T10",
