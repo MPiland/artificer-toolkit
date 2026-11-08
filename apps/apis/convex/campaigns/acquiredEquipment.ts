@@ -19,29 +19,44 @@ export async function retainCampaignEquipmentRules(
     (target) => target.subjectKind === 'EQUIPMENT' || target.subjectKind === 'SPELL'
   )
   if (!ruleTargets.length) return
+  // Acquired rules pin exactly one Equipment, their own, so an Equipment loss reaches only the rows
+  // holding it. Any held Equipment can grant a Spell, so a Spell loss reads the whole party.
+  const queries = ruleTargets.some((target) => target.subjectKind === 'SPELL')
+    ? [
+        ctx.db
+          .query('campaignPartyItems')
+          .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))
+      ]
+    : [...new Set(ruleTargets.map((target) => target.subjectId))].map((equipmentId) =>
+        ctx.db
+          .query('campaignPartyItems')
+          .withIndex('by_campaignId_equipmentId', (q) =>
+            q.eq('campaignId', campaign.id).eq('equipmentId', equipmentId)
+          )
+      )
   const changedOwners = new Set<string | undefined>()
   const seen = new Set<string>()
-  for await (const item of ctx.db
-    .query('campaignPartyItems')
-    .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))) {
-    const { _id, _creationTime, ...stored } = item
-    campaignStoredPartyItemSchema.parse(stored)
-    if (seen.has(item.id)) throw new Error('Stored acquired Equipment identities are duplicated.')
-    seen.add(item.id)
-    const retainedRulesJson = await retainPartyEquipmentRules(ctx, campaign, item)
-    if (
-      retainedRulesJson !== item.retainedRulesJson &&
-      acquiredRulesDrawOnSources(
-        retainedRulesJson,
-        item.equipmentId,
-        campaign.gameSystemId,
-        ruleTargets
-      )
-    ) {
-      await ctx.db.patch(item._id, { retainedRulesJson })
-      changedOwners.add(item.vehicleId)
+  const captures = new Map<string, Promise<string | null>>()
+  for (const query of queries)
+    for await (const item of query) {
+      const { _id, _creationTime, ...stored } = item
+      campaignStoredPartyItemSchema.parse(stored)
+      if (seen.has(item.id)) throw new Error('Stored acquired Equipment identities are duplicated.')
+      seen.add(item.id)
+      const retainedRulesJson = await retainPartyEquipmentRules(ctx, campaign, item, captures)
+      if (
+        retainedRulesJson !== item.retainedRulesJson &&
+        acquiredRulesDrawOnSources(
+          retainedRulesJson,
+          item.equipmentId,
+          campaign.gameSystemId,
+          ruleTargets
+        )
+      ) {
+        await ctx.db.patch(item._id, { retainedRulesJson })
+        changedOwners.add(item.vehicleId)
+      }
     }
-  }
   for (const vehicleId of changedOwners) {
     const inventory = await readCampaignInventory(ctx, campaign.id, vehicleId)
     let cleanupJob: Doc<'campaignVehicleCleanupJobs'> | null = null
