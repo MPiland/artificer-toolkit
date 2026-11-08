@@ -25319,6 +25319,22 @@
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
+              "id": "RELEASE-8.T7",
+              "status": "IN_PROGRESS",
+              "closes": ["RELEASE-8.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["RELEASE-8.T2"],
+                "finalSource": true
+              },
+              "text": "Fix RELEASE-8.T2 finding F1: the content snapshot cache is an optimization, so a Cache Storage failure (open, match or put rejecting, e.g. InvalidAccessError, quota or a private-mode SecurityError) must fall back to the verified network bytes instead of failing the content load. Today contentSnapshotStore.ts awaits cache.put unguarded and load() turns the rejection into ContentSnapshotLoadError, so the Builder shows 'Could not load backgrounds' for every kind. Regression test with a rejecting cache, red before the fix.",
+              "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (local-validation/release-8-t2/summary.md, root-cause addendum). Bug fix blocking AC RELEASE-8.2; no new scope.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
               "id": "RELEASE-8.T5",
               "status": "DONE",
               "closes": ["RELEASE-8.4"],
