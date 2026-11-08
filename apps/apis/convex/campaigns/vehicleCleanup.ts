@@ -1,7 +1,5 @@
-import { paginator } from 'convex-helpers/server/pagination'
-import schema from '../schema'
-import { makeFunctionReference } from 'convex/server'
-import { ConvexError, v } from 'convex/values'
+import { makeFunctionReference, type GenericDocument } from 'convex/server'
+import { ConvexError, getDocumentSize, v } from 'convex/values'
 import {
   campaignStoredVehicleCleanupSchema,
   campaignStoredVehicleCleanupTotalSchema,
@@ -103,6 +101,21 @@ function pageOpts(cursor: string | null = null) {
   return { cursor, numItems: PAGE, maximumRowsRead: PAGE, maximumBytesRead: BYTES }
 }
 
+/**
+ * Reads one probe range in order, stopping after the row that reaches 33 rows or 1 MiB of document
+ * size. Reads stay lazy, so a range of large rows never reads past that row.
+ */
+async function probeRange<Row extends GenericDocument>(rows: AsyncIterable<Row>) {
+  const page: Row[] = []
+  let bytes = 0
+  for await (const row of rows) {
+    page.push(row)
+    bytes += getDocumentSize(row)
+    if (page.length >= 33 || bytes >= 1024 * 1024) return { page, isDone: false }
+  }
+  return { page, isDone: true }
+}
+
 /** Execution dispatch only: this is not an inventory size quota. */
 export async function probeVehicleCleanup(
   ctx: MutationCtx,
@@ -111,27 +124,28 @@ export async function probeVehicleCleanup(
   mode: 'RETURN' | 'DESTROY' = 'RETURN',
   deferOverflow = false
 ) {
-  const opts = { cursor: null, numItems: 33, maximumRowsRead: 33, maximumBytesRead: 1024 * 1024 }
-  const db = paginator(ctx.db, schema)
   const pages = await Promise.all([
-    db
-      .query('campaignPartyItems')
-      .withIndex('by_campaignId_vehicleId_id', (q) =>
-        q.eq('campaignId', campaignId).eq('vehicleId', vehicleId)
-      )
-      .paginate(opts),
-    db
-      .query('campaignPartyCurrencyGroups')
-      .withIndex('by_campaignId_vehicleId_id', (q) =>
-        q.eq('campaignId', campaignId).eq('vehicleId', vehicleId)
-      )
-      .paginate(opts),
-    db
-      .query('campaignPartyCurrencies')
-      .withIndex('by_campaignId_vehicleId_id', (q) =>
-        q.eq('campaignId', campaignId).eq('vehicleId', vehicleId)
-      )
-      .paginate(opts)
+    probeRange(
+      ctx.db
+        .query('campaignPartyItems')
+        .withIndex('by_campaignId_vehicleId_id', (q) =>
+          q.eq('campaignId', campaignId).eq('vehicleId', vehicleId)
+        )
+    ),
+    probeRange(
+      ctx.db
+        .query('campaignPartyCurrencyGroups')
+        .withIndex('by_campaignId_vehicleId_id', (q) =>
+          q.eq('campaignId', campaignId).eq('vehicleId', vehicleId)
+        )
+    ),
+    probeRange(
+      ctx.db
+        .query('campaignPartyCurrencies')
+        .withIndex('by_campaignId_vehicleId_id', (q) =>
+          q.eq('campaignId', campaignId).eq('vehicleId', vehicleId)
+        )
+    )
   ])
   const rows = pages.reduce((total, page) => total + page.page.length, 0)
   const bytes = pages.reduce(

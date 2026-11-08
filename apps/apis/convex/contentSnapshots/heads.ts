@@ -1,5 +1,4 @@
 import { paginationOptsValidator } from 'convex/server'
-import { stream } from 'convex-helpers/server/stream'
 import { v } from 'convex/values'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
@@ -17,7 +16,6 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
-import schema from '../schema'
 import {
   hasCampaignContentParents,
   readCampaignSharedActiveRoot,
@@ -252,14 +250,16 @@ async function campaignPublicationReader(
     .unique()
   if (!campaign) return null
   return async (cursor: string | null, numItems: number) => {
-    // A stream, unlike `ctx.db` pagination, may page twice in one query.
-    const shares = await stream(ctx.db, schema)
+    // A range read, unlike `ctx.db` pagination, may page twice in one query. A share is unique per
+    // subject, so the last subject id is the cursor; a full page is not done, as a stream's is not.
+    const shares = await ctx.db
       .query('campaignContentShares')
-      .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
-        q.eq('campaignId', campaign.id).eq('subjectKind', kind)
-      )
-      .paginate({ numItems, cursor })
-    const page = shares.page.map((share) => async (): Promise<ScopePublication | null> => {
+      .withIndex('by_campaignId_subjectKind_subjectId', (q) => {
+        const kindShares = q.eq('campaignId', campaign.id).eq('subjectKind', kind)
+        return cursor === null ? kindShares : kindShares.gt('subjectId', cursor)
+      })
+      .take(numItems)
+    const page = shares.map((share) => async (): Promise<ScopePublication | null> => {
       const root = await readCampaignSharedActiveRoot(ctx, campaign, kind, share.subjectId)
       // A child whose parent share is gone is excluded; the Builder's parent rule still applies.
       if (!root || !(await hasCampaignContentParents(ctx, campaign, root))) return null
@@ -268,7 +268,11 @@ async function campaignPublicationReader(
       const document = await readPublishedDocument(ctx, root, version)
       return { root, document, version: version.version }
     })
-    return { ...shares, page }
+    return {
+      page,
+      continueCursor: shares.at(-1)?.subjectId ?? cursor ?? '',
+      isDone: shares.length < numItems
+    }
   }
 }
 

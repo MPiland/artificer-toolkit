@@ -36,14 +36,18 @@ function bundleOptions(entry: string) {
   }
 }
 
-function zodInputs(entry: string) {
+function bundleInputs(entry: string) {
   const bundle = buildSync({ ...bundleOptions(entry), metafile: true })
   return Object.entries(Object.values(bundle.metafile.outputs)[0].inputs)
     .map(([input, { bytesInOutput }]) => ({
       path: `/${input.replaceAll('\\', '/')}`,
       bytesInOutput
     }))
-    .filter(({ path, bytesInOutput }) => bytesInOutput > 0 && path.includes('/node_modules/zod/'))
+    .filter(({ bytesInOutput }) => bytesInOutput > 0)
+}
+
+function zodInputs(entry: string) {
+  return bundleInputs(entry).filter(({ path }) => path.includes('/node_modules/zod/'))
 }
 
 it.each(functionEntries)('keeps non-English zod locales out of the %s bundle', (entry) => {
@@ -113,3 +117,16 @@ function moduleFloorMs(entry: string) {
 it.each(['campaigns/characterBasics.ts'])('keeps the %s module floor within 20 ms', (entry) => {
   expect(moduleFloorMs(entry)).toBeLessThanOrEqual(20)
 })
+
+// Evaluating the app schema costs 43–58 ms per call (PERF-6.T1), so these modules page their
+// tables with index range reads instead of convex-helpers streams over it (PERF-6.T3).
+it.each(['contentSnapshots/heads.ts', 'campaigns/accountDeparture.ts'])(
+  'keeps the app schema out of the %s bundle',
+  (entry) => {
+    expect(
+      bundleInputs(entry)
+        .map(({ path }) => path)
+        .filter((path) => path === '/schema.ts')
+    ).toEqual([])
+  }
+)
