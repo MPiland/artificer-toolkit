@@ -164,7 +164,7 @@ const contentSnapshotEquipmentIndexEntrySchema = lazySchema(() =>
   })
 )
 
-const contentSnapshotSpellIndexEntrySchema = lazySchema(() =>
+export const contentSnapshotSpellIndexEntrySchema = lazySchema(() =>
   z.strictObject({
     ...identityShape(),
     attributes: spellAuthoredDtoSchema.shape.attributes,

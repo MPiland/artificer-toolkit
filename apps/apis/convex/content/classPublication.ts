@@ -71,7 +71,8 @@ export const readSourceRows = internalQuery({
   handler: async (ctx, { systemId, table, columns, roots }): Promise<string> => {
     const { userId } = await requireIdentity(ctx)
     const reader = await createSystemSourceReader(ctx, systemId, userId)
-    return canonicalizeRuleDocument(await readSource(reader, systemId, { table, columns, roots }))
+    // Transport only: the action and the commit each checksum the canonical form of these rows.
+    return JSON.stringify(await readSource(reader, systemId, { table, columns, roots }))
   }
 })
 

@@ -5,6 +5,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { canReadAuthoredRoot, readPublishedRootDocument } from '../content/documents'
+import { authoredRootSourceIdentity } from '../content/catalogueMetadata'
 import { readVerifiedPublicationDocument } from '../content/publicationDocumentRead'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
@@ -134,9 +135,8 @@ export async function canReadCharacterRoot(
   sourceIdentities?: Map<string, AuthoredCurrentSourceIdentity>
 ) {
   if (root.systemId !== systemId) return false
-  const source = access.sources.find((source) => source.id === root.contentSourceId)
   const readable =
-    (source !== undefined && (await canReadAuthoredRoot(ctx, root, userId, source))) ||
+    (await canReadCharacterSource(ctx, root, systemId, userId, access)) ||
     (access.campaign !== null &&
       (await readCampaignSharedAuthorizedRoot(
         ctx,
@@ -147,6 +147,22 @@ export async function canReadCharacterRoot(
       )) !== null)
   if (readable && sourceIdentities) recordCharacterSourceIdentity(sourceIdentities, root)
   return readable
+}
+
+/**
+ * Whether an own or enabled source grants the Character a root, from the root or a row carrying
+ * its visibility facts. A Campaign share needs the root itself (`canReadCharacterRoot`).
+ */
+export async function canReadCharacterSource(
+  ctx: QueryCtx,
+  facts: Parameters<typeof canReadAuthoredRoot>[1],
+  systemId: string,
+  userId: string,
+  access: Awaited<ReturnType<typeof readCharacterSources>>
+) {
+  if (facts.systemId !== systemId) return false
+  const source = access.sources.find((source) => source.id === facts.contentSourceId)
+  return source !== undefined && (await canReadAuthoredRoot(ctx, facts, userId, source))
 }
 
 /** The current publication of a root the Character may read; views only, commit reads none. */
@@ -180,14 +196,7 @@ export function recordCharacterSourceIdentity(
   sources: Map<string, AuthoredCurrentSourceIdentity>,
   root: Doc<'authoredRoots'>
 ) {
-  sources.set(root.id, {
-    subjectKind: root.subjectKind,
-    subjectId: root.id,
-    systemId: root.systemId,
-    contentSourceId: root.contentSourceId,
-    versionId: root.currentVersionPublicId,
-    checksum: root.checksum
-  })
+  sources.set(root.id, authoredRootSourceIdentity(root))
 }
 
 export async function readCharacterSourceRoots(

@@ -11,6 +11,7 @@ import type {
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { readVisibleSpellClassRow, spellClassRowRootFacts } from '../content/catalogueMetadata'
 import { readSourceFacts } from '../content/sourceFacts'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
@@ -23,6 +24,12 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
   let sources: ReturnType<typeof readAuthoringSources> | undefined
   const visibleSources = () => (sources ??= readAuthoringSources(ctx, systemId, userId))
   const rootsById = new Map<string, Promise<AuthoredRoot[]>>()
+  const labelsById = new Map<string, Promise<NodeRuntimeQueryRow[]>>()
+  // Per reader, not `memoizeTransactionReads`: the commit's mutation replays these same reads.
+  const visibleJobs = new Map<string, Promise<boolean>>()
+  const isJobVisible = async (importJobId: string | undefined) =>
+    importJobId === undefined ||
+    memo(visibleJobs, importJobId, () => isImportRowVisible(ctx, importJobId))
   const factsByRoot = new Map<string, Promise<AuthoredNodeRuntimeSourceFacts>>()
   const factsByRead = new Map<string, Promise<AuthoredNodeRuntimeSourceFacts[]>>()
 
@@ -39,7 +46,7 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
             .eq('subjectKind', kind)
             .eq('ownerUserId', source.kind === 'USER' ? source.ownerUserId : undefined)
         )
-        .filterWith((root) => isImportRowVisible(ctx, root.importJobId))
+        .filterWith((root) => isJobVisible(root.importJobId))
         .take(501 - facts.length)
       if (facts.length + roots.length > 500)
         throw new Error('Authoring options require paginated search.')
@@ -49,22 +56,27 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
   }
 
   // The same visibility as the per-kind scan: a readable source, its owner and a completed import.
+  async function isVisible(
+    root: Pick<AuthoredRoot, 'contentSourceId' | 'importJobId' | 'ownerUserId' | 'systemId'>
+  ) {
+    const source = (await visibleSources()).find(({ id }) => id === root.contentSourceId)
+    if (
+      !source ||
+      root.ownerUserId !== (source.kind === 'USER' ? source.ownerUserId : undefined) ||
+      !(await isJobVisible(root.importJobId))
+    )
+      return false
+    assertSystem(root)
+    return true
+  }
+
   async function readVisible(roots: readonly AuthoredRoot[]) {
-    const bySource = new Map((await visibleSources()).map((source) => [source.id, source]))
     const visible: AuthoredRoot[] = []
-    for (const root of roots) {
-      const source = bySource.get(root.contentSourceId)
-      if (
-        source &&
-        root.ownerUserId === (source.kind === 'USER' ? source.ownerUserId : undefined) &&
-        (await isImportRowVisible(ctx, root.importJobId))
-      )
-        visible.push(assertSystem(root))
-    }
+    for (const root of roots) if (await isVisible(root)) visible.push(root)
     return visible
   }
 
-  function assertSystem(root: AuthoredRoot) {
+  function assertSystem<Root extends Pick<AuthoredRoot, 'systemId'>>(root: Root) {
     if (root.systemId !== systemId) throw new Error('Stored authoring System mismatch.')
     return root
   }
@@ -106,6 +118,21 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
     return readFacts(await readVisible(roots))
   }
 
+  // A Spell's Class list rows carry its label and visibility facts and are smaller than its root;
+  // a Spell on no Class list reads its root.
+  function readLabel(kinds: readonly AuthoredRoot['subjectKind'][], id: string) {
+    return memo(labelsById, `${kinds.join()} ${id}`, async (): Promise<NodeRuntimeQueryRow[]> => {
+      const row = kinds.includes('SPELL')
+        ? await readVisibleSpellClassRow(ctx, id, isJobVisible)
+        : null
+      if (row)
+        return (await isVisible(spellClassRowRootFacts(row)))
+          ? [{ id, label: row.entry.label }]
+          : []
+      return (await readNamedRoots(kinds, [id])).map((root) => ({ id: root.id, label: root.label }))
+    })
+  }
+
   async function readNamedRoots(
     kinds: readonly AuthoredRoot['subjectKind'][],
     ids: readonly string[]
@@ -139,10 +166,7 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
     // A root's own id and label are on its root document, so those reads skip its facts.
     if (roots.by === 'ID' && readsRootCatalogueOnly(table, columns))
       return sortAuthoredSourceRows(
-        (await readNamedRoots(kinds, roots.ids)).map((root): NodeRuntimeQueryRow => ({
-          id: root.id,
-          label: root.label
-        }))
+        (await Promise.all(roots.ids.map((id) => readLabel(kinds, id)))).flat()
       )
     const facts = await readTableFacts(kinds, roots)
     return sortAuthoredSourceRows(facts.flatMap((root) => root.rows[table] ?? []))

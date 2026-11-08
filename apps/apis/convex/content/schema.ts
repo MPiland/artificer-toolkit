@@ -21,7 +21,8 @@ import {
 import {
   authoredCatalogueFamilySchema,
   authoredCatalogueMetadataSchema,
-  authoredCatalogueOwnerCountsSchema
+  authoredCatalogueOwnerCountsSchema,
+  authoredSpellClassRowSchema
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { authoredImageSlotSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 import { authoredStoredImportReferenceSchema } from '@artificer-toolkit/schema/api/imports'
@@ -236,11 +237,7 @@ export function buildContentTables() {
       subjectId: subject.id,
       facts: zodToConvex(authoredNodeRuntimeSourceFactsSchema)
     }).index('by_subjectId', ['subjectId']),
-    authoredSpellClasses: defineTable({
-      spellId: subject.id,
-      classId: subject.id,
-      importJobId: v.optional(v.string())
-    })
+    authoredSpellClasses: defineTable(zodToConvex(authoredSpellClassRowSchema))
       .index('by_importJobId_spellId_classId', ['importJobId', 'spellId', 'classId'])
       .index('by_spellId', ['spellId'])
       .index('by_classId', ['classId']),

@@ -2,7 +2,7 @@ import { assembleCharacterReferencedBuilderContext } from '@artificer-toolkit/ru
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readRootCatalogue } from '../content/catalogueMetadata'
+import { readRootCatalogue, spellIndexEntry } from '../content/catalogueMetadata'
 import { assertClassRelationshipsIndexed } from '../content/classRelationshipIndex'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'
@@ -10,7 +10,6 @@ import { readCharacterEquipmentCatalogue, readCharacterFeatCatalogue } from './b
 import {
   canReadCharacterRoot,
   loadCharacterRuleContext,
-  readSpellIndexEntry,
   type CharacterReferencedReads
 } from './context'
 import { rejectUnavailableSource } from './sourceReads'
@@ -169,7 +168,7 @@ export async function loadCharacterReferencedContext(
     findSpell: async (candidateIds, matches) => {
       for await (const root of poolRoots('SPELL', candidateIds)) {
         if (!(await canRead(root))) continue
-        const spell = readSpellIndexEntry(root)
+        const spell = spellIndexEntry(root, readRootCatalogue(root))
         if (matches(spell)) return spell
       }
       return null
