@@ -11,7 +11,7 @@ import type {
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readVisibleSpellClassRow, spellClassRowRootFacts } from '../content/catalogueMetadata'
+import { readVisibleSpellClassRow, spellClassRowRootFacts } from '../content/spellClassRows'
 import { readSourceFacts } from '../content/sourceFacts'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'

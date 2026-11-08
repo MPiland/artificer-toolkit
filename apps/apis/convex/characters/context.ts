@@ -21,12 +21,8 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import {
-  readRootCatalogue,
-  readVisibleSpellClassRow,
-  spellClassRowRootFacts,
-  spellIndexEntry
-} from '../content/catalogueMetadata'
+import { readRootCatalogue, spellIndexEntry } from '../content/catalogueMetadata'
+import { readVisibleSpellClassRow, spellClassRowRootFacts } from '../content/spellClassRows'
 import { requireParentRoots } from '../content/relationshipReads'
 import { readSourceFacts } from '../content/sourceFacts'
 import { requireSystem } from '../content/systemDocuments'

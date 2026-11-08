@@ -165,6 +165,7 @@ const NOT_OWNER_CONTENT: Record<string, string> = {
   authoredImportRefs: 'derived reference',
   authoredCatalogueOwnerCounts: 'derived counter',
   authoredRouteIds: 'derived route for authoredRoots',
+  authoredSpellClasses: 'derived Class list rows for authoredRoots',
   sceneFogSaves: 'child of a Scene definition',
   sceneFogLayers: 'child of a Scene definition',
   sceneLiveEntities: 'child of a live Scene',
