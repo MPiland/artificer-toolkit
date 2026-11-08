@@ -72,8 +72,8 @@ async function requireSection(
 }
 
 export const list = query({
-  args: zodToConvexFields(campaignNotebookListInputSchema.shape),
-  returns: zodToConvex(campaignNotebookListPageSchema),
+  args: () => zodToConvexFields(campaignNotebookListInputSchema.shape),
+  returns: () => zodToConvex(campaignNotebookListPageSchema),
   handler: async (ctx, args): Promise<CampaignNotebookListPage> => {
     const input = campaignNotebookListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -106,8 +106,8 @@ export const list = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignNotebookSectionInputSchema.shape),
-  returns: zodToConvex(campaignNotebookSectionDtoSchema),
+  args: () => zodToConvexFields(createCampaignNotebookSectionInputSchema.shape),
+  returns: () => zodToConvex(campaignNotebookSectionDtoSchema),
   handler: async (ctx, args): Promise<CampaignNotebookSectionDto> => {
     const input = createCampaignNotebookSectionInputSchema.parse(args)
     const { campaign, userId, username } = await requireWritableNotebook(ctx, input.campaignId)
@@ -132,8 +132,8 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: zodToConvexFields(updateCampaignNotebookSectionInputSchema.shape),
-  returns: zodToConvex(campaignNotebookSectionDtoSchema),
+  args: () => zodToConvexFields(updateCampaignNotebookSectionInputSchema.shape),
+  returns: () => zodToConvex(campaignNotebookSectionDtoSchema),
   handler: async (ctx, args): Promise<CampaignNotebookSectionDto> => {
     const input = updateCampaignNotebookSectionInputSchema.parse(args)
     const { campaign, membership, userId, username } = await requireWritableNotebook(
@@ -164,8 +164,8 @@ export const update = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteCampaignNotebookSectionInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(deleteCampaignNotebookSectionInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const input = deleteCampaignNotebookSectionInputSchema.parse(args)
     const { campaign, membership, userId } = await requireWritableNotebook(ctx, input.campaignId)

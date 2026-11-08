@@ -10,8 +10,8 @@ import { loadCharacterSheet } from './sheetPreparation'
 
 /** Full current Equipment choices load only when an inventory editor opens. */
 export const list = query({
-  args: zodToConvexFields(characterSheetEquipmentOptionsInputSchema.shape),
-  returns: zodToConvex(characterSheetEquipmentOptionsResponseDtoSchema),
+  args: () => zodToConvexFields(characterSheetEquipmentOptionsInputSchema.shape),
+  returns: () => zodToConvex(characterSheetEquipmentOptionsResponseDtoSchema),
   handler: async (ctx, args): Promise<CharacterSheetEquipmentOptionsResponseDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = characterSheetEquipmentOptionsInputSchema.parse(args)

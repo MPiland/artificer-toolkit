@@ -19,7 +19,7 @@ import type { MutationCtx } from '../_generated/server'
 import schema from '../schema'
 import { readAuthoredVersionCompilation } from '../content/documents'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * D163: a Creature's pinned loadout Equipment stores the stored compilation of the pinned version
@@ -29,7 +29,10 @@ import { internalMutation } from '../lib/mutations'
  * Run `content/compilationMigration` first: a superseded or missing compilation fails the row.
  * Idempotent: a pin that carries a `compilation` is left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 function isRecord(value: unknown): value is Record<string, JsonValue> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

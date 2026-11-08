@@ -6,7 +6,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { compileModifierGrant } from '@artificer-toolkit/shared/compilers'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * PLATFORM-20 backfill: a frozen modifier operation carried its compiled grant as a `grant` JSON
@@ -14,7 +14,10 @@ import { internalMutation } from '../lib/mutations'
  * to, rebuilt from that dump by the grant compiler and fold fact builder. Each rewritten definition
  * is validated and re-checksummed. Idempotent: a definition with no dump is left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 function upcastModifierOperations(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(upcastModifierOperations)

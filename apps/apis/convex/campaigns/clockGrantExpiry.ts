@@ -16,8 +16,8 @@ import { requireCampaignAuthority } from './authority'
  * the grant is checked again on the next advance after the Run completes.
  */
 export const endExpired = internalMutation({
-  args: { campaignId: v.string(), actorUserId: v.string(), clockMinute: v.number() },
-  returns: v.null(),
+  args: () => ({ campaignId: v.string(), actorUserId: v.string(), clockMinute: v.number() }),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const { userId } = await requireIdentity(ctx)
     if (userId !== args.actorUserId) throw new Error('Campaign not found.')

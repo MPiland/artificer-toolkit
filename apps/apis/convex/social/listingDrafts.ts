@@ -36,8 +36,8 @@ async function requireDraft(ctx: QueryCtx, id: string, userId: string) {
 }
 
 export const create = mutation({
-  args: { input: zodToConvex(createSocialListingInputSchema) },
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => ({ input: zodToConvex(createSocialListingInputSchema) }),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const input = createSocialListingInputSchema.parse(args.input)
@@ -70,8 +70,8 @@ export const create = mutation({
 })
 
 export const get = query({
-  args: zodToConvexFields(socialListingPublicIdInputSchema.shape),
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => zodToConvexFields(socialListingPublicIdInputSchema.shape),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const { listingPublicId } = socialListingPublicIdInputSchema.parse(args)
@@ -81,8 +81,8 @@ export const get = query({
 })
 
 export const list = query({
-  args: zodToConvexFields(socialListingListInputSchema.shape),
-  returns: zodToConvex(socialListingPageSchema),
+  args: () => zodToConvexFields(socialListingListInputSchema.shape),
+  returns: () => zodToConvex(socialListingPageSchema),
   handler: async (ctx, args): Promise<SocialListingPage> => {
     const actor = await requireSocialOwner(ctx)
     const { paginationOpts } = socialListingListInputSchema.parse(args)
@@ -113,8 +113,8 @@ export const list = query({
 })
 
 export const update = mutation({
-  args: { input: zodToConvex(updateSocialListingInputSchema) },
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => ({ input: zodToConvex(updateSocialListingInputSchema) }),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const input = updateSocialListingInputSchema.parse(args.input)
@@ -124,8 +124,8 @@ export const update = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(socialListingVersionInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(socialListingVersionInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const actor = await requireSocialOwner(ctx)
     const { listingPublicId, expectedVersion } = socialListingVersionInputSchema.parse(args)

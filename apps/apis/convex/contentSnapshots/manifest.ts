@@ -66,8 +66,8 @@ export async function readContentSnapshotManifest(
  * the caller's own Homebrew, plus the Campaign's shares. Without a Character, no Campaign applies.
  */
 export const manifest = query({
-  args: zodToConvexFields(contentSnapshotManifestInputSchema.shape),
-  returns: zodToConvex(contentSnapshotManifestDtoSchema),
+  args: () => zodToConvexFields(contentSnapshotManifestInputSchema.shape),
+  returns: () => zodToConvex(contentSnapshotManifestDtoSchema),
   handler: async (ctx, args): Promise<ContentSnapshotManifestDto> => {
     const { userId } = await requireIdentity(ctx)
     const { systemId, characterId } = contentSnapshotManifestInputSchema.parse(args)
@@ -99,8 +99,8 @@ const MAX_TOKEN_SCOPES = 100
  * `buildContentCatalogueItems`).
  */
 export const catalogue = query({
-  args: {},
-  returns: zodToConvex(contentSnapshotCatalogueManifestDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(contentSnapshotCatalogueManifestDtoSchema),
   handler: async (ctx): Promise<ContentSnapshotCatalogueManifestDto> => {
     const { userId } = await requireIdentity(ctx)
     const [platform, owned] = await Promise.all([
@@ -131,8 +131,8 @@ export const catalogue = query({
 
 /** The private scopes named in a content token: own USER sources and active, undeleted Campaigns. */
 export const readTokenGrant = internalQuery({
-  args: {},
-  returns: zodToConvex(contentSnapshotTokenGrantSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(contentSnapshotTokenGrantSchema),
   handler: async (ctx): Promise<ContentSnapshotTokenGrant> => {
     const { userId } = await requireIdentity(ctx)
     const [sources, memberships] = await Promise.all([

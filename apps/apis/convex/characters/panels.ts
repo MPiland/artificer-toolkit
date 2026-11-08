@@ -88,8 +88,8 @@ export function projectCharacterSheetPanel(
 }
 
 export const get = query({
-  args: zodToConvexFields(characterSheetPanelInputSchema.shape),
-  returns: zodToConvex(characterSheetPanelDtoSchema),
+  args: () => zodToConvexFields(characterSheetPanelInputSchema.shape),
+  returns: () => zodToConvex(characterSheetPanelDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = characterSheetPanelInputSchema.parse(args)

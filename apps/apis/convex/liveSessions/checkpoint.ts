@@ -69,7 +69,7 @@ export async function publishCheckpointFrame(
 }
 
 export const publish = untrackedInternalMutation({
-  args: v.any(),
-  returns: zodToConvex(liveSessionCheckpointResponseSchema),
+  args: () => v.any(),
+  returns: () => zodToConvex(liveSessionCheckpointResponseSchema),
   handler: publishCheckpoint
 })

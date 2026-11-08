@@ -762,11 +762,11 @@ export async function executeCharacterSheetCommandAcknowledgement(
 }
 
 export const execute = mutation({
-  args: {
+  args: () => ({
     ...zodToConvexFields(characterSheetReadInputSchema.shape),
-    command: characterSheetCommandValidator
-  },
-  returns: zodToConvex(characterSheetCommandResponseDtoSchema),
+    command: characterSheetCommandValidator()
+  }),
+  returns: () => zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args): Promise<CharacterSheetCommandResponseDto> => {
     const { userId } = await requireIdentity(ctx)
     return executeCharacterSheetCommandAcknowledgement(

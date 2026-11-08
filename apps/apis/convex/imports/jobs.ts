@@ -153,8 +153,8 @@ function assertCommandEntries(
 }
 
 export const begin = mutation({
-  args: zodToConvexFields(beginImportJobInputSchema.shape),
-  returns: zodToConvex(importJobProgressDtoSchema),
+  args: () => zodToConvexFields(beginImportJobInputSchema.shape),
+  returns: () => zodToConvex(importJobProgressDtoSchema),
   handler: async (ctx, args): Promise<ImportJobProgressDto> => {
     const parsed = beginImportJobInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -261,8 +261,8 @@ export const begin = mutation({
 })
 
 export const progress = query({
-  args: zodToConvexFields(importJobLookupSchema.shape),
-  returns: zodToConvex(importJobProgressDtoSchema),
+  args: () => zodToConvexFields(importJobLookupSchema.shape),
+  returns: () => zodToConvex(importJobProgressDtoSchema),
   handler: async (ctx, args): Promise<ImportJobProgressDto> => {
     const input = importJobLookupSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -273,8 +273,8 @@ export const progress = query({
 })
 
 export const cancel = mutation({
-  args: zodToConvexFields(importJobLookupSchema.shape),
-  returns: zodToConvex(importJobProgressDtoSchema),
+  args: () => zodToConvexFields(importJobLookupSchema.shape),
+  returns: () => zodToConvex(importJobProgressDtoSchema),
   handler: async (ctx, args): Promise<ImportJobProgressDto> => {
     const input = importJobLookupSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -308,8 +308,8 @@ export const cancel = mutation({
 })
 
 export const list = query({
-  args: zodToConvexFields(importJobListInputSchema.shape),
-  returns: zodToConvex(importJobListPageSchema),
+  args: () => zodToConvexFields(importJobListInputSchema.shape),
+  returns: () => zodToConvex(importJobListPageSchema),
   handler: async (ctx, args): Promise<ImportJobListPage> => {
     const input = importJobListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -329,11 +329,11 @@ export const list = query({
 })
 
 export const fail = internalMutation({
-  args: {
+  args: () => ({
     jobId: v.string(),
     failureReason: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const found = await findJob(ctx, args.jobId)
     if (found.job.status !== 'RUNNING') return null

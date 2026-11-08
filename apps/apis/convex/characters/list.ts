@@ -11,8 +11,8 @@ import { readCharacterDraftSummary } from './documents'
 import { readCharacterPlayRow } from './stateDocuments'
 
 export const list = query({
-  args: zodToConvexFields(characterDraftListInputSchema.shape),
-  returns: zodToConvex(characterListPageSchema),
+  args: () => zodToConvexFields(characterDraftListInputSchema.shape),
+  returns: () => zodToConvex(characterListPageSchema),
   handler: async (ctx, args): Promise<CharacterListPage> => {
     const { userId } = await requireIdentity(ctx)
     const { paginationOpts } = characterDraftListInputSchema.parse(args)

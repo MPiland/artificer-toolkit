@@ -129,8 +129,8 @@ export async function recompileRaceChildren(
 }
 
 export const syncDerived = internalMutation({
-  args: zodToConvexFields(sourceImportAuditRecordDtoSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(sourceImportAuditRecordDtoSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const input = sourceImportAuditRecordDtoSchema.parse(args)
     const root = await ctx.db

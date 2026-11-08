@@ -56,15 +56,15 @@ async function currentListing(ctx: MutationCtx, listingId: string) {
 }
 
 export const run = internalMutation({
-  args: {
+  args: () => ({
     profileId: v.string(),
     userId: v.string(),
     generation: v.number(),
     invalidatedAt: v.string(),
     phase: v.union(...phases.map((phase) => v.literal(phase))),
     cursor: v.union(v.null(), v.string())
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     if (args.phase === 'LISTING') {
       const page = await ctx.db

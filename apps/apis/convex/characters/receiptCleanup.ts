@@ -50,8 +50,8 @@ export async function retireCharacterReceipts(
 }
 
 export const purge = internalMutation({
-  args: zodToConvexFields(characterReceiptPurgeInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(characterReceiptPurgeInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const { characterId } = characterReceiptPurgeInputSchema.parse(args)
     const job = await ctx.db

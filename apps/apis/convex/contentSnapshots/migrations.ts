@@ -1,14 +1,17 @@
 import { Migrations } from '@convex-dev/migrations'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 import { markContentSnapshotScope } from './marking'
 
 /**
  * Marks every content scope for a rebuild: a deployment's first build (ADR 0036) and any change to
  * the object format. Marking coalesces per scope, so each scope builds once however many rows mark it.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export const sources = migrations.define({
   table: 'contentSources',

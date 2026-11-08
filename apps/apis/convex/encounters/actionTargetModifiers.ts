@@ -17,8 +17,8 @@ const modifiersValidator: Validator<EncounterActionTargetModifiersDto, 'required
   )
 
 export const get = query({
-  args: zodToConvexFields(getEncounterActionTargetModifiersInputDtoSchema.shape),
-  returns: modifiersValidator,
+  args: () => zodToConvexFields(getEncounterActionTargetModifiersInputDtoSchema.shape),
+  returns: () => modifiersValidator,
   handler: async (ctx, args): Promise<EncounterActionTargetModifiersDto> => {
     const request = getEncounterActionTargetModifiersInputDtoSchema.parse(args)
     return readEncounterActionTargetModifiers(encounterTurnReadTransaction(ctx), {

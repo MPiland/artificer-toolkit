@@ -12,8 +12,8 @@ import { loadCharacterSheet } from './sheetPreparation'
 
 /** Personal Sheet reads recompute current authorized sources; no stored projection is served. */
 export const get = query({
-  args: zodToConvexFields(characterSheetReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterSheetResponseDtoSchema)),
+  args: () => zodToConvexFields(characterSheetReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterSheetResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterSheetResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id: lookupId } = characterSheetReadInputSchema.parse(args)

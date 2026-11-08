@@ -4,6 +4,7 @@ import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainR
 import { domainRejection, playerControlFixture } from '../../tests/fixtures/playerControl'
 import { executeInRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { api } from '../_generated/api'
+import { mutation } from './mutations'
 import { query } from './queries'
 
 useLocalRoomWorker()
@@ -74,24 +75,35 @@ describe('Encounter domain rejections at the Convex boundary', () => {
     expect(failure).not.toBeInstanceOf(ConvexError)
   })
 
-  it('leave validator getters unread until Convex exports them', () => {
+  it.each([
+    ['query', query],
+    ['mutation', mutation]
+  ] as const)('builds %s validators only when Convex exports them, once each', (_, builder) => {
     const reads: string[] = []
-    const registered = query({
-      get args() {
+    const registered = builder({
+      args: () => {
         reads.push('args')
-        return {}
+        return { id: v.string() }
       },
-      get returns() {
+      returns: () => {
         reads.push('returns')
         return v.null()
       },
       handler: () => null
     })
-    // Convex re-evaluates a module on every call, so a getter read at registration rebuilds its
-    // validator on every call.
+    // Convex re-evaluates a module on every call, so a validator built at registration is rebuilt
+    // by every call.
     expect(reads).toStrictEqual([])
-    const exported = registered as unknown as { exportReturns: () => string }
+    const exported = registered as unknown as {
+      exportArgs: () => string
+      exportReturns: () => string
+    }
     expect(JSON.parse(exported.exportReturns())).toStrictEqual({ type: 'null' })
-    expect(new Set(reads)).toStrictEqual(new Set(['returns']))
+    expect(JSON.parse(exported.exportArgs())).toStrictEqual({
+      type: 'object',
+      value: { id: { fieldType: { type: 'string' }, optional: false } }
+    })
+    expect(JSON.parse(exported.exportArgs())).toStrictEqual(JSON.parse(exported.exportArgs()))
+    expect(reads).toStrictEqual(['returns', 'args'])
   })
 })

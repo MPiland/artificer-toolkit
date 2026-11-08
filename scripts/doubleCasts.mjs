@@ -85,9 +85,10 @@ export const ALLOWED = {
     count: 2,
     reason: 'Convex handles over a runtime-selected table cannot carry the generic Table'
   },
-  'apps/apis/convex/lib/domainRejectionTransport.ts': {
-    count: 2,
-    reason: "one wrapper serves every generic Convex builder and keeps the builder's signature"
+  'apps/apis/convex/lib/mutations.ts': {
+    count: 1,
+    reason:
+      "a library registrar takes Convex's overloaded MutationBuilder; the tracked one keeps its signature"
   },
   'apps/apis/convex/lib/receiptLedgers.ts': {
     count: 1,

@@ -18,8 +18,8 @@ import { requireCampaignAuthority } from './authority'
  * in the same transaction, so an assignment here always belongs to an active member.
  */
 export const get = query({
-  args: zodToConvexFields(campaignCharacterBasicsInputSchema.shape),
-  returns: zodToConvex(campaignCharacterBasicsDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterBasicsInputSchema.shape),
+  returns: () => zodToConvex(campaignCharacterBasicsDtoSchema),
   handler: async (ctx, args): Promise<CampaignCharacterBasicsDto> => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = campaignCharacterBasicsInputSchema.parse(args)

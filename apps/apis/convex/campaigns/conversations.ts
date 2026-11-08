@@ -20,8 +20,8 @@ import {
 } from './conversationDocuments'
 
 export const open = mutation({
-  args: zodToConvexFields(getCampaignConversationInputSchema.shape),
-  returns: zodToConvex(campaignConversationDtoSchema),
+  args: () => zodToConvexFields(getCampaignConversationInputSchema.shape),
+  returns: () => zodToConvex(campaignConversationDtoSchema),
   handler: async (ctx, args): Promise<CampaignConversationDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = getCampaignConversationInputSchema.parse(args)
@@ -37,8 +37,8 @@ export const open = mutation({
 })
 
 export const list = query({
-  args: zodToConvexFields(listCampaignConversationsInputSchema.shape),
-  returns: zodToConvex(campaignConversationsDtoSchema),
+  args: () => zodToConvexFields(listCampaignConversationsInputSchema.shape),
+  returns: () => zodToConvex(campaignConversationsDtoSchema),
   handler: async (ctx, args): Promise<CampaignConversationDto[]> => {
     const { userId } = await requireIdentity(ctx)
     const input = listCampaignConversationsInputSchema.parse(args)
@@ -73,8 +73,8 @@ export const list = query({
 })
 
 export const markRead = mutation({
-  args: zodToConvexFields(markCampaignConversationReadInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(markCampaignConversationReadInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = markCampaignConversationReadInputSchema.parse(args)

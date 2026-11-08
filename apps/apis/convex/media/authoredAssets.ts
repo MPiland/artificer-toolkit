@@ -139,8 +139,8 @@ export async function attachArtwork(
 }
 
 export const binding = query({
-  args: zodToConvexFields(authoredImageLookupSchema.shape),
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => zodToConvexFields(authoredImageLookupSchema.shape),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx, args) => {
     const slot = await readableSlot(ctx, authoredImageLookupSchema.parse(args))
     return { assetId: slot?.assetId ?? null, revision: slot?.revision ?? 0 }
@@ -148,8 +148,8 @@ export const binding = query({
 })
 
 export const read = internalQuery({
-  args: zodToConvexFields(authoredImageLookupSchema.shape),
-  returns: zodToConvex(zMini.nullable(mediaReferencedImageSchema)),
+  args: () => zodToConvexFields(authoredImageLookupSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(mediaReferencedImageSchema)),
   handler: async (ctx, args) => {
     const slot = await readableSlot(ctx, authoredImageLookupSchema.parse(args))
     if (!slot?.assetId) return null
@@ -161,8 +161,8 @@ export const read = internalQuery({
 })
 
 export const createUpload = mutation({
-  args: zodToConvexFields(authoredImageUploadSchema.shape),
-  returns: zodToConvex(mediaSinglePutUploadSchema),
+  args: () => zodToConvexFields(authoredImageUploadSchema.shape),
+  returns: () => zodToConvex(mediaSinglePutUploadSchema),
   handler: async (ctx, args) => {
     const { target, ...input } = authoredImageUploadSchema.parse(args)
     await ownedDraft(ctx, target)
@@ -171,8 +171,8 @@ export const createUpload = mutation({
 })
 
 export const beginSave = internalMutation({
-  args: zodToConvexFields(authoredImageSaveSchema.shape),
-  returns: zodToConvex(mediaProcessClaimSchema),
+  args: () => zodToConvexFields(authoredImageSaveSchema.shape),
+  returns: () => zodToConvex(mediaProcessClaimSchema),
   handler: async (ctx, args): Promise<MediaProcessClaim> => {
     const input = authoredImageSaveSchema.parse(args)
     const { draft } = await ownedDraft(ctx, input.target)
@@ -193,8 +193,8 @@ export const beginSave = internalMutation({
 })
 
 export const remove = mutation({
-  args: { target: zodToConvex(authoredImageTargetSchema) },
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => ({ target: zodToConvex(authoredImageTargetSchema) }),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx, args) => {
     const target = authoredImageTargetSchema.parse(args.target)
     const { draft } = await ownedDraft(ctx, target)

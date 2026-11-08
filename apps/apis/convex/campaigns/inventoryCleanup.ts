@@ -21,8 +21,8 @@ import { readVehicleCleanupJob, readVehicleCleanupLock } from './vehicleCleanupD
 
 /** Only selected source cargo or already marked incoming party custody is disclosed. */
 export const pending = query({
-  args: zodToConvexFields(campaignInventoryCleanupListInputSchema.shape),
-  returns: zodToConvex(campaignInventoryCleanupPageSchema),
+  args: () => zodToConvexFields(campaignInventoryCleanupListInputSchema.shape),
+  returns: () => zodToConvex(campaignInventoryCleanupPageSchema),
   handler: async (ctx, args): Promise<CampaignInventoryCleanupPage> => {
     const input = campaignInventoryCleanupListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -107,8 +107,8 @@ export const pending = query({
 
 /** Finishes the existing trusted grant; it cannot create or alter one. */
 export const retry = mutation({
-  args: zodToConvexFields(campaignInventoryCleanupRetryInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(campaignInventoryCleanupRetryInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const input = campaignInventoryCleanupRetryInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

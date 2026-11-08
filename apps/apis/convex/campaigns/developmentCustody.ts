@@ -98,12 +98,12 @@ async function fixtureMemberships(
 }
 
 export const admitFixturePlayers = internalMutation({
-  args: {
+  args: () => ({
     ownerUserId: v.string(),
     playerUserIds: v.array(v.string()),
     campaignId: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     if (input.playerUserIds.length !== 2)
       throw new Error('Fixture custody needs exactly two players.')
@@ -164,13 +164,13 @@ export const admitFixturePlayers = internalMutation({
 })
 
 export const removeFixtureState = internalMutation({
-  args: {
+  args: () => ({
     ownerUserId: v.string(),
     playerUserIds: v.array(v.string()),
     characterIds: v.array(v.string()),
     campaignId: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     if (input.playerUserIds.length !== 2 || input.characterIds.length !== 2)
       throw new Error('Fixture custody needs exactly two players and Characters.')

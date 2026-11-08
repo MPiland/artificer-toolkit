@@ -33,8 +33,8 @@ const mutationPublishDraftInputSchema = z.extend(authoredPublishDraftInputSchema
 })
 
 export const publishDraft = mutation({
-  args: zodToConvexFields(mutationPublishDraftInputSchema.shape),
-  returns: zodToConvex(authoredPublicationResultSchema),
+  args: () => zodToConvexFields(mutationPublishDraftInputSchema.shape),
+  returns: () => zodToConvex(authoredPublicationResultSchema),
   handler: async (ctx, args): Promise<AuthoredPublicationResult> => {
     const input = authoredPublishDraftInputSchema.parse(args)
     const state = await readPublicationState(ctx, input)

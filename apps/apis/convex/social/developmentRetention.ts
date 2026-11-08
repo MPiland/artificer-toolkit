@@ -131,11 +131,12 @@ async function isFixturePage(
 }
 
 export const previewFixturePage = internalQuery({
-  args: fixtureRetentionArgs,
-  returns: v.object({
-    ...zodToConvexFields(socialRetentionPreviewResultSchema.shape),
-    fixtureOnly: v.boolean()
-  }),
+  args: () => fixtureRetentionArgs,
+  returns: () =>
+    v.object({
+      ...zodToConvexFields(socialRetentionPreviewResultSchema.shape),
+      fixtureOnly: v.boolean()
+    }),
   handler: async (ctx, { userIds, campaignId, input }) => {
     const parsed = socialRetentionPreviewInputSchema.parse(input)
     const scope = await fixtureScope(ctx, userIds, campaignId)
@@ -149,8 +150,8 @@ export const previewFixturePage = internalQuery({
 })
 
 export const applyFixturePage = internalMutation({
-  args: fixtureRetentionApplyArgs,
-  returns: zodToConvex(socialRetentionApplyResultSchema),
+  args: () => fixtureRetentionApplyArgs,
+  returns: () => zodToConvex(socialRetentionApplyResultSchema),
   handler: async (ctx, { userIds, campaignId, input }) => {
     const parsed = socialRetentionApplyInputSchema.parse(input)
     const scope = await fixtureScope(ctx, userIds, campaignId)

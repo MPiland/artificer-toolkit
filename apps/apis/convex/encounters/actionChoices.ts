@@ -31,8 +31,8 @@ const optionalChoicesValidator: Validator<EncounterOptionalActionChoicesDto, 're
   )
 
 export const get = query({
-  args: zodToConvexFields(getEncounterActionChoicesInputDtoSchema.shape),
-  returns: choicesValidator,
+  args: () => zodToConvexFields(getEncounterActionChoicesInputDtoSchema.shape),
+  returns: () => choicesValidator,
   handler: async (ctx, args): Promise<EncounterActionChoicesResponseDto> => {
     const request = getEncounterActionChoicesInputDtoSchema.parse(args)
     return readEncounterActionChoices(encounterTurnReadTransaction(ctx), {
@@ -46,8 +46,8 @@ const itemChoicesValidator: Validator<EncounterActionItemChoicesDto, 'required',
   zodToConvex<z.core.$ZodType<EncounterActionItemChoicesDto>>(encounterActionItemChoicesDtoSchema)
 
 export const items = query({
-  args: zodToConvexFields(getEncounterActionItemChoicesInputDtoSchema.shape),
-  returns: itemChoicesValidator,
+  args: () => zodToConvexFields(getEncounterActionItemChoicesInputDtoSchema.shape),
+  returns: () => itemChoicesValidator,
   handler: async (ctx, args): Promise<EncounterActionItemChoicesDto> => {
     const request = getEncounterActionItemChoicesInputDtoSchema.parse(args)
     return readEncounterActionItemChoices(encounterTurnReadTransaction(ctx), {
@@ -58,8 +58,8 @@ export const items = query({
 })
 
 export const optional = query({
-  args: zodToConvexFields(getEncounterOptionalActionChoicesInputDtoSchema.shape),
-  returns: optionalChoicesValidator,
+  args: () => zodToConvexFields(getEncounterOptionalActionChoicesInputDtoSchema.shape),
+  returns: () => optionalChoicesValidator,
   handler: async (ctx, args): Promise<EncounterOptionalActionChoicesDto> => {
     const request = getEncounterOptionalActionChoicesInputDtoSchema.parse(args)
     return readEncounterOptionalActionChoices(encounterTurnReadTransaction(ctx), {

@@ -3,7 +3,7 @@ import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * D151 backfill: a maintained state's descriptor named its action occurrence in top-level
@@ -11,7 +11,10 @@ import { internalMutation } from '../lib/mutations'
  * the `CARRIED` kind a later Run's reinstated Concentration uses. Each rewritten descriptor is
  * validated and re-checksummed. Idempotent: a descriptor with a provenance is left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export function migratedDescriptor(descriptorJson: string) {
   const stored: unknown = JSON.parse(descriptorJson)

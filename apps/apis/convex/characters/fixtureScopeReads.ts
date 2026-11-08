@@ -5,13 +5,13 @@ import { requireFixtureAccount } from '../lib/developmentFixtures'
 
 // Exact completed-cohort recovery; returns no data and performs no cleanup writes.
 export const assertRemoved = internalQuery({
-  args: {
+  args: () => ({
     campaignId: v.string(),
     characterIds: v.array(v.string()),
     userIds: v.array(v.string()),
     systemId: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, { campaignId, characterIds, userIds, systemId }) => {
     if (
       characterIds.length !== 2 ||

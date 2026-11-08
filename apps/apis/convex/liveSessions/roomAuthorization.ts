@@ -64,8 +64,8 @@ async function readPlayAuthorization(ctx: QueryCtx, campaign: Doc<'campaigns'>) 
  * small; it returns a section only when its revision differs from what the room already holds.
  */
 export const read = internalQuery({
-  args: zodToConvexFields(liveSessionRoomAuthorizationInputSchema.shape),
-  returns: zodToConvex(liveSessionRoomAuthorizationResponseSchema),
+  args: () => zodToConvexFields(liveSessionRoomAuthorizationInputSchema.shape),
+  returns: () => zodToConvex(liveSessionRoomAuthorizationResponseSchema),
   handler: async (ctx, args): Promise<LiveSessionRoomAuthorizationResponse> => {
     const input = liveSessionRoomAuthorizationInputSchema.parse(args)
     await requireActiveCampaignLiveAuthority(ctx, input)

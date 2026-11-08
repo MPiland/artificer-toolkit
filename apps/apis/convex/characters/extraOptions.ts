@@ -16,8 +16,8 @@ import { readCharacterRecord, resolveCharacterId } from './documents'
 import { readCharacterRow } from './stateDocuments'
 
 export const list = query({
-  args: zodToConvexFields(characterSheetExtraCatalogReadInputSchema.shape),
-  returns: zodToConvex(characterSheetExtraCatalogResponseDtoSchema),
+  args: () => zodToConvexFields(characterSheetExtraCatalogReadInputSchema.shape),
+  returns: () => zodToConvex(characterSheetExtraCatalogResponseDtoSchema),
   handler: async (ctx, args): Promise<CharacterSheetExtraCatalogResponseDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = characterSheetExtraCatalogReadInputSchema.parse(args)

@@ -14,8 +14,8 @@ export async function deleteBlueprintRow(ctx: MutationCtx, blueprint: Doc<'encou
 
 /** Removes a deleted Blueprint's update receipts in bounded batches, rescheduling while rows remain. */
 export const purgeUpdates = internalMutation({
-  args: { blueprintId: v.string() },
-  returns: v.null(),
+  args: () => ({ blueprintId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { blueprintId }) => {
     const updates = await ctx.db
       .query('encounterBlueprintUpdates')

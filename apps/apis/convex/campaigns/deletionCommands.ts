@@ -13,8 +13,8 @@ import { scheduleCampaignDeletion } from './deletionJobs'
 import { readCampaignLiveAuthority } from '../liveSessions/authorityGuard'
 
 export const remove = internalMutation({
-  args: zodToConvexFields(deleteCampaignInputSchema.shape),
-  returns: zodToConvex(campaignDeletionResultSchema),
+  args: () => zodToConvexFields(deleteCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignDeletionResultSchema),
   handler: async (ctx, args): Promise<CampaignDeletionResult> => {
     const { campaignId, expectedVersion } = deleteCampaignInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

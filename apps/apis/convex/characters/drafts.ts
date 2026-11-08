@@ -185,8 +185,8 @@ export async function saveCharacterDraft(
 }
 
 export const create = mutation({
-  args: zodToConvexFields(characterDraftCreateInputSchema.shape),
-  returns: zodToConvex(characterBuilderDraftDtoSchema),
+  args: () => zodToConvexFields(characterDraftCreateInputSchema.shape),
+  returns: () => zodToConvex(characterBuilderDraftDtoSchema),
   handler: async (ctx, args): Promise<CharacterBuilderDraftDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = characterDraftCreateInputSchema.parse(args)
@@ -213,14 +213,14 @@ export const create = mutation({
 })
 
 export const save = mutation({
-  args: zodToConvexFields(characterDraftSaveInputSchema.shape),
-  returns: zodToConvex(characterBuilderDraftDtoSchema),
+  args: () => zodToConvexFields(characterDraftSaveInputSchema.shape),
+  returns: () => zodToConvex(characterBuilderDraftDtoSchema),
   handler: (ctx, args) => saveCharacterDraft(ctx, characterDraftSaveInputSchema.parse(args))
 })
 
 export const get = query({
-  args: zodToConvexFields(characterDraftLookupInputSchema.shape),
-  returns: zodToConvex(zMini.nullable(characterBuilderDraftDtoSchema)),
+  args: () => zodToConvexFields(characterDraftLookupInputSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(characterBuilderDraftDtoSchema)),
   handler: async (ctx, args): Promise<CharacterBuilderDraftDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const input = characterDraftLookupInputSchema.parse(args)
@@ -233,8 +233,8 @@ export const get = query({
 })
 
 export const list = query({
-  args: zodToConvexFields(characterDraftListInputSchema.shape),
-  returns: zodToConvex(characterDraftListPageSchema),
+  args: () => zodToConvexFields(characterDraftListInputSchema.shape),
+  returns: () => zodToConvex(characterDraftListPageSchema),
   handler: async (ctx, args): Promise<CharacterDraftListPage> => {
     const { userId } = await requireIdentity(ctx)
     const { paginationOpts } = characterDraftListInputSchema.parse(args)
@@ -259,8 +259,8 @@ export const list = query({
 })
 
 export const discard = mutation({
-  args: zodToConvexFields(characterDraftDiscardInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(characterDraftDiscardInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = characterDraftDiscardInputSchema.parse(args)

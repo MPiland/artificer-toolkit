@@ -9,15 +9,15 @@ import { internalQuery } from '../lib/queries'
 import { readFogChunks, readFogLayers } from './fogReadDocuments'
 
 export const layers = internalQuery({
-  args: zodToConvexFields(sceneFogLayersPageInputSchema.shape),
-  returns: zodToConvex(sceneFogLayersPageSchema),
+  args: () => zodToConvexFields(sceneFogLayersPageInputSchema.shape),
+  returns: () => zodToConvex(sceneFogLayersPageSchema),
   handler: async (ctx, args) =>
     readFogLayers(ctx, sceneFogLayersPageInputSchema.parse(args), 'TRANSIENT_HOST')
 })
 
 export const chunks = internalQuery({
-  args: zodToConvexFields(sceneFogChunksPageInputSchema.shape),
-  returns: zodToConvex(sceneFogChunksPageSchema),
+  args: () => zodToConvexFields(sceneFogChunksPageInputSchema.shape),
+  returns: () => zodToConvex(sceneFogChunksPageSchema),
   handler: async (ctx, args) =>
     readFogChunks(ctx, sceneFogChunksPageInputSchema.parse(args), 'TRANSIENT_HOST')
 })

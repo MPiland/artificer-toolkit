@@ -158,8 +158,8 @@ function binding(profile: { avatarAssetId?: string; avatarRevision?: number }) {
 }
 
 export const avatar = query({
-  args: {},
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx) => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -168,8 +168,8 @@ export const avatar = query({
 })
 
 export const createAvatarUpload = mutation({
-  args: zodToConvexFields(avatarUploadInputSchema.shape),
-  returns: zodToConvex(mediaSinglePutUploadSchema),
+  args: () => zodToConvexFields(avatarUploadInputSchema.shape),
+  returns: () => zodToConvex(mediaSinglePutUploadSchema),
   handler: (ctx, args) => createMediaUpload(ctx, args, { type: 'ACCOUNT_AVATAR' })
 })
 
@@ -385,8 +385,8 @@ export async function attachAvatar(ctx: MutationCtx, assetId: string, crop: Norm
 }
 
 export const beginSave = internalMutation({
-  args: zodToConvexFields(avatarSaveInputSchema.shape),
-  returns: zodToConvex(mediaProcessClaimSchema),
+  args: () => zodToConvexFields(avatarSaveInputSchema.shape),
+  returns: () => zodToConvex(mediaProcessClaimSchema),
   handler: async (ctx, args): Promise<MediaProcessClaim> => {
     const input = avatarSaveInputSchema.parse(args)
     const { authenticated, asset } = await ownedAsset(ctx, input.assetId)
@@ -401,8 +401,8 @@ export const beginSave = internalMutation({
 })
 
 export const readAvatar = internalQuery({
-  args: {},
-  returns: v.union(v.null(), zodToConvex(mediaReferencedImageSchema)),
+  args: () => ({}),
+  returns: () => v.union(v.null(), zodToConvex(mediaReferencedImageSchema)),
   handler: async (ctx) => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -417,8 +417,8 @@ export const readAvatar = internalQuery({
 
 /** Another account's avatar, readable only when that account's profile is viewable by the caller. */
 export const readProfileAvatar = internalQuery({
-  args: zodToConvexFields(publicProfileInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(mediaReferencedImageSchema)),
+  args: () => zodToConvexFields(publicProfileInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(mediaReferencedImageSchema)),
   handler: async (ctx, args) => {
     const input = publicProfileInputSchema.parse(args)
     const viewable = await readViewableProfileByUsername(ctx, input.username)
@@ -430,8 +430,8 @@ export const readProfileAvatar = internalQuery({
 })
 
 export const removeAvatar = mutation({
-  args: {},
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx) => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -449,8 +449,8 @@ export const removeAvatar = mutation({
 })
 
 export const expireOperation = internalMutation({
-  args: { assetId: v.string(), operationId: v.string() },
-  returns: v.null(),
+  args: () => ({ assetId: v.string(), operationId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const asset = await findAsset(ctx, args.assetId)
     if (!asset?.operation || asset.operation.id !== args.operationId) return null
@@ -484,8 +484,8 @@ export const expireOperation = internalMutation({
 })
 
 export const failSave = internalMutation({
-  args: { assetId: v.string(), operationId: v.string() },
-  returns: v.null(),
+  args: () => ({ assetId: v.string(), operationId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     // Internal failure callback can run after session revocation; it only retires
     // this exact pre-issued operation, never accepts an identity or new object key.
@@ -503,8 +503,8 @@ export const failSave = internalMutation({
 })
 
 export const cleanupRaw = internalMutation({
-  args: assetIdArgs,
-  returns: v.null(),
+  args: () => assetIdArgs,
+  returns: () => v.null(),
   handler: async (ctx, { assetId }) => {
     const asset = await findAsset(ctx, assetId)
     if (!asset?.rawObjectKey) return null
@@ -524,8 +524,8 @@ export const cleanupRaw = internalMutation({
 })
 
 export const cleanup = internalMutation({
-  args: assetIdArgs,
-  returns: v.null(),
+  args: () => assetIdArgs,
+  returns: () => v.null(),
   handler: async (ctx, { assetId }) => {
     const asset = await findAsset(ctx, assetId)
     if (!asset || asset.status === 'DELETED') return null
@@ -617,11 +617,11 @@ async function ownedObjectKeys(ctx: QueryCtx, asset: Doc<'mediaAssets'>) {
 }
 
 export const deleteObjects = internalMutation({
-  args: {
+  args: () => ({
     keys: v.array(v.string()),
     attemptId: v.optional(v.id('_scheduled_functions'))
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, { keys, attemptId }) => {
     if (keys.length > 133) throw new Error('Unexpected media object count.')
     if (keys.length > 7) {
@@ -649,8 +649,8 @@ export const deleteObjects = internalMutation({
 })
 
 export const purgeAccount = internalMutation({
-  args: { userId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId }) => {
     // Called only after the profile is deleted. A surviving profile must never
     // allow an internal stale cleanup to remove a live account's images.

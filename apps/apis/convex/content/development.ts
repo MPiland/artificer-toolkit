@@ -8,8 +8,8 @@ import { requireFixtureAccount } from '../lib/developmentFixtures'
 
 // Internal CLI fixture setup only; product callers cannot grant themselves a paid tier.
 export const setFixturePlayerTier = internalMutation({
-  args: { userId: v.string(), enabled: v.boolean() },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), enabled: v.boolean() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId, enabled }) => {
     await requireFixtureAccount(ctx, userId)
     const [entitlement, root, draft] = await Promise.all([
@@ -37,17 +37,18 @@ export const setFixturePlayerTier = internalMutation({
 
 // CLI-only page of a fixture account's published subjects, for the proofs' cleanup and recovery.
 export const listOwnedFixtureSubjects = internalQuery({
-  args: {
+  args: () => ({
     userId: v.string(),
     systemId: v.string(),
     subjectKind: zodToConvex(authoredSubjectKindSchema),
     paginationOpts: paginationOptsValidator
-  },
-  returns: v.object({
-    page: v.array(v.object({ id: v.string(), label: v.string() })),
-    continueCursor: v.string(),
-    isDone: v.boolean()
   }),
+  returns: () =>
+    v.object({
+      page: v.array(v.object({ id: v.string(), label: v.string() })),
+      continueCursor: v.string(),
+      isDone: v.boolean()
+    }),
   handler: async (ctx, { userId, systemId, subjectKind, paginationOpts }) => {
     await requireFixtureAccount(ctx, userId)
     const source = await ctx.db
@@ -73,8 +74,8 @@ export const listOwnedFixtureSubjects = internalQuery({
 
 // CLI-only cleanup for the isolated publication proof, never an account/source deletion API.
 export const removeEmptyFixtureSource = internalMutation({
-  args: { userId: v.string(), systemId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), systemId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId, systemId }) => {
     await requireFixtureAccount(ctx, userId)
     const source = await ctx.db

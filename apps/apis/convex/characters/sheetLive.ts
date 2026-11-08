@@ -48,8 +48,8 @@ async function readLiveRoutedCharacterHead(
  * Null otherwise: Convex settles the end itself.
  */
 export const concentrationRoomRoute = query({
-  args: zodToConvexFields(characterSheetLiveAuthorityReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterConcentrationRoomRouteDtoSchema)),
+  args: () => zodToConvexFields(characterSheetLiveAuthorityReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterConcentrationRoomRouteDtoSchema)),
   handler: async (ctx, args) => {
     const head = await readLiveRoutedCharacterHead(
       ctx,
@@ -71,8 +71,8 @@ export const concentrationRoomRoute = query({
 
 /** The Character owner or Campaign GM can route play without loading mechanics or owned collections. */
 export const liveAuthority = query({
-  args: zodToConvexFields(characterSheetLiveAuthorityReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterSheetLiveAuthorityDtoSchema)),
+  args: () => zodToConvexFields(characterSheetLiveAuthorityReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterSheetLiveAuthorityDtoSchema)),
   handler: async (ctx, args) => {
     const input = characterSheetLiveAuthorityReadInputSchema.parse(args)
     const head = await readLiveRoutedCharacterHead(ctx, input)

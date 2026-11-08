@@ -44,9 +44,9 @@ export async function readActiveRun(ctx: QueryCtx, campaignId: string) {
 }
 
 export const get = query({
-  args: zodToConvexFields(getEncounterInputDtoSchema.shape),
+  args: () => zodToConvexFields(getEncounterInputDtoSchema.shape),
   // Construct large native validators during metadata export, outside query invocation.
-  get returns(): Validator<EncounterProjection, 'required', string> {
+  returns: (): Validator<EncounterProjection, 'required', string> => {
     return zodToConvex<z.core.$ZodType<EncounterProjection>>(encounterProjectionDtoSchema)
   },
   handler: async (ctx, args): Promise<EncounterProjection> => {
@@ -102,8 +102,8 @@ export async function readRunSummaries(
 }
 
 export const list = query({
-  args: zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
-  returns: zodToConvex(encounterSummaryListDtoSchema),
+  args: () => zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
+  returns: () => zodToConvex(encounterSummaryListDtoSchema),
   handler: async (ctx, args): Promise<EncounterSummaryDto[]> => {
     const input = getCampaignEncounterInputDtoSchema.parse({
       campaignId: args.campaignId.toLowerCase()
@@ -117,8 +117,8 @@ export const list = query({
 })
 /** Makes a paused START discoverable without exposing other prepared Encounters. */
 export const pendingPrepared = query({
-  args: zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
-  get returns(): Validator<EncounterPreparedPendingListDto, 'required', string> {
+  args: () => zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
+  returns: (): Validator<EncounterPreparedPendingListDto, 'required', string> => {
     return zodToConvex<z.core.$ZodType<EncounterPreparedPendingListDto>>(
       encounterPreparedPendingListDtoSchema
     )
@@ -145,8 +145,8 @@ export const pendingPrepared = query({
 })
 
 export const actorSides = query({
-  args: zodToConvexFields(getEncounterActorSidesInputDtoSchema.shape),
-  returns: zodToConvex(zMini.nullable(encounterActorSidesDtoSchema)),
+  args: () => zodToConvexFields(getEncounterActorSidesInputDtoSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(encounterActorSidesDtoSchema)),
   handler: async (ctx, args): Promise<EncounterActorSidesDto | null> => {
     const input = getEncounterActorSidesInputDtoSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

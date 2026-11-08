@@ -115,8 +115,8 @@ export async function attachPortrait(
 }
 
 export const bindingForCharacter = query({
-  args: zodToConvexFields(characterPortraitLookupSchema.shape),
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => zodToConvexFields(characterPortraitLookupSchema.shape),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx, args) => {
     const character = await readableCharacter(ctx, characterPortraitLookupSchema.parse(args))
     return character ? binding(character) : { assetId: null, revision: 0 }
@@ -124,8 +124,8 @@ export const bindingForCharacter = query({
 })
 
 export const createUpload = mutation({
-  args: zodToConvexFields(characterPortraitUploadSchema.shape),
-  returns: zodToConvex(mediaSinglePutUploadSchema),
+  args: () => zodToConvexFields(characterPortraitUploadSchema.shape),
+  returns: () => zodToConvex(mediaSinglePutUploadSchema),
   handler: async (ctx, args) => {
     const { target, ...input } = characterPortraitUploadSchema.parse(args)
     await ownedCharacter(ctx, target)
@@ -134,8 +134,8 @@ export const createUpload = mutation({
 })
 
 export const beginSave = internalMutation({
-  args: zodToConvexFields(characterPortraitSaveSchema.shape),
-  returns: zodToConvex(mediaProcessClaimSchema),
+  args: () => zodToConvexFields(characterPortraitSaveSchema.shape),
+  returns: () => zodToConvex(mediaProcessClaimSchema),
   handler: async (ctx, args): Promise<MediaProcessClaim> => {
     const input = characterPortraitSaveSchema.parse(args)
     const { character } = await ownedCharacter(ctx, input.target)
@@ -154,8 +154,8 @@ export const beginSave = internalMutation({
 })
 
 export const read = internalQuery({
-  args: zodToConvexFields(characterPortraitLookupSchema.shape),
-  returns: zodToConvex(zMini.nullable(mediaReferencedImageSchema)),
+  args: () => zodToConvexFields(characterPortraitLookupSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(mediaReferencedImageSchema)),
   handler: async (ctx, args) => {
     const character = await readableCharacter(ctx, characterPortraitLookupSchema.parse(args))
     if (!character?.portraitAssetId) return null
@@ -167,8 +167,8 @@ export const read = internalQuery({
 })
 
 export const remove = mutation({
-  args: { target: zodToConvex(characterPortraitTargetSchema) },
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => ({ target: zodToConvex(characterPortraitTargetSchema) }),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx, args) => {
     const { character } = await ownedCharacter(
       ctx,

@@ -3,13 +3,14 @@ import { internalMutation } from '../lib/mutations'
 import { mapIsReferenced } from './vttMapDocuments'
 
 export const backfill = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  returns: v.object({
-    cursor: v.union(v.string(), v.null()),
-    isDone: v.boolean(),
-    processed: v.number(),
-    orphanedReferencedMapIds: v.array(v.string())
-  }),
+  args: () => ({ cursor: v.union(v.string(), v.null()) }),
+  returns: () =>
+    v.object({
+      cursor: v.union(v.string(), v.null()),
+      isDone: v.boolean(),
+      processed: v.number(),
+      orphanedReferencedMapIds: v.array(v.string())
+    }),
   handler: async (ctx, { cursor }) => {
     const page = await ctx.db.query('mediaAssets').paginate({ cursor, numItems: 8 })
     let processed = 0

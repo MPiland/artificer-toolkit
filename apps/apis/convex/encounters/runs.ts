@@ -284,14 +284,14 @@ export async function createEncounterRun(
 }
 
 export const create = mutation({
-  args: zodToConvexFields(createEncounterInputDtoSchema.shape),
-  returns: projectionValidator,
+  args: () => zodToConvexFields(createEncounterInputDtoSchema.shape),
+  returns: () => projectionValidator,
   handler: createEncounterRun
 })
 
 export const deletePrepared = mutation({
-  args: zodToConvexFields(deletePreparedEncounterInputDtoSchema.shape),
-  returns: zodToConvex(deletePreparedEncounterResultDtoSchema),
+  args: () => zodToConvexFields(deletePreparedEncounterInputDtoSchema.shape),
+  returns: () => zodToConvex(deletePreparedEncounterResultDtoSchema),
   handler: async (ctx, args): Promise<DeletePreparedEncounterResultDto> => {
     const input = deletePreparedEncounterInputDtoSchema.parse({
       ...args,

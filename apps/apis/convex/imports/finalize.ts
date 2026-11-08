@@ -527,8 +527,8 @@ async function applyUsage(
 }
 
 export const complete = internalMutation({
-  args: { jobId: v.string() },
-  returns: v.null(),
+  args: () => ({ jobId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { jobId }) => {
     const found = await requireRunningImportJob(ctx, jobId)
     if (

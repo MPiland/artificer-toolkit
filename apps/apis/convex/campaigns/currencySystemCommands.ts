@@ -73,8 +73,8 @@ async function incrementInventoryVersion(ctx: MutationCtx, campaignId: string, v
 }
 
 export const save = internalMutation({
-  args: zodToConvexFields(saveCampaignCurrencySystemInputSchema.shape),
-  returns: zodToConvex(currencySystemDtoSchema),
+  args: () => zodToConvexFields(saveCampaignCurrencySystemInputSchema.shape),
+  returns: () => zodToConvex(currencySystemDtoSchema),
   handler: async (ctx, args) => {
     const input = saveCampaignCurrencySystemInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -208,8 +208,8 @@ export const save = internalMutation({
 })
 
 export const remove = internalMutation({
-  args: zodToConvexFields(deleteCampaignCurrencySystemInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(deleteCampaignCurrencySystemInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = deleteCampaignCurrencySystemInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

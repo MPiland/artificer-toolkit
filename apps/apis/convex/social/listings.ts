@@ -27,8 +27,8 @@ import { closeCampaignAdmission } from './admissionClosure'
 import { saveListingEdit } from './listingEdits'
 
 export const getOwned = query({
-  args: zodToConvexFields(socialListingPublicIdInputSchema.shape),
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => zodToConvexFields(socialListingPublicIdInputSchema.shape),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const { listingPublicId } = socialListingPublicIdInputSchema.parse(args)
@@ -38,8 +38,8 @@ export const getOwned = query({
 })
 
 export const open = mutation({
-  args: zodToConvexFields(socialListingVersionInputSchema.shape),
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => zodToConvexFields(socialListingVersionInputSchema.shape),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const { listingPublicId, expectedVersion } = socialListingVersionInputSchema.parse(args)
@@ -70,8 +70,8 @@ export const open = mutation({
 })
 
 export const close = mutation({
-  args: zodToConvexFields(socialListingVersionInputSchema.shape),
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => zodToConvexFields(socialListingVersionInputSchema.shape),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const { listingPublicId, expectedVersion } = socialListingVersionInputSchema.parse(args)
@@ -86,8 +86,8 @@ export const close = mutation({
 })
 
 export const listOwned = query({
-  args: zodToConvexFields(socialListingListInputSchema.shape),
-  returns: zodToConvex(socialListingPageSchema),
+  args: () => zodToConvexFields(socialListingListInputSchema.shape),
+  returns: () => zodToConvex(socialListingPageSchema),
   handler: async (ctx, args): Promise<SocialListingPage> => {
     const actor = await requireSocialOwner(ctx)
     const { paginationOpts } = socialListingListInputSchema.parse(args)
@@ -120,8 +120,8 @@ export const listOwned = query({
 })
 
 export const update = mutation({
-  args: { input: zodToConvex(updateSocialListingInputSchema) },
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => ({ input: zodToConvex(updateSocialListingInputSchema) }),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const actor = await requireSocialOwner(ctx)
     const input = updateSocialListingInputSchema.parse(args.input)

@@ -21,8 +21,8 @@ import { requireCampaignVehicleCargoAccess } from './vehicleDocuments'
 import { requireInventoryVehicleEditable } from './inventoryCleanupGuards'
 
 export const transfer = internalMutation({
-  args: { input: zodToConvex(transferCampaignInventoryInputSchema) },
-  returns: zodToConvex(campaignInventoryTransferResultDtoSchema),
+  args: () => ({ input: zodToConvex(transferCampaignInventoryInputSchema) }),
+  returns: () => zodToConvex(campaignInventoryTransferResultDtoSchema),
   handler: async (ctx, args): Promise<CampaignInventoryTransferResultDto> => {
     const input = transferCampaignInventoryInputSchema.parse(args.input)
     const { userId } = await requireIdentity(ctx)

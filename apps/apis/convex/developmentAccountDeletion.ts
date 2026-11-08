@@ -415,8 +415,8 @@ async function validateKnownBefore(
 }
 /** Every query below is indexed and bounded; promotion must retain those exact index names. */
 export const inspect = internalQuery({
-  args: zodToConvex(developmentAccountDeletionInspectInputSchema),
-  returns: zodToConvex(developmentAccountDeletionInspectResultSchema),
+  args: () => zodToConvex(developmentAccountDeletionInspectInputSchema),
+  returns: () => zodToConvex(developmentAccountDeletionInspectResultSchema),
   handler: async (ctx: QueryCtx, raw) => {
     if (process.env.SITE_URL !== 'http://localhost:3000')
       throw new Error('Account fixture inspection requires the development application origin.')

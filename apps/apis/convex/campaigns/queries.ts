@@ -29,8 +29,8 @@ import {
 } from './documents'
 
 export const get = query({
-  args: zodToConvexFields(campaignLookupInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(campaignLookupInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = campaignLookupInputSchema.parse(args)
@@ -39,8 +39,8 @@ export const get = query({
 })
 
 export const settings = query({
-  args: zodToConvexFields(campaignLookupInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(campaignLookupInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = campaignLookupInputSchema.parse(args)
@@ -49,8 +49,8 @@ export const settings = query({
 })
 
 export const contentUsage = query({
-  args: zodToConvexFields(campaignLookupInputSchema.shape),
-  returns: zodToConvex(campaignContentUsageDtoSchema),
+  args: () => zodToConvexFields(campaignLookupInputSchema.shape),
+  returns: () => zodToConvex(campaignContentUsageDtoSchema),
   handler: async (ctx, args): Promise<CampaignContentUsageDto> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = campaignLookupInputSchema.parse(args)
@@ -64,8 +64,8 @@ export const contentUsage = query({
 
 /** Any member: routes chat and rolls to the room, and dates the last checkpoint other pages show. */
 export const liveAuthority = query({
-  args: zodToConvexFields(campaignLookupInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(campaignLiveAuthorityDtoSchema)),
+  args: () => zodToConvexFields(campaignLookupInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(campaignLiveAuthorityDtoSchema)),
   handler: async (ctx, args): Promise<CampaignLiveAuthorityDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = campaignLookupInputSchema.parse(args)
@@ -82,8 +82,8 @@ export const liveAuthority = query({
 })
 
 export const list = query({
-  args: zodToConvexFields(campaignListInputSchema.shape),
-  returns: zodToConvex(campaignListPageSchema),
+  args: () => zodToConvexFields(campaignListInputSchema.shape),
+  returns: () => zodToConvex(campaignListPageSchema),
   handler: async (ctx, args): Promise<CampaignListPage> => {
     const { userId } = await requireIdentity(ctx)
     const { paginationOpts } = campaignListInputSchema.parse(args)

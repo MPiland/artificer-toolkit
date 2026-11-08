@@ -7,8 +7,8 @@ const purgeRecipientReference = makeFunctionReference<'mutation', { userId: stri
 )
 
 export const purgeRecipient = internalMutation({
-  args: { userId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId }) => {
     const profile = await ctx.db
       .query('userProfiles')

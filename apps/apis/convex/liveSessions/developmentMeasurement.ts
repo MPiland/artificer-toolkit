@@ -18,8 +18,8 @@ import { PAGE, RUN_TABLES, type RunTableQuery } from './roomInputs'
  */
 const windowMarker = () =>
   mutation({
-    args: {},
-    returns: v.null(),
+    args: () => ({}),
+    returns: () => v.null(),
     handler: async (ctx) => {
       const { userId } = await requireIdentity(ctx)
       await requireFixtureAccount(ctx, userId)
@@ -62,8 +62,8 @@ const utf8 = new TextEncoder()
 
 /** One page of one table's document sizes; the caller follows `next` until it is null. */
 export const checkpointDocumentSizes = query({
-  args: zodToConvexFields(developmentDocumentSizesInputSchema.shape),
-  get returns(): Validator<DevelopmentDocumentSizesPage, 'required', string> {
+  args: () => zodToConvexFields(developmentDocumentSizesInputSchema.shape),
+  returns: (): Validator<DevelopmentDocumentSizesPage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<DevelopmentDocumentSizesPage>>(
       developmentDocumentSizesPageSchema
     )

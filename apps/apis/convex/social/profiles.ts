@@ -48,8 +48,8 @@ function eligibility(profile: SocialStoredProfile | null): SocialEligibilityDto 
 }
 
 export const getEligibility = query({
-  args: {},
-  returns: zodToConvex(socialEligibilityDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(socialEligibilityDtoSchema),
   handler: async (ctx): Promise<SocialEligibilityDto> => {
     const { userId } = await requireIdentity(ctx)
     return eligibility((await readProfile(ctx, userId))?.profile ?? null)
@@ -57,8 +57,8 @@ export const getEligibility = query({
 })
 
 export const initialize = mutation({
-  args: {},
-  returns: zodToConvex(socialEligibilityDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(socialEligibilityDtoSchema),
   handler: async (ctx): Promise<SocialEligibilityDto> => {
     const { userId } = await requireIdentity(ctx)
     const existing = await readProfile(ctx, userId)
@@ -70,8 +70,8 @@ export const initialize = mutation({
 })
 
 export const updatePreference = mutation({
-  args: { input: zodToConvex(updateSocialContentPreferenceInputSchema) },
-  returns: zodToConvex(socialEligibilityDtoSchema),
+  args: () => ({ input: zodToConvex(updateSocialContentPreferenceInputSchema) }),
+  returns: () => zodToConvex(socialEligibilityDtoSchema),
   handler: async (ctx, args): Promise<SocialEligibilityDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = updateSocialContentPreferenceInputSchema.parse(args.input)

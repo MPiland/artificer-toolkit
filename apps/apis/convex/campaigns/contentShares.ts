@@ -44,8 +44,8 @@ const campaignContentNodeMaps = {
 } satisfies Record<CampaignContentShareDto['subjectKind'], RuntimeNodeMap>
 
 export const list = query({
-  args: zodToConvexFields(campaignContentListInputSchema.shape),
-  returns: zodToConvex(campaignContentListPageSchema),
+  args: () => zodToConvexFields(campaignContentListInputSchema.shape),
+  returns: () => zodToConvex(campaignContentListPageSchema),
   handler: async (ctx, args): Promise<CampaignContentListPage> => {
     const input = campaignContentListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -83,8 +83,9 @@ export const list = query({
 })
 
 export const share = mutation({
-  args: zodToConvexFields(shareCampaignContentInputSchema.shape),
-  returns: zodToConvex<z.core.$ZodType<CampaignContentShareDto>>(campaignContentShareDtoSchema),
+  args: () => zodToConvexFields(shareCampaignContentInputSchema.shape),
+  returns: () =>
+    zodToConvex<z.core.$ZodType<CampaignContentShareDto>>(campaignContentShareDtoSchema),
   handler: async (ctx, args): Promise<CampaignContentShareDto> =>
     ctx.runMutation(
       internal.campaigns.contentShareCommands.share,
@@ -93,8 +94,8 @@ export const share = mutation({
 })
 
 export const unshare = mutation({
-  args: zodToConvexFields(unshareCampaignContentInputSchema.shape),
-  returns: zodToConvex(campaignContentRemovalReceiptDtoSchema),
+  args: () => zodToConvexFields(unshareCampaignContentInputSchema.shape),
+  returns: () => zodToConvex(campaignContentRemovalReceiptDtoSchema),
   handler: async (ctx, args): Promise<CampaignContentRemovalReceiptDto> => {
     const request = unshareCampaignContentInputSchema.parse(args)
     return ctx.runMutation(internal.campaigns.contentShareRemoval.unshare, request)

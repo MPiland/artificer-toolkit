@@ -13,7 +13,7 @@ import { components, internal } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
 import { readCharacterDraftPayload, replaceCharacterDraftPayload } from '../characters/documents'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { hasRootCatalogueFacts, rootCatalogueFacts } from './catalogueMetadata'
 import {
@@ -31,7 +31,10 @@ import { compileCurrentRace } from './raceRelationships'
  * Race compile against their current parents, as publication does. Idempotent: current rows are
  * left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 // A compilation can approach the document size limit.
 export const recompileStaleCompilations = migrations.define({

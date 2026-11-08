@@ -1,11 +1,11 @@
-import { customMutation } from 'convex-helpers/server/customFunctions'
 import { Triggers } from 'convex-helpers/server/triggers'
 import type { GenericDatabaseWriter, GenericMutationCtx } from 'convex/server'
 import type { LiveSessionInputScope } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SceneVisionRevision } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
 import {
   internalMutation as rawInternalMutation,
-  mutation as rawMutation
+  mutation as rawMutation,
+  type MutationCtx
 } from '../_generated/server'
 import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
@@ -22,7 +22,8 @@ import {
 } from '../characters/sheetSectionStores'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
 import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
-import { withDomainRejections } from './domainRejectionTransport'
+import { translateDomainRejections } from './domainRejectionTransport'
+import { withLazyValidators } from './lazyValidators'
 
 type SceneVisionScope = Pick<SceneVisionRevision, 'scope' | 'id'>
 
@@ -116,20 +117,12 @@ async function notifyLiveRooms(
 }
 
 /** Change tracking for one transaction, with its live-room notices sent when it succeeds. */
-function trackedMutation(
-  db: (ctx: GenericMutationCtx<DataModel>) => GenericDatabaseWriter<DataModel>
-) {
-  return {
-    args: {},
-    input: (ctx: GenericMutationCtx<DataModel>) => {
-      const innerDb = db(ctx)
-      return {
-        ctx: withSceneVisionTracking({ ...ctx, db: innerDb }),
-        args: {},
-        onSuccess: () => notifyLiveRooms(innerDb, ctx.scheduler)
-      }
-    }
-  }
+function trackedHandler(handler: (ctx: MutationCtx, ...args: never) => unknown) {
+  return translateDomainRejections(async (ctx: MutationCtx, ...args: never) => {
+    const result = await handler(withSceneVisionTracking({ ...ctx }), ...args)
+    await notifyLiveRooms(ctx.db, ctx.scheduler)
+    return result
+  })
 }
 
 function registerScope<TableName extends TableNames>(
@@ -465,17 +458,27 @@ registerScope('encounterRuleOccurrences', (ctx, document) =>
  * notices, so product writes use `mutation` or `internalMutation`.
  */
 export const withSceneVisionTracking = triggers.wrapDB
-export const mutation = withDomainRejections(
-  customMutation(
-    rawMutation,
-    trackedMutation((ctx) => ctx.db)
-  )
+export const mutation = withLazyValidators<'mutation', MutationCtx, 'public'>(
+  rawMutation,
+  trackedHandler
 )
-export const internalMutation = withDomainRejections(
-  customMutation(
-    rawInternalMutation,
-    trackedMutation((ctx) => ctx.db)
-  )
+export const internalMutation = withLazyValidators<'mutation', MutationCtx, 'internal'>(
+  rawInternalMutation,
+  trackedHandler
 )
 /** An internal mutation that applies change tracking to its own context (`withSceneVisionTracking`). */
-export const untrackedInternalMutation = withDomainRejections(rawInternalMutation)
+export const untrackedInternalMutation = withLazyValidators<'mutation', MutationCtx, 'internal'>(
+  rawInternalMutation,
+  translateDomainRejections
+)
+/**
+ * `internalMutation` with Convex's own signature (validators as values), for libraries that register
+ * functions themselves, such as `@convex-dev/migrations`. Its validators are built at module load.
+ */
+export const eagerInternalMutation = ((definition: {
+  handler: (ctx: MutationCtx, ...args: never) => unknown
+}) =>
+  rawInternalMutation({
+    ...definition,
+    handler: trackedHandler(definition.handler)
+  })) as unknown as typeof rawInternalMutation

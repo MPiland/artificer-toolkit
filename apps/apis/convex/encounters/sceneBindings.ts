@@ -52,8 +52,8 @@ async function readBoundSceneScope(
 }
 
 export const get = query({
-  args: zodToConvexFields(sceneEncounterBindingInputSchema.shape),
-  returns: zodToConvex(z.nullable(sceneEncounterBindingSchema)),
+  args: () => zodToConvexFields(sceneEncounterBindingInputSchema.shape),
+  returns: () => zodToConvex(z.nullable(sceneEncounterBindingSchema)),
   handler: async (ctx, args): Promise<SceneEncounterBinding | null> => {
     const input = sceneEncounterBindingInputSchema.parse(args)
     const { run, binding } = await readBoundSceneScope(ctx, input)
@@ -62,8 +62,9 @@ export const get = query({
 })
 
 export const forVisibleTokens = internalQuery({
-  args: zodToConvexFields(sceneRecipientEncounterBindingsLookupInputSchema.shape),
-  returns: zodToConvex(z.array(encounterSceneActorTokenBindingDtoSchema).check(z.maxLength(8))),
+  args: () => zodToConvexFields(sceneRecipientEncounterBindingsLookupInputSchema.shape),
+  returns: () =>
+    zodToConvex(z.array(encounterSceneActorTokenBindingDtoSchema).check(z.maxLength(8))),
   handler: async (ctx, args) => {
     const input = sceneRecipientEncounterBindingsLookupInputSchema.parse(args)
     const { run, capture, binding } = await readBoundSceneScope(ctx, input)

@@ -63,11 +63,12 @@ const CONTENT_SNAPSHOT_PAGE_BYTE_BUDGET = 256 * 1024
  * least this new, so committing it as `builtRevision` never skips a change.
  */
 export const readBuildStart = internalQuery({
-  args: vContentSnapshotScopeRef,
-  returns: v.union(
-    v.object({ revision: v.number(), scopeExists: v.boolean(), publicAccess: v.boolean() }),
-    v.null()
-  ),
+  args: () => vContentSnapshotScopeRef,
+  returns: () =>
+    v.union(
+      v.object({ revision: v.number(), scopeExists: v.boolean(), publicAccess: v.boolean() }),
+      v.null()
+    ),
   handler: async (ctx, { scope, scopeId }) => {
     const head = await ctx.db
       .query('contentSnapshotHeads')
@@ -101,19 +102,20 @@ export const readBuildStart = internalQuery({
  * once its sources reach the byte budget, so each query's reads and time stay bounded.
  */
 export const readScopeKind = internalQuery({
-  args: {
+  args: () => ({
     ...vContentSnapshotScopeRef,
     kind: zodToConvex(contentSnapshotKindSchema),
     paginationOpts: paginationOptsValidator
-  },
-  returns: v.union(
-    v.object({
-      sources: v.array(v.string()),
-      continueCursor: v.string(),
-      isDone: v.boolean()
-    }),
-    v.object({ pendingCompilation: v.literal(true) })
-  ),
+  }),
+  returns: () =>
+    v.union(
+      v.object({
+        sources: v.array(v.string()),
+        continueCursor: v.string(),
+        isDone: v.boolean()
+      }),
+      v.object({ pendingCompilation: v.literal(true) })
+    ),
   handler: async (ctx, { scope, scopeId, kind, paginationOpts }) => {
     const readRoots =
       scope === 'SOURCE'
@@ -298,8 +300,8 @@ async function readEquipmentBuilderFacts(
 
 /** Keys without an object row; only these are uploaded. */
 export const readAbsentObjectKeys = internalQuery({
-  args: { keys: v.array(v.string()) },
-  returns: v.array(v.string()),
+  args: () => ({ keys: v.array(v.string()) }),
+  returns: () => v.array(v.string()),
   handler: async (ctx, { keys }) => {
     const absent: string[] = []
     for (const key of keys) {
@@ -329,19 +331,15 @@ function referencedKeys(ref: ContentSnapshotScopeRef, kinds: ContentSnapshotHead
  * committed head references them, so an object from a rejected build ages out like any other.
  */
 export const commitBuild = internalMutation({
-  args: {
+  args: () => ({
     ...vContentSnapshotScopeRef,
     revisionBuiltFrom: v.number(),
     kinds: zodToConvex(contentSnapshotHeadSchema.shape.kinds),
     uploadedKeys: v.array(v.string()),
     scopeExists: v.boolean()
-  },
-  returns: v.union(
-    v.literal('COMMITTED'),
-    v.literal('STALE'),
-    v.literal('RETRY'),
-    v.literal('MISSING')
-  ),
+  }),
+  returns: () =>
+    v.union(v.literal('COMMITTED'), v.literal('STALE'), v.literal('RETRY'), v.literal('MISSING')),
   handler: async (ctx, args) => {
     const ref: ContentSnapshotScopeRef = { scope: args.scope, scopeId: args.scopeId }
     const now = Date.now()
@@ -423,8 +421,8 @@ export const commitBuild = internalMutation({
  * `revision`, so it rebuilds now; otherwise the lease is released for that mark to schedule.
  */
 export const awaitCompilation = internalMutation({
-  args: { ...vContentSnapshotScopeRef, revisionBuiltFrom: v.number() },
-  returns: v.null(),
+  args: () => ({ ...vContentSnapshotScopeRef, revisionBuiltFrom: v.number() }),
+  returns: () => v.null(),
   handler: async (ctx, { revisionBuiltFrom, ...ref }) => {
     const head = await readContentSnapshotHead(ctx.db, ref)
     if (!head) return null
@@ -438,8 +436,8 @@ export const awaitCompilation = internalMutation({
 
 /** Retries a failed build with exponential backoff; later marks retry after that. */
 export const failBuild = internalMutation({
-  args: vContentSnapshotScopeRef,
-  returns: v.null(),
+  args: () => vContentSnapshotScopeRef,
+  returns: () => v.null(),
   handler: async (ctx, ref) => {
     const head = await readContentSnapshotHead(ctx.db, ref)
     if (!head) return null
@@ -460,8 +458,8 @@ export const failBuild = internalMutation({
 
 /** Claims objects superseded for longer than the retention; no build may reuse a claimed key. */
 export const claimSupersededObjects = internalMutation({
-  args: {},
-  returns: v.array(v.string()),
+  args: () => ({}),
+  returns: () => v.array(v.string()),
   handler: async (ctx) => {
     const now = Date.now()
     const rows = await ctx.db
@@ -482,8 +480,8 @@ export const claimSupersededObjects = internalMutation({
 
 /** Removes the rows of claimed objects after R2 confirmed their deletion. */
 export const finishDeletedObjects = internalMutation({
-  args: { keys: v.array(v.string()) },
-  returns: v.null(),
+  args: () => ({ keys: v.array(v.string()) }),
+  returns: () => v.null(),
   handler: async (ctx, { keys }) => {
     for (const key of keys) {
       const row = await ctx.db

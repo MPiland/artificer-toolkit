@@ -10,8 +10,8 @@ import { readOwnedCurrentPublication } from './contentAccess'
 
 /** Removes only the bounded P12 driver state before the existing Campaign fixture cleanup. */
 export const removeFixtureState = internalMutation({
-  args: { ownerUserId: v.string(), playerUserId: v.string(), campaignId: v.string() },
-  returns: v.null(),
+  args: () => ({ ownerUserId: v.string(), playerUserId: v.string(), campaignId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     await requireFixtureAccount(ctx, input.ownerUserId)
     await requireFixtureAccount(ctx, input.playerUserId)

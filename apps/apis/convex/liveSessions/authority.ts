@@ -320,8 +320,8 @@ export async function claimCampaignLiveAuthority(
 }
 
 export const claim = internalMutation({
-  args: { campaignId: zodToConvex(postgresUuidSchema) },
-  returns: authorityValue,
+  args: () => ({ campaignId: zodToConvex(postgresUuidSchema) }),
+  returns: () => authorityValue,
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { authority } = await claimCampaignLiveAuthority(ctx, {
@@ -335,8 +335,8 @@ export const claim = internalMutation({
 
 /** The Worker alone replaces lost storage authority; retries cannot rotate a newer epoch. */
 export const recoverStorage = internalMutation({
-  args: zodToConvex(liveSessionStorageRecoveryInputSchema),
-  returns: zodToConvex(liveSessionAuthorityDtoSchema),
+  args: () => zodToConvex(liveSessionStorageRecoveryInputSchema),
+  returns: () => zodToConvex(liveSessionAuthorityDtoSchema),
   handler: async (ctx, args) => {
     const input = liveSessionStorageRecoveryInputSchema.parse(args)
     const campaignId = input.campaignId.toLowerCase()
@@ -379,34 +379,34 @@ export const recoverStorage = internalMutation({
 })
 
 export const commitActivation = internalMutation({
-  args: {
+  args: () => ({
     ...authorityIdentityFields,
     activationFingerprint: zodToConvex(projectionChecksumSchema),
     stateChecksum: zodToConvex(projectionChecksumSchema)
-  },
-  returns: authorityValue,
+  }),
+  returns: () => authorityValue,
   handler: async (ctx, args) =>
     presentCampaignLiveAuthority(await commitCampaignLiveAuthorityActivation(ctx, args))
 })
 
 export const advancePersisted = internalMutation({
-  args: {
+  args: () => ({
     ...authorityIdentityFields,
     expectedStateChecksum: zodToConvex(projectionChecksumSchema),
     sequence: v.number(),
     stateChecksum: zodToConvex(projectionChecksumSchema)
-  },
-  returns: authorityValue,
+  }),
+  returns: () => authorityValue,
   handler: async (ctx, args) =>
     presentCampaignLiveAuthority(await advanceCampaignLiveAuthorityPersisted(ctx, args))
 })
 export const beginDrain = internalMutation({
-  args: {
+  args: () => ({
     ...authorityIdentityFields,
     finalSequence: v.number(),
     finalStateChecksum: zodToConvex(projectionChecksumSchema)
-  },
-  returns: authorityValue,
+  }),
+  returns: () => authorityValue,
   handler: async (ctx, args) => {
     if (!Number.isSafeInteger(args.finalSequence) || args.finalSequence < 0)
       throw new Error('Live Session final sequence is invalid.')
@@ -444,12 +444,12 @@ export const beginDrain = internalMutation({
 })
 
 export const release = internalMutation({
-  args: {
+  args: () => ({
     ...authorityIdentityFields,
     finalSequence: v.number(),
     finalStateChecksum: zodToConvex(projectionChecksumSchema)
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     if (!Number.isSafeInteger(args.finalSequence) || args.finalSequence < 0)
       throw new Error('Live Session final sequence is invalid.')
@@ -474,8 +474,8 @@ export const release = internalMutation({
 
 /** Whether a room still holds the Campaign's live authority, so its evictions keep retrying. */
 export const held = internalQuery({
-  args: { campaignId: zodToConvex(postgresUuidSchema) },
-  returns: v.boolean(),
+  args: () => ({ campaignId: zodToConvex(postgresUuidSchema) }),
+  returns: () => v.boolean(),
   handler: async (ctx, { campaignId }) =>
     (await readLiveCampaignAuthority(ctx, campaignId)) !== null
 })

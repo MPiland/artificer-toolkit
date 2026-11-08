@@ -166,14 +166,14 @@ export async function deriveAndStoreCharacterSheet(
 }
 
 export const store = internalMutation({
-  args: { characterId: v.string(), token: v.string() },
-  returns: v.null(),
+  args: () => ({ characterId: v.string(), token: v.string() }),
+  returns: () => v.null(),
   handler: (ctx, { characterId, token }) => deriveAndStoreCharacterSheet(ctx, characterId, token)
 })
 
 export const verify = internalMutation({
-  args: { characterId: v.string(), token: v.string(), campaignId: v.optional(v.string()) },
-  returns: v.null(),
+  args: () => ({ characterId: v.string(), token: v.string(), campaignId: v.optional(v.string()) }),
+  returns: () => v.null(),
   handler: async (ctx, check) => {
     await verifyCharacterSheetStore(ctx, check)
     return null

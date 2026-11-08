@@ -55,8 +55,8 @@ async function requirePlacementContainer(
   return container
 }
 export const mutate = mutation({
-  args: { input: zodToConvex(campaignPartyInventoryMutationInputSchema) },
-  returns: zodToConvex(campaignPartyInventoryMutationResultDtoSchema),
+  args: () => ({ input: zodToConvex(campaignPartyInventoryMutationInputSchema) }),
+  returns: () => zodToConvex(campaignPartyInventoryMutationResultDtoSchema),
   handler: async (ctx, args) => {
     const input = campaignPartyInventoryMutationInputSchema.parse(args.input)
     const { userId } = await requireIdentity(ctx)

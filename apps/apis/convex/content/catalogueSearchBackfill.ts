@@ -23,8 +23,8 @@ function exactEquipmentOptionFacts(actual: unknown, expected: unknown) {
 }
 
 export const backfill = internalMutation({
-  args: zodToConvexFields(authoredCatalogueSearchBackfillInputSchema.shape),
-  returns: zodToConvex(authoredCatalogueSearchBackfillResultSchema),
+  args: () => zodToConvexFields(authoredCatalogueSearchBackfillInputSchema.shape),
+  returns: () => zodToConvex(authoredCatalogueSearchBackfillResultSchema),
   handler: async (ctx, args) => {
     const input = authoredCatalogueSearchBackfillInputSchema.parse(args)
     const result = await ctx.db

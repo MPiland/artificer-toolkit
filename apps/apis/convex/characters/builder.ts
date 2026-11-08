@@ -22,8 +22,8 @@ import { readCharacterRow } from './stateDocuments'
  * subscription (S8).
  */
 export const activeCharacter = query({
-  args: zodToConvexFields(characterDraftLookupInputSchema.shape),
-  get returns(): Validator<CharacterAuthoredDto | null, 'required', string> {
+  args: () => zodToConvexFields(characterDraftLookupInputSchema.shape),
+  returns: (): Validator<CharacterAuthoredDto | null, 'required', string> => {
     return v.union(v.null(), zodToConvex(characterAuthoredDtoSchema))
   },
   handler: (ctx, args) => readActiveCharacter(ctx, characterDraftLookupInputSchema.parse(args))

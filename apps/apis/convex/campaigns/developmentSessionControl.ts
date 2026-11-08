@@ -39,13 +39,13 @@ function payload(json: string) {
 }
 
 export const removeFixtureState = internalMutation({
-  args: {
+  args: () => ({
     ownerUserId: v.string(),
     playerUserId: v.string(),
     campaignId: v.string(),
     characterId: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     await requireFixtureAccount(ctx, input.ownerUserId)
     await requireFixtureAccount(ctx, input.playerUserId)

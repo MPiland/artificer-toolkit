@@ -35,8 +35,8 @@ async function requireOwnedCampaign(ctx: MutationCtx, campaignId: string) {
 }
 
 export const current = query({
-  args: zodToConvexFields(campaignSceneShowingInputSchema.shape),
-  get returns() {
+  args: () => zodToConvexFields(campaignSceneShowingInputSchema.shape),
+  returns: () => {
     return zodToConvex(nullable(campaignSceneShowingDtoSchema))
   },
   handler: async (ctx, args): Promise<CampaignSceneShowingDto | null> => {
@@ -59,8 +59,8 @@ export const current = query({
 })
 
 export const show = mutation({
-  args: zodToConvexFields(showCampaignSceneInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(showCampaignSceneInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = showCampaignSceneInputSchema.parse(args)
     const { campaign, userId } = await requireOwnedCampaign(ctx, input.campaignId.toLowerCase())
@@ -93,8 +93,8 @@ export const show = mutation({
 })
 
 export const stop = mutation({
-  args: zodToConvexFields(campaignSceneShowingInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(campaignSceneShowingInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = campaignSceneShowingInputSchema.parse(args)
     const { campaign } = await requireOwnedCampaign(ctx, input.campaignId.toLowerCase())

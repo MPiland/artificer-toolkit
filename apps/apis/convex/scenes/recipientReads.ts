@@ -72,8 +72,8 @@ export async function readCompactScene(
   ).scene
 }
 export const header = query({
-  args: zodToConvexFields(sceneRecipientHeaderInputSchema.shape),
-  get returns() {
+  args: () => zodToConvexFields(sceneRecipientHeaderInputSchema.shape),
+  returns: () => {
     return zodToConvex(sceneRecipientHeaderSchema)
   },
   handler: async (ctx, args) => {
@@ -107,8 +107,8 @@ export const header = query({
 })
 
 export const capture = internalQuery({
-  args: zodToConvexFields(sceneRecipientCaptureInputSchema.shape),
-  get returns() {
+  args: () => zodToConvexFields(sceneRecipientCaptureInputSchema.shape),
+  returns: () => {
     return zodToConvex(sceneRecipientCaptureSchema)
   },
   handler: async (ctx, args) => {
@@ -118,8 +118,8 @@ export const capture = internalQuery({
 })
 
 export const currentEntities = internalQuery({
-  args: zodToConvexFields(sceneCurrentEntityPageInputSchema.shape),
-  get returns() {
+  args: () => zodToConvexFields(sceneCurrentEntityPageInputSchema.shape),
+  returns: () => {
     return zodToConvex(sceneCurrentEntityPageSchema)
   },
   handler: async (ctx, args) =>

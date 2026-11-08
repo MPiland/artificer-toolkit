@@ -74,8 +74,8 @@ async function deleteReplacedPayload(
 }
 
 export const cleanupPreview = internalMutation({
-  args: { previewId: v.string(), expiresAt: v.number() },
-  returns: v.null(),
+  args: () => ({ previewId: v.string(), expiresAt: v.number() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const row = await ctx.db
       .query('importPreviewSessions')
@@ -116,8 +116,8 @@ export const cleanupPreview = internalMutation({
 })
 
 export const cleanup = internalMutation({
-  args: { jobId: v.string() },
-  returns: v.null(),
+  args: () => ({ jobId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { jobId }) => {
     const row = await ctx.db
       .query('importJobs')

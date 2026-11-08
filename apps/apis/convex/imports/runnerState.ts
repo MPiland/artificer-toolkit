@@ -95,8 +95,8 @@ async function requireRunningJob(ctx: QueryCtx, jobId: string) {
 }
 
 export const loadSource = internalQuery({
-  args: { jobId: v.string() },
-  returns: runnerSourceValidator,
+  args: () => ({ jobId: v.string() }),
+  returns: () => runnerSourceValidator,
   handler: async (ctx, { jobId }): Promise<ImportRunnerSource> => {
     const job = await requireRunningJob(ctx, jobId)
 
@@ -165,13 +165,13 @@ export const loadSource = internalQuery({
 })
 
 export const loadPreflight = internalQuery({
-  args: {
+  args: () => ({
     jobId: v.string(),
     systemIds: v.array(v.string()),
     characterIds: v.array(v.string()),
     equipmentIds: v.array(v.string())
-  },
-  returns: runnerPreflightValidator,
+  }),
+  returns: () => runnerPreflightValidator,
   handler: async (ctx, args): Promise<ImportRunnerPreflight> => {
     const job = await requireRunningJob(ctx, args.jobId)
     if (

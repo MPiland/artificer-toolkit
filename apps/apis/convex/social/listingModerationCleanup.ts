@@ -28,7 +28,7 @@ const nextPage = makeFunctionReference<'mutation', CleanupArgs, null>(
 )
 
 export const run = internalMutation({
-  args: {
+  args: () => ({
     listingId: v.string(),
     ownerUserId: v.string(),
     generation: v.number(),
@@ -36,8 +36,8 @@ export const run = internalMutation({
     invalidatedAt: v.string(),
     phase: v.union(...phases.map((phase) => v.literal(phase))),
     cursor: v.union(v.null(), v.string())
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const listing = await ctx.db
       .query('socialListings')

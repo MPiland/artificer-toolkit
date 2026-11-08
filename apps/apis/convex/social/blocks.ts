@@ -48,8 +48,8 @@ async function readProfileByPublicId(ctx: QueryCtx, id: string) {
 }
 
 export const getStatus = query({
-  args: zodToConvexFields(socialBlockInputSchema.shape),
-  returns: zodToConvex(socialBlockStatusSchema),
+  args: () => zodToConvexFields(socialBlockInputSchema.shape),
+  returns: () => zodToConvex(socialBlockStatusSchema),
   handler: async (ctx, args): Promise<SocialBlockStatus> => {
     const actor = await requireSocialViewer(ctx)
     const { profilePublicId } = socialBlockInputSchema.parse(args)
@@ -66,8 +66,8 @@ export const getStatus = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(socialBlockInputSchema.shape),
-  returns: zodToConvex(socialBlockDtoSchema),
+  args: () => zodToConvexFields(socialBlockInputSchema.shape),
+  returns: () => zodToConvex(socialBlockDtoSchema),
   handler: async (ctx, args): Promise<SocialBlockDto> => {
     const input = socialBlockInputSchema.parse(args)
     const actor = await requireSocialViewer(ctx)
@@ -124,8 +124,8 @@ export const create = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(socialBlockInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(socialBlockInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = socialBlockInputSchema.parse(args)
     const actor = await requireSocialViewer(ctx)

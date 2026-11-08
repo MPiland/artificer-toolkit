@@ -19,8 +19,8 @@ import { attachPortrait } from './characterPortraitAssets'
 
 /** "My images": the caller's own READY assets of one class, newest first. */
 export const list = query({
-  args: zodToConvexFields(mediaLibraryListInputSchema.shape),
-  returns: zodToConvex(mediaLibraryPageSchema),
+  args: () => zodToConvexFields(mediaLibraryListInputSchema.shape),
+  returns: () => zodToConvex(mediaLibraryPageSchema),
   handler: async (ctx, args): Promise<MediaLibraryPage> => {
     const input = mediaLibraryListInputSchema.parse(args)
     const authenticated = await getAuthenticatedProfile(ctx)
@@ -60,8 +60,8 @@ export const list = query({
  * write rules and framing, exactly as it does when binding a fresh upload.
  */
 export const attachImage = mutation({
-  args: zodToConvexFields(mediaImageAttachInputSchema.shape),
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => zodToConvexFields(mediaImageAttachInputSchema.shape),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx, args): Promise<AvatarBindingDto> => {
     const { target, assetId, crop } = mediaImageAttachInputSchema.parse(args)
     if (target.type === 'ACCOUNT_AVATAR') return attachAvatar(ctx, assetId, crop)
@@ -72,8 +72,8 @@ export const attachImage = mutation({
 
 /** Owner-only preview of an unattached image variant for the picker; never a slot's framing. */
 export const readOwnedVariant = internalQuery({
-  args: zodToConvexFields(mediaLibraryImageInputSchema.shape),
-  returns: zodToConvex(zMini.nullable(mediaStoredVariantSchema)),
+  args: () => zodToConvexFields(mediaLibraryImageInputSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(mediaStoredVariantSchema)),
   handler: async (ctx, args) => {
     const input = mediaLibraryImageInputSchema.parse(args)
     const { asset } = await ownedAsset(ctx, input.assetId.toLowerCase())

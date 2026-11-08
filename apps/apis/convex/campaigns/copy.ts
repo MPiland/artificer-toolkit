@@ -33,8 +33,8 @@ function copyReceiptDestinationId(payloadJson: string, expectedVersion: number) 
 }
 
 export const copy = mutation({
-  args: zodToConvexFields(copyCampaignInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(copyCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const input = copyCampaignInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

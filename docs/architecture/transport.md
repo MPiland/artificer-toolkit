@@ -80,6 +80,16 @@ module load is paid on every call. `packages/schema` builds no schema at module 
   Campaign inventory query's bundle.
 - **Node maps** (PERF-1). `buildNodeMap().define` builds a map's nodes on the first read of
   `nodes`, so importing a map module costs no node construction.
+- **Function validators** (PERF-6.T8). The `query`, `internalQuery`, `mutation`, `internalMutation`
+  and `untrackedInternalMutation` builders in `apps/apis/convex/lib` take `args` and `returns` as
+  thunks (`args: () => ({ … })`). `lib/lazyValidators.ts` builds each on first read and memoizes it.
+  Convex reads them only when it exports a function's validators (push, analysis and convex-test),
+  and the backend validates against that export, so a call never runs `zodToConvex`. A validator
+  shared by several functions is a function called inside the thunk, such as
+  `characterSheetCommandValidator()`. `eagerInternalMutation` keeps Convex's own signature for
+  `@convex-dev/migrations`, which registers its functions with plain validators. Actions and HTTP
+  actions use Convex's builders directly. `functionBundleBudget.test.ts` bounds the module floor of
+  the 2–3 MB Sheet and departure modules, which were 41–83 ms before this change.
 
 Evidence: [D59 rollout](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md) and the
 [D55 spike](../validation/phase-08-2/d55-lazy-schema-spike-2026-09-27.md).
