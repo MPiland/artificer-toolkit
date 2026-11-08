@@ -24655,7 +24655,7 @@
             },
             {
               "id": "PERF-6.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24665,8 +24665,9 @@
                 "after": ["PERF-6.T2"],
                 "finalSource": true
               },
-              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Profile fixes 3 and 8 (ruled 2026-11-08, option A, ADR 0041 Amendment 2): while a Character Sheet store is queued, sheetSlices:get, the panel and characterSheet:get serve the last stored sections stamped with the current stream version; with nothing queued, a stale or never-stored Sheet derives live so failures still show. Sheet commands store inline and validate against real state. characterSheet:get composes from stored slices (hit dice moved into FEATURES). The stored-hit fingerprint reads a per-System checksum row written by bootstrap instead of the 34 KB System document. The focused inspiration and party-visibility writes in sheetPlayPreferences.ts are removed. Budget: a queued miss reads <= 20 documents and derives nothing; a hit reads <= 40 KB; a hidden party reader is refused before deriving; CI timing recorded. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
+              "mergedAt": "2026-11-08",
+              "proof": "Merged m664 (e1199aaa4). Red proof (Tests 42526895512): sheetSections.test 13 of 26, sheetPreferenceCommands.test 2 of 7, rules-runtime sheetSlices.test 2 of 2. convex-test budgets: queued miss <= 20 docs with no derivation; stored hit 40 docs / 40 KB for the whole Sheet; never-stored COMMON 66 docs / 104 KB; party denial <= 38 docs with nothing derived. A scheduled store carries a token, so a superseded store returns and never overwrites a newer one. CI (full Browser journeys 42526898137, shard 3): sheetSlices:get n=517, p50 66 ms, p95 450 ms; reads over 20 docs p95 446 ms (was 1,353 ms); 4 never-stored live derivations, p95 1,495 ms, no errors; 22 reads of 6-21 docs took >= 1 s user time in campaign-membership-browser (runner load, not read cost). Query p95 still exceeds the 250 ms PERF-6.2 target; PERF-6.T11 re-measures after T8. Green on 9bce6f14b: Tests 42529158859, Live 42529158867, Browser journeys 42529160313."
             },
             {
               "id": "PERF-6.T5",
