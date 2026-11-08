@@ -16,7 +16,11 @@ import type {
   CharacterCollectionRecords,
   CharacterStoredBuildState
 } from '@artificer-toolkit/schema/projections/characterOperationalRecords'
-import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import {
+  equalCharacterPlayRecordStats,
+  resolveCharacterPlayRecordStats,
+  type CharacterPlayRecordStats
+} from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { Doc } from '../_generated/dataModel'
@@ -37,7 +41,6 @@ import {
 } from './stateDocuments'
 
 type CharacterStoredRecord = z.infer<typeof characterStoredRecordSchema>
-type CharacterRecordStats = ReturnType<typeof resolveCharacterRecordStats>
 type CharacterRecordFields = Omit<
   CharacterStoredRecord,
   'documentJson' | 'checksum' | 'sheetState' | 'sheetStateChecksum' | 'updatedAt'
@@ -65,7 +68,7 @@ function characterHead(record: CharacterStoredRecord) {
  * record's `updatedAt`, the Builder's concurrency clock, advances only when the structure changes,
  * and the head is replaced only when its own identity fields change. It then
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
- * reductions) and typed speeds in the play record in the same transaction. A caller that already
+ * reductions), typed speeds, class summary and total level in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
  * returned facts for its own Sheet response. From the same facts it stores the derived Sheet
  * sections that Sheet queries serve (ADR 0041). Callers own authority, replay, receipts and advancing
@@ -78,7 +81,7 @@ export async function writeCharacterRecord(
     fields: Partial<CharacterRecordFields> & { streamVersion: number; updatedAt: string }
     document?: CharacterDocument
     sheetState?: CharacterSheetState
-    stats?: CharacterRecordStats
+    stats?: CharacterPlayRecordStats
     sourceContext?: CharacterSheetSourceContext
     evaluateAs?: {
       userId: string
@@ -180,6 +183,8 @@ export async function writeCharacterRecord(
     streamVersion,
     maximumHitPoints: input.stats?.maximumHitPoints ?? current?.play.maximumHitPoints ?? 0,
     speeds: input.stats?.speeds ?? current?.play.speeds ?? [],
+    classSummary: input.stats?.classSummary ?? current?.play.classSummary ?? '',
+    totalLevel: input.stats?.totalLevel ?? current?.play.totalLevel ?? 0,
     ...(encodedPlay === undefined
       ? { state: current!.play.state, checksum: current!.play.checksum }
       : {
@@ -234,11 +239,8 @@ export async function writeCharacterRecord(
     { ...nextRecord, _id: rowId, play: { ...nextPlayRecord, _id: playId } }
   )
   if (!facts) throw new Error('Written Character is unavailable for evaluation.')
-  const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
-  const unchanged =
-    held ||
-    (stats.maximumHitPoints === nextPlayRecord.maximumHitPoints &&
-      checksumCanonicalJson(stats.speeds) === checksumCanonicalJson(nextPlayRecord.speeds))
+  const stats = resolveCharacterPlayRecordStats(facts)
+  const unchanged = held || equalCharacterPlayRecordStats(stats, nextPlayRecord)
   if (!unchanged) await ctx.db.patch(playId, stats)
   const row = unchanged
     ? facts.active

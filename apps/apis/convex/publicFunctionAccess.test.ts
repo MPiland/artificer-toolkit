@@ -63,9 +63,9 @@ const ACCESS: Record<string, Record<string, Access>> = {
   'campaigns/announcements': { create: 'gm', get: 'member', list: 'member' },
   'campaigns/archive': { archive: 'gm' },
   'campaigns/assignments': { assign: 'owner', unassign: 'member' },
+  'campaigns/characterBasics': { get: 'member' },
   'campaigns/characterControllers': { setControllers: 'gm' },
   'campaigns/characterSheet': {
-    basics: 'member',
     execute: 'member',
     executeRoll: 'member',
     get: 'member',

@@ -341,6 +341,49 @@ describe('bounded native Vehicle cleanup core (promotion candidate)', () => {
     ).toEqual({ ordinary: false })
   })
 
+  it('dispatches 32 Vehicle cargo rows atomically and 33 to the durable path', async () => {
+    const f = await setup(0)
+    const vehicleRows = () =>
+      f.base.t.run(async (ctx) => {
+        const ranges = await Promise.all([
+          ctx.db
+            .query('campaignPartyItems')
+            .withIndex('by_campaignId_vehicleId_id', (q) =>
+              q.eq('campaignId', f.campaign.id).eq('vehicleId', f.vehicle.id)
+            )
+            .take(64),
+          ctx.db
+            .query('campaignPartyCurrencyGroups')
+            .withIndex('by_campaignId_vehicleId_id', (q) =>
+              q.eq('campaignId', f.campaign.id).eq('vehicleId', f.vehicle.id)
+            )
+            .take(64),
+          ctx.db
+            .query('campaignPartyCurrencies')
+            .withIndex('by_campaignId_vehicleId_id', (q) =>
+              q.eq('campaignId', f.campaign.id).eq('vehicleId', f.vehicle.id)
+            )
+            .take(64)
+        ])
+        return ranges.reduce((total, rows) => total + rows.length, 0)
+      })
+    const addCargo = (quantity: number) =>
+      f.execute(
+        { kind: 'ITEM_ADD', equipmentId: club.id, quantity, containerId: f.bagId },
+        f.vehicle.id
+      )
+    for (let quantity = 1; (await vehicleRows()) < 32; quantity++) await addCargo(quantity)
+    expect(await vehicleRows()).toBe(32)
+    expect(
+      await f.base.t.run((ctx) => probeVehicleCleanup(ctx, f.campaign.id, f.vehicle.id))
+    ).toEqual({ ordinary: true })
+    await addCargo(100)
+    expect(await vehicleRows()).toBe(33)
+    expect(
+      await f.base.t.run((ctx) => probeVehicleCleanup(ctx, f.campaign.id, f.vehicle.id))
+    ).toEqual({ ordinary: false })
+  })
+
   it('dispatches a small RETURN around the exact pending loose slot while DESTROY and unrelated namespaces remain ordinary', async () => {
     const f = await setup()
     await f.execute({

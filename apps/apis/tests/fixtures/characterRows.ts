@@ -33,7 +33,9 @@ export async function insertActiveCharacterRecord(
     document: character,
     stats: {
       maximumHitPoints: options.maximumHitPoints ?? 0,
-      speeds: options.speeds ?? []
+      speeds: options.speeds ?? [],
+      classSummary: '',
+      totalLevel: 0
     }
   })
   return row._id

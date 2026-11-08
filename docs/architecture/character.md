@@ -345,8 +345,11 @@ projects it as viewer `PARTY_MEMBER` (`projectCharacterSheetForViewer`), with ev
 player-private notes removed, and personality (traits, ideals, bonds, flaws), background
 (organizations, allies, enemies, backstory) and the identity concept that repeats the backstory
 never included. Only the Character's player receives `meta.partyVisibility`. Every other scoped
-endpoint still requires the GM or the Character's player. `campaigns/characterSheet:basics` gives
+endpoint still requires the GM or the Character's player. `campaigns/characterBasics:get` gives
 any active member the public roster basics (name, class, level) and whether "Party can view" is on.
+The roster subscribes one per assigned Character, so it lives in its own small module outside the
+Sheet graph and derives nothing: it reads the Campaign authority, the assignment, the head's label
+and the play record's stored `classSummary`, `totalLevel` and party visibility (PERF-6.T2).
 The roster shows each portrait through the Campaign-scoped portrait read ([media](media.md)).
 
 Both execute endpoints use the same reducer, current-source evaluation, stream increment and
@@ -709,7 +712,7 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
 | ---------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | `characters`           | Builder identity and portrait writes              | Identity, portrait                                                                                                                                    | None              |
 | `characterBuildStates` | Builder and Sheet adjustments                     | Structure clock, profile, intent, adjustments, movement preference, optional collection presence                                                      | `updatedAt`       |
-| `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `speeds` (feet per speed type), identity                                                         | `streamVersion`   |
+| `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `speeds` (feet per speed type), `classSummary`, `totalLevel`, identity                           | `streamVersion`   |
 | Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Build `updatedAt` |
 
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
@@ -780,7 +783,7 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
    restores them, but `readCharacterRecord` (`effectiveItemIds`) never reports a hidden row as
    equipped or attuned. Folding usage into structure at a quiet point is a documented candidate,
    not built.
-6. **Stat refresh** (`maximumHitPoints`, `speeds`) re-evaluates after a Campaign-owned change and
+6. **Stat refresh** (`maximumHitPoints`, `speeds`, `classSummary`, `totalLevel`) re-evaluates after a Campaign-owned change and
    rewrites the play record without advancing `streamVersion`.
 
 Convex retries a transaction whose reads or writes conflict, so a Builder commit and a play command

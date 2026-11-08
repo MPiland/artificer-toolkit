@@ -38,6 +38,7 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderEquipmentCatalogRecord } from './builderCatalog.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import { resolveCharacterRecordSummary } from './characterRecordStats.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { listActiveGrantListings, listSheetConcentrations } from '../activeGrantListings.js'
@@ -164,17 +165,6 @@ function toSheetActionKind(
     default:
       return 'OTHER'
   }
-}
-
-function formatClassSummary(resolution: CharacterBuilderResolution): string {
-  const summary = resolution.summary.classes
-    .map((classSummary) => {
-      const subclass = classSummary.subclassLabel ? ` (${classSummary.subclassLabel})` : ''
-      return `${classSummary.classLabel}${subclass} ${classSummary.classLevel}`
-    })
-    .join(' / ')
-
-  return summary || 'No class selected'
 }
 
 /** Labels only title a source on the Sheet; a reader that does not show sources passes none. */
@@ -759,7 +749,7 @@ export function projectCharacterSheetBundle(
     params
   const adjustments = params.adjustments ?? []
   const spellCustomizations = params.spellCustomizations ?? []
-  const totalLevel = Math.max(resolution.summary.totalLevel, 1)
+  const { classSummary, totalLevel } = resolveCharacterRecordSummary(resolution)
   const { learned, prepared } = getPreparedAndKnownSpellIds(character)
   const knownSpellIds = new Set([...learned, ...prepared])
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(
@@ -1367,7 +1357,7 @@ export function projectCharacterSheetBundle(
       label: character.label || 'Untitled Character',
       description: character.description,
       concept: character.profile.backstory,
-      classSummary: formatClassSummary(resolution),
+      classSummary,
       raceLabel:
         resolution.summary.selectedRace?.subraceLabel ?? resolution.summary.selectedRace?.raceLabel,
       backgroundLabel: resolution.summary.selectedBackground?.label,

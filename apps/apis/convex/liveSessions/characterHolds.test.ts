@@ -418,7 +418,9 @@ describe('native Character live holds', () => {
           document: { ...document, state: { ...document.state, inspiration: false } },
           stats: {
             maximumHitPoints: current.play.maximumHitPoints,
-            speeds: current.play.speeds
+            speeds: current.play.speeds,
+            classSummary: current.play.classSummary,
+            totalLevel: current.play.totalLevel
           }
         })
       })

@@ -65,7 +65,7 @@ export function CampaignParty({
   // player's while its "Party can view" is on and it is being inspected (ADR 0034 decision 5).
   const basics = useQueries({
     queries: assignedCharacters.map(({ character }) =>
-      convexQuery(convexApi.campaigns.characterSheet.basics, {
+      convexQuery(convexApi.campaigns.characterBasics.get, {
         campaignId: campaign.id,
         characterId: character.id
       })

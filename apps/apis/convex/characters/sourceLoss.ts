@@ -8,7 +8,10 @@ import {
   type CharacterSourceLossTarget
 } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { evaluateCharacterRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
-import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import {
+  resolveCharacterPlayRecordStats,
+  type CharacterPlayRecordStats
+} from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
@@ -218,7 +221,7 @@ export async function reconcileCharacterSourceLoss(input: {
     currentChoiceKinds
   )
   let character: CharacterAuthored = { ...pruned, status: 'DRAFT' }
-  let stats: ReturnType<typeof resolveCharacterRecordStats> | undefined
+  let stats: CharacterPlayRecordStats | undefined
   if (input.record.status === 'ACTIVE') {
     const prepared = await prepareCharacterBuilder(input.ctx, {
       character,
@@ -255,7 +258,7 @@ export async function reconcileCharacterSourceLoss(input: {
         resourceUsage: sheetState.resourceUsage,
         movementDisplayPreference: sheetState.movementDisplayPreference
       })
-      stats = resolveCharacterRecordStats(evaluation)
+      stats = resolveCharacterPlayRecordStats({ ruleEvaluation: evaluation, prepared })
       character = {
         ...prepared.character,
         status: 'ACTIVE',
