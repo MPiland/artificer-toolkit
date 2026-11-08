@@ -305274,6 +305274,44 @@ export declare const internal: {
         },
         null
       >;
+      verify: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          actorUserId: string;
+          campaignId: string;
+          change:
+            | {
+                kind: "SOURCES_REMOVED";
+                removalEventId: string;
+                removed: Array<{
+                  subjectId: string;
+                  subjectKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "CREATURE"
+                    | "EQUIPMENT"
+                    | "FEAT"
+                    | "RACE"
+                    | "SPELL"
+                    | "VEHICLE";
+                }>;
+              }
+            | { kind: "DEPARTED" };
+          characterId: string;
+          persistedContextChange: boolean;
+          reason:
+            | "UNSHARE"
+            | "MEMBER_LEFT"
+            | "MEMBER_REMOVED"
+            | "CHARACTER_REPLACED"
+            | "CHARACTER_UNASSIGNED"
+            | "CHARACTER_DELETED"
+            | "CAMPAIGN_DELETED";
+          stepId: string;
+        },
+        null
+      >;
     };
     clockGrantExpiry: {
       endExpired: FunctionReference<
