@@ -24628,7 +24628,7 @@
             },
             {
               "id": "PERF-6.T5",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24638,9 +24638,15 @@
                 "after": ["PERF-6.T1"],
                 "finalSource": true
               },
-              "text": "Profile fixes 4 and 7: readClassListSpellRoots (characters/context.ts:272) reads the full root of every Spell on a Character's class lists in every derivation, and classPublication:readSourceRows reads two documents per Spell. Carry the list fields the Sheet and publication need on authoredSpellClasses rows written at publication; read full roots only for Spells the Character references; canonicalise only the rows the commit compares. Budget: SRD Cleric derivation <= 175 documents and <= 340 KB (from 274 / 496 KB) in a sheetReadBudget.test.ts case, largest SRD list readSourceRows <= 360 documents and <= 500 KB (from 750 / 790), CI store p95 <= 500 ms, readSourceRows p95 <= 250 ms. Stored-shape change: reset and reseed local after merge.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Ruling 2026-11-08: the prepare pool displays list Spells with prose, so rows carry the selector entry plus identity and list Spells read no roots (option A); one aggregate document per list was rejected (whole-list rewrites conflict during imports). readSourceRows reads labels from the rows and memoizes import-job visibility per request."
+              "text": "Profile fixes 4 and 7: readClassListSpellRoots (characters/context.ts:272) reads the full root of every Spell on a Character's class lists in every derivation, and classPublication:readSourceRows reads two documents per Spell. Carry the list fields the Sheet and publication need on authoredSpellClasses rows written at publication; read full roots only for Spells the Character references; canonicalise only the rows the commit compares. Budget: SRD Cleric derivation <= 180 documents and <= 400 KB (from 274 / 496 KB) in a sheetReadBudget.test.ts case, largest SRD list readSourceRows <= 360 documents and <= 680 KB (from 750 / 790), CI store p95 <= 500 ms, readSourceRows p95 <= 250 ms. Stored-shape change: reset and reseed local after merge.",
+              "note": "Ruling 2026-11-08: the prepare pool displays list Spells with prose, so rows carry the selector entry plus identity and list Spells read no roots (option A); one aggregate document per list was rejected (whole-list rewrites conflict during imports). readSourceRows reads labels from the rows and memoizes import-job visibility per request. Second ruling 2026-11-08: bars set to the measured values (<= 180 / 400 KB and <= 360 / 680 KB); the row carries the Spell description, so bytes fall less than documents. A level-bounded list read (about 96 docs / 260 KB at level 1) changes the rules context and goes under PERF-6.T11 only if CI Sheet p95 still misses. Stored-shape change: local reset and reseed.",
+              "mergedAt": "2026-11-08",
+              "proof": [
+                "apps/apis/convex/characters/sheetReadBudget.test.ts (SRD Cleric derivation 179 documents / 397 KB at level 1 and 179 / 398 KB at level 9, from 274 / 496; output equals the resolution-scope oracle)",
+                "apps/apis/convex/authoring/authoredSources.test.ts (353-Spell list readSourceRows 358 documents / 675 KB and 0 roots, from 750 / 790; a Spell whose import job is not visible stays hidden)",
+                "spellPublication.test.ts and classPublication.test.ts (each authoredSpellClasses row equals its published root through republish and unpublish)",
+                "Green on 32f543b53: Tests 42500794869, Live 42500794866, Browser journeys 42500795026; full Browser journeys dispatch 42498445354 on d5a972b17; merged 35782ce90 (m660, merge-slice run 42502381644)"
+              ]
             },
             {
               "id": "PERF-6.T6",
@@ -24717,7 +24723,7 @@
                 "after": ["PERF-6.T2", "PERF-6.T3", "PERF-6.T8", "PERF-6.T9"],
                 "finalSource": true
               },
-              "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding).",
+              "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding). If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; it changes what the rules context holds, so trace the Builder catalogue and grant consumers first).",
               "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope."
             },
             {

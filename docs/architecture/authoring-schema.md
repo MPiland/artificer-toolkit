@@ -379,10 +379,11 @@ Character references read their roots and compilations. The shared catalogue
 publication/import transaction replaces those pairs, so a republish rewrites every pair from the
 new root, and active Spell deletion removes them while retaining any working draft. The root's optional `spellClassesIndexed: true` marker covers empty
 Class lists too. Exact canonical replay and the existing paged catalogue backfill populate missing
-markers and pairs from validated immutable documents. Class deletion rejects while any Spell in its
-System lacks that marker, then uses the Class index to reject a surviving reference before writing.
-Concurrent Spell publication and Class deletion therefore conflict on the same indexed range.
-Removing a Class never silently edits a Spell document. This local correction requires backfill and
+markers and pairs from validated immutable documents. Class deletion reads the Class index plus
+every Spell in its System that lacks that marker, and records the deleted Class as a
+`deletedReferences` entry in the catalogue of each visible Spell whose document lists it
+(`content/deletion.ts`). Concurrent Spell publication and Class deletion therefore conflict on the
+same indexed range. Removing a Class never silently edits a Spell document. This local correction requires backfill and
 managed proof before C04 can be accepted again.
 Spell web form/detail/edit, publication/copy/delete/discard, artwork and portable export now reuse
 the native authored adapters locally. Public aliases resolve natively, while mutations retain UUIDs.
