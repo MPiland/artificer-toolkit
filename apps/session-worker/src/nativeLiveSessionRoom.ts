@@ -71,7 +71,7 @@ import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { RoomEncounterReads } from './roomEncounterReads.js'
 import { RoomCampaignSummaryFeed } from './roomCampaignSummaryFeed.js'
 import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
-import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
+import { RoomContentSnapshots } from './roomContentSnapshots.js'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import {
   adoptSceneVisionRevisions,
@@ -211,6 +211,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           })
       }
     )
+    const contentSnapshots = new RoomContentSnapshots(this.env)
     this.#roomInputs = new RoomInputs(
       this.#roomStore,
       (epoch, scope) => {
@@ -225,7 +226,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       (manifest) => {
         const campaignId = this.#roomCampaignId()
         if (!campaignId) throw new Error('Live Session room identity is missing.')
-        return loadRoomContentSnapshots(this.env, manifest, campaignId)
+        return contentSnapshots.load(manifest, campaignId)
       }
     )
     const feedDependencies = {

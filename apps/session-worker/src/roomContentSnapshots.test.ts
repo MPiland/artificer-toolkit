@@ -2,135 +2,47 @@ import { createHash } from 'node:crypto'
 import { gzipSync } from 'node:zlib'
 
 import {
-  contentSnapshotDocumentsObjectSchema,
-  contentSnapshotIndexObjectSchema,
   contentSnapshotObjectKey,
-  type ContentSnapshotDocumentsObject,
-  type ContentSnapshotHeader,
-  type ContentSnapshotHead,
   type ContentSnapshotManifestDto
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
-import { compilePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationCompile'
-import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import { describe, expect, it, vi } from 'vitest'
 
 import { startLocalR2 } from '../../apis/tests/localR2.js'
-import { type ContentSnapshotObjectBody } from './contentSnapshotStorage.js'
-import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
+import { RoomContentSnapshots } from './roomContentSnapshots.js'
+import {
+  contentSnapshotBucket,
+  contentSnapshotFixtureIds,
+  headerOf,
+  raceDocuments,
+  raceIndex
+} from './testing/contentSnapshotFixture.js'
 
-const systemId = '00000000-0000-4000-8000-000000000001'
-const sourceId = '00000000-0000-4000-8000-000000000002'
+const { systemId, sourceId, rootId } = contentSnapshotFixtureIds
 const campaignId = '00000000-0000-4000-8000-000000000003'
-const rootId = '00000000-0000-4000-8000-000000000004'
-
-function headerOf({ format, scope, scopeId, kind, part }: ContentSnapshotHeader) {
-  return { format, scope, scopeId, kind, part }
-}
-
-function document(scope: 'SOURCE' | 'CAMPAIGN', scopeId: string, label = 'Source race') {
-  const root = {
-    id: rootId,
-    label,
-    userId: sourceId,
-    systemId,
-    category: 'BASE',
-    selectionMode: 'DIRECT',
-    size: 'MEDIUM',
-    speeds: []
-  }
-  const compilation = compilePublicationDocument(parsePublicationDocument('RACE', root))
-  return contentSnapshotDocumentsObjectSchema.parse({
-    format: 3,
-    scope,
-    scopeId,
-    kind: 'RACE',
-    part: 'documents',
-    roots: [root],
-    versions: [
-      {
-        identity: {
-          subjectKind: 'RACE',
-          subjectId: rootId,
-          systemId,
-          contentSourceId: scope === 'SOURCE' ? scopeId : sourceId,
-          versionId: rootId,
-          checksum: compilation.authoredChecksum
-        },
-        version: 1,
-        storedParentId: null
-      }
-    ],
-    compilations: [compilation]
-  })
-}
-
-function indexOf(object: ContentSnapshotDocumentsObject) {
-  return contentSnapshotIndexObjectSchema.parse({
-    ...headerOf(object),
-    part: 'index',
-    roots: object.roots.map(({ id, label }) => ({
-      id,
-      label,
-      category: 'BASE',
-      selectionMode: 'DIRECT',
-      size: 'MEDIUM',
-      speeds: [],
-      abilityScoreIncreaseFacts: []
-    }))
-  })
-}
 
 function fixture() {
-  const stored = new Map<string, { bytes: Uint8Array; gzip: boolean }>()
-  const heads: ContentSnapshotHead[] = []
-  function add(object: ContentSnapshotDocumentsObject, gzip = false) {
-    const index = indexOf(object)
-    const parts = [index, object].map((part) => {
-      const json = canonicalizeJson(part)
-      const ref = {
-        sha256: createHash('sha256').update(json).digest('hex'),
-        byteLength: new TextEncoder().encode(json).byteLength,
-        rootCount: part.roots.length
-      }
-      const key = contentSnapshotObjectKey(headerOf(part), ref.sha256)
-      stored.set(key, { bytes: gzip ? gzipSync(json) : new TextEncoder().encode(json), gzip })
-      return { key, ref }
-    })
-    const head: ContentSnapshotHead = {
-      scope: object.scope,
-      scopeId: object.scopeId,
-      revision: 1,
-      builtRevision: 1,
-      kinds: { RACE: { index: parts[0]!.ref, list: parts[1]!.ref, documents: parts[1]!.ref } }
-    }
-    heads.push(head)
-    return parts[1]!.key
-  }
-  const sourceKey = add(document('SOURCE', sourceId), true)
-  const campaignKey = add(document('CAMPAIGN', campaignId, 'Campaign share'))
+  const { stored, add, get } = contentSnapshotBucket()
+  const source = add(raceDocuments('SOURCE', sourceId), true)
+  const campaign = add(raceDocuments('CAMPAIGN', campaignId, 'Campaign share'))
   const manifest: ContentSnapshotManifestDto = {
     systemId,
-    sources: [{ contentSourceId: sourceId, kind: 'USER', head: heads[0]! }],
-    campaign: { id: campaignId, contentMaturity: 'STANDARD', head: heads[1]! }
+    sources: [{ contentSourceId: sourceId, kind: 'USER', head: source.head }],
+    campaign: { id: campaignId, contentMaturity: 'STANDARD', head: campaign.head }
   }
-  const get = vi.fn(async (key: string): Promise<ContentSnapshotObjectBody | null> => {
-    const object = stored.get(key)
-    return object
-      ? {
-          body: new Blob([object.bytes]).stream(),
-          httpEtag: 'fixture-etag',
-          customMetadata: {},
-          httpMetadata: {
-            contentType: 'application/json',
-            contentEncoding: object.gzip ? 'gzip' : undefined
-          }
-        }
-      : null
-  })
-  const environment = { CONTENT_SNAPSHOTS: { get }, CONVEX_SITE_URL: 'http://127.0.0.1:3211' }
-  return { stored, add, sourceKey, campaignKey, manifest, environment }
+  const environment = {
+    CONTENT_SNAPSHOTS: { get: vi.fn(get) },
+    CONVEX_SITE_URL: 'http://127.0.0.1:3211'
+  }
+  return {
+    stored,
+    add,
+    sourceKey: source.documentsKey,
+    campaignKey: campaign.documentsKey,
+    manifest,
+    environment
+  }
 }
 
 describe('room content snapshots', () => {
@@ -144,13 +56,15 @@ describe('room content snapshots', () => {
       head.builtRevision = 0
       head.kinds = {}
     }
-    await expect(loadRoomContentSnapshots(environment, manifest, campaignId)).resolves.toEqual([])
+    await expect(new RoomContentSnapshots(environment).load(manifest, campaignId)).resolves.toEqual(
+      []
+    )
     expect(environment.CONTENT_SNAPSHOTS.get).not.toHaveBeenCalled()
     for (const head of [source, campaign]) {
       head.kinds = kinds
-      await expect(loadRoomContentSnapshots(environment, manifest, campaignId)).rejects.toThrow(
-        'head'
-      )
+      await expect(
+        new RoomContentSnapshots(environment).load(manifest, campaignId)
+      ).rejects.toThrow('head')
       expect(environment.CONTENT_SNAPSHOTS.get).not.toHaveBeenCalled()
       head.kinds = {}
     }
@@ -158,7 +72,7 @@ describe('room content snapshots', () => {
 
   it('reads private gzip source documents before Campaign shares without a content token', async () => {
     const { environment, manifest, sourceKey, campaignKey } = fixture()
-    const objects = await loadRoomContentSnapshots(environment, manifest, campaignId)
+    const objects = await new RoomContentSnapshots(environment).load(manifest, campaignId)
     expect(objects.map((object) => [object.scope, object.part])).toEqual([
       ['SOURCE', 'index'],
       ['SOURCE', 'documents'],
@@ -179,16 +93,61 @@ describe('room content snapshots', () => {
     ])
     expect(environment.CONTENT_SNAPSHOTS.get.mock.calls.map(([key]) => key)).toEqual([
       contentSnapshotObjectKey(
-        { ...headerOf(document('SOURCE', sourceId)), part: 'index' },
+        { ...headerOf(raceDocuments('SOURCE', sourceId)), part: 'index' },
         manifest.sources[0]!.head!.kinds.RACE!.index.sha256
       ),
       sourceKey,
       contentSnapshotObjectKey(
-        { ...headerOf(document('CAMPAIGN', campaignId)), part: 'index' },
+        { ...headerOf(raceDocuments('CAMPAIGN', campaignId)), part: 'index' },
         manifest.campaign!.head!.kinds.RACE!.index.sha256
       ),
       campaignKey
     ])
+  })
+
+  it('reads each stored object once for every manifest that shares it, at most six at a time', async () => {
+    const { add, environment, manifest, stored } = fixture()
+    const sources = Array.from({ length: 4 }, (_, index) => {
+      const id = `00000000-0000-4000-8000-0000000001${index.toString(16).padStart(2, '0')}`
+      return {
+        contentSourceId: id,
+        kind: 'USER' as const,
+        head: add(raceDocuments('SOURCE', id)).head
+      }
+    })
+    const shared = { ...manifest, sources: [...manifest.sources, ...sources] }
+    let open = 0
+    let peak = 0
+    const read = environment.CONTENT_SNAPSHOTS.get.getMockImplementation()!
+    environment.CONTENT_SNAPSHOTS.get.mockImplementation(async (key) => {
+      peak = Math.max(peak, ++open)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      open--
+      return read(key)
+    })
+    const snapshots = new RoomContentSnapshots(environment)
+    const loaded = await Promise.all([
+      snapshots.load(shared, campaignId),
+      snapshots.load(shared, campaignId),
+      snapshots.load(manifest, campaignId)
+    ])
+    expect(loaded.map((objects) => objects.length)).toEqual([12, 12, 4])
+    expect(loaded[2]).toEqual(loaded[0]!.slice(0, 2).concat(loaded[0]!.slice(10)))
+    expect(environment.CONTENT_SNAPSHOTS.get).toHaveBeenCalledTimes(stored.size)
+    expect(new Set(environment.CONTENT_SNAPSHOTS.get.mock.calls.map(([key]) => key)).size).toBe(
+      stored.size
+    )
+    expect(peak).toBe(6)
+  })
+
+  it('reads a failed object again on the next load instead of keeping the failure', async () => {
+    const { environment, manifest, stored } = fixture()
+    environment.CONTENT_SNAPSHOTS.get.mockResolvedValueOnce(null)
+    const snapshots = new RoomContentSnapshots(environment)
+    await expect(snapshots.load(manifest, campaignId)).rejects.toThrow('unavailable')
+    expect(await snapshots.load(manifest, campaignId)).toHaveLength(4)
+    // Only the failed object is read again; the verified ones are shared.
+    expect(environment.CONTENT_SNAPSHOTS.get).toHaveBeenCalledTimes(stored.size + 1)
   })
 
   it('refuses mismatched, duplicate, SYSTEM, null, unbuilt and stale heads before storage reads', async () => {
@@ -226,7 +185,9 @@ describe('room content snapshots', () => {
     ]) {
       const { manifest, environment } = fixture()
       mutate(manifest)
-      await expect(loadRoomContentSnapshots(environment, manifest, campaignId)).rejects.toThrow()
+      await expect(
+        new RoomContentSnapshots(environment).load(manifest, campaignId)
+      ).rejects.toThrow()
       expect(environment.CONTENT_SNAPSHOTS.get).not.toHaveBeenCalled()
     }
   })
@@ -246,7 +207,9 @@ describe('room content snapshots', () => {
         const { manifest, environment, stored } = fixture()
         const ref = manifest.sources[0]!.head!.kinds.RACE![part]
         const original =
-          part === 'index' ? indexOf(document('SOURCE', sourceId)) : document('SOURCE', sourceId)
+          part === 'index'
+            ? raceIndex(raceDocuments('SOURCE', sourceId))
+            : raceDocuments('SOURCE', sourceId)
         const key = contentSnapshotObjectKey(headerOf(original), ref.sha256)
         let json = canonicalizeJson(original)
         if (failure === 'missing') stored.delete(key)
@@ -291,7 +254,9 @@ describe('room content snapshots', () => {
             gzip: true
           })
         }
-        await expect(loadRoomContentSnapshots(environment, manifest, campaignId)).rejects.toThrow()
+        await expect(
+          new RoomContentSnapshots(environment).load(manifest, campaignId)
+        ).rejects.toThrow()
       }
     }
   })
@@ -301,7 +266,9 @@ describe('room content snapshots', () => {
       const { manifest, environment, stored } = fixture()
       const ref = manifest.sources[0]!.head!.kinds.RACE![part]
       const original =
-        part === 'index' ? indexOf(document('SOURCE', sourceId)) : document('SOURCE', sourceId)
+        part === 'index'
+          ? raceIndex(raceDocuments('SOURCE', sourceId))
+          : raceDocuments('SOURCE', sourceId)
       const json = '\ufeff' + canonicalizeJson(original)
       ref.sha256 = createHash('sha256').update(json).digest('hex')
       ref.byteLength = new TextEncoder().encode(json).byteLength
@@ -309,14 +276,17 @@ describe('room content snapshots', () => {
         bytes: gzipSync(json),
         gzip: true
       })
-      await expect(loadRoomContentSnapshots(environment, manifest, campaignId)).rejects.toThrow()
+      await expect(
+        new RoomContentSnapshots(environment).load(manifest, campaignId)
+      ).rejects.toThrow()
     }
   })
 
   it('cancels a stored stream when it exceeds the authoritative byte bound', async () => {
     const { manifest, environment } = fixture()
     const cancel = vi.fn()
-    environment.CONTENT_SNAPSHOTS.get.mockImplementation(async () => ({
+    // Only the first object is oversized; the others read in parallel stay within their bounds.
+    environment.CONTENT_SNAPSHOTS.get.mockImplementationOnce(async () => ({
       body: new ReadableStream({
         start(controller) {
           controller.enqueue(new Uint8Array(4096))
@@ -326,7 +296,7 @@ describe('room content snapshots', () => {
       httpEtag: 'oversized',
       httpMetadata: { contentEncoding: 'gzip' }
     }))
-    await expect(loadRoomContentSnapshots(environment, manifest, campaignId)).rejects.toThrow(
+    await expect(new RoomContentSnapshots(environment).load(manifest, campaignId)).rejects.toThrow(
       'byte length'
     )
     expect(cancel).toHaveBeenCalledOnce()
@@ -353,17 +323,16 @@ describe('room content snapshots', () => {
         ...state.environment,
         LOCAL_CONTENT_SNAPSHOT_ORIGIN: local.endpoint
       }
-      expect((await loadRoomContentSnapshots(environment, state.manifest, campaignId)).length).toBe(
-        4
-      )
+      expect(
+        (await new RoomContentSnapshots(environment).load(state.manifest, campaignId)).length
+      ).toBe(4)
       expect(state.environment.CONTENT_SNAPSHOTS.get).not.toHaveBeenCalled()
       const reads = local.methods.length
       await expect(
-        loadRoomContentSnapshots(
-          { ...environment, CONVEX_SITE_URL: 'https://managed.example' },
-          state.manifest,
-          campaignId
-        )
+        new RoomContentSnapshots({
+          ...environment,
+          CONVEX_SITE_URL: 'https://managed.example'
+        }).load(state.manifest, campaignId)
       ).rejects.toThrow('loopback')
       for (const origin of [
         'http://localhost:8026',
@@ -372,11 +341,10 @@ describe('room content snapshots', () => {
         'http://192.168.0.1:8026'
       ])
         await expect(
-          loadRoomContentSnapshots(
-            { ...environment, LOCAL_CONTENT_SNAPSHOT_ORIGIN: origin },
-            state.manifest,
-            campaignId
-          )
+          new RoomContentSnapshots({
+            ...environment,
+            LOCAL_CONTENT_SNAPSHOT_ORIGIN: origin
+          }).load(state.manifest, campaignId)
         ).rejects.toThrow()
       expect(local.methods.length).toBe(reads)
     } finally {

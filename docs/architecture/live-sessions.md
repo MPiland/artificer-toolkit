@@ -873,8 +873,12 @@ through its R2 binding (`roomContentSnapshots.ts`, `contentSnapshotStorage.ts`; 
 browser delivery under `/content/`, `contentSnapshots.ts`) and checks current built revisions, authorized scope, byte length,
 SHA-256, headers, canonical schemas and root count and order before using them. Verified objects stay in
 memory under their complete manifest; invalidation reloads affected content before replacing stored
-inputs, and a failed load leaves prior SQLite inputs intact. After hibernation the room reloads R2
-objects from its SQLite manifest without another Convex read. `roomCharacterRules` authorizes each
+inputs, and a failed load leaves prior SQLite inputs intact. Objects are content-addressed, so the one
+`RoomContentSnapshots` loader a room instance holds reads and verifies each object once for every
+manifest that names it (the Campaign and each Character share their sources), at most six storage reads
+at a time, and keeps only the latest object per scope, kind and part; a failed read is not kept. After
+hibernation the room reloads R2 objects from its SQLite manifest without another Convex read, once per
+object rather than once per manifest (RELEASE-8.T8). `roomCharacterRules` authorizes each
 object's scope against the Character's manifest, then `nativeCharacterRules` prepares the Character over
 its SQLite inputs and `createSnapshotReaders`. Warm preparation makes no Convex, HTTP or R2 calls.
 
