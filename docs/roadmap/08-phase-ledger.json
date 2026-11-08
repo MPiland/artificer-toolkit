@@ -24563,6 +24563,128 @@
               },
               "text": "Profile the near-limit Convex functions from the last three full Tests runs' convex-function logs and on the local Docker backend; split each one's time into module load, documents/bytes read and compute; record the findings and a per-function fix proposal in docs/validation/perf-6-t1-hot-function-profile-2026-11-07.md. Fix tasks are registered from the findings.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PERF-6.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": ["PERF-6.T1"],
+                "finalSource": true
+              },
+              "text": "Profile fix 1: move characterSheet:basics into its own small module and serve its four fields from stored data (Character row fields written at Builder commit, or a stored identity section written by store) instead of a derivation, so its read set excludes the System, sources and effects. Budget: <= 6 documents and <= 10 KB (convex-test), module floor <= 20 ms (functionBundleBudget.test.ts), CI user p95 <= 100 ms, 0 timeouts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PERF-6.T3",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["PERF-6.T1"],
+                "finalSource": true
+              },
+              "text": "Profile fix 2: remove the app schema from function modules. contentSnapshots/heads.ts (convex-helpers stream) and campaigns/vehicleCleanup.ts (paginator) import ../schema, adding 43-58 ms to every call of heads, vehicleCleanup, accountDeparture and the departure mutations. Use index range reads or a one-table schema. Budget: module floor -40 to -55 ms, heads and accountDeparture added to functionBundleBudget.test.ts, CI user p50 for readScopeKind and readBuildStart <= 80 ms.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PERF-6.T4",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 3,
+                "after": ["PERF-6.T2"],
+                "finalSource": true
+              },
+              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready."
+            },
+            {
+              "id": "PERF-6.T5",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["PERF-6.T1"],
+                "finalSource": true
+              },
+              "text": "Profile fixes 4 and 7: readClassListSpellRoots (characters/context.ts:272) reads the full root of every Spell on a Character's class lists in every derivation, and classPublication:readSourceRows reads two documents per Spell. Carry the list fields the Sheet and publication need on authoredSpellClasses rows written at publication; read full roots only for Spells the Character references; canonicalise only the rows the commit compares. Budget: SRD Cleric derivation <= 170 documents and <= 250 KB (from 274 / 485 KB) in a sheetReadBudget.test.ts case, largest SRD list readSourceRows <= 100 documents and <= 200 KB, CI store p95 <= 500 ms, readSourceRows p95 <= 250 ms. Stored-shape change: reset and reseed local after merge.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PERF-6.T6",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["PERF-6.T3"],
+                "finalSource": true
+              },
+              "text": "Profile fix 5: Campaign departure and unshare (removeCampaignSharesAndReconcile, contentShareRemoval.ts:202) read up to 1,765 documents in one transaction. Split the reconcile into one scheduled step per Character (equipment retain plus source-loss reconcile); the membership-removal transaction removes the shares and queues the steps, keeping D81 departure semantics. Budget: <= 200 documents per transaction, CI p95 <= 500 ms, 0 timeouts."
+            },
+            {
+              "id": "PERF-6.T7",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["PERF-6.T1"],
+                "finalSource": true
+              },
+              "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test."
+            },
+            {
+              "id": "PERF-6.T8",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["PERF-6.T3"],
+                "finalSource": true
+              },
+              "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts."
+            },
+            {
+              "id": "PERF-6.T9",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["PERF-6.T1"],
+                "finalSource": true
+              },
+              "text": "Profile fix 10: profile authoring/nodeRuntime:resolve (714 documents at p50) and encounters/activeReads:active (CPU), set their read budgets and register fixes if they miss the PERF-6.2 targets."
+            },
+            {
+              "id": "PERF-6.T10",
+              "status": "TODO",
+              "closes": ["PERF-6.3"],
+              "wsjf": { "bv": 5, "tc": 3, "rr": 5, "size": 2, "finalSource": true },
+              "text": "Browser journeys record client-side latency (Builder evaluation, content parse, tabletop render) under CPU throttling that simulates a low-end device, as run evidence that never fails the run, alongside the D210 wall-clock evidence."
             }
           ]
         },
@@ -25375,7 +25497,7 @@
             },
             {
               "id": "RELEASE-8.T7",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-8.2"],
               "wsjf": {
                 "bv": 8,
@@ -25387,7 +25509,11 @@
               },
               "text": "Fix RELEASE-8.T2 finding F1: the content snapshot cache is an optimization, so a Cache Storage failure (open, match or put rejecting, e.g. InvalidAccessError, quota or a private-mode SecurityError) must fall back to the verified network bytes instead of failing the content load. Today contentSnapshotStore.ts awaits cache.put unguarded and load() turns the rejection into ContentSnapshotLoadError, so the Builder shows 'Could not load backgrounds' for every kind. Regression test with a rejecting cache, red before the fix.",
               "note": "Registered 2026-11-07 from the RELEASE-8.T2 walk (local-validation/release-8-t2/summary.md, root-cause addendum). Bug fix blocking AC RELEASE-8.2; no new scope.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-07",
+              "proof": [
+                "apps/web/src/data/contentSnapshots/contentSnapshotStore.test.ts (rejecting open, match and put still return the verified object; integrity mismatch still throws)",
+                "Green on d96ac0fe7: Tests and Browser journeys; merged 448e3945a (m653, merge-slice run 42441850119)"
+              ]
             },
             {
               "id": "RELEASE-8.T8",
