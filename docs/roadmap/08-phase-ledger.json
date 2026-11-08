@@ -24614,7 +24614,7 @@
             },
             {
               "id": "PERF-6.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24624,7 +24624,8 @@
                 "after": ["PERF-6.T2"],
                 "finalSource": true
               },
-              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready."
+              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T5",
