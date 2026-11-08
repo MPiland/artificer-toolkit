@@ -214,7 +214,11 @@ file never reaches the Sheet or authored-source graphs. Self-hosted Convex evalu
 module graph on every run; `encounters/readModuleBoundary.test.ts` keeps command-only modules out of the
 re-running subscriptions (RELIABILITY-21).
 Document derivations (Zod parse plus checksum verification) go through `deriveOnce` (`transactionReads.ts`).
-A Convex query caches them per transaction through `memoizeTransactionReads`. The room's in-memory store is
+A derivation is cached only while its document is shared by identity. In Convex that means a query that
+wraps its `db` in `memoizeTransactionReads`, which serves each identical read once per transaction, deeply frozen. The
+session read (`encounters/activeReads` `readActiveEncounterSession`) does this because its ports each re-check the
+Campaign, memberships, assignments and Character play, so most of its reads repeat (PERF-6.T9). A mutation must not
+wrap its `db` in it, because a cached read would go stale after its own writes. The room's in-memory store is
 created with `sharedReads`: it serves its stored documents deeply frozen instead of copying them, and never
 changes one in place, so a derivation lasts as long as the document is unchanged across commands and pushes.
 The room's records follow the same rule: `recordValue` parses a record's JSON once per stored record and serves

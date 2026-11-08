@@ -16,6 +16,8 @@ import {
   readEncounterDecisionSettlement,
   readEncounterSessionState
 } from '@artificer-toolkit/encounter-persistence/sessionReads'
+import { memoizeTransactionReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
+import type { QueryCtx } from '../_generated/server'
 import { readActiveRun } from './projectionReads'
 import { encounterReadTransaction } from './encounterReadPorts'
 import { readMemberEncounter } from './readAccess'
@@ -30,17 +32,28 @@ export const active = query({
     const input = getCampaignEncounterInputDtoSchema.parse({
       campaignId: args.campaignId.toLowerCase()
     })
-    const { userId } = await requireIdentity(ctx)
-    const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     return encounterSessionStateDtoSchema.parse(
-      await readEncounterSessionState(encounterReadTransaction(ctx), {
-        row: await readActiveRun(ctx, campaign.id),
-        campaign,
-        membership
-      })
+      await readActiveEncounterSession(ctx, input.campaignId)
     )
   }
 })
+
+/**
+ * The caller's session state for the Campaign. Its ports each re-check what they read (the
+ * Campaign, memberships, assignments, Character heads and play), so the same documents are read
+ * many times; the transaction serves each identical read once and derives each document once
+ * (PERF-6.T9, `activeReadBudget.test.ts`).
+ */
+export async function readActiveEncounterSession(ctx: QueryCtx, campaignId: string) {
+  const read: QueryCtx = { ...ctx, db: memoizeTransactionReads(ctx.db) }
+  const { userId } = await requireIdentity(read)
+  const { campaign, membership } = await requireCampaignAuthority(read, campaignId, userId)
+  return readEncounterSessionState(encounterReadTransaction(read), {
+    row: await readActiveRun(read, campaign.id),
+    campaign,
+    membership
+  })
+}
 
 /**
  * Who settled a decision the member was shown (D39): the GM's skip or an answer. The waiting
