@@ -25304,7 +25304,7 @@
             },
             {
               "id": "RELEASE-8.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELEASE-8.2"],
               "wsjf": {
                 "bv": 5,
@@ -25315,7 +25315,8 @@
                 "finalSource": true
               },
               "text": "After the final reset, run the review-data script against the local container and walk each review Campaign's surfaces in the Browser pane (Builder, Sheet, Scene, Encounter, live turn); fix or register findings and record the checked build identity. Agent-run; no owner sign-off (that is staging UAT).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). User ruling 2026-11-03: formal UAT runs on staging only; local is for informal owner feedback.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "RELEASE-8.T5",
