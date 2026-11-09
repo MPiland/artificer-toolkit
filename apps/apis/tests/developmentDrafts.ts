@@ -50,7 +50,7 @@ import {
 } from './developmentCampaignCustody'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
-import { generateValidUsername } from './fixtures/generatedUsername'
+import { generateProfileUsername, generateValidUsername } from './fixtures/generatedUsername'
 import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
 import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
 import { createConcentrationCapacityFeatures } from './fixtures/encounterConcentrationCapacity'
@@ -5844,7 +5844,7 @@ try {
   ) {
     const author = await createAuthor()
     const other = process.argv.includes('--profile-browser') ? await createAuthor() : null
-    const profileUsername = author.username.replace('Draft_', 'Reader_')
+    const profileUsername = generateProfileUsername()
     const profileBio = 'Private profile proof for the first account.'
     const socialBaseline = other
       ? await author.client.mutation(api.social.profiles.initialize, {})

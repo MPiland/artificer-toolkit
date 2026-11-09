@@ -18,3 +18,12 @@ export function generateValidUsername(prefix: string, nextSuffix: () => string =
   }
   throw new Error(`No allowed username found for prefix "${prefix}" after ${maxDraws} draws.`)
 }
+
+/**
+ * The name a profile proof saves. It is drawn on its own, never derived from another generated name:
+ * the policy also reads the joined prefix and suffix, so a suffix allowed after one prefix can be
+ * refused after another.
+ */
+export function generateProfileUsername(nextSuffix?: () => string) {
+  return generateValidUsername('Reader_', nextSuffix).username
+}
