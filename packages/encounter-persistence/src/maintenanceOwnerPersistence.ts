@@ -4,7 +4,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterRow } from './characterPlay.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterCharacterEffectsTransaction } from './ports.js'
 import {
   readRunCampaignOwnerUserId,
   settleCharacterConditionMaximum,
@@ -15,7 +15,7 @@ import { createActiveRuleEffectStore } from './effectStore.js'
 
 /** Reconciles owners after exact dependent deletion, sharing a preceding mechanics increment. */
 export async function reconcileNativeMaintenanceOwners(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterEffectsTransaction,
   input: {
     /** Null when no Run is involved (Campaign-clock work): there are no Run actors to mirror. */
     encounterId: string | null

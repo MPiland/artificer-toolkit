@@ -2,9 +2,15 @@ import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 import { normalizeCharacterGrantRestrictions } from '../../character/characterGrantFoldRestrictionFacts.js'
+import type { AttackRestrictionCapabilityAdapter } from '../../attackProfileCapability.js'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
-import { dnd5eActionRequirementsMet, type Dnd5eAttackingItem } from './modifierApplicability.js'
+import { DND5E_SYSTEM_ID } from './identity.js'
+import {
+  dnd5eActionRequirementsMet,
+  dnd5eAttackingItem,
+  type Dnd5eAttackingItem
+} from './modifierApplicability.js'
 
 export type Dnd5eAttackRollMode = string
 
@@ -335,4 +341,10 @@ export function effectReadsEnemyProximity(effect: Pick<CompiledEffectGroup, 'ent
         group.contexts.some((context) => (context.conditions ?? []).some(isEnemyNearCondition))
       )
   )
+}
+
+export const dnd5eAttackRestrictionCapabilityAdapter: AttackRestrictionCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  reduceAttackRestrictions: (effect, equipment) =>
+    reduceEffectRestrictions(effect, dnd5eAttackingItem(equipment))
 }

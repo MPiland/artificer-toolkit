@@ -4,7 +4,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterCharacterEffectsTransaction } from './ports.js'
 
 /**
  * D81: leaving a Campaign ends what its Runs put on the Character. Each of the Character's effects
@@ -13,7 +13,7 @@ import type { EncounterCharacterWriteTransaction } from './ports.js'
  * in a TERMINABLE Run; a room-held Run's states are the room's to settle.
  */
 export async function endCharacterRunEffects(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterEffectsTransaction,
   input: {
     characterId: string
     /** `null` leaves effects of a Run outside the departed Campaign. */
@@ -88,7 +88,7 @@ export async function endCharacterRunEffects(
  * clamps the current hit points. A repeat finds nothing to end. Returns the ended effects.
  */
 export async function endCarriedGrantsOfConcentratingCasters(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterEffectsTransaction,
   input: {
     encounterId: string | null
     casterCharacterIds: readonly string[]
@@ -153,7 +153,7 @@ export async function endCarriedGrantsOfConcentratingCasters(
  * (SPELLS-5.7).
  */
 export async function endCompletedRunCharacterEffects(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterEffectsTransaction,
   input: { state: EncounterRunState; occurredAt: string }
 ): Promise<void> {
   const store = createActiveRuleEffectStore(ctx)

@@ -260,7 +260,7 @@ it('keeps each installed-System tier loading only its own and lighter tiers', ()
   expect(Object.fromEntries(tiers.map((tier) => [tier, loadedTiers(closures[tier]!)]))).toEqual({
     vocabulary: ['vocabulary'],
     policy: ['vocabulary', 'policy'],
-    character: ['vocabulary', 'policy', 'character'],
+    character: ['vocabulary', 'character'],
     encounter: ['vocabulary', 'policy', 'encounter'],
     runtime: tiers
   })

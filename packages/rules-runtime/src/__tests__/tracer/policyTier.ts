@@ -143,13 +143,13 @@ const tracerMaintenanceLinkAdapter: MaintenanceLinkCapabilityAdapter = {
   })
 }
 
-/** The tracer's Sheet-reachable tier: only the capabilities it has, so the rest fail closed. */
-export const tracerPolicyTier: GameSystemPolicyTier = {
-  gameSystemId: TRACER_SYSTEM_ID,
-  abilityScore: tracerAbilityScoreAdapter,
-  actionEconomy: tracerActionEconomyAdapter,
-  eventVocabulary: tracerEventVocabularyAdapter,
-  maintenanceLink: tracerMaintenanceLinkAdapter,
-  rollMode: tracerRollModeAdapter,
-  policyModules: []
+/** The tracer's Sheet-reachable tier: only the capabilities it has, so the rest fail closed (ADR 0042). */
+export const policyModules: GameSystemPolicyTier['policyModules'] = []
+export {
+  TRACER_SYSTEM_ID as gameSystemId,
+  tracerAbilityScoreAdapter as abilityScore,
+  tracerActionEconomyAdapter as actionEconomy,
+  tracerEventVocabularyAdapter as eventVocabulary,
+  tracerMaintenanceLinkAdapter as maintenanceLink,
+  tracerRollModeAdapter as rollMode
 }

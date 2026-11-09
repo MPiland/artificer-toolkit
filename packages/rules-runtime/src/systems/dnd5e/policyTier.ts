@@ -1,31 +1,21 @@
-import type { GameSystemPolicyTier } from '../../platformPolicyModules.js'
-import { dnd5eAbilityScoreCapabilityAdapter } from './abilityModifier.js'
-import { dnd5eActionEconomyCapabilityAdapter } from './actionEconomyPolicy.js'
-import {
-  DND5E_SYSTEM_ID,
-  dnd5eCharacterActionCapabilityAdapter
+/**
+ * D&D 5e's Sheet-reachable policy tier (D195). One export per capability of `GameSystemPolicyTier`, so a
+ * bundle keeps only the adapters it reaches (ADR 0042).
+ */
+export { dnd5eAbilityScoreCapabilityAdapter as abilityScore } from './abilityModifier.js'
+export { dnd5eActionEconomyCapabilityAdapter as actionEconomy } from './actionEconomyPolicy.js'
+export { dnd5eAttackRestrictionCapabilityAdapter as attackRestriction } from './attackRestrictions.js'
+export { dnd5eArmorClassCapabilityAdapter as armorClass } from './characterVitals.js'
+export {
+  DND5E_SYSTEM_ID as gameSystemId,
+  dnd5eCharacterActionCapabilityAdapter as characterAction
 } from './characterActionCapabilityDiscovery.js'
-import { dnd5eCombatPerceptionCapabilityAdapter } from './combatPerception.js'
-import { dnd5eMaintenanceLinkCapabilityAdapter } from './concentrationPolicy.js'
-import { dnd5eEventVocabularyCapabilityAdapter } from './eventVocabulary.js'
-import { dnd5eCharacterProgressionCapabilityAdapter } from './hitPointRules.js'
-import { dnd5eCreatureConditionCapabilityAdapter } from './identity.js'
-import { dnd5ePolicyModuleRegistration } from './policyModuleRegistration.js'
-import { dnd5eRollModeCapabilityAdapter } from './rollModePolicy.js'
-import { dnd5eSavingThrowCapabilityAdapter } from './savingThrowPolicy.js'
-
-/** D&D 5e's Sheet-reachable policy tier (D195). */
-export const dnd5ePolicyTier: GameSystemPolicyTier = {
-  gameSystemId: DND5E_SYSTEM_ID,
-  abilityScore: dnd5eAbilityScoreCapabilityAdapter,
-  actionEconomy: dnd5eActionEconomyCapabilityAdapter,
-  characterAction: dnd5eCharacterActionCapabilityAdapter,
-  characterProgression: dnd5eCharacterProgressionCapabilityAdapter,
-  combatPerception: dnd5eCombatPerceptionCapabilityAdapter,
-  creatureCondition: dnd5eCreatureConditionCapabilityAdapter,
-  eventVocabulary: dnd5eEventVocabularyCapabilityAdapter,
-  maintenanceLink: dnd5eMaintenanceLinkCapabilityAdapter,
-  rollMode: dnd5eRollModeCapabilityAdapter,
-  savingThrow: dnd5eSavingThrowCapabilityAdapter,
-  policyModules: dnd5ePolicyModuleRegistration.policyModules
-}
+export { dnd5eCombatPerceptionCapabilityAdapter as combatPerception } from './combatPerception.js'
+export { dnd5eMaintenanceLinkCapabilityAdapter as maintenanceLink } from './concentrationPolicy.js'
+export { dnd5eEventVocabularyCapabilityAdapter as eventVocabulary } from './eventVocabulary.js'
+export { dnd5eCharacterProgressionCapabilityAdapter as characterProgression } from './hitPointRules.js'
+export { dnd5eCreatureConditionCapabilityAdapter as creatureCondition } from './identity.js'
+export { dnd5ePolicyModules as policyModules } from './policyModuleRegistration.js'
+export { dnd5eRollModeCapabilityAdapter as rollMode } from './rollModePolicy.js'
+export { dnd5eSavingThrowCapabilityAdapter as savingThrow } from './savingThrowPolicy.js'
+export { dnd5eSpellCastCapabilityAdapter as spellCast } from './spellCastPolicy.js'

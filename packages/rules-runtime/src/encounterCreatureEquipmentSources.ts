@@ -15,7 +15,7 @@ import {
 import { z } from '@artificer-toolkit/schema/zod'
 
 import { hydrateStoredCompilation } from './authoredPublicationHydrate.js'
-import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
+import { armorClassCapabilityRegistry } from './platformPolicyModules.js'
 
 export type EncounterCreatureEquipmentSource = EncounterCreatureEquipmentSourceDto & {
   compiled: CompiledEquipment
