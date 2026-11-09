@@ -64,8 +64,8 @@ export async function queueCharacterReconcile(
  * exhausted and logged once.
  */
 export const verify = internalMutation({
-  args: zodToConvexFields(campaignCharacterReconcileStepSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(campaignCharacterReconcileStepSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const step = campaignCharacterReconcileStepSchema.parse(args)
     const pending = await readPendingReconcile(ctx, step.stepId)
@@ -121,8 +121,8 @@ export async function endDepartedCampaignRunEffects(
  * its Run effects (the hold's drop settles them).
  */
 export const run = internalMutation({
-  args: zodToConvexFields(campaignCharacterReconcileStepSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(campaignCharacterReconcileStepSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const step = campaignCharacterReconcileStepSchema.parse(args)
     const pending = await readPendingReconcile(ctx, step.stepId)
