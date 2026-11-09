@@ -18,8 +18,9 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
     )
     const response = sliceResponse?.slice === 'COMMON' ? sliceResponse.data : null
     const repair = sliceResponse?.slice === 'REPAIR_REQUIRED' ? sliceResponse.data : null
-    const draft =
-      response || repair
+    const draft = response
+      ? null
+      : repair
         ? null
         : z
             .nullable(characterBuilderDraftDtoSchema)
