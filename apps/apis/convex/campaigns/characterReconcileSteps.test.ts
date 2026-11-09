@@ -488,7 +488,9 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     expect(await sheetState()).toBe('CURRENT')
 
     holdScheduledWork()
-    await base.owner.caller.mutation(unassign, { campaignId: campaign.id })
+    await base.owner.caller.mutation(api.campaigns.assignments.unassign, {
+      campaignId: campaign.id
+    })
     expect(await reconcileState()).toBe('PENDING')
     // The window: the departure removed the Background's share, so the queued Sheet store lands
     // before the step finds Builder repair and stores nothing; the Sheet read reports the repair.
