@@ -1,7 +1,7 @@
 import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { usePaginatedQuery } from 'convex/react'
 import { convexQuery } from '@convex-dev/react-query'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery, type QueryClient } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useLoadAllPages } from '#app/data/useLoadAllPages'
 
@@ -22,6 +22,22 @@ export function useGetCampaignList(enabled = true) {
 
 export function getCampaignDetail(campaignId: string) {
   return convexQuery(convexApi.campaigns.queries.get, { id: campaignId.toLowerCase() })
+}
+
+/**
+ * Drops every cached query for the Campaign, which ends its Convex subscriptions. An unmounted
+ * query otherwise keeps its subscription for the cache's gcTime, so a departure would rerun each
+ * of them only to answer CAMPAIGN_NOT_FOUND (D216). A query a mounted component still observes is
+ * kept, since removing it would only resubscribe it.
+ */
+export function removeCampaignQueries(queryClient: QueryClient, campaignId: string) {
+  const id = campaignId.toLowerCase()
+  queryClient.removeQueries({
+    predicate: (query) =>
+      query.getObserversCount() === 0 &&
+      query.queryKey[0] === 'convexQuery' &&
+      JSON.stringify(query.queryKey).toLowerCase().includes(id)
+  })
 }
 
 export function useCampaignDetail(campaignId: string) {

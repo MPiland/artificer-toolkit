@@ -1,8 +1,9 @@
-import { Alert, Badge, Group, Loader, Select, Stack, Tabs, Title } from '@mantine/core'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Alert, Badge, Button, Group, Loader, Select, Stack, Tabs, Title } from '@mantine/core'
+import { useEffect, useRef, useState, useSyncExternalStore, type ComponentProps } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { findOption } from '../../forms/utils/valueGuards'
-import { useCampaignDetailOrNull } from '#app/data/campaigns/queries'
+import { removeCampaignQueries, useCampaignDetailOrNull } from '#app/data/campaigns/queries'
 import { getCampaignTabs, type CampaignTab } from './campaignAccess'
 import { CampaignSettings } from './components/CampaignSettings'
 import { CampaignChatDrawer } from './components/CampaignChatDrawer'
@@ -10,6 +11,7 @@ import { CampaignNotes } from './components/CampaignNotes'
 import { CampaignInventory } from './components/CampaignInventory'
 import { CampaignContent } from './components/CampaignContent'
 import { CampaignParty } from './components/CampaignParty'
+import { CampaignLeave } from './components/CampaignLeave'
 import { CampaignLiveControls } from './components/CampaignLiveControls'
 import { CampaignSessions } from './components/CampaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
@@ -47,6 +49,8 @@ const tabLabels: Record<CampaignTab, string> = {
   settings: 'Settings'
 }
 
+type LeaveInput = Parameters<ComponentProps<typeof CampaignParty>['onLeave']>[0]
+
 export function CampaignDetailPage({
   campaignId,
   currentUserId
@@ -54,7 +58,49 @@ export function CampaignDetailPage({
   campaignId: string
   currentUserId: string
 }) {
+  const [leave, setLeave] = useState<{
+    input: LeaveInput
+    status: 'LEAVING' | 'FAILED'
+    error?: string
+  } | null>(null)
+
+  if (leave?.status === 'LEAVING')
+    return (
+      <CampaignLeave
+        input={leave.input}
+        onFailed={(error) => setLeave({ input: leave.input, status: 'FAILED', error })}
+      />
+    )
+  return (
+    <CampaignWorkspace
+      campaignId={campaignId}
+      currentUserId={currentUserId}
+      leaveFailure={
+        leave
+          ? {
+              message: leave.error ?? 'Leaving the Campaign failed.',
+              retry: () => setLeave({ input: leave.input, status: 'LEAVING' })
+            }
+          : null
+      }
+      onLeave={(input) => setLeave({ input, status: 'LEAVING' })}
+    />
+  )
+}
+
+function CampaignWorkspace({
+  campaignId,
+  currentUserId,
+  leaveFailure,
+  onLeave
+}: {
+  campaignId: string
+  currentUserId: string
+  leaveFailure: { message: string; retry: () => void } | null
+  onLeave: (input: LeaveInput) => void
+}) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const campaign = useCampaignDetailOrNull(campaignId)
   const tabs = campaign ? getCampaignTabs(campaign) : []
   const [activeTab, setActiveTab] = useState<CampaignTab>(tabs[0] ?? 'sessions')
@@ -63,13 +109,16 @@ export function CampaignDetailPage({
   const deleteConfirmed = useRef(false)
 
   useEffect(() => {
-    if (!campaign)
+    if (!campaign) {
+      // The Campaign is gone: the subtree below is unmounted, so drop its cached subscriptions.
+      removeCampaignQueries(queryClient, campaignId)
       void navigate({
         to: '/campaigns',
         replace: true,
         search: deleteConfirmed.current ? { campaignId } : {}
       })
-  }, [campaign, campaignId, navigate])
+    }
+  }, [campaign, campaignId, navigate, queryClient])
 
   const locationSearch = useSyncExternalStore(subscribeToNothing, readLocationSearch, () => '')
   const [appliedSearch, setAppliedSearch] = useState('')
@@ -121,6 +170,16 @@ export function CampaignDetailPage({
           </Group>
         </div>
       </header>
+      {leaveFailure ? (
+        <Alert color='red' title='Could not leave the Campaign'>
+          <Group justify='space-between'>
+            {leaveFailure.message}
+            <Button size='xs' variant='default' onClick={leaveFailure.retry}>
+              Try again
+            </Button>
+          </Group>
+        </Alert>
+      ) : null}
       {campaign.status === 'ARCHIVED' ? (
         <Alert color='gray' title='Archived Campaign'>
           {campaign.role === 'OWNER'
@@ -169,6 +228,7 @@ export function CampaignDetailPage({
             campaign={campaign}
             currentUserId={currentUserId}
             openCharacterPicker={openCharacterPicker}
+            onLeave={onLeave}
           />
         </Tabs.Panel>
         {tabs.includes('notes') ? (
