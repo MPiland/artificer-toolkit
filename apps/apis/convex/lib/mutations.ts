@@ -12,6 +12,7 @@ import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import {
   characterSheetInputs,
+  memberSharesContent,
   type CharacterSheetInput,
   type CharacterSheetStoreTarget
 } from '../characters/sheetFingerprintInputs'
@@ -301,6 +302,8 @@ triggers.register('campaignMemberships', async (ctx, change) => {
   if (change.operation === 'insert') return
   const { oldDoc, newDoc } = change
   if (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role) return
+  // Only a member who shared content moves what the snapshot holds; share deletes mark themselves.
+  if (!(await memberSharesContent(ctx.innerDb, oldDoc.campaignId, oldDoc.userId))) return
   await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.campaignId }, false)
 })
 

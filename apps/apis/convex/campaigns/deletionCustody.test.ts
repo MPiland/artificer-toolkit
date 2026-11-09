@@ -681,8 +681,9 @@ describe('native Campaign custody deletion', () => {
           base.other.caller.query(api.campaigns.queries.get, { id: target.id })
         ).rejects.toThrow('Campaign not found.')
         expect(await finishDeletion(base.t, target.id)).toMatchObject({ status: 'DELETED' })
-        // Departing Characters reconcile in steps due now, ahead of the delayed Sheet stores they
-        // replace, so timers fire in order: running them all at once would start those stores first.
+        // Departing Characters reconcile in steps queued ahead of the Sheet stores they replace
+        // (both wait the settle delay), so timers fire in order: running them all at once would
+        // start those stores first.
         await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
         after = await snapshot(base.t)
       } finally {

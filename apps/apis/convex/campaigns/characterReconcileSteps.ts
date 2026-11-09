@@ -12,6 +12,7 @@ import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { readCharacterDraft, readCharacterRecord } from '../characters/documents'
+import { CAMPAIGN_BACKGROUND_SETTLE_MS } from '../characters/sheetSectionStores'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { readCharacterSourceAccessLoss, readStillLostSources } from '../characters/sourceAccessLoss'
 import { reconcileCharacterSourceLoss } from '../characters/sourceLoss'
@@ -32,8 +33,16 @@ export const CHARACTER_RECONCILE_ATTEMPTS = 3
 
 /** Queues the step's run and the check that queues it again if the run fails or times out. */
 async function scheduleRun(ctx: MutationCtx, step: CampaignCharacterReconcileStep) {
-  const scheduledId = await ctx.scheduler.runAfter(0, runReference, step)
-  await ctx.scheduler.runAfter(CHARACTER_RECONCILE_CHECK_MS, verifyReference, step)
+  const scheduledId = await ctx.scheduler.runAfter(
+    CAMPAIGN_BACKGROUND_SETTLE_MS,
+    runReference,
+    step
+  )
+  await ctx.scheduler.runAfter(
+    CAMPAIGN_BACKGROUND_SETTLE_MS + CHARACTER_RECONCILE_CHECK_MS,
+    verifyReference,
+    step
+  )
   return scheduledId
 }
 

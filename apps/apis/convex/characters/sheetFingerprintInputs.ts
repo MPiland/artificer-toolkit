@@ -51,6 +51,24 @@ function ownCharacter<TableName extends CharacterRowTable>(
 
 const allFields = ownCharacter()
 
+/**
+ * Whether a member has content shared into the Campaign. Share validity reads the sharer's active
+ * membership, so only such a member's status or role change moves what the party reads.
+ */
+export async function memberSharesContent(
+  db: GenericDatabaseReader<DataModel>,
+  campaignId: string,
+  userId: string
+) {
+  const share = await db
+    .query('campaignContentShares')
+    .withIndex('by_campaignId_sharedBy', (q) =>
+      q.eq('campaignId', campaignId).eq('sharedBy', userId)
+    )
+    .first()
+  return share !== null
+}
+
 /** The Character, while it is ACTIVE: a new Character's draft and route exist before its Sheet. */
 async function activeCharacter(db: GenericDatabaseReader<DataModel>, characterId: string) {
   const character = await db
@@ -144,12 +162,25 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
     campaignCurrencySystems: {
       queue: (_, { oldDoc, newDoc }) => [{ campaignId: (newDoc ?? oldDoc)!.campaignId }]
     },
-    // Campaign authority reads the owner's membership.
+    // A Sheet reads two memberships: its Character owner's (Campaign authority) and, for shared
+    // content, the member who shared it. So a status or role change queues that member's assigned
+    // Character, and the whole party only when the member shared content (D216).
     campaignMemberships: {
-      queue: (_, { oldDoc, newDoc }) =>
-        oldDoc && (!newDoc || oldDoc.status !== newDoc.status || oldDoc.role !== newDoc.role)
-          ? [{ campaignId: oldDoc.campaignId }]
-          : []
+      queue: async (db, { oldDoc, newDoc }) => {
+        if (!oldDoc || (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role))
+          return []
+        const { campaignId, userId } = oldDoc
+        const assignment = await db
+          .query('campaignCharacterAssignments')
+          .withIndex('by_campaignId_userId', (q) =>
+            q.eq('campaignId', campaignId).eq('userId', userId)
+          )
+          .unique()
+        return [
+          ...(assignment ? [{ characterId: assignment.characterId }] : []),
+          ...((await memberSharesContent(db, campaignId, userId)) ? [{ campaignId }] : [])
+        ]
+      }
     },
     campaignDeletionJobs: {
       unqueued:

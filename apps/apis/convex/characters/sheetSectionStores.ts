@@ -23,6 +23,14 @@ const verifyReference = makeFunctionReference<'mutation', CharacterSheetStoreChe
 /** How long a queued derivation waits, so a burst of writes (a Builder session) derives once. */
 export const CHARACTER_SHEET_STORE_DELAY_MS = 300
 
+/**
+ * How long Campaign-scope background work (the party's Sheet stores, the departure reconcile step)
+ * waits. The write that queues it also reruns every open Campaign subscription at once; on a
+ * shared runner those reruns time-slice against the 1 s limit, so queued mutations start after the
+ * subscribers settle (D216).
+ */
+export const CAMPAIGN_BACKGROUND_SETTLE_MS = 1_500
+
 /** How long after a store is due its check runs, and how often it looks again until it ran. */
 export const CHARACTER_SHEET_STORE_CHECK_MS = 2_000
 
@@ -151,7 +159,7 @@ export async function scheduleCampaignCharacterSheetSections(
       retried: false
     })
   }
-  await scheduleNextCampaignCharacterSheetStore(ctx, campaignId, CHARACTER_SHEET_STORE_DELAY_MS)
+  await scheduleNextCampaignCharacterSheetStore(ctx, campaignId, CAMPAIGN_BACKGROUND_SETTLE_MS)
 }
 
 /**
