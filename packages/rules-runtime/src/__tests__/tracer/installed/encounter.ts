@@ -12,7 +12,6 @@ export const installedEncounterActorPolicies = [
   { gameSystemId: dnd5e.gameSystemId, evaluateEncounterActors: dnd5e.evaluateEncounterActors },
   { gameSystemId: tracer.gameSystemId, evaluateEncounterActors: tracer.evaluateEncounterActors }
 ]
-export const installedArmorClasses = [dnd5e.armorClass]
 export const installedAttackProfiles = [dnd5e.attackProfile]
 export const installedCharacterRuleActions = [dnd5e.characterRuleAction]
 export const installedContestChecks = [dnd5e.contestCheck]

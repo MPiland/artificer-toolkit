@@ -5,13 +5,12 @@ import * as dnd5e from '../dnd5e/encounterTier.js'
 /** The installed Systems' Encounter-only tier (D195), one list per capability (ADR 0042). */
 type _Dnd5eEncounterTier = SystemTierModule<
   typeof import('../dnd5e/encounterTier.js'),
-  GameSystemEncounterTier
+  Required<GameSystemEncounterTier>
 >
 
 export const installedEncounterActorPolicies = [
   { gameSystemId: dnd5e.gameSystemId, evaluateEncounterActors: dnd5e.evaluateEncounterActors }
 ]
-export const installedArmorClasses = [dnd5e.armorClass]
 export const installedAttackProfiles = [dnd5e.attackProfile]
 export const installedCharacterRuleActions = [dnd5e.characterRuleAction]
 export const installedContestChecks = [dnd5e.contestCheck]

@@ -3,7 +3,10 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 /**
  * A System's tier module, type-checked against its tier contract (ADR 0042). A tier module exports
  * one binding per capability, so check it with `typeof import(...)`: a runtime reference to the
- * module namespace would keep every adapter in every bundle.
+ * module namespace would keep every adapter in every bundle. Every tier capability is optional, so
+ * the check proves only the types of the exports present unless the contract is `Required<Tier>`:
+ * an installed System passes `Required<Tier>`, so a missing capability export fails the check, and
+ * the test-only tracer passes the partial tier.
  */
 export type SystemTierModule<TModule extends TTier, TTier> = TModule
 

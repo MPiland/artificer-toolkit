@@ -146,10 +146,11 @@ it.for([
 // only the Character ports it needs, so these modules leave the Encounter command graph out; with it
 // they were 3,190-3,200 KB (PERF-6.T6). Each installed System exports one binding per capability, so
 // a bundle keeps only the adapters it reaches (ADR 0042): the reconcile step went from 2,917 to
-// 2,829 KB and the Encounter active reads from 2,040 to 1,826 KB (PERF-6.T12).
+// 2,829 KB, account deletion from 2,894 to 2,805 KB and the Encounter active reads from 2,040 to
+// 1,826 KB (PERF-6.T12).
 it.for([
   ['campaigns/characterReconcileSteps.ts', 2900],
-  ['characters/accountDeletion.ts', 3000],
+  ['characters/accountDeletion.ts', 2880],
   ['encounters/activeReads.ts', 1880]
 ] as const)('keeps the %s bundle within %i KB', ([entry, budgetKb]) => {
   const bundle = buildSync({ ...bundleOptions(entry), format: 'iife' }).outputFiles[0]

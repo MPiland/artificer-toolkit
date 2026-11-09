@@ -5,7 +5,7 @@ import * as dnd5e from '../dnd5e/runtimeTier.js'
 /** The installed Systems' rules runtime tier (D195), one list per capability (ADR 0042). */
 type _Dnd5eRuntimeTier = SystemTierModule<
   typeof import('../dnd5e/runtimeTier.js'),
-  GameSystemRuntimeTier
+  Required<GameSystemRuntimeTier>
 >
 
 export const installedAttackTriggers = [

@@ -416,11 +416,12 @@ ability armor class, initiative and hit points add, which the character fact bui
 check, the Builder hit point step and Class detail read, RULES-2.T9e; it moved off the ability-score
 adapter in RULES-2.T12b, so a System without Character statistics fails closed there) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
-`discoverCharacterActionCapabilities`).
+`discoverCharacterActionCapabilities`) and `armorClassCapabilityRegistry` (a Creature's loadout armor
+class, which a Character's companions, the Convex Creature detail and the Encounter read, and the shield a
+two-handed grip stows; ADR 0042 moved it here from the Encounter tier).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
 `platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`, which also reads a declared
-initiative's roll mode back from its graph facts for the roll card; `armorClassCapabilityRegistry`
-for a Creature's loadout armor class (Convex Creature detail reads it too) and the shield a two-handed grip stows;
+initiative's roll mode back from its graph facts for the roll card;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
 added-dice facts, where a System without death saves omits `deathSaveDefinition`;
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;

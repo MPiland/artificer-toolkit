@@ -11,6 +11,7 @@ export const installedPolicyModules = [
 ]
 export const installedAbilityScores = [dnd5e.abilityScore, tracer.abilityScore]
 export const installedActionEconomies = [dnd5e.actionEconomy, tracer.actionEconomy]
+export const installedArmorClasses = [dnd5e.armorClass]
 export const installedAttackRestrictions = [dnd5e.attackRestriction]
 export const installedCharacterActions = [dnd5e.characterAction]
 export const installedCharacterProgressions = [dnd5e.characterProgression]

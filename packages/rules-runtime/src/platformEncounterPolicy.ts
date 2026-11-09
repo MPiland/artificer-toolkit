@@ -3,7 +3,6 @@ import type {
   EncounterActorRuleOutput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 
-import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import type { ContestCheckCapabilityAdapter } from './contestCheckCapability.js'
@@ -18,7 +17,6 @@ import type { OptionalCombatPolicyCapabilityAdapter } from './optionalCombatPoli
 import type { EncounterSceneGridPolicyAdapter } from './sceneGridPolicy.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 import {
-  installedArmorClasses,
   installedAttackProfiles,
   installedCharacterRuleActions,
   installedContestChecks,
@@ -42,7 +40,6 @@ import {
 export interface GameSystemEncounterTier {
   readonly gameSystemId: string
   readonly evaluateEncounterActors?: (facts: EncounterActorRuleInput) => EncounterActorRuleOutput
-  readonly armorClass?: ArmorClassCapabilityAdapter
   readonly attackProfile?: AttackProfileCapabilityAdapter
   readonly characterRuleAction?: CharacterRuleActionSystemAdapter
   readonly contestCheck?: ContestCheckCapabilityAdapter
@@ -61,12 +58,6 @@ export const initiativeCapabilityRegistry =
   /* @__PURE__ */ createSystemCapabilityRegistry<InitiativeFactAdapter>(
     'initiative',
     installedInitiatives
-  )
-
-export const armorClassCapabilityRegistry =
-  /* @__PURE__ */ createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>(
-    'armor-class',
-    installedArmorClasses
   )
 
 export const d20TestDefinitionCapabilityRegistry =

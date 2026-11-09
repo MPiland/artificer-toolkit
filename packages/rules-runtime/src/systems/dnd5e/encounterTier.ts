@@ -4,7 +4,6 @@
  */
 export { dnd5eAttackProfileCapabilityAdapter as attackProfile } from './attackDamageDefenses.js'
 export { DND5E_SYSTEM_ID as gameSystemId } from './characterActionCapabilityDiscovery.js'
-export { dnd5eArmorClassCapabilityAdapter as armorClass } from './characterVitals.js'
 export { dnd5eCharacterRuleActionSystemAdapter as characterRuleAction } from './effectActionCompiler.js'
 export { evaluateDnd5e2014EncounterActors as evaluateEncounterActors } from './encounterActorPolicy.js'
 export { dnd5eEncounterFeatureActionCapabilityAdapter as encounterFeatureAction } from './encounterFeatureActionCapabilityDiscovery.js'

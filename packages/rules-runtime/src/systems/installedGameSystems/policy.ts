@@ -5,7 +5,7 @@ import * as dnd5e from '../dnd5e/policyTier.js'
 /** The installed Systems' Sheet-reachable policy tier (D195), one list per capability (ADR 0042). */
 type _Dnd5ePolicyTier = SystemTierModule<
   typeof import('../dnd5e/policyTier.js'),
-  GameSystemPolicyTier
+  Required<GameSystemPolicyTier>
 >
 
 export const installedPolicyModules = [
@@ -13,6 +13,7 @@ export const installedPolicyModules = [
 ]
 export const installedAbilityScores = [dnd5e.abilityScore]
 export const installedActionEconomies = [dnd5e.actionEconomy]
+export const installedArmorClasses = [dnd5e.armorClass]
 export const installedAttackRestrictions = [dnd5e.attackRestriction]
 export const installedCharacterActions = [dnd5e.characterAction]
 export const installedCharacterProgressions = [dnd5e.characterProgression]

@@ -1,4 +1,5 @@
 import type { AbilityScoreCapabilityAdapter } from './abilityScoreCapability.js'
+import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
 import type { ActionEconomyCapabilityAdapter } from './actionEconomyCapabilityRegistry.js'
 import type { AttackRestrictionCapabilityAdapter } from './attackProfileCapability.js'
 import type { CharacterActionCapabilityAdapter } from './characterActionCapabilityDiscovery.js'
@@ -17,6 +18,7 @@ import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 import {
   installedAbilityScores,
   installedActionEconomies,
+  installedArmorClasses,
   installedAttackRestrictions,
   installedCharacterActions,
   installedCharacterProgressions,
@@ -40,6 +42,7 @@ export interface GameSystemPolicyTier {
   readonly gameSystemId: string
   readonly abilityScore?: AbilityScoreCapabilityAdapter
   readonly actionEconomy?: ActionEconomyCapabilityAdapter
+  readonly armorClass?: ArmorClassCapabilityAdapter
   readonly attackRestriction?: AttackRestrictionCapabilityAdapter
   readonly characterAction?: CharacterActionCapabilityAdapter
   readonly characterProgression?: CharacterProgressionCapabilityAdapter
@@ -69,6 +72,12 @@ export const actionEconomyCapabilityRegistry =
   /* @__PURE__ */ createSystemCapabilityRegistry<ActionEconomyCapabilityAdapter>(
     'action-economy',
     installedActionEconomies
+  )
+
+export const armorClassCapabilityRegistry =
+  /* @__PURE__ */ createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>(
+    'armor-class',
+    installedArmorClasses
   )
 
 export const attackRestrictionCapabilityRegistry =

@@ -5,6 +5,7 @@
 export { dnd5eAbilityScoreCapabilityAdapter as abilityScore } from './abilityModifier.js'
 export { dnd5eActionEconomyCapabilityAdapter as actionEconomy } from './actionEconomyPolicy.js'
 export { dnd5eAttackRestrictionCapabilityAdapter as attackRestriction } from './attackRestrictions.js'
+export { dnd5eArmorClassCapabilityAdapter as armorClass } from './characterVitals.js'
 export {
   DND5E_SYSTEM_ID as gameSystemId,
   dnd5eCharacterActionCapabilityAdapter as characterAction

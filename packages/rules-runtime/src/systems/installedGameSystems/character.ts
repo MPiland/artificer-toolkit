@@ -5,7 +5,7 @@ import * as dnd5e from '../dnd5e/characterTier.js'
 /** The installed Systems' Character preparation tier (D195), one list per capability (ADR 0042). */
 type _Dnd5eCharacterTier = SystemTierModule<
   typeof import('../dnd5e/characterTier.js'),
-  GameSystemCharacterTier
+  Required<GameSystemCharacterTier>
 >
 
 export const installedCharacterPolicies = [
