@@ -13,7 +13,7 @@ import {
   resolveCharacterPlayRecordStats,
   type CharacterPlayRecordStats
 } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
-import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import {

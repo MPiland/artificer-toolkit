@@ -6,7 +6,7 @@ import {
   resolveHandOccupancy
 } from '@artificer-toolkit/shared/core'
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
-import { armorClassCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
+import { armorClassCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { QueryCtx } from '../_generated/server'
 import { canReadAuthoredRoot } from './documents'
 import { readStoredEquipment } from './storedEquipment'

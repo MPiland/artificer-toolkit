@@ -16,7 +16,6 @@ import {
   effectReadsEnemyProximity,
   effectReadsMoveToward,
   effectReadsTurnUses,
-  reduceEffectRestrictions,
   spentTurnUses
 } from './attackRestrictions.js'
 import { dnd5eAttackCriticalRules } from './characterCriticalRules.js'
@@ -180,7 +179,6 @@ export const dnd5eAttackProfileCapabilityAdapter = {
     attackBonus: spellSaveDc - 8,
     saveDc: spellSaveDc
   }),
-  reduceItemlessAttackRestrictions: (effect) => reduceEffectRestrictions(effect, null),
   compiledAttackReads: (compiledEffect) => {
     const effect = compiledEffect as CompiledEffectGroup
     return {

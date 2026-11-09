@@ -56,7 +56,7 @@ erDiagram
 ```
 
 The model is System-neutral. A `GAME_SYSTEM` row is imported data; what the System can do is the
-rule capability its installed code declares (`systems/installedGameSystems/` in `packages/rules-runtime`,
+rule capability its installed code declares (the per-capability lists in `systems/installedGameSystems/` in `packages/rules-runtime`, ADR 0042,
 read through `content/systems:capability`): its content kinds, authored root kinds, reusable-definition
 families, facts and operations. Every relationship above keys by `gameSystemId`, and each write checks that
 capability: the shell offers only declared content kinds, `content/definitions:create` refuses an undeclared

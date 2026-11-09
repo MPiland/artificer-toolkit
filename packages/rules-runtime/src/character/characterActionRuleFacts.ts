@@ -32,8 +32,8 @@ import {
 import type { HeldGrantedAction } from '../encounterGrantedActions.js'
 import { placedSpaceEntries } from '../placedSpaceEntries.js'
 import { compiledStandingGrantedActions, standingEffectReturnsOn } from '../standingEffects.js'
-import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
-import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
+import type { AttackRestrictionCapabilityAdapter } from '../attackProfileCapability.js'
+import { attackRestrictionCapabilityRegistry } from '../platformPolicyModules.js'
 
 type ActionCandidate = NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]
 type CharacterActionSource = ActionCandidate['source']
@@ -553,6 +553,7 @@ function appendActions(params: {
   activationSourceKind: ActionCandidate['activationSourceKind']
   equipment: ItemEquipmentState | null
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
+  attackRestriction: AttackRestrictionCapabilityAdapter
   /** Passive Feature damage that rides on the attacks of this source. */
   onHitRiders?: readonly OnHitRider[]
   /** Where this source's passive zones go; absent for a source that keeps none. */
@@ -577,9 +578,9 @@ function appendActions(params: {
       onHitRiders: readonly OnHitRider[]
     }
   ) => {
-    const effect = reduceEffectRestrictions(
+    const effect = params.attackRestriction.reduceAttackRestrictions(
       mergeOnHitRiders(action.effect, action.onHitRiders, params.source.sourceId),
-      dnd5eAttackingItem(action.equipment)
+      action.equipment
     )
     const resourceUse =
       effect.invocation.kind === 'PASSIVE' ? undefined : effect.invocation.resourceUse
@@ -706,6 +707,9 @@ export function buildCharacterActionRuleFacts(params: {
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
 }): CharacterActionRuleFacts {
   const { snapshot, registry, grantFoldFacts } = params
+  const attackRestriction = attackRestrictionCapabilityRegistry.require(
+    grantFoldFacts.base.systemId
+  )
   const actionCandidates: ActionCandidate[] = []
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const onHitRiders: OnHitRider[] = []
@@ -846,6 +850,7 @@ export function buildCharacterActionRuleFacts(params: {
       activationSourceKind: 'ACTIVE_SOURCE',
       equipment: null,
       resourcePoolCandidates: params.resourcePoolCandidates,
+      attackRestriction,
       passiveZones,
       initiativeRestores,
       standingEffects,
@@ -872,6 +877,7 @@ export function buildCharacterActionRuleFacts(params: {
       activationSourceKind: 'ACTIVE_EQUIPMENT',
       equipment: rootEquipment,
       resourcePoolCandidates: params.resourcePoolCandidates,
+      attackRestriction,
       onHitRiders
     })
     for (const [featureIndex, feature] of (item.compiledItem.features ?? []).entries()) {
@@ -892,6 +898,7 @@ export function buildCharacterActionRuleFacts(params: {
           requiresAttuned: rootRequirements.requiresAttuned || requirements.requiresAttuned
         },
         resourcePoolCandidates: params.resourcePoolCandidates,
+        attackRestriction,
         wieldedWeaponAttacks
       })
     }

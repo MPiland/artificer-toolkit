@@ -127,3 +127,19 @@ export function getCharacterSheetAdjustmentSlotKey(
       return JSON.stringify([adjustment.family, adjustment.proficiencyKind, adjustment.targetId])
   }
 }
+
+/** A Campaign adjustment replaces the Character's own adjustment of the same slot. */
+export function mergeCampaignSheetAdjustments(
+  characterAdjustments: readonly CharacterSheetAdjustment[],
+  campaignAdjustments: readonly CharacterSheetAdjustment[]
+): CharacterSheetAdjustment[] {
+  return [
+    ...characterAdjustments.filter(
+      (adjustment) =>
+        !campaignAdjustments.some((campaign) =>
+          sameCharacterSheetAdjustmentSlot(adjustment, campaign)
+        )
+    ),
+    ...campaignAdjustments
+  ]
+}

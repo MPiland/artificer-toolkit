@@ -3,7 +3,6 @@ import type {
   EncounterActorRuleOutput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 
-import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import type { ContestCheckCapabilityAdapter } from './contestCheckCapability.js'
@@ -17,7 +16,21 @@ import type { MovementReactionEligibilityAdapter } from './movementReactionEligi
 import type { OptionalCombatPolicyCapabilityAdapter } from './optionalCombatPolicyCapability.js'
 import type { EncounterSceneGridPolicyAdapter } from './sceneGridPolicy.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
-import { installedEncounterSystems } from './systems/installedGameSystems/encounter.js'
+import {
+  installedAttackProfiles,
+  installedCharacterRuleActions,
+  installedContestChecks,
+  installedD20TestDefinitions,
+  installedEncounterActorPolicies,
+  installedEncounterFeatureActions,
+  installedExecutionOutcomes,
+  installedInitiatives,
+  installedLegendaryActionEligibilities,
+  installedModifierScopes,
+  installedMovementReactionEligibilities,
+  installedOptionalCombatPolicies,
+  installedSceneGridPolicies
+} from './systems/installedGameSystems/encounter.js'
 
 /**
  * One installed System's Encounter-only tier (D195), installed here rather than in the
@@ -27,7 +40,6 @@ import { installedEncounterSystems } from './systems/installedGameSystems/encoun
 export interface GameSystemEncounterTier {
   readonly gameSystemId: string
   readonly evaluateEncounterActors?: (facts: EncounterActorRuleInput) => EncounterActorRuleOutput
-  readonly armorClass?: ArmorClassCapabilityAdapter
   readonly attackProfile?: AttackProfileCapabilityAdapter
   readonly characterRuleAction?: CharacterRuleActionSystemAdapter
   readonly contestCheck?: ContestCheckCapabilityAdapter
@@ -42,85 +54,71 @@ export interface GameSystemEncounterTier {
   readonly sceneGridPolicy?: EncounterSceneGridPolicyAdapter
 }
 
-function installed<
-  TCapability extends Exclude<
-    keyof GameSystemEncounterTier,
-    'gameSystemId' | 'evaluateEncounterActors'
-  >
->(capability: TCapability) {
-  return installedEncounterSystems.flatMap((system) => system[capability] ?? [])
-}
-
-export const initiativeCapabilityRegistry = createSystemCapabilityRegistry<InitiativeFactAdapter>(
-  'initiative',
-  installed('initiative')
-)
-
-export const armorClassCapabilityRegistry =
-  createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>(
-    'armor-class',
-    installed('armorClass')
+export const initiativeCapabilityRegistry =
+  /* @__PURE__ */ createSystemCapabilityRegistry<InitiativeFactAdapter>(
+    'initiative',
+    installedInitiatives
   )
 
 export const d20TestDefinitionCapabilityRegistry =
-  createSystemCapabilityRegistry<D20TestDefinitionCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<D20TestDefinitionCapabilityAdapter>(
     'd20-test-definition',
-    installed('d20TestDefinition')
+    installedD20TestDefinitions
   )
 
 export const contestCheckCapabilityRegistry =
-  createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>(
     'contest-check',
-    installed('contestCheck')
+    installedContestChecks
   )
 
 export const attackProfileCapabilityRegistry =
-  createSystemCapabilityRegistry<AttackProfileCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<AttackProfileCapabilityAdapter>(
     'attack-profile',
-    installed('attackProfile')
+    installedAttackProfiles
   )
 
 export const modifierScopeCapabilityRegistry =
-  createSystemCapabilityRegistry<ModifierScopeCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<ModifierScopeCapabilityAdapter>(
     'modifier-scope',
-    installed('modifierScope')
+    installedModifierScopes
   )
 
 export const characterRuleActionSystemAdapterRegistry =
-  createSystemCapabilityRegistry<CharacterRuleActionSystemAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<CharacterRuleActionSystemAdapter>(
     'character-rule-action',
-    installed('characterRuleAction')
+    installedCharacterRuleActions
   )
 
 export const encounterFeatureActionCapabilityRegistry =
-  createSystemCapabilityRegistry<EncounterFeatureActionCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<EncounterFeatureActionCapabilityAdapter>(
     'encounter-feature-action',
-    installed('encounterFeatureAction')
+    installedEncounterFeatureActions
   )
 
 export const executionOutcomeCapabilityRegistry =
-  createSystemCapabilityRegistry<ExecutionOutcomeCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<ExecutionOutcomeCapabilityAdapter>(
     'execution-outcome',
-    installed('executionOutcome')
+    installedExecutionOutcomes
   )
 
 export const legendaryActionEligibilityCapabilityRegistry =
-  createSystemCapabilityRegistry<LegendaryActionEligibilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<LegendaryActionEligibilityAdapter>(
     'legendary-action',
-    installed('legendaryActionEligibility')
+    installedLegendaryActionEligibilities
   )
 
 export const movementReactionEligibilityCapabilityRegistry =
-  createSystemCapabilityRegistry<MovementReactionEligibilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<MovementReactionEligibilityAdapter>(
     'movement-reaction',
-    installed('movementReactionEligibility')
+    installedMovementReactionEligibilities
   )
 
 /** A System's Scene-grid policy is optional: without one an Encounter plays on its Scene's grid. */
 export const sceneGridPolicyCapabilityRegistry =
-  createSystemCapabilityRegistry<EncounterSceneGridPolicyAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<EncounterSceneGridPolicyAdapter>(
     'scene-grid',
-    installed('sceneGridPolicy')
+    installedSceneGridPolicies
   )
 
 /**
@@ -128,16 +126,16 @@ export const sceneGridPolicyCapabilityRegistry =
  * (`find`), while a sealed passage choice requires the policy that proposed it (`require`).
  */
 export const optionalCombatPolicyCapabilityRegistry =
-  createSystemCapabilityRegistry<OptionalCombatPolicyCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<OptionalCombatPolicyCapabilityAdapter>(
     'optional-combat',
-    installed('optionalCombatPolicy')
+    installedOptionalCombatPolicies
   )
 /** System-owned semantic preparation; generic Encounter application owns reconciliation. */
 export function evaluateInstalledEncounterActors(input: {
   gameSystemId: string
   facts: EncounterActorRuleInput
 }): EncounterActorRuleOutput {
-  const registration = installedEncounterSystems.find(
+  const registration = installedEncounterActorPolicies.find(
     (module) => module.gameSystemId === input.gameSystemId
   )
   if (!registration?.evaluateEncounterActors) {

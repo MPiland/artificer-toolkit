@@ -15,7 +15,6 @@ import {
 import type { D20TestDefinitionCapabilityAdapter } from '../../d20TestDefinitionCapability.js'
 import type { InitiativeFactAdapter } from '../../initiativeFactAdapter.js'
 import type { ModifierScopeCapabilityAdapter } from '../../modifierScopeCapability.js'
-import type { GameSystemEncounterTier } from '../../platformEncounterPolicy.js'
 import { TRACER_SYSTEM_ID } from './system.js'
 
 export const TRACER_INITIATIVE_FACT_KEYS = {
@@ -135,11 +134,11 @@ const tracerModifierScopeAdapter: ModifierScopeCapabilityAdapter = {
   saveRequiresSourceSight: () => false
 }
 
-/** The tracer's Encounter tier: actors, initiative and approach checks, nothing D&D-shaped. */
-export const tracerEncounterTier: GameSystemEncounterTier = {
-  gameSystemId: TRACER_SYSTEM_ID,
-  evaluateEncounterActors: evaluateTracerEncounterActors,
-  d20TestDefinition: tracerD20TestDefinitionAdapter,
-  modifierScope: tracerModifierScopeAdapter,
-  initiative: tracerInitiativeAdapter
+/** The tracer's Encounter tier: actors, initiative and approach checks, nothing D&D-shaped (ADR 0042). */
+export {
+  TRACER_SYSTEM_ID as gameSystemId,
+  evaluateTracerEncounterActors as evaluateEncounterActors,
+  tracerD20TestDefinitionAdapter as d20TestDefinition,
+  tracerModifierScopeAdapter as modifierScope,
+  tracerInitiativeAdapter as initiative
 }

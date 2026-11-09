@@ -12,7 +12,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { heldConcentrationVulnerabilityRing } from '../testing/heldConcentrationVulnerabilityRing.js'
 
-import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
+import { resolveCharacterRulePolicyRollModes } from '../systems/dnd5e/characterRuleRollProjection.js'
 import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
 import { encounterAttackAgainstContributors } from '../encounterActiveGrants.js'
 import { encounterAttackSightContributors } from '../encounterAttackPerception.js'

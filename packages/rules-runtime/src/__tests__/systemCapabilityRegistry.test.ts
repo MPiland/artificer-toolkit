@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   abilityScoreCapabilityRegistry,
   actionEconomyCapabilityRegistry,
+  armorClassCapabilityRegistry,
   characterActionCapabilityRegistry,
   characterProgressionCapabilityRegistry,
   creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
 import {
-  armorClassCapabilityRegistry,
   attackProfileCapabilityRegistry,
   characterRuleActionSystemAdapterRegistry,
   contestCheckCapabilityRegistry,

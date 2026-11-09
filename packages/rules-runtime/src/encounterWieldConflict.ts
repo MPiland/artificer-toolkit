@@ -5,7 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { EncounterAcceptedWieldConflictDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 
-import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
+import { armorClassCapabilityRegistry } from './platformPolicyModules.js'
 
 type EncounterWieldConflict =
   | { kind: 'NONE' }

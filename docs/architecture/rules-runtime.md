@@ -90,7 +90,7 @@ Convex contexts, database rows, or Worker APIs, so the room and Convex run the s
 and rules-runtime code never imports the D&D Concentration maintenance id or melee classification. It
 asks the installed System for the Run's `gameSystemId` through `platformRulesRuntime`:
 `requireInstalledConcentrationMaintenanceDefinitionId` and `isInstalledMeleeAttackTrigger`, both
-registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
+registered by the System's runtime tier (`systems/dnd5e/runtimeTier`). An unknown System fails
 closed.
 
 ### SRD effect compile golden (current, RULES-2.T2)
@@ -416,11 +416,12 @@ ability armor class, initiative and hit points add, which the character fact bui
 check, the Builder hit point step and Class detail read, RULES-2.T9e; it moved off the ability-score
 adapter in RULES-2.T12b, so a System without Character statistics fails closed there) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
-`discoverCharacterActionCapabilities`).
+`discoverCharacterActionCapabilities`) and `armorClassCapabilityRegistry` (a Creature's loadout armor
+class, which a Character's companions, the Convex Creature detail and the Encounter read, and the shield a
+two-handed grip stows; ADR 0042 moved it here from the Encounter tier).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
 `platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`, which also reads a declared
-initiative's roll mode back from its graph facts for the roll card; `armorClassCapabilityRegistry`
-for a Creature's loadout armor class (Convex Creature detail reads it too) and the shield a two-handed grip stows;
+initiative's roll mode back from its graph facts for the roll card;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
 added-dice facts, where a System without death saves omits `deathSaveDefinition`;
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
@@ -461,9 +462,11 @@ the composition roots above are exempt by name
 Each composition root builds its registries from one installed-Systems list per load tier (D195,
 RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
 (`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`
-(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each System exports one module object per
-tier (`GameSystem<Tier>Tier`, declared by its root). A System leaves out a capability it lacks, so `require`
-fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
+(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each list file exports one list per
+capability, and each System declares a tier as named exports, one per capability, checked against the
+tier contract (`GameSystem<Tier>Tier`, declared by its root) by a type-only assertion in the list file
+(ADR 0042). Registries are built under `/* @__PURE__ */`, so a bundle keeps only the adapters it calls.
+A System leaves out a capability it lacks, so `require` fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
 encounter each load policy but not each other, and runtime loads all five. `schemaBoundary.test.ts`
 asserts that nesting from esbuild closures, so a heavier tier never leaks into a lighter one. The tracer
 Vitest project (`tracer` in the root `vitest.config.ts`) aliases the vocabulary, policy, encounter and
