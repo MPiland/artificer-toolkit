@@ -58,7 +58,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * partial Sheet. Every slice picks from the same Sheet DTO, so a key several slices share carries
  * the same value in each; the objects they pick from (`meta`, `reference`, `resources`, `spells`)
  * are merged key by key. Waits for current stored sections first. Returns null when any slice is
- * unavailable to the reader.
+ * unavailable to the reader, and throws the Builder repair refusal when the read answers repair.
  */
 export async function readCharacterSheetSlices<const Slices extends readonly CharacterSheetSlice[]>(
   client: DevelopmentClient,
@@ -72,6 +72,9 @@ export async function readCharacterSheetSlices<const Slices extends readonly Cha
   const merged: Record<string, unknown> = {}
   for (const response of responses) {
     if (!response) return null
+    // A proof reading slices of a Character needing repair expects the Sheet unavailable, as before.
+    if (response.slice === 'REPAIR_REQUIRED')
+      throw new Error('Character requires Builder repair before the Sheet can be read.')
     for (const [key, value] of Object.entries(response.data)) {
       const existing = merged[key]
       merged[key] = isRecord(existing) && isRecord(value) ? { ...existing, ...value } : value

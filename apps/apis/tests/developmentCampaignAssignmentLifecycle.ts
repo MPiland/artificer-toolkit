@@ -812,6 +812,14 @@ export async function verifyCampaignAssignmentLifecycle(
     )
     assert.equal(replaced.firstActive.status, 'DRAFT')
     assert.equal(replaced.firstSheet.ok, false)
+    // SHEET-1.5: the departed Character's Sheet route reads a typed repair answer, which it renders
+    // as the draft state with a way into the Builder, never a load error.
+    const departedSheet = await first.client.query(api.characters.sheetSlices.get, {
+      id: originalId,
+      slice: 'COMMON'
+    })
+    assert.ok(departedSheet?.slice === 'REPAIR_REQUIRED')
+    assert.equal(departedSheet.data.label, replaced.firstActive.label)
     assert.equal(replaced.firstCampaignSheet.ok, false)
     assert.equal(replaced.replacementActive.status, 'ACTIVE')
     assert.equal(replaced.replacementSheet.ok, true)
