@@ -164,33 +164,39 @@ async function readFixtureState(ctx: QueryCtx | MutationCtx, args: FixtureArgs) 
 }
 
 export const inspectFixtureState = internalQuery({
-  args: fixtureArgs,
-  returns: v.object({
-    listing: v.union(
-      v.null(),
-      v.object({
-        id: v.string(),
-        status: v.string(),
-        moderationStatus: v.string(),
-        version: v.number()
-      })
-    ),
-    profiles: v.array(
-      v.object({
-        userId: v.string(),
-        id: v.string(),
-        status: v.string(),
-        contentPreference: v.string(),
-        adultAttestedAt: v.union(v.null(), v.string())
-      })
-    ),
-    applications: v.array(v.object({ id: v.string(), status: v.string(), version: v.number() })),
-    invitations: v.array(v.object({ id: v.string(), status: v.string(), version: v.number() })),
-    reports: v.array(
-      v.object({ id: v.string(), targetKind: v.string(), status: v.string(), version: v.number() })
-    ),
-    auditCount: v.number()
-  }),
+  args: () => fixtureArgs,
+  returns: () =>
+    v.object({
+      listing: v.union(
+        v.null(),
+        v.object({
+          id: v.string(),
+          status: v.string(),
+          moderationStatus: v.string(),
+          version: v.number()
+        })
+      ),
+      profiles: v.array(
+        v.object({
+          userId: v.string(),
+          id: v.string(),
+          status: v.string(),
+          contentPreference: v.string(),
+          adultAttestedAt: v.union(v.null(), v.string())
+        })
+      ),
+      applications: v.array(v.object({ id: v.string(), status: v.string(), version: v.number() })),
+      invitations: v.array(v.object({ id: v.string(), status: v.string(), version: v.number() })),
+      reports: v.array(
+        v.object({
+          id: v.string(),
+          targetKind: v.string(),
+          status: v.string(),
+          version: v.number()
+        })
+      ),
+      auditCount: v.number()
+    }),
   handler: async (ctx, args) => {
     const state = await readFixtureState(ctx, args)
     return {
@@ -231,11 +237,11 @@ export const inspectFixtureState = internalQuery({
 })
 
 export const accountCleanupComplete = internalQuery({
-  args: {
+  args: () => ({
     observerUserId: v.string(),
     subjects: v.array(v.object({ userId: v.string(), profileId: v.string() }))
-  },
-  returns: v.boolean(),
+  }),
+  returns: () => v.boolean(),
   handler: async (ctx, { observerUserId, subjects }) => {
     await requireFixtureAccount(ctx, observerUserId)
     if (
@@ -334,8 +340,8 @@ function hasOwnedCampaignDeletionRestriction(error: unknown) {
 }
 
 export const assertOwnedCampaignDeletionRestricted = internalMutation({
-  args: { userId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId }) => {
     await requireFixtureAccount(ctx, userId)
     const account = await ctx.db
@@ -357,13 +363,14 @@ export const assertOwnedCampaignDeletionRestricted = internalMutation({
 })
 
 export const ageFixtureRecords = internalMutation({
-  args: fixtureArgs,
-  returns: v.object({
-    applications: v.number(),
-    invitations: v.number(),
-    reports: v.number(),
-    memberships: v.number()
-  }),
+  args: () => fixtureArgs,
+  returns: () =>
+    v.object({
+      applications: v.number(),
+      invitations: v.number(),
+      reports: v.number(),
+      memberships: v.number()
+    }),
   handler: async (ctx, args) => {
     const state = await readFixtureState(ctx, args)
     const terminalAt = new Date(Date.now() - 181 * 86_400_000).toISOString()
@@ -423,8 +430,8 @@ export const ageFixtureRecords = internalMutation({
 })
 
 export const resetBlockPair = internalMutation({
-  args: { blockerUserId: v.string(), blockedUserId: v.string() },
-  returns: v.null(),
+  args: () => ({ blockerUserId: v.string(), blockedUserId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { blockerUserId, blockedUserId }) => {
     if (blockerUserId === blockedUserId) throw new Error('Distinct fixture accounts are required.')
     await requireFixtureAccount(ctx, blockerUserId)
@@ -476,8 +483,8 @@ export const resetBlockPair = internalMutation({
 })
 
 export const removeFixtureState = internalMutation({
-  args: fixtureArgs,
-  returns: v.null(),
+  args: () => fixtureArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const state = await readFixtureState(ctx, args)
     const inviteeMembership = state.memberships[2]

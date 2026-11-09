@@ -16,8 +16,8 @@ import { readVehicleCleanupLock } from './vehicleCleanupDocuments'
 import { readCampaignItemPage, readCampaignCurrencyPage } from './partyInventoryDocuments'
 
 export const items = query({
-  args: zodToConvexFields(campaignVehicleInventoryListInputSchema.shape),
-  get returns(): Validator<CampaignPartyItemPage, 'required', string> {
+  args: () => zodToConvexFields(campaignVehicleInventoryListInputSchema.shape),
+  returns: (): Validator<CampaignPartyItemPage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<CampaignPartyItemPage>>(campaignPartyItemPageSchema)
   },
   handler: async (ctx, args): Promise<CampaignPartyItemPage> => {
@@ -32,8 +32,8 @@ export const items = query({
 })
 
 export const currencies = query({
-  args: zodToConvexFields(campaignVehicleInventoryListInputSchema.shape),
-  get returns(): Validator<CampaignPartyCurrencyPage, 'required', string> {
+  args: () => zodToConvexFields(campaignVehicleInventoryListInputSchema.shape),
+  returns: (): Validator<CampaignPartyCurrencyPage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<CampaignPartyCurrencyPage>>(campaignPartyCurrencyPageSchema)
   },
   handler: async (ctx, args): Promise<CampaignPartyCurrencyPage> => {

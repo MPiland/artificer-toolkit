@@ -72,8 +72,8 @@ function completion(claimId: string, status: 'READY' | 'REJECTED') {
 }
 
 export const create = mutation({
-  args: zodToConvexFields(importUploadIntentRequestDtoSchema.shape),
-  returns: zodToConvex(importUploadIntentResultDtoSchema),
+  args: () => zodToConvexFields(importUploadIntentRequestDtoSchema.shape),
+  returns: () => zodToConvex(importUploadIntentResultDtoSchema),
   handler: async (ctx, args) => {
     const input = importUploadIntentRequestDtoSchema.parse(args)
     const identity = await requireIdentity(ctx)
@@ -101,11 +101,11 @@ export const create = mutation({
 })
 
 export const finalize = mutation({
-  args: {
+  args: () => ({
     claimId: zodToConvex(importUploadCompletionRequestDtoSchema.shape.claimId),
     storageId: v.id('_storage')
-  },
-  returns: zodToConvex(importUploadCompletionResultDtoSchema),
+  }),
+  returns: () => zodToConvex(importUploadCompletionResultDtoSchema),
   handler: async (ctx, args) => {
     const input = importUploadCompletionRequestDtoSchema.parse(args)
     const identity = await requireIdentity(ctx)
@@ -142,12 +142,12 @@ export const finalize = mutation({
 })
 
 export const registerFetched = internalMutation({
-  args: {
+  args: () => ({
     entryId: zodToConvex(importUploadIntentRequestDtoSchema.shape.entryId),
     name: zodToConvex(importUploadIntentRequestDtoSchema.shape.name),
     storageId: v.id('_storage')
-  },
-  returns: zodToConvex(importClaimRefDtoSchema),
+  }),
+  returns: () => zodToConvex(importClaimRefDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     if (await claimByStorageId(ctx, args.storageId))
@@ -187,10 +187,10 @@ export const registerFetched = internalMutation({
 })
 
 export const createPreview = internalMutation({
-  args: {
+  args: () => ({
     descriptor: zodToConvex(importStoredPreviewDescriptorSchema)
-  },
-  returns: zodToConvex(importPreviewSessionRefDtoSchema),
+  }),
+  returns: () => zodToConvex(importPreviewSessionRefDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const descriptor = importStoredPreviewDescriptorSchema.parse(args.descriptor)
@@ -256,8 +256,8 @@ export const createPreview = internalMutation({
 })
 
 export const cleanup = internalMutation({
-  args: { claimId: v.string(), expiresAt: v.number() },
-  returns: v.null(),
+  args: () => ({ claimId: v.string(), expiresAt: v.number() }),
+  returns: () => v.null(),
   handler: async (ctx, { claimId, expiresAt }) => {
     const claim = await claimByPublicId(ctx, claimId)
     if (!claim || claim.expiresAt !== expiresAt || claim.expiresAt > Date.now()) return null

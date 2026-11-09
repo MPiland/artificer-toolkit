@@ -10,7 +10,7 @@ import { internalMutation } from './lib/mutations'
 import { createAuth } from './authFactory.helper'
 
 export const execute = internalMutation({
-  args: {
+  args: () => ({
     command: v.union(
       v.object({ operation: v.literal('REQUEST'), email: v.string() }),
       v.object({ operation: v.literal('CHECK'), email: v.string(), token: v.string() }),
@@ -21,16 +21,17 @@ export const execute = internalMutation({
         password: v.string()
       })
     )
-  },
-  returns: v.union(
-    v.object({ success: v.literal(true) }),
-    v.object({
-      success: v.literal(false),
-      status: v.number(),
-      code: v.string(),
-      message: v.string()
-    })
-  ),
+  }),
+  returns: () =>
+    v.union(
+      v.object({ success: v.literal(true) }),
+      v.object({
+        success: v.literal(false),
+        status: v.number(),
+        code: v.string(),
+        message: v.string()
+      })
+    ),
   handler: async (ctx, args): Promise<AuthRecoveryResult> => {
     const command = authRecoveryCommandSchema.parse(args.command)
     const auth = createAuth(ctx)

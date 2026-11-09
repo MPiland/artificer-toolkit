@@ -33,8 +33,8 @@ const resultValidator: Validator<EncounterCommandResultDto, 'required', string> 
 >(encounterCommandResultDtoSchema)
 
 export const execute = mutation({
-  args: { input: inputValidator },
-  returns: resultValidator,
+  args: () => ({ input: inputValidator }),
+  returns: () => resultValidator,
   handler: async (ctx, { input: args }): Promise<EncounterCommandResultDto> => {
     await requireIdentity(ctx)
     const run = await ctx.db

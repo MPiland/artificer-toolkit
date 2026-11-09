@@ -14,8 +14,8 @@ import { requireCampaignAuthority } from './authority'
 import { presentInventoryAuditPayload } from './inventoryAuditPresentation'
 
 export const list = query({
-  args: zodToConvexFields(listCampaignInventoryAuditInputSchema.shape),
-  returns: zodToConvex(campaignInventoryAuditPageTransportSchema),
+  args: () => zodToConvexFields(listCampaignInventoryAuditInputSchema.shape),
+  returns: () => zodToConvex(campaignInventoryAuditPageTransportSchema),
   handler: async (ctx, args): Promise<CampaignInventoryAuditPageTransport> => {
     const input = listCampaignInventoryAuditInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

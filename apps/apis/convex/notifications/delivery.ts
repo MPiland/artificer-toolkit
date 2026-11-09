@@ -39,8 +39,8 @@ async function cancelUnavailableIntent(
 }
 
 export const dispatch = internalMutation({
-  args: {},
-  returns: v.number(),
+  args: () => ({}),
+  returns: () => v.number(),
   handler: async (ctx) => {
     const now = new Date().toISOString()
     await expireDueInvitations(ctx, now)
@@ -165,16 +165,17 @@ export const dispatch = internalMutation({
 })
 
 export const emailInput = internalQuery({
-  args: attemptArgs,
-  returns: v.union(
-    v.null(),
-    v.object({
-      id: v.string(),
-      recipient: v.string(),
-      workflowKey: zodToConvex(notificationWorkflowKeySchema),
-      data: zodToConvex(notificationIntentDataSchema)
-    })
-  ),
+  args: () => attemptArgs,
+  returns: () =>
+    v.union(
+      v.null(),
+      v.object({
+        id: v.string(),
+        recipient: v.string(),
+        workflowKey: zodToConvex(notificationWorkflowKeySchema),
+        data: zodToConvex(notificationIntentDataSchema)
+      })
+    ),
   handler: async (ctx, { intentId, attempt }) => {
     const row = await ctx.db.get(intentId)
     if (!row || row.status !== 'PENDING' || row.attemptCount !== attempt || row.providerEmailId)
@@ -205,8 +206,8 @@ export const emailInput = internalQuery({
 })
 
 export const enqueueRendered = internalMutation({
-  args: { ...attemptArgs, subject: v.string(), html: v.string() },
-  returns: v.null(),
+  args: () => ({ ...attemptArgs, subject: v.string(), html: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { intentId, attempt, subject, html }) => {
     const input = await ctx.runQuery(internal.notifications.delivery.emailInput, {
       intentId,
@@ -249,8 +250,8 @@ export const enqueueRendered = internalMutation({
 })
 
 export const complete = internalMutation({
-  args: attemptArgs,
-  returns: v.null(),
+  args: () => attemptArgs,
+  returns: () => v.null(),
   handler: async (ctx, { intentId, attempt }) => {
     const row = await ctx.db.get(intentId)
     if (!row || row.status !== 'PENDING' || row.attemptCount !== attempt || row.providerEmailId)
@@ -274,8 +275,8 @@ export const complete = internalMutation({
 })
 
 export const retry = internalMutation({
-  args: attemptArgs,
-  returns: v.null(),
+  args: () => attemptArgs,
+  returns: () => v.null(),
   handler: async (ctx, { intentId, attempt }) => {
     const row = await ctx.db.get(intentId)
     if (!row || row.status !== 'PENDING' || row.attemptCount !== attempt || row.providerEmailId)
@@ -292,8 +293,8 @@ export const retry = internalMutation({
 })
 
 export const purgeRecipient = internalMutation({
-  args: { userId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId }) => {
     const profile = await ctx.db
       .query('userProfiles')

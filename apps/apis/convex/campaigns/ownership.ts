@@ -16,8 +16,8 @@ import { closeCampaignAdmission } from '../social/admissionClosure'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
 
 export const request = mutation({
-  args: zodToConvexFields(requestCampaignOwnershipTransferInputSchema.shape),
-  returns: zodToConvex(campaignOwnershipTransferRequestResultSchema),
+  args: () => zodToConvexFields(requestCampaignOwnershipTransferInputSchema.shape),
+  returns: () => zodToConvex(campaignOwnershipTransferRequestResultSchema),
   handler: async (ctx, args) => {
     const input = requestCampaignOwnershipTransferInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -48,8 +48,8 @@ export const request = mutation({
 })
 
 export const accept = mutation({
-  args: zodToConvexFields(acceptCampaignOwnershipTransferInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(acceptCampaignOwnershipTransferInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args) => {
     const input = acceptCampaignOwnershipTransferInputSchema.parse(args)
     if (!(await ctx.auth.getUserIdentity())) throw new Error('Unauthenticated')

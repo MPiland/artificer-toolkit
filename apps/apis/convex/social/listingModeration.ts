@@ -35,8 +35,8 @@ const cleanup = makeFunctionReference<
 >('social/listingModerationCleanup:run')
 
 export const action = mutation({
-  args: zodToConvexFields(socialListingModerationInputSchema.shape),
-  returns: zodToConvex(socialModerationEvidenceDtoSchema),
+  args: () => zodToConvexFields(socialListingModerationInputSchema.shape),
+  returns: () => zodToConvex(socialModerationEvidenceDtoSchema),
   handler: async (ctx, args): Promise<SocialModerationEvidenceDto> => {
     const actor = await requireSocialModerator(ctx)
     const input = socialListingModerationInputSchema.parse(args)

@@ -42,8 +42,8 @@ export async function scheduleOwnerCopyCleanup(ctx: MutationCtx, userId: string)
 }
 
 export const cleanup = internalMutation({
-  args: { copyId: v.string() },
-  returns: v.null(),
+  args: () => ({ copyId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { copyId }) => {
     const row = await ctx.db
       .query('campaignCopyJobs')

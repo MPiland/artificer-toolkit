@@ -19,8 +19,8 @@ import { requireCampaignAuthority } from './authority'
 import { readCurrencySystem, presentCurrencySystem } from './currencySystemDocuments'
 
 export const list = query({
-  args: zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
-  get returns(): Validator<CampaignCurrencySystemPage, 'required', string> {
+  args: () => zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
+  returns: (): Validator<CampaignCurrencySystemPage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<CampaignCurrencySystemPage>>(
       campaignCurrencySystemPageSchema
     )
@@ -45,8 +45,8 @@ export const list = query({
 })
 
 export const save = mutation({
-  args: zodToConvexFields(saveCampaignCurrencySystemInputSchema.shape),
-  returns: zodToConvex(currencySystemDtoSchema),
+  args: () => zodToConvexFields(saveCampaignCurrencySystemInputSchema.shape),
+  returns: () => zodToConvex(currencySystemDtoSchema),
   handler: async (ctx, args) =>
     ctx.runMutation(
       internal.campaigns.currencySystemCommands.save,
@@ -55,8 +55,8 @@ export const save = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteCampaignCurrencySystemInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(deleteCampaignCurrencySystemInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) =>
     ctx.runMutation(
       internal.campaigns.currencySystemCommands.remove,

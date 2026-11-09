@@ -3,13 +3,13 @@ import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 
 export const removeFixtureState = internalMutation({
-  args: {
+  args: () => ({
     ownerUserId: v.string(),
     contentSourceId: v.string(),
     catalogueId: v.string(),
     definitionIds: v.array(v.string())
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, { ownerUserId, contentSourceId, catalogueId, definitionIds }) => {
     await requireFixtureAccount(ctx, ownerUserId)
     if (

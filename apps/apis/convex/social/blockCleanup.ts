@@ -61,7 +61,7 @@ function isSnapshotPair(
 }
 
 export const run = internalMutation({
-  args: {
+  args: () => ({
     firstProfileId: v.string(),
     secondProfileId: v.string(),
     firstUserId: v.string(),
@@ -70,8 +70,8 @@ export const run = internalMutation({
     invalidatedAt: v.string(),
     phase: v.union(...phases.map((phase) => v.literal(phase))),
     cursor: v.union(v.null(), v.string())
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const application = args.phase.startsWith('APPLICATION')
     const first = args.phase.endsWith('FIRST')

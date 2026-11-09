@@ -18,8 +18,8 @@ const defaultPreferences = {
 const ok = v.object({ ok: v.literal(true) })
 
 export const feed = query({
-  args: {},
-  returns: zodToConvex(notificationFeedDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(notificationFeedDtoSchema),
   handler: async (ctx) => {
     const { userId } = await requireIdentity(ctx)
     const rows = await retainedFeed(ctx, userId)
@@ -32,8 +32,8 @@ export const feed = query({
 })
 
 export const markAllSeen = mutation({
-  args: {},
-  returns: ok,
+  args: () => ({}),
+  returns: () => ok,
   handler: async (ctx) => {
     const { userId } = await requireIdentity(ctx)
     const items = await retainedFeed(ctx, userId)
@@ -46,8 +46,8 @@ export const markAllSeen = mutation({
 })
 
 export const markRead = mutation({
-  args: zodToConvexFields(notificationFeedItemIdInputSchema.shape),
-  returns: ok,
+  args: () => zodToConvexFields(notificationFeedItemIdInputSchema.shape),
+  returns: () => ok,
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { id } = notificationFeedItemIdInputSchema.parse(args)
@@ -63,8 +63,8 @@ export const markRead = mutation({
 })
 
 export const preferences = query({
-  args: {},
-  returns: zodToConvex(notificationPreferencesDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(notificationPreferencesDtoSchema),
   handler: async (ctx) => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -75,8 +75,8 @@ export const preferences = query({
 })
 
 export const updatePreferences = mutation({
-  args: zodToConvexFields(updateNotificationPreferencesInputSchema.shape),
-  returns: zodToConvex(notificationPreferencesDtoSchema),
+  args: () => zodToConvexFields(updateNotificationPreferencesInputSchema.shape),
+  returns: () => zodToConvex(notificationPreferencesDtoSchema),
   handler: async (ctx, args) => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')

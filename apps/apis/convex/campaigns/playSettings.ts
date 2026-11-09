@@ -131,8 +131,8 @@ export async function resolvePlaySettingsSources(
 }
 
 export const get = query({
-  args: zodToConvexFields(getCampaignPlaySettingsInputSchema.shape),
-  returns: zodToConvex(campaignPlaySettingsDtoSchema),
+  args: () => zodToConvexFields(getCampaignPlaySettingsInputSchema.shape),
+  returns: () => zodToConvex(campaignPlaySettingsDtoSchema),
   handler: async (ctx, args): Promise<CampaignPlaySettingsDto> => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId } = getCampaignPlaySettingsInputSchema.parse(args)
@@ -156,8 +156,8 @@ export const get = query({
 })
 
 export const options = query({
-  args: zodToConvexFields(getCampaignPlaySettingsInputSchema.shape),
-  returns: zodToConvex(campaignPlaySettingsOptionsDtoSchema),
+  args: () => zodToConvexFields(getCampaignPlaySettingsInputSchema.shape),
+  returns: () => zodToConvex(campaignPlaySettingsOptionsDtoSchema),
   handler: async (ctx, args): Promise<CampaignPlaySettingsOptionsDto> => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId } = getCampaignPlaySettingsInputSchema.parse(args)
@@ -173,8 +173,8 @@ export const options = query({
 })
 
 export const save = mutation({
-  args: zodToConvexFields(saveCampaignPlaySettingsInputSchema.shape),
-  returns: zodToConvex(campaignPlaySettingsDtoSchema),
+  args: () => zodToConvexFields(saveCampaignPlaySettingsInputSchema.shape),
+  returns: () => zodToConvex(campaignPlaySettingsDtoSchema),
   handler: async (ctx, args): Promise<CampaignPlaySettingsDto> => {
     const { userId } = await requireIdentity(ctx)
     const { expectedVersion, ...input } = saveCampaignPlaySettingsInputSchema.parse(args)

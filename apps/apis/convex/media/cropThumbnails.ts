@@ -61,8 +61,8 @@ export async function pruneCropThumbnails(ctx: MutationCtx, asset: Doc<'mediaAss
 }
 
 export const claim = internalMutation({
-  args: { assetId: v.string(), crop: zodToConvex(normalizedImageCropSchema) },
-  returns: zodToConvex(mediaCropThumbnailClaimSchema),
+  args: () => ({ assetId: v.string(), crop: zodToConvex(normalizedImageCropSchema) }),
+  returns: () => zodToConvex(mediaCropThumbnailClaimSchema),
   handler: async (ctx, args): Promise<MediaCropThumbnailClaim> => {
     // Called only by delivery actions that already authorized this reader for the reference.
     const crop = normalizedImageCropSchema.parse(args.crop)
@@ -84,12 +84,12 @@ export const claim = internalMutation({
 })
 
 export const record = internalMutation({
-  args: {
+  args: () => ({
     assetId: v.string(),
     crop: zodToConvex(normalizedImageCropSchema),
     variant: zodToConvex(thumbnailVariant())
-  },
-  returns: zodToConvex(thumbnailVariant()),
+  }),
+  returns: () => zodToConvex(thumbnailVariant()),
   handler: async (ctx, args) => {
     const crop = normalizedImageCropSchema.parse(args.crop)
     const variant = thumbnailVariant().parse(args.variant)
@@ -112,8 +112,8 @@ export const record = internalMutation({
 })
 
 export const retireUnrecorded = internalMutation({
-  args: { assetId: v.string(), objectKey: v.string() },
-  returns: v.null(),
+  args: () => ({ assetId: v.string(), objectKey: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { assetId, objectKey }) => {
     const asset = await readAsset(ctx, assetId)
     const recorded =

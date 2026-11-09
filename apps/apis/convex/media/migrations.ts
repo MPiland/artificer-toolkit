@@ -11,14 +11,17 @@ import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/v
 import { components, internal } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * ADR 0012 amendment (Q17): assets stop naming their target and crop, which move to the references.
  * The schema is widened only while these run on a deployment; the committed schema is already
  * narrow. Reference crops run first because they read the crop a legacy asset row still stores.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 /** The framing a pre-amendment asset stored for its single slot, or its centered square. */
 async function legacyCrop(ctx: MutationCtx, assetId: string): Promise<NormalizedImageCrop> {

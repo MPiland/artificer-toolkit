@@ -16,8 +16,8 @@ import { readDraft } from './documents'
 import { contentStream } from './streams'
 
 export const list = internalQuery({
-  args: zodToConvexFields(authoredDraftListInputSchema.shape),
-  returns: zodToConvex(authoredDraftListPageSchema),
+  args: () => zodToConvexFields(authoredDraftListInputSchema.shape),
+  returns: () => zodToConvex(authoredDraftListPageSchema),
   handler: async (ctx, args): Promise<AuthoredDraftListPage> => {
     const { userId } = await requireIdentity(ctx)
     const input = authoredDraftListInputSchema.parse(args)
@@ -39,8 +39,8 @@ export const list = internalQuery({
 })
 
 export const get = internalQuery({
-  args: zodToConvexFields(authoredDraftLookupInputSchema.shape),
-  returns: zodToConvex(zMini.nullable(authoredDraftDtoSchema)),
+  args: () => zodToConvexFields(authoredDraftLookupInputSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(authoredDraftDtoSchema)),
   handler: async (ctx, args): Promise<AuthoredDraftResult | null> => {
     const { userId } = await requireIdentity(ctx)
     const { subjectId, subjectKind } = authoredDraftLookupInputSchema.parse(args)

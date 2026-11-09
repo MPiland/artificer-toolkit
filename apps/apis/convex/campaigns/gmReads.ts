@@ -28,8 +28,8 @@ async function readState(ctx: QueryCtx, args: z.input<typeof listCampaignAdjustm
 }
 
 export const adjustments = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(campaignAdjustmentsDtoSchema),
+  args: () => zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: () => zodToConvex(campaignAdjustmentsDtoSchema),
   handler: async (ctx, args): Promise<CampaignAdjustmentDto[]> => {
     const { state, owner } = await readState(ctx, args)
     return campaignAdjustmentsDtoSchema.parse(
@@ -49,8 +49,8 @@ export const adjustments = query({
 })
 
 export const conditions = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(campaignConditionsDtoSchema),
+  args: () => zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: () => zodToConvex(campaignConditionsDtoSchema),
   handler: async (ctx, args): Promise<CampaignConditionDto[]> => {
     const { state, owner } = await readState(ctx, args)
     return campaignConditionsDtoSchema.parse(

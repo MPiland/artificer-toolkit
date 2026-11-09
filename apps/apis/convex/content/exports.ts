@@ -17,8 +17,8 @@ import { readAuthoredDetail } from './details'
 import { canReadAuthoredRoot } from './documents'
 
 export const get = query({
-  args: zodToConvexFields(authoredContentExportRequestDtoSchema.shape),
-  returns: zodToConvex(artificerPortableContentDtoSchema),
+  args: () => zodToConvexFields(authoredContentExportRequestDtoSchema.shape),
+  returns: () => zodToConvex(artificerPortableContentDtoSchema),
   handler: async (ctx, args): Promise<ArtificerPortableContentDto> => {
     const input = authoredContentExportRequestDtoSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

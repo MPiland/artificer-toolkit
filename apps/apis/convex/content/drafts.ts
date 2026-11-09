@@ -13,20 +13,20 @@ import { mutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 
 export const list = query({
-  args: zodToConvexFields(authoredDraftListInputSchema.shape),
-  returns: zodToConvex(authoredDraftListPageSchema),
+  args: () => zodToConvexFields(authoredDraftListInputSchema.shape),
+  returns: () => zodToConvex(authoredDraftListPageSchema),
   handler: (ctx, args) =>
     ctx.runQuery(internal.content.draftPages.list, authoredDraftListInputSchema.parse(args))
 })
 export const get = query({
-  args: zodToConvexFields(authoredDraftLookupInputSchema.shape),
-  returns: zodToConvex(zMini.nullable(authoredDraftDtoSchema)),
+  args: () => zodToConvexFields(authoredDraftLookupInputSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(authoredDraftDtoSchema)),
   handler: (ctx, args) =>
     ctx.runQuery(internal.content.draftPages.get, authoredDraftLookupInputSchema.parse(args))
 })
 export const save = mutation({
-  args: zodToConvexFields(authoredDraftCommandInputSchema.shape),
-  returns: zodToConvex(authoredDraftDtoSchema),
+  args: () => zodToConvexFields(authoredDraftCommandInputSchema.shape),
+  returns: () => zodToConvex(authoredDraftDtoSchema),
   handler: (ctx, args) =>
     ctx.runMutation(
       internal.content.draftCommands.save,
@@ -34,8 +34,8 @@ export const save = mutation({
     )
 })
 export const discard = mutation({
-  args: zodToConvexFields(authoredDraftLookupInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(authoredDraftLookupInputSchema.shape),
+  returns: () => v.null(),
   handler: (ctx, args) =>
     ctx.runMutation(
       internal.content.draftCommands.discard,
@@ -43,8 +43,8 @@ export const discard = mutation({
     )
 })
 export const duplicate = mutation({
-  args: zodToConvexFields(authoredDraftLookupInputSchema.shape),
-  returns: zodToConvex(authoredDraftDtoSchema),
+  args: () => zodToConvexFields(authoredDraftLookupInputSchema.shape),
+  returns: () => zodToConvex(authoredDraftDtoSchema),
   handler: (ctx, args) =>
     ctx.runMutation(
       internal.content.draftCommands.duplicate,

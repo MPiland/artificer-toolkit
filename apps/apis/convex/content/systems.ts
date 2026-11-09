@@ -20,8 +20,8 @@ import { requireIdentity } from '../lib/identity'
 import { readSystem } from './systemDocuments'
 
 export const capability = query({
-  args: zodToConvexFields(systemLookupInputDtoSchema.shape),
-  returns: zodToConvex(zMini.nullable(gameSystemRuleCapabilityDtoSchema)),
+  args: () => zodToConvexFields(systemLookupInputDtoSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(gameSystemRuleCapabilityDtoSchema)),
   handler: async (ctx, args) => {
     await requireIdentity(ctx)
     const { id } = systemLookupInputDtoSchema.parse(args)
@@ -95,8 +95,8 @@ async function readSystemSummary(
 // This table contains only server-imported platform Systems. User-authored
 // Systems are deferred; no user-controlled document is admitted by these reads.
 export const get = query({
-  args: zodToConvexFields(systemLookupInputDtoSchema.shape),
-  returns: zodToConvex(systemResponseDtoSchema),
+  args: () => zodToConvexFields(systemLookupInputDtoSchema.shape),
+  returns: () => zodToConvex(systemResponseDtoSchema),
   handler: async (ctx, args): Promise<SystemResponseDto> => {
     const { id } = systemLookupInputDtoSchema.parse(args)
     const record = await ctx.db
@@ -108,8 +108,8 @@ export const get = query({
 })
 
 export const summary = query({
-  args: zodToConvexFields(systemLookupInputDtoSchema.shape),
-  returns: zodToConvex(zMini.nullable(systemListItemDtoSchema)),
+  args: () => zodToConvexFields(systemLookupInputDtoSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(systemListItemDtoSchema)),
   handler: async (ctx, args): Promise<SystemListItemDto | null> => {
     const { id } = systemLookupInputDtoSchema.parse(args)
     const record = await ctx.db
@@ -121,8 +121,8 @@ export const summary = query({
 })
 
 export const list = query({
-  args: zodToConvexFields(systemListPageInputDtoSchema.shape),
-  returns: zodToConvex(systemListPageDtoSchema),
+  args: () => zodToConvexFields(systemListPageInputDtoSchema.shape),
+  returns: () => zodToConvex(systemListPageDtoSchema),
   handler: async (ctx, args): Promise<SystemListPageDto> => {
     const input = systemListPageInputDtoSchema.parse(args)
     const result = await ctx.db

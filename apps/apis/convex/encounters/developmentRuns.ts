@@ -290,12 +290,12 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
 }
 
 export const removeFixtureState = internalMutation({
-  args: {
+  args: () => ({
     ownerUserId: v.string(),
     playerUserId: v.string(),
     campaignId: v.string(),
     characterId: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: removeFixtureRunState
 })

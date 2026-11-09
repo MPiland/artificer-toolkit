@@ -136,7 +136,7 @@ async function seedMaximalLedger(ctx: ActionCtx, input: DevelopmentReceiptLedger
 }
 
 export const create = internalMutation({
-  args: {
+  args: () => ({
     ...zodToConvexFields(developmentReceiptLedgerSeedInputSchema.shape),
     entry: v.any(),
     encoded: v.object({
@@ -147,8 +147,8 @@ export const create = internalMutation({
       payload: v.null(),
       parts: v.array(v.bytes())
     })
-  },
-  returns: zodToConvex(developmentReceiptLedgerRemovalSchema),
+  }),
+  returns: () => zodToConvex(developmentReceiptLedgerRemovalSchema),
   handler: async (ctx, { encoded, ...args }) => {
     const { entry, rollback, ...scope } = developmentReceiptLedgerCreateInputSchema.parse(args)
     await requireFixtureCharacter(ctx, scope)
@@ -195,8 +195,8 @@ export const verifySeedRollback = internalAction({
 })
 
 export const page = internalQuery({
-  args: zodToConvexFields(developmentReceiptLedgerPageInputSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerNativePageSchema),
+  args: () => zodToConvexFields(developmentReceiptLedgerPageInputSchema.shape),
+  returns: () => zodToConvex(developmentReceiptLedgerNativePageSchema),
   handler: async (ctx, args) => {
     const input = developmentReceiptLedgerPageInputSchema.parse(args)
     await requireFixtureCharacter(ctx, input)
@@ -220,8 +220,8 @@ export const page = internalQuery({
 })
 
 export const nativeWindow = internalQuery({
-  args: zodToConvexFields(developmentReceiptLedgerPageInputSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerNativeWindowSchema),
+  args: () => zodToConvexFields(developmentReceiptLedgerPageInputSchema.shape),
+  returns: () => zodToConvex(developmentReceiptLedgerNativeWindowSchema),
   handler: async (ctx, args) => {
     const input = developmentReceiptLedgerPageInputSchema.parse(args)
     await requireFixtureCharacter(ctx, input)
@@ -245,8 +245,8 @@ export const nativeWindow = internalQuery({
 })
 
 export const inspect = internalQuery({
-  args: zodToConvexFields(developmentReceiptLedgerEntryInputSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerInspectionSchema),
+  args: () => zodToConvexFields(developmentReceiptLedgerEntryInputSchema.shape),
+  returns: () => zodToConvex(developmentReceiptLedgerInspectionSchema),
   handler: async (ctx, args) => {
     const input = developmentReceiptLedgerEntryInputSchema.parse(args)
     await requireFixtureCharacter(ctx, input)
@@ -284,8 +284,8 @@ export const inspect = internalQuery({
 })
 
 export const remove = internalMutation({
-  args: zodToConvexFields(developmentReceiptLedgerEntryInputSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerRemovalSchema),
+  args: () => zodToConvexFields(developmentReceiptLedgerEntryInputSchema.shape),
+  returns: () => zodToConvex(developmentReceiptLedgerRemovalSchema),
   handler: async (ctx, args) => {
     const input = developmentReceiptLedgerEntryInputSchema.parse(args)
     await requireFixtureCharacter(ctx, input)

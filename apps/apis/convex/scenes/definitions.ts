@@ -105,8 +105,8 @@ function replayMatches(
 }
 
 export const begin = mutation({
-  args: zodToConvexFields(beginSceneDefinitionInputSchema.shape),
-  returns: zodToConvex(sceneDefinitionSaveProgressSchema),
+  args: () => zodToConvexFields(beginSceneDefinitionInputSchema.shape),
+  returns: () => zodToConvex(sceneDefinitionSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneDefinitionSaveProgress> => {
     const input = normalizedBegin(beginSceneDefinitionInputSchema.parse(args))
     const { campaign, userId } = await writableCampaign(ctx, input.settings.campaignId)
@@ -196,8 +196,8 @@ async function exactBatchReplay(
 }
 
 export const append = mutation({
-  args: { input: zodToConvex(appendSceneDefinitionInputSchema) },
-  returns: zodToConvex(sceneDefinitionSaveProgressSchema),
+  args: () => ({ input: zodToConvex(appendSceneDefinitionInputSchema) }),
+  returns: () => zodToConvex(sceneDefinitionSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneDefinitionSaveProgress> => {
     const parsed = appendSceneDefinitionInputSchema.parse(args.input)
     const input = { ...parsed, saveId: lower(parsed.saveId) }
@@ -257,8 +257,8 @@ export const append = mutation({
 })
 
 export const publish = mutation({
-  args: zodToConvexFields(sceneDefinitionSaveLookupSchema.shape),
-  returns: zodToConvex(sceneDefinitionSaveProgressSchema),
+  args: () => zodToConvexFields(sceneDefinitionSaveLookupSchema.shape),
+  returns: () => zodToConvex(sceneDefinitionSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneDefinitionSaveProgress> => {
     const input = sceneDefinitionSaveLookupSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -338,8 +338,8 @@ export const publish = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteSceneDefinitionInputDtoSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(deleteSceneDefinitionInputDtoSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = deleteSceneDefinitionInputDtoSchema.parse(args)
     const { campaign } = await writableCampaign(ctx, lower(input.campaignId))
@@ -375,8 +375,8 @@ export const remove = mutation({
 })
 
 export const cleanup = internalMutation({
-  args: { saveId: v.string() },
-  returns: v.null(),
+  args: () => ({ saveId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const row = await ctx.db
       .query('sceneDefinitionSaves')

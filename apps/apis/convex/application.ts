@@ -10,10 +10,11 @@ export function readApplicationFeatureFlags() {
 }
 
 export const featureFlags = query({
-  args: {},
-  returns: v.object({
-    libraryImportEnabled: v.boolean(),
-    publicSignUpEnabled: v.boolean()
-  }),
+  args: () => ({}),
+  returns: () =>
+    v.object({
+      libraryImportEnabled: v.boolean(),
+      publicSignUpEnabled: v.boolean()
+    }),
   handler: readApplicationFeatureFlags
 })

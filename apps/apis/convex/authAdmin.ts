@@ -5,8 +5,8 @@ import { internalMutation } from './lib/mutations'
 
 // Deployment-admin CLI only. Application clients cannot provision or change roles.
 export const setRole = internalMutation({
-  args: { userId: v.string(), role: v.union(v.literal('user'), v.literal('superadmin')) },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), role: v.union(v.literal('user'), v.literal('superadmin')) }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const identity = authIdentityDtoSchema.parse(args)
     const profile = await ctx.db

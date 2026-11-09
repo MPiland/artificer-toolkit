@@ -103,8 +103,8 @@ export async function createCampaignForOwner(
 }
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(createCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const { userId } = await requireIdentity(ctx)
     return createCampaignForOwner(ctx, userId, createCampaignInputSchema.parse(args))

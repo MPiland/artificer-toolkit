@@ -22,8 +22,8 @@ import { requireCampaignAuthority, readActiveCampaignMembers } from './authority
 import { presentSession, requireSession } from './sessionDocuments'
 
 export const list = query({
-  args: zodToConvexFields(campaignSessionListInputSchema.shape),
-  returns: zodToConvex(campaignSessionListPageSchema),
+  args: () => zodToConvexFields(campaignSessionListInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionListPageSchema),
   handler: async (ctx, args): Promise<CampaignSessionListPage> => {
     const input = campaignSessionListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -41,8 +41,8 @@ export const list = query({
 })
 
 export const get = query({
-  args: zodToConvexFields(getCampaignSessionInputSchema.shape),
-  returns: zodToConvex(campaignSessionDtoSchema),
+  args: () => zodToConvexFields(getCampaignSessionInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionDto> => {
     const input = getCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -59,8 +59,8 @@ export const get = query({
 })
 
 export const latestOpen = query({
-  args: zodToConvexFields(campaignIdInputSchema.shape),
-  returns: zodToConvex(zMini.nullable(campaignSessionDtoSchema)),
+  args: () => zodToConvexFields(campaignIdInputSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(campaignSessionDtoSchema)),
   handler: async (ctx, args): Promise<CampaignSessionDto | null> => {
     const input = campaignIdInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -77,8 +77,8 @@ export const latestOpen = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignSessionInputSchema.shape),
-  returns: zodToConvex(campaignSessionDtoSchema),
+  args: () => zodToConvexFields(createCampaignSessionInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionDto> => {
     const input = createCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -119,8 +119,8 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: zodToConvexFields(updateCampaignSessionInputSchema.shape),
-  returns: zodToConvex(campaignSessionDtoSchema),
+  args: () => zodToConvexFields(updateCampaignSessionInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionDto> => {
     const input = updateCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

@@ -21,8 +21,8 @@ import { requireInventoryVehicleEditable } from './inventoryCleanupGuards'
 import { assertCampaignContentAllowed } from './contentUsage'
 
 export const create = internalMutation({
-  args: zodToConvexFields(createCampaignVehicleInputSchema.shape),
-  returns: zodToConvex(campaignVehicleDtoSchema),
+  args: () => zodToConvexFields(createCampaignVehicleInputSchema.shape),
+  returns: () => zodToConvex(campaignVehicleDtoSchema),
   handler: async (ctx, args): Promise<CampaignVehicleDto> => {
     const input = createCampaignVehicleInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -49,8 +49,8 @@ export const create = internalMutation({
 })
 
 export const update = internalMutation({
-  args: zodToConvexFields(updateCampaignVehicleInputSchema.shape),
-  returns: zodToConvex(campaignVehicleDtoSchema),
+  args: () => zodToConvexFields(updateCampaignVehicleInputSchema.shape),
+  returns: () => zodToConvex(campaignVehicleDtoSchema),
   handler: async (ctx, args): Promise<CampaignVehicleDto> => {
     const input = updateCampaignVehicleInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -79,8 +79,8 @@ export const update = internalMutation({
 })
 
 export const remove = internalMutation({
-  args: zodToConvexFields(deleteCampaignVehicleInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(deleteCampaignVehicleInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const input = deleteCampaignVehicleInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -129,8 +129,8 @@ export const remove = internalMutation({
 })
 
 export const lifecycle = internalMutation({
-  args: { input: zodToConvex(campaignVehicleLifecycleInputSchema) },
-  returns: zodToConvex(campaignVehicleLifecycleResultSchema),
+  args: () => ({ input: zodToConvex(campaignVehicleLifecycleInputSchema) }),
+  returns: () => zodToConvex(campaignVehicleLifecycleResultSchema),
   handler: async (ctx, args): Promise<CampaignVehicleLifecycleResult> => {
     const input = campaignVehicleLifecycleInputSchema.parse(args.input)
     const { userId } = await requireIdentity(ctx)

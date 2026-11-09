@@ -34,8 +34,8 @@ import { readAdmissionInvalidation, invitationInvalidationPatch } from './admiss
 import { readListingInvalidation } from './listingInvalidation'
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignInviteInputSchema.shape),
-  returns: zodToConvex(campaignInviteDtoSchema),
+  args: () => zodToConvexFields(createCampaignInviteInputSchema.shape),
+  returns: () => zodToConvex(campaignInviteDtoSchema),
   handler: async (ctx, args): Promise<CampaignInviteDto> => {
     const actor = await requireSocialViewer(ctx)
     const input = createCampaignInviteInputSchema.parse(args)
@@ -152,8 +152,8 @@ export const create = mutation({
 })
 
 export const accept = mutation({
-  args: zodToConvexFields(campaignInviteVersionInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(campaignInviteVersionInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const actor = await requireSocialViewer(ctx)
     const input = campaignInviteVersionInputSchema.parse(args)
@@ -170,8 +170,8 @@ export const accept = mutation({
 })
 
 export const decline = mutation({
-  args: zodToConvexFields(campaignInviteVersionInputSchema.shape),
-  returns: zodToConvex(campaignInviteDtoSchema),
+  args: () => zodToConvexFields(campaignInviteVersionInputSchema.shape),
+  returns: () => zodToConvex(campaignInviteDtoSchema),
   handler: async (ctx, args): Promise<CampaignInviteDto> => {
     const actor = await requireSocialViewer(ctx)
     const input = campaignInviteVersionInputSchema.parse(args)
@@ -202,8 +202,8 @@ export const decline = mutation({
 })
 
 export const revoke = mutation({
-  args: zodToConvexFields(campaignInviteVersionInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(campaignInviteVersionInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const actor = await requireSocialViewer(ctx)
     const input = campaignInviteVersionInputSchema.parse(args)

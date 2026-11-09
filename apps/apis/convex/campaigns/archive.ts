@@ -12,8 +12,8 @@ import { closeCampaignAdmission } from '../social/admissionClosure'
 import { scheduleLiveSessionRoomClosure } from '../liveSessions/controlScheduling'
 
 export const archive = mutation({
-  args: zodToConvexFields(archiveCampaignInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(archiveCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, expectedVersion } = archiveCampaignInputSchema.parse(args)

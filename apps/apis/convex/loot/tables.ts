@@ -115,8 +115,8 @@ async function requireLootReferences(
 }
 
 export const get = query({
-  args: zodToConvexFields(lootLookupInputSchema.shape),
-  returns: zodToConvex(lootDocumentSchema),
+  args: () => zodToConvexFields(lootLookupInputSchema.shape),
+  returns: () => zodToConvex(lootDocumentSchema),
   handler: async (ctx, args): Promise<LootDocument> => {
     const input = lootLookupInputSchema.parse(args)
     const { owner } = await requireLootOwner(ctx, input.owner)
@@ -129,8 +129,8 @@ export const get = query({
 
 /** Every table the live Loot panel lists, in one read: the Scene's and each Encounter creature's. */
 export const live = query({
-  args: zodToConvexFields(liveLootInputSchema.shape),
-  returns: zodToConvex(liveLootSchema),
+  args: () => zodToConvexFields(liveLootInputSchema.shape),
+  returns: () => zodToConvex(liveLootSchema),
   handler: async (ctx, args): Promise<LiveLoot> => {
     const input = liveLootInputSchema.parse(args)
     const { campaign } = await requireCampaignOwner(ctx, input.campaignId)
@@ -156,8 +156,8 @@ export const live = query({
 })
 
 export const save = mutation({
-  args: zodToConvexFields(saveLootInputSchema.shape),
-  returns: zodToConvex(lootDocumentSchema),
+  args: () => zodToConvexFields(saveLootInputSchema.shape),
+  returns: () => zodToConvex(lootDocumentSchema),
   handler: async (ctx, args): Promise<LootDocument> => {
     const input = saveLootInputSchema.parse(args)
     const { campaign, userId, owner } = await requireLootOwner(ctx, input.owner)

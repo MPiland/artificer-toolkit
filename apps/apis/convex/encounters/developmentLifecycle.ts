@@ -74,8 +74,8 @@ async function fixtureRun(ctx: QueryCtx | MutationCtx, args: z.infer<typeof fixt
 }
 
 export const inspect = internalQuery({
-  args: zodToConvex(fixtureRunSchema),
-  returns: v.string(),
+  args: () => zodToConvex(fixtureRunSchema),
+  returns: () => v.string(),
   handler: async (ctx, args) => {
     const { campaign, run, presentation } = await fixtureRun(ctx, args)
     const [
@@ -168,8 +168,8 @@ export const inspect = internalQuery({
 })
 
 export const forceRollback = internalMutation({
-  args: rollbackValidator,
-  returns: v.null(),
+  args: () => rollbackValidator,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const target = {
       ownerUserId: args.ownerUserId,

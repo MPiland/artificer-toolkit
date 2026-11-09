@@ -75,8 +75,8 @@ function publisher(ctx: MutationCtx, actorUserId: string) {
 }
 
 export const get = query({
-  args: zodToConvexFields(getReusableDefinitionInputDtoSchema.shape),
-  returns: zodToConvex(reusableDefinitionWorkspaceDtoSchema),
+  args: () => zodToConvexFields(getReusableDefinitionInputDtoSchema.shape),
+  returns: () => zodToConvex(reusableDefinitionWorkspaceDtoSchema),
   handler: async (ctx, args): Promise<ReusableDefinitionWorkspaceDto> => {
     const { userId } = await requireIdentity(ctx)
     return workspace(ctx, getReusableDefinitionInputDtoSchema.parse(args).definitionId, userId)
@@ -84,8 +84,8 @@ export const get = query({
 })
 
 export const list = query({
-  args: zodToConvexFields(listReusableDefinitionsPageInputDtoSchema.shape),
-  returns: zodToConvex(reusableDefinitionListPageDtoSchema),
+  args: () => zodToConvexFields(listReusableDefinitionsPageInputDtoSchema.shape),
+  returns: () => zodToConvex(reusableDefinitionListPageDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = listReusableDefinitionsPageInputDtoSchema.parse(args)
@@ -118,8 +118,8 @@ export const list = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createReusableDefinitionInputDtoSchema.shape),
-  returns: zodToConvex(reusableDefinitionWorkspaceDtoSchema),
+  args: () => zodToConvexFields(createReusableDefinitionInputDtoSchema.shape),
+  returns: () => zodToConvex(reusableDefinitionWorkspaceDtoSchema),
   handler: async (ctx, args): Promise<ReusableDefinitionWorkspaceDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = createReusableDefinitionInputDtoSchema.parse(args)
@@ -154,8 +154,8 @@ export const create = mutation({
 })
 
 export const saveDraft = mutation({
-  args: zodToConvexFields(saveReusableDefinitionDraftInputDtoSchema.shape),
-  returns: zodToConvex(reusableDefinitionWorkspaceDtoSchema),
+  args: () => zodToConvexFields(saveReusableDefinitionDraftInputDtoSchema.shape),
+  returns: () => zodToConvex(reusableDefinitionWorkspaceDtoSchema),
   handler: async (ctx, args): Promise<ReusableDefinitionWorkspaceDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = saveReusableDefinitionDraftInputDtoSchema.parse(args)
@@ -165,8 +165,8 @@ export const saveDraft = mutation({
 })
 
 export const publish = mutation({
-  args: zodToConvexFields(publishReusableDefinitionDraftInputDtoSchema.shape),
-  returns: zodToConvex(reusableDefinitionWorkspaceDtoSchema),
+  args: () => zodToConvexFields(publishReusableDefinitionDraftInputDtoSchema.shape),
+  returns: () => zodToConvex(reusableDefinitionWorkspaceDtoSchema),
   handler: async (ctx, args): Promise<ReusableDefinitionWorkspaceDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = publishReusableDefinitionDraftInputDtoSchema.parse(args)

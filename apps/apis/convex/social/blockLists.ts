@@ -14,8 +14,8 @@ import schema from '../schema'
 import { presentSocialProfile, requireSocialViewer } from './visibility'
 
 export const list = query({
-  args: zodToConvexFields(socialBlockListInputSchema.shape),
-  returns: zodToConvex(socialBlockPageSchema),
+  args: () => zodToConvexFields(socialBlockListInputSchema.shape),
+  returns: () => zodToConvex(socialBlockPageSchema),
   handler: async (ctx, args): Promise<SocialBlockPage> => {
     const input = socialBlockListInputSchema.parse(args)
     const actor = await requireSocialViewer(ctx)

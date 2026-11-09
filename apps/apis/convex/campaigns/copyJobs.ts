@@ -131,8 +131,8 @@ async function assertWorkerOwner(ctx: Parameters<typeof requireIdentity>[0], job
 }
 
 export const begin = mutation({
-  args: zodToConvexFields(beginCampaignCopyInputSchema.shape),
-  returns: zodToConvex(campaignCopyProgressSchema),
+  args: () => zodToConvexFields(beginCampaignCopyInputSchema.shape),
+  returns: () => zodToConvex(campaignCopyProgressSchema),
   handler: async (ctx, args): Promise<CampaignCopyProgress> => {
     const input = beginCampaignCopyInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -241,8 +241,8 @@ export const begin = mutation({
 })
 
 export const run = internalMutation({
-  args: { copyId: v.string() },
-  returns: v.null(),
+  args: () => ({ copyId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     try {
       await ctx.runMutation(stepCopy, args)
@@ -275,8 +275,8 @@ async function failJob(
 }
 
 export const step = internalMutation({
-  args: { copyId: v.string() },
-  returns: v.null(),
+  args: () => ({ copyId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('campaignCopyJobs')
@@ -383,8 +383,8 @@ export const step = internalMutation({
 })
 
 export const progress = query({
-  args: zodToConvexFields(campaignCopyLookupSchema.shape),
-  returns: zodToConvex(campaignCopyProgressSchema),
+  args: () => zodToConvexFields(campaignCopyLookupSchema.shape),
+  returns: () => zodToConvex(campaignCopyProgressSchema),
   handler: async (ctx, args): Promise<CampaignCopyProgress> => {
     const input = campaignCopyLookupSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -402,8 +402,8 @@ export const progress = query({
 })
 
 export const cancel = mutation({
-  args: zodToConvexFields(campaignCopyLookupSchema.shape),
-  returns: zodToConvex(campaignCopyProgressSchema),
+  args: () => zodToConvexFields(campaignCopyLookupSchema.shape),
+  returns: () => zodToConvex(campaignCopyProgressSchema),
   handler: async (ctx, args): Promise<CampaignCopyProgress> => {
     const input = campaignCopyLookupSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -431,8 +431,8 @@ export const cancel = mutation({
 })
 
 export const list = query({
-  args: zodToConvexFields(campaignCopyListInputSchema.shape),
-  returns: zodToConvex(campaignCopyListPageSchema),
+  args: () => zodToConvexFields(campaignCopyListInputSchema.shape),
+  returns: () => zodToConvex(campaignCopyListPageSchema),
   handler: async (ctx, args): Promise<CampaignCopyListPage> => {
     const input = campaignCopyListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

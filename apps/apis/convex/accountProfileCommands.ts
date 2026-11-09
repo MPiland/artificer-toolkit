@@ -12,8 +12,8 @@ import { authComponent } from './lib/authClient.helper'
 import { getAuthenticatedProfile, readProfileVisibility } from './lib/identity'
 
 export const update = internalMutation({
-  args: zodToConvexFields(accountProfileUpdateInputSchema.shape),
-  returns: zodToConvex(accountProfileDtoSchema),
+  args: () => zodToConvexFields(accountProfileUpdateInputSchema.shape),
+  returns: () => zodToConvex(accountProfileDtoSchema),
   handler: async (ctx, args): Promise<AccountProfileDto> => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')

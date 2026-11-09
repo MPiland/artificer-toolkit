@@ -121,8 +121,8 @@ async function depart(
 }
 
 export const leave = mutation({
-  args: zodToConvexFields(leaveCampaignInputSchema.shape),
-  returns: zodToConvex(campaignMembershipDepartureResultSchema),
+  args: () => zodToConvexFields(leaveCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignMembershipDepartureResultSchema),
   handler: async (ctx, args) => {
     const input = leaveCampaignInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -131,8 +131,8 @@ export const leave = mutation({
 })
 
 export const removeMember = mutation({
-  args: zodToConvexFields(removeCampaignMemberInputSchema.shape),
-  returns: zodToConvex(campaignMembershipDepartureResultSchema),
+  args: () => zodToConvexFields(removeCampaignMemberInputSchema.shape),
+  returns: () => zodToConvex(campaignMembershipDepartureResultSchema),
   handler: async (ctx, args) => {
     const input = removeCampaignMemberInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

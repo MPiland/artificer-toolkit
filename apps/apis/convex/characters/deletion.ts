@@ -19,8 +19,8 @@ import { loadCharacterState, resolveCharacterId } from './documents'
  * is told the Character is unavailable.
  */
 export const remove = mutation({
-  args: zodToConvexFields(characterDeleteInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(characterDeleteInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = characterDeleteInputSchema.parse(args)

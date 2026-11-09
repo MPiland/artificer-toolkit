@@ -38,8 +38,8 @@ const profileResult = v.object({
 })
 
 export const profile = query({
-  args: {},
-  returns: profileResult,
+  args: () => ({}),
+  returns: () => profileResult,
   handler: async (ctx): Promise<AccountProfileDto> => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -52,8 +52,8 @@ export const profile = query({
 })
 
 export const setProfileVisibility = mutation({
-  args: zodToConvexFields(accountProfileVisibilityInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(accountProfileVisibilityInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = accountProfileVisibilityInputSchema.parse(args)
     const authenticated = await getAuthenticatedProfile(ctx)
@@ -64,8 +64,8 @@ export const setProfileVisibility = mutation({
 })
 
 export const publicProfile = query({
-  args: zodToConvexFields(publicProfileInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(publicProfileDtoSchema)),
+  args: () => zodToConvexFields(publicProfileInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(publicProfileDtoSchema)),
   handler: async (ctx, args): Promise<PublicProfileDto | null> => {
     const input = publicProfileInputSchema.parse(args)
     const viewable = await readViewableProfileByUsername(ctx, input.username)
@@ -79,38 +79,43 @@ export const publicProfile = query({
 })
 
 export const updateProfile = mutation({
-  args: { username: v.optional(v.string()), bio: v.union(v.null(), v.string()) },
-  returns: profileResult,
+  args: () => ({ username: v.optional(v.string()), bio: v.union(v.null(), v.string()) }),
+  returns: () => profileResult,
   handler: async (ctx, args): Promise<AccountProfileDto> =>
     ctx.runMutation(internal.accountProfileCommands.update, args)
 })
 
 export const identity = query({
-  args: {},
-  returns: v.object({
-    userId: v.string(),
-    role: v.union(v.literal('user'), v.literal('superadmin'))
-  }),
+  args: () => ({}),
+  returns: () =>
+    v.object({
+      userId: v.string(),
+      role: v.union(v.literal('user'), v.literal('superadmin'))
+    }),
   handler: async (ctx) => await requireIdentity(ctx)
 })
 
 export const session = query({
-  args: {},
-  returns: v.object({
-    user: v.union(
-      v.null(),
-      v.object({
-        userId: v.string(),
-        email: v.string(),
-        username: v.union(v.null(), v.string()),
-        role: v.union(v.literal('user'), v.literal('superadmin')),
-        registrationCompleted: v.boolean(),
-        authoringExperience: v.union(v.literal('guided'), v.literal('advanced'))
-      })
-    ),
-    featureFlags: v.object({ libraryImportEnabled: v.boolean(), publicSignUpEnabled: v.boolean() }),
-    isSuperAdmin: v.boolean()
-  }),
+  args: () => ({}),
+  returns: () =>
+    v.object({
+      user: v.union(
+        v.null(),
+        v.object({
+          userId: v.string(),
+          email: v.string(),
+          username: v.union(v.null(), v.string()),
+          role: v.union(v.literal('user'), v.literal('superadmin')),
+          registrationCompleted: v.boolean(),
+          authoringExperience: v.union(v.literal('guided'), v.literal('advanced'))
+        })
+      ),
+      featureFlags: v.object({
+        libraryImportEnabled: v.boolean(),
+        publicSignUpEnabled: v.boolean()
+      }),
+      isSuperAdmin: v.boolean()
+    }),
   handler: async (ctx): Promise<AuthSessionSnapshotDto> => {
     const identity = await ctx.auth.getUserIdentity()
     let user: AuthSessionSnapshotDto['user'] = null
@@ -157,8 +162,8 @@ export const session = query({
 })
 
 export const setAuthoringExperience = mutation({
-  args: { experience: v.union(v.literal('guided'), v.literal('advanced')) },
-  returns: v.null(),
+  args: () => ({ experience: v.union(v.literal('guided'), v.literal('advanced')) }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = setAuthoringExperienceInputSchema.parse(args)
     const authenticated = await getAuthenticatedProfile(ctx)
@@ -169,11 +174,12 @@ export const setAuthoringExperience = mutation({
 })
 
 export const rollPreferences = query({
-  args: {},
-  returns: v.object({
-    autoRollDice: v.boolean(),
-    gmRollVisibility: zodToConvex(rollVisibilityDtoSchema)
-  }),
+  args: () => ({}),
+  returns: () =>
+    v.object({
+      autoRollDice: v.boolean(),
+      gmRollVisibility: zodToConvex(rollVisibilityDtoSchema)
+    }),
   handler: async (ctx): Promise<AccountRollPreferencesDto> => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -185,8 +191,8 @@ export const rollPreferences = query({
 })
 
 export const setAutoRollDice = mutation({
-  args: { autoRollDice: v.boolean() },
-  returns: v.null(),
+  args: () => ({ autoRollDice: v.boolean() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = setAutoRollDiceInputSchema.parse(args)
     const authenticated = await getAuthenticatedProfile(ctx)
@@ -197,8 +203,8 @@ export const setAutoRollDice = mutation({
 })
 
 export const setGmRollVisibility = mutation({
-  args: { gmRollVisibility: zodToConvex(rollVisibilityDtoSchema) },
-  returns: v.null(),
+  args: () => ({ gmRollVisibility: zodToConvex(rollVisibilityDtoSchema) }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = setGmRollVisibilityInputSchema.parse(args)
     const authenticated = await getAuthenticatedProfile(ctx)

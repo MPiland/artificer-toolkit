@@ -8,8 +8,8 @@ import { parseFogSave, parseFogLayer } from './fogDocuments'
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 
 export const removeFixtureState = internalMutation({
-  args: { ownerUserId: v.string(), campaignId: v.string() },
-  returns: v.null(),
+  args: () => ({ ownerUserId: v.string(), campaignId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { ownerUserId, campaignId }) => {
     await requireFixtureAccount(ctx, ownerUserId)
     const campaign = await ctx.db

@@ -14,7 +14,7 @@ import { scheduleSourceCopyCleanup } from './copyJobCleanup'
 import { deletionCampaignScope } from './authority'
 import type { LiveSessionControlInput } from '@artificer-toolkit/schema/api/liveSessions'
 
-const args = { jobId: v.id('campaignDeletionJobs'), revision: v.number() }
+const args = () => ({ jobId: v.id('campaignDeletionJobs'), revision: v.number() })
 type Run = { jobId: Id<'campaignDeletionJobs'>; revision: number }
 const runReference = makeFunctionReference<'action', Run, null>('campaigns/deletionJobs:run')
 const stepReference = makeFunctionReference<'mutation', Run, null>('campaigns/deletionJobs:step')
@@ -37,7 +37,7 @@ const WATCHDOG_DELAY_MS = 60_000
 
 export const drain = internalQuery({
   args,
-  returns: v.union(v.null(), v.object({ campaignId: v.string() })),
+  returns: () => v.union(v.null(), v.object({ campaignId: v.string() })),
   handler: async (ctx, input) => {
     const job = await ctx.db.get(input.jobId)
     if (
@@ -67,8 +67,8 @@ export async function scheduleCampaignDeletion(
 
 // Scheduled actions run at most once; this mutation keeps one recovery chain alive until deletion finishes.
 export const watchdog = internalMutation({
-  args: { jobId: v.id('campaignDeletionJobs') },
-  returns: v.null(),
+  args: () => ({ jobId: v.id('campaignDeletionJobs') }),
+  returns: () => v.null(),
   handler: async (ctx, { jobId }) => {
     const job = await ctx.db.get(jobId)
     if (!job || job.status === 'DELETED') return null
@@ -81,7 +81,7 @@ export const watchdog = internalMutation({
 
 export const step = internalMutation({
   args,
-  returns: v.null(),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     const job = await ctx.db.get(input.jobId)
     if (!job || job.status !== 'DELETING' || job.revision !== input.revision) return null
@@ -208,7 +208,7 @@ export const step = internalMutation({
 
 export const failed = internalMutation({
   args,
-  returns: v.null(),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     const job = await ctx.db.get(input.jobId)
     if (job?.status === 'DELETING' && job.revision === input.revision) {
@@ -231,7 +231,7 @@ export const failed = internalMutation({
 
 export const retry = internalMutation({
   args,
-  returns: v.null(),
+  returns: () => v.null(),
   handler: async (ctx, input) => {
     const job = await ctx.db.get(input.jobId)
     if (!job || job.status !== 'FAILED' || job.revision !== input.revision) return null
@@ -255,7 +255,7 @@ export const retry = internalMutation({
 
 // A failed page rolls back before this separate mutation records the recoverable failure.
 export const run = internalAction({
-  args,
+  args: args(),
   returns: v.null(),
   handler: async (ctx, input) => {
     try {

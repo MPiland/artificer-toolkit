@@ -103,8 +103,8 @@ type ImportCustomContentChoiceByKey = Parameters<typeof prepareImportBatch>[4]
 type ImportStorageReader = Pick<ActionCtx['storage'], 'get'>
 
 export const loadClaims = internalQuery({
-  args: { claims: v.array(zodToConvex(importClaimRefDtoSchema)) },
-  returns: v.array(storedClaimValidator),
+  args: () => ({ claims: v.array(zodToConvex(importClaimRefDtoSchema)) }),
+  returns: () => v.array(storedClaimValidator),
   handler: async (ctx, args): Promise<StoredClaim[]> => {
     const { userId } = await requireIdentity(ctx)
     if (args.claims.length === 0 || args.claims.length > IMPORT_MAX_ENTRIES)

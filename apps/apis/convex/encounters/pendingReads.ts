@@ -15,8 +15,8 @@ import { encounterReadTransaction } from './encounterReadPorts'
 import { readMemberEncounter } from './readAccess'
 
 const pendingRuleOccurrenceDefinition = {
-  args: zodToConvexFields(getPendingEncounterRuleOccurrenceInputDtoSchema.shape),
-  get returns(): Validator<PendingEncounterRuleOccurrenceSummaryDto | null, 'required', string> {
+  args: () => zodToConvexFields(getPendingEncounterRuleOccurrenceInputDtoSchema.shape),
+  returns: (): Validator<PendingEncounterRuleOccurrenceSummaryDto | null, 'required', string> => {
     return zodToConvex<z.core.$ZodType<PendingEncounterRuleOccurrenceSummaryDto | null>>(
       zMini.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema)
     )

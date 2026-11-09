@@ -18,14 +18,15 @@ import { deleteReceiptHeaders } from '../lib/receiptLedgers'
  * ended without storing (D215).
  */
 export const sheetSectionsState = internalQuery({
-  args: { characterId: v.string() },
-  returns: v.union(
-    v.literal('CURRENT'),
-    v.literal('NO_SHEET'),
-    v.literal('QUEUED'),
-    v.literal('MISSING'),
-    v.literal('FAILED')
-  ),
+  args: () => ({ characterId: v.string() }),
+  returns: () =>
+    v.union(
+      v.literal('CURRENT'),
+      v.literal('NO_SHEET'),
+      v.literal('QUEUED'),
+      v.literal('MISSING'),
+      v.literal('FAILED')
+    ),
   handler: async (ctx, { characterId }) => {
     const { active } = await loadCharacterState(ctx, characterId)
     if (active?.status !== 'ACTIVE') return 'NO_SHEET'
@@ -51,8 +52,8 @@ export const sheetSectionsState = internalQuery({
 
 // This is not personal Character/account deletion. It only retires isolated test data.
 export const removePersonalFixtureCharacter = internalMutation({
-  args: { userId: v.string(), characterId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), characterId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId, characterId }) => {
     await requireFixtureAccount(ctx, userId)
     const [character, draft, route, membership, campaign, assignment] = await Promise.all([

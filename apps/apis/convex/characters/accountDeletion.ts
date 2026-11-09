@@ -187,8 +187,8 @@ async function notifyFormerCampaignRooms(ctx: MutationCtx, userId: string) {
  * roll history in batches.
  */
 export const step = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'CHARACTERS')
     if (!job) return null

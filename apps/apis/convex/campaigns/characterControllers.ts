@@ -15,8 +15,8 @@ import { requireCampaignAuthority } from './authority'
  * keeps control. Rooms and Runs derive control from it, so a change applies at once.
  */
 export const setControllers = mutation({
-  args: zodToConvexFields(setCampaignCharacterControllersInputSchema.shape),
-  returns: zodToConvex(campaignAssignmentResultSchema),
+  args: () => zodToConvexFields(setCampaignCharacterControllersInputSchema.shape),
+  returns: () => zodToConvex(campaignAssignmentResultSchema),
   handler: async (ctx, args) => {
     const input = setCampaignCharacterControllersInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

@@ -27,8 +27,8 @@ const descriptiveStateLabels: Record<HealthDescriptiveStateDto, string> = {
  * table log once. The actor's display level does not change.
  */
 export const share = mutation({
-  args: zodToConvexFields(shareEncounterActorHealthInputDtoSchema.shape),
-  returns: zodToConvex(campaignChatEntryDtoSchema),
+  args: () => zodToConvexFields(shareEncounterActorHealthInputDtoSchema.shape),
+  returns: () => zodToConvex(campaignChatEntryDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const profile = await getAuthenticatedProfile(ctx)
     if (!profile) throw new Error('Unauthenticated')

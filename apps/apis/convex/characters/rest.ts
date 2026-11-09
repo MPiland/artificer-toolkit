@@ -156,8 +156,8 @@ export async function prepareCharacterRest(
 }
 
 export const preview = query({
-  args: zodToConvexFields(characterRestPreviewInputSchema.shape),
-  returns: zodToConvex(characterRestPreviewResponseDtoSchema),
+  args: () => zodToConvexFields(characterRestPreviewInputSchema.shape),
+  returns: () => zodToConvex(characterRestPreviewResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const input = characterRestPreviewInputSchema.parse(args)

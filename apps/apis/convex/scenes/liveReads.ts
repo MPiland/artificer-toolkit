@@ -16,8 +16,8 @@ function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {
 }
 
 export const header = query({
-  args: zodToConvexFields(getCampaignLiveSceneInputDtoSchema.shape),
-  returns: zodToConvex(sceneLiveStateHeaderSchema),
+  args: () => zodToConvexFields(getCampaignLiveSceneInputDtoSchema.shape),
+  returns: () => zodToConvex(sceneLiveStateHeaderSchema),
   handler: async (ctx, args) => {
     const input = getCampaignLiveSceneInputDtoSchema.parse(args)
     return (await readLiveScene(ctx, input.sceneId, 'OWNER')).header
@@ -25,8 +25,8 @@ export const header = query({
 })
 
 export const entities = query({
-  args: zodToConvexFields(sceneLiveStateEntityPageInputSchema.shape),
-  returns: zodToConvex(sceneDefinitionEntityPageSchema),
+  args: () => zodToConvexFields(sceneLiveStateEntityPageInputSchema.shape),
+  returns: () => zodToConvex(sceneDefinitionEntityPageSchema),
   handler: async (ctx, args) => {
     const input = sceneLiveStateEntityPageInputSchema.parse(args)
     const { header: scene } = await readLiveScene(ctx, input.sceneId, 'OWNER')

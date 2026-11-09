@@ -6,9 +6,12 @@ import {
 import { components, internal } from './_generated/api'
 import schema from './schema'
 import { syncAccountUsage } from './lib/accountUsage'
-import { internalMutation } from './lib/mutations'
+import { eagerInternalMutation } from './lib/mutations'
 
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export const homebrewRoots = migrations.define({
   table: 'authoredRoots',

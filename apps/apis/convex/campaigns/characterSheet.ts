@@ -40,8 +40,8 @@ import { evaluateCharacterRoll, retainUserRoll } from '../rollDocuments'
 import { readCampaignCharacterReader, requireCampaignCharacterAuthority } from './characterState'
 
 export const executeRoll = mutation({
-  args: zodToConvexFields(campaignCharacterSheetRollInputSchema.shape),
-  returns: zodToConvex(rollRecordDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterSheetRollInputSchema.shape),
+  returns: () => zodToConvex(rollRecordDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, ...input } = campaignCharacterSheetRollInputSchema.parse(args)
@@ -60,8 +60,8 @@ export const executeRoll = mutation({
 
 /** The GM, the Character's player, or another member while "Party can view" is on. */
 export const get = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(characterSheetResponseDtoSchema),
+  args: () => zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: () => zodToConvex(characterSheetResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
@@ -91,8 +91,8 @@ export const get = query({
 })
 
 export const panel = query({
-  args: zodToConvexFields(campaignCharacterSheetPanelInputSchema.shape),
-  returns: zodToConvex(characterSheetPanelDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterSheetPanelInputSchema.shape),
+  returns: () => zodToConvex(characterSheetPanelDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, target } = campaignCharacterSheetPanelInputSchema.parse(args)
@@ -121,8 +121,8 @@ export const panel = query({
 })
 
 export const preparationOptions = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(characterPreparationOptionsResponseDtoSchema),
+  args: () => zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: () => zodToConvex(characterPreparationOptionsResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
@@ -139,8 +139,8 @@ export const preparationOptions = query({
 })
 
 export const restPreview = query({
-  args: zodToConvexFields(campaignCharacterRestPreviewInputSchema.shape),
-  returns: zodToConvex(characterRestPreviewResponseDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterRestPreviewInputSchema.shape),
+  returns: () => zodToConvex(characterRestPreviewResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, input } = campaignCharacterRestPreviewInputSchema.parse(args)
@@ -154,11 +154,11 @@ export const restPreview = query({
 })
 
 export const execute = mutation({
-  args: {
+  args: () => ({
     ...zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-    command: characterSheetCommandValidator
-  },
-  returns: zodToConvex(characterSheetCommandResponseDtoSchema),
+    command: characterSheetCommandValidator()
+  }),
+  returns: () => zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, command } =

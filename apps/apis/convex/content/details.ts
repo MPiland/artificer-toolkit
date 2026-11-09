@@ -36,8 +36,8 @@ async function readComputedArmorClass(
 }
 
 export const get = query({
-  args: zodToConvexFields(authoredDetailReadInputSchema.shape),
-  returns: zodToConvex(authoredDetailReadEnvelopeSchema),
+  args: () => zodToConvexFields(authoredDetailReadInputSchema.shape),
+  returns: () => zodToConvex(authoredDetailReadEnvelopeSchema),
   handler: readAuthoredDetail
 })
 

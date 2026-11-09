@@ -1349,8 +1349,8 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
 }
 
 export const inspect = internalQuery({
-  args: zodToConvex(developmentCampaignFixtureSchema),
-  returns: zodToConvex(developmentCampaignInspectionSchema),
+  args: () => zodToConvex(developmentCampaignFixtureSchema),
+  returns: () => zodToConvex(developmentCampaignInspectionSchema),
   handler: async (ctx, fixture): Promise<DevelopmentCampaignInspection> => {
     await fixtureGuard(ctx, fixture, true)
     const state = await campaignRows(ctx, fixture)
@@ -1365,8 +1365,8 @@ export const inspect = internalQuery({
   }
 })
 export const inspectPersonal = internalQuery({
-  args: zodToConvex(developmentCampaignFixtureSchema),
-  returns: v.string(),
+  args: () => zodToConvex(developmentCampaignFixtureSchema),
+  returns: () => v.string(),
   handler: async (ctx, fixture): Promise<string> => {
     await fixtureGuard(ctx, fixture, false)
     return json(await personalRows(ctx, fixture))
@@ -1385,8 +1385,8 @@ export async function assertAbsent(
   return null
 }
 export const assertRemoved = internalQuery({
-  args: zodToConvex(developmentCampaignRemovedInputSchema),
-  returns: v.null(),
+  args: () => zodToConvex(developmentCampaignRemovedInputSchema),
+  returns: () => v.null(),
   handler: assertAbsent
 })
 export const verifyDeletionRollback = action({

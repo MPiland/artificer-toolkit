@@ -20,8 +20,8 @@ import {
 } from './moderationDocuments'
 
 export const list = query({
-  args: zodToConvexFields(socialModerationQueueInputSchema.shape),
-  returns: zodToConvex(socialModerationQueuePageSchema),
+  args: () => zodToConvexFields(socialModerationQueueInputSchema.shape),
+  returns: () => zodToConvex(socialModerationQueuePageSchema),
   handler: async (ctx, args): Promise<SocialModerationQueuePage> => {
     await requireSocialModerator(ctx)
     const input = socialModerationQueueInputSchema.parse(args)
@@ -41,8 +41,8 @@ export const list = query({
 })
 
 export const open = mutation({
-  args: zodToConvexFields(socialReportPublicIdInputSchema.shape),
-  returns: zodToConvex(socialModerationEvidenceDtoSchema),
+  args: () => zodToConvexFields(socialReportPublicIdInputSchema.shape),
+  returns: () => zodToConvex(socialModerationEvidenceDtoSchema),
   handler: async (ctx, args): Promise<SocialModerationEvidenceDto> => {
     const actor = await requireSocialModerator(ctx)
     const { reportPublicId } = socialReportPublicIdInputSchema.parse(args)
@@ -61,8 +61,8 @@ export const open = mutation({
 })
 
 export const review = mutation({
-  args: zodToConvexFields(socialReportReviewInputSchema.shape),
-  returns: zodToConvex(socialModerationEvidenceDtoSchema),
+  args: () => zodToConvexFields(socialReportReviewInputSchema.shape),
+  returns: () => zodToConvex(socialModerationEvidenceDtoSchema),
   handler: async (ctx, args): Promise<SocialModerationEvidenceDto> => {
     const actor = await requireSocialModerator(ctx)
     const input = socialReportReviewInputSchema.parse(args)

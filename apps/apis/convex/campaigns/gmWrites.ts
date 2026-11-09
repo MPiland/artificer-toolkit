@@ -105,8 +105,8 @@ async function commitState(
 }
 
 export const saveAdjustment = mutation({
-  args: zodToConvexFields(campaignAdjustmentInputSchema.shape),
-  returns: zodToConvex(campaignAdjustmentDtoSchema),
+  args: () => zodToConvexFields(campaignAdjustmentInputSchema.shape),
+  returns: () => zodToConvex(campaignAdjustmentDtoSchema),
   handler: async (ctx, args) => {
     const input = campaignAdjustmentInputSchema.parse(args)
     const current = await requireWritableState(ctx, input.campaignId, input.characterId)
@@ -156,8 +156,8 @@ export const saveAdjustment = mutation({
 })
 
 export const deleteAdjustment = mutation({
-  args: zodToConvexFields(deleteCampaignAdjustmentInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(deleteCampaignAdjustmentInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const input = deleteCampaignAdjustmentInputSchema.parse(args)
     const current = await requireWritableState(ctx, input.campaignId, input.characterId)
@@ -183,8 +183,8 @@ export const deleteAdjustment = mutation({
 })
 
 export const saveCondition = mutation({
-  args: zodToConvexFields(saveCampaignConditionInputSchema.shape),
-  returns: zodToConvex(campaignConditionDtoSchema),
+  args: () => zodToConvexFields(saveCampaignConditionInputSchema.shape),
+  returns: () => zodToConvex(campaignConditionDtoSchema),
   handler: async (ctx, args) => {
     const input = saveCampaignConditionInputSchema.parse(args)
     const current = await requireWritableState(ctx, input.campaignId, input.characterId)
@@ -222,8 +222,8 @@ export const saveCondition = mutation({
 })
 
 export const deleteCondition = mutation({
-  args: zodToConvexFields(deleteCampaignConditionInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(deleteCampaignConditionInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const input = deleteCampaignConditionInputSchema.parse(args)
     const current = await requireWritableState(ctx, input.campaignId, input.characterId)

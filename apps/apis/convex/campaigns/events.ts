@@ -16,8 +16,8 @@ import { requireCampaignCharacterAuthority } from './characterState'
 import { presentInventoryAuditPayload } from './inventoryAuditPresentation'
 
 export const list = query({
-  args: zodToConvexFields(listCampaignEventsInputSchema.shape),
-  returns: zodToConvex(campaignEventPageTransportDtoSchema),
+  args: () => zodToConvexFields(listCampaignEventsInputSchema.shape),
+  returns: () => zodToConvex(campaignEventPageTransportDtoSchema),
   handler: async (ctx, args): Promise<CampaignEventPageTransportDto> => {
     const input = listCampaignEventsInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

@@ -216,8 +216,8 @@ async function runClockCommand(
 }
 
 export const get = query({
-  args: zodToConvexFields(campaignIdInputSchema.shape),
-  returns: zodToConvex(zMini.nullable(campaignClockDtoSchema)),
+  args: () => zodToConvexFields(campaignIdInputSchema.shape),
+  returns: () => zodToConvex(zMini.nullable(campaignClockDtoSchema)),
   handler: async (ctx, args) => {
     const { campaignId } = campaignIdInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -232,8 +232,8 @@ export const get = query({
 })
 
 export const recoveryPrompts = query({
-  args: zodToConvexFields(campaignIdInputSchema.shape),
-  returns: zodToConvex(zMini.array(campaignClockRecoveryPromptDtoSchema)),
+  args: () => zodToConvexFields(campaignIdInputSchema.shape),
+  returns: () => zodToConvex(zMini.array(campaignClockRecoveryPromptDtoSchema)),
   handler: async (ctx, args) => {
     const { campaignId } = campaignIdInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -278,8 +278,8 @@ export const recoveryPrompts = query({
 })
 
 export const dismissRecoveryPrompt = mutation({
-  args: zodToConvexFields(dismissCampaignClockRecoveryPromptInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(dismissCampaignClockRecoveryPromptInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = dismissCampaignClockRecoveryPromptInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -296,8 +296,8 @@ export const dismissRecoveryPrompt = mutation({
 })
 
 export const initialize = mutation({
-  args: zodToConvexFields(initializeCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(initializeCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = initializeCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -321,8 +321,8 @@ export const initialize = mutation({
 })
 
 export const configure = mutation({
-  args: zodToConvexFields(configureCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(configureCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = configureCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -347,8 +347,8 @@ export const configure = mutation({
 })
 
 export const start = mutation({
-  args: zodToConvexFields(startCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(startCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = startCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -367,8 +367,8 @@ export const start = mutation({
 })
 
 export const pause = mutation({
-  args: zodToConvexFields(pauseCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(pauseCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = pauseCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -385,8 +385,8 @@ export const pause = mutation({
 })
 
 export const advance = mutation({
-  args: zodToConvexFields(advanceCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(advanceCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = advanceCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -403,8 +403,8 @@ export const advance = mutation({
 })
 
 export const rewind = mutation({
-  args: zodToConvexFields(rewindCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(rewindCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = rewindCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -421,8 +421,8 @@ export const rewind = mutation({
 })
 
 export const reset = mutation({
-  args: zodToConvexFields(resetCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(resetCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = resetCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -444,8 +444,8 @@ export const reset = mutation({
 })
 
 export const reconcile = mutation({
-  args: zodToConvexFields(reconcileCampaignClockInputSchema.shape),
-  returns: zodToConvex(campaignClockDtoSchema),
+  args: () => zodToConvexFields(reconcileCampaignClockInputSchema.shape),
+  returns: () => zodToConvex(campaignClockDtoSchema),
   handler: async (ctx, args) => {
     const input = reconcileCampaignClockInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

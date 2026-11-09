@@ -13,8 +13,8 @@ import { readStoredCharacterSheet } from './sheetSections'
 
 /** Personal Sheet reads serve the stored Sheet while it is current and derive it otherwise. */
 export const get = query({
-  args: zodToConvexFields(characterSheetReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterSheetResponseDtoSchema)),
+  args: () => zodToConvexFields(characterSheetReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterSheetResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterSheetResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id: lookupId } = characterSheetReadInputSchema.parse(args)

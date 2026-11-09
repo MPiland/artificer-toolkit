@@ -634,7 +634,7 @@ async function readRoomInputs(
  * Run schemas would be built at module load for every function call.
  */
 export const read = internalQuery({
-  args: zodToConvexFields(liveRoomInputsInputSchema.shape),
+  args: () => zodToConvexFields(liveRoomInputsInputSchema.shape),
   handler: async (ctx, args): Promise<LiveRoomInputsResponse> => {
     const input = liveRoomInputsInputSchema.parse(args)
     const authority = await requireActiveCampaignLiveAuthority(ctx, input)

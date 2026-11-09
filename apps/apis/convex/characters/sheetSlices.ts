@@ -80,8 +80,8 @@ export async function loadCharacterSheetNotes(
 }
 
 export const get = query({
-  args: zodToConvexFields(characterSheetSliceReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterSheetSliceResponseDtoSchema)),
+  args: () => zodToConvexFields(characterSheetSliceReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterSheetSliceResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterSheetSliceResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id, campaignId, slice } = characterSheetSliceReadInputSchema.parse(args)

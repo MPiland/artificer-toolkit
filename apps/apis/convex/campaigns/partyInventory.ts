@@ -21,8 +21,8 @@ import { readCampaignItemPage, readCampaignCurrencyPage } from './partyInventory
 // RELIABILITY-21.T18: page reads run in this query's transaction. A `runQuery` hop evaluated a
 // second module graph and re-ran validation, identity and authority on every call.
 export const items = query({
-  args: zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
-  get returns(): Validator<CampaignPartyItemPage, 'required', string> {
+  args: () => zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
+  returns: (): Validator<CampaignPartyItemPage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<CampaignPartyItemPage>>(campaignPartyItemPageSchema)
   },
   handler: async (ctx, args): Promise<CampaignPartyItemPage> => {
@@ -34,8 +34,8 @@ export const items = query({
 })
 
 export const currencies = query({
-  args: zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
-  get returns(): Validator<CampaignPartyCurrencyPage, 'required', string> {
+  args: () => zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
+  returns: (): Validator<CampaignPartyCurrencyPage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<CampaignPartyCurrencyPage>>(campaignPartyCurrencyPageSchema)
   },
   handler: async (ctx, args): Promise<CampaignPartyCurrencyPage> => {
@@ -48,8 +48,8 @@ export const currencies = query({
 
 /** Complete official Equipment options under this Campaign's current catalogue binding. */
 export const equipmentOptions = query({
-  args: zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
-  get returns(): Validator<AuthoredCataloguePage, 'required', string> {
+  args: () => zodToConvexFields(campaignPartyInventoryListInputSchema.shape),
+  returns: (): Validator<AuthoredCataloguePage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<AuthoredCataloguePage>>(authoredCataloguePageSchema)
   },
   handler: async (ctx, args): Promise<AuthoredCataloguePage> => {

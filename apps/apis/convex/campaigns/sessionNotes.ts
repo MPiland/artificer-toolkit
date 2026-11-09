@@ -68,8 +68,8 @@ async function requireNote(
 }
 
 export const list = query({
-  args: zodToConvexFields(campaignSessionNoteListInputSchema.shape),
-  returns: zodToConvex(campaignSessionNoteListPageSchema),
+  args: () => zodToConvexFields(campaignSessionNoteListInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionNoteListPageSchema),
   handler: async (ctx, args): Promise<CampaignSessionNoteListPage> => {
     const input = campaignSessionNoteListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -105,8 +105,8 @@ export const list = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignSessionNoteSectionInputSchema.shape),
-  returns: zodToConvex(campaignSessionNoteSectionDtoSchema),
+  args: () => zodToConvexFields(createCampaignSessionNoteSectionInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionNoteSectionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionNoteSectionDto> => {
     const input = createCampaignSessionNoteSectionInputSchema.parse(args)
     const actor = await getAuthenticatedProfile(ctx)
@@ -137,8 +137,8 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: zodToConvexFields(updateCampaignSessionNoteSectionInputSchema.shape),
-  returns: zodToConvex(campaignSessionNoteSectionDtoSchema),
+  args: () => zodToConvexFields(updateCampaignSessionNoteSectionInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionNoteSectionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionNoteSectionDto> => {
     const input = updateCampaignSessionNoteSectionInputSchema.parse(args)
     const actor = await getAuthenticatedProfile(ctx)
@@ -178,8 +178,8 @@ export const update = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteCampaignSessionNoteSectionInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(deleteCampaignSessionNoteSectionInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const input = deleteCampaignSessionNoteSectionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

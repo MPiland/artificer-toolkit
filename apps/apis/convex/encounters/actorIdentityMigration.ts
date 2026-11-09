@@ -5,13 +5,16 @@ import {
 } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * A stored Run actor no longer repeats its identity and the checksums its row columns carry
  * (`serializeStoredRunActor`). Idempotent: a trimmed row serializes to the same JSON.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export const runActorIdentity = migrations.define({
   table: 'encounterRunActors',

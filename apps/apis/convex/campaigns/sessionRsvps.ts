@@ -16,8 +16,8 @@ import { requireCampaignAuthority } from './authority'
 import { requireSession } from './sessionDocuments'
 
 export const list = query({
-  args: zodToConvexFields(campaignSessionRsvpListInputSchema.shape),
-  returns: zodToConvex(campaignSessionRsvpListPageSchema),
+  args: () => zodToConvexFields(campaignSessionRsvpListInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionRsvpListPageSchema),
   handler: async (ctx, args): Promise<CampaignSessionRsvpListPage> => {
     const input = campaignSessionRsvpListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -45,8 +45,8 @@ export const list = query({
 })
 
 export const set = mutation({
-  args: zodToConvexFields(setCampaignSessionRsvpInputSchema.shape),
-  returns: zodToConvex(campaignSessionRsvpDtoSchema),
+  args: () => zodToConvexFields(setCampaignSessionRsvpInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionRsvpDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionRsvpDto> => {
     const input = setCampaignSessionRsvpInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

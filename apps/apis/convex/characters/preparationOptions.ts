@@ -101,8 +101,8 @@ export async function readStoredCharacterPreparationOptions(
 }
 
 export const get = query({
-  args: zodToConvexFields(characterSheetReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterPreparationOptionsResponseDtoSchema)),
+  args: () => zodToConvexFields(characterSheetReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterPreparationOptionsResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterPreparationOptionsResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = characterSheetReadInputSchema.parse(args)

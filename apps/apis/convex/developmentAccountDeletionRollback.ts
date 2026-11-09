@@ -115,8 +115,8 @@ async function assertDeletionScheduled(
   if (job?.step !== 'CAMPAIGNS') throw new Error('Account deletion request scheduled no job.')
 }
 export const forceRollback = internalMutation({
-  args: zodToConvex(developmentAccountDeletionRollbackInputSchema),
-  returns: v.null(),
+  args: () => zodToConvex(developmentAccountDeletionRollbackInputSchema),
+  returns: () => v.null(),
   handler: async (ctx: MutationCtx, raw): Promise<null> => {
     const input = developmentAccountDeletionRollbackInputSchema.parse(raw)
     requireDistinct(input.fixture)

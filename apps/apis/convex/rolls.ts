@@ -33,8 +33,8 @@ import {
 const ok = v.object({ ok: v.literal(true) })
 
 export const executeConfiguration = mutation({
-  args: zodToConvexFields(executeDiceConfigurationInputDtoSchema.shape),
-  returns: zodToConvex(rollResultDtoSchema),
+  args: () => zodToConvexFields(executeDiceConfigurationInputDtoSchema.shape),
+  returns: () => zodToConvex(rollResultDtoSchema),
   handler: async (ctx, args) => {
     await requireIdentity(ctx)
     const input = executeDiceConfigurationInputDtoSchema.parse(args)
@@ -48,8 +48,8 @@ export const executeConfiguration = mutation({
 })
 
 export const execute = mutation({
-  args: zodToConvexFields(executeRollInputDtoSchema.shape),
-  returns: zodToConvex(rollRecordDtoSchema),
+  args: () => zodToConvexFields(executeRollInputDtoSchema.shape),
+  returns: () => zodToConvex(rollRecordDtoSchema),
   handler: async (ctx, args): Promise<RollRecordDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = executeRollInputDtoSchema.parse(args)
@@ -61,8 +61,8 @@ export const execute = mutation({
 
 /** D168: adds a die the Character held for after the roll to the user's latest roll, and spends it. */
 export const addAfterRollDie = mutation({
-  args: zodToConvexFields(addAfterRollDieInputDtoSchema.shape),
-  returns: zodToConvex(rollRecordDtoSchema),
+  args: () => zodToConvexFields(addAfterRollDieInputDtoSchema.shape),
+  returns: () => zodToConvex(rollRecordDtoSchema),
   handler: async (ctx, args): Promise<RollRecordDto> => {
     const { userId } = await requireIdentity(ctx)
     return addAfterRollDieToRoll(ctx, userId, addAfterRollDieInputDtoSchema.parse(args))
@@ -71,8 +71,8 @@ export const addAfterRollDie = mutation({
 
 /** D168: keeps the user's latest roll as rolled; its held dice are offered no more. */
 export const declineAfterRollDice = mutation({
-  args: zodToConvexFields(rollIdInputDtoSchema.shape),
-  returns: zodToConvex(rollRecordDtoSchema),
+  args: () => zodToConvexFields(rollIdInputDtoSchema.shape),
+  returns: () => zodToConvex(rollRecordDtoSchema),
   handler: async (ctx, args): Promise<RollRecordDto> => {
     const { userId } = await requireIdentity(ctx)
     return declineRollOffers(ctx, userId, rollIdInputDtoSchema.parse(args).id)
@@ -80,8 +80,8 @@ export const declineAfterRollDice = mutation({
 })
 
 export const history = query({
-  args: {},
-  returns: zodToConvex(rollHistoryResponseDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(rollHistoryResponseDtoSchema),
   handler: async (ctx) => {
     const { userId } = await requireIdentity(ctx)
     const records = await ctx.db
@@ -108,8 +108,8 @@ export const history = query({
 })
 
 export const discard = mutation({
-  args: zodToConvexFields(rollIdInputDtoSchema.shape),
-  returns: ok,
+  args: () => zodToConvexFields(rollIdInputDtoSchema.shape),
+  returns: () => ok,
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { id } = rollIdInputDtoSchema.parse(args)
@@ -123,8 +123,8 @@ export const discard = mutation({
 })
 
 export const clearHistory = mutation({
-  args: {},
-  returns: ok,
+  args: () => ({}),
+  returns: () => ok,
   handler: async (ctx) => {
     const { userId } = await requireIdentity(ctx)
     const records = await ctx.db

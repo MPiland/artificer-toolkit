@@ -13,8 +13,8 @@ import { contentStream } from './streams'
 import { isImportRowVisible } from '../imports/visibility'
 
 export const list = query({
-  args: zodToConvexFields(authoredEquipmentOptionsInputSchema.shape),
-  returns: zodToConvex(authoredEquipmentOptionsSchema),
+  args: () => zodToConvexFields(authoredEquipmentOptionsInputSchema.shape),
+  returns: () => zodToConvex(authoredEquipmentOptionsSchema),
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx)
     const { systemId, excludeVariants } = authoredEquipmentOptionsInputSchema.parse(args)
