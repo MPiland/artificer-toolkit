@@ -13,6 +13,7 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
+import { awaitCharacterReconcile } from './fixtures/characterReconcileSteps'
 import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 
@@ -785,6 +786,8 @@ export async function verifyCampaignAssignmentLifecycle(
       campaignId,
       characterId: replacementId
     })
+    // The departure settles the replaced Character in its queued step (D81).
+    await awaitCharacterReconcile(originalId, first.client)
     const replaced = await snapshot()
     const overflowPurseAmounts = replaced.currencies
       .filter(
@@ -893,6 +896,7 @@ export async function verifyCampaignAssignmentLifecycle(
       campaignId,
       characterId: originalId
     })
+    await awaitCharacterReconcile(replacementId, first.client)
     const reassigned = await snapshot()
     assert.equal(
       reassigned.campaign.memberships.find((entry) => entry.userId === firstUserId)
@@ -972,6 +976,7 @@ export async function verifyCampaignAssignmentLifecycle(
       campaignId,
       characterId: originalId
     })
+    await awaitCharacterReconcile(originalId, first.client)
     const unassigned = await snapshot()
     const unassignmentVersion = proveDeparture(
       beforeUnassign,
@@ -1042,6 +1047,7 @@ export async function verifyCampaignAssignmentLifecycle(
     )
     await unshare('BACKGROUND', sharedBackgroundId)
     await unshare('EQUIPMENT', sharedEquipment.subjectId)
+    await awaitCharacterReconcile(originalId, first.client)
     const retainedBefore = await snapshot()
     await refuse(
       'unshared Equipment add',
