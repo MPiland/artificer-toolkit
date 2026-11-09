@@ -470,6 +470,8 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
   })
 
   it('leaves the Sheet of a Character that departs with a shared source to reach Builder repair once its step runs (PERF-6.T13)', async () => {
+    // A Campaign's chain queues the Sheet store after a delay, so the test drives the clock.
+    holdScheduledWork()
     const base = await readySheetFixture()
     const campaign = await gmCampaign(base)
     await base.t.run((ctx) => makePublishedRootOwned(ctx, acolyte.id, base.other.userId))
@@ -479,7 +481,7 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
       subjectId: acolyte.id
     })
     await seatPlayer(base, campaign, base.owner.userId, base.character.id)
-    await runDueScheduledWork(base.t)
+    await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
     const sheetState = () => base.t.query(sheetSectionsState, { characterId: base.character.id })
     const reconcileState = () =>
       base.t.query(characterReconcileState, { characterId: base.character.id })
@@ -487,7 +489,6 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
       base.owner.caller.query(api.characters.sheet.get, { id: base.character.id })
     expect(await sheetState()).toBe('CURRENT')
 
-    holdScheduledWork()
     await base.owner.caller.mutation(api.campaigns.assignments.unassign, {
       campaignId: campaign.id
     })
@@ -501,8 +502,8 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     expect(await sheetState()).toBe('MISSING')
     await expect(readSheet()).rejects.toThrow('Builder repair')
 
-    // The step runs with no other action and leaves the Sheet in its post-departure state.
-    await runDueScheduledWork(base.t)
+    // The step and every store it queues run with no other action, leaving the post-departure state.
+    await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
     expect(await reconcileState()).toBe('NONE')
     expect((await base.readState()).character?.status).toBe('DRAFT')
     expect(await sheetState()).toBe('NO_SHEET')
