@@ -24733,7 +24733,7 @@
             },
             {
               "id": "PERF-6.T8",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24743,8 +24743,14 @@
                 "after": ["PERF-6.T3", "RELIABILITY-22.T1"],
                 "finalSource": true
               },
-              "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Profile fix 9: cut module floors by building Convex args and returns validators on first read (lib/lazyValidators.ts behind query, mutation and internalMutation; about 195 modules pass validator thunks) instead of converting zod at module top level, and keep one zod copy in Convex bundles. Budget: CI module floors characterSheet <= 20 ms, accountDeparture <= 25, sheetCommands <= 20, sheetSectionDerivation <= 16, sheetSlices <= 15 (each RED against the phase code), classPublication <= 45 as a recorded ceiling. Actions, HTTP actions and the migration modules (eagerInternalMutation) still build validators at load.",
+              "mergedAt": "2026-11-09",
+              "proof": [
+                "apps/apis/tests/functionBundleBudget.test.ts (CI floors with/without T8 in ms: characterSheet 10.0/66.4, accountDeparture 13.5/43.9, sheetCommands 10.4/44.6, sheetSectionDerivation 9.6/27.9, sheetSlices 8.1/26.8; classPublication 27.7; full Tests 42563453632, red proof 42563447853)",
+                "apps/apis/convex/lib/lazyValidators.test.ts (public query, public mutation and internal mutation reject bad arguments with Convex validator errors; fails when the lazy getter returns undefined)",
+                "apps/apis/convex/lib/domainRejectionTransport.test.ts (RED against the phase code)",
+                "Merged as m666 via merge-slice run 42571821101 on ad34148dc: Tests 42570044440, Live 42570044291, Browser journeys 42570044454; full Browser journeys dispatch 42567067718 on a0591b03d (same product code)"
+              ]
             },
             {
               "id": "PERF-6.T9",
