@@ -14,6 +14,7 @@ import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spell
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import { standingEffectReturnsOn } from './standingEffects.js'
+import { attackRestrictionCapabilityRegistry } from './platformPolicyModules.js'
 import { snapshotAbilityScores } from './encounterActorState.js'
 import {
   attackProfileCapabilityRegistry,
@@ -678,7 +679,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!entry || (entry.actionFeature?.id ?? null) !== capability.actionFeatureId)
     throw new Error('Encounter feature action capability Effect is stale.')
   const { effect } = entry
-  const compiledEffect = creatureActionEffect(profile, entry, features)
+  const compiledEffect = creatureActionEffect(capability.gameSystemId, entry, features)
   if (
     capability.entryPointDefinitionId !== effect.id ||
     capability.actionId !==
@@ -719,7 +720,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
  * The attack's Feature is its action Feature when an option binds one, else the Feature itself.
  */
 function creatureActionEffect(
-  profile: AttackProfileCapabilityAdapter,
+  gameSystemId: string,
   { effect, actionFeature, ownerFeature }: FeatureEffectEntry,
   features: readonly FeatureDto[]
 ): CompiledEffectGroup {
@@ -732,9 +733,12 @@ function creatureActionEffect(
       )
     )
   )
-  const compiled = profile.reduceItemlessAttackRestrictions(
-    mergeOnHitRiders(compileEffect(effect), riders, (actionFeature ?? ownerFeature).id)
-  )
+  const compiled = attackRestrictionCapabilityRegistry
+    .require(gameSystemId)
+    .reduceAttackRestrictions(
+      mergeOnHitRiders(compileEffect(effect), riders, (actionFeature ?? ownerFeature).id),
+      null
+    )
   const { invocation } = compiled
   // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
   // for its holder, so it compiles and plans like any other area save. A passive start-of-turn
@@ -917,7 +921,7 @@ export function discoverUncompiledEncounterFeatureActions(input: {
       const label = entry.featureOption?.label ?? entry.ownerFeature.label
       // One action's invalid authored mechanics make only that action unavailable (D54).
       try {
-        const compiledEffect = creatureActionEffect(profile, entry, features)
+        const compiledEffect = creatureActionEffect(gameSystemId, entry, features)
         const damageGrant = passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
         const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
         const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'

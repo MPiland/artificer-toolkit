@@ -12,7 +12,7 @@ import {
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
+import { resolveCharacterRulePolicyRollModes } from '../systems/dnd5e/characterRuleRollProjection.js'
 import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
 import { encounterGrantsEnabledDomain } from '../encounterActiveGrants.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'

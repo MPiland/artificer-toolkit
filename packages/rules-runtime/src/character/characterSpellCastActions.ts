@@ -26,11 +26,11 @@ import {
   type CastModifierSource,
   type SparesCreaturesSource
 } from './characterCastModifiers.js'
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import {
+  abilityScoreCapabilityRegistry,
+  spellCastCapabilityRegistry
+} from '../platformPolicyModules.js'
 import { affordablePoolFor } from './characterResourcePool.js'
-import { conditionDurationTurns } from '../systems/dnd5e/effectActionFollowUp.js'
-import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
-import { dnd5eWithSaveSuccessDamage } from '../systems/dnd5e/spellSaveSuccessDamage.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
 import { mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
@@ -200,6 +200,7 @@ export function buildCharacterSpellCastActions(input: {
   unavailable: CharacterSpellCastActions['unavailable'][number][]
 } {
   const { policyOutput } = input
+  const spellCast = spellCastCapabilityRegistry.require(input.gameSystemId)
   const decisionsByCandidateId = new Map(
     policyOutput.spellCastDecisions.map((decision) => [decision.candidateId, decision])
   )
@@ -241,26 +242,21 @@ export function buildCharacterSpellCastActions(input: {
     // An at-will grant's lockout keys every creature its casts target to the grant (D156).
     const perTargetLockout =
       access?.perTargetLockout && cast.castMode === 'AT_WILL' ? { grantId: access.grantId } : null
-    const range = dnd5eSpellRangeReplacement(policyOutput.grantFold, {
+    const castSpell = {
       id: cast.spellId,
       level: cast.spellLevel,
       magicSchoolId: spell.magicSchoolId
-    })
+    }
     for (const [index, spellGroup] of effects.entries()) {
-      const typedGroup = withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? [])
-      const rangedGroup = range
-        ? {
-            ...typedGroup,
-            invocation: {
-              ...typedGroup.invocation,
-              range: { id: typedGroup.invocation.range.id, ...range }
-            }
-          }
-        : typedGroup
-      const group = dnd5eWithSaveSuccessDamage(
+      const group = spellCast.adaptCastEffect(
         policyOutput.grantFold,
-        { id: cast.spellId, level: cast.spellLevel, magicSchoolId: spell.magicSchoolId },
-        mergeOnHitRiders(rangedGroup, input.onHitRiders ?? [], undefined, cast.spellId)
+        castSpell,
+        mergeOnHitRiders(
+          withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? []),
+          input.onHitRiders ?? [],
+          undefined,
+          cast.spellId
+        )
       )
       const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
       const mechanic = mechanics.find((entry) => entry.effectId === group.id)
@@ -324,14 +320,14 @@ export function buildCharacterSpellCastActions(input: {
         .flatMap(({ modifierId, label, cost }) => {
           const fitsSpell =
             !cost.parameters ||
-            (castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null &&
+            (castModifierRange(cost.parameters, group.invocation.range) !== null &&
               castModifierActivation(cost.parameters, mechanicFacts.invocation.activation) !==
                 null &&
               castModifierExtendsDuration(
                 cost.parameters,
                 group.entries.map((entry) =>
                   'duration' in entry && entry.duration
-                    ? conditionDurationTurns(entry.duration)
+                    ? spellCast.durationTurns(entry.duration)
                     : null
                 )
               ))

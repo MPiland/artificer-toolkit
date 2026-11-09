@@ -23,7 +23,7 @@ import {
   activeSavingThrowDice,
   effectiveHitPointMaximum
 } from '../character/activeEffectGrantTotals.js'
-import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
+import { resolveCharacterRulePolicyRollModes } from '../systems/dnd5e/characterRuleRollProjection.js'
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,

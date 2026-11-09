@@ -90,7 +90,7 @@ Convex contexts, database rows, or Worker APIs, so the room and Convex run the s
 and rules-runtime code never imports the D&D Concentration maintenance id or melee classification. It
 asks the installed System for the Run's `gameSystemId` through `platformRulesRuntime`:
 `requireInstalledConcentrationMaintenanceDefinitionId` and `isInstalledMeleeAttackTrigger`, both
-registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
+registered by the System's runtime tier (`systems/dnd5e/runtimeTier`). An unknown System fails
 closed.
 
 ### SRD effect compile golden (current, RULES-2.T2)
@@ -461,9 +461,11 @@ the composition roots above are exempt by name
 Each composition root builds its registries from one installed-Systems list per load tier (D195,
 RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
 (`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`
-(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each System exports one module object per
-tier (`GameSystem<Tier>Tier`, declared by its root). A System leaves out a capability it lacks, so `require`
-fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
+(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each list file exports one list per
+capability, and each System declares a tier as named exports, one per capability, checked against the
+tier contract (`GameSystem<Tier>Tier`, declared by its root) by a type-only assertion in the list file
+(ADR 0042). Registries are built under `/* @__PURE__ */`, so a bundle keeps only the adapters it calls.
+A System leaves out a capability it lacks, so `require` fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
 encounter each load policy but not each other, and runtime loads all five. `schemaBoundary.test.ts`
 asserts that nesting from esbuild closures, so a heavier tier never leaks into a lighter one. The tracer
 Vitest project (`tracer` in the root `vitest.config.ts`) aliases the vocabulary, policy, encounter and

@@ -12,7 +12,6 @@ import {
   evaluateDnd5eCharacterEligibility,
   type CharacterResolvedProficiency
 } from './characterEligibility.js'
-import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { evaluateDnd5e2014CharacterGrantFold } from './characterGrantFold.js'
 import { evaluateDnd5eCharacterItemMechanics } from './characterItemMechanics.js'
 import { dnd5eActionModifierGroups, evaluateDnd5eCharacterModifiers } from './characterModifiers.js'
@@ -176,7 +175,7 @@ export function evaluateDnd5e2014CharacterPolicy(
       contributions
     })),
     ...rolls,
-    // `resolveCharacterRulePolicyRollModes` fills these from the System vocabulary.
+    // `resolveCharacterRollModes` fills these from the System vocabulary.
     savingThrowDefinitions: [],
     ...evaluateDnd5eCharacterDefenses(input, grantFold),
     ...evaluateDnd5eCharacterMovementAndSenses(input, grantFold, modifierGroups),
@@ -235,8 +234,3 @@ export function evaluateDnd5e2014CharacterPolicy(
     }
   }
 }
-
-export const dnd5eCharacterPolicyRegistration = {
-  gameSystemId: DND5E_SYSTEM_ID,
-  evaluateCharacterPolicy: evaluateDnd5e2014CharacterPolicy
-} as const

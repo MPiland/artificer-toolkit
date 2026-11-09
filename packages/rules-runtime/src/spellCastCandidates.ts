@@ -1,11 +1,25 @@
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterSpellSourceRef } from '@artificer-toolkit/shared/character'
 import type { SpellComponent } from '@artificer-toolkit/shared/core'
-import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type { CompiledDuration, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { v5 as uuidv5 } from 'uuid'
 
 export type SpellCastCandidate = CharacterRulePolicyInput['spellCastCandidates'][number]
+
+/** How a System's rules shape a Character's spell cast before it is offered. */
+export interface SpellCastCapabilityAdapter {
+  readonly gameSystemId: string
+  /** The cast's Effect group as the Character's grants change it (its range, its saved damage). */
+  adaptCastEffect<TEffect extends CompiledEffectGroup>(
+    grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
+    spell: { id: string; level: number | null; magicSchoolId: string | null },
+    effect: TEffect
+  ): TEffect
+  /** A duration's length in turns, or null when it has no fixed length. */
+  durationTurns(duration: CompiledDuration): number | null
+}
 
 /** How a grant's attributes say the spell is paid for; a grant with none casts from a slot. */
 export function spellCastMode(attributes: readonly string[]): SpellCastCandidate['castMode'] {

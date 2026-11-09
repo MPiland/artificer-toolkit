@@ -1,6 +1,13 @@
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 
 /**
+ * A System's tier module, type-checked against its tier contract (ADR 0042). A tier module exports
+ * one binding per capability, so check it with `typeof import(...)`: a runtime reference to the
+ * module namespace would keep every adapter in every bundle.
+ */
+export type SystemTierModule<TModule extends TTier, TTier> = TModule
+
+/**
  * The installed Systems' adapters for one capability, keyed by UUID-canonical `gameSystemId`
  * (ADR 0039 decision 5). A neutral runtime module reaches System behaviour only through `require`,
  * which fails closed on a System that does not provide the capability.
