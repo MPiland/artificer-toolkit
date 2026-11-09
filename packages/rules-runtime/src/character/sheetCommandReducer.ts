@@ -107,14 +107,6 @@ export function formatModifier(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
 }
 
-export function formatCodeLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
 export function getHitPointAdjustment(
   adjustments: readonly CharacterSheetAdjustment[],
   field: 'MAXIMUM_MODIFIER' | 'MAXIMUM_OVERRIDE'

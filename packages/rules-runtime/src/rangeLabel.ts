@@ -1,9 +1,15 @@
 import { MEASUREMENT_UNIT_REGISTRY, type LengthUnitCode } from '@artificer-toolkit/shared/core'
 
-import { formatCodeLabel } from './character/sheetCommandReducer.js'
-
 export function formatAmount(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
+}
+
+export function formatCodeLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 /**

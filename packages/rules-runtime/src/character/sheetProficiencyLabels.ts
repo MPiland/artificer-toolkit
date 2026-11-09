@@ -1,5 +1,5 @@
 import type { CharacterRuleProficiency } from './characterSheetRuleProjection.js'
-import { formatCodeLabel } from './sheetCommandReducer.js'
+import { formatCodeLabel } from '../rangeLabel.js'
 
 export function formatProficiencyScaling(scaling: CharacterRuleProficiency['scaling']): string {
   switch (scaling) {

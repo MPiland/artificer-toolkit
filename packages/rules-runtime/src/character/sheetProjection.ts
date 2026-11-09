@@ -52,9 +52,9 @@ import {
   createSkillReference,
   getClassSpellSelectionSources
 } from './characterSheetVocabulary.js'
+import { formatCodeLabel } from '../rangeLabel.js'
 import {
   clamp,
-  formatCodeLabel,
   formatModifier,
   getHitPointAdjustment,
   getSpellSlotKey,
