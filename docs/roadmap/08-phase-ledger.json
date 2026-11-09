@@ -23520,7 +23520,7 @@
         },
         {
           "id": "RELIABILITY-22",
-          "title": "Convex tests that need Node builtins live outside the deployed functions folder",
+          "title": "Convex tests use only what the Convex runtime offers; Node-only repo checks live outside convex/",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "internal",
@@ -23534,7 +23534,7 @@
           "acs": [
             {
               "id": "RELIABILITY-22.1",
-              "text": "No test file under apps/apis/convex imports a Node builtin; the nine that did (authRecovery, schemaBoundary, roomClock, functionBundleBudget, campaigns/announcements, characters/sheetAccessBaseline, content/seed, content/seedReplace, liveSessions/encounterActorCapProjection) run from a folder outside convex/ in the same CI suite with unchanged assertions, and a structural test fails if a convex/ test imports a Node builtin.",
+              "text": "No test file under apps/apis/convex imports a Node builtin, so the Convex plugin lint hook accepts every test edit. convex-test function tests stay beside their functions (the documented layout) and use web-standard globals where they used Node: authRecovery and campaigns/announcements hash with crypto.subtle, liveSessions/encounterActorCapProjection uses the global performance, and content/seed and content/seedReplace take their brotli step from a helper under apps/apis/tests/. Repo-level checks that read files or spawn processes (functionBundleBudget, schemaBoundary, characters/sheetAccessBaseline) run from apps/apis/tests/ in the same CI suite and affected-test selection. Assertions are unchanged, and a structural test fails if a convex/ test imports a Node builtin.",
               "status": "TODO",
               "proof": [],
               "origin": []
@@ -23543,17 +23543,16 @@
           "tasks": [
             {
               "id": "RELIABILITY-22.T1",
-              "text": "Move the nine Node-builtin Convex tests out of apps/apis/convex (for example apps/apis/tests/), repoint their convex-test module globs and relative imports at ../convex, add the folder to the apis Vitest config and its CI suite and affected-test selection, and add the structural guard test. Assertions unchanged. Starts after PERF-6.T8 merges (it edits functionBundleBudget.test.ts).",
+              "text": "Move functionBundleBudget, schemaBoundary and characters/sheetAccessBaseline to apps/apis/tests/ (repoint paths and convex-test globs at ../convex); switch authRecovery and campaigns/announcements to crypto.subtle and encounterActorCapProjection to the global performance; move the seed tests' brotli calls into an apps/apis/tests/ helper. Add apps/apis/tests/**/*.test.ts to the apis Vitest convex project, its CI suite and affected-test selection, and add the structural guard. Assertions unchanged. Runs before PERF-6.T8's remaining functionBundleBudget edits.",
               "status": "TODO",
               "closes": ["RELIABILITY-22.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 2,
-                "after": ["PERF-6.T8"]
+                "size": 2
               },
-              "note": "User approved 2026-11-08: the Convex plugin lint hook rejects edits to convex/*.test.ts files that import node: builtins (false positive for Vitest files), which blocked T3 and T8."
+              "note": "User approved 2026-11-08; reordered ahead of PERF-6.T8 the same day. A Convex docs review (docs.convex.dev/testing/convex-test, /testing/convex-backend) confirmed co-located convex-test tests and the self-hosted CI lane are the documented pattern; the plugin lint hook (convex-lint.mjs rule 9) rejects Node builtins in any convex/*.ts and has no test exemption, which blocked T3 and T8. The hook stays unchanged."
             }
           ],
           "internalReason": "Test placement only; no user-visible flow."
@@ -24731,7 +24730,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["PERF-6.T3"],
+                "after": ["PERF-6.T3", "RELIABILITY-22.T1"],
                 "finalSource": true
               },
               "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts.",
