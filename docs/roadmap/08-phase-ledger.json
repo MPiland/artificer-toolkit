@@ -24808,7 +24808,7 @@
             },
             {
               "id": "PERF-6.T13",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24819,7 +24819,8 @@
                 "finalSource": true
               },
               "text": "Regression from PERF-6.T6 (m667): the campaign-assignment-lifecycle Browser journey fails since m667 (passed at m666 backstop 42571936393; fails on a5bf57344, probe run 42636584794, and on every ci/perf-6-t11 run) because commitCharacter rejects with \"Character changed since this draft opened\". Suspected cause: a Builder draft opened after the departure commits but before the queued campaigns/characterReconcileSteps:run step writes the Character. Confirm the cause, add a regression test that fails before the fix, and fix it at the cause so the user-visible flow passes: a player who leaves or is removed from a Campaign and then edits the Character in the Builder can commit. Keep D81 departure semantics and the T6 step split.",
-              "note": "Registered 2026-11-09 by the orchestrator. The m667 full-run backstop (42577955714) did not reach this journey because its shard failed at setup, so the regression went unnoticed until T11. It blocks any slice whose imports reach the journey."
+              "note": "Registered 2026-11-09 by the orchestrator. The m667 full-run backstop (42577955714) did not reach this journey because its shard failed at setup, so the regression went unnoticed until T11. It blocks any slice whose imports reach the journey.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T14",
