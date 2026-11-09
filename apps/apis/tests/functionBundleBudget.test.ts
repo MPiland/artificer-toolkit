@@ -119,6 +119,22 @@ it.each(['campaigns/characterBasics.ts'])('keeps the %s module floor within 20 m
   expect(moduleFloorMs(entry)).toBeLessThanOrEqual(20)
 })
 
+// Converting zod schemas to Convex validators at module top level cost these 2–3 MB modules 41–83 ms
+// per call (PERF-6.T1). The function builders and the validators they share build on first export
+// (PERF-6.T8). Each run records its floor.
+it.for([
+  ['campaigns/characterSheet.ts', 30],
+  ['campaigns/accountDeparture.ts', 45],
+  ['characters/sheetCommands.ts', 50],
+  ['characters/sheetSectionDerivation.ts', 40],
+  ['characters/sheetSlices.ts', 30],
+  ['content/classPublication.ts', 115]
+] as const)('keeps the %s module floor within %i ms', async ([entry, budgetMs], { annotate }) => {
+  const floorMs = moduleFloorMs(entry)
+  await annotate(`${entry} module floor ${floorMs.toFixed(1)} ms`)
+  expect(floorMs).toBeLessThanOrEqual(budgetMs)
+})
+
 // Evaluating the app schema costs 43–58 ms per call (PERF-6.T1), so these modules page their
 // tables with index range reads instead of convex-helpers streams over it (PERF-6.T3).
 it.each(['contentSnapshots/heads.ts', 'campaigns/accountDeparture.ts'])(
