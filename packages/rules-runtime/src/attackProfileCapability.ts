@@ -27,6 +27,18 @@ export type QualifiedDamageDefense = {
   readonly bypassedBy: readonly DamageDefenseBypassCode[]
 }
 
+/**
+ * Settles a compiled attack Effect's path restrictions against the item it is made with, so only
+ * the circumstance checks remain when it rolls. A Creature's attack has no item.
+ */
+export interface AttackRestrictionCapabilityAdapter {
+  readonly gameSystemId: string
+  reduceAttackRestrictions<TEffect extends CompiledEffectGroup>(
+    effect: TEffect,
+    equipment: CharacterActionCandidate['equipment']
+  ): TEffect
+}
+
 /** One Character attack: the action it is made with, the ammunition it fires and its ability. */
 export type CharacterAttack = {
   readonly candidate: Pick<
@@ -95,8 +107,6 @@ export interface AttackProfileCapabilityAdapter {
   }): { attack: number; damage: number }
   /** A Creature's spell attack bonus and spell save DC from the spell save DC its grant states. */
   creatureSpellcasting(input: { spellSaveDc: number }): { attackBonus: number; saveDc: number }
-  /** Settles a compiled attack Effect's path restrictions that need no attacking item. */
-  reduceItemlessAttackRestrictions<TEffect extends CompiledEffectGroup>(effect: TEffect): TEffect
   /** The circumstances a compiled attack Effect's paths ask about when it rolls. */
   compiledAttackReads(compiledEffect: unknown): {
     readonly enemyProximity: boolean

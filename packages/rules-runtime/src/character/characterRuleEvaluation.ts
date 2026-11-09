@@ -7,7 +7,10 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import { evaluateInstalledCharacterPolicy } from '../platformCharacterPolicy.js'
+import {
+  evaluateInstalledCharacterPolicy,
+  resolveInstalledCharacterRollModes
+} from '../platformCharacterPolicy.js'
 import { listActiveEffectGrants } from './activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './characterGrantFoldRestrictionFacts.js'
 import {
@@ -19,7 +22,6 @@ import {
   assembleCharacterRuleSnapshot,
   type prepareCharacterRuleSources
 } from './characterRuleSnapshot.js'
-import { resolveCharacterRulePolicyRollModes } from './characterRuleRollProjection.js'
 import {
   buildCharacterSpellRuleFacts,
   collectCharacterRuleInputSpellIds
@@ -63,13 +65,14 @@ export function evaluateCharacterRules(
   )
   let output = outputByFacts.get(composed.facts)
   if (!output) {
-    output = resolveCharacterRulePolicyRollModes(
-      evaluateInstalledCharacterPolicy({
+    output = resolveInstalledCharacterRollModes({
+      gameSystemId: input.character.systemId,
+      output: evaluateInstalledCharacterPolicy({
         gameSystemId: input.character.systemId,
         facts: composed.facts
       }),
-      input.context.vocabularySnapshot
-    )
+      vocabularySnapshot: input.context.vocabularySnapshot
+    })
     outputByFacts.set(composed.facts, output)
   }
   return { ...composed, output }
@@ -130,9 +133,10 @@ export function evaluateCharacterActiveGrantRules<
   return {
     ...evaluation,
     facts,
-    output: resolveCharacterRulePolicyRollModes(
-      evaluateInstalledCharacterPolicy({ gameSystemId: input.gameSystemId, facts }),
-      input.vocabularySnapshot
-    )
+    output: resolveInstalledCharacterRollModes({
+      gameSystemId: input.gameSystemId,
+      output: evaluateInstalledCharacterPolicy({ gameSystemId: input.gameSystemId, facts }),
+      vocabularySnapshot: input.vocabularySnapshot
+    })
   }
 }

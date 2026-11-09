@@ -44,7 +44,7 @@ import {
   characterNaturalWeapon,
   prepareCharacterRuleSources
 } from '../character/characterRuleSnapshot.js'
-import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
+import { resolveCharacterRulePolicyRollModes } from '../systems/dnd5e/characterRuleRollProjection.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 
 type Ability = (typeof SRD_ABILITIES)[number]['code']

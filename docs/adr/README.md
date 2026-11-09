@@ -56,6 +56,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0039](0039-composable-system-neutral-rules-engine.md)                 | Composable, System-neutral rules engine; size and import ratchets     | decision (RULES-2 in progress)                                      |
 | [0040](0040-staged-account-deletion.md)                                | Staged account deletion: durable job of bounded steps, account last   | decision (RELIABILITY-21.T22)                                       |
 | [0041](0041-stored-character-sheet-sections.md)                        | A Character write stores its derived Sheet per viewer and section     | decision (RELIABILITY-21.T16)                                       |
+| [0042](0042-tree-shakable-system-capability-registries.md)             | Tree-shakable System capability registries, one list per capability   | accepted (PERF-6.T12)                                               |
 
 ## Updating an ADR
 

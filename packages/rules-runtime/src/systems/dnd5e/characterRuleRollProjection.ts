@@ -14,8 +14,8 @@ import {
   dnd5eModifierApplies,
   dnd5eSaveRequiresSourceSight,
   type Dnd5eModifierTarget
-} from '../systems/dnd5e/modifierApplicability.js'
-import { resolveDnd5eRollMode } from '../systems/dnd5e/rollModePolicy.js'
+} from './modifierApplicability.js'
+import { resolveDnd5eRollMode } from './rollModePolicy.js'
 
 type CharacterRollMode = CharacterRulePolicyOutput['rollModes']['initiative']
 

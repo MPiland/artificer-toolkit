@@ -33,10 +33,8 @@ import {
   stableActors
 } from './encounterActorState.js'
 import type { MoraleActorFacts } from './optionalCombatPolicyCapability.js'
-import {
-  armorClassCapabilityRegistry,
-  optionalCombatPolicyCapabilityRegistry
-} from './platformEncounterPolicy.js'
+import { optionalCombatPolicyCapabilityRegistry } from './platformEncounterPolicy.js'
+import { armorClassCapabilityRegistry } from './platformPolicyModules.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { creatureInnateConditionRows } from './encounterInnateConditions.js'
 import { encounterFacingRule } from './encounterFacing.js'

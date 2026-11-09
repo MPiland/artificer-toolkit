@@ -6,7 +6,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { parseHitDie } from '../systems/dnd5e/hitPointRules.js'
+import { characterProgressionCapabilityRegistry } from '../platformPolicyModules.js'
 import type { CharacterBuilderRegistry, CharacterBuilderValidation } from './builderTypes.js'
 
 type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
@@ -25,6 +25,7 @@ export function prepareCharacterHitpointProgression(
   authoredClasses: CharacterBuilderRegistry['classes'],
   existingCharacter: CharacterAuthored | null
 ): CharacterHitpointProgressionPreparation {
+  const hitDieSize = characterProgressionCapabilityRegistry.require(character.systemId).hitDieSize
   const submittedLevels = character.intent.hitpoints.levels
   const persistedLevels = existingCharacter?.intent.hitpoints.levels ?? []
   const levelsByClass = new Map(
@@ -88,7 +89,7 @@ export function prepareCharacterHitpointProgression(
       (record): record is Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }> =>
         record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
     )
-    const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
+    const die = hitDieSize(authoredClass?.hitpoint?.dieConfig)
     const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
     const submitted = levelsByClass.get(key)
     const roll = submitted?.rolls?.[0]
@@ -190,6 +191,7 @@ export function appendManualHitpointValidationIssues(
   validations: CharacterBuilderValidation[]
 ): void {
   if (character.intent.hitpoints.method !== HITPOINT_CALCULATION_METHOD_CODE.MANUAL) return
+  const hitDieSize = characterProgressionCapabilityRegistry.require(character.systemId).hitDieSize
 
   for (const level of character.intent.hitpoints.levels) {
     if (level.level === 1) continue
@@ -198,7 +200,7 @@ export function appendManualHitpointValidationIssues(
       (record): record is Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }> =>
         record.category === CLASS_CATEGORY.BASE && record.id === level.classId
     )
-    const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
+    const die = hitDieSize(authoredClass?.hitpoint?.dieConfig)
     const rolls = level.rolls ?? []
 
     if (rolls.length === 0) {
@@ -231,10 +233,12 @@ export function appendManualHitpointValidationIssues(
 }
 
 export function reconcileCharacterHitDice(
+  gameSystemId: string,
   selectedClasses: CharacterAuthored['intent']['classes'],
   authoredClasses: CharacterBuilderRegistry['classes'],
   currentHitDice: CharacterHitDie[]
 ): CharacterHitDie[] {
+  const hitDieSize = characterProgressionCapabilityRegistry.require(gameSystemId).hitDieSize
   const totalsByDie = new Map<number, number>()
 
   for (const selection of selectedClasses) {
@@ -243,7 +247,7 @@ export function reconcileCharacterHitDice(
     const authoredClass = authoredClasses.find((record) => record.id === selection.classId)
     if (!authoredClass || authoredClass.category !== CLASS_CATEGORY.BASE) continue
 
-    const die = parseHitDie(authoredClass.hitpoint?.dieConfig)
+    const die = hitDieSize(authoredClass.hitpoint?.dieConfig)
     if (die === null) continue
 
     totalsByDie.set(die, (totalsByDie.get(die) ?? 0) + selection.classLevel)
