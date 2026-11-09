@@ -1131,23 +1131,6 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     }
     expect(await readPending()).toEqual([])
     expect(await readCommon()).not.toBeNull()
-    // The sharer's membership is a Sheet input: the GM shared the Background, so their membership
-    // change queues the party's Sheets.
-    await expectQueuedThenCurrent(() =>
-      t.run(async (ctx) => {
-        const tracked = withSceneVisionTracking(ctx)
-        const membership = await tracked.db
-          .query('campaignMemberships')
-          .withIndex('by_campaignId_userId', (q) =>
-            q.eq('campaignId', campaign.id).eq('userId', gm.userId)
-          )
-          .unique()
-        await tracked.db.patch(membership!._id, {
-          status: 'LEFT',
-          leftAt: new Date().toISOString()
-        })
-      })
-    )
     await expectQueuedThenCurrent(() =>
       gm.caller.mutation(api.campaigns.currencySystems.save, {
         campaignId: campaign.id,
@@ -1156,6 +1139,22 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         denominations: [{ label: 'Token', abbreviation: 'tk', scaleInReference: 1 }]
       })
     )
+    // The sharer's membership is a Sheet input: the GM shared the Background, so their membership
+    // change queues the party's Sheets. Shared content stops being valid, so the Sheet need not
+    // serve afterwards; only the queueing is asserted.
+    await t.run(async (ctx) => {
+      const tracked = withSceneVisionTracking(ctx)
+      const membership = await tracked.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_userId', (q) =>
+          q.eq('campaignId', campaign.id).eq('userId', gm.userId)
+        )
+        .unique()
+      await tracked.db.patch(membership!._id, { status: 'LEFT', leftAt: new Date().toISOString() })
+    })
+    expect(await readPending()).toEqual([character.id])
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readPending()).toEqual([])
   }, 60_000)
 
   it("runs a Campaign change's stores one at a time, and every assigned Character ends current", async () => {

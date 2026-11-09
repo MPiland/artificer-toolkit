@@ -788,10 +788,9 @@ describe('native Campaign custody deletion', () => {
       expect(stores.map((row) => row.args)).toEqual(
         stores.map(() => [{ characterId: base.character.id, token: expect.any(String) }])
       )
-      expect(stores.map((row) => row.state.kind).sort()).toEqual([
-        ...stores.slice(1).map(() => 'canceled'),
-        'success'
-      ])
+      // The reconcile step waits the settle delay (D216), so the store the assignment delete queued
+      // lands first and the step's own write queues a second one: two derivations, both landed.
+      expect(stores.map((row) => row.state.kind)).toEqual(['success', 'success'])
       // Each store has one check (D215). A write that replaced the store cancelled it; the store
       // that landed cancelled it or, when the fake clock started both at once, it found the store
       // done and queued nothing: the store states above hold no second attempt.
