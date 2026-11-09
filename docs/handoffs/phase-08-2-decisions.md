@@ -1377,8 +1377,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     step ends the Run effects (unless the Character was assigned to the Campaign again or the room
     holds it), trims attunement, clamps HP, keeps play history and reconciles source loss. It
     records its `CAMPAIGN_CHARACTER_RECONCILED` event under the step id, so a retried or duplicate
-    step changes nothing. Until the step runs, readers see the departed Character with the
-    Campaign's settings still applied, and a draft opened before the departure must be reopened.
+    step changes nothing.
+  - **Amended 2026-11-09 (PERF-6.T13, orchestrator ruling):** until the step runs, the Character
+    stays ACTIVE with its Run effects, attunement and HP unsettled, but the departure has already
+    removed its Campaign authority and shares. A Character that uses a removed shared source is
+    not Sheet-ready at once: its Sheet reads report Builder repair, and its queued Sheet store
+    lands without storing sections (the fixture state is MISSING). The step then records the
+    repair (the Character becomes DRAFT) and its write queues the Sheet store again, so the Sheet
+    reaches its post-departure state with no other action. Proofs that read what the step settles
+    wait for it (`awaitCharacterReconcile`). When the departure writes the Character (currency
+    returned, held rules retained), it also moves an open Builder draft onto that write: the draft
+    takes the retained rules and currency and is rebased, as the step's reconcile does, so the
+    player can commit it before the step runs; it is not reopened.
   - **Live-held (D74):** play stays the room's. Settlement runs when the hold drops at a checkpoint
     (`reconcileCharacterHolds`) or at room release (`releaseCharacterHolds` through authority
     release). The room ignores maintained-effect dependents whose Character owner is no longer
@@ -2086,3 +2096,10 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Draft open and discard:** opening or discarding an edit draft over an active Character queues its store, since the fingerprint includes whether a draft is open (Browser journeys 42394782639 found stale sections with none queued). Draft saves queue nothing.
 - **Reset:** `characterSheetPendingStores` gained `campaignId`, `checkId` and `retried`, and `scheduledId` became optional, so local data is reset after merge (D196).
 - **One declaration (RELIABILITY-21.T36):** the merge backstop (Browser journeys 42399914940 on `ci/merge-m649`) found stale sections with no store queued in passage, movement, equipment-character and disarm-browser. Character-scope inputs were queued only by explicit calls in a few write paths (`writeCharacterRecord`, drafts, play preferences), so writes outside them, such as encounter play and effect writes, room checkpoints and USER source edits, left sections stale. Every fingerprint input is now declared once in `characters/sheetFingerprintInputs.ts`, and `lib/mutations.ts` registers a trigger for each from that declaration. The explicit calls are gone, and a structural test fails when the fingerprint reads an undeclared table. This removes the checkpoint and USER-source residuals; only an SRD reseed is left. No input is written near once a second per Character, so the 300 ms debounce stays (ADR 0041 Amendment 1, write rates). Each trigger queues only when a write moves what the Sheet reads, and a declared table pays two trigger gets per patch or replace; the orchestrator accepted that cost over seam-by-seam queuing and had the draft-autosave and publication budgets restated exactly (ADR 0041 Amendment 1, cost per write).
+
+## D216 (2026-11-09): departure timeouts are a concurrency burst; gate on executions, cap CI concurrency, split Campaign hot fields
+
+- **Trigger:** an independent review ([perf-6-fable-timeout-review-2026-11-09](../validation/perf-6-fable-timeout-review-2026-11-09.md)) of the m671 movement journey log found that one membership departure starts about 20 executions within 25 ms on the 4-vCPU CI runner. Convex's 1 s limit is wall-clock user time, so a 49 ms query costs about 690 ms inside the burst. Bundle size had stopped moving the timeouts (the reconcile step went from 3,190 to 2,829 KB and still timed out).
+- **Ruling (user): CI concurrency cap and a count gate.** After one diagnostic dispatch proves the pinned self-hosted image honours `APPLICATION_MAX_CONCURRENT_QUERIES` and `APPLICATION_MAX_CONCURRENT_MUTATIONS` and queues at the limit, every CI Convex container caps both near the runner's core count. The user timeout is never raised. The burst's size is then gated deterministically: a convex-test fails when a departure exceeds its execution budget (scheduled functions, Sheet stores, hot-row writes). Timeout counts and p95 stay recorded evidence, consistent with D210. PERF-6.T14.
+- **Ruling (user): split the Campaign hot fields.** `version`, `updatedAt` and `notebookRevision` move off `campaigns` to a one-row-per-Campaign revision document, so authority reads stop depending on fields that departures, unshares and notebook writes patch. Chosen over skipping the version bump on share-less departures, which would have changed what the removal receipt's `campaignVersion` means and left notebook writes rerunning every Campaign subscription. Persisted-contract change; development data migrates in the same change. PERF-6.T15 (scope growth approved under the D187 freeze).
+- **Within existing rulings:** the reconcile run and Campaign-scope Sheet store chains wait for subscribers to settle (the step is already asynchronous, see the PERF-6.T6 reader window); a player's membership change queues Campaign Sheet stores only if a Sheet reads that membership (D215's rule is unchanged: a write that changes a real fingerprint input queues).
