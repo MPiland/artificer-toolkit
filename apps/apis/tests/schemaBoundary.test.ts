@@ -55,7 +55,7 @@ it('keeps UUID-only leaf contracts independent of execution schemas', () => {
 
 it('keeps typed Character persistence independent of the authored mechanics graph', () => {
   const bundle = buildSync({
-    entryPoints: [fileURLToPath(new URL('./characters/schema.ts', import.meta.url))],
+    entryPoints: [fileURLToPath(new URL('../convex/characters/schema.ts', import.meta.url))],
     bundle: true,
     platform: 'browser',
     conditions: ['source'],
@@ -73,7 +73,7 @@ it('keeps typed Character persistence independent of the authored mechanics grap
 
 it('keeps the complete database schema independent of the executable rules kernel', () => {
   const bundle = buildSync({
-    entryPoints: [fileURLToPath(new URL('./schema.ts', import.meta.url))],
+    entryPoints: [fileURLToPath(new URL('../convex/schema.ts', import.meta.url))],
     bundle: true,
     platform: 'browser',
     conditions: ['source'],
@@ -91,7 +91,7 @@ it('keeps the complete database schema independent of the executable rules kerne
 
 it('evaluates the complete database schema without environment-variable access', () => {
   const bundle = buildSync({
-    entryPoints: [fileURLToPath(new URL('./schema.ts', import.meta.url))],
+    entryPoints: [fileURLToPath(new URL('../convex/schema.ts', import.meta.url))],
     bundle: true,
     platform: 'browser',
     conditions: ['source'],
@@ -147,7 +147,12 @@ const SYSTEM_VOCABULARY_SEAM = [
 function playImportsOf(entry: { entryPoints: string[] } | { stdin: { contents: string } }) {
   const bundle = buildSync({
     ...('stdin' in entry
-      ? { stdin: { ...entry.stdin, resolveDir: fileURLToPath(new URL('.', import.meta.url)) } }
+      ? {
+          stdin: {
+            ...entry.stdin,
+            resolveDir: fileURLToPath(new URL('../convex', import.meta.url))
+          }
+        }
       : entry),
     bundle: true,
     platform: 'browser',
@@ -169,7 +174,7 @@ function playImportsOf(entry: { entryPoints: string[] } | { stdin: { contents: s
 it('keeps authoring source reads independent of the play execution registry and schemas', () => {
   expect(
     playImportsOf({
-      entryPoints: [fileURLToPath(new URL('./authoring/nodeRuntime.ts', import.meta.url))]
+      entryPoints: [fileURLToPath(new URL('../convex/authoring/nodeRuntime.ts', import.meta.url))]
     })
   ).toEqual([])
 })
@@ -187,7 +192,7 @@ it('refuses a play module loaded beside the System vocabulary seam', () => {
   expect(playImports.some((path) => path.endsWith('/platformSystemCoreCodes.ts'))).toBe(false)
 })
 
-it.each(['./characters/documents.ts', './content/deletion.ts'])(
+it.each(['../convex/characters/documents.ts', '../convex/content/deletion.ts'])(
   'keeps storage and deletion independent of full Sheet response and command schemas: %s',
   (source) => {
     const bundle = buildSync({

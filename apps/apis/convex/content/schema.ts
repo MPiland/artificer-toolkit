@@ -59,6 +59,12 @@ export function buildContentTables() {
       'by_publicId',
       ['id']
     ),
+    // The System document's checksum beside it, for readers that compare versions without the
+    // document (the Character Sheet fingerprint); only `content/import:bootstrap` writes either.
+    systemChecksums: defineTable({ systemId: v.string(), checksum: v.string() }).index(
+      'by_systemId',
+      ['systemId']
+    ),
     contentSources: defineTable(zodToConvex(authoredContentSourceDtoSchema))
       .index('by_publicId', ['id'])
       .index('by_ownerUserId', ['ownerUserId'])

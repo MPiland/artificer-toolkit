@@ -24,8 +24,8 @@ import { readMemberEncounter } from './readAccess'
 
 /** One authenticated snapshot keeps the tabletop's active Campaign Run and pending decision in sync. */
 export const active = query({
-  args: zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
-  get returns(): Validator<EncounterSessionStateDto, 'required', string> {
+  args: () => zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
+  returns: (): Validator<EncounterSessionStateDto, 'required', string> => {
     return zodToConvex<z.core.$ZodType<EncounterSessionStateDto>>(encounterSessionStateDtoSchema)
   },
   handler: async (ctx, args): Promise<EncounterSessionStateDto> => {
@@ -60,8 +60,8 @@ export async function readActiveEncounterSession(ctx: QueryCtx, campaignId: stri
  * player's drawer reads it once the decision leaves `pending`.
  */
 export const decisionSettlement = query({
-  args: zodToConvexFields(getEncounterDecisionSettlementInputDtoSchema.shape),
-  returns: zodToConvex(encounterDecisionSettlementDtoSchema),
+  args: () => zodToConvexFields(getEncounterDecisionSettlementInputDtoSchema.shape),
+  returns: () => zodToConvex(encounterDecisionSettlementDtoSchema),
   handler: async (ctx, args): Promise<EncounterDecisionSettlementDto> => {
     const input = getEncounterDecisionSettlementInputDtoSchema.parse(args)
     const encounterId = input.encounterId.toLowerCase()

@@ -18,8 +18,8 @@ import { requireCampaignAuthority } from './authority'
 import { requireSession } from './sessionDocuments'
 
 export const list = query({
-  args: zodToConvexFields(campaignSessionAttendanceListInputSchema.shape),
-  returns: zodToConvex(campaignSessionAttendanceListPageSchema),
+  args: () => zodToConvexFields(campaignSessionAttendanceListInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionAttendanceListPageSchema),
   handler: async (ctx, args): Promise<CampaignSessionAttendanceListPage> => {
     const input = campaignSessionAttendanceListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -44,8 +44,8 @@ export const list = query({
 })
 
 export const set = mutation({
-  args: zodToConvexFields(setCampaignSessionAttendanceInputSchema.shape),
-  returns: zodToConvex(campaignSessionAttendanceDtoSchema),
+  args: () => zodToConvexFields(setCampaignSessionAttendanceInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionAttendanceDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionAttendanceDto> => {
     const input = setCampaignSessionAttendanceInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

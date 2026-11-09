@@ -15,8 +15,8 @@ import { bindPortrait, ownedCharacter } from './characterPortraitAssets'
  * A slot changed during processing rejects the settlement, so its current image stays.
  */
 export const finish = internalMutation({
-  args: zodToConvexFields(mediaImageSaveSettlementSchema.shape),
-  returns: zodToConvex(avatarBindingSchema),
+  args: () => zodToConvexFields(mediaImageSaveSettlementSchema.shape),
+  returns: () => zodToConvex(avatarBindingSchema),
   handler: async (ctx, args): Promise<AvatarBindingDto> => {
     const { authenticated, asset, binding } = await settleImageUpload(
       ctx,

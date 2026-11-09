@@ -4,8 +4,8 @@ import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { syncAccountUsage } from '../lib/accountUsage'
 
 export const removeFixtureBlueprint = internalMutation({
-  args: { userId: v.string(), blueprintId: v.string() },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), blueprintId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { userId, blueprintId }) => {
     await requireFixtureAccount(ctx, userId)
     const blueprint = await ctx.db

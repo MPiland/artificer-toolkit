@@ -35,8 +35,8 @@ import { consumeUserRateLimit } from '../lib/rateLimits'
 import { assertConvexOwnsCampaignChat } from '../liveSessions/authorityGuard'
 
 export const list = query({
-  args: zodToConvexFields(listCampaignChatEntriesInputSchema.shape),
-  returns: zodToConvex(campaignChatPageDtoSchema),
+  args: () => zodToConvexFields(listCampaignChatEntriesInputSchema.shape),
+  returns: () => zodToConvex(campaignChatPageDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatPageDto> =>
     readCampaignChatPage(ctx, (await requireIdentity(ctx)).userId, args)
 })
@@ -112,8 +112,8 @@ export async function readCampaignChatPage(
 }
 
 export const send = mutation({
-  args: zodToConvexFields(sendCampaignChatEntryInputSchema.shape),
-  returns: zodToConvex(campaignChatEntryDtoSchema),
+  args: () => zodToConvexFields(sendCampaignChatEntryInputSchema.shape),
+  returns: () => zodToConvex(campaignChatEntryDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const actor = await getAuthenticatedProfile(ctx)
     if (!actor) throw new Error('Unauthenticated')
@@ -206,8 +206,8 @@ async function mutableChatEntry(
 }
 
 export const edit = mutation({
-  args: zodToConvexFields(editCampaignChatEntryInputSchema.shape),
-  returns: zodToConvex(campaignChatEntryDtoSchema),
+  args: () => zodToConvexFields(editCampaignChatEntryInputSchema.shape),
+  returns: () => zodToConvex(campaignChatEntryDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = editCampaignChatEntryInputSchema.parse(args)
@@ -232,8 +232,8 @@ export const edit = mutation({
 })
 
 export const unsend = mutation({
-  args: zodToConvexFields(unsendCampaignChatEntryInputSchema.shape),
-  returns: zodToConvex(campaignChatEntryDtoSchema),
+  args: () => zodToConvexFields(unsendCampaignChatEntryInputSchema.shape),
+  returns: () => zodToConvex(campaignChatEntryDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = unsendCampaignChatEntryInputSchema.parse(args)

@@ -26,7 +26,7 @@ import {
   readVerifiedCharacterBuild
 } from './stateDocuments'
 import { loadCharacterSheet } from './sheetPreparation'
-import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
+import { characterSheetSection, readStoredCharacterSheetSections } from './sheetSections'
 import { CharacterRequiresBuilderRepairError } from '@artificer-toolkit/rules-runtime/character/builderRepair'
 
 /** Private notes require current ownership, assignment and route authority, without source reads. */
@@ -80,8 +80,8 @@ export async function loadCharacterSheetNotes(
 }
 
 export const get = query({
-  args: zodToConvexFields(characterSheetSliceReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterSheetSliceResponseDtoSchema)),
+  args: () => zodToConvexFields(characterSheetSliceReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterSheetSliceResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterSheetSliceResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id, campaignId, slice } = characterSheetSliceReadInputSchema.parse(args)
@@ -94,13 +94,15 @@ export const get = query({
     const reader = campaignId
       ? await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
       : { loadAsUserId: userId, party: false }
-    const stored = await readStoredCharacterSheetSection(ctx, {
-      userId: reader.loadAsUserId,
-      lookupId: characterId,
-      campaignId,
-      party: reader.party,
-      section: characterSheetSection.slice(slice)
-    })
+    const [stored] =
+      (await readStoredCharacterSheetSections(ctx, {
+        userId: reader.loadAsUserId,
+        lookupId: characterId,
+        campaignId,
+        party: reader.party,
+        sections: [characterSheetSection.slice(slice)],
+        whileQueued: true
+      })) ?? []
     if (stored !== undefined) return characterSheetSliceResponseDtoSchema.parse(stored)
     const current = await loadCharacterSheet(ctx, reader.loadAsUserId, characterId, campaignId)
     if (!current) return null

@@ -17,8 +17,9 @@ import {
 import { requireCampaignAuthority } from './authority'
 
 export const share = internalMutation({
-  args: zodToConvexFields(shareCampaignContentInputSchema.shape),
-  returns: zodToConvex<z.core.$ZodType<CampaignContentShareDto>>(campaignContentShareDtoSchema),
+  args: () => zodToConvexFields(shareCampaignContentInputSchema.shape),
+  returns: () =>
+    zodToConvex<z.core.$ZodType<CampaignContentShareDto>>(campaignContentShareDtoSchema),
   handler: async (ctx, args): Promise<CampaignContentShareDto> => {
     const input = shareCampaignContentInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

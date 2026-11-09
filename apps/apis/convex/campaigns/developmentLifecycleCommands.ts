@@ -16,8 +16,8 @@ const deleteReference = makeFunctionReference<
 >('campaigns/deletionCommands:remove')
 
 export const forceDeletionRollback = internalMutation({
-  args: zodToConvex(developmentCampaignRollbackInputSchema),
-  returns: v.null(),
+  args: () => zodToConvex(developmentCampaignRollbackInputSchema),
+  returns: () => v.null(),
   handler: async (ctx, input): Promise<null> => {
     const checked = developmentCampaignRollbackInputSchema.parse(input)
     const identity = await requireIdentity(ctx)

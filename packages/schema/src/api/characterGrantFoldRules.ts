@@ -1,5 +1,6 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import {
+  equipmentCategoryCodeSchema,
   modifierKindSchema,
   modifierScopeKindSchema,
   valueDomainCodeSchema
@@ -176,7 +177,7 @@ const proficiencyOperationSchema = lazySchema(() =>
       proficiencyKind: codeSchema,
       targetIds: z.array(identitySchema).check(z.maxLength(200)),
       matchIds: z.array(identitySchema).check(z.maxLength(200)),
-      category: z.nullable(codeSchema),
+      category: z.nullable(equipmentCategoryCodeSchema),
       scaling: z.enum(['HALF', 'FULL', 'DOUBLE'])
     })
     .check(
@@ -384,7 +385,7 @@ const proficiencyResultSchema = lazySchema(() =>
     kind: codeSchema,
     subjectId: identitySchema,
     matchId: identitySchema,
-    category: z.optional(codeSchema),
+    category: z.optional(equipmentCategoryCodeSchema),
     scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
     source: characterMechanicSourceSchema,
     grantId: identitySchema

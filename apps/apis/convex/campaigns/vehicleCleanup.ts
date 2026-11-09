@@ -908,8 +908,8 @@ async function purge(ctx: MutationCtx, row: JobRow, job: VehicleCleanupJob) {
 }
 
 export const step = internalMutation({
-  args: { jobId: v.string() },
-  returns: v.null(),
+  args: () => ({ jobId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const found = await findJob(ctx, args.jobId)
     if (!found || found.job.status === 'COMPLETED' || found.job.status === 'PURGED') return null
@@ -996,8 +996,8 @@ export const step = internalMutation({
 })
 
 export const run = internalMutation({
-  args: { jobId: v.string() },
-  returns: v.null(),
+  args: () => ({ jobId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     try {
       await ctx.runMutation(stepRef, args)
@@ -1033,8 +1033,8 @@ export const run = internalMutation({
 
 /** Root exposes this only after current OWNER authority. It never re-grants worker authority. */
 export const retry = internalMutation({
-  args: { jobId: v.string() },
-  returns: v.null(),
+  args: () => ({ jobId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const found = await findJob(ctx, args.jobId)
     if (!found || found.job.status !== 'FAILED') return null

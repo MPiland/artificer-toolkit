@@ -76,10 +76,20 @@ module load is paid on every call. `packages/schema` builds no schema at module 
   named value re-exports. The `zod/mini` namespace object carries every zod locale (194 KiB
   minified), so exporting it kept them in each function bundle. A new builder is added there.
   Packages and Convex modules build schemas with `@artificer-toolkit/schema/zod`, never full `zod`,
-  which carries every locale too. `apps/apis/convex/functionBundleBudget.test.ts` fails on a non-English locale in any Convex function bundle, or on more than 120 KiB of zod in a
+  which carries every locale too. `apps/apis/tests/functionBundleBudget.test.ts` fails on a non-English locale in any Convex function bundle, or on more than 120 KiB of zod in a
   Campaign inventory query's bundle.
 - **Node maps** (PERF-1). `buildNodeMap().define` builds a map's nodes on the first read of
   `nodes`, so importing a map module costs no node construction.
+- **Function validators** (PERF-6.T8). The `query`, `internalQuery`, `mutation`, `internalMutation`
+  and `untrackedInternalMutation` builders in `apps/apis/convex/lib` take `args` and `returns` as
+  thunks (`args: () => ({ … })`). `lib/lazyValidators.ts` builds each on first read and memoizes it.
+  Convex reads them only when it exports a function's validators (push, analysis and convex-test),
+  and the backend validates against that export, so a call never runs `zodToConvex`. A validator
+  shared by several functions is a function called inside the thunk, such as
+  `characterSheetCommandValidator()`. `eagerInternalMutation` keeps Convex's own signature for
+  `@convex-dev/migrations`, which registers its functions with plain validators. Actions and HTTP
+  actions use Convex's builders directly. `functionBundleBudget.test.ts` bounds the module floor of
+  the 2–3 MB Sheet and departure modules, which were 41–83 ms before this change.
 
 Evidence: [D59 rollout](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md) and the
 [D55 spike](../validation/phase-08-2/d55-lazy-schema-spike-2026-09-27.md).
@@ -202,7 +212,7 @@ without making authoring load the capability query's full play execution registr
 The platform Rules registry remains the single source of installed capabilities/operations.
 Authoring takes the System's policy vocabulary from `@artificer-toolkit/rules-runtime/platformSystemCoreCodes`
 alone, whose closure loads no play execution.
-`convex/schemaBoundary.test.ts` checks the real authoring entry point's dependency graph, allowing only that
+`apps/apis/tests/schemaBoundary.test.ts` checks the real authoring entry point's dependency graph, allowing only that
 seam's listed files from rules-runtime; public
 System query contracts and authorization are unchanged by this module separation.
 
@@ -211,7 +221,7 @@ only on shared pagination and Sheet value schemas. The bounded Character read in
 `schema/api/characterSheet`; full Sheet data/command modules retain their existing exports of these
 same contracts. Stored Character validation and source-loss reconciliation therefore do not load
 Sheet response/panel/command schemas merely to validate a receipt. The storage-reader entry point
-is covered by `convex/schemaBoundary.test.ts`; payloads, authorization and atomic writes are unchanged.
+is covered by `apps/apis/tests/schemaBoundary.test.ts`; payloads, authorization and atomic writes are unchanged.
 The same test covers the authored deletion entry point. Its installed rules policy reads the shared
 Encounter actor cap from `schema/shared/authoredLimits`, not the Encounter API module that imports
 Sheet commands. `api/encounters` re-exports the same cap; actor and Cleaving limits do not change.

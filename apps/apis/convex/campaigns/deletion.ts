@@ -15,8 +15,8 @@ import {
 } from '@artificer-toolkit/schema/api/campaignDeletion'
 
 export const status = query({
-  args: zodToConvexFields(campaignDeletionStatusInputSchema.shape),
-  returns: zodToConvex(campaignDeletionStatusSchema),
+  args: () => zodToConvexFields(campaignDeletionStatusInputSchema.shape),
+  returns: () => zodToConvex(campaignDeletionStatusSchema),
   handler: async (ctx, { campaignId }) => {
     const { userId } = await requireIdentity(ctx)
     const job = await ctx.db
@@ -35,8 +35,8 @@ export const status = query({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteCampaignInputSchema.shape),
-  returns: zodToConvex(campaignDeletionResultSchema),
+  args: () => zodToConvexFields(deleteCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignDeletionResultSchema),
   handler: (ctx, args): Promise<CampaignDeletionResult> =>
     ctx.runMutation(internal.campaigns.deletionCommands.remove, args)
 })

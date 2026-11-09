@@ -41,8 +41,8 @@ async function ownedCampaign(
 }
 
 export const get = query({
-  args: zodToConvexFields(getSceneDefinitionInputDtoSchema.shape),
-  returns: zodToConvex(sceneDefinitionHeaderSchema),
+  args: () => zodToConvexFields(getSceneDefinitionInputDtoSchema.shape),
+  returns: () => zodToConvex(sceneDefinitionHeaderSchema),
   handler: async (ctx, args) => {
     const input = getSceneDefinitionInputDtoSchema.parse(args)
     const campaign = await ownedCampaign(ctx, input.campaignId)
@@ -56,8 +56,8 @@ export const get = query({
 })
 
 export const list = query({
-  args: zodToConvexFields(sceneDefinitionListInputSchema.shape),
-  returns: zodToConvex(sceneDefinitionListPageSchema),
+  args: () => zodToConvexFields(sceneDefinitionListInputSchema.shape),
+  returns: () => zodToConvex(sceneDefinitionListPageSchema),
   handler: async (ctx, args): Promise<SceneDefinitionListPage> => {
     const input = sceneDefinitionListInputSchema.parse(args)
     const campaign = await ownedCampaign(ctx, input.campaignId)
@@ -76,8 +76,8 @@ export const list = query({
 })
 
 export const listLive = query({
-  args: zodToConvexFields(sceneDefinitionListInputSchema.shape),
-  returns: zodToConvex(campaignLiveSceneListPageSchema),
+  args: () => zodToConvexFields(sceneDefinitionListInputSchema.shape),
+  returns: () => zodToConvex(campaignLiveSceneListPageSchema),
   handler: async (ctx, args) => {
     const input = sceneDefinitionListInputSchema.parse(args)
     const campaign = await ownedCampaign(ctx, input.campaignId)
@@ -103,8 +103,8 @@ export const listLive = query({
 })
 
 export const entities = query({
-  args: zodToConvexFields(sceneDefinitionEntityPageInputSchema.shape),
-  returns: zodToConvex(sceneDefinitionEntityPageSchema),
+  args: () => zodToConvexFields(sceneDefinitionEntityPageInputSchema.shape),
+  returns: () => zodToConvex(sceneDefinitionEntityPageSchema),
   handler: async (ctx, args): Promise<SceneDefinitionEntityPage> => {
     const input = sceneDefinitionEntityPageInputSchema.parse(args)
     const campaign = await ownedCampaign(ctx, input.campaignId)

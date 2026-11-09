@@ -130,25 +130,25 @@ async function invitationPage(
 }
 
 export const listOwnApplications = query({
-  args: zodToConvexFields(socialAdmissionListInputSchema.shape),
-  returns: zodToConvex(socialApplicationPageSchema),
+  args: () => zodToConvexFields(socialAdmissionListInputSchema.shape),
+  returns: () => zodToConvex(socialApplicationPageSchema),
   handler: (ctx, args) => applicationPage(ctx, socialAdmissionListInputSchema.parse(args))
 })
 
 export const listListingApplications = query({
-  args: zodToConvexFields(socialListingAdmissionListInputSchema.shape),
-  returns: zodToConvex(socialApplicationPageSchema),
+  args: () => zodToConvexFields(socialListingAdmissionListInputSchema.shape),
+  returns: () => zodToConvex(socialApplicationPageSchema),
   handler: (ctx, args) => applicationPage(ctx, socialListingAdmissionListInputSchema.parse(args))
 })
 
 export const listReceivedInvitations = query({
-  args: zodToConvexFields(socialInvitationListInputSchema.shape),
-  returns: zodToConvex(socialInvitationPageSchema),
+  args: () => zodToConvexFields(socialInvitationListInputSchema.shape),
+  returns: () => zodToConvex(socialInvitationPageSchema),
   handler: (ctx, args) => invitationPage(ctx, socialInvitationListInputSchema.parse(args))
 })
 
 export const listListingInvitations = query({
-  args: zodToConvexFields(socialListingInvitationListInputSchema.shape),
-  returns: zodToConvex(socialInvitationPageSchema),
+  args: () => zodToConvexFields(socialListingInvitationListInputSchema.shape),
+  returns: () => zodToConvex(socialInvitationPageSchema),
   handler: (ctx, args) => invitationPage(ctx, socialListingInvitationListInputSchema.parse(args))
 })

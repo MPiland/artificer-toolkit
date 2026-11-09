@@ -60,8 +60,8 @@ export function readBlueprint(row: Doc<'encounterBlueprints'>): EncounterBluepri
 }
 
 export const list = query({
-  args: zodToConvexFields(encounterBlueprintListInputSchema.shape),
-  returns: zodToConvex<z.core.$ZodType<EncounterBlueprintPage>>(encounterBlueprintPageSchema),
+  args: () => zodToConvexFields(encounterBlueprintListInputSchema.shape),
+  returns: () => zodToConvex<z.core.$ZodType<EncounterBlueprintPage>>(encounterBlueprintPageSchema),
   handler: async (ctx, args): Promise<EncounterBlueprintPage> => {
     const { userId } = await requireIdentity(ctx)
     const { gameSystemId, paginationOpts } = encounterBlueprintListInputSchema.parse(args)
@@ -77,8 +77,8 @@ export const list = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createEncounterBlueprintInputDtoSchema.shape),
-  returns: blueprintValidator,
+  args: () => zodToConvexFields(createEncounterBlueprintInputDtoSchema.shape),
+  returns: () => blueprintValidator,
   handler: async (ctx, args): Promise<EncounterBlueprintDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = createEncounterBlueprintInputDtoSchema.parse(args)
@@ -136,8 +136,8 @@ export const create = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteEncounterBlueprintInputDtoSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(deleteEncounterBlueprintInputDtoSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const { userId } = await requireIdentity(ctx)
     const { blueprintId } = deleteEncounterBlueprintInputDtoSchema.parse(args)
@@ -155,8 +155,8 @@ export const remove = mutation({
 })
 
 export const update = mutation({
-  args: zodToConvexFields(updateEncounterBlueprintInputDtoSchema.shape),
-  returns: blueprintValidator,
+  args: () => zodToConvexFields(updateEncounterBlueprintInputDtoSchema.shape),
+  returns: () => blueprintValidator,
   handler: async (ctx, args): Promise<EncounterBlueprintDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = updateEncounterBlueprintInputDtoSchema.parse(args)

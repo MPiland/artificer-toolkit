@@ -22,8 +22,8 @@ import type { CharacterReferencedReads } from './context'
 import { readCharacterRecord } from './stateDocuments'
 
 export const commit = mutation({
-  args: zodToConvexFields(characterBuilderCommitInputSchema.shape),
-  returns: zodToConvex(characterBuilderCommitOutputSchema),
+  args: () => zodToConvexFields(characterBuilderCommitInputSchema.shape),
+  returns: () => zodToConvex(characterBuilderCommitOutputSchema),
   handler: (ctx, args) => commitCharacter(ctx, characterBuilderCommitInputSchema.parse(args))
 })
 

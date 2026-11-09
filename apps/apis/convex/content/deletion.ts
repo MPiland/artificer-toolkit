@@ -38,8 +38,8 @@ import { isImportRowVisible } from '../imports/visibility'
 import { readVisibleAuthoredRouteId } from './routeIds'
 
 export const deleteActive = mutation({
-  args: zodToConvexFields(authoredDeleteActiveInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(authoredDeleteActiveInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     return deleteOwnedActiveAuthoredContent(
@@ -277,8 +277,8 @@ async function nextDeletableAuthoredRoot(ctx: MutationCtx, userId: string) {
  * first, then one draft-only subject per invocation, then import references in batches.
  */
 export const accountDeletionStep = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'AUTHORED')
     if (!job) return null

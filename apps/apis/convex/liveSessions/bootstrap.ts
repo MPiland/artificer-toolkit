@@ -10,8 +10,8 @@ import { requireIdentity } from '../lib/identity'
 import { requireCampaignLiveAuthority } from './authorityGuard'
 
 export const bootstrap = internalQuery({
-  args: zodToConvex(liveSessionBootstrapInputSchema),
-  returns: zodToConvex(liveSessionBootstrapResponseSchema),
+  args: () => zodToConvex(liveSessionBootstrapInputSchema),
+  returns: () => zodToConvex(liveSessionBootstrapResponseSchema),
   handler: async (ctx, args): Promise<LiveSessionBootstrapResponse> => {
     const input = liveSessionBootstrapInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

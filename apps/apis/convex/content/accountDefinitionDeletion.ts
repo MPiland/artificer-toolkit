@@ -82,8 +82,8 @@ async function removeAccountContentSource(
 
 /** The SOURCES step (ADR 0040): one owned content source per invocation. */
 export const step = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'SOURCES')
     if (!job) return null

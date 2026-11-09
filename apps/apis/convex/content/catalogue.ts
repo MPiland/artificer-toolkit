@@ -62,8 +62,8 @@ async function requireCompleteCatalogue(
 }
 
 export const counts = query({
-  args: zodToConvexFields(zMini.omit(authoredCatalogueScopeSchema, { source: true }).shape),
-  returns: zodToConvex(authoredCatalogueCountsSchema),
+  args: () => zodToConvexFields(zMini.omit(authoredCatalogueScopeSchema, { source: true }).shape),
+  returns: () => zodToConvex(authoredCatalogueCountsSchema),
   handler: async (ctx, args) => {
     const input = zMini.omit(authoredCatalogueScopeSchema, { source: true }).parse(args)
     const userId = (await getAuthenticatedProfile(ctx))?.identity.userId ?? null

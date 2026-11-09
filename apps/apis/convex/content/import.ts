@@ -154,8 +154,8 @@ export const bootstrap: RegisteredMutation<
   SourceImportBootstrapInput,
   Promise<SourceImportBatchResultDto>
 > = internalMutation({
-  args: zodToConvexFields(sourceImportBootstrapInputSchema.shape),
-  returns: zodToConvex(sourceImportBatchResultDtoSchema),
+  args: () => zodToConvexFields(sourceImportBootstrapInputSchema.shape),
+  returns: () => zodToConvex(sourceImportBatchResultDtoSchema),
   handler: async (ctx, args) => {
     const { systems, contentSource, catalogue } = sourceImportBootstrapInputSchema.parse(args)
     uniqueIds(systems)
@@ -192,6 +192,14 @@ export const bootstrap: RegisteredMutation<
         await ctx.db.insert('systems', system)
         inserted++
       }
+      const storedChecksum = await ctx.db
+        .query('systemChecksums')
+        .withIndex('by_systemId', (q) => q.eq('systemId', system.id))
+        .unique()
+      if (!storedChecksum)
+        await ctx.db.insert('systemChecksums', { systemId: system.id, checksum: system.checksum })
+      else if (storedChecksum.checksum !== system.checksum)
+        await ctx.db.patch(storedChecksum._id, { checksum: system.checksum })
       await ensureSystemVocabularySnapshot(ctx, system.id)
     }
     const currentSource = await ctx.db
@@ -245,8 +253,8 @@ export const importSubjects: RegisteredMutation<
   SourceImportSubjectsInput,
   Promise<SourceImportBatchResultDto>
 > = internalMutation({
-  args: zodToConvexFields(sourceImportSubjectsInputSchema.shape),
-  returns: zodToConvex(sourceImportBatchResultDtoSchema),
+  args: () => zodToConvexFields(sourceImportSubjectsInputSchema.shape),
+  returns: () => zodToConvex(sourceImportBatchResultDtoSchema),
   handler: async (ctx, args) => {
     const { contentSourceId, subjects, reimportedSubjectIds } =
       sourceImportSubjectsInputSchema.parse(args)
@@ -558,8 +566,8 @@ export const importDefinitions: RegisteredMutation<
   SourceImportDefinitionsInput,
   Promise<SourceImportBatchResultDto>
 > = internalMutation({
-  args: zodToConvexFields(sourceImportDefinitionsInputSchema.shape),
-  returns: zodToConvex(sourceImportBatchResultDtoSchema),
+  args: () => zodToConvexFields(sourceImportDefinitionsInputSchema.shape),
+  returns: () => zodToConvex(sourceImportBatchResultDtoSchema),
   handler: async (ctx, args) => {
     const { contentSourceId, definitions } = sourceImportDefinitionsInputSchema.parse(args)
     uniqueIds(definitions)
@@ -632,8 +640,8 @@ export const importDefinitions: RegisteredMutation<
 })
 
 export const readBootstrap = internalQuery({
-  args: zodToConvexFields(sourceImportReadBootstrapInputSchema.shape),
-  returns: zodToConvex(sourceImportBootstrapResultDtoSchema),
+  args: () => zodToConvexFields(sourceImportReadBootstrapInputSchema.shape),
+  returns: () => zodToConvex(sourceImportBootstrapResultDtoSchema),
   handler: async (ctx, args): Promise<SourceImportBootstrapResultDto> => {
     const input = sourceImportReadBootstrapInputSchema.parse(args)
     const source = await requireSource(ctx, input.contentSourceId)
@@ -675,8 +683,8 @@ function checkPageSize(size: number) {
 // Stored id and subject checksum only (readSubjects is the full read-back audit). The seed compares
 // them with the corpus to refuse a removal and to batch each replaced subject alone.
 export const readSubjectChecksums = internalQuery({
-  args: pageArgs,
-  returns: zodToConvex(sourceImportAuditPageDtoSchema),
+  args: () => pageArgs,
+  returns: () => zodToConvex(sourceImportAuditPageDtoSchema),
   handler: async (ctx, args) => {
     checkPageSize(args.paginationOpts.numItems)
     const source = await requireSource(ctx, args.contentSourceId)
@@ -694,8 +702,8 @@ export const readSubjectChecksums = internalQuery({
 
 // Stored id and checksum only, so the seed can refuse a removed definition before it writes.
 export const readDefinitionChecksums = internalQuery({
-  args: pageArgs,
-  returns: zodToConvex(sourceImportAuditPageDtoSchema),
+  args: () => pageArgs,
+  returns: () => zodToConvex(sourceImportAuditPageDtoSchema),
   handler: async (ctx, args) => {
     checkPageSize(args.paginationOpts.numItems)
     const source = await requireSource(ctx, args.contentSourceId)
@@ -715,8 +723,8 @@ export const readDefinitionChecksums = internalQuery({
 })
 
 export const readSubjects = internalQuery({
-  args: pageArgs,
-  returns: zodToConvex(sourceImportAuditPageDtoSchema),
+  args: () => pageArgs,
+  returns: () => zodToConvex(sourceImportAuditPageDtoSchema),
   handler: async (ctx, args) => {
     checkPageSize(args.paginationOpts.numItems)
     const source = await requireSource(ctx, args.contentSourceId)
@@ -849,11 +857,11 @@ export const readSubjects = internalQuery({
 
 // Variant parents may arrive in a later import batch. Compile only after all roots exist.
 export const syncEquipmentDerived = internalMutation({
-  args: {
+  args: () => ({
     id: zodToConvex(sourceImportSubjectDtoSchema.shape.id),
     checksum: zodToConvex(authoredStoredCompilationSchema.shape.authoredChecksum)
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const root = await ctx.db
       .query('authoredRoots')
@@ -919,8 +927,8 @@ async function readCanonicalClass(ctx: QueryCtx, id: string, checksum: string) {
 }
 
 export const syncClassDerived = internalMutation({
-  args: classDerivedArgs,
-  returns: v.null(),
+  args: () => classDerivedArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const compilation = authoredStoredCompilationSchema.parse(args.compilation)
     if (compilation.authoredChecksum !== args.checksum)
@@ -948,11 +956,12 @@ export const syncClassDerived = internalMutation({
 })
 
 export const readClassDerived = internalQuery({
-  args: { id: v.string(), checksum: v.string() },
-  returns: v.object({
-    parentClassId: v.union(v.string(), v.null()),
-    compilation: zodToConvex(authoredStoredCompilationSchema)
-  }),
+  args: () => ({ id: v.string(), checksum: v.string() }),
+  returns: () =>
+    v.object({
+      parentClassId: v.union(v.string(), v.null()),
+      compilation: zodToConvex(authoredStoredCompilationSchema)
+    }),
   handler: async (ctx, args) => {
     const current = await readCanonicalClass(ctx, args.id, args.checksum)
     const compilation = await readAuthoredVersionCompilation(ctx, current.version)
@@ -967,8 +976,8 @@ export const readClassDerived = internalQuery({
 })
 
 export const readDefinitions = internalQuery({
-  args: pageArgs,
-  returns: zodToConvex(sourceImportAuditPageDtoSchema),
+  args: () => pageArgs,
+  returns: () => zodToConvex(sourceImportAuditPageDtoSchema),
   handler: async (ctx, args) => {
     checkPageSize(args.paginationOpts.numItems)
     const source = await requireSource(ctx, args.contentSourceId)
@@ -999,8 +1008,8 @@ export const readDefinitions = internalQuery({
 })
 
 export const readCatalogueCounts = internalQuery({
-  args: { contentSourceId: v.string() },
-  returns: zodToConvex(authoredCatalogueSourceCountsSchema),
+  args: () => ({ contentSourceId: v.string() }),
+  returns: () => zodToConvex(authoredCatalogueSourceCountsSchema),
   handler: async (ctx, args) => {
     const source = await requireSource(ctx, args.contentSourceId)
     const rows = await ctx.db

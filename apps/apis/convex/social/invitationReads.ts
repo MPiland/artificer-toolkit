@@ -15,8 +15,8 @@ import { requireOwnedListing } from './listingDocuments'
 import { requireSocialViewer } from './visibility'
 
 export const getReceived = query({
-  args: zodToConvexFields(socialInvitationPublicIdInputSchema.shape),
-  returns: zodToConvex(campaignInviteDtoSchema),
+  args: () => zodToConvexFields(socialInvitationPublicIdInputSchema.shape),
+  returns: () => zodToConvex(campaignInviteDtoSchema),
   handler: async (ctx, args): Promise<CampaignInviteDto> => {
     const actor = await requireSocialViewer(ctx)
     const input: SocialInvitationPublicIdInput = socialInvitationPublicIdInputSchema.parse(args)
@@ -33,8 +33,8 @@ export const getReceived = query({
 })
 
 export const getForListing = query({
-  args: zodToConvexFields(socialListingInvitationPublicIdInputSchema.shape),
-  returns: zodToConvex(campaignInviteDtoSchema),
+  args: () => zodToConvexFields(socialListingInvitationPublicIdInputSchema.shape),
+  returns: () => zodToConvex(campaignInviteDtoSchema),
   handler: async (ctx, args): Promise<CampaignInviteDto> => {
     const actor = await requireSocialViewer(ctx)
     const input: SocialListingInvitationPublicIdInput =

@@ -13,7 +13,7 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
-import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
+import { characterSheetSection, readStoredCharacterSheetSections } from './sheetSections'
 import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
 import { readCharacterSources } from './sourceReads'
 import type { QueryCtx } from '../_generated/server'
@@ -76,10 +76,12 @@ export async function readStoredCharacterPreparationOptions(
   ctx: QueryCtx,
   input: { userId: string; lookupId: string; campaignId?: string }
 ) {
-  const stored = await readStoredCharacterSheetSection(ctx, {
-    ...input,
-    section: characterSheetSection.preparation
-  })
+  const [stored] =
+    (await readStoredCharacterSheetSections(ctx, {
+      ...input,
+      sections: [characterSheetSection.preparation],
+      whileQueued: true
+    })) ?? []
   if (stored === undefined) return undefined
   const options = characterPreparationOptionsResponseDtoSchema.parse(stored)
   if (options.catalogue.kind !== 'SNAPSHOTS') return options
@@ -99,8 +101,8 @@ export async function readStoredCharacterPreparationOptions(
 }
 
 export const get = query({
-  args: zodToConvexFields(characterSheetReadInputSchema.shape),
-  returns: v.union(v.null(), zodToConvex(characterPreparationOptionsResponseDtoSchema)),
+  args: () => zodToConvexFields(characterSheetReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterPreparationOptionsResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterPreparationOptionsResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = characterSheetReadInputSchema.parse(args)

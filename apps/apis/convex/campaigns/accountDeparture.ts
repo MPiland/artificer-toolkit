@@ -125,8 +125,8 @@ export async function departAccountCampaignMembership(
 // Departure runs before the account commit, while the profile and auth user still exist: Campaign
 // reads require both for every ACTIVE member (ADR 0040).
 export const step = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'CAMPAIGNS')
     if (!job) return null

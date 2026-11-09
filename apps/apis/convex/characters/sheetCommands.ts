@@ -91,7 +91,6 @@ import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './shee
 import { recordSheetDeathSaveRoll } from './sheetDeathSaveRoll'
 import { nextRollInt } from '../lib/rollRandom'
 import { executeCharacterNoteCommand } from './sheetNoteCommands'
-import { executeCharacterPlayPreferenceCommand } from './sheetPlayPreferences'
 import type { CharacterRecordRow } from './stateDocuments'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
@@ -740,9 +739,6 @@ export async function executeCharacterSheetCommandAcknowledgement(
   campaignId?: string
 ): Promise<CharacterSheetCommandResponseDto> {
   switch (input.command.type) {
-    case 'SET_INSPIRATION':
-    case 'SET_PARTY_VISIBILITY':
-      return executeCharacterPlayPreferenceCommand(ctx, userId, input.id, input.command, campaignId)
     case 'CREATE_NOTE':
     case 'UPDATE_NOTE':
     case 'DELETE_NOTE':
@@ -762,11 +758,11 @@ export async function executeCharacterSheetCommandAcknowledgement(
 }
 
 export const execute = mutation({
-  args: {
+  args: () => ({
     ...zodToConvexFields(characterSheetReadInputSchema.shape),
-    command: characterSheetCommandValidator
-  },
-  returns: zodToConvex(characterSheetCommandResponseDtoSchema),
+    command: characterSheetCommandValidator()
+  }),
+  returns: () => zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args): Promise<CharacterSheetCommandResponseDto> => {
     const { userId } = await requireIdentity(ctx)
     return executeCharacterSheetCommandAcknowledgement(

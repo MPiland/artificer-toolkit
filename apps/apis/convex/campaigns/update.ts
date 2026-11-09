@@ -18,8 +18,8 @@ import { readSettings, resolvePlaySettingsSources } from './playSettings'
 import { validateCampaignUpdateDependencies } from './updateDependencies'
 
 export const update = mutation({
-  args: zodToConvexFields(updateCampaignInputSchema.shape),
-  returns: zodToConvex(campaignDetailDtoSchema),
+  args: () => zodToConvexFields(updateCampaignInputSchema.shape),
+  returns: () => zodToConvex(campaignDetailDtoSchema),
   handler: async (ctx, args): Promise<CampaignDetailDto> => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, expectedVersion, ...changes } = updateCampaignInputSchema.parse(args)

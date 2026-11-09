@@ -19,8 +19,8 @@ async function tokenDigest(token: string) {
 }
 
 export const issue = internalMutation({
-  args: zodToConvexFields(issueInput.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(issueInput.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const { email, token } = issueInput.parse(args)
     const { internalAdapter } = await createAuth(ctx).$context
@@ -45,8 +45,8 @@ export const issue = internalMutation({
 })
 
 export const redeem = internalMutation({
-  args: zodToConvexFields(authInvitationRedeemPreparedInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(authInvitationRedeemPreparedInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args: AuthInvitationRedeemPreparedInput): Promise<null> => {
     const input = authInvitationRedeemPreparedInputSchema.parse(args)
     const options = createAuthOptions(ctx)

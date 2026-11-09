@@ -58,8 +58,8 @@ function present(record: Doc<'campaignAnnouncements'>, campaign: Doc<'campaigns'
 }
 
 export const list = query({
-  args: zodToConvexFields(campaignAnnouncementListInputSchema.shape),
-  returns: zodToConvex(campaignAnnouncementListPageSchema),
+  args: () => zodToConvexFields(campaignAnnouncementListInputSchema.shape),
+  returns: () => zodToConvex(campaignAnnouncementListPageSchema),
   handler: async (ctx, args): Promise<CampaignAnnouncementListPage> => {
     const { userId } = await requireIdentity(ctx)
     const input = campaignAnnouncementListInputSchema.parse(args)
@@ -93,8 +93,8 @@ export const list = query({
 })
 
 export const get = query({
-  args: zodToConvexFields(getCampaignAnnouncementInputSchema.shape),
-  returns: zodToConvex(campaignAnnouncementDtoSchema),
+  args: () => zodToConvexFields(getCampaignAnnouncementInputSchema.shape),
+  returns: () => zodToConvex(campaignAnnouncementDtoSchema),
   handler: async (ctx, args): Promise<CampaignAnnouncementDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = getCampaignAnnouncementInputSchema.parse(args)
@@ -123,8 +123,8 @@ export const get = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignAnnouncementInputSchema.shape),
-  returns: zodToConvex(campaignAnnouncementDtoSchema),
+  args: () => zodToConvexFields(createCampaignAnnouncementInputSchema.shape),
+  returns: () => zodToConvex(campaignAnnouncementDtoSchema),
   handler: async (ctx, args): Promise<CampaignAnnouncementDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = createCampaignAnnouncementInputSchema.parse(args)

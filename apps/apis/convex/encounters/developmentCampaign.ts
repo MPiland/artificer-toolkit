@@ -9,8 +9,8 @@ import { removeFixtureRunState } from './developmentRuns'
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 
 export const admitFixturePlayer = internalMutation({
-  args: { ownerUserId: v.string(), playerUserId: v.string(), campaignId: v.string() },
-  returns: v.null(),
+  args: () => ({ ownerUserId: v.string(), playerUserId: v.string(), campaignId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { ownerUserId, playerUserId, campaignId }) => {
     await requireFixtureAccount(ctx, ownerUserId)
     await requireFixtureAccount(ctx, playerUserId)
@@ -59,13 +59,13 @@ export const admitFixturePlayer = internalMutation({
 })
 
 export const removeFixtureCampaign = internalMutation({
-  args: {
+  args: () => ({
     ownerUserId: v.string(),
     playerUserId: v.string(),
     campaignId: v.string(),
     characterId: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, { ownerUserId, playerUserId, campaignId, characterId }) => {
     await requireFixtureAccount(ctx, ownerUserId)
     await requireFixtureAccount(ctx, playerUserId)

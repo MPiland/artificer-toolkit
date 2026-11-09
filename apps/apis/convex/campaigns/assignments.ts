@@ -20,8 +20,8 @@ import { requireCampaignCharacterAuthority, readCampaignCharacterState } from '.
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 
 export const assign = mutation({
-  args: zodToConvexFields(assignCampaignCharacterInputSchema.shape),
-  returns: zodToConvex(campaignAssignmentResultSchema),
+  args: () => zodToConvexFields(assignCampaignCharacterInputSchema.shape),
+  returns: () => zodToConvex(campaignAssignmentResultSchema),
   handler: async (ctx, args) => {
     const input = assignCampaignCharacterInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -103,8 +103,8 @@ export const assign = mutation({
 })
 
 export const unassign = mutation({
-  args: zodToConvexFields(unassignCampaignCharacterInputSchema.shape),
-  returns: zodToConvex(campaignAssignmentResultSchema),
+  args: () => zodToConvexFields(unassignCampaignCharacterInputSchema.shape),
+  returns: () => zodToConvex(campaignAssignmentResultSchema),
   handler: async (ctx, args) => {
     const input = unassignCampaignCharacterInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

@@ -103,8 +103,8 @@ function history(table: LiveSessionCheckpointHistoryTable, fields: Record<string
 
 /** No existing room authority may be adopted; the large fixture stays within normal note limits. */
 export const prepare = untrackedInternalMutation({
-  args: v.any(),
-  returns: v.any(),
+  args: () => v.any(),
+  returns: () => v.any(),
   handler: async (rawCtx, args) => {
     const ctx = withSceneVisionTracking(rawCtx)
     const { large, ...scope } = developmentCheckpointPreparationInputSchema.parse(args)
@@ -216,8 +216,8 @@ export const prepare = untrackedInternalMutation({
 
 /** Deliberately fails after real publication to prove the enclosing native transaction rolls back. */
 export const rollback = untrackedInternalMutation({
-  args: v.any(),
-  returns: v.null(),
+  args: () => v.any(),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const { scope, checkpoint } = developmentCheckpointRollbackInputSchema.parse(args)
     await readCheckpointFixture(ctx, scope)
@@ -230,8 +230,8 @@ export const rollback = untrackedInternalMutation({
 
 /** Exact fixture digest includes state, clocks, headers, ledger metadata and outside-view revisions. */
 export const inspect = internalQuery({
-  args: zodToConvexFields(developmentCheckpointScopeSchema.shape),
-  returns: zodToConvex(developmentCheckpointInspectionSchema),
+  args: () => zodToConvexFields(developmentCheckpointScopeSchema.shape),
+  returns: () => zodToConvex(developmentCheckpointInspectionSchema),
   handler: async (ctx, args) => {
     const scope = developmentCheckpointScopeSchema.parse(args)
     const fixture = await readCheckpointFixture(ctx, scope)

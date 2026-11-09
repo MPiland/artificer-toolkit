@@ -9,6 +9,7 @@ import {
   type DevelopmentClient
 } from '../../../apis/tests/developmentClient'
 import type { CampaignMembershipLifecycleStage } from '../../../apis/tests/developmentCampaignMembershipLifecycle'
+import { awaitCurrentCharacterSheet } from '../../../apis/tests/fixtures/characterSheetSlices'
 import {
   signIn,
   waitForRouterIdle,
@@ -384,6 +385,7 @@ export async function verifyCampaignMembershipBrowser<T>(
     for (const account of input.accounts) {
       const sheets = []
       for (const id of account.characterIds) {
+        await awaitCurrentCharacterSheet(id)
         const slices = await Promise.all(
           (
             ['COMMON', 'ACTIONS', 'SPELLS', 'INVENTORY', 'EXTRAS', 'FEATURES', 'NOTES'] as const

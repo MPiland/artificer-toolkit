@@ -32,8 +32,8 @@ const deliveryResult = v.object({
 })
 
 export const readFixtureDelivery = internalQuery({
-  args: { userId: v.string(), sourcePublicIds: v.array(v.string()) },
-  returns: v.array(v.union(v.null(), deliveryResult)),
+  args: () => ({ userId: v.string(), sourcePublicIds: v.array(v.string()) }),
+  returns: () => v.array(v.union(v.null(), deliveryResult)),
   handler: async (ctx, { userId, sourcePublicIds }) => {
     await requireFixtureAccount(ctx, userId)
     requireSourcePublicIds(sourcePublicIds)
@@ -66,8 +66,8 @@ export const readFixtureDelivery = internalQuery({
 })
 
 export const removeFixtureDelivery = internalMutation({
-  args: { userId: v.string(), sourcePublicIds: v.array(v.string()) },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), sourcePublicIds: v.array(v.string()) }),
+  returns: () => v.null(),
   handler: async (ctx, { userId, sourcePublicIds }) => {
     await requireFixtureAccount(ctx, userId)
     requireSourcePublicIds(sourcePublicIds)

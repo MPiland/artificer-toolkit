@@ -15,6 +15,7 @@ import {
 import { characterCommandReceiptHeaderSchema } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import {
   characterSheetDerivationRecordSchema,
+  characterSheetSectionChecksumsRecordSchema,
   characterSheetSectionRecordSchema
 } from '@artificer-toolkit/schema/projections/characterSheetSections'
 
@@ -90,6 +91,9 @@ export const characterTables = {
   }).index('by_characterId_payloadId_chunkIndex', ['characterId', 'payloadId', 'chunkIndex']),
   characterSheetDerivations: defineTable(
     zodToConvexFields(characterSheetDerivationRecordSchema.shape)
+  ).index('by_characterId', ['characterId']),
+  characterSheetSectionChecksums: defineTable(
+    zodToConvexFields(characterSheetSectionChecksumsRecordSchema.shape)
   ).index('by_characterId', ['characterId']),
   characterSheetSections: defineTable(
     zodToConvexFields(characterSheetSectionRecordSchema.shape)

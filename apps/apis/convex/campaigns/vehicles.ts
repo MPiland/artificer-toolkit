@@ -29,8 +29,8 @@ import { readCampaignCatalogueOptions } from './catalogueOptions'
 import { presentCampaignVehicle } from './vehicleDocuments'
 
 export const list = query({
-  args: zodToConvexFields(campaignVehicleListInputSchema.shape),
-  get returns(): Validator<CampaignVehiclePage, 'required', string> {
+  args: () => zodToConvexFields(campaignVehicleListInputSchema.shape),
+  returns: (): Validator<CampaignVehiclePage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<CampaignVehiclePage>>(campaignVehiclePageSchema)
   },
   handler: async (ctx, args): Promise<CampaignVehiclePage> => {
@@ -56,8 +56,8 @@ export const list = query({
 
 /** Complete official Vehicle options under this Campaign's current catalogue binding. */
 export const definitionOptions = query({
-  args: zodToConvexFields(campaignVehicleListInputSchema.shape),
-  get returns(): Validator<AuthoredCataloguePage, 'required', string> {
+  args: () => zodToConvexFields(campaignVehicleListInputSchema.shape),
+  returns: (): Validator<AuthoredCataloguePage, 'required', string> => {
     return zodToConvex<z.core.$ZodType<AuthoredCataloguePage>>(authoredCataloguePageSchema)
   },
   handler: async (ctx, args): Promise<AuthoredCataloguePage> => {
@@ -68,8 +68,8 @@ export const definitionOptions = query({
   }
 })
 export const create = mutation({
-  args: zodToConvexFields(createCampaignVehicleInputSchema.shape),
-  returns: zodToConvex(campaignVehicleDtoSchema),
+  args: () => zodToConvexFields(createCampaignVehicleInputSchema.shape),
+  returns: () => zodToConvex(campaignVehicleDtoSchema),
   handler: async (ctx, args): Promise<CampaignVehicleDto> =>
     ctx.runMutation(
       internal.campaigns.vehicleCommands.create,
@@ -77,8 +77,8 @@ export const create = mutation({
     )
 })
 export const update = mutation({
-  args: zodToConvexFields(updateCampaignVehicleInputSchema.shape),
-  returns: zodToConvex(campaignVehicleDtoSchema),
+  args: () => zodToConvexFields(updateCampaignVehicleInputSchema.shape),
+  returns: () => zodToConvex(campaignVehicleDtoSchema),
   handler: async (ctx, args): Promise<CampaignVehicleDto> =>
     ctx.runMutation(
       internal.campaigns.vehicleCommands.update,
@@ -86,8 +86,8 @@ export const update = mutation({
     )
 })
 export const remove = mutation({
-  args: zodToConvexFields(deleteCampaignVehicleInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(deleteCampaignVehicleInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> =>
     ctx.runMutation(
       internal.campaigns.vehicleCommands.remove,
@@ -95,8 +95,8 @@ export const remove = mutation({
     )
 })
 export const lifecycle = mutation({
-  args: { input: zodToConvex(campaignVehicleLifecycleInputSchema) },
-  returns: zodToConvex(campaignVehicleLifecycleResultSchema),
+  args: () => ({ input: zodToConvex(campaignVehicleLifecycleInputSchema) }),
+  returns: () => zodToConvex(campaignVehicleLifecycleResultSchema),
   handler: async (ctx, args): Promise<CampaignVehicleLifecycleResult> =>
     ctx.runMutation(internal.campaigns.vehicleCommands.lifecycle, {
       input: campaignVehicleLifecycleInputSchema.parse(args.input)

@@ -174,7 +174,7 @@ async function readOldAuthoredPayloadHead(ctx: MutationCtx, draft: Doc<'authored
 }
 
 export const stageCharacterHead = internalMutation({
-  args: {
+  args: () => ({
     jobId: v.string(),
     sequence: v.number(),
     entryId: v.string(),
@@ -185,8 +185,8 @@ export const stageCharacterHead = internalMutation({
     primaryRulesCatalogueId: v.string(),
     label: v.string(),
     payloadJson: v.string()
-  },
-  returns: v.string(),
+  }),
+  returns: () => v.string(),
   handler: async (ctx, rawArgs): Promise<string> => {
     const args = {
       ...rawArgs,
@@ -312,7 +312,7 @@ export const stageCharacterHead = internalMutation({
 })
 
 export const stageAuthoredHead = internalMutation({
-  args: {
+  args: () => ({
     jobId: v.string(),
     sequence: v.number(),
     entryId: v.string(),
@@ -323,8 +323,8 @@ export const stageAuthoredHead = internalMutation({
     systemId: v.string(),
     label: v.string(),
     payloadJson: v.string()
-  },
-  returns: v.string(),
+  }),
+  returns: () => v.string(),
   handler: async (ctx, rawArgs): Promise<string> => {
     const args: StageDraftArgs & { subjectKind: Doc<'authoredDrafts'>['subjectKind'] } = {
       ...rawArgs,

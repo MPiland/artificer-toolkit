@@ -142,11 +142,13 @@ export async function removePrivateCharacter(
     .query('characterSheetSections')
     .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', characterId)))
     await ctx.db.delete(row._id)
-  const derivation = await ctx.db
-    .query('characterSheetDerivations')
-    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-    .unique()
-  if (derivation) await ctx.db.delete(derivation._id)
+  for (const table of ['characterSheetDerivations', 'characterSheetSectionChecksums'] as const) {
+    const row = await ctx.db
+      .query(table)
+      .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+      .unique()
+    if (row) await ctx.db.delete(row._id)
+  }
   if (active) {
     await ctx.db.delete(active.play._id)
     await ctx.db.delete(active._id)
@@ -185,8 +187,8 @@ async function notifyFormerCampaignRooms(ctx: MutationCtx, userId: string) {
  * roll history in batches.
  */
 export const step = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'CHARACTERS')
     if (!job) return null

@@ -35,8 +35,8 @@ const OPERATION_WINDOW = 15 * 60_000
 const GRACE = 24 * 60 * 60_000
 
 export const readDelivery = internalQuery({
-  args: zodToConvexFields(finalizeImageUploadInputSchema.shape),
-  returns: zodToConvex(vttMapStoredAssetSchema),
+  args: () => zodToConvexFields(finalizeImageUploadInputSchema.shape),
+  returns: () => zodToConvex(vttMapStoredAssetSchema),
   handler: async (ctx, args) => {
     const { assetId } = finalizeImageUploadInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -125,8 +125,8 @@ async function requireActiveOwner(
 }
 
 export const createUpload = mutation({
-  args: zodToConvexFields(createVttMapUploadIntentInputSchema.shape),
-  returns: zodToConvex(mediaSinglePutUploadSchema),
+  args: () => zodToConvexFields(createVttMapUploadIntentInputSchema.shape),
+  returns: () => zodToConvex(mediaSinglePutUploadSchema),
   handler: async (ctx, args) => {
     const { profile: _profile, target, ...input } = createVttMapUploadIntentInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -139,8 +139,8 @@ export const createUpload = mutation({
 })
 
 export const beginFinalize = internalMutation({
-  args: { assetId: v.string() },
-  returns: zodToConvex(vttMapProcessClaimSchema),
+  args: () => ({ assetId: v.string() }),
+  returns: () => zodToConvex(vttMapProcessClaimSchema),
   handler: async (ctx, args): Promise<VttMapProcessClaim> => {
     const { userId } = await requireIdentity(ctx)
     const found = await findAsset(ctx, args.assetId.toLowerCase())
@@ -183,8 +183,8 @@ export const beginFinalize = internalMutation({
 })
 
 export const finishFinalize = internalMutation({
-  args: zodToConvexFields(vttMapFinalizeInputSchema.shape),
-  returns: zodToConvex(finalizeVttMapUploadOutputSchema),
+  args: () => zodToConvexFields(vttMapFinalizeInputSchema.shape),
+  returns: () => zodToConvex(finalizeVttMapUploadOutputSchema),
   handler: async (ctx, args): Promise<FinalizeVttMapUploadOutput> => {
     const input = vttMapFinalizeInputSchema.parse(args)
     const { authenticated, asset } = await ownedAsset(ctx, input.assetId.toLowerCase())
@@ -278,8 +278,8 @@ export const finishFinalize = internalMutation({
 })
 
 export const rejectFinalize = internalMutation({
-  args: { assetId: v.string(), operationId: v.string() },
-  returns: v.null(),
+  args: () => ({ assetId: v.string(), operationId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const asset = await findAsset(ctx, args.assetId)
     if (asset?.profileClass === 'VTT_MAP' && asset.operation?.id === args.operationId)

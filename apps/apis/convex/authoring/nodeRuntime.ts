@@ -21,8 +21,8 @@ import { requireIdentity } from '../lib/identity'
 import { createSystemSourceReader } from './systemSources'
 
 export const resolve = query({
-  args: zodToConvexFields(nodeRuntimeResolveRequestDtoSchema.shape),
-  get returns(): Validator<NodeRuntimeCompactResolveResponseDto, 'required', string> {
+  args: () => zodToConvexFields(nodeRuntimeResolveRequestDtoSchema.shape),
+  returns: (): Validator<NodeRuntimeCompactResolveResponseDto, 'required', string> => {
     return zodToConvex<z.core.$ZodType<NodeRuntimeCompactResolveResponseDto>>(
       nodeRuntimeCompactResolveResponseDtoSchema
     )
@@ -38,8 +38,8 @@ export const resolve = query({
 
 // Pure normalization is a query: it neither saves a draft nor authorizes publication.
 export const normalizeValues = query({
-  args: zodToConvexFields(nodeRuntimeNormalizeValuesRequestDtoSchema.shape),
-  returns: zodToConvex(nodeRuntimeNormalizeValuesResponseDtoSchema),
+  args: () => zodToConvexFields(nodeRuntimeNormalizeValuesRequestDtoSchema.shape),
+  returns: () => zodToConvex(nodeRuntimeNormalizeValuesResponseDtoSchema),
   handler: async (ctx, args): Promise<NodeRuntimeNormalizeValuesResponseDto> => {
     const identity = await requireIdentity(ctx)
     const input = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(args)

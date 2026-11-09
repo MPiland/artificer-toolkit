@@ -126,8 +126,8 @@ async function saveDraft(ctx: MutationCtx, input: AuthoredDraftCommandInput, use
 }
 
 export const save = internalMutation({
-  args: zodToConvexFields(authoredDraftCommandInputSchema.shape),
-  returns: zodToConvex(authoredDraftDtoSchema),
+  args: () => zodToConvexFields(authoredDraftCommandInputSchema.shape),
+  returns: () => zodToConvex(authoredDraftDtoSchema),
   handler: async (ctx, args): Promise<AuthoredDraftResult> => {
     const { userId } = await requireIdentity(ctx)
     return saveDraft(ctx, authoredDraftCommandInputSchema.parse(args), userId)
@@ -135,8 +135,8 @@ export const save = internalMutation({
 })
 
 export const discard = internalMutation({
-  args: zodToConvexFields(authoredDraftLookupInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(authoredDraftLookupInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const { userId } = await requireIdentity(ctx)
     const { subjectId, subjectKind } = authoredDraftLookupInputSchema.parse(args)
@@ -163,8 +163,8 @@ export const discard = internalMutation({
 })
 
 export const duplicate = internalMutation({
-  args: zodToConvexFields(authoredDraftLookupInputSchema.shape),
-  returns: zodToConvex(authoredDraftDtoSchema),
+  args: () => zodToConvexFields(authoredDraftLookupInputSchema.shape),
+  returns: () => zodToConvex(authoredDraftDtoSchema),
   handler: async (ctx, args): Promise<AuthoredDraftResult> => {
     const { userId } = await requireIdentity(ctx)
     const { subjectId, subjectKind } = authoredDraftLookupInputSchema.parse(args)

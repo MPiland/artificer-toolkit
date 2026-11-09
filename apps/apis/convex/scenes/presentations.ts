@@ -57,8 +57,8 @@ function readPresentation(ctx: QueryCtx, campaignId: string) {
 }
 
 export const get = query({
-  args: zodToConvexFields(getCampaignScenePresentationInputSchema.shape),
-  get returns() {
+  args: () => zodToConvexFields(getCampaignScenePresentationInputSchema.shape),
+  returns: () => {
     return zodToConvex(nullable(campaignScenePresentationDtoSchema))
   },
   handler: async (ctx, args): Promise<CampaignScenePresentationDto | null> => {
@@ -76,12 +76,13 @@ export const get = query({
 })
 
 export const preflight = internalQuery({
-  args: zodToConvexFields(setCampaignLiveScenePresentationInputDtoSchema.shape),
-  returns: v.object({
-    campaignId: v.string(),
-    actorUserId: v.string(),
-    epoch: v.union(v.string(), v.null())
-  }),
+  args: () => zodToConvexFields(setCampaignLiveScenePresentationInputDtoSchema.shape),
+  returns: () =>
+    v.object({
+      campaignId: v.string(),
+      actorUserId: v.string(),
+      epoch: v.union(v.string(), v.null())
+    }),
   handler: async (ctx, args) => {
     const input = setCampaignLiveScenePresentationInputDtoSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -113,8 +114,8 @@ export const setLive = action({
 })
 
 export const set = mutation({
-  args: zodToConvexFields(setCampaignLiveScenePresentationInputDtoSchema.shape),
-  returns: zodToConvex(setCampaignLiveScenePresentationResultDtoSchema),
+  args: () => zodToConvexFields(setCampaignLiveScenePresentationInputDtoSchema.shape),
+  returns: () => zodToConvex(setCampaignLiveScenePresentationResultDtoSchema),
   handler: async (ctx, args): Promise<SetCampaignLiveScenePresentationResultDto> => {
     const { userId } = await requireIdentity(ctx)
     return setPresentation(
@@ -127,8 +128,8 @@ export const set = mutation({
 })
 
 export const setFromRoom = internalMutation({
-  args: zodToConvexFields(liveSessionPresentationCommitInputSchema.shape),
-  returns: zodToConvex(setCampaignLiveScenePresentationResultDtoSchema),
+  args: () => zodToConvexFields(liveSessionPresentationCommitInputSchema.shape),
+  returns: () => zodToConvex(setCampaignLiveScenePresentationResultDtoSchema),
   handler: async (ctx, args): Promise<SetCampaignLiveScenePresentationResultDto> => {
     const commit = liveSessionPresentationCommitInputSchema.parse(args)
     if (commit.campaignId.toLowerCase() !== commit.input.campaignId.toLowerCase())

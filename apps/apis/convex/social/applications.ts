@@ -26,8 +26,8 @@ import { readAdmissionInvalidation, applicationInvalidationPatch } from './admis
 import { readListingInvalidation } from './listingInvalidation'
 
 export const getOwn = query({
-  args: zodToConvexFields(socialApplicationPublicIdInputSchema.shape),
-  returns: zodToConvex(socialApplicationDtoSchema),
+  args: () => zodToConvexFields(socialApplicationPublicIdInputSchema.shape),
+  returns: () => zodToConvex(socialApplicationDtoSchema),
   handler: async (ctx, args): Promise<SocialApplicationDto> => {
     const actor = await requireSocialViewer(ctx)
     const input = socialApplicationPublicIdInputSchema.parse(args)
@@ -40,8 +40,8 @@ export const getOwn = query({
 })
 
 export const submit = mutation({
-  args: zodToConvexFields(submitSocialApplicationInputSchema.shape),
-  returns: zodToConvex(socialApplicationDtoSchema),
+  args: () => zodToConvexFields(submitSocialApplicationInputSchema.shape),
+  returns: () => zodToConvex(socialApplicationDtoSchema),
   handler: async (ctx, args): Promise<SocialApplicationDto> => {
     const applicant = await requireSocialViewer(ctx)
     const input = submitSocialApplicationInputSchema.parse(args)
@@ -141,8 +141,8 @@ export const submit = mutation({
 })
 
 export const withdraw = mutation({
-  args: zodToConvexFields(socialApplicationVersionInputSchema.shape),
-  returns: zodToConvex(socialApplicationDtoSchema),
+  args: () => zodToConvexFields(socialApplicationVersionInputSchema.shape),
+  returns: () => zodToConvex(socialApplicationDtoSchema),
   handler: async (ctx, args): Promise<SocialApplicationDto> => {
     const actor = await requireSocialViewer(ctx)
     const input = socialApplicationVersionInputSchema.parse(args)
@@ -177,8 +177,8 @@ export const withdraw = mutation({
 })
 
 export const decide = mutation({
-  args: zodToConvexFields(decideSocialApplicationInputSchema.shape),
-  returns: zodToConvex(socialApplicationDtoSchema),
+  args: () => zodToConvexFields(decideSocialApplicationInputSchema.shape),
+  returns: () => zodToConvex(socialApplicationDtoSchema),
   handler: async (ctx, args): Promise<SocialApplicationDto> => {
     const actor = await requireSocialViewer(ctx)
     const input = decideSocialApplicationInputSchema.parse(args)

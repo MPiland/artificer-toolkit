@@ -7,14 +7,17 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * D130 backfill: a stored Run actor, Character included, gains `form: null` (it has never been in a
  * creature form) and every actor row without one gains `formOriginSnapshotChecksum: null`.
  * Idempotent: a migrated row, possibly in a form by now, has both and is left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export const runActorForm = migrations.define({
   table: 'encounterRunActors',

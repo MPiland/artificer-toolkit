@@ -19,8 +19,8 @@ import { presentSocialProfile, readDiscoverableAccount, requireSocialViewer } fr
 import { resolveListingSuspension } from './profileInvalidation'
 
 export const getProfile = query({
-  args: zodToConvexFields(socialProfilePublicIdInputSchema.shape),
-  returns: zodToConvex(socialProfileDtoSchema),
+  args: () => zodToConvexFields(socialProfilePublicIdInputSchema.shape),
+  returns: () => zodToConvex(socialProfileDtoSchema),
   handler: async (ctx, args): Promise<SocialProfileDto> => {
     const viewer = await requireSocialViewer(ctx)
     const { profilePublicId } = socialProfilePublicIdInputSchema.parse(args)
@@ -43,8 +43,8 @@ export const getProfile = query({
 })
 
 export const getListing = query({
-  args: zodToConvexFields(socialListingPublicIdInputSchema.shape),
-  returns: zodToConvex(socialListingDtoSchema),
+  args: () => zodToConvexFields(socialListingPublicIdInputSchema.shape),
+  returns: () => zodToConvex(socialListingDtoSchema),
   handler: async (ctx, args): Promise<SocialListingDto> => {
     const viewer = await requireSocialViewer(ctx)
     const { listingPublicId } = socialListingPublicIdInputSchema.parse(args)

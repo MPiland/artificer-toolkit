@@ -45,8 +45,8 @@ async function readLabel(
 }
 
 export const list = query({
-  args: zodToConvexFields(campaignSessionReferenceListInputSchema.shape),
-  returns: zodToConvex(campaignSessionReferenceListPageSchema),
+  args: () => zodToConvexFields(campaignSessionReferenceListInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionReferenceListPageSchema),
   handler: async (ctx, args): Promise<CampaignSessionReferenceListPage> => {
     const input = campaignSessionReferenceListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -79,8 +79,8 @@ export const list = query({
 })
 
 export const create = mutation({
-  args: zodToConvexFields(createCampaignSessionReferencePinInputSchema.shape),
-  returns: zodToConvex(campaignSessionReferencePinDtoSchema),
+  args: () => zodToConvexFields(createCampaignSessionReferencePinInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionReferencePinDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionReferencePinDto> => {
     const input = createCampaignSessionReferencePinInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -110,8 +110,8 @@ export const create = mutation({
 })
 
 export const remove = mutation({
-  args: zodToConvexFields(deleteCampaignSessionReferencePinInputSchema.shape),
-  returns: v.object({ ok: v.literal(true) }),
+  args: () => zodToConvexFields(deleteCampaignSessionReferencePinInputSchema.shape),
+  returns: () => v.object({ ok: v.literal(true) }),
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const input = deleteCampaignSessionReferencePinInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

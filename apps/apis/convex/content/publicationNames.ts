@@ -11,8 +11,8 @@ import { parsePublicationDocument } from './publicationDocument'
 import { activePublicationNameKey } from './publicationPersistence'
 
 export const backfill = internalMutation({
-  args: zodToConvexFields(authoredPublicationNameBackfillInputSchema.shape),
-  returns: zodToConvex(authoredPublicationNameBackfillResultSchema),
+  args: () => zodToConvexFields(authoredPublicationNameBackfillInputSchema.shape),
+  returns: () => zodToConvex(authoredPublicationNameBackfillResultSchema),
   handler: async (ctx, args) => {
     const input = authoredPublicationNameBackfillInputSchema.parse(args)
     const result = await ctx.db

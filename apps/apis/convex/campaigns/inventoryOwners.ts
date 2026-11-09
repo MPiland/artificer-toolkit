@@ -58,8 +58,8 @@ async function readOwnerVersion(
 }
 
 export const version = query({
-  args: { input: zodToConvex(getCampaignInventoryInputSchema) },
-  returns: zodToConvex(campaignInventoryOwnerVersionDtoSchema),
+  args: () => ({ input: zodToConvex(getCampaignInventoryInputSchema) }),
+  returns: () => zodToConvex(campaignInventoryOwnerVersionDtoSchema),
   handler: async (ctx, args): Promise<CampaignInventoryOwnerVersionDto> => {
     const input = getCampaignInventoryInputSchema.parse(args.input)
     const { userId } = await requireIdentity(ctx)
@@ -69,8 +69,8 @@ export const version = query({
 })
 
 export const transferVersions = query({
-  args: { input: zodToConvex(campaignInventoryTransferOwnersInputSchema) },
-  returns: zodToConvex(campaignInventoryTransferVersionsDtoSchema),
+  args: () => ({ input: zodToConvex(campaignInventoryTransferOwnersInputSchema) }),
+  returns: () => zodToConvex(campaignInventoryTransferVersionsDtoSchema),
   handler: async (ctx, args): Promise<CampaignInventoryTransferVersionsDto> => {
     const input = campaignInventoryTransferOwnersInputSchema.parse(args.input)
     const { userId } = await requireIdentity(ctx)

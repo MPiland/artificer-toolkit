@@ -314,8 +314,8 @@ export async function removeCampaignSharesAndReconcile(input: {
 
 /** Preserve the public unshare path while keeping source-loss code out of share-list reads. */
 export const unshare = internalMutation({
-  args: zodToConvexFields(unshareCampaignContentInputSchema.shape),
-  returns: zodToConvex(campaignContentRemovalReceiptDtoSchema),
+  args: () => zodToConvexFields(unshareCampaignContentInputSchema.shape),
+  returns: () => zodToConvex(campaignContentRemovalReceiptDtoSchema),
   handler: async (ctx, args): Promise<CampaignContentRemovalReceiptDto> => {
     const request = unshareCampaignContentInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

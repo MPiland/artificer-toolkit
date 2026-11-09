@@ -3,7 +3,7 @@ import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/s
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * SPELLS-4.T2s and T2s2 backfill: a stored `CREATURE_FORM` contribution gains `retainedAbilityIds`
@@ -15,7 +15,10 @@ import { internalMutation } from '../lib/mutations'
  * Each rewritten definition is validated and re-checksummed. Idempotent: a contribution that has
  * both fields is left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 function migratedDefinition(definitionJson: string) {
   const stored = JSON.parse(definitionJson) as { stateContributions?: unknown[] }

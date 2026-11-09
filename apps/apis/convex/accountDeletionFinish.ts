@@ -17,8 +17,8 @@ import { retainedFeed } from './notifications/feed'
  * rows, before the ACCOUNT step removes the provider account.
  */
 export const step = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'FINISH')
     if (!job) return null
@@ -58,8 +58,8 @@ export const step = internalMutation({
  * refuse to run while the account still exists.
  */
 export const purge = internalMutation({
-  args: { userId: v.string(), profileId: v.union(v.null(), v.string()) },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), profileId: v.union(v.null(), v.string()) }),
+  returns: () => v.null(),
   handler: async (ctx, { userId, profileId }) => {
     const usageEntry = await ctx.db
       .query('accountUsageEntries')

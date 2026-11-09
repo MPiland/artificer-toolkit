@@ -112,8 +112,8 @@ async function retainCampaignMedia(ctx: MutationCtx, userId: string, asset: Doc<
 
 /** The MEDIA step: retains one READY VTT map per invocation, in index order (ADR 0040). */
 export const step = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'MEDIA')
     if (!job) return null

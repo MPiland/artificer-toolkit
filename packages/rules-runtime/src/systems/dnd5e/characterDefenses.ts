@@ -1,7 +1,9 @@
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-import type {
-  CharacterRulePolicyInput,
-  CharacterRulePolicyOutput
+import {
+  type CharacterRulePolicyInput,
+  type CharacterRulePolicyOutput,
+  sortCharacterQualifiedDefenses,
+  sortCharacterTargetDefenses
 } from '@artificer-toolkit/schema/api/characterRules'
 
 import {
@@ -96,10 +98,11 @@ export function evaluateDnd5eCharacterDefenses(
       source: addition.source
     })
   }
+  // The output is not parsed at run time, so it is built in its schema's canonical order.
   return {
-    defenses: [...defenses.values()],
-    qualifiedDefenses: [...qualifiedDefenses.values()],
-    conditionImmunityIds: [...conditionImmunityIds],
-    spellSchoolImmunityIds: [...spellSchoolImmunityIds]
+    defenses: sortCharacterTargetDefenses([...defenses.values()]),
+    qualifiedDefenses: sortCharacterQualifiedDefenses([...qualifiedDefenses.values()]),
+    conditionImmunityIds: [...conditionImmunityIds].sort(),
+    spellSchoolImmunityIds: [...spellSchoolImmunityIds].sort()
   }
 }

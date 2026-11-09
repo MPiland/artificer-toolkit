@@ -3,6 +3,7 @@ import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api
 import type { CharacterSheetSliceDtoMap } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { DevelopmentClient } from './developmentClient'
+import { awaitCurrentCharacterSheet } from './fixtures/characterSheetSlices'
 import { api } from '../convex/_generated/api.js'
 
 export async function verifyCharacterConcurrency({
@@ -24,6 +25,7 @@ export async function verifyCharacterConcurrency({
     client: DevelopmentClient,
     slice: Slice
   ) {
+    await awaitCurrentCharacterSheet(first.character.id, client)
     const response = await client.query(api.characters.sheetSlices.get, {
       id: first.character.id,
       slice

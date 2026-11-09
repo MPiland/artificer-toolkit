@@ -11,8 +11,8 @@ import { consumeSocialRateLimit } from '../lib/rateLimits'
 import { captureReportEvidence } from './reportEvidence'
 
 export const create = mutation({
-  args: { input: zodToConvex(createSocialReportInputSchema) },
-  returns: zodToConvex(socialReportReceiptDtoSchema),
+  args: () => ({ input: zodToConvex(createSocialReportInputSchema) }),
+  returns: () => zodToConvex(socialReportReceiptDtoSchema),
   handler: async (ctx, args): Promise<SocialReportReceiptDto> => {
     const input = createSocialReportInputSchema.parse(args.input)
     const actor = await requireSocialViewer(ctx)

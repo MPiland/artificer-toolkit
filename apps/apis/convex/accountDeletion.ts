@@ -17,8 +17,8 @@ import {
 } from './accountDeletionJobs'
 
 export const confirmCredentials = internalMutation({
-  args: { email: v.string(), currentPassword: v.string() },
-  returns: v.null(),
+  args: () => ({ email: v.string(), currentPassword: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = accountDeleteInputSchema.parse(args)
     const authenticated = await getAuthenticatedProfile(ctx)
@@ -52,8 +52,8 @@ async function verifyCredentials(
 
 // The HTTP endpoint supplies its server-derived cookie session token, never an actor ID.
 export const execute = internalMutation({
-  args: { sessionToken: v.string(), command: zodToConvex(accountDeleteInputSchema) },
-  returns: v.null(),
+  args: () => ({ sessionToken: v.string(), command: zodToConvex(accountDeleteInputSchema) }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const input = accountDeleteInputSchema.parse(args.command)
     const auth = await createAuth(ctx).$context
@@ -126,8 +126,8 @@ async function deleteProviderRows(
 
 /** Operator and development-fixture entry point: the same staged deletion without a session. */
 export const schedule = internalMutation({
-  args: { authUserId: v.string() },
-  returns: v.null(),
+  args: () => ({ authUserId: v.string() }),
+  returns: () => v.null(),
   handler: async (ctx, { authUserId }) => {
     const profile = await ctx.db
       .query('userProfiles')
@@ -141,8 +141,8 @@ export const schedule = internalMutation({
 })
 
 export const deleteAccount = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'ACCOUNT')
     if (!job) return null

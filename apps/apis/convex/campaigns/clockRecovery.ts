@@ -160,8 +160,8 @@ export async function recoverClockBoundary({
 
 /** Runs inside the calling clock mutation's transaction without loading Sheet code for clock reads. */
 export const recover = internalMutation({
-  args: zodToConvexFields(recoverCampaignClockBoundaryInputSchema.shape),
-  returns: v.null(),
+  args: () => zodToConvexFields(recoverCampaignClockBoundaryInputSchema.shape),
+  returns: () => v.null(),
   handler: async (ctx, args): Promise<null> => {
     const input = recoverCampaignClockBoundaryInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

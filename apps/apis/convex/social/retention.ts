@@ -212,8 +212,8 @@ export async function deleteRetentionMatches(
 }
 
 export const preview = internalQuery({
-  args: zodToConvexFields(socialRetentionPreviewInputSchema.shape),
-  returns: zodToConvex(socialRetentionPreviewResultSchema),
+  args: () => zodToConvexFields(socialRetentionPreviewInputSchema.shape),
+  returns: () => zodToConvex(socialRetentionPreviewResultSchema),
   handler: async (ctx, args) => {
     const { matches, summary } = await selectRetentionPage(
       ctx,
@@ -224,8 +224,8 @@ export const preview = internalQuery({
 })
 
 export const apply = internalMutation({
-  args: zodToConvexFields(socialRetentionApplyInputSchema.shape),
-  returns: zodToConvex(socialRetentionApplyResultSchema),
+  args: () => zodToConvexFields(socialRetentionApplyInputSchema.shape),
+  returns: () => zodToConvex(socialRetentionApplyResultSchema),
   handler: async (ctx, args) => {
     const input = socialRetentionApplyInputSchema.parse(args)
     return deleteRetentionMatches(ctx, await selectRetentionPage(ctx, input, true))
@@ -233,8 +233,8 @@ export const apply = internalMutation({
 })
 
 export const cleanupReportActions = internalMutation({
-  args: zodToConvexFields({ reportId: socialStoredReportSchema.shape.id }),
-  returns: v.null(),
+  args: () => zodToConvexFields({ reportId: socialStoredReportSchema.shape.id }),
+  returns: () => v.null(),
   handler: async (ctx, { reportId }) => {
     const report = await ctx.db
       .query('socialReports')

@@ -6,7 +6,7 @@ import {
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * Q23 (PLATFORM-24): rule continuations are no longer sealed. A decision paused before the change
@@ -15,7 +15,10 @@ import { internalMutation } from '../lib/mutations'
  * voided and its snapshot parts and checksum are removed. Idempotent: current snapshots carry no
  * seal and settled occurrences have none.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export const cancelSealedDecisions = migrations.define({
   table: 'encounterRuleOccurrences',

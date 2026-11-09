@@ -105,8 +105,8 @@ export async function continueAccountDeletion(
 
 // Convex does not retry a scheduled mutation that threw or timed out; this re-runs the step.
 export const retry = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, { jobId, token }) => {
     const job = await ctx.db.get(jobId)
     if (!job || job.token !== token) return null

@@ -16,8 +16,8 @@ import { internalMutation } from './lib/mutations'
 import { getAuthenticatedProfile } from './lib/identity'
 
 export const get = query({
-  args: {},
-  returns: zodToConvex(entitlementProjectionDtoSchema),
+  args: () => ({}),
+  returns: () => zodToConvex(entitlementProjectionDtoSchema),
   handler: async (ctx): Promise<EntitlementProjectionDto> => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
@@ -41,8 +41,8 @@ export const get = query({
 
 // Deployment operator only; Billing owns customer-facing tier changes in Phase 09.
 export const setTier = internalMutation({
-  args: { userId: v.string(), tier: zodToConvex(entitlementTierDtoSchema) },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), tier: zodToConvex(entitlementTierDtoSchema) }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const userId = postgresUuidSchema.parse(args.userId).toLowerCase()
     const tier = entitlementTierDtoSchema.parse(args.tier)

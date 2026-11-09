@@ -33,13 +33,14 @@ const classPublishDraftInputSchema = z.extend(authoredPublishDraftInputSchema, {
 })
 
 export const prepareDraft = internalQuery({
-  args: zodToConvexFields(classPublishDraftInputSchema.shape),
-  returns: v.object({
-    documentJson: v.string(),
-    label: v.string(),
-    systemId: v.string(),
-    userId: v.string()
-  }),
+  args: () => zodToConvexFields(classPublishDraftInputSchema.shape),
+  returns: () =>
+    v.object({
+      documentJson: v.string(),
+      label: v.string(),
+      systemId: v.string(),
+      userId: v.string()
+    }),
   handler: async (
     ctx,
     args
@@ -61,13 +62,13 @@ export const prepareDraft = internalQuery({
 })
 
 export const readSourceRows = internalQuery({
-  args: {
+  args: () => ({
     systemId: v.string(),
     table: v.string(),
     columns: v.array(v.string()),
     roots: zodToConvex(authoredSourceRootsSchema)
-  },
-  returns: v.string(),
+  }),
+  returns: () => v.string(),
   handler: async (ctx, { systemId, table, columns, roots }): Promise<string> => {
     const { userId } = await requireIdentity(ctx)
     const reader = await createSystemSourceReader(ctx, systemId, userId)
@@ -91,14 +92,14 @@ function readSource(
 }
 
 export const commitDraft = internalMutation({
-  args: {
+  args: () => ({
     ...zodToConvexFields(classPublishDraftInputSchema.shape),
     documentJson: v.string(),
     compilation: zodToConvex(authoredStoredCompilationSchema),
     authoringSources: zodToConvex(authoredNodeRuntimeSourceFactsSchema),
     sourceChecksums: zodToConvex(nodeRuntimeSourceChecksumsSchema)
-  },
-  returns: zodToConvex(authoredPublicationResultSchema),
+  }),
+  returns: () => zodToConvex(authoredPublicationResultSchema),
   handler: async (ctx, args): Promise<AuthoredPublicationResult> => {
     const input = classPublishDraftInputSchema.parse({
       subjectKind: args.subjectKind,

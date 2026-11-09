@@ -19,7 +19,6 @@ import {
   projectCharacterSheetForViewer
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { characterSheetCommandValidator } from '../characters/sheetCommandValidator'
-import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
@@ -30,15 +29,19 @@ import {
   projectCharacterPreparationOptions,
   readStoredCharacterPreparationOptions
 } from '../characters/preparationOptions'
-import { characterSheetSection, readStoredCharacterSheetSection } from '../characters/sheetSections'
+import {
+  characterSheetSection,
+  readStoredCharacterSheet,
+  readStoredCharacterSheetSections
+} from '../characters/sheetSections'
 import { prepareCharacterRest } from '../characters/rest'
 import { presentRoll } from '@artificer-toolkit/rules-runtime/character/rollPresentation'
 import { evaluateCharacterRoll, retainUserRoll } from '../rollDocuments'
 import { readCampaignCharacterReader, requireCampaignCharacterAuthority } from './characterState'
 
 export const executeRoll = mutation({
-  args: zodToConvexFields(campaignCharacterSheetRollInputSchema.shape),
-  returns: zodToConvex(rollRecordDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterSheetRollInputSchema.shape),
+  returns: () => zodToConvex(rollRecordDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, ...input } = campaignCharacterSheetRollInputSchema.parse(args)
@@ -56,31 +59,27 @@ export const executeRoll = mutation({
 })
 
 /** The GM, the Character's player, or another member while "Party can view" is on. */
-async function readCampaignCharacterSheetForMember(
-  ctx: QueryCtx,
-  userId: string,
-  campaignId: string,
-  characterId: string
-) {
-  const reader = await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
-  const current = await loadCharacterSheet(ctx, reader.loadAsUserId, characterId, campaignId)
-  if (!current) throw new Error('Assigned Character not found.')
-  return { current, party: reader.party }
-}
-
 export const get = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(characterSheetResponseDtoSchema),
+  args: () => zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: () => zodToConvex(characterSheetResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
-    const { current, party } = await readCampaignCharacterSheetForMember(
+    const { loadAsUserId, party } = await readCampaignCharacterReader(
       ctx,
-      userId,
       campaignId,
-      characterId
+      characterId,
+      userId
     )
-    if (party && !current.sheetState.partyVisibility.sheet)
+    const stored = await readStoredCharacterSheet(ctx, {
+      userId: loadAsUserId,
+      lookupId: characterId,
+      campaignId,
+      party
+    })
+    if (stored) return stored
+    const current = await loadCharacterSheet(ctx, loadAsUserId, characterId, campaignId)
+    if (!current || (party && !current.sheetState.partyVisibility.sheet))
       throw new Error('Assigned Character not found.')
     return characterSheetResponseDtoSchema.parse(
       projectCharacterSheetForViewer(
@@ -92,17 +91,19 @@ export const get = query({
 })
 
 export const panel = query({
-  args: zodToConvexFields(campaignCharacterSheetPanelInputSchema.shape),
-  returns: zodToConvex(characterSheetPanelDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterSheetPanelInputSchema.shape),
+  returns: () => zodToConvex(characterSheetPanelDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, target } = campaignCharacterSheetPanelInputSchema.parse(args)
-    const stored = await readStoredCharacterSheetSection(ctx, {
-      userId,
-      lookupId: characterId,
-      campaignId,
-      section: characterSheetSection.panel(target)
-    })
+    const [stored] =
+      (await readStoredCharacterSheetSections(ctx, {
+        userId,
+        lookupId: characterId,
+        campaignId,
+        sections: [characterSheetSection.panel(target)],
+        whileQueued: true
+      })) ?? []
     if (stored !== undefined) return characterSheetPanelDtoSchema.parse(stored)
     const current = await loadCharacterSheet(
       ctx,
@@ -120,8 +121,8 @@ export const panel = query({
 })
 
 export const preparationOptions = query({
-  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-  returns: zodToConvex(characterPreparationOptionsResponseDtoSchema),
+  args: () => zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: () => zodToConvex(characterPreparationOptionsResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
@@ -138,8 +139,8 @@ export const preparationOptions = query({
 })
 
 export const restPreview = query({
-  args: zodToConvexFields(campaignCharacterRestPreviewInputSchema.shape),
-  returns: zodToConvex(characterRestPreviewResponseDtoSchema),
+  args: () => zodToConvexFields(campaignCharacterRestPreviewInputSchema.shape),
+  returns: () => zodToConvex(characterRestPreviewResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, input } = campaignCharacterRestPreviewInputSchema.parse(args)
@@ -153,11 +154,11 @@ export const restPreview = query({
 })
 
 export const execute = mutation({
-  args: {
+  args: () => ({
     ...zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
-    command: characterSheetCommandValidator
-  },
-  returns: zodToConvex(characterSheetCommandResponseDtoSchema),
+    command: characterSheetCommandValidator()
+  }),
+  returns: () => zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, command } =

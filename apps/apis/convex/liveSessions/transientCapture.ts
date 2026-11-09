@@ -69,8 +69,8 @@ async function readPresentedScene(ctx: QueryCtx, campaign: Doc<'campaigns'>, use
 
 /** Cold admission: the presenting user's identity and membership, and the presented Scene. */
 export const capture = internalQuery({
-  args: zodToConvexFields(liveSessionTransientCaptureInputSchema.shape),
-  returns: zodToConvex(liveSessionTransientCaptureSchema),
+  args: () => zodToConvexFields(liveSessionTransientCaptureInputSchema.shape),
+  returns: () => zodToConvex(liveSessionTransientCaptureSchema),
   handler: async (ctx, args): Promise<LiveSessionTransientCapture> => {
     const input = liveSessionTransientCaptureInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -93,8 +93,8 @@ export const capture = internalQuery({
  * Scene; the cache is shared by every member.
  */
 export const roomScene = internalQuery({
-  args: zodToConvexFields(liveSessionRoomSceneCaptureInputSchema.shape),
-  returns: zodToConvex(liveSessionRoomSceneCaptureSchema),
+  args: () => zodToConvexFields(liveSessionRoomSceneCaptureInputSchema.shape),
+  returns: () => zodToConvex(liveSessionRoomSceneCaptureSchema),
   handler: async (ctx, args): Promise<LiveSessionRoomSceneCapture> => {
     const input = liveSessionRoomSceneCaptureInputSchema.parse(args)
     await requireActiveCampaignLiveAuthority(ctx, input)

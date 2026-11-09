@@ -22,8 +22,8 @@ const rollbackReference = makeFunctionReference<'mutation', DevelopmentReceiptLe
 )
 
 export const rollback = internalMutation({
-  args: zodToConvexFields(developmentReceiptLedgerScopeSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerRemovalSchema),
+  args: () => zodToConvexFields(developmentReceiptLedgerScopeSchema.shape),
+  returns: () => zodToConvex(developmentReceiptLedgerRemovalSchema),
   handler: async (ctx, { userId, characterId }) => {
     await requireFixtureAccount(ctx, userId)
     const profile = await ctx.db
@@ -78,8 +78,8 @@ export const verifyRollback = internalAction({
 })
 
 export const inspect = internalQuery({
-  args: zodToConvexFields(developmentReceiptLedgerRetirementInputSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerRetirementInspectionSchema),
+  args: () => zodToConvexFields(developmentReceiptLedgerRetirementInputSchema.shape),
+  returns: () => zodToConvex(developmentReceiptLedgerRetirementInspectionSchema),
   handler: async (ctx, args) => {
     const input = developmentReceiptLedgerRetirementInputSchema.parse(args)
     if (process.env.SITE_URL !== 'http://localhost:3000')

@@ -189,13 +189,13 @@ export async function insertStagedStage(
 }
 
 export const beginPlan = internalMutation({
-  args: {
+  args: () => ({
     jobId: v.string(),
     entryId: v.string(),
     generatedIds: v.array(v.string()),
     expectedStageCount: v.number()
-  },
-  returns: planOutputValidator,
+  }),
+  returns: () => planOutputValidator,
   handler: async (ctx, args): Promise<ImportRunnerPlan> => {
     const plan = planOutputSchema.parse({
       generatedIds: args.generatedIds,
@@ -266,8 +266,8 @@ export const beginPlan = internalMutation({
 })
 
 export const readPlan = internalQuery({
-  args: { jobId: v.string() },
-  returns: v.union(v.null(), planOutputValidator),
+  args: () => ({ jobId: v.string() }),
+  returns: () => v.union(v.null(), planOutputValidator),
   handler: async (ctx, args): Promise<ImportRunnerPlan | null> => {
     await requireRunningImportJob(ctx, args.jobId)
     const row = await ctx.db
@@ -296,13 +296,13 @@ export const readPlan = internalQuery({
 })
 
 export const stageResult = internalMutation({
-  args: {
+  args: () => ({
     jobId: v.string(),
     sequence: v.number(),
     entryId: v.string(),
     resultJson: v.string()
-  },
-  returns: v.null(),
+  }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const found = await requireRunningImportJob(ctx, args.jobId)
     if (found.job.phase !== 'STAGING') throw new Error('Import job is not accepting result output.')

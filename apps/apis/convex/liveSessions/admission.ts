@@ -11,8 +11,11 @@ import { consumeUserRateLimit } from '../lib/rateLimits'
 import { claimCampaignLiveAuthority } from './authority'
 
 export const authorize = internalMutation({
-  args: { ...zodToConvexFields(liveSessionJoinOptionsDtoSchema.shape), expiresAt: v.number() },
-  returns: zodToConvex(liveSessionTicketAdmissionDtoSchema),
+  args: () => ({
+    ...zodToConvexFields(liveSessionJoinOptionsDtoSchema.shape),
+    expiresAt: v.number()
+  }),
+  returns: () => zodToConvex(liveSessionTicketAdmissionDtoSchema),
   handler: async (ctx, args): Promise<LiveSessionTicketAdmissionDto> => {
     const input = liveSessionJoinOptionsDtoSchema.parse({ campaignId: args.campaignId })
     const { userId } = await requireIdentity(ctx)

@@ -15,6 +15,12 @@ D&D vocabulary. `packages/rules-runtime` wraps the Kernel with schema validation
 modules (D&D 2014 today), and the pure Encounter, Character and Sheet calculations that callers share.
 It owns no store and no transaction.
 
+Validation happens where data enters: publication validates definitions, and stored records (active-effect
+records among them) are parsed when they are read. Values the runtime builds from them are not parsed again.
+The Character policy facts and action model (RELIABILITY-21.T33), and the grant fold's input and output and the
+policy output (PERF-6.T7), are built in their schemas' canonical form, and
+`characterRulePolicyParseParity.test.ts` holds each of them equal to its parsed form.
+
 ```mermaid
 flowchart TD
   Draft["Typed authored draft"] --> Publish["Validated publication (Convex, authoring package)"]

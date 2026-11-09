@@ -3,7 +3,7 @@ import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/s
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * SPELLS-33.T6n2 backfill: the actor whose turns time an effect moved from a counted expiration's
@@ -12,7 +12,10 @@ import { internalMutation } from '../lib/mutations'
  * rewritten definition is validated and re-checksummed. Idempotent: a recurrence with an anchor and
  * none on its expiration is left alone.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 function migratedDefinition(definitionJson: string) {
   const stored = JSON.parse(definitionJson) as {

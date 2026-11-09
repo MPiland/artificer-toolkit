@@ -124,13 +124,13 @@ async function discoveryPage(
 }
 
 export const browse = query({
-  args: zodToConvexFields(socialBrowseInputSchema.shape),
-  returns: zodToConvex(socialListingPageSchema),
+  args: () => zodToConvexFields(socialBrowseInputSchema.shape),
+  returns: () => zodToConvex(socialListingPageSchema),
   handler: (ctx, args) => discoveryPage(ctx, socialBrowseInputSchema.parse(args))
 })
 
 export const search = query({
-  args: zodToConvexFields(socialSearchInputSchema.shape),
-  returns: zodToConvex(socialListingPageSchema),
+  args: () => zodToConvexFields(socialSearchInputSchema.shape),
+  returns: () => zodToConvex(socialListingPageSchema),
   handler: (ctx, args) => discoveryPage(ctx, socialSearchInputSchema.parse(args))
 })

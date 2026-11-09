@@ -639,8 +639,8 @@ async function loadExactForUser(
 }
 
 export const loadExact = internalQuery({
-  args: { requests: v.array(exactLookupRequestValidator) },
-  returns: exactLookupSnapshotValidator,
+  args: () => ({ requests: v.array(exactLookupRequestValidator) }),
+  returns: () => exactLookupSnapshotValidator,
   handler: async (ctx, args): Promise<ImportPreviewExactLookupSnapshot> => {
     const { userId } = await requireIdentity(ctx)
     return loadExactForUser(ctx, userId, args.requests)
@@ -648,8 +648,8 @@ export const loadExact = internalQuery({
 })
 
 export const loadExactForJob = internalQuery({
-  args: { jobId: v.string(), requests: v.array(exactLookupRequestValidator) },
-  returns: exactLookupSnapshotValidator,
+  args: () => ({ jobId: v.string(), requests: v.array(exactLookupRequestValidator) }),
+  returns: () => exactLookupSnapshotValidator,
   handler: async (ctx, args): Promise<ImportPreviewExactLookupSnapshot> => {
     const userId = await requireRunningImportJobOwner(ctx, args.jobId)
     return loadExactForUser(ctx, userId, args.requests, args.jobId)
@@ -680,11 +680,11 @@ async function loadMasterPageForUser(
 }
 
 export const loadMasterPage = internalQuery({
-  args: {
+  args: () => ({
     subjectKind: authoredSubjectKindValidator,
     paginationOpts: paginationOptsValidator
-  },
-  returns: paginationResultValidator(masterCandidateValidator),
+  }),
+  returns: () => paginationResultValidator(masterCandidateValidator),
   handler: async (ctx, args): Promise<ImportPreviewMasterPage> => {
     const { userId } = await requireIdentity(ctx)
     return loadMasterPageForUser(ctx, userId, args)
@@ -692,12 +692,12 @@ export const loadMasterPage = internalQuery({
 })
 
 export const loadMasterPageForJob = internalQuery({
-  args: {
+  args: () => ({
     jobId: v.string(),
     subjectKind: authoredSubjectKindValidator,
     paginationOpts: paginationOptsValidator
-  },
-  returns: paginationResultValidator(masterCandidateValidator),
+  }),
+  returns: () => paginationResultValidator(masterCandidateValidator),
   handler: async (ctx, args): Promise<ImportPreviewMasterPage> => {
     const userId = await requireRunningImportJobOwner(ctx, args.jobId)
     return loadMasterPageForUser(ctx, userId, args, args.jobId)

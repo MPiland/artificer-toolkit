@@ -7,14 +7,17 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * D128 backfill: a stored Run actor's `outOfInitiative` flag becomes `absence`. D82's flag was
  * written only by the GM's removal command, so a set flag is always a GM removal; Plane Shift
  * departures (D128) never existed in stored data. Idempotent: a migrated row has no flag.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 export const runActorAbsence = migrations.define({
   table: 'encounterRunActors',

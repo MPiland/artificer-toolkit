@@ -8,13 +8,16 @@ import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { internalMutation } from '../lib/mutations'
+import { eagerInternalMutation } from '../lib/mutations'
 
 /**
  * ADR 0033 backfill: strips every Session key from Campaign-owned play rows. The schema is widened
  * only while these run on a deployment; the committed schema is already narrow.
  */
-const migrations = new Migrations(components.migrations, { schema, internalMutation })
+const migrations = new Migrations(components.migrations, {
+  schema,
+  internalMutation: eagerInternalMutation
+})
 
 type JsonObject = Record<string, unknown>
 

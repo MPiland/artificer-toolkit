@@ -9,8 +9,8 @@ import { internalMutation } from '../lib/mutations'
 import { listingSearch, requireOwnedCampaign } from './listingDocuments'
 
 export const backfill = internalMutation({
-  args: zodToConvexFields(socialSearchBackfillInputSchema.shape),
-  returns: zodToConvex(socialSearchBackfillResultSchema),
+  args: () => zodToConvexFields(socialSearchBackfillInputSchema.shape),
+  returns: () => zodToConvex(socialSearchBackfillResultSchema),
   handler: async (ctx, args) => {
     const input = socialSearchBackfillInputSchema.parse(args)
     const result = await ctx.db

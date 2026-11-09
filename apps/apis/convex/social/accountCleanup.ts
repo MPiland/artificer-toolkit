@@ -53,8 +53,8 @@ async function prepareSocialAccountDeletion(ctx: MutationCtx, profileId: string)
 }
 
 export const prepareAccountDeletion = internalMutation({
-  args: accountDeletionStepArgs,
-  returns: v.null(),
+  args: () => accountDeletionStepArgs,
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const job = await readAccountDeletionStep(ctx, args, 'SOCIAL')
     if (!job) return null
@@ -69,8 +69,8 @@ export const prepareAccountDeletion = internalMutation({
 })
 
 export const run = internalMutation({
-  args: { userId: v.string(), profileId: v.union(v.null(), v.string()) },
-  returns: v.null(),
+  args: () => ({ userId: v.string(), profileId: v.union(v.null(), v.string()) }),
+  returns: () => v.null(),
   handler: async (ctx, args) => {
     const profileId = args.profileId
     const account = await ctx.db

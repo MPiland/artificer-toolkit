@@ -615,7 +615,7 @@ async function stageActive(
 }
 
 export const stageCustomAuthored = internalMutation({
-  args: {
+  args: () => ({
     jobId: v.string(),
     sequence: v.number(),
     customSequence: v.number(),
@@ -628,8 +628,8 @@ export const stageCustomAuthored = internalMutation({
     label: v.string(),
     payloadJson: v.string(),
     activate: v.boolean()
-  },
-  returns: v.string(),
+  }),
+  returns: () => v.string(),
   handler: async (ctx, rawArgs): Promise<string> => {
     const args: StageCustomAuthoredArgs = {
       ...rawArgs,

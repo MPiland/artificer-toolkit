@@ -7,7 +7,11 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/schema/api/campaignLiveState'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
-import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import {
+  characterSheetSliceResponseDtoSchema,
+  characterSheetSliceSchema,
+  type CharacterSheetSliceResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -15,8 +19,11 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../_generated/api'
+import type { QueryCtx } from '../_generated/server'
+import { get as campaignSheetQuery } from '../campaigns/characterSheet'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { createPartyPlayer, createPartyUser } from '../../tests/fixtures/partyPlayer'
 import {
@@ -24,11 +31,12 @@ import {
   importSeededSubjects,
   makePublishedRootOwned
 } from '../../tests/fixtures/publication'
+import { handlerOf, inOwnTransaction } from '../../tests/fixtures/queryTransaction'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
   characterSheetSection,
   readCharacterSheetStoreState,
-  readStoredCharacterSheetSection
+  readStoredCharacterSheetSections
 } from './sheetSections'
 import {
   CHARACTER_SHEET_STORE_CHECK_MS,
@@ -39,12 +47,34 @@ import { deriveAndStoreCharacterSheet, storeCharacterSheetSections } from './she
 import { loadCharacterSheetFacts } from './sheetFacts'
 import { removePrivateCharacter } from './accountDeletion'
 import { loadCharacterState } from './documents'
+import { get as sheetSlicesQuery } from './sheetSlices'
 
 /**
- * A stored section read checks authority and the derivation's inputs (the System document is 34 KB
- * of it) and returns one stored section; it reads no authored content.
+ * A stored section read checks authority and the derivation's inputs, whose System is a checksum
+ * row, and returns one stored section; it reads no authored content (PERF-6.T4).
  */
-const STORED_SECTION_READ_BYTES = 120_000
+const STORED_SECTION_READ_BYTES = 40_000
+/** A slice read while a store is queued checks authority and serves the stored section (PERF-6.T4). */
+const QUEUED_SLICE_READ_DOCUMENTS = 20
+
+/** The viewer's current stored section; undefined while a store is queued or the inputs moved. */
+async function readCurrentSection(
+  ctx: Parameters<typeof readStoredCharacterSheetSections>[0],
+  {
+    section,
+    ...input
+  }: Omit<Parameters<typeof readStoredCharacterSheetSections>[1], 'sections' | 'whileQueued'> & {
+    section: string
+  }
+) {
+  const [stored] =
+    (await readStoredCharacterSheetSections(ctx, {
+      ...input,
+      sections: [section],
+      whileQueued: false
+    })) ?? []
+  return stored
+}
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -223,7 +253,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       const sections = await Promise.all(
         viewers.flatMap(({ member, party: partyViewer }) =>
           slices.map((slice) =>
-            readStoredCharacterSheetSection(ctx, {
+            readCurrentSection(ctx, {
               userId: partyViewer ? player.userId : member.userId,
               lookupId: character.id,
               campaignId: input.campaignId,
@@ -247,7 +277,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     const totals = createDatabaseIoTotals()
     // Values leave `t.run` as Convex values, so a miss (undefined) arrives as null.
     const section = await t.run((ctx) =>
-      readStoredCharacterSheetSection(
+      readCurrentSection(
         { ...ctx, db: countDatabaseIo(ctx.db, totals) },
         {
           userId: player.userId,
@@ -262,6 +292,315 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
     expect(totals.reads.byTable.characterSheetSections?.documents).toBe(1)
     expect(totals.reads.bytes).toBeLessThanOrEqual(STORED_SECTION_READ_BYTES)
+  }, 60_000)
+
+  it('serves every viewer a stored or queued slice within its read budget, deriving nothing', async () => {
+    const { t, player, gm, party, character, input, visibility, forgetDerivation } = await setup()
+    const getSlice = handlerOf<CharacterSheetSliceResponseDto | null>(sheetSlicesQuery)
+    const measure = async (caller: typeof player.caller) => {
+      const totals = createDatabaseIoTotals()
+      const slice = await caller.run((ctx) =>
+        getSlice(
+          inOwnTransaction(
+            ctx as unknown as QueryCtx,
+            countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+          ),
+          { id: character.id, campaignId: input.campaignId, slice: 'COMMON' }
+        )
+      )
+      return { streamVersion: slice?.data.meta.streamVersion, totals }
+    }
+    const expectStored = async (
+      streamVersion: number,
+      budget: (totals: ReturnType<typeof createDatabaseIoTotals>) => void
+    ) => {
+      for (const viewer of [player, gm, party]) {
+        const read = await measure(viewer.caller)
+        expect(read.streamVersion).toBe(streamVersion)
+        expect(read.totals.reads.byTable.authoredRoots).toBeUndefined()
+        expect(read.totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
+        expect(read.totals.reads.byTable.characterSheetSections?.documents).toBe(1)
+        budget(read.totals)
+      }
+    }
+
+    // A hit: the stored section is current.
+    await expectStored(visibility.streamVersion, (totals) =>
+      expect(totals.reads.bytes).toBeLessThanOrEqual(STORED_SECTION_READ_BYTES)
+    )
+    // A miss with a store queued serves the stored section at the written stream version.
+    const note = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'CREATE_NOTE',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        title: 'Session one',
+        groupId: 'session-notes'
+      }
+    })
+    await expectStored(note.streamVersion, (totals) =>
+      expect(totals.reads.documents).toBeLessThanOrEqual(QUEUED_SLICE_READ_DOCUMENTS)
+    )
+
+    // Never stored, with no store queued: the read derives live. Recorded, not budgeted here.
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    await forgetDerivation()
+    const live = await measure(player.caller)
+    expect(live.streamVersion).toBe(note.streamVersion)
+    expect(live.totals.reads.byTable.authoredVersionPayloadChunks?.documents).toBeGreaterThan(0)
+    console.info(
+      `Never-stored COMMON slice read: ${live.totals.reads.documents} documents, ` +
+        `${Math.round(live.totals.reads.bytes / 1000)} KB`
+    )
+  }, 120_000)
+
+  it('refuses a party member a hidden Sheet from its stored sections, deriving nothing', async () => {
+    const { t, player, party, character, input, visibility } = await setup()
+    await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'SET_PARTY_VISIBILITY',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        visibility: { sheet: false, health: 'HIDDEN' }
+      }
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const reads: ((
+      ctx: QueryCtx
+    ) => Promise<CharacterSheetSliceResponseDto | CharacterSheetResponseDto | null>)[] = [
+      (ctx) =>
+        handlerOf<CharacterSheetSliceResponseDto | null>(sheetSlicesQuery)(ctx, {
+          id: character.id,
+          campaignId: input.campaignId,
+          slice: 'COMMON'
+        }),
+      (ctx) => handlerOf<CharacterSheetResponseDto>(campaignSheetQuery)(ctx, input)
+    ]
+    for (const read of reads) {
+      const totals = createDatabaseIoTotals()
+      await expect(
+        party.caller.run((ctx) =>
+          read(
+            inOwnTransaction(
+              ctx as unknown as QueryCtx,
+              countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+            )
+          )
+        )
+      ).rejects.toThrow('Assigned Character not found.')
+      expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
+      expect(totals.reads.bytes).toBeLessThanOrEqual(STORED_SECTION_READ_BYTES)
+    }
+  }, 120_000)
+
+  it('serves the whole Sheet from its stored slices to every viewer, as a live derivation does', async () => {
+    const { player, gm, party, character, input, forgetDerivation } = await setup()
+    const getSheet = handlerOf<CharacterSheetResponseDto>(campaignSheetQuery)
+    const readSheets = () =>
+      Promise.all([
+        player.caller.query(api.characters.sheet.get, { id: character.id }),
+        ...[player, gm, party].map((viewer) => viewer.caller.query(campaignSheet, input))
+      ])
+    const totals = createDatabaseIoTotals()
+    await party.caller.run((ctx) =>
+      getSheet(
+        inOwnTransaction(
+          ctx as unknown as QueryCtx,
+          countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+        ),
+        input
+      )
+    )
+    expect(totals.reads.byTable.authoredRoots).toBeUndefined()
+    expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
+    // The six slices and the viewer's notes.
+    expect(totals.reads.byTable.characterSheetSections?.documents).toBe(slices.length + 1)
+    console.info(
+      `Stored whole Sheet read: ${totals.reads.documents} documents, ` +
+        `${Math.round(totals.reads.bytes / 1000)} KB`
+    )
+    const stored = await readSheets()
+
+    await forgetDerivation()
+    expect(await readSheets()).toEqual(stored)
+  }, 120_000)
+
+  it('derives the whole Sheet live while a store is queued', async () => {
+    const { player, character, visibility } = await setup()
+    const read = () => player.caller.query(api.characters.sheet.get, { id: character.id })
+    const before = await read()
+    const note = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'CREATE_NOTE',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        title: 'Session one',
+        groupId: 'session-notes'
+      }
+    })
+    // Proofs read the whole Sheet once right after a write, so it never serves a queued store.
+    const after = await read()
+    expect(after?.meta.streamVersion).toBe(note.streamVersion)
+    expect(after?.notes).not.toEqual(before?.notes)
+  }, 60_000)
+
+  it('runs a Sheet command sent while a store is queued against the written Character', async () => {
+    const { t, player, character, input } = await setup()
+    const readCommon = async () => {
+      const common = await player.caller.query(api.characters.sheetSlices.get, {
+        id: character.id,
+        campaignId: input.campaignId,
+        slice: 'COMMON'
+      })
+      if (common?.slice !== 'COMMON') throw new Error('Expected the COMMON slice.')
+      return common.data
+    }
+    const before = await readCommon()
+    // Swap Strength 15 and Constitution 13: the Builder commit raises the maximum by one and queues
+    // the Character's store.
+    const draft = await player.caller.mutation(api.characters.drafts.create, {
+      id: character.id,
+      systemId: character.systemId
+    })
+    const current = draft.payload.character
+    const abilities = current.intent.abilities
+    if (abilities?.method !== 'STANDARD_ARRAY') throw new Error('Expected a standard array.')
+    await player.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'edit',
+      character: {
+        ...current,
+        intent: {
+          ...current.intent,
+          abilities: {
+            ...abilities,
+            assignments: abilities.assignments.map((assignment) =>
+              assignment.ability === 'STRENGTH'
+                ? { ...assignment, option: '13' as const }
+                : assignment.ability === 'CONSTITUTION'
+                  ? { ...assignment, option: '15' as const }
+                  : assignment
+            )
+          }
+        }
+      }
+    })
+    expect(
+      await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())
+    ).toHaveLength(1)
+    const served = await readCommon()
+    expect(served.overview.maxHitPoints).toBe(before.overview.maxHitPoints)
+
+    // The command clamps to the written maximum, not the one the queued read served.
+    const healed = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'SET_HIT_POINTS',
+        commandId: crypto.randomUUID(),
+        expectedVersion: served.meta.streamVersion,
+        current: before.overview.maxHitPoints + 1
+      }
+    })
+    const after = await readCommon()
+    expect(after.meta.streamVersion).toBe(healed.streamVersion)
+    expect(after.overview).toMatchObject({
+      maxHitPoints: before.overview.maxHitPoints + 1,
+      currentHitPoints: before.overview.maxHitPoints + 1
+    })
+  }, 60_000)
+
+  it('drops a superseded store and never writes over a newer one', async () => {
+    const { t, player, character, visibility } = await setup()
+    const createNote = (expectedVersion: number, title: string) =>
+      player.caller.mutation(api.characters.sheetCommands.execute, {
+        id: character.id,
+        command: {
+          type: 'CREATE_NOTE',
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          title,
+          groupId: 'session-notes'
+        }
+      })
+    const readStore = () =>
+      t.run(async (ctx) => ({
+        derivation: await ctx.db
+          .query('characterSheetDerivations')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique(),
+        sections: await ctx.db
+          .query('characterSheetSections')
+          .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', character.id))
+          .collect(),
+        pending: await ctx.db.query('characterSheetPendingStores').collect()
+      }))
+    const runStore = (token: string) =>
+      t.mutation(internal.characters.sheetSectionDerivation.store, {
+        characterId: character.id,
+        token
+      })
+
+    const first = await createNote(visibility.streamVersion, 'Session one')
+    const [firstPending] = (await readStore()).pending
+    if (!firstPending) throw new Error('A note write queues its store.')
+    await createNote(first.streamVersion, 'Session two')
+    const queued = await readStore()
+    expect(queued.pending.map(({ token }) => token)).not.toContain(firstPending.token)
+    // The first write's store started before the second could cancel it: it finds a newer token.
+    await runStore(firstPending.token)
+    expect(await readStore()).toEqual(queued)
+
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const landed = await readStore()
+    expect(landed.pending).toEqual([])
+    expect(landed.derivation?.fingerprint).not.toBe(queued.derivation?.fingerprint)
+    // Run again after the newer store landed, it finds the stored Sheet current.
+    await runStore(firstPending.token)
+    expect(await readStore()).toEqual(landed)
+  }, 60_000)
+
+  it("queues a new Character's store at its commit, which lands as current sections", async () => {
+    const { t, owner, createCharacter } = await readyCharacterFixture()
+    const { draft, character } = await createCharacter()
+    await owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character
+    })
+    const sectionsState = () =>
+      t.query(internal.characters.development.sheetSectionsState, { characterId: character.id })
+    expect(await sectionsState()).toBe('QUEUED')
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await sectionsState()).toBe('CURRENT')
+  }, 60_000)
+
+  it('derives live after a content seed moves a stored Sheet, since a seed queues no store', async () => {
+    const { t, player, character, input } = await setup()
+    const sectionsState = () =>
+      t.query(internal.characters.development.sheetSectionsState, { characterId: character.id })
+    expect(await sectionsState()).toBe('CURRENT')
+    // A platform seed moves every Character in its System, so it queues none (ADR 0041).
+    const [spell] = srdSpells
+    await importSeededSubjects(t, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [importedSubject({ subjectKind: 'SPELL', ...spell!, document: spell! })]
+    })
+    expect(await sectionsState()).toBe('MISSING')
+    // With no store queued, a slice read serves nothing stored: it derives live.
+    expect(
+      await t.run((ctx) =>
+        readStoredCharacterSheetSections(ctx, {
+          userId: player.userId,
+          lookupId: character.id,
+          campaignId: input.campaignId,
+          sections: [characterSheetSection.slice('COMMON')],
+          whileQueued: true
+        })
+      )
+    ).toBeNull()
   }, 60_000)
 
   it('stores no Sheet for a Character that a content replacement left needing Builder repair', async () => {
@@ -300,19 +639,26 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     ).rejects.toThrow('Character requires Builder repair before the Sheet can be read.')
   })
 
-  it('derives live once an input changes outside a Character write', async () => {
-    const { t, player, character, input, visibility } = await setup()
+  it('derives live once an input moves with no store queued, and serves the stored slice while one is', async () => {
+    const { t, player, character, input, visibility, forgetDerivation } = await setup()
     const readCommon = () =>
       t.run((ctx) =>
-        readStoredCharacterSheetSection(ctx, {
+        readCurrentSection(ctx, {
           userId: player.userId,
           lookupId: character.id,
           campaignId: input.campaignId,
           section: characterSheetSection.slice('COMMON')
         })
       )
-    // A miss (undefined) leaves `t.run` as null.
-    expect(await readCommon()).not.toBeNull()
+    const queryCommon = () =>
+      player.caller.query(api.characters.sheetSlices.get, {
+        id: character.id,
+        campaignId: input.campaignId,
+        slice: 'COMMON'
+      })
+    const stored = characterSheetSliceResponseDtoSchema.parse(await readCommon())
+    if (stored.slice !== 'COMMON') throw new Error('Expected the stored COMMON slice.')
+    // A raw patch queues no store, so nothing marks the stored section as pending: it derives live.
     await t.run(async (ctx) => {
       const campaign = await ctx.db
         .query('campaigns')
@@ -321,8 +667,12 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       await ctx.db.patch(campaign!._id, { contentMaturity: 'MATURE' })
     })
     expect(await readCommon()).toBeNull()
+    expect(await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())).toEqual([])
+    const live = await queryCommon()
+    expect(live?.data.meta.streamVersion).toBe(visibility.streamVersion)
 
-    // A note write evaluates nothing: it queues the derivation, and the Sheet reads live meanwhile.
+    // A note write evaluates nothing: it queues the derivation, and the slice read serves the stored
+    // section at the written stream version meanwhile (ADR 0041 Amendment 2).
     const note = await player.caller.mutation(api.characters.sheetCommands.execute, {
       id: character.id,
       command: {
@@ -333,15 +683,19 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         groupId: 'session-notes'
       }
     })
-    const common = await player.caller.query(api.characters.sheetSlices.get, {
-      id: character.id,
-      campaignId: input.campaignId,
-      slice: 'COMMON'
-    })
-    expect(common?.data.meta.streamVersion).toBe(note.streamVersion)
+    // A miss (undefined) leaves `t.run` as null.
     expect(await readCommon()).toBeNull()
+    expect(await queryCommon()).toEqual({
+      ...stored,
+      data: { ...stored.data, meta: { ...stored.data.meta, streamVersion: note.streamVersion } }
+    })
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    expect(await readCommon()).toEqual(common)
+    expect(await readCommon()).not.toBeNull()
+    const landed = await queryCommon()
+    expect(landed?.data.meta.streamVersion).toBe(note.streamVersion)
+    // The landed store serves what a live derivation over the same inputs serves.
+    await forgetDerivation()
+    expect(await queryCommon()).toEqual(landed)
   }, 60_000)
 
   it('queues one derivation per Character, which a newer queued write replaces', async () => {
@@ -349,7 +703,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     const [target] = listCharacterSheetPanelTargets(await player.caller.query(campaignSheet, input))
     const readStored = (section: string) =>
       t.run((ctx) =>
-        readStoredCharacterSheetSection(ctx, {
+        readCurrentSection(ctx, {
           userId: player.userId,
           lookupId: character.id,
           campaignId: input.campaignId,
@@ -389,9 +743,10 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(secondQueue.pending).toEqual(secondQueue.scheduled)
     expect(secondQueue.scheduled).not.toEqual(firstQueue.scheduled)
 
-    // Until the queued derivation lands, every read derives live over the written Character.
+    // Until the queued derivation lands, reads serve the stored sections at the written stream
+    // version (ADR 0041 Amendment 2). A note changes no stored section, so they are what it stores.
     expect(await readStored(characterSheetSection.slice('COMMON'))).toBeNull()
-    const live = {
+    const served = {
       common: await player.caller.query(api.characters.sheetSlices.get, {
         id: character.id,
         campaignId: input.campaignId,
@@ -402,14 +757,14 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         target: target!
       })
     }
-    expect(live.common?.data.meta.streamVersion).toBe(second.streamVersion)
+    expect(served.common?.data.meta.streamVersion).toBe(second.streamVersion)
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await readQueue()).toEqual({ scheduled: [], pending: [] })
-    expect(await readStored(characterSheetSection.slice('COMMON'))).toEqual(live.common)
+    expect(await readStored(characterSheetSection.slice('COMMON'))).toEqual(served.common)
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
     expect(
       await player.caller.query(api.characters.panels.get, { id: character.id, target: target! })
-    ).toEqual(live.panel)
+    ).toEqual(served.panel)
   }, 60_000)
 
   it('cancels only a queued derivation that has not started, as Convex does', async () => {
@@ -456,7 +811,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     const [target] = listCharacterSheetPanelTargets(await player.caller.query(campaignSheet, input))
     const readStored = (section: string) =>
       t.run((ctx) =>
-        readStoredCharacterSheetSection(ctx, {
+        readCurrentSection(ctx, {
           userId: player.userId,
           lookupId: character.id,
           campaignId: input.campaignId,
@@ -611,37 +966,42 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
   it('skips a queued derivation once a write has stored the same inputs', async () => {
     const { t, character } = await setup()
     // A marker a re-derivation would overwrite: any derivation rewrites the section checksums.
-    const readDerivation = () =>
+    const readChecksums = () =>
       t.run((ctx) =>
         ctx.db
-          .query('characterSheetDerivations')
+          .query('characterSheetSectionChecksums')
           .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
           .unique()
       )
     const rederive = async () => {
-      const { _id } = (await readDerivation())!
-      await t.run((ctx) => ctx.db.patch(_id, { fingerprint: 'stale' }))
+      await t.run(async (ctx) => {
+        const derivation = await ctx.db
+          .query('characterSheetDerivations')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+        await ctx.db.patch(derivation!._id, { fingerprint: 'stale' })
+      })
       await t.mutation(internal.characters.sheetSectionDerivation.store, {
         characterId: character.id,
         token: crypto.randomUUID()
       })
-      return readDerivation()
+      return readChecksums()
     }
     // Snapshot builds finish without a Character write, so the setup's stored preparation manifest
     // can predate them; derive once over the settled inputs first.
-    const derivation = await rederive()
-    const sections = derivation!.sections.map((section, index) =>
+    const checksums = await rederive()
+    const sections = checksums!.sections.map((section, index) =>
       index === 0 ? { ...section, checksum: 'marker' } : section
     )
-    await t.run((ctx) => ctx.db.patch(derivation!._id, { sections }))
+    await t.run((ctx) => ctx.db.patch(checksums!._id, { sections }))
 
     await t.mutation(internal.characters.sheetSectionDerivation.store, {
       characterId: character.id,
       token: crypto.randomUUID()
     })
-    expect((await readDerivation())!.sections).toEqual(sections)
+    expect((await readChecksums())!.sections).toEqual(sections)
 
-    expect((await rederive())!.sections).toEqual(derivation!.sections)
+    expect((await rederive())!.sections).toEqual(checksums!.sections)
   }, 60_000)
 
   it('reads each store input once and stores what a fresh derivation stores', async () => {
@@ -652,13 +1012,17 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
           .query('characterSheetDerivations')
           .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
           .unique()
+        const checksums = await ctx.db
+          .query('characterSheetSectionChecksums')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
         const sections = await ctx.db
           .query('characterSheetSections')
           .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', character.id))
           .collect()
         return {
           fingerprint: derivation?.fingerprint,
-          sections: derivation?.sections,
+          sections: checksums?.sections,
           rows: sections.map(({ viewer, section, checksum, json }) => ({
             viewer,
             section,
@@ -709,7 +1073,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     const { t, player, gm, party, campaign, character } = await setup()
     const readCommon = () =>
       t.run((ctx) =>
-        readStoredCharacterSheetSection(ctx, {
+        readCurrentSection(ctx, {
           userId: player.userId,
           lookupId: character.id,
           campaignId: campaign.id,

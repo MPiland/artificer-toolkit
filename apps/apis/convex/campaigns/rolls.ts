@@ -134,8 +134,8 @@ async function insertRollEntry(
 export { insertPreEvaluatedCampaignTableRoll } from './tableRoll'
 
 export const execute = mutation({
-  args: zodToConvexFields(executeCampaignRollInputSchema.shape),
-  returns: zodToConvex(campaignChatEntryDtoSchema),
+  args: () => zodToConvexFields(executeCampaignRollInputSchema.shape),
+  returns: () => zodToConvex(campaignChatEntryDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const actor = await getAuthenticatedProfile(ctx)
     if (!actor) throw new Error('Unauthenticated')
@@ -195,8 +195,8 @@ export const execute = mutation({
  * the roll's id, so a retry finds the retained roll instead of rolling again.
  */
 export const executePrivate = mutation({
-  args: zodToConvexFields(executeCampaignPrivateRollInputSchema.shape),
-  returns: zodToConvex(rollHistoryEntryDtoSchema),
+  args: () => zodToConvexFields(executeCampaignPrivateRollInputSchema.shape),
+  returns: () => zodToConvex(rollHistoryEntryDtoSchema),
   handler: async (ctx, args): Promise<RollHistoryEntryDto> => {
     const actor = await getAuthenticatedProfile(ctx)
     if (!actor) throw new Error('Unauthenticated')
@@ -257,8 +257,8 @@ export const executePrivate = mutation({
  * derived notice nonce is the idempotency nonce.
  */
 export const reveal = mutation({
-  args: zodToConvexFields(revealCampaignRollInputSchema.shape),
-  returns: zodToConvex(campaignChatEntryDtoSchema),
+  args: () => zodToConvexFields(revealCampaignRollInputSchema.shape),
+  returns: () => zodToConvex(campaignChatEntryDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const actor = await getAuthenticatedProfile(ctx)
     if (!actor) throw new Error('Unauthenticated')

@@ -17,7 +17,7 @@ function authUser(args: { model: string; doc: unknown }): { _id: string } | null
 }
 
 export const onCreate = internalMutation({
-  args: { doc: v.any(), model: v.string() },
+  args: () => ({ doc: v.any(), model: v.string() }),
   handler: async (ctx, args) => {
     const user = authUser(args)
     if (user) await onAuthUserCreate(ctx, user)
@@ -25,7 +25,7 @@ export const onCreate = internalMutation({
 })
 
 export const onDelete = internalMutation({
-  args: { doc: v.any(), model: v.string() },
+  args: () => ({ doc: v.any(), model: v.string() }),
   handler: async (ctx, args) => {
     const user = authUser(args)
     if (user) await onAuthUserDelete(ctx, user)
@@ -39,7 +39,7 @@ const storedAuthUser = v.object({
 })
 
 export const onUpdate = internalMutation({
-  args: { newDoc: storedAuthUser, oldDoc: storedAuthUser, model: v.literal('user') },
+  args: () => ({ newDoc: storedAuthUser, oldDoc: storedAuthUser, model: v.literal('user') }),
   handler: async (ctx, { newDoc, oldDoc }) => {
     if (newDoc._id !== oldDoc._id) throw new Error('Better Auth user identity changed.')
     if (

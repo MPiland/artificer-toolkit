@@ -13,8 +13,8 @@ import { requireCampaignAuthority } from './authority'
 import { presentSession, requireSession } from './sessionDocuments'
 
 export const finish = mutation({
-  args: zodToConvexFields(finishCampaignSessionInputSchema.shape),
-  returns: zodToConvex(campaignSessionDtoSchema),
+  args: () => zodToConvexFields(finishCampaignSessionInputSchema.shape),
+  returns: () => zodToConvex(campaignSessionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionDto> => {
     const input = finishCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)

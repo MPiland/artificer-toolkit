@@ -1,7 +1,6 @@
-import {
-  characterRulePolicyOutputSchema,
-  type CharacterRulePolicyInput,
-  type CharacterRulePolicyOutput
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
 import { evaluateDnd5e2014CharacterActions } from './characterActions.js'
@@ -36,8 +35,9 @@ import { dnd5eSpellFactsWithSaveSuccessDamage } from './spellSaveSuccessDamage.j
 
 /**
  * Pure System-owned Character policy. The generic Rules Kernel remains scalar-only. Its input is the
- * parsed facts `composeCharacterRulePolicyFacts` returns; active grants added later are validated by
- * the grant fold, so the facts are not parsed again here (RELIABILITY-21.16).
+ * facts `composeCharacterRulePolicyFacts` builds from validated sources, with active grants from
+ * records parsed when they are read, so neither the facts nor the output it builds are parsed here
+ * (RELIABILITY-21.T33, PERF-6.T7); `characterRulePolicyParseParity.test.ts` holds both to their schemas.
  */
 export function evaluateDnd5e2014CharacterPolicy(
   input: CharacterRulePolicyInput
@@ -151,7 +151,7 @@ export function evaluateDnd5e2014CharacterPolicy(
   })
   const recoveredHitDice = (total: number) => (total === 0 ? 0 : Math.max(1, Math.floor(total / 2)))
   const concentrationCapacity = evaluateDnd5eConcentrationCapacity(grantFold, modifierGroups)
-  return characterRulePolicyOutputSchema.parse({
+  return {
     grantFold,
     proficiencies: proficiencies.map(({ kind, subjectId, scaling, source, category, grantId }) => ({
       kind,
@@ -176,6 +176,8 @@ export function evaluateDnd5e2014CharacterPolicy(
       contributions
     })),
     ...rolls,
+    // `resolveCharacterRulePolicyRollModes` fills these from the System vocabulary.
+    savingThrowDefinitions: [],
     ...evaluateDnd5eCharacterDefenses(input, grantFold),
     ...evaluateDnd5eCharacterMovementAndSenses(input, grantFold, modifierGroups),
     attacksPerAttackAction: Math.max(
@@ -231,7 +233,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         recovered: recoveredHitDice(companion.totalHitDice)
       }))
     }
-  })
+  }
 }
 
 export const dnd5eCharacterPolicyRegistration = {

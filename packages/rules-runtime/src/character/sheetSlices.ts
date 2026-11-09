@@ -70,7 +70,7 @@ export function projectCharacterSheetSlice(
         slice,
         data: {
           meta,
-          resources: { items: resources.items },
+          resources: { items: resources.items, hitDice: resources.hitDice },
           reference: {
             features: reference.features,
             proficiencies: reference.proficiencies,
@@ -87,5 +87,69 @@ export function projectCharacterSheetSlice(
           notes: sheet.notes
         }
       }
+  }
+}
+
+/**
+ * The viewer's whole Sheet from the six slices `projectCharacterSheetSlice` selected from it and the
+ * notes of the same projection: every Sheet field is in one of them.
+ */
+export function composeCharacterSheet(
+  slices: readonly CharacterSheetSliceResponseDto[],
+  notes: CharacterSheetResponseDto['notes']
+): CharacterSheetResponseDto {
+  const found: {
+    [Dto in CharacterSheetSliceResponseDto as Dto['slice']]?: Dto['data']
+  } = {}
+  for (const slice of slices) {
+    switch (slice.slice) {
+      case 'COMMON':
+        found.COMMON = slice.data
+        break
+      case 'ACTIONS':
+        found.ACTIONS = slice.data
+        break
+      case 'FEATURES':
+        found.FEATURES = slice.data
+        break
+      case 'SPELLS':
+        found.SPELLS = slice.data
+        break
+      case 'INVENTORY':
+        found.INVENTORY = slice.data
+        break
+      case 'EXTRAS':
+        found.EXTRAS = slice.data
+        break
+      case 'NOTES':
+        break
+    }
+  }
+  const missing = (slice: CharacterSheetSlice): never => {
+    throw new Error(`Character Sheet slice ${slice} is missing.`)
+  }
+  const common = found.COMMON ?? missing('COMMON')
+  const inventory = found.INVENTORY ?? missing('INVENTORY')
+  const features = found.FEATURES ?? missing('FEATURES')
+  const actions = found.ACTIONS ?? missing('ACTIONS')
+  const spells = found.SPELLS ?? missing('SPELLS')
+  const extras = found.EXTRAS ?? missing('EXTRAS')
+  return {
+    ...(common.publicId === undefined ? {} : { publicId: common.publicId }),
+    meta: common.meta,
+    identity: common.identity,
+    overview: common.overview,
+    actions: actions.actions,
+    resources: features.resources,
+    spells: spells.spells,
+    inventory: inventory.inventory,
+    extras: extras.extras,
+    reference: {
+      ...features.reference,
+      conditionOptions: common.reference.conditionOptions,
+      equipmentOptions: inventory.reference.equipmentOptions,
+      currencyOptions: inventory.reference.currencyOptions
+    },
+    notes
   }
 }
