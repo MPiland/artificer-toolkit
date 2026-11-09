@@ -23,6 +23,8 @@ import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
+import { deriveAndStoreCharacterSheet } from '../characters/sheetSectionDerivation'
+import { readCharacterSheetPendingStore } from '../characters/sheetSectionStores'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { fixture, input } from '../../tests/fixtures/characters'
@@ -53,6 +55,13 @@ const PARTY_SIZE = 5
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
+)
+
+const sheetSectionsState = makeFunctionReference<'query', { characterId: string }, string>(
+  'characters/development:sheetSectionsState'
+)
+const characterReconcileState = makeFunctionReference<'query', { characterId: string }, string>(
+  'characters/development:characterReconcileState'
 )
 
 type Base = Awaited<ReturnType<typeof fixture>>
@@ -458,6 +467,44 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     expect(settled.status).toBe('ACTIVE')
     expect(settled.label).toBe('Edited after departure')
     expect(campaignBalances(settled)).toEqual([])
+  })
+
+  it('leaves the Sheet of a Character that departs with a shared source to reach Builder repair once its step runs (PERF-6.T13)', async () => {
+    const base = await readySheetFixture()
+    const campaign = await gmCampaign(base)
+    await base.t.run((ctx) => makePublishedRootOwned(ctx, acolyte.id, base.other.userId))
+    await base.other.caller.mutation(api.campaigns.contentShares.share, {
+      campaignId: campaign.id,
+      subjectKind: 'BACKGROUND',
+      subjectId: acolyte.id
+    })
+    await seatPlayer(base, campaign, base.owner.userId, base.character.id)
+    await runDueScheduledWork(base.t)
+    const sheetState = () => base.t.query(sheetSectionsState, { characterId: base.character.id })
+    const reconcileState = () =>
+      base.t.query(characterReconcileState, { characterId: base.character.id })
+    const readSheet = () =>
+      base.owner.caller.query(api.characters.sheet.get, { id: base.character.id })
+    expect(await sheetState()).toBe('CURRENT')
+
+    holdScheduledWork()
+    await base.owner.caller.mutation(unassign, { campaignId: campaign.id })
+    expect(await reconcileState()).toBe('PENDING')
+    // The window: the departure removed the Background's share, so the queued Sheet store lands
+    // before the step finds Builder repair and stores nothing; the Sheet read reports the repair.
+    const store = await base.t.run((ctx) => readCharacterSheetPendingStore(ctx, base.character.id))
+    if (!store) throw new Error('The departure queued no Sheet store.')
+    await base.t.run((ctx) => deriveAndStoreCharacterSheet(ctx, base.character.id, store.token))
+    expect((await base.readState()).character?.status).toBe('ACTIVE')
+    expect(await sheetState()).toBe('MISSING')
+    await expect(readSheet()).rejects.toThrow('Builder repair')
+
+    // The step runs with no other action and leaves the Sheet in its post-departure state.
+    await runDueScheduledWork(base.t)
+    expect(await reconcileState()).toBe('NONE')
+    expect((await base.readState()).character?.status).toBe('DRAFT')
+    expect(await sheetState()).toBe('NO_SHEET')
+    await expect(readSheet()).rejects.toThrow('Builder repair')
   })
 
   it('queues a failed step again, which then completes; the settled step queued again is a no-op', async () => {

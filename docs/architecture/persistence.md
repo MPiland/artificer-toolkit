@@ -954,7 +954,9 @@ step's reconcile does, so the draft stays committable while the step is queued (
 (`campaigns/characterReconcileSteps:run`, PERF-6.T6). In its own transaction the step settles D81: it ends what
 the Campaign or its Runs own on the Character (effects, and emptied maintained states in Runs the room does not
 hold), trims attunement to the System limit, clamps HP and refreshes stats. It also reconciles personal source
-access and repairs a saved draft. A Character the room holds keeps its Run effects until the hold drops
+access and repairs a saved draft. Until it runs, a Character that used a removed shared source is still ACTIVE but
+not Sheet-ready: Sheet reads report Builder repair and its queued store stores nothing; the step's repair write
+queues the store again (D81 amendment, 2026-11-09). A Character the room holds keeps its Run effects until the hold drops
 (`settleDepartedCharacters`).
 Member departure (`membershipDeparture:leave` and `removeMember`) is one mutation: it runs the assignment
 departure, removes the member's direct shares and descendants, queues the remaining Characters' reconciles, evacuates Vehicle

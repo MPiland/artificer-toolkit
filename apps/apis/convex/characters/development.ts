@@ -50,6 +50,32 @@ export const sheetSectionsState = internalQuery({
   }
 })
 
+/**
+ * Whether a Character's queued Campaign reconcile step (PERF-6.T6) has committed, for proofs that
+ * wait for a departure's step before reading what it settles. EXHAUSTED: its last allowed run
+ * failed. Steps are few and short-lived (each run deletes its row), so this reads them all.
+ */
+export const characterReconcileState = internalQuery({
+  args: () => ({ characterId: v.string() }),
+  returns: () => v.union(v.literal('NONE'), v.literal('PENDING'), v.literal('EXHAUSTED')),
+  handler: async (ctx, { characterId }) => {
+    let state: 'NONE' | 'PENDING' | 'EXHAUSTED' = 'NONE'
+    for await (const pending of ctx.db.query('campaignCharacterReconciles')) {
+      const job = await ctx.db.system.get(pending.scheduledId)
+      const step: unknown = job?.args[0]
+      if (
+        typeof step !== 'object' ||
+        step === null ||
+        Reflect.get(step, 'characterId') !== characterId
+      )
+        continue
+      if (pending.exhaustedAt !== undefined) return 'EXHAUSTED'
+      state = 'PENDING'
+    }
+    return state
+  }
+})
+
 // This is not personal Character/account deletion. It only retires isolated test data.
 export const removePersonalFixtureCharacter = internalMutation({
   args: () => ({ userId: v.string(), characterId: v.string() }),
