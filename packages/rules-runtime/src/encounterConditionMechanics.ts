@@ -6,7 +6,8 @@ import type {
   PinnedConditionRuleStateDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleState'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
-import { measureSceneTokenFootprintDistance, type SceneGrid } from '@artificer-toolkit/shared/vtt'
+import { measureSceneTokenFootprintDistance } from '@artificer-toolkit/shared/vtt/sceneCombatPerception'
+import { type SceneGrid } from '@artificer-toolkit/shared/vtt/scene'
 
 import {
   measuredDistance,

@@ -148,6 +148,31 @@
       "types": "./dist/domains/vtt/segments.d.ts",
       "default": "./dist/domains/vtt/segments.js"
     },
+    "./vtt/geometry": {
+      "source": "./src/domains/vtt/geometry.ts",
+      "types": "./dist/domains/vtt/geometry.d.ts",
+      "default": "./dist/domains/vtt/geometry.js"
+    },
+    "./vtt/optionalCombatGeometry": {
+      "source": "./src/domains/vtt/optionalCombatGeometry.ts",
+      "types": "./dist/domains/vtt/optionalCombatGeometry.d.ts",
+      "default": "./dist/domains/vtt/optionalCombatGeometry.js"
+    },
+    "./vtt/sceneCombatPerception": {
+      "source": "./src/domains/vtt/sceneCombatPerception.ts",
+      "types": "./dist/domains/vtt/sceneCombatPerception.d.ts",
+      "default": "./dist/domains/vtt/sceneCombatPerception.js"
+    },
+    "./vtt/sceneRange": {
+      "source": "./src/domains/vtt/sceneRange.ts",
+      "types": "./dist/domains/vtt/sceneRange.d.ts",
+      "default": "./dist/domains/vtt/sceneRange.js"
+    },
+    "./vtt/sceneReducer": {
+      "source": "./src/domains/vtt/sceneReducer.ts",
+      "types": "./dist/domains/vtt/sceneReducer.d.ts",
+      "default": "./dist/domains/vtt/sceneReducer.js"
+    },
     "./vtt/spatial": {
       "source": "./src/domains/vtt/spatial.ts",
       "types": "./dist/domains/vtt/spatial.d.ts",

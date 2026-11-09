@@ -12,9 +12,9 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   enumerateSquareGridFootprint,
-  findSquareGridFlankingPairs,
-  type SceneToken
-} from '@artificer-toolkit/shared/vtt'
+  findSquareGridFlankingPairs
+} from '@artificer-toolkit/shared/vtt/optionalCombatGeometry'
+import { type SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 
 import type {
   FlankingInput,

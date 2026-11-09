@@ -14,7 +14,7 @@ import {
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 import { installedPolicySystems } from './systems/installedGameSystems/policy.js'
 import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
-import { requireSceneIlluminationLevels } from '@artificer-toolkit/shared/vtt'
+import { requireSceneIlluminationLevels } from '@artificer-toolkit/shared/vtt/sceneCombatPerception'
 
 /**
  * One installed System's Sheet-reachable policy tier (D195). A System leaves out a capability it

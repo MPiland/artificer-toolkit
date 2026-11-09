@@ -9,13 +9,12 @@ import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
   classifySquareGridFacingArc,
   classifySquareGridFootprintFacingArcs,
-  enumerateSquareGridFootprint,
-  lengthMeasurementInSceneUnits,
-  measureSceneTokenFootprintDistance,
-  sceneRangeBand,
-  type SceneGrid,
-  type SceneToken
-} from '@artificer-toolkit/shared/vtt'
+  enumerateSquareGridFootprint
+} from '@artificer-toolkit/shared/vtt/optionalCombatGeometry'
+import { lengthMeasurementInSceneUnits } from '@artificer-toolkit/shared/vtt/sceneReducer'
+import { measureSceneTokenFootprintDistance } from '@artificer-toolkit/shared/vtt/sceneCombatPerception'
+import { sceneRangeBand } from '@artificer-toolkit/shared/vtt/sceneRange'
+import { type SceneGrid, type SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import {
   facingArcLabel,
   type FacingArc,

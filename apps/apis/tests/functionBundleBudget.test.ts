@@ -154,3 +154,27 @@ it.each(['contentSnapshots/heads.ts', 'campaigns/accountDeparture.ts'])(
     ).toEqual([])
   }
 )
+
+// The Encounter read queries rerun together, cold, when a membership change invalidates a Campaign's
+// subscribers; evaluation cost tracks bundle bytes (about 0.3 ms per KiB), and a departed member's
+// queries pay it before they are refused (PERF-6.T11). Their read graphs import narrow subpaths of
+// `@artificer-toolkit/shared`, so geometry's polygon clipper stays out.
+it.for([
+  ['encounters/activeReads.ts', 1960],
+  ['encounters/sceneBindings.ts', 1905]
+] as const)('keeps the %s bundle within %i KiB', ([entry, budgetKiB]) => {
+  expect(
+    bundleInputs(entry).reduce((total, { bytesInOutput }) => total + bytesInOutput, 0)
+  ).toBeLessThanOrEqual(budgetKiB * 1024)
+})
+
+it.each(['encounters/activeReads.ts', 'encounters/sceneBindings.ts'])(
+  'keeps the polygon clipper out of the %s bundle',
+  (entry) => {
+    expect(
+      bundleInputs(entry)
+        .map(({ path }) => path)
+        .filter((path) => path.includes('/node_modules/polygon-clipping/'))
+    ).toEqual([])
+  }
+)
