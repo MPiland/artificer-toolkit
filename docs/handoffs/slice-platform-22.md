@@ -20,12 +20,12 @@ Workbook for PLATFORM-22.T1 (Phase 8.2). Rules: [slice-workbook-rules.md](slice-
 
 From `gh run view <id> --json jobs` (minutes; jobs after Build start together):
 
-| Run | Wall | Build | Typecheck Convex/Worker/packages | Typecheck web | Packages and Worker | Web tests | Convex 1-4 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 38987673112 (merge-m60) | 17 | 1.7 | 3.5 | 1.8 | 12.6 | 8.8 | 8.0 / 14.0 / 15.1 / 14.8 |
-| 38987280345 (spells-28-t4b) | 18 | 1.2 | 3.2 | 1.9 | 11.6 | 10.2 | 10.7 / 16.3 / 15.2 / 14.8 |
-| 38986336204 (spells-20-t3) | 19 | 2.0 | 2.5 | 1.3 | 12.6 | 10.1 | 8.1 / 16.6 / 15.7 / 15.4 |
-| 38984324373 (room-6-budget) | 19 | 2.0 | 2.2 | 1.7 | 10.7 | 10.1 | 13.0 / 17.1 / 14.8 / 11.5 |
+| Run                         | Wall | Build | Typecheck Convex/Worker/packages | Typecheck web | Packages and Worker | Web tests | Convex 1-4                |
+| --------------------------- | ---- | ----- | -------------------------------- | ------------- | ------------------- | --------- | ------------------------- |
+| 38987673112 (merge-m60)     | 17   | 1.7   | 3.5                              | 1.8           | 12.6                | 8.8       | 8.0 / 14.0 / 15.1 / 14.8  |
+| 38987280345 (spells-28-t4b) | 18   | 1.2   | 3.2                              | 1.9           | 11.6                | 10.2      | 10.7 / 16.3 / 15.2 / 14.8 |
+| 38986336204 (spells-20-t3)  | 19   | 2.0   | 2.5                              | 1.3           | 12.6                | 10.1      | 8.1 / 16.6 / 15.7 / 15.4  |
+| 38984324373 (room-6-budget) | 19   | 2.0   | 2.2                              | 1.7           | 10.7                | 10.1      | 13.0 / 17.1 / 14.8 / 11.5 |
 
 Green wall clock today: 17-20 min. A type error failed the run only when the slowest Convex shard finished (~17-19 min), because watchCi waits for the run to complete. Typechecks themselves finish 3.5-5.5 min after the run starts.
 
@@ -38,11 +38,11 @@ Green wall clock today: 17-20 min. A type error failed the run only when the slo
 
 ## Checklist
 
-| Test | Red | Green |
-| --- | --- | --- |
+| Test                                                                                                                                                                                                                 | Red                                                                                                                                                                                         | Green                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | `nativeLiveSessionRoom.test.ts` "logs a room failure behind a generic retry for the test harness and tells the member nothing" (cause in harness log; member sees only UNAVAILABLE + retry message; nothing written) | red: run 38990052509 (`ci/platform-22-red`, d9c9b9a30: harness and tests without the room change), the only Worker failure, `expected [] to deep equally contain … "harness-visible cause"` | green: Tests 38993716147 |
-| `nativeLiveSessionRoom.test.ts` "sends an expected domain rejection and keeps an unexpected failure generic" (existing production-behaviour proof, plus the harness sees the logged cause) | n/a (already logged path) | green: Tests 38993716147 |
-| 22.1 proof: `ci/platform-22-typefail` type error in a test file | run 38995237121 (7a7df49ea = f826a6429 + a type error in `apps/session-worker/test/roomFailureLog.ts`) cancelled 6.5 min after start; watchCi printed `error TS2322`. Branch deleted. | n/a |
+| `nativeLiveSessionRoom.test.ts` "sends an expected domain rejection and keeps an unexpected failure generic" (existing production-behaviour proof, plus the harness sees the logged cause)                           | n/a (already logged path)                                                                                                                                                                   | green: Tests 38993716147 |
+| 22.1 proof: `ci/platform-22-typefail` type error in a test file                                                                                                                                                      | run 38995237121 (7a7df49ea = f826a6429 + a type error in `apps/session-worker/test/roomFailureLog.ts`) cancelled 6.5 min after start; watchCi printed `error TS2322`. Branch deleted.       | n/a                      |
 
 ## Status log
 
@@ -65,6 +65,7 @@ Green wall clock today: 17-20 min. A type error failed the run only when the slo
   - errors: `Untrusted node runtime table: passives` and non-empty `clearedPaths`.
 
   Authoring stays out of the loop; see follow-ups.
+
 - 2026-10-16: harness proof run 38993725207 (throwaway `ci/platform-22-harness`, deliberate failure). The Worker failure output read "RoomFailureLog: The room logged 1 failure(s) during this test: … RoomStoreCorruptError: Room store is corrupt: harness-visible cause". The branch was deleted.
 - 2026-10-16: T1 green on f826a6429:
   - Tests 38993716147: 18.9 min wall, within the 17-20 min baseline;
@@ -76,6 +77,7 @@ Green wall clock today: 17-20 min. A type error failed the run only when the slo
   - updates to AGENTS.md and the workbook rules that retire separate red pushes.
 
   Known limit: when the slice has merged a `ci/merge-m*` batch that the phase branch does not yet have, that batch's changed tests also run against the phase branch and show as RED.
+
 - 2026-10-17: first T3 run 38995072518 (570f25b09). The red job failed in its build: package builds compile `src/__tests__`, so the tip's tests broke tsc. Fix: build at base first, then check out the tip's test files.
 - 2026-10-17: independent review (opus) of T3, triaged:
   - Fixed:

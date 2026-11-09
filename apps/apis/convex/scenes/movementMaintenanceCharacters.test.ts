@@ -3,6 +3,7 @@ import { makeFunctionReference } from 'convex/server'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { expect, it } from 'vitest'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -467,6 +468,8 @@ it('ends the Run effects on a Character that leaves the Campaign (D81)', async (
   await value.party.caller.mutation(api.campaigns.assignments.unassign, {
     campaignId: value.campaign.id
   })
+  // The Character's reconcile step waits for subscribers to settle (D216).
+  await runDueScheduledWork(value.t)
   const after = await snapshot(value)
   const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
   const remaining = after.characterEffects.filter((row) => row.characterId === value.detached.id)

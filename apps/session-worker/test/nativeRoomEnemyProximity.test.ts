@@ -37,10 +37,7 @@ afterEach(() => {
 /** A homebrew Feature adding 1d6 of the weapon's type to a melee hit while an able enemy of the target is within 5 ft. */
 const nearbyEnemyRider = (): ClassFeature =>
   withFixedRiderDice(
-    gatedSneakAttack(
-      testUuid(0xe10),
-      riderGate([{ predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 }])
-    ),
+    gatedSneakAttack(testUuid(0xe10), riderGate([{ predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 }])),
     testUuid(0xe11),
     '1d6'
   )

@@ -15,35 +15,35 @@ Probe (2026-10-15, every SRD spell whose Effects are not all Action):
 
 ## ACs closed or advanced
 
-| AC | Part closed here | Proof |
-| --- | --- | --- |
+| AC         | Part closed here                                                                                                                                                                                                                                                        | Proof         |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | SPELLS-8.1 | A cast offered with a Bonus Action or Action Effect names that activation in the choice (`actionCost`) and in the drawer; a Bonus Action cast spends the Bonus Action allowance, not the Action, and GM undo restores it; a reaction cast (Shield) is labelled Reaction | see checklist |
 
 ## Not in T9 (owners)
 
 The other ten non-Action SRD spells are offered by the builder but compile `MANUAL` (`NOT_NORMALIZED`) for effect shape, not activation:
 
-| Spell | Compiler reason | Owning PBI or AC |
-| --- | --- | --- |
-| Branding Smite, Divine Favor, Expeditious Retreat, Hunter's Mark | Concentration spell has no supported maintained effect | none |
-| Counterspell | reaction trigger is not the supported self action shape | REACTION-4.1 (trigger model), REACTION-4.3 (counter chain) |
-| Feather Fall | reaction trigger (a fall) is not supported | none (REACTION-4.1 names only Shield and Counterspell) |
-| Misty Step | teleport movement is not the supported self action shape | none |
-| Sanctuary | ward shape, ends on the warded creature's attack | SPELLS-27 (end-on-event authoring) |
-| Shillelagh | lifecycle overrides on a fixed direct result | none |
-| Mass Healing Word | list-of-actors target | SPELLS-8.T12 |
-| Spiritual Weapon, Arcane Sword, Faithful Hound (mixed or free Effects) | more than one active Effect group | SPELLS-8.T7 |
+| Spell                                                                  | Compiler reason                                          | Owning PBI or AC                                           |
+| ---------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------- |
+| Branding Smite, Divine Favor, Expeditious Retreat, Hunter's Mark       | Concentration spell has no supported maintained effect   | none                                                       |
+| Counterspell                                                           | reaction trigger is not the supported self action shape  | REACTION-4.1 (trigger model), REACTION-4.3 (counter chain) |
+| Feather Fall                                                           | reaction trigger (a fall) is not supported               | none (REACTION-4.1 names only Shield and Counterspell)     |
+| Misty Step                                                             | teleport movement is not the supported self action shape | none                                                       |
+| Sanctuary                                                              | ward shape, ends on the warded creature's attack         | SPELLS-27 (end-on-event authoring)                         |
+| Shillelagh                                                             | lifecycle overrides on a fixed direct result             | none                                                       |
+| Mass Healing Word                                                      | list-of-actors target                                    | SPELLS-8.T12                                               |
+| Spiritual Weapon, Arcane Sword, Faithful Hound (mixed or free Effects) | more than one active Effect group                        | SPELLS-8.T7                                                |
 
 No single-Effect FREE spell exists in the SRD, so "no activation" has no standalone case to offer.
 
 ## Red-first checklist
 
-| Test | Proves | Red log | Green log |
-| --- | --- | --- | --- |
-| `actionSpellCasting.test.ts` "journey: Healing Word is cast as a bonus action, spends the bonus action and not the action, and undo restores it" | the choice's `actionCost` is `BONUS_ACTION`; the cast spends the Bonus Action allowance and not the Action; undo restores both | `local-validation/spells-8-t9/red-convex.log` (fails on `actionCost`) | `green-convex.log` |
-| `actionSpellCasting.test.ts` "offers an Action spell as an Action and a reaction spell as a Reaction" | Cure Wounds is `ACTION`; Shield (1st level) is `REACTION` | `red-convex.log` | `green-convex.log` |
-| `CampaignTabletopActionDrawer.test.tsx` "names the activation a spell cast uses in its label" | the drawer shows "Healing Word (1st level) · Cleric · Bonus Action" | `red-web.log` | `green-web.log` |
-| `characterSpellCastActions.test.ts` "the activation a cast carries" (Cure Wounds, Healing Word, Shield of Faith, Shield) | the built cast carries the Effect's activation and compiles | passes on base (activation was already right): `red-journey.log` records the base journey | `green-unit.log` |
+| Test                                                                                                                                             | Proves                                                                                                                         | Red log                                                                                   | Green log          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------ |
+| `actionSpellCasting.test.ts` "journey: Healing Word is cast as a bonus action, spends the bonus action and not the action, and undo restores it" | the choice's `actionCost` is `BONUS_ACTION`; the cast spends the Bonus Action allowance and not the Action; undo restores both | `local-validation/spells-8-t9/red-convex.log` (fails on `actionCost`)                     | `green-convex.log` |
+| `actionSpellCasting.test.ts` "offers an Action spell as an Action and a reaction spell as a Reaction"                                            | Cure Wounds is `ACTION`; Shield (1st level) is `REACTION`                                                                      | `red-convex.log`                                                                          | `green-convex.log` |
+| `CampaignTabletopActionDrawer.test.tsx` "names the activation a spell cast uses in its label"                                                    | the drawer shows "Healing Word (1st level) · Cleric · Bonus Action"                                                            | `red-web.log`                                                                             | `green-web.log`    |
+| `characterSpellCastActions.test.ts` "the activation a cast carries" (Cure Wounds, Healing Word, Shield of Faith, Shield)                         | the built cast carries the Effect's activation and compiles                                                                    | passes on base (activation was already right): `red-journey.log` records the base journey | `green-unit.log`   |
 
 ## Status log
 

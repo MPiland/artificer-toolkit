@@ -30,13 +30,13 @@ Closes AC ATTACK-10.5: saving throws follow the D100 believed/true rule.
 
 ## Proof table
 
-| Criterion clause | Proof |
-| --- | --- |
+| Criterion clause                                          | Proof                                                                                                                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | The roller's prompt shows only what their Character knows | `nativeRoomSourceSightSave.test.ts` (walled origin: player prompt ADVANTAGE, GM prompt NORMAL); `encounterAttackBelief.test.ts` (believed sight) |
-| The save settles in the true mode | `nativeRoomSourceSightSave.test.ts` (two dice entered, NORMAL kept first die, `modeAdjustment`) |
-| A player-visible reason never names a hidden fact | `encounterAttackBelief.test.ts` (generic caption); `nativeRoomSourceSightSave.test.ts` (GM reason absent from player prompt and TABLE cards) |
-| The GM sees the full reason | `nativeRoomSourceSightSave.test.ts` (`gmReason` "can't see") |
-| Authored from core options, parity | `dnd5eCombatMath.test.ts` (homebrew Fighter feature folds like Danger Sense) |
+| The save settles in the true mode                         | `nativeRoomSourceSightSave.test.ts` (two dice entered, NORMAL kept first die, `modeAdjustment`)                                                  |
+| A player-visible reason never names a hidden fact         | `encounterAttackBelief.test.ts` (generic caption); `nativeRoomSourceSightSave.test.ts` (GM reason absent from player prompt and TABLE cards)     |
+| The GM sees the full reason                               | `nativeRoomSourceSightSave.test.ts` (`gmReason` "can't see")                                                                                     |
+| Authored from core options, parity                        | `dnd5eCombatMath.test.ts` (homebrew Fighter feature folds like Danger Sense)                                                                     |
 
 ## Deviations and deferrals
 

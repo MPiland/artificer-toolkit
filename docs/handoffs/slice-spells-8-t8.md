@@ -12,19 +12,19 @@ Rules mirrored from the Sheet (`sheetResourceUsage.ts`): a leveled cast (`spell.
 
 ## ACs closed or advanced
 
-| AC | Part closed here | Proof |
-| --- | --- | --- |
+| AC         | Part closed here                                                                                                                                                                                                         | Proof         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
 | SPELLS-8.1 | A LIMITED_USE or CAST_AT_LEVEL granted spell is offered at its cast level, spends one use of its spell-source pool and not a slot, the exhausted pool stops the offer and refuses the cast, and GM undo restores the use | see checklist |
 
 ## Red-first checklist
 
-| Test | Proves | Red log | Green log |
-| --- | --- | --- | --- |
+| Test                                                                                                                                                      | Proves                                                                                                                     | Red log                                       | Green log          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------ |
 | `actionSpellCasting.test.ts` "journey: a $attribute grant is cast from its use and not a slot, and GM undo restores the use" (LIMITED_USE, CAST_AT_LEVEL) | the Encounter offers the cast; `RESOLVE_ACTION` spends one use (used 1, remaining 1), spends no slot, undo restores used 0 | `local-validation/spells-8-t8/red-convex.log` | `green-convex.log` |
-| `actionSpellCasting.test.ts` "stops offering the cast once its last use is spent, and refuses the exhausted cast" | two casts exhaust the pool; the offer disappears; a stale cast is refused; no slot spent | `red-convex.log` | `green-convex.log` |
-| `characterSpellCastActions.test.ts` "offers a $castMode cast bound to its pool at the cost of one use" | the candidate, the decision and the compiled entry carry `{ poolId, chargeId, cost: 1 }` | `red-unit.log` | `green-unit.log` |
-| `characterSpellCastActions.test.ts` "spends one use of the pool and no slot, from the uses already spent, in Assisted play" | `prepareNativeCharacterActionState` returns the resource consumption (SPELL_SOURCE owner, 1 -> 2) and no spell consumption | `red-unit.log` | `green-unit.log` |
-| `characterSpellCastActions.test.ts` "spends nothing in Manual play"; "spends nothing for a cantrip" | Manual play and cantrips spend nothing | `red-unit.log` | `green-unit.log` |
+| `actionSpellCasting.test.ts` "stops offering the cast once its last use is spent, and refuses the exhausted cast"                                         | two casts exhaust the pool; the offer disappears; a stale cast is refused; no slot spent                                   | `red-convex.log`                              | `green-convex.log` |
+| `characterSpellCastActions.test.ts` "offers a $castMode cast bound to its pool at the cost of one use"                                                    | the candidate, the decision and the compiled entry carry `{ poolId, chargeId, cost: 1 }`                                   | `red-unit.log`                                | `green-unit.log`   |
+| `characterSpellCastActions.test.ts` "spends one use of the pool and no slot, from the uses already spent, in Assisted play"                               | `prepareNativeCharacterActionState` returns the resource consumption (SPELL_SOURCE owner, 1 -> 2) and no spell consumption | `red-unit.log`                                | `green-unit.log`   |
+| `characterSpellCastActions.test.ts` "spends nothing in Manual play"; "spends nothing for a cantrip"                                                       | Manual play and cantrips spend nothing                                                                                     | `red-unit.log`                                | `green-unit.log`   |
 
 ## Status log
 

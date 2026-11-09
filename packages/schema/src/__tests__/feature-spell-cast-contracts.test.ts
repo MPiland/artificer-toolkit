@@ -57,14 +57,14 @@ describe('Feature effect spellCast', () => {
     expect(spellCastIssues(effect(action, { spellCast: { castLevel: 0 } })).length).toBeGreaterThan(
       0
     )
-    expect(spellCastIssues(effect(action, { spellCast: { castLevel: 10 } })).length).toBeGreaterThan(
-      0
-    )
+    expect(
+      spellCastIssues(effect(action, { spellCast: { castLevel: 10 } })).length
+    ).toBeGreaterThan(0)
   })
 
   it('refuses a cast on a passive effect', () => {
-    expect(spellCastIssues(effect(passive, { spellCast: { castLevel: 3 } })).length).toBeGreaterThan(
-      0
-    )
+    expect(
+      spellCastIssues(effect(passive, { spellCast: { castLevel: 3 } })).length
+    ).toBeGreaterThan(0)
   })
 })

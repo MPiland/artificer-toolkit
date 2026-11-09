@@ -241,9 +241,7 @@ describe('native Campaign ownership transfer', () => {
           (
             await ctx.db
               .query('sceneVisionRevisions')
-              .withIndex('by_scope_id', (q) =>
-                q.eq('scope', 'CAMPAIGN').eq('id', base.campaign.id)
-              )
+              .withIndex('by_scope_id', (q) => q.eq('scope', 'CAMPAIGN').eq('id', base.campaign.id))
               .unique()
           )?.revision
       )
