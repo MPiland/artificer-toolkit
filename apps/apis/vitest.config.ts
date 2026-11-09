@@ -87,7 +87,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'convex',
-          include: ['apps/apis/convex/**/*.test.ts'],
+          include: ['apps/apis/convex/**/*.test.ts', 'apps/apis/tests/**/*.test.ts'],
           exclude: [...configDefaults.exclude, TRACER_TESTS]
         }
       },
