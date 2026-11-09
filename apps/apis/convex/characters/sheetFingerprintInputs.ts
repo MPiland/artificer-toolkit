@@ -172,7 +172,7 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
       unqueued:
         'Platform catalogues change only when a deployment seeds or imports its System; that would queue every Character in it.'
     },
-    systems: {
+    systemChecksums: {
       unqueued:
         'A System changes only when a deployment seeds or imports it; that would queue every Character in it.'
     }

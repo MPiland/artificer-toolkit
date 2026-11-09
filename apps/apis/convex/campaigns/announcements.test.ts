@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -82,6 +81,11 @@ function input(campaignId: string): CreateCampaignAnnouncementInput {
   }
 }
 
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Buffer.from(digest).toString('hex')
+}
+
 describe('native Campaign announcements', () => {
   it('derives the PARTY target when compatibility callers omit or null the private id', async () => {
     const { owner, campaign, partyId } = await setup()
@@ -128,9 +132,7 @@ describe('native Campaign announcements', () => {
     const sorted = Object.fromEntries(
       Object.entries(command).sort(([a], [b]) => a.localeCompare(b))
     )
-    expect(rows[0]?.inputFingerprint).toBe(
-      createHash('sha256').update(JSON.stringify(sorted)).digest('hex')
-    )
+    expect(rows[0]?.inputFingerprint).toBe(await sha256Hex(JSON.stringify(sorted)))
   })
   it('publishes once with the legacy fingerprint and fixed-summary notification in the same transaction', async () => {
     const { t, owner, other, campaign } = await setup()
@@ -149,9 +151,7 @@ describe('native Campaign announcements', () => {
     const sorted = Object.fromEntries(
       Object.entries(normalized).sort(([a], [b]) => a.localeCompare(b))
     )
-    expect(state.announcements[0]?.inputFingerprint).toBe(
-      createHash('sha256').update(JSON.stringify(sorted)).digest('hex')
-    )
+    expect(state.announcements[0]?.inputFingerprint).toBe(await sha256Hex(JSON.stringify(sorted)))
     expect(state.notifications).toHaveLength(1)
     expect(state.notifications[0]).toMatchObject({
       recipientUserId: other.userId,

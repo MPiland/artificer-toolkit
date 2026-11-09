@@ -112,6 +112,36 @@ const characterQualifiedDefenseSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The canonical order of a Character's qualified defenses. The policy builds its output in this
+ * order, since the output is not parsed at run time (PERF-6.T7).
+ */
+export function sortCharacterQualifiedDefenses<
+  Defense extends { kind: string; damageTypeId: string; bypassedBy: readonly string[] }
+>(defenses: readonly Defense[]): Defense[] {
+  return [...defenses].sort(
+    (left, right) =>
+      left.damageTypeId.localeCompare(right.damageTypeId) ||
+      left.kind.localeCompare(right.kind) ||
+      [...left.bypassedBy]
+        .sort()
+        .join(',')
+        .localeCompare([...right.bypassedBy].sort().join(','))
+  )
+}
+
+/** The canonical order of a Character's target defenses; see `sortCharacterQualifiedDefenses`. */
+export function sortCharacterTargetDefenses<
+  Defense extends { kind: string; damageTypeId: string; sourceEffectIds?: readonly string[] }
+>(defenses: readonly Defense[]): Defense[] {
+  return [...defenses].sort(
+    (left, right) =>
+      left.damageTypeId.localeCompare(right.damageTypeId) ||
+      left.kind.localeCompare(right.kind) ||
+      (left.sourceEffectIds ?? []).join(',').localeCompare((right.sourceEffectIds ?? []).join(','))
+  )
+}
+
 const canonicalCharacterQualifiedDefensesSchema = lazySchema(() =>
   z.pipe(
     z
@@ -133,17 +163,7 @@ const canonicalCharacterQualifiedDefensesSchema = lazySchema(() =>
           })
         })
       ),
-    z.transform((defenses) =>
-      [...defenses].sort(
-        (left, right) =>
-          left.damageTypeId.localeCompare(right.damageTypeId) ||
-          left.kind.localeCompare(right.kind) ||
-          [...left.bypassedBy]
-            .sort()
-            .join(',')
-            .localeCompare([...right.bypassedBy].sort().join(','))
-      )
-    )
+    z.transform(sortCharacterQualifiedDefenses)
   )
 )
 
@@ -168,16 +188,7 @@ const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
           })
         })
       ),
-    z.transform((defenses) =>
-      [...defenses].sort(
-        (left, right) =>
-          left.damageTypeId.localeCompare(right.damageTypeId) ||
-          left.kind.localeCompare(right.kind) ||
-          (left.sourceEffectIds ?? [])
-            .join(',')
-            .localeCompare((right.sourceEffectIds ?? []).join(','))
-      )
-    )
+    z.transform(sortCharacterTargetDefenses)
   )
 )
 

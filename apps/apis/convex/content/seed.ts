@@ -39,12 +39,15 @@ type SrdImportManifest = {
 
 let cachedManifest: { encoded: string; manifest: SrdImportManifest } | undefined
 
+/** The JSON text of an embedded SRD manifest: base64 of Brotli-compressed JSON. */
+export function decodeSrdManifestText(encoded: string): string {
+  return brotliDecompressSync(Buffer.from(encoded, 'base64')).toString('utf8')
+}
+
 function prepared(): SrdImportManifest {
   const encoded = srdManifestBrotliBase64
   if (cachedManifest?.encoded === encoded) return cachedManifest.manifest
-  const parsed = JSON.parse(
-    brotliDecompressSync(Buffer.from(encoded, 'base64')).toString('utf8')
-  ) as unknown
+  const parsed = JSON.parse(decodeSrdManifestText(encoded)) as unknown
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
     throw new Error('Generated SRD manifest is invalid.')
   const manifest = parsed as Record<string, unknown>

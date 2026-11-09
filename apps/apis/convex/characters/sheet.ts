@@ -9,14 +9,17 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
+import { readStoredCharacterSheet } from './sheetSections'
 
-/** Personal Sheet reads recompute current authorized sources; no stored projection is served. */
+/** Personal Sheet reads serve the stored Sheet while it is current and derive it otherwise. */
 export const get = query({
   args: () => zodToConvexFields(characterSheetReadInputSchema.shape),
   returns: () => v.union(v.null(), zodToConvex(characterSheetResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterSheetResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id: lookupId } = characterSheetReadInputSchema.parse(args)
+    const stored = await readStoredCharacterSheet(ctx, { userId, lookupId })
+    if (stored) return stored
     const loaded = await loadCharacterSheet(ctx, userId, lookupId)
     return loaded
       ? characterSheetResponseDtoSchema.parse(

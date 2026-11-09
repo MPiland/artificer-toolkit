@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { performance } from 'node:perf_hooks'
 import { expect, it } from 'vitest'
 import {
   readCampaignRunState,

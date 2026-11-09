@@ -192,6 +192,14 @@ export const bootstrap: RegisteredMutation<
         await ctx.db.insert('systems', system)
         inserted++
       }
+      const storedChecksum = await ctx.db
+        .query('systemChecksums')
+        .withIndex('by_systemId', (q) => q.eq('systemId', system.id))
+        .unique()
+      if (!storedChecksum)
+        await ctx.db.insert('systemChecksums', { systemId: system.id, checksum: system.checksum })
+      else if (storedChecksum.checksum !== system.checksum)
+        await ctx.db.patch(storedChecksum._id, { checksum: system.checksum })
       await ensureSystemVocabularySnapshot(ctx, system.id)
     }
     const currentSource = await ctx.db

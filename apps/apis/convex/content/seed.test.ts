@@ -1,15 +1,15 @@
 import { convexTest } from '../../tests/convexTest'
 import { expect, it } from 'vitest'
-import { brotliDecompressSync } from 'node:zlib'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
 import { internal } from '../_generated/api'
 import schema from '../schema'
+import { decodeSrdManifestText } from './seed'
 import { srdManifestBrotliBase64 } from './srdManifest.generated'
 
 it('embeds the current canonical SRD manifest', () => {
-  const manifest = JSON.parse(
-    brotliDecompressSync(Buffer.from(srdManifestBrotliBase64, 'base64')).toString('utf8')
-  ) as { manifestChecksum: string }
+  const manifest = JSON.parse(decodeSrdManifestText(srdManifestBrotliBase64)) as {
+    manifestChecksum: string
+  }
   expect(manifest.manifestChecksum).toBe(prepareSrdImport().manifestChecksum)
 })
 

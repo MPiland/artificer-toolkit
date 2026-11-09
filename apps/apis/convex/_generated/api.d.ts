@@ -21987,6 +21987,12 @@ export declare const api: {
                 }>;
               };
               resources: {
+                hitDice: Array<{
+                  die: number;
+                  remaining: number;
+                  total: number;
+                  used: number;
+                }>;
                 items: Array<{
                   description?: string;
                   id: string;

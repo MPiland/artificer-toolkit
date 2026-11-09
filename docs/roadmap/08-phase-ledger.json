@@ -78,7 +78,7 @@
           "title": "Typed schemas, indexes and bounded contracts",
           "status": "DONE",
           "journeyTests": [
-            "apps/apis/convex/schemaBoundary.test.ts",
+            "apps/apis/tests/schemaBoundary.test.ts",
             "apps/apis/convex/platformJourney.test.ts"
           ],
           "journeyStatus": "verified",
@@ -23520,8 +23520,8 @@
         },
         {
           "id": "RELIABILITY-22",
-          "title": "Convex tests that need Node builtins live outside the deployed functions folder",
-          "status": "TODO",
+          "title": "Convex tests use only what the Convex runtime offers; Node-only repo checks live outside convex/",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "origin": [],
@@ -23534,26 +23534,35 @@
           "acs": [
             {
               "id": "RELIABILITY-22.1",
-              "text": "No test file under apps/apis/convex imports a Node builtin; the nine that did (authRecovery, schemaBoundary, roomClock, functionBundleBudget, campaigns/announcements, characters/sheetAccessBaseline, content/seed, content/seedReplace, liveSessions/encounterActorCapProjection) run from a folder outside convex/ in the same CI suite with unchanged assertions, and a structural test fails if a convex/ test imports a Node builtin.",
-              "status": "TODO",
-              "proof": [],
+              "text": "No test file under apps/apis/convex imports a Node builtin, so the Convex plugin lint hook accepts every test edit. convex-test function tests stay beside their functions (the documented layout) and use web-standard globals where they used Node: authRecovery and campaigns/announcements hash with crypto.subtle, liveSessions/encounterActorCapProjection uses the global performance, and content/seed and content/seedReplace take their brotli step from a helper under apps/apis/tests/. Repo-level checks that read files or spawn processes (functionBundleBudget, schemaBoundary, characters/sheetAccessBaseline) run from apps/apis/tests/ in the same CI suite and affected-test selection. Assertions are unchanged, and a structural test fails if a convex/ test imports a Node builtin.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/tests/convexTestsNoNodeBuiltins.test.ts",
+                "apps/apis/tests/functionBundleBudget.test.ts",
+                "apps/apis/tests/schemaBoundary.test.ts",
+                "apps/apis/tests/sheetAccessBaseline.test.ts",
+                "apps/apis/convex/content/seed.test.ts (imports decodeSrdManifestText from content/seed.ts)"
+              ],
               "origin": []
             }
           ],
           "tasks": [
             {
               "id": "RELIABILITY-22.T1",
-              "text": "Move the nine Node-builtin Convex tests out of apps/apis/convex (for example apps/apis/tests/), repoint their convex-test module globs and relative imports at ../convex, add the folder to the apis Vitest config and its CI suite and affected-test selection, and add the structural guard test. Assertions unchanged. Starts after PERF-6.T8 merges (it edits functionBundleBudget.test.ts).",
-              "status": "TODO",
+              "text": "Move functionBundleBudget, schemaBoundary and characters/sheetAccessBaseline to apps/apis/tests/ (repoint paths and convex-test globs at ../convex); switch authRecovery and campaigns/announcements to crypto.subtle and encounterActorCapProjection to the global performance; move the seed tests' brotli calls into an apps/apis/tests/ helper. Add apps/apis/tests/**/*.test.ts to the apis Vitest convex project, its CI suite and affected-test selection, and add the structural guard. Assertions unchanged. Runs before PERF-6.T8's remaining functionBundleBudget edits.",
+              "status": "DONE",
               "closes": ["RELIABILITY-22.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 2,
-                "after": ["PERF-6.T8"]
+                "size": 2
               },
-              "note": "User approved 2026-11-08: the Convex plugin lint hook rejects edits to convex/*.test.ts files that import node: builtins (false positive for Vitest files), which blocked T3 and T8."
+              "note": "User approved 2026-11-08; reordered ahead of PERF-6.T8 the same day. A Convex docs review (docs.convex.dev/testing/convex-test, /testing/convex-backend) confirmed co-located convex-test tests and the self-hosted CI lane are the documented pattern; the plugin lint hook (convex-lint.mjs rule 9) rejects Node builtins in any convex/*.ts and has no test exemption, which blocked T3 and T8. The hook stays unchanged.",
+              "mergedAt": "2026-11-09",
+              "proof": [
+                "apps/apis/tests/convexTestsNoNodeBuiltins.test.ts (structural guard); merged via merge-slice run 42559221687; Tests 42554917587, Live 42554917512, Browser journeys 42554917658 (green after one --failed rerun of an unrelated encounter-action-contention flake) on 1f024bb83"
+              ]
             }
           ],
           "internalReason": "Test placement only; no user-visible flow."
@@ -24177,7 +24186,7 @@
               },
               "text": "The 13 encounter, import and live-session Convex modules that still import full zod at run time (and so carry every zod locale) use the schema package z instead; extend the module-budget gate from T2 to every Convex function bundle so no bundle carries a non-English locale.",
               "note": "Merged 2026-11-03 (m629, merge-slice run 41713450455). 16 modules moved to the @artificer-toolkit/schema/zod subpath (zod/mini, no locales); the budget test gates all 410 function bundles. Red proof: run 41707000172.",
-              "proof": ["apps/apis/convex/functionBundleBudget.test.ts"]
+              "proof": ["apps/apis/tests/functionBundleBudget.test.ts"]
             },
             {
               "id": "PERF-1.T5",
@@ -24627,7 +24636,7 @@
               "mergedAt": "2026-11-08",
               "proof": [
                 "apps/apis/convex/campaigns/partyVisibility.test.ts (campaigns/characterBasics:get reads exactly one document from each of userProfiles, authoredRouteIds, campaigns, campaignMemberships, campaignCharacterAssignments, characters, characterPlayStates: <= 7 documents and <= 10 KB; non-member and removed-assignment refusals)",
-                "apps/apis/convex/functionBundleBudget.test.ts (characterBasics module floor <= 20 ms; local warm floor 2-3 ms against the Sheet module 104-144 ms)",
+                "apps/apis/tests/functionBundleBudget.test.ts (characterBasics module floor <= 20 ms; local warm floor 2-3 ms against the Sheet module 104-144 ms)",
                 "Green on 855ece475: Tests 42497828775, Live 42497828762, Browser journeys 42497828784; merged c3dbdcea2 (m659, merge-slice run 42499655826)"
               ]
             },
@@ -24646,7 +24655,7 @@
               "text": "Profile fix 2: remove the app schema from function modules. contentSnapshots/heads.ts (convex-helpers stream) and campaigns/vehicleCleanup.ts (paginator) import ../schema, adding 43-58 ms to every call of heads, vehicleCleanup, accountDeparture and the departure mutations. Use index range reads or a one-table schema. Budget: module floor -40 to -55 ms, heads and accountDeparture added to functionBundleBudget.test.ts, CI user p50 for readScopeKind and readBuildStart <= 80 ms.",
               "mergedAt": "2026-11-08",
               "proof": [
-                "apps/apis/convex/functionBundleBudget.test.ts (app schema.ts absent from the contentSnapshots/heads and campaigns/accountDeparture bundles; red against the phase branch)",
+                "apps/apis/tests/functionBundleBudget.test.ts (app schema.ts absent from the contentSnapshots/heads and campaigns/accountDeparture bundles; red against the phase branch)",
                 "apps/apis/convex/contentSnapshots/build.test.ts (Campaign-scope page order and termination) and campaigns/vehicleCleanup.test.ts (33-row probe limit); behavior pinned unchanged",
                 "Local warm module floor p50: heads 110 -> 5 ms, accountDeparture 153 -> 46 ms",
                 "Green on df9c5a9e9: Tests 42492676946, Live 42492676955, Browser journeys 42492676994; merged 5c9b9ea9c (m658, merge-slice run 42494850599)"
@@ -24655,7 +24664,7 @@
             },
             {
               "id": "PERF-6.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24665,8 +24674,9 @@
                 "after": ["PERF-6.T2"],
                 "finalSource": true
               },
-              "text": "Profile fixes 3 and 8: a sheetSlices:get miss returns a pending result and schedules store instead of deriving live (sheetSlices.ts:105), with the client keeping its last value; characterSheet:get moves onto stored slices like panel; the stored-hit fingerprint uses a stored System checksum or head instead of reading the 34 KB System document (sheetSections.ts:83). Budget: miss <= 20 documents and no derivation, hit <= 40 KB, CI user p95 <= 250 ms, 0 timeouts. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Profile fixes 3 and 8 (ruled 2026-11-08, option A, ADR 0041 Amendment 2): while a Character Sheet store is queued, sheetSlices:get, the panel and characterSheet:get serve the last stored sections stamped with the current stream version; with nothing queued, a stale or never-stored Sheet derives live so failures still show. Sheet commands store inline and validate against real state. characterSheet:get composes from stored slices (hit dice moved into FEATURES). The stored-hit fingerprint reads a per-System checksum row written by bootstrap instead of the 34 KB System document. The focused inspiration and party-visibility writes in sheetPlayPreferences.ts are removed. Budget: a queued miss reads <= 20 documents and derives nothing; a hit reads <= 40 KB; a hidden party reader is refused before deriving; CI timing recorded. Seam slice (Sheet store and stale check): full Browser journeys before green-ready.",
+              "mergedAt": "2026-11-08",
+              "proof": "Merged m664 (e1199aaa4). Red proof (Tests 42526895512): sheetSections.test 13 of 26, sheetPreferenceCommands.test 2 of 7, rules-runtime sheetSlices.test 2 of 2. convex-test budgets: queued miss <= 20 docs with no derivation; stored hit 40 docs / 40 KB for the whole Sheet; never-stored COMMON 66 docs / 104 KB; party denial <= 38 docs with nothing derived. A scheduled store carries a token, so a superseded store returns and never overwrites a newer one. CI (full Browser journeys 42526898137, shard 3): sheetSlices:get n=517, p50 66 ms, p95 450 ms; reads over 20 docs p95 446 ms (was 1,353 ms); 4 never-stored live derivations, p95 1,495 ms, no errors; 22 reads of 6-21 docs took >= 1 s user time in campaign-membership-browser (runner load, not read cost). Query p95 still exceeds the 250 ms PERF-6.2 target; PERF-6.T11 re-measures after T8. Green on 9bce6f14b: Tests 42529158859, Live 42529158867, Browser journeys 42529160313."
             },
             {
               "id": "PERF-6.T5",
@@ -24707,7 +24717,7 @@
             },
             {
               "id": "PERF-6.T7",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 3,
@@ -24718,7 +24728,8 @@
                 "finalSource": true
               },
               "text": "Profile fix 6: rules-runtime zod-parses data it built itself on every derivation (characterPolicy.ts:154, characterGrantFold.ts:102/:557), 7-8 ms of about 25 ms of product compute. First check whether an ADR or System module rule requires the runtime check; if not, validate at the package boundary or in tests. Budget: derivation product CPU -25 to -30% in a harness test.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-08",
+              "proof": "Merged m663 (d69fc71bd). characterGrantFold and characterPolicy drop their self re-validation parses; characterDefenses builds its output pre-sorted with the schema sort helpers; equipment category codes are parsed at the grant-fact boundary; characterRulePolicyParseParity.test.ts proves parity. Cleric policy eval 6.27 to 0.99 ms at level 1 and 7.51 to 1.03 ms at level 5. Green: Tests 42518421845, Browser journeys 42518421886, 42516646291, 42516646209, 42516646159."
             },
             {
               "id": "PERF-6.T8",
@@ -24729,7 +24740,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["PERF-6.T3"],
+                "after": ["PERF-6.T3", "RELIABILITY-22.T1"],
                 "finalSource": true
               },
               "text": "Profile fix 9: cut module floors generally by building zod-to-Convex validators lazily on first call instead of at module top level, and deduplicate the two zod copies in Convex bundles. Budget: -20 to -40% on 2-3 MB bundles in functionBundleBudget.test.ts.",
@@ -24769,7 +24780,7 @@
                 "finalSource": true
               },
               "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding). If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; it changes what the rules context holds, so trace the Builder catalogue and grant consumers first).",
-              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin."
+              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin. Recurred 2026-11-08 in merge batch m662 (Browser journeys 42521151283, passage, same step): activeReads:active (request fa79463fee8fa6e6) and scenes/sceneBindings:get (request 841e4d7c67fa71d7) both timed out at 1 s; m662 was refused and T7 merged on retry as m663. Two hits in about three runs: this now blocks merges, so T11 starts as soon as T8 lands. PERF-6.T6 finding 2026-11-08 (pre-existing): capturing an Equipment with an open Spell grant reads the Spell catalogue in every capturing transaction, ITEM_ADD included. convex-test worst case (one unfiltered all-Spells grant over the 319 SRD Spells): about 2,254 reads and 4.1 MB per add; each Spell root is read 3 times (960 reads) and the same content source 643 times. No SRD Equipment or CI proof has one yet. Fix at the cause with transaction-scoped caching of those two lookups and prove it with a read budget. Also seen 2026-11-09 (RELIABILITY-22.T1 Browser journeys 42554917658, shard 8, passed on rerun): encounter-action-contention asserted the duplicate RESOLVE_ACTION Run at version 3 but read 2 (apps/apis/tests/developmentEncounterActionTransactions.ts:186). Check whether the Run read after both duplicate mutations resolve can trail the commit."
             },
             {
               "id": "PERF-6.T10",

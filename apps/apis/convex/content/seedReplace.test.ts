@@ -1,6 +1,6 @@
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it, vi } from 'vitest'
-import { brotliCompressSync } from 'node:zlib'
+import { encodeBrotliBase64 } from '../../tests/srdManifestEncoding'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { sourceImportDefinitionDtoSchema } from '@artificer-toolkit/schema/api/sourceImport'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -64,9 +64,7 @@ function embedCorpus(
     ...parts
   }
   const manifestChecksum = checksumRuleDocument(jsonValueSchema.parse(corpus))
-  embedded.encoded = brotliCompressSync(
-    Buffer.from(JSON.stringify({ ...corpus, manifestChecksum }))
-  ).toString('base64')
+  embedded.encoded = encodeBrotliBase64(JSON.stringify({ ...corpus, manifestChecksum }))
   return manifestChecksum
 }
 

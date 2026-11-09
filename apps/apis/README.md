@@ -50,10 +50,8 @@ play changes retain their separate stream. Final local release proof remains pen
 
 Public Sheet commands acknowledge UUID, stream version and retained history/result only. Notes reuse
 the shared note reducer and canonical writer without preparing mechanics. Their current path still
-assembles the complete Character for integrity. `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` now use
-`characters/sheetPlayPreferences` to replace only validated typed play state and retain the receipt
-atomically, using head/play and current authority/route facts without owned collections or mechanics.
-Structure clocks/checksums and derived stats remain intact; focused execution proof is pending.
+assembles the complete Character for integrity. `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` run
+through the full Sheet executor and store the Sheet sections inline (ADR 0041 Amendment 2).
 `characters/sheetSlices:get` serves COMMON and the
 active feature collections. Owner-only NOTES reads select only head, play, Build and note/group
 records without mechanics. Mechanical slices still use complete current-source preparation;

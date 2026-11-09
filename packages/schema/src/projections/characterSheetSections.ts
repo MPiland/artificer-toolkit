@@ -24,11 +24,21 @@ export const characterSheetSectionRecordSchema = lazySchema(() =>
   })
 )
 
-/** The input fingerprint a Character's stored sections were derived from, and their checksums. */
+/** The input fingerprint a Character's stored sections were derived from; every read checks it. */
 export const characterSheetDerivationRecordSchema = lazySchema(() =>
   z.strictObject({
     characterId: z.string(),
-    fingerprint: projectionChecksumSchema,
+    fingerprint: projectionChecksumSchema
+  })
+)
+
+/**
+ * The checksum of every stored section of a Character, which only a store reads: a read checks the
+ * fingerprint alone, so it never loads this list (ADR 0041 Amendment 2).
+ */
+export const characterSheetSectionChecksumsRecordSchema = lazySchema(() =>
+  z.strictObject({
+    characterId: z.string(),
     sections: z.array(sectionIdentitySchema)
   })
 )
