@@ -305913,6 +305913,12 @@ export declare const internal: {
       >;
     };
     development: {
+      characterReconcileState: FunctionReference<
+        "query",
+        "internal",
+        { characterId: string },
+        "NONE" | "PENDING" | "EXHAUSTED"
+      >;
       removePersonalFixtureCharacter: FunctionReference<
         "mutation",
         "internal",
