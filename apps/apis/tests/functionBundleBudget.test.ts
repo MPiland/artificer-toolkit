@@ -5,6 +5,12 @@ import { basename, join, sep } from 'node:path'
 import vm from 'node:vm'
 import { expect, it } from 'vitest'
 
+declare module 'vitest' {
+  interface TaskMeta {
+    moduleFloorMs?: number
+  }
+}
+
 // Convex evaluates a function's whole module graph on every call (D59), so each function pays for
 // every module its file reaches (PERF-1). Full `zod` and the `z` namespace object of `zod/mini` keep
 // all ~40 zod locales (194 KiB minified) alive, so Convex code builds schemas with
@@ -121,17 +127,18 @@ it.each(['campaigns/characterBasics.ts'])('keeps the %s module floor within 20 m
 
 // Converting zod schemas to Convex validators at module top level cost these 2–3 MB modules 41–83 ms
 // per call (PERF-6.T1). The function builders and the validators they share build on first export
-// (PERF-6.T8). Each run records its floor.
+// (PERF-6.T8). Each test records its floor as `moduleFloorMs` in the JSON report. classPublication's
+// remaining floor is not zod, so its bar is a ceiling rather than a proof of the change.
 it.for([
-  ['campaigns/characterSheet.ts', 30],
-  ['campaigns/accountDeparture.ts', 45],
-  ['characters/sheetCommands.ts', 50],
-  ['characters/sheetSectionDerivation.ts', 40],
-  ['characters/sheetSlices.ts', 30],
-  ['content/classPublication.ts', 115]
-] as const)('keeps the %s module floor within %i ms', async ([entry, budgetMs], { annotate }) => {
+  ['campaigns/characterSheet.ts', 20],
+  ['campaigns/accountDeparture.ts', 20],
+  ['characters/sheetCommands.ts', 20],
+  ['characters/sheetSectionDerivation.ts', 15],
+  ['characters/sheetSlices.ts', 12],
+  ['content/classPublication.ts', 40]
+] as const)('keeps the %s module floor within %i ms', ([entry, budgetMs], { task }) => {
   const floorMs = moduleFloorMs(entry)
-  await annotate(`${entry} module floor ${floorMs.toFixed(1)} ms`)
+  task.meta.moduleFloorMs = floorMs
   expect(floorMs).toBeLessThanOrEqual(budgetMs)
 })
 
