@@ -142,6 +142,17 @@ it.for([
   expect(floorMs).toBeLessThanOrEqual(budgetMs)
 })
 
+// A cold call compiles the whole bundle, about 0.3 ms per KB. Ending a Character's Run effects binds
+// only the Character ports it needs, so these modules leave the Encounter command graph out; with it
+// they were 3,190-3,200 KB (PERF-6.T6).
+it.for([
+  ['campaigns/characterReconcileSteps.ts', 3000],
+  ['characters/accountDeletion.ts', 3000]
+] as const)('keeps the %s bundle within %i KB', ([entry, budgetKb]) => {
+  const bundle = buildSync({ ...bundleOptions(entry), format: 'iife' }).outputFiles[0]
+  expect(bundle.contents.byteLength / 1024).toBeLessThanOrEqual(budgetKb)
+})
+
 // Evaluating the app schema costs 43–58 ms per call (PERF-6.T1), so these modules page their
 // tables with index range reads instead of convex-helpers streams over it (PERF-6.T3).
 it.each(['contentSnapshots/heads.ts', 'campaigns/accountDeparture.ts'])(
