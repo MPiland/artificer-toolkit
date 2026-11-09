@@ -6,8 +6,7 @@ import {
   type CharacterSheetSliceReadInput,
   characterSheetSliceReadResultDtoSchema,
   characterSheetSliceResponseDtoSchema,
-  type CharacterSheetSliceReadResultDto,
-  type CharacterSheetSliceResponseDto
+  type CharacterSheetSliceReadResultDto
 } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { readCharacterCollectionValues } from '@artificer-toolkit/schema/projections/characterOperationalState'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
