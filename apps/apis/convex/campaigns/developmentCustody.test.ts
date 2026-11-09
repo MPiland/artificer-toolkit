@@ -1,5 +1,10 @@
 // @vitest-environment node
-import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import {
+  createFunctionHandle,
+  getFunctionName,
+  makeFunctionReference,
+  type FunctionReturnType
+} from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   verifyCampaignCustody,
@@ -7,6 +12,8 @@ import {
   type CampaignCustodyCohort
 } from '../../tests/developmentCampaignCustody'
 import { verifyCampaignInventory } from '../../tests/developmentCampaignInventory'
+import { verifyCampaignSharedEquipmentRetention } from '../../tests/developmentCampaignSharedEquipmentRetention'
+import { verifyCampaignVehicleLifecycle } from '../../tests/developmentCampaignVehicleLifecycle'
 import { verifyCampaignAuthoredCustodyDeletion } from '../../tests/developmentCampaignAuthoredCustodyDeletion'
 import { verifyCampaignCurrencyLifecycle } from '../../tests/developmentCampaignCurrencyLifecycle'
 import { verifyCampaignAssignmentLifecycle } from '../../tests/developmentCampaignAssignmentLifecycle'
@@ -31,6 +38,17 @@ import {
   readCharacterRow
 } from '../characters/stateDocuments'
 import { api, components, internal } from '../_generated/api'
+import type { MutationCtx } from '../_generated/server'
+import type { DevelopmentClient } from '../../tests/developmentClient'
+import {
+  countDatabaseIo,
+  createDatabaseIoTotals,
+  type DatabaseIoTotals
+} from '../../tests/fixtures/databaseIo'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
+import type { RoomCaller } from '../../tests/fixtures/localRoomWorker'
+import { handlerOf } from '../../tests/fixtures/queryTransaction'
+import { unshare } from './contentShareRemoval'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
@@ -322,6 +340,37 @@ async function mixedCohort() {
     campaignId: base.campaign.id
   }
   return { base, second, cohort, anonymous: client(base.t) }
+}
+
+/** PERF-6.T6: a removal transaction reads at most 200 documents (orchestrator ruling, 2026-11-08). */
+const TRANSACTION_READ_DOCUMENTS = 200
+
+/** The owner's client, running each Campaign content unshare in one transaction and recording its reads. */
+function measuringUnshares(
+  caller: RoomCaller,
+  client: DevelopmentClient,
+  reads: DatabaseIoTotals['reads'][]
+): DevelopmentClient {
+  return {
+    query: client.query,
+    mutation: async (reference, ...args) => {
+      if (getFunctionName(reference) !== getFunctionName(api.campaigns.contentShares.unshare))
+        return client.mutation(reference, ...args)
+      const totals = createDatabaseIoTotals()
+      try {
+        const result = await caller.run((ctx) =>
+          handlerOf<FunctionReturnType<typeof reference>, MutationCtx>(unshare)(
+            { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+            args[0]
+          )
+        )
+        await runDueScheduledWork(caller)
+        return result
+      } finally {
+        reads.push(totals.reads)
+      }
+    }
+  }
 }
 
 /** The unshare evacuation event of the given kind, for tampering. */
@@ -721,12 +770,19 @@ describe('development custody fixture cleanup', () => {
 
   it('validates a durable bounded Vehicle cleanup receipt and pages the Character custody driver before removing the cohort', async () => {
     const { base, second, cohort, anonymous } = await mixedCohort()
+    const unshareReads: DatabaseIoTotals['reads'][] = []
     await verifyCampaignInventory({
-      owner: cohort.owner,
+      owner: measuringUnshares(base.other.caller, cohort.owner, unshareReads),
       player: cohort.players[0].client,
       anonymous,
       campaignId: cohort.campaignId
     })
+    // The Vehicle unshare, its exact replay and its changed-input refusal, with two assigned Characters.
+    expect(unshareReads).toHaveLength(3)
+    for (const reads of unshareReads)
+      expect(reads.documents, JSON.stringify(reads.byTable)).toBeLessThanOrEqual(
+        TRANSACTION_READ_DOCUMENTS
+      )
     // The bounded cleanup leaves the party more rows than one inventory page, which is what makes the
     // driver's cursor-advance assertions run.
     const firstPartyPage = await cohort.owner.query(api.campaigns.partyInventory.items, {
@@ -735,6 +791,18 @@ describe('development custody fixture cleanup', () => {
     })
     expect(firstPartyPage.isDone).toBe(false)
     await verifyCharacterCustody(cohort)
+    await verifyCampaignVehicleLifecycle(cohort, anonymous)
+    const equipmentReads: DatabaseIoTotals['reads'][] = []
+    await verifyCampaignSharedEquipmentRetention({
+      ...cohort,
+      owner: measuringUnshares(base.other.caller, cohort.owner, equipmentReads)
+    })
+    // The held Equipment unshare and its exact replay, with the bounded cleanup's cargo still in the party.
+    expect(equipmentReads).toHaveLength(2)
+    for (const reads of equipmentReads)
+      expect(reads.documents, JSON.stringify(reads.byTable)).toBeLessThanOrEqual(
+        TRANSACTION_READ_DOCUMENTS
+      )
     const before = await readScoped(base)
     await expectTamperedEvacuationRefused(
       base,
@@ -1069,7 +1137,8 @@ describe('development custody fixture cleanup', () => {
     expect(Date.parse(reconciliation.createdAt)).toBeGreaterThanOrEqual(
       Date.parse(leaveProof.departure.expectedMembershipAccessStartedAt)
     )
-    expect(Date.parse(reconciliation.createdAt)).toBeLessThanOrEqual(
+    // The departing Character settles in the step its departure queued (D81, PERF-6.T6).
+    expect(Date.parse(reconciliation.createdAt)).toBeGreaterThanOrEqual(
       Date.parse(leaveRemoval.createdAt)
     )
     expect(reconciliationPayload.streamVersion).toBeLessThanOrEqual(

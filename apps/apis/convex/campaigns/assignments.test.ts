@@ -23,6 +23,7 @@ import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
 import { editCharacterRecord, writeCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import * as preparation from '../characters/builderPreparation'
@@ -438,6 +439,7 @@ describe('native Campaign Character assignments', () => {
     await expect(
       base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
     ).resolves.toEqual({ ok: true })
+    await runDueScheduledWork(base.t)
     const after = await base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, base.character.id),
       draft: await ctx.db
@@ -547,6 +549,7 @@ describe('native Campaign Character assignments', () => {
       campaignId: base.campaign.id,
       characterId: base.character.id
     })
+    await runDueScheduledWork(base.t)
     const after = await base.readState()
     const character = readCharacterRecord(after.character!)
     expect(character.status).toBe('ACTIVE')
@@ -583,6 +586,7 @@ describe('native Campaign Character assignments', () => {
       }))
     )
     await base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
+    await runDueScheduledWork(base.t)
     const character = readCharacterRecord((await base.readState()).character!)
     expect(character.state.equipment.attuned).toEqual(itemIds.slice(0, 3))
     expect(character.state.equipment.inventory.map((item) => item.id)).toEqual(
@@ -772,6 +776,7 @@ describe('native Campaign Character assignments', () => {
     await expect(
       base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
     ).resolves.toEqual({ ok: true })
+    await runDueScheduledWork(base.t)
     const after = await snapshot()
     expect(after.assignments).toEqual([])
     expect(after.groups).toHaveLength(1)

@@ -946,13 +946,16 @@ reads. The row also stores the GM's Character control grants as an optional `con
 active Campaign players the GM lets act for the assigned Character. The grants are the only source for Campaign
 grants, read live (never copied into a Run actor), and the assigned player always keeps control. Grant and revoke are
 GM-only (`campaigns/characterControllers:setControllers`), bump the CAMPAIGN and PLAY revisions and take effect in
-open rooms with the next authorization read; a departing member is stripped from every grant. Departure (`characterDeparture`, one atomic mutation) returns Campaign coins to loose party custody with an
-OWNER audit, deletes the assignment and the `campaignCharacterStates` overlay, reconciles personal source access,
-repairs a saved draft and clamps HP. D81: departure also ends everything the Campaign or its Runs own on the
-Character (`settleDepartedCharacters`: effects, emptied maintained states in Runs the room does not hold,
-attunement trimmed to the System limit, HP clamp, stat refresh); a held Character settles when the hold drops.
+open rooms with the next authorization read; a departing member is stripped from every grant. Departure (`characterDeparture`) retains held
+Equipment rules, returns Campaign coins to loose party custody with an OWNER audit, freezes open Runs and deletes
+the assignment and the `campaignCharacterStates` overlay in one mutation. It then queues a `DEPARTED` step
+(`campaigns/characterReconcileSteps:run`, PERF-6.T6). In its own transaction the step settles D81: it ends what
+the Campaign or its Runs own on the Character (effects, and emptied maintained states in Runs the room does not
+hold), trims attunement to the System limit, clamps HP and refreshes stats. It also reconciles personal source
+access and repairs a saved draft. A Character the room holds keeps its Run effects until the hold drops
+(`settleDepartedCharacters`).
 Member departure (`membershipDeparture:leave` and `removeMember`) is one mutation: it runs the assignment
-departure, removes the member's direct shares and descendants, repairs remaining Characters, evacuates Vehicle
+departure, removes the member's direct shares and descendants, queues the remaining Characters' reconciles, evacuates Vehicle
 cargo, advances the Campaign version once and writes an OWNER receipt binding actor, target, expected version and
 epoch; the membership becomes LEFT and history is retained ([ADR 0013](../adr/0013-campaign-authority-and-collaboration.md)).
 Ownership transfer keeps one `campaignOwnershipTransfers` row per Campaign (seven-day offer); acceptance moves the
@@ -966,9 +969,17 @@ stored. Shares require current active membership, a writable Campaign, owned USE
 Campaign System and a current publication; Homebrew children need every Homebrew parent shared or an official
 parent in an enabled catalogue. Lists recheck author membership and the current publication, omit missing roots
 and fail closed on corrupt published data. Unshare is one active-Campaign, expected-version mutation with an
-actor-bound command fingerprint: it removes the share and dependent children, prunes lost selections from assigned
-Characters and drafts (an Active Character that can no longer be prepared becomes a repair DRAFT), and evacuates
-Vehicle cargo to party custody. Deleting an authored root runs the same per-Campaign finalization. Acquired
+actor-bound command fingerprint: it removes the share and dependent children, retains held Equipment rules on assigned
+Characters and evacuates Vehicle cargo to party custody. For each Character that held or references a lost
+source it queues a step (`campaigns/characterReconcileSteps:run`), listed in the receipt's
+`pendingCharacterReconcileIds`. The step prunes lost selections from the Character and its draft; an Active
+Character that can no longer be prepared becomes a repair DRAFT. Each step has a `campaignCharacterReconciles`
+row that its run deletes when it commits, so a duplicate or re-queued run of a settled step is a no-op. A check
+(`characterReconcileSteps:verify`, the D215 Sheet store pattern) queues a run that failed or timed out again, up
+to three runs; after that the row stays, marked `exhaustedAt`, and is logged once. The step drops sources shared
+again or now owned (ADR 0013, 2026-11-08). The
+transaction reads at most 200 documents for the largest seeded party. Deleting an authored root runs the same
+per-Campaign finalization, reconciling inline. Acquired
 Equipment keeps working through server-owned `retainedRulesJson` on held items, so source loss never removes held items;
 new copies need current access. It is a pinned record (D163 ruling C, `acquiredEquipmentRulesSchema`): one
 EQUIPMENT source for the held leaf and up to 500 SPELL sources its grants name or open, each with its version

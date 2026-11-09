@@ -681,7 +681,9 @@ describe('native Campaign custody deletion', () => {
           base.other.caller.query(api.campaigns.queries.get, { id: target.id })
         ).rejects.toThrow('Campaign not found.')
         expect(await finishDeletion(base.t, target.id)).toMatchObject({ status: 'DELETED' })
-        await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+        // Departing Characters reconcile in steps due now, ahead of the delayed Sheet stores they
+        // replace, so timers fire in order: running them all at once would start those stores first.
+        await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
         after = await snapshot(base.t)
       } finally {
         clock.mockRestore()
@@ -725,16 +727,51 @@ describe('native Campaign custody deletion', () => {
       const snapshotBuild = 'contentSnapshots/actions:build'
       const sheetStore = 'characters/sheetSectionDerivation:store'
       const sheetCheck = 'characters/sheetSectionDerivation:verify'
+      const reconcileStep = 'campaigns/characterReconcileSteps:run'
+      const reconcileCheck = 'campaigns/characterReconcileSteps:verify'
       const unrelated = (row: (typeof after.scheduled)[number]) =>
         row.name !== roomControl &&
         row.name !== snapshotBuild &&
         row.name !== sheetStore &&
-        row.name !== sheetCheck
+        row.name !== sheetCheck &&
+        row.name !== reconcileStep &&
+        row.name !== reconcileCheck
       expect(
         after.scheduled.filter(
           (row) => !row.name?.startsWith('campaigns/deletionJobs:') && unrelated(row)
         )
       ).toEqual(expectedSnapshot.scheduled.filter(unrelated))
+      // Each departing Character's D81 settlement and source-loss reconcile ran as its own step.
+      expect(
+        after.scheduled
+          .filter((row) => row.name === reconcileStep)
+          .map((row) => ({
+            characterId: rowString(row.args[0], 'characterId'),
+            reason: rowString(row.args[0], 'reason'),
+            state: row.state.kind
+          }))
+      ).toEqual(
+        before.tables.campaignCharacterAssignments
+          ?.filter((row) => rowString(row, 'campaignId') === target.id)
+          .map((row) => ({
+            characterId: rowString(row, 'characterId'),
+            reason: 'CAMPAIGN_DELETED',
+            state: 'success'
+          }))
+      )
+      // Each step's check found its step settled and queued nothing more.
+      expect(
+        after.scheduled
+          .filter((row) => row.name === reconcileCheck)
+          .map((row) => ({
+            characterId: rowString(row.args[0], 'characterId'),
+            state: row.state.kind
+          }))
+      ).toEqual(
+        before.tables.campaignCharacterAssignments
+          ?.filter((row) => rowString(row, 'campaignId') === target.id)
+          .map((row) => ({ characterId: rowString(row, 'characterId'), state: 'success' }))
+      )
       // Leaving the Campaign changes the Character's Sheet fingerprint, so the deletion queues its
       // derivation (D215); each later queuing write in the same deletion replaces the one before.
       const expectedStoreIds = new Set(

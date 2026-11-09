@@ -1370,6 +1370,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     Campaign's Runs, terminates emptied maintained states (by their empty-dependent policy) only in
     Runs the room does not hold, reconciles source loss with no targets to trim attunement and clamp
     HP, and rewrites the record to refresh stats.
+  - **Deferred to a step (PERF-6.T6, 2026-11-08):** the departure mutation keeps what must commit
+    with the departure: held Equipment rules retained, Campaign currency returned, open Runs frozen,
+    and the assignment and its overlay removed. For each departing Character it queues a
+    `DEPARTED` step (`campaigns/characterReconcileSteps:run`) at delay 0. In its own transaction the
+    step ends the Run effects (unless the Character was assigned to the Campaign again or the room
+    holds it), trims attunement, clamps HP, keeps play history and reconciles source loss. It
+    records its `CAMPAIGN_CHARACTER_RECONCILED` event under the step id, so a retried or duplicate
+    step changes nothing. Until the step runs, readers see the departed Character with the
+    Campaign's settings still applied, and a draft opened before the departure must be reopened.
   - **Live-held (D74):** play stays the room's. Settlement runs when the hold drops at a checkpoint
     (`reconcileCharacterHolds`) or at room release (`releaseCharacterHolds` through authority
     release). The room ignores maintained-effect dependents whose Character owner is no longer

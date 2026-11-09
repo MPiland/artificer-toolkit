@@ -112,18 +112,15 @@ async function referencedIds(
   return ids
 }
 
-export async function readCharacterSourceAccessLoss(
+/** The candidate sources the Character's owner can no longer read for it. */
+async function readUnreadableSources(
   ctx: QueryCtx,
   character: CharacterAuthored,
-  options: { allowRetainedEquipment?: boolean } = {}
+  candidates: ReadonlyMap<string, ReadonlySet<SubjectKind>>
 ): Promise<CharacterSourceLossTarget[]> {
   const access = await readCharacterSources(ctx, character, character.userId)
   const targets: CharacterSourceLossTarget[] = []
-  for (const [subjectId, subjectKinds] of await referencedIds(
-    ctx,
-    character,
-    options.allowRetainedEquipment === true
-  )) {
+  for (const [subjectId, subjectKinds] of candidates) {
     const root = await ctx.db
       .query('authoredRoots')
       .withIndex('by_publicId', (q) => q.eq('id', subjectId))
@@ -141,4 +138,27 @@ export async function readCharacterSourceAccessLoss(
   return targets.sort((left, right) =>
     `${left.subjectKind}:${left.subjectId}`.localeCompare(`${right.subjectKind}:${right.subjectId}`)
   )
+}
+
+export async function readCharacterSourceAccessLoss(
+  ctx: QueryCtx,
+  character: CharacterAuthored,
+  options: { allowRetainedEquipment?: boolean } = {}
+): Promise<CharacterSourceLossTarget[]> {
+  return readUnreadableSources(
+    ctx,
+    character,
+    await referencedIds(ctx, character, options.allowRetainedEquipment === true)
+  )
+}
+
+/** Of these removed sources, the ones the Character still cannot read (a source shared again or now owned drops out). */
+export async function readStillLostSources(
+  ctx: QueryCtx,
+  character: CharacterAuthored,
+  removed: readonly CharacterSourceLossTarget[]
+): Promise<CharacterSourceLossTarget[]> {
+  const candidates = new Map<string, Set<SubjectKind>>()
+  for (const target of removed) addId(candidates, target.subjectKind, target.subjectId)
+  return readUnreadableSources(ctx, character, candidates)
 }

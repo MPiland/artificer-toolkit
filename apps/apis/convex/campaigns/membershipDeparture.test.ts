@@ -16,6 +16,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
@@ -343,6 +344,7 @@ describe('native Campaign membership departure', () => {
     })
     const before = await base.snapshot()
     await base.other.caller.mutation(removeMember, { ...base.request, userId: base.owner.userId })
+    await runDueScheduledWork(base.t)
     const after = await base.snapshot()
     expect(after.assignments).toEqual([])
     expect(after.overlays).toEqual([])

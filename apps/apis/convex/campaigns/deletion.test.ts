@@ -30,6 +30,7 @@ import * as accountUsage from '../lib/accountUsage'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -89,7 +90,11 @@ async function finishDeletion(t: Awaited<ReturnType<typeof fixture>>['t'], campa
         .unique()
     )
     if (!job) throw new Error('Missing Campaign deletion job.')
-    if (job.status === 'DELETED') return
+    if (job.status === 'DELETED') {
+      // Departing Characters reconcile in their own queued steps.
+      await runDueScheduledWork(t)
+      return
+    }
     if (job.status === 'FAILED') throw new Error('Campaign deletion failed.')
     await t.action(runDeletion, { jobId: job._id, revision: job.revision })
   }

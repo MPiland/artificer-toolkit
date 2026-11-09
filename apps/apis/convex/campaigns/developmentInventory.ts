@@ -161,6 +161,7 @@ export const removeFixtureState = internalMutation({
         share.subjectKind !== 'VEHICLE' ||
         share.sharedBy !== input.ownerUserId ||
         receipt.affectedCharacters.length ||
+        receipt.pendingCharacterReconcileIds !== undefined ||
         receipt.evacuatedVehicles.length ||
         receipt.pendingVehicleCleanupIds?.length !== 1 ||
         receipt.pendingVehicleCleanupIds[0] !== summary.jobId ||

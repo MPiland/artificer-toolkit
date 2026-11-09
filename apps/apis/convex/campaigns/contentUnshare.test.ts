@@ -15,6 +15,7 @@ import { api } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { runDueScheduledWork } from '../../tests/fixtures/dueScheduledWork'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 
@@ -28,6 +29,19 @@ const unshare = makeFunctionReference<
 >('campaigns/contentShares:unshare')
 
 type ReadySheet = Awaited<ReturnType<typeof readySheetFixture>>
+
+/** Runs the Character reconciles the removal queued; returns their reconcile events. */
+async function drainReconciles(base: ReadySheet, campaignId: string) {
+  await runDueScheduledWork(base.t)
+  return base.t.run(async (ctx) =>
+    (
+      await ctx.db
+        .query('campaignEvents')
+        .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaignId))
+        .collect()
+    ).filter((event) => event.type === 'CAMPAIGN_CHARACTER_RECONCILED')
+  )
+}
 
 async function assignedCampaign(base: ReadySheet) {
   const campaign = await base.other.caller.mutation(createCampaign, {
@@ -119,13 +133,18 @@ describe('native Campaign content-unshare reconciliation', () => {
       expectedCampaignVersion: campaign.version,
       commandId: crypto.randomUUID()
     })
-    expect(receipt.affectedCharacters).toEqual([
-      {
-        characterId: base.character.id,
-        status: 'DRAFT',
-        streamVersion: before.character.play.streamVersion + 1
-      }
-    ])
+    expect(receipt.affectedCharacters).toEqual([])
+    expect(receipt.pendingCharacterReconcileIds).toEqual([base.character.id])
+    const reconciled = await drainReconciles(base, campaign.id)
+    expect(reconciled).toHaveLength(1)
+    expect(reconciled[0]?.subjectCharacterId).toBe(base.character.id)
+    expect(reconciled[0]?.commandId).toEqual(expect.any(String))
+    expect(JSON.parse(reconciled[0]!.payloadJson)).toMatchObject({
+      reason: 'UNSHARE',
+      removalEventId: receipt.eventId,
+      status: 'DRAFT',
+      streamVersion: before.character.play.streamVersion + 1
+    })
     const after = await base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, base.character.id),
       draft: await ctx.db
@@ -183,6 +202,8 @@ describe('native Campaign content-unshare reconciliation', () => {
       commandId: crypto.randomUUID()
     })
     expect(receipt.affectedCharacters).toEqual([])
+    expect(receipt.pendingCharacterReconcileIds).toBeUndefined()
+    expect(await drainReconciles(base, campaign.id)).toEqual([])
     expect(await base.readState()).toEqual(before)
   })
 
@@ -217,12 +238,16 @@ describe('native Campaign content-unshare reconciliation', () => {
       expectedCampaignVersion: campaign.version,
       commandId: crypto.randomUUID()
     })
-    expect(receipt.affectedCharacters).toEqual([
-      {
-        characterId: base.character.id,
+    expect(receipt.affectedCharacters).toEqual([])
+    expect(receipt.pendingCharacterReconcileIds).toEqual([base.character.id])
+    const events = await drainReconciles(base, campaign.id)
+    expect(events.map((event) => JSON.parse(event.payloadJson))).toEqual([
+      expect.objectContaining({
+        reason: 'UNSHARE',
+        removalEventId: receipt.eventId,
         status: 'ACTIVE',
         streamVersion: before.character.play.streamVersion + 1
-      }
+      })
     ])
     const after = await base.readState()
     const reconciled = readCharacterRecord(after.character!)

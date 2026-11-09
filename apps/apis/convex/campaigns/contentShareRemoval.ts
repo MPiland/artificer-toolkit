@@ -8,21 +8,23 @@ import { campaignStoredContentShareSchema } from '@artificer-toolkit/schema/proj
 import type { AuthoredSubjectKind } from '@artificer-toolkit/schema/projections/identity'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterSourceLossTarget } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { MutationCtx } from '../_generated/server'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import type { Doc } from '../_generated/dataModel'
 import { retainCampaignEquipmentRules } from './acquiredEquipment'
-import { retainCharacterEquipmentRules } from '../characters/acquiredEquipment'
+import { retainCharacterEquipmentRulesForLoss } from '../characters/acquiredEquipment'
 import { readCharacterRecord } from '../characters/documents'
 import { readCharacterRow, type CharacterRow } from '../characters/stateDocuments'
 import {
-  reconcileAssignedCharacterSourceLoss,
-  type CharacterSourceLossResult
+  characterReferencesSourceLoss,
+  persistCharacterContextChange
 } from '../characters/sourceLoss'
 import { readOwnedCurrentPublication } from './contentAccess'
 import { finalizeCampaignContentRemoval } from './contentRemovalFinalization'
+import { queueCharacterReconcile } from './characterReconcileSteps'
 import { readActiveCampaignMembers, requireCampaignAuthority } from './authority'
 import { isImportRowVisible } from '../imports/visibility'
 
@@ -198,7 +200,11 @@ export async function unshareCampaignContentAndReconcile(input: {
   })
 }
 
-/** Caller authorizes the producer; this helper owns one atomic removal and Campaign version. */
+/**
+ * Caller authorizes the producer; this helper owns one atomic removal and Campaign version. Each
+ * assigned Character the removal reaches gets its held rules retained here, while the shares are
+ * still readable, and its reconcile queued as its own step (`characterReconcileSteps`).
+ */
 export async function removeCampaignSharesAndReconcile(input: {
   ctx: MutationCtx
   campaign: Doc<'campaigns'>
@@ -250,56 +256,60 @@ export async function removeCampaignSharesAndReconcile(input: {
       vehicles.push(vehicle)
   }
 
-  const stateByCharacterId = new Map<
-    string,
-    Awaited<ReturnType<typeof retainCharacterEquipmentRules>>
-  >()
-  if (shares.length) {
-    await retainCampaignEquipmentRules(ctx, campaign, shares)
-    for (const record of characterRecords)
-      stateByCharacterId.set(
-        record.id,
-        await retainCharacterEquipmentRules(
-          ctx,
-          readCharacterRecord(
-            record
-          ) as import('@artificer-toolkit/shared/subjects/authored').CharacterAuthored
-        )
-      )
-  }
-  for (const share of shares) await ctx.db.delete(share._id)
-  const characterResults: CharacterSourceLossResult[] = []
+  if (shares.length) await retainCampaignEquipmentRules(ctx, campaign, shares)
+  const queued: Array<{
+    characterId: string
+    persistedContextChange: boolean
+    removed: CharacterSourceLossTarget[]
+  }> = []
+  const roots = new Map<string, Doc<'authoredRoots'> | null>()
   for (const record of characterRecords) {
-    const targets: CharacterSourceLossTarget[] = []
+    const removed: CharacterSourceLossTarget[] = []
     for (const share of removedShares) {
       if (
         !(await readOwnedCurrentPublication(ctx, share.subjectKind, share.subjectId, record.userId))
       )
-        targets.push({ subjectKind: share.subjectKind, subjectId: share.subjectId })
+        removed.push({ subjectKind: share.subjectKind, subjectId: share.subjectId })
     }
-    if (targets.length === 0) continue
-    const result = await reconcileAssignedCharacterSourceLoss({
+    if (removed.length === 0) continue
+    const persistedContextChange = await persistCharacterContextChange(
       ctx,
-      campaign,
       record,
-      targets,
-      stateAfterContextChange: stateByCharacterId.get(record.id)
-    })
-    if (!result) continue
-    characterResults.push(result)
+      await retainCharacterEquipmentRulesForLoss(
+        ctx,
+        readCharacterRecord(record) as CharacterAuthored,
+        removed,
+        campaign,
+        roots
+      )
+    )
+    if (persistedContextChange || (await characterReferencesSourceLoss(ctx, record, removed)))
+      queued.push({ characterId: record.id, persistedContextChange, removed })
   }
-  return finalizeCampaignContentRemoval({
+  for (const share of shares) await ctx.db.delete(share._id)
+  const receipt = await finalizeCampaignContentRemoval({
     ctx,
     campaign,
     actorUserId,
     reason,
     departingMembership: input.departingMembership,
     removedShares,
-    characterResults,
+    characterResults: [],
+    pendingCharacterReconcileIds: queued.map((step) => step.characterId),
     vehicles,
     commandId,
     inputFingerprint
   })
+  for (const step of queued)
+    await queueCharacterReconcile(ctx, {
+      campaignId: campaign.id,
+      characterId: step.characterId,
+      actorUserId,
+      reason,
+      persistedContextChange: step.persistedContextChange,
+      change: { kind: 'SOURCES_REMOVED', removalEventId: receipt.eventId, removed: step.removed }
+    })
+  return receipt
 }
 
 /** Preserve the public unshare path while keeping source-loss code out of share-list reads. */

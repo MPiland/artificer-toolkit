@@ -41,3 +41,24 @@ and captures the last current version before authority disappears. Reconciliatio
 instances and their contents while removing new-acquisition intent. Incomplete or corrupt retention
 rejects atomically; it does not restore source access. Complete lifecycle proof remains required. The current and target behavior are tracked in
 [the persistence guide](../architecture/persistence.md#assignment-departure-and-ownership).
+
+## Per-Character reconcile amendment — 2026-11-08
+
+PERF-6.T6, ruled by the architect: unshare, sharing-author departure, and Character departure
+still revoke authority in their owning transaction. That transaction keeps everything a stale
+read could break: shares removed, held Equipment rules retained while the shares are still
+readable, Campaign currency returned, open Runs frozen, the assignment removed and Vehicles
+evacuated. It then queues one `campaigns/characterReconcileSteps:run` step per affected
+Character, and each step reconciles that Character's source loss (and its D81 settlement on
+departure) in its own transaction. The receipt names the queued Characters
+(`pendingCharacterReconcileIds`) in place of reconciled results; authored deletion still
+reconciles inline and reports `affectedCharacters`.
+
+Each step is fenced by its step id: it records its reconcile event under that id, so a retried or
+duplicate step changes nothing. It drops a source the Character can read again (shared again or
+now owned), skips a deleted Character, and leaves Run effects in place on a Character assigned to
+the Campaign again or held by the room. Until a step runs, readers may still see the Character as
+ready. A Character missing a structural source shows the Builder-repair error, and a draft opened
+before the removal must be reopened.
+[The persistence guide](../architecture/persistence.md#assignment-departure-and-ownership) tracks
+the flow.

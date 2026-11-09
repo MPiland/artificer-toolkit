@@ -5,24 +5,38 @@ import { captureAcquiredEquipmentRules } from '../content/acquiredEquipmentRules
 import { readCampaignSharedActiveRoot } from './contentAccess'
 import { readPartyEquipmentSource } from './partyInventoryDocuments'
 
-/** Retain acquired mechanics inside the caller's authorized custody/source-loss transaction. */
+/**
+ * Retain acquired mechanics inside the caller's authorized custody/source-loss transaction. A caller
+ * retaining many rows passes one `captures` map, so each Equipment's current rules are read once.
+ */
 export async function retainPartyEquipmentRules(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  item: { equipmentId: string; retainedRulesJson?: string }
+  item: { equipmentId: string; retainedRulesJson?: string },
+  captures = new Map<string, Promise<string | null>>()
 ) {
   if (item.retainedRulesJson)
     readAcquiredEquipmentRules(item.retainedRulesJson, item.equipmentId, campaign.gameSystemId)
-  const source = await readPartyEquipmentSource(ctx, campaign, item.equipmentId)
-  if (!source) {
-    if (!item.retainedRulesJson)
-      throw new Error(
-        'Acquired Campaign Equipment is unavailable without usable source or retained rules.'
-      )
-    return item.retainedRulesJson
+  let capture = captures.get(item.equipmentId)
+  if (!capture) {
+    capture = captureCurrentRules(ctx, campaign, item.equipmentId)
+    captures.set(item.equipmentId, capture)
   }
+  const current = await capture
+  if (current !== null) return current
+  if (!item.retainedRulesJson)
+    throw new Error(
+      'Acquired Campaign Equipment is unavailable without usable source or retained rules.'
+    )
+  return item.retainedRulesJson
+}
+
+/** The Equipment's rules from its currently readable Campaign source, or null when none is readable. */
+async function captureCurrentRules(ctx: QueryCtx, campaign: Doc<'campaigns'>, equipmentId: string) {
+  const source = await readPartyEquipmentSource(ctx, campaign, equipmentId)
+  if (!source) return null
   return captureAcquiredEquipmentRules(ctx, {
-    equipmentId: item.equipmentId,
+    equipmentId,
     systemId: campaign.gameSystemId,
     userId: null,
     sourceIds: source.sourceIds,

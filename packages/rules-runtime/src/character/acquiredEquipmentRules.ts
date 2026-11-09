@@ -34,6 +34,22 @@ export function readAcquiredEquipmentRules(
   }
 }
 
+/** Whether these retained rules draw on one of the removed sources. */
+export function acquiredRulesDrawOnSources(
+  retainedRulesJson: string,
+  equipmentId: string,
+  systemId: string,
+  removed: readonly { subjectKind: string; subjectId: string }[]
+) {
+  return readAcquiredEquipmentRules(retainedRulesJson, equipmentId, systemId).sources.some(
+    (source) =>
+      removed.some(
+        (target) =>
+          target.subjectKind === source.subjectKind && target.subjectId === source.subjectId
+      )
+  )
+}
+
 /** The prose a held Equipment keeps after its source changes or is deleted. */
 export function equipmentPresentation(
   document: Pick<EquipmentAuthoredDto, 'label' | 'description' | 'quote'>
