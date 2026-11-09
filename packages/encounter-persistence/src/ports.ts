@@ -285,6 +285,22 @@ export interface EncounterPersistenceTransaction extends EncounterWriteContext {
   readonly ports: EncounterCommandReadPorts
 }
 
+/**
+ * Ending or settling a Character's effects: the Encounter store plus the Character's row and
+ * document, the definitions a condition maximum reads, and the single Character writer. A host binds
+ * only these where it ends effects outside an Encounter command, so that caller's module graph leaves
+ * the command ports out (PERF-6.T6). Every Character write transaction satisfies it.
+ */
+export interface EncounterCharacterEffectsTransaction<
+  CharacterSources = never
+> extends EncounterWriteContext {
+  readonly ports: Pick<
+    EncounterReadPorts,
+    'readCharacterRow' | 'readCharacterRecord' | 'readCurrentDefinition'
+  > &
+    Pick<EncounterWritePorts<CharacterSources>, 'writeCharacterRecord'>
+}
+
 /** Commands that also write Character or communication state through the owning domains. */
 export interface EncounterCharacterWriteTransaction<
   CharacterSources = never

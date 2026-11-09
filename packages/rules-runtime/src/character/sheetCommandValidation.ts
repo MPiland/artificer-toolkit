@@ -11,7 +11,8 @@ import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
-import { CharacterSheetCommandError, formatCodeLabel } from './sheetCommandReducer.js'
+import { formatCodeLabel } from '../rangeLabel.js'
+import { CharacterSheetCommandError } from './sheetCommandReducer.js'
 
 type CharacterSheetAdjustmentCommand = CharacterSheetAdjustmentCommandDto
 

@@ -6,10 +6,8 @@ import { prepareCharacterBuilderFromContext } from './builderPreparation.js'
 import { CharacterRequiresBuilderRepairError } from './builderRepair.js'
 import { evaluateCharacterRules } from './characterRuleEvaluation.js'
 import type { prepareCharacterRuleSources } from './characterRuleSnapshot.js'
-import {
-  mergeCampaignSheetAdjustments,
-  type CharacterSheetCampaignContext
-} from './campaignCharacterSheet.js'
+import type { CharacterSheetCampaignContext } from './campaignCharacterSheet.js'
+import { mergeCampaignSheetAdjustments } from './sheetAdjustmentIdentity.js'
 import { getPreparedAndKnownSpellIds } from './sheetSpellIds.js'
 
 /**

@@ -1,37 +1,20 @@
-import type { GameSystemEncounterTier } from '../../platformEncounterPolicy.js'
-import { dnd5eAttackProfileCapabilityAdapter } from './attackDamageDefenses.js'
-import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { dnd5eArmorClassCapabilityAdapter } from './characterVitals.js'
-import { dnd5eCharacterRuleActionSystemAdapter } from './effectActionCompiler.js'
-import { evaluateDnd5e2014EncounterActors } from './encounterActorPolicy.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from './encounterFeatureActionCapabilityDiscovery.js'
-import {
-  dnd5eD20TestDefinitionCapabilityAdapter,
-  dnd5eLegendaryActionEligibilityAdapter
+/**
+ * D&D 5e's Encounter-only tier (D195), kept out of the Sheet (ADR 0036 S6). One export per capability
+ * of `GameSystemEncounterTier`, so a bundle keeps only the adapters it reaches (ADR 0042).
+ */
+export { dnd5eAttackProfileCapabilityAdapter as attackProfile } from './attackDamageDefenses.js'
+export { DND5E_SYSTEM_ID as gameSystemId } from './characterActionCapabilityDiscovery.js'
+export { dnd5eCharacterRuleActionSystemAdapter as characterRuleAction } from './effectActionCompiler.js'
+export { evaluateDnd5e2014EncounterActors as evaluateEncounterActors } from './encounterActorPolicy.js'
+export { dnd5eEncounterFeatureActionCapabilityAdapter as encounterFeatureAction } from './encounterFeatureActionCapabilityDiscovery.js'
+export {
+  dnd5eD20TestDefinitionCapabilityAdapter as d20TestDefinition,
+  dnd5eLegendaryActionEligibilityAdapter as legendaryActionEligibility
 } from './encounterLifecyclePolicy.js'
-import { dnd5eExecutionOutcomeCapabilityAdapter } from './executionOutcomes.js'
-import { dnd5eInitiativeFactAdapter } from './initiativeFactAdapter.js'
-import { dnd5eModifierScopeCapabilityAdapter } from './modifierApplicability.js'
-import { dnd5eContestCheckCapabilityAdapter } from './optionalCombatContestGraph.js'
-import { dnd5eEncounterSceneGridPolicyAdapter } from './optionalCombatPolicy.js'
-import { dnd5eOptionalCombatPolicyCapabilityAdapter } from './optionalResolutionPolicy.js'
-import { dnd5eMovementReactionEligibilityAdapter } from './reactionEligibilityPolicy.js'
-
-/** D&D 5e's Encounter-only tier (D195), kept out of the Sheet (ADR 0036 S6). */
-export const dnd5eEncounterTier: GameSystemEncounterTier = {
-  gameSystemId: DND5E_SYSTEM_ID,
-  evaluateEncounterActors: evaluateDnd5e2014EncounterActors,
-  armorClass: dnd5eArmorClassCapabilityAdapter,
-  attackProfile: dnd5eAttackProfileCapabilityAdapter,
-  characterRuleAction: dnd5eCharacterRuleActionSystemAdapter,
-  contestCheck: dnd5eContestCheckCapabilityAdapter,
-  d20TestDefinition: dnd5eD20TestDefinitionCapabilityAdapter,
-  encounterFeatureAction: dnd5eEncounterFeatureActionCapabilityAdapter,
-  executionOutcome: dnd5eExecutionOutcomeCapabilityAdapter,
-  initiative: dnd5eInitiativeFactAdapter,
-  legendaryActionEligibility: dnd5eLegendaryActionEligibilityAdapter,
-  modifierScope: dnd5eModifierScopeCapabilityAdapter,
-  movementReactionEligibility: dnd5eMovementReactionEligibilityAdapter,
-  optionalCombatPolicy: dnd5eOptionalCombatPolicyCapabilityAdapter,
-  sceneGridPolicy: dnd5eEncounterSceneGridPolicyAdapter
-}
+export { dnd5eExecutionOutcomeCapabilityAdapter as executionOutcome } from './executionOutcomes.js'
+export { dnd5eInitiativeFactAdapter as initiative } from './initiativeFactAdapter.js'
+export { dnd5eModifierScopeCapabilityAdapter as modifierScope } from './modifierApplicability.js'
+export { dnd5eContestCheckCapabilityAdapter as contestCheck } from './optionalCombatContestGraph.js'
+export { dnd5eEncounterSceneGridPolicyAdapter as sceneGridPolicy } from './optionalCombatPolicy.js'
+export { dnd5eOptionalCombatPolicyCapabilityAdapter as optionalCombatPolicy } from './optionalResolutionPolicy.js'
+export { dnd5eMovementReactionEligibilityAdapter as movementReactionEligibility } from './reactionEligibilityPolicy.js'

@@ -8,10 +8,8 @@ import {
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
 import { evaluateCharacterRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
-import {
-  mergeCampaignSheetAdjustments,
-  projectCharacterRestForViewer
-} from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { projectCharacterRestForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import {
   activeEffectEndsOnRest,

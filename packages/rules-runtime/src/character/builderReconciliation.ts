@@ -179,6 +179,7 @@ export async function reconcileCharacterBuilderCharacter(params: {
     hitPointRuleEvaluation.output.hitPointProgression
   )
   nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
+    nextCharacter.systemId,
     nextCharacter.intent.classes,
     registry.classes,
     nextCharacter.state.hitpoints.hitDice

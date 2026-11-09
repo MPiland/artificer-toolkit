@@ -16,8 +16,6 @@ import type {
   CompiledEquipment
 } from '@artificer-toolkit/shared/subjects/compilers'
 
-import { requireDnd5eArmorClass } from '../systems/dnd5e/armorClass.js'
-import { resolveDnd5eCreatureArmorClass } from '../systems/dnd5e/characterVitals.js'
 import {
   createCharacterDefinitionSourceInstanceId,
   createCharacterSpellSourceKey,
@@ -30,6 +28,7 @@ import type {
   CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
+import { armorClassCapabilityRegistry } from '../platformPolicyModules.js'
 import { assembleClassRitualSources } from './classRitualSources.js'
 
 export interface CharacterRuleSnapshotInput {
@@ -227,27 +226,23 @@ function assembleCompanions(
   return (character.state.creatures ?? []).flatMap((instance) => {
     const creature = creaturesById.get(instance.creatureId)
     if (!creature) return []
+    const armorClass = armorClassCapabilityRegistry.require(character.systemId).creatureArmorClass({
+      abilityScores: creature.abilityScores,
+      naturalArmorBonus: creature.naturalArmorBonus,
+      equipment: (creature.equipmentLoadout ?? []).map((entry) => {
+        const equipment = loadoutEquipmentById?.[entry.equipmentId]
+        if (!equipment) throw new Error('A companion Creature loadout Equipment is unavailable.')
+        return { id: entry.id, useState: entry.useState, compiled: equipment }
+      })
+    })
+    if (!armorClass) throw new Error('A companion Creature has no armor class in its System.')
+    if (!armorClass.ok) throw new Error(armorClass.reason)
     return [
       {
         companionInstanceId: instance.id,
         creatureId: creature.id,
         abilityScores: { ...creature.abilityScores },
-        armorClass: requireDnd5eArmorClass(
-          resolveDnd5eCreatureArmorClass({
-            abilityScores: creature.abilityScores,
-            naturalArmorBonus: creature.naturalArmorBonus,
-            equipment: (creature.equipmentLoadout ?? []).map((entry) => {
-              const equipment = loadoutEquipmentById?.[entry.equipmentId]
-              if (!equipment)
-                throw new Error('A companion Creature loadout Equipment is unavailable.')
-              return {
-                id: entry.id,
-                useState: entry.useState,
-                compiled: equipment
-              }
-            })
-          })
-        ),
+        armorClass: armorClass.armorClass,
         maxHitPoints: creature.hitPoints,
         size: creature.size,
         alignmentId: creature.alignmentId,
