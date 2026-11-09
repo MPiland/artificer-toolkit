@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateUsername } from '@artificer-toolkit/shared/account/username'
 import { validateUsernameOnServer } from '@artificer-toolkit/shared/account/usernameServer'
-import { generateValidUsername } from '../tests/fixtures/generatedUsername'
+import { generateProfileUsername, generateValidUsername } from '../tests/fixtures/generatedUsername'
 
 describe('generated fixture usernames', () => {
   it('draws again until the real username policy accepts the name', () => {
@@ -39,6 +39,21 @@ describe('generated fixture usernames', () => {
     expect(validateUsername(`Draft_${suffixes[0]}`).message).toBeNull()
     expect(validateUsernameOnServer(`Draft_${suffixes[0]}`).message).not.toBeNull()
     expect(generated).toEqual({ username: `Draft_${suffixes[1]}`, suffix: suffixes[1] })
+  })
+
+  // Profile proof run 42685527484: a suffix allowed after `Draft_` is refused after `Reader_`
+  // (the joined form reads as a blocked term), so the profile name is drawn, not derived.
+  it('draws the profile name on its own when the author suffix only passes after another prefix', () => {
+    const authorOnlySuffix = '1ea55ca7c007'
+    const suffixes = [authorOnlySuffix, 'c0ffee123456']
+    let drawn = 0
+
+    const username = generateProfileUsername(() => suffixes[drawn++] as string)
+
+    expect(validateUsernameOnServer(`Draft_${authorOnlySuffix}`).message).toBeNull()
+    expect(validateUsernameOnServer(`Reader_${authorOnlySuffix}`).message).not.toBeNull()
+    expect(username).toBe(`Reader_${suffixes[1]}`)
+    expect(validateUsernameOnServer(username).message).toBeNull()
   })
 
   it('never returns a random name the real policy rejects', () => {
