@@ -650,12 +650,15 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
           section: characterSheetSection.slice('COMMON')
         })
       )
-    const queryCommon = () =>
-      player.caller.query(api.characters.sheetSlices.get, {
+    const queryCommon = async () => {
+      const response = await player.caller.query(api.characters.sheetSlices.get, {
         id: character.id,
         campaignId: input.campaignId,
         slice: 'COMMON'
       })
+      if (response?.slice === 'REPAIR_REQUIRED') throw new Error('Unexpected repair answer.')
+      return response
+    }
     const stored = characterSheetSliceResponseDtoSchema.parse(await readCommon())
     if (stored.slice !== 'COMMON') throw new Error('Expected the stored COMMON slice.')
     // A raw patch queues no store, so nothing marks the stored section as pending: it derives live.
@@ -757,6 +760,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         target: target!
       })
     }
+    if (served.common?.slice === 'REPAIR_REQUIRED') throw new Error('Unexpected repair answer.')
     expect(served.common?.data.meta.streamVersion).toBe(second.streamVersion)
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await readQueue()).toEqual({ scheduled: [], pending: [] })
@@ -850,6 +854,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       campaignId: input.campaignId,
       slice: 'COMMON'
     })
+    if (common?.slice === 'REPAIR_REQUIRED') throw new Error('Unexpected repair answer.')
     expect(common?.data.meta.streamVersion).toBe(adjusted.streamVersion)
     expect(await readStored(characterSheetSection.slice('COMMON'))).toEqual(common)
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
