@@ -5559,7 +5559,7 @@
           "tasks": [
             {
               "id": "SHEET-1.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SHEET-1.5"],
               "wsjf": {
                 "bv": 5,
@@ -5569,7 +5569,8 @@
                 "finalSource": true
               },
               "text": "Bug found by PERF-6.T13: the Sheet read throws CharacterRequiresBuilderRepairError (characters/sheetSlices.ts:52, rules-runtime character/sheetPreparation.ts:50) and CharacterSheetPage reads it with useSuspenseQuery, so a repair-state Character falls through to the root RouteErrorState (\"This page couldn't load\", Try again) instead of the existing CharacterSheetDraftOnlyState that incomplete imports show. Fix at the cause through a shared packages/schema contract: the Sheet read reports repair as a typed result rather than a thrown error, and the page renders the draft-only state for it, both for a settled repair DRAFT and for an ACTIVE Character whose queued reconcile step has not run yet (no draft row may exist in that window). Proofs: a convex-test for both states, a web unit test for the page, and the campaign-assignment-lifecycle journey opening the departed Character's Sheet and seeing the draft state.",
-              "note": "Registered 2026-11-09 by the orchestrator. User ruling 2026-11-09: move the Sheet to the draft state the way incomplete imports do. Bug exception to the D187 freeze."
+              "note": "Registered 2026-11-09 by the orchestrator. User ruling 2026-11-09: move the Sheet to the draft state the way incomplete imports do. Bug exception to the D187 freeze.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -24839,7 +24840,7 @@
             },
             {
               "id": "PERF-6.T13",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 8,
@@ -24851,22 +24852,27 @@
               },
               "text": "Regression from PERF-6.T6 (m667): the campaign-assignment-lifecycle Browser journey fails since m667 (passed at m666 backstop 42571936393; fails on a5bf57344, probe run 42636584794, and on every ci/perf-6-t11 run) because commitCharacter rejects with \"Character changed since this draft opened\". Suspected cause: a Builder draft opened after the departure commits but before the queued campaigns/characterReconcileSteps:run step writes the Character. Confirm the cause, add a regression test that fails before the fix, and fix it at the cause so the user-visible flow passes: a player who leaves or is removed from a Campaign and then edits the Character in the Builder can commit. Keep D81 departure semantics and the T6 step split.",
               "note": "Registered 2026-11-09 by the orchestrator. The m667 full-run backstop (42577955714) did not reach this journey because its shard failed at setup, so the regression went unnoticed until T11. It blocks any slice whose imports reach the journey.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-09",
+              "proof": [
+                "m672 (deb91e4ed), batched with the CI signing-key read retry; slice tip 7e95600b0: Tests 42656535375, Live backend 42656534682, Browser journeys 42656535162; batch Tests 42692874615, Live backend 42692879480, Browser journeys 42692885602 green.",
+                "Cause: the journey raced the queued departure reconcile step (Character ACTIVE but not Sheet-ready until the step runs). characters/development:characterReconcileState plus the awaitCharacterReconcile fixture make the journey wait; a convex-test proves the Sheet recovers by itself after the step. Real bug found and fixed (c88029dfb): a departure now carries an open Builder draft, red proof \"Character changed since this draft opened\". Decisions doc T6 bullet amended 2026-11-09. Follow-up bug registered as SHEET-1.T1."
+              ]
             },
             {
               "id": "PERF-6.T14",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 5,
                 "rr": 8,
                 "size": 3,
-                "after": ["PERF-6.T11", "PERF-6.T12", "PERF-6.T13"],
+                "after": ["PERF-6.T12", "PERF-6.T13"],
                 "finalSource": true
               },
-              "text": "The removeMember subscription herd (split from T11, 2026-11-09). A membership change reruns about 20 subscribed queries per member at once (about 50 executions and 16-17 s of user CPU on the CI runner); the departed player's half all throw CAMPAIGN_NOT_FOUND. That herd causes the 1 s timeouts in passage (encounters/activeReads:active, scenes/sceneBindings:get) and the cold timeouts of campaigns/characterReconcileSteps:run (T6, T12). Fix at the cause: a narrower session read set so a membership change does not rerun every member's subscriptions, without changing any public contract. Gates: 0 timeouts on passage and on the CI membership proof for the reconcile step, across at least 3 CI runs. Record CI p95 for the herd queries and the step. If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; trace the Builder catalogue and grant consumers first).",
-              "note": "Registered 2026-11-09 from the T11 passage diagnosis and the T12 report. Within AC PERF-6.2; scope already named in T11 text, moved here so T11's increment merges. Candidate levers recorded 2026-11-09, to use only if the herd fix leaves a miss: from T11, the @artificer-toolkit/shared/core barrel (about 87 KB across about 55 importers), the encounterRuleCommands -> vttScenes edge (about 40 KB), and checking encounter-reaction-contention for the same missing room checkpoint T11 fixed in the action-contention callers; from T12, sideEffects:false on the workspace packages (about -222 KB on the reconcile step), lazy loading of the obscenity filter (64 KB), and the duplicate zod copy in apps/apis."
+              "text": "The removeMember subscription herd (split from T11, 2026-11-09; reshaped by D216 from the independent review docs/validation/perf-6-fable-timeout-review-2026-11-09.md). One departure starts about 20 executions within 25 ms on the 4-vCPU CI runner; the 1 s limit is wall-clock user time, so time-slicing pushes 49 ms queries to 700+ ms and times out activeReads:active, sheetSectionDerivation:store and characterReconcileSteps:run. Fix, in order: (1) schedule the reconcile run after subscribers settle (review finding 1: characterReconcileSteps.ts scheduleRun runAfter(0); verify check moves with it) and give Campaign-scope Sheet store chains the same delay, keeping 300 ms for a Character's own writes; (2) CI concurrency (finding 5): one diagnostic Browser journeys dispatch first proving the pinned self-hosted image honours APPLICATION_MAX_CONCURRENT_QUERIES/_MUTATIONS and queues rather than rejects at the limit, then cap both near the runner core count on every CI Convex container (never raise the user timeout); (3) queue Campaign Sheet stores from a membership change only when that membership is one a Sheet reads (finding 3; prove from the derivation's reads, within D215) and drop the content-head mark when the departing member shared nothing if the share deletes already trigger; (4) web (finding 4): leave runs from a route that holds no Campaign subscriptions, and the first CAMPAIGN_NOT_FOUND unmounts the Campaign subtree. Gates (D216): a deterministic convex-test fails when a departure exceeds its execution budget (scheduled functions and Sheet stores per departure, writes to campaigns-scoped hot rows) and the timeout count is recorded from at least 3 CI runs (target 0) alongside p95, not gated on wall time. Findings 6 and 7 (narrow encounter read ports, activeReads handler cost) only if the re-measured burst still shows module-size or handler cost.",
+              "note": "Registered 2026-11-09 from the T11 passage diagnosis and the T12 report. Within AC PERF-6.2; scope already named in T11 text, moved here so T11's increment merges. Candidate levers recorded 2026-11-09, to use only if the herd fix leaves a miss: from T11, the @artificer-toolkit/shared/core barrel (about 87 KB across about 55 importers), the encounterRuleCommands -> vttScenes edge (about 40 KB), and checking encounter-reaction-contention for the same missing room checkpoint T11 fixed in the action-contention callers; from T12, sideEffects:false on the workspace packages (about -222 KB on the reconcile step), lazy loading of the obscenity filter (64 KB), and the duplicate zod copy in apps/apis.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T10",
@@ -24884,6 +24890,21 @@
               "proof": [
                 "apps/web/tests/throttledClientLatency.ts runs one 6x CPU-throttled pass in builder-browser (characterBuilder.spec.ts) and vtt-browser (managedRemoteVtt.spec.ts) and records content-snapshot parse, Builder resolution latency and tabletop scene render as a D210-shaped JSON line plus a run-summary bullet, never failing the run; unit tests src/test/clientLatency.test.ts; measures named in src/lib/clientPerformanceMeasures.ts; documented in docs/architecture/ci-validation.md. Evidence: Browser journeys 42512704761 and 42517711026, full dispatch 42513838886 (m661)."
               ]
+            },
+            {
+              "id": "PERF-6.T15",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["PERF-6.T14"],
+                "finalSource": true
+              },
+              "text": "Split the Campaign hot fields (D216; review finding 2, docs/validation/perf-6-fable-timeout-review-2026-11-09.md). readCampaignAuthority (campaigns/authority.ts) reads the whole campaigns document, so every Campaign subscription of every member reruns when a departure, unshare, archive, update, ownership change or notebook section write patches version, updatedAt or notebookRevision. Move version, updatedAt and notebookRevision to a one-row-per-Campaign revision document read only by the queries that return them and the mutations that check the version; keep identity, settings, owner, System and status on campaigns. Update the packages/schema contracts that carry these fields, migrate development data in the same change (pre-launch, no shims) and trace every reader (about 31 references in 17 files) plus copy, archive, ownership and deletion. Proofs: a convex-test that fails if a departure or a notebook section write patches the campaigns table; the T14 execution-budget test tightened to the new count; the membership and notebook journeys stay green.",
+              "note": "Registered 2026-11-09. User ruling D216: split the hot fields (chosen over skipping the version bump on share-less departures). Scope growth under the D187 freeze approved by the user 2026-11-09. After T14 because both touch lib/mutations.ts."
             }
           ]
         },
