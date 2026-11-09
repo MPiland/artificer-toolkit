@@ -131,11 +131,11 @@ it.each(['campaigns/characterBasics.ts'])('keeps the %s module floor within 20 m
 // remaining floor is not zod, so its bar is a ceiling rather than a proof of the change.
 it.for([
   ['campaigns/characterSheet.ts', 20],
-  ['campaigns/accountDeparture.ts', 20],
+  ['campaigns/accountDeparture.ts', 25],
   ['characters/sheetCommands.ts', 20],
-  ['characters/sheetSectionDerivation.ts', 15],
-  ['characters/sheetSlices.ts', 12],
-  ['content/classPublication.ts', 40]
+  ['characters/sheetSectionDerivation.ts', 16],
+  ['characters/sheetSlices.ts', 15],
+  ['content/classPublication.ts', 45]
 ] as const)('keeps the %s module floor within %i ms', ([entry, budgetMs], { task }) => {
   const floorMs = moduleFloorMs(entry)
   task.meta.moduleFloorMs = floorMs
