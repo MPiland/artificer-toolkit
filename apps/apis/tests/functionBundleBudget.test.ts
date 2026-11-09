@@ -9,10 +9,11 @@ import { expect, it } from 'vitest'
 // every module its file reaches (PERF-1). Full `zod` and the `z` namespace object of `zod/mini` keep
 // all ~40 zod locales (194 KiB minified) alive, so Convex code builds schemas with
 // `@artificer-toolkit/schema/zod`. The entry points and bundle options are the Convex bundler's.
+const convexDirectory = join(import.meta.dirname, '../convex')
 const convexConfig: { node: { externalPackages: string[] } } = JSON.parse(
   readFileSync(join(import.meta.dirname, '../convex.json'), 'utf8')
 )
-const functionEntries = globSync('**/*.ts', { cwd: import.meta.dirname })
+const functionEntries = globSync('**/*.ts', { cwd: convexDirectory })
   .map((file) => file.replaceAll(sep, '/'))
   .filter((file) => {
     const base = basename(file)
@@ -20,9 +21,9 @@ const functionEntries = globSync('**/*.ts', { cwd: import.meta.dirname })
   })
 
 function bundleOptions(entry: string) {
-  const usesNode = /^(['"])use node\1/m.test(readFileSync(join(import.meta.dirname, entry), 'utf8'))
+  const usesNode = /^(['"])use node\1/m.test(readFileSync(join(convexDirectory, entry), 'utf8'))
   return {
-    absWorkingDir: import.meta.dirname,
+    absWorkingDir: convexDirectory,
     entryPoints: [`./${entry}`],
     bundle: true,
     platform: usesNode ? ('node' as const) : ('browser' as const),

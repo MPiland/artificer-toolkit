@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
@@ -36,13 +35,15 @@ function fixture() {
       )
     },
     async code(code: string, createdAt: number) {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code))
+      const hashed = Buffer.from(digest).toString('base64url')
       return await t.run(async (ctx) =>
         ctx.runMutation(components.betterAuth.adapter.create, {
           input: {
             model: 'verification',
             data: {
               identifier,
-              value: `${createHash('sha256').update(code).digest('base64url')}:0`,
+              value: `${hashed}:0`,
               createdAt,
               updatedAt: createdAt,
               expiresAt: Date.now() + 60_000

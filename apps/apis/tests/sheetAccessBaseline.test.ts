@@ -12,16 +12,16 @@ import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
-import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
-import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api } from '../_generated/api'
+import { countDatabaseIo, createDatabaseIoTotals } from './fixtures/databaseIo'
+import { importedSubject, importSeededSubjects } from './fixtures/publication'
+import { readySheetFixture } from './fixtures/readyCharacter'
+import { api } from '../convex/_generated/api'
 import {
   executeCharacterSheetCommand,
   executeCharacterSheetCommandAcknowledgement
-} from './sheetCommands'
-import { loadCharacterSheet } from './sheetPreparation'
-import { loadCharacterSheetNotes } from './sheetSlices'
+} from '../convex/characters/sheetCommands'
+import { loadCharacterSheet } from '../convex/characters/sheetPreparation'
+import { loadCharacterSheetNotes } from '../convex/characters/sheetSlices'
 
 type CommandBody<Command = CharacterSheetExecuteInput['command']> = Command extends unknown
   ? Omit<Command, 'commandId' | 'expectedVersion'>

@@ -1,9 +1,12 @@
 // @vitest-environment node
-import { setTimeout as sleep } from 'node:timers/promises'
 import { expect, it, vi } from 'vitest'
 import { useRealTimeClock } from '../tests/fixtures/localRoomWorker'
 
 useRealTimeClock()
+
+/** A real delay: the clock fixture fakes `setTimeout` per test, so keep the platform's own timer. */
+const realSetTimeout = globalThis.setTimeout
+const sleep = (ms: number) => new Promise<void>((resolve) => realSetTimeout(resolve, ms))
 
 const realNow = () => performance.timeOrigin + performance.now()
 
