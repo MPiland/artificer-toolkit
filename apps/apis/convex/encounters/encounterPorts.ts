@@ -3,12 +3,10 @@ import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-per
 import { postRulesChatMessage } from '@artificer-toolkit/encounter-persistence/rulesChatPersistence'
 import type { MutationCtx } from '../_generated/server'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
-import { writeCharacterRecord } from '../characters/characterWrites'
-import { storeCharacterSheetSections } from '../characters/sheetSectionDerivation'
 import { executeEncounterCharacterCommand } from '../characters/encounterCommands'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
-import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { readEncounterSource, snapshotBlueprintEnemies } from './blueprintSnapshots'
+import { encounterCharacterEffectsTransaction } from './characterEffectsTransaction'
 import { encounterReadPorts } from './encounterReadPorts'
 import { readActorInitiativeRoll } from './initiativeSources'
 import { snapshotEncounterOptionalCombatPolicies } from './policySnapshots'
@@ -26,8 +24,9 @@ export function encounterWriteTransaction(
 ): EncounterWriteTransaction<CharacterSheetSourceContext> {
   const known = writeTransactions.get(ctx)
   if (known) return known
+  const effects = encounterCharacterEffectsTransaction(ctx)
   const transaction: EncounterWriteTransaction<CharacterSheetSourceContext> = {
-    db: createConvexEncounterStore(ctx),
+    db: effects.db,
     ports: {
       ...encounterReadPorts(ctx),
       readEncounterSource: (userId, systemId, id, kind) =>
@@ -50,12 +49,7 @@ export function encounterWriteTransaction(
         recordConcentrationCheckRoll(encounterWriteTransaction(ctx), input),
       postRulesChatMessage: (authority, input) =>
         postRulesChatMessage(encounterWriteTransaction(ctx), authority, input),
-      writeCharacterRecord: async (input) => {
-        await writeCharacterRecord(ctx, {
-          ...input,
-          storeSheetSections: storeCharacterSheetSections
-        })
-      },
+      writeCharacterRecord: effects.ports.writeCharacterRecord,
       snapshotBlueprintEnemies: (userId, input) => snapshotBlueprintEnemies(ctx, userId, input),
       executeCharacterCommand: (userId, input) =>
         executeEncounterCharacterCommand(ctx, userId, input)

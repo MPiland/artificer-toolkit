@@ -1,5 +1,7 @@
 import type { AbilityScoreCapabilityAdapter } from './abilityScoreCapability.js'
+import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
 import type { ActionEconomyCapabilityAdapter } from './actionEconomyCapabilityRegistry.js'
+import type { AttackRestrictionCapabilityAdapter } from './attackProfileCapability.js'
 import type { CharacterActionCapabilityAdapter } from './characterActionCapabilityDiscovery.js'
 import type { CharacterProgressionCapabilityAdapter } from './characterProgressionCapability.js'
 import type { CombatPerceptionCapabilityAdapter } from './combatPerceptionCapabilityRegistry.js'
@@ -7,12 +9,28 @@ import type { CreatureConditionCapabilityAdapter } from './creatureConditionCapa
 import type { EventVocabularyCapabilityAdapter } from './events/encounterEventTable.js'
 import type { MaintenanceLinkCapabilityAdapter } from './maintenanceLinkCapability.js'
 import type { SavingThrowCapabilityAdapter } from './savingThrowCapability.js'
+import type { SpellCastCapabilityAdapter } from './spellCastCandidates.js'
 import {
   createRollModeCapabilityRegistry,
   type RollModeCapabilityAdapter
 } from './rollModeCapabilityRegistry.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
-import { installedPolicySystems } from './systems/installedGameSystems/policy.js'
+import {
+  installedAbilityScores,
+  installedActionEconomies,
+  installedArmorClasses,
+  installedAttackRestrictions,
+  installedCharacterActions,
+  installedCharacterProgressions,
+  installedCombatPerceptions,
+  installedCreatureConditions,
+  installedEventVocabularies,
+  installedMaintenanceLinks,
+  installedPolicyModules,
+  installedRollModes,
+  installedSavingThrows,
+  installedSpellCasts
+} from './systems/installedGameSystems/policy.js'
 import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
 import { requireSceneIlluminationLevels } from '@artificer-toolkit/shared/vtt/sceneCombatPerception'
 
@@ -24,6 +42,8 @@ export interface GameSystemPolicyTier {
   readonly gameSystemId: string
   readonly abilityScore?: AbilityScoreCapabilityAdapter
   readonly actionEconomy?: ActionEconomyCapabilityAdapter
+  readonly armorClass?: ArmorClassCapabilityAdapter
+  readonly attackRestriction?: AttackRestrictionCapabilityAdapter
   readonly characterAction?: CharacterActionCapabilityAdapter
   readonly characterProgression?: CharacterProgressionCapabilityAdapter
   readonly combatPerception?: CombatPerceptionCapabilityAdapter
@@ -32,80 +52,93 @@ export interface GameSystemPolicyTier {
   readonly maintenanceLink?: MaintenanceLinkCapabilityAdapter
   readonly rollMode?: RollModeCapabilityAdapter
   readonly savingThrow?: SavingThrowCapabilityAdapter
+  readonly spellCast?: SpellCastCapabilityAdapter
   readonly policyModules: readonly { readonly key: string; readonly contractVersion: number }[]
 }
 
-function installed<
-  TCapability extends Exclude<keyof GameSystemPolicyTier, 'gameSystemId' | 'policyModules'>
->(capability: TCapability) {
-  return installedPolicySystems.flatMap((system) => system[capability] ?? [])
-}
-
-export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry(
-  installed('rollMode'),
+export const rollModeCapabilityRegistry = /* @__PURE__ */ createRollModeCapabilityRegistry(
+  installedRollModes,
   systemCoreCodeRegistry
 )
 
 export const combatPerceptionCapabilityRegistry =
-  createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>(
     'combat-perception',
-    installed('combatPerception'),
+    installedCombatPerceptions,
     ({ illuminationLevels }) => requireSceneIlluminationLevels(illuminationLevels)
   )
 
 export const actionEconomyCapabilityRegistry =
-  createSystemCapabilityRegistry<ActionEconomyCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<ActionEconomyCapabilityAdapter>(
     'action-economy',
-    installed('actionEconomy')
+    installedActionEconomies
+  )
+
+export const armorClassCapabilityRegistry =
+  /* @__PURE__ */ createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>(
+    'armor-class',
+    installedArmorClasses
+  )
+
+export const attackRestrictionCapabilityRegistry =
+  /* @__PURE__ */ createSystemCapabilityRegistry<AttackRestrictionCapabilityAdapter>(
+    'attack-restriction',
+    installedAttackRestrictions
   )
 
 export const abilityScoreCapabilityRegistry =
-  createSystemCapabilityRegistry<AbilityScoreCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<AbilityScoreCapabilityAdapter>(
     'ability-score',
-    installed('abilityScore')
+    installedAbilityScores
   )
 
 export const characterProgressionCapabilityRegistry =
-  createSystemCapabilityRegistry<CharacterProgressionCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<CharacterProgressionCapabilityAdapter>(
     'character-progression',
-    installed('characterProgression')
+    installedCharacterProgressions
   )
 
 export const creatureConditionCapabilityRegistry =
-  createSystemCapabilityRegistry<CreatureConditionCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<CreatureConditionCapabilityAdapter>(
     'creature-condition',
-    installed('creatureCondition')
+    installedCreatureConditions
   )
 
 export const characterActionCapabilityRegistry =
-  createSystemCapabilityRegistry<CharacterActionCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<CharacterActionCapabilityAdapter>(
     'character-action',
-    installed('characterAction')
+    installedCharacterActions
   )
 
 export const eventVocabularyCapabilityRegistry =
-  createSystemCapabilityRegistry<EventVocabularyCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<EventVocabularyCapabilityAdapter>(
     'event-vocabulary',
-    installed('eventVocabulary')
+    installedEventVocabularies
   )
 
 export const maintenanceLinkCapabilityRegistry =
-  createSystemCapabilityRegistry<MaintenanceLinkCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<MaintenanceLinkCapabilityAdapter>(
     'maintenance-link',
-    installed('maintenanceLink')
+    installedMaintenanceLinks
   )
 
 export const savingThrowCapabilityRegistry =
-  createSystemCapabilityRegistry<SavingThrowCapabilityAdapter>(
+  /* @__PURE__ */ createSystemCapabilityRegistry<SavingThrowCapabilityAdapter>(
     'saving-throw',
-    installed('savingThrow')
+    installedSavingThrows
+  )
+
+export const spellCastCapabilityRegistry =
+  /* @__PURE__ */ createSystemCapabilityRegistry<SpellCastCapabilityAdapter>(
+    'spell-cast',
+    installedSpellCasts
   )
 
 export function requireInstalledGameSystemPolicyModule(input: {
   gameSystemId: string
   policyModule: { key: string; contractVersion: number }
 }): void {
-  const registration = installedPolicySystems.find(
+  const registration = installedPolicyModules.find(
     (module) => module.gameSystemId === input.gameSystemId
   )
   if (

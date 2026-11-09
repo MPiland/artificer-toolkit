@@ -4,7 +4,6 @@ import { buildCharacterArmorClassRuleFacts } from '../../character/characterArmo
 import type { ProjectableCharacterFacts } from '../../encounterActionProjection.js'
 import { buildMovementTarget } from '../../encounterMovementTargets.js'
 import {
-  armorClassCapabilityRegistry,
   attackProfileCapabilityRegistry,
   characterRuleActionSystemAdapterRegistry,
   d20TestDefinitionCapabilityRegistry,
@@ -12,6 +11,7 @@ import {
   optionalCombatPolicyCapabilityRegistry
 } from '../../platformEncounterPolicy.js'
 import {
+  armorClassCapabilityRegistry,
   characterActionCapabilityRegistry,
   creatureConditionCapabilityRegistry,
   savingThrowCapabilityRegistry

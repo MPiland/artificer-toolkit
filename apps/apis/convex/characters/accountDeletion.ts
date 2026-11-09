@@ -17,7 +17,7 @@ import {
 } from './sheetSectionStores'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
-import { encounterWriteTransaction } from '../encounters/encounterPorts'
+import { encounterCharacterEffectsTransaction } from '../encounters/characterEffectsTransaction'
 import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
 import {
@@ -83,7 +83,7 @@ export async function removePrivateCharacter(
   if (active) {
     // A held Character skipped D81 settlement at departure, and its hold drops after the row is
     // gone: end maintained states of Runs the room does not hold now, before the owner vanishes.
-    await endCharacterRunEffects(encounterWriteTransaction(ctx), {
+    await endCharacterRunEffects(encounterCharacterEffectsTransaction(ctx), {
       characterId,
       classifyRun: async (encounterId) => {
         const run = await ctx.db

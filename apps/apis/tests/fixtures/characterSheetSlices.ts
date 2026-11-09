@@ -1,4 +1,3 @@
-import { ConvexClient } from 'convex/browser'
 import { makeFunctionReference } from 'convex/server'
 import type {
   CharacterSheetSlice,
@@ -7,7 +6,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { api } from '../../convex/_generated/api.js'
 import type { DevelopmentClient } from '../developmentClient'
-import { developmentTarget } from '../developmentTarget'
+import { awaitInternalQuery } from './internalQueryWait'
 
 // Internal fixture query (`characters/development.ts`), reached with the local admin key.
 const sheetSectionsState = makeFunctionReference<
@@ -17,62 +16,28 @@ const sheetSectionsState = makeFunctionReference<
 >('characters/development:sheetSectionsState')
 
 /**
- * Subscribes until a Character's stored Sheet sections are current, so slice reads after a write
- * serve stored sections as a settled Sheet does instead of all deriving the fallback at once (D214).
- * Sections that are stale with no store queued, or whose queued store failed, fail the proof.
- * In-process, `client` runs the internal query in its own transaction and the wait polls while
- * convex-test runs the queued store on its timer; a fixture that seeds content directly queues no
- * store, so a MISSING Sheet there derives live.
+ * Waits until a Character's stored Sheet sections are current, so slice reads after a write serve
+ * stored sections as a settled Sheet does instead of all deriving the fallback at once (D214).
+ * Sections that are stale with no store queued, or whose queued store failed, fail the proof. A
+ * fixture that seeds content directly in-process queues no store, so a MISSING Sheet there derives
+ * live.
  */
-export async function awaitCurrentCharacterSheet(characterId: string, client?: DevelopmentClient) {
-  const url = process.env.CONVEX_SELF_HOSTED_URL
-  const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
-  if (!url && !adminKey) {
-    if (!client) return
-    for (let attempt = 0; attempt < 400; attempt += 1) {
-      const state = await client.query(sheetSectionsState, { characterId })
-      if (state === 'FAILED')
-        throw new Error(
-          `Character ${characterId} Sheet sections are stale: its queued store failed.`
+export function awaitCurrentCharacterSheet(characterId: string, client?: DevelopmentClient) {
+  return awaitInternalQuery({
+    query: sheetSectionsState,
+    args: { characterId },
+    label: `Character ${characterId} Sheet store`,
+    client,
+    judge: (state, native) => {
+      if (state === 'FAILED' || (native && state === 'MISSING'))
+        return new Error(
+          `Character ${characterId} Sheet sections are stale: ${
+            state === 'MISSING' ? 'no store is queued' : 'its queued store failed'
+          }.`
         )
-      if (state !== 'QUEUED') return
-      await new Promise((resolve) => setTimeout(resolve, 25))
+      return state === 'QUEUED' ? 'WAITING' : 'SETTLED'
     }
-    throw new Error(`Character ${characterId} Sheet store is still queued.`)
-  }
-  const target = developmentTarget(process.env)
-  if (target.mode !== 'local' || url !== target.deploymentUrl.origin || !adminKey)
-    throw new Error('Sheet section waits require the selected local backend and key.')
-  const subscriber = new ConvexClient(url, { logger: false })
-  try {
-    // Convex exposes admin auth on the socket client at runtime but strips it from public types.
-    const socket: unknown = Reflect.get(subscriber, 'client')
-    const setAdminAuth: unknown =
-      typeof socket === 'object' && socket !== null ? Reflect.get(socket, 'setAdminAuth') : null
-    if (typeof setAdminAuth !== 'function') throw new Error('Native admin socket is unavailable.')
-    setAdminAuth.call(socket, adminKey)
-    // Closing the client ends the subscription once the state settles.
-    await new Promise<void>((resolve, reject) => {
-      subscriber.onUpdate(
-        sheetSectionsState,
-        { characterId },
-        (state) => {
-          if (state === 'CURRENT' || state === 'NO_SHEET') resolve()
-          else if (state !== 'QUEUED')
-            reject(
-              new Error(
-                `Character ${characterId} Sheet sections are stale: ${
-                  state === 'MISSING' ? 'no store is queued' : 'its queued store failed'
-                }.`
-              )
-            )
-        },
-        reject
-      )
-    })
-  } finally {
-    await subscriber.close()
-  }
+  })
 }
 
 type UnionToIntersection<Union> = (Union extends unknown ? (value: Union) => void : never) extends (

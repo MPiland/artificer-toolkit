@@ -23,6 +23,8 @@ import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
+import { deriveAndStoreCharacterSheet } from '../characters/sheetSectionDerivation'
+import { readCharacterSheetPendingStore } from '../characters/sheetSectionStores'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { fixture, input } from '../../tests/fixtures/characters'
@@ -53,6 +55,13 @@ const PARTY_SIZE = 5
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
+)
+
+const sheetSectionsState = makeFunctionReference<'query', { characterId: string }, string>(
+  'characters/development:sheetSectionsState'
+)
+const characterReconcileState = makeFunctionReference<'query', { characterId: string }, string>(
+  'characters/development:characterReconcileState'
 )
 
 type Base = Awaited<ReturnType<typeof fixture>>
@@ -374,6 +383,131 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
       expect.arrayContaining(itemIds)
     )
     expect((await base.readState()).receipts).toEqual(before.receipts)
+  })
+
+  it('keeps a Builder draft opened before departure committable while its step is pending (PERF-6.T13)', async () => {
+    const base = await readySheetFixture()
+    const campaign = await gmCampaign(base)
+    await seatPlayer(base, campaign, base.owner.userId, base.character.id)
+    const currencySystem = await base.other.caller.mutation(api.campaigns.currencySystems.save, {
+      campaignId: campaign.id,
+      label: 'Table tokens',
+      isReference: true,
+      denominations: [{ label: 'Token', abbreviation: 'tk', scaleInReference: 1 }]
+    })
+    // Campaign currency the departure returns to the party, so the departure writes the Character.
+    await base.t.run((ctx) =>
+      editCharacterRecord(ctx, base.character.id, (document) => ({
+        ...document,
+        state: {
+          ...document.state,
+          currency: [
+            ...document.state.currency,
+            {
+              id: crypto.randomUUID(),
+              currencies: [
+                {
+                  currencyId: currencySystem.denominations[0]!.id,
+                  kind: 'CAMPAIGN' as const,
+                  campaignCurrencySystemId: currencySystem.id,
+                  amount: 3
+                }
+              ]
+            }
+          ]
+        }
+      }))
+    )
+    const opened = await base.owner.caller.mutation(api.characters.drafts.create, {
+      id: base.character.id,
+      systemId: base.character.systemId
+    })
+    const before = (await base.readState()).character!
+
+    holdScheduledWork()
+    const departure = await measure(base.owner.caller, unassign, { campaignId: campaign.id })
+    expect(departure.reads).toBeLessThanOrEqual(TRANSACTION_READ_DOCUMENTS)
+    expect(await queuedSteps(base.t)).toHaveLength(1)
+    const departed = (await base.readState()).character!
+    expect(departed.updatedAt).not.toBe(before.updatedAt)
+
+    // The player reopens the draft they had open and commits it before the step has run.
+    const reopened = await base.owner.caller.mutation(api.characters.drafts.create, {
+      id: base.character.id,
+      systemId: base.character.systemId
+    })
+    expect(reopened.id).toBe(opened.id)
+    const saved = await base.owner.caller.mutation(api.characters.drafts.save, {
+      characterId: base.character.id,
+      expectedDraftId: reopened.id,
+      mode: 'edit',
+      baseActiveUpdatedAt: reopened.baseActiveUpdatedAt,
+      character: { ...reopened.payload.character, label: 'Edited after departure' },
+      ...(reopened.payload.builderIntent === undefined
+        ? {}
+        : { builderIntent: reopened.payload.builderIntent })
+    })
+    await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: saved.id,
+      mode: 'edit',
+      character: saved.payload.character
+    })
+    const campaignBalances = (document: ReturnType<typeof readCharacterRecord>) =>
+      document.state.currency
+        .flatMap((group) => group.currencies)
+        .filter((row) => row.kind === 'CAMPAIGN')
+    const committed = readCharacterRecord((await base.readState()).character!)
+    expect(committed.label).toBe('Edited after departure')
+    // The returned Campaign currency stays returned: the draft did not bring it back.
+    expect(campaignBalances(committed)).toEqual([])
+
+    await runDueScheduledWork(base.t)
+    expect(await queuedSteps(base.t)).toEqual([])
+    const settled = readCharacterRecord((await base.readState()).character!)
+    expect(settled.status).toBe('ACTIVE')
+    expect(settled.label).toBe('Edited after departure')
+    expect(campaignBalances(settled)).toEqual([])
+  })
+
+  it('leaves the Sheet of a Character that departs with a shared source to reach Builder repair once its step runs (PERF-6.T13)', async () => {
+    // A Campaign's chain queues the Sheet store after a delay, so the test drives the clock.
+    holdScheduledWork()
+    const base = await readySheetFixture()
+    const campaign = await gmCampaign(base)
+    await base.t.run((ctx) => makePublishedRootOwned(ctx, acolyte.id, base.other.userId))
+    await base.other.caller.mutation(api.campaigns.contentShares.share, {
+      campaignId: campaign.id,
+      subjectKind: 'BACKGROUND',
+      subjectId: acolyte.id
+    })
+    await seatPlayer(base, campaign, base.owner.userId, base.character.id)
+    await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
+    const sheetState = () => base.t.query(sheetSectionsState, { characterId: base.character.id })
+    const reconcileState = () =>
+      base.t.query(characterReconcileState, { characterId: base.character.id })
+    const readSheet = () =>
+      base.owner.caller.query(api.characters.sheet.get, { id: base.character.id })
+    expect(await sheetState()).toBe('CURRENT')
+
+    await base.owner.caller.mutation(api.campaigns.assignments.unassign, {
+      campaignId: campaign.id
+    })
+    expect(await reconcileState()).toBe('PENDING')
+    // The window: the departure removed the Background's share, so the queued Sheet store lands
+    // before the step finds Builder repair and stores nothing; the Sheet read reports the repair.
+    const store = await base.t.run((ctx) => readCharacterSheetPendingStore(ctx, base.character.id))
+    if (!store) throw new Error('The departure queued no Sheet store.')
+    await base.t.run((ctx) => deriveAndStoreCharacterSheet(ctx, base.character.id, store.token))
+    expect((await base.readState()).character?.status).toBe('ACTIVE')
+    expect(await sheetState()).toBe('MISSING')
+    await expect(readSheet()).rejects.toThrow('Builder repair')
+
+    // The step and every store it queues run with no other action, leaving the post-departure state.
+    await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
+    expect(await reconcileState()).toBe('NONE')
+    expect((await base.readState()).character?.status).toBe('DRAFT')
+    expect(await sheetState()).toBe('NO_SHEET')
+    await expect(readSheet()).rejects.toThrow('Builder repair')
   })
 
   it('queues a failed step again, which then completes; the settled step queued again is a no-op', async () => {

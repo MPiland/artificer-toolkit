@@ -4,7 +4,10 @@ import type { CharacterRestPreviewResponseDto } from '@artificer-toolkit/schema/
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
 import { hideActiveGrantSources, hideConcentrationSource } from '../activeGrantListings.js'
-import { sameCharacterSheetAdjustmentSlot } from './sheetAdjustmentIdentity.js'
+import {
+  mergeCampaignSheetAdjustments,
+  sameCharacterSheetAdjustmentSlot
+} from './sheetAdjustmentIdentity.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 
 export type CharacterSheetViewer = CharacterSheetResponseDto['meta']['viewer']
@@ -21,21 +24,6 @@ export interface CharacterSheetCampaignContext {
   secretAdjustmentIds: Set<string>
   conditions: CampaignConditionDto[]
   currencyOptions?: CharacterSheetCurrencyOptionDto[]
-}
-
-export function mergeCampaignSheetAdjustments(
-  characterAdjustments: readonly CharacterSheetAdjustment[],
-  campaignAdjustments: readonly CharacterSheetAdjustment[]
-): CharacterSheetAdjustment[] {
-  return [
-    ...characterAdjustments.filter(
-      (adjustment) =>
-        !campaignAdjustments.some((campaign) =>
-          sameCharacterSheetAdjustmentSlot(adjustment, campaign)
-        )
-    ),
-    ...campaignAdjustments
-  ]
 }
 
 export function getCharacterSheetDisplayAdjustments(

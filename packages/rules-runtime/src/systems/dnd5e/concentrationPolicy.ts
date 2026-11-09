@@ -26,7 +26,7 @@ import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY, dnd5eSaveOutcomeRule } from './effectActionContracts.js'
 import { encounterConditionSaveAutoFails } from '../../conditionSaveAutoFail.js'
-import { resolveCharacterRuleSavingThrow } from '../../character/characterRuleRollProjection.js'
+import { resolveCharacterRuleSavingThrow } from './characterRuleRollProjection.js'
 import { DND5E_CHARACTER_WIDE_TARGET } from './modifierApplicability.js'
 
 const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'

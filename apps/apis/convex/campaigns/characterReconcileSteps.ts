@@ -16,7 +16,7 @@ import { readCharacterRow } from '../characters/stateDocuments'
 import { readCharacterSourceAccessLoss, readStillLostSources } from '../characters/sourceAccessLoss'
 import { reconcileCharacterSourceLoss } from '../characters/sourceLoss'
 import { isRoomHeldRun, readCharacterLiveHold } from '../liveSessions/authorityGuard'
-import { encounterWriteTransaction } from '../encounters/encounterPorts'
+import { encounterCharacterEffectsTransaction } from '../encounters/characterEffectsTransaction'
 
 const runReference = makeFunctionReference<'mutation', CampaignCharacterReconcileStep, null>(
   'campaigns/characterReconcileSteps:run'
@@ -99,7 +99,7 @@ export async function endDepartedCampaignRunEffects(
   campaignId: string,
   characterId: string
 ) {
-  await endCharacterRunEffects(encounterWriteTransaction(ctx), {
+  await endCharacterRunEffects(encounterCharacterEffectsTransaction(ctx), {
     characterId,
     classifyRun: async (encounterId) => {
       const run = await ctx.db

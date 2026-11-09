@@ -94,6 +94,30 @@ export const convexDeployArguments = [
 
 export const convexCliArguments = (url, adminKey) => ['--url', url, '--admin-key', adminKey]
 
+const jwksReadAttempts = 5
+const jwksRetryDelayMilliseconds = 2000
+
+/**
+ * The first JWKS read right after `convex deploy` races the backend's post-deploy index backfills and
+ * schema checks, which can exhaust its 4 MiB-per-second write budget. The route's Better Auth
+ * rate-limit write then fails and it answers HTTP 500 ("Too many writes per second", seen in the
+ * m667 and m670 backend function logs). The budget refills within a second and the read is
+ * idempotent, so only a 5xx is retried, a few times, within a short bound. Any other status fails at once.
+ */
+async function readJwksRoute(route) {
+  let status = 0
+  for (let attempt = 1; attempt <= jwksReadAttempts; attempt += 1) {
+    const response = await fetch(route, { signal: AbortSignal.timeout(30_000) })
+    if (response.ok) return
+    status = response.status
+    if (status < 500 || attempt === jwksReadAttempts) break
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, jwksRetryDelayMilliseconds))
+  }
+  throw new Error(
+    `The signing key read failed (HTTP ${status}) after up to ${jwksReadAttempts} attempts.`
+  )
+}
+
 /**
  * The deployment's Better Auth signing keys as the static `JWKS` value a managed deployment pins. With
  * an empty `JWKS` the backend fetches /api/auth/convex/jwks from itself to verify every token. The
@@ -103,10 +127,7 @@ export const convexCliArguments = (url, adminKey) => ['--url', url, '--admin-key
 export async function readSigningKeysJwks({ url, siteUrl, adminKey }) {
   assertLoopbackUrl('Convex URL', url)
   assertLoopbackUrl('Convex site URL', siteUrl)
-  const created = await fetch(new URL('/api/auth/convex/jwks', siteUrl), {
-    signal: AbortSignal.timeout(30_000)
-  })
-  if (!created.ok) throw new Error(`The signing key read failed (HTTP ${created.status}).`)
+  await readJwksRoute(new URL('/api/auth/convex/jwks', siteUrl))
   const [executable, args] = yarnSpawn([
     'workspace',
     '@artificer-toolkit/apis',

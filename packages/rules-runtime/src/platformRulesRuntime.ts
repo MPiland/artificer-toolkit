@@ -18,7 +18,12 @@ import {
   type RulesRuntimeService
 } from './rulesRuntimeService.js'
 import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
-import { installedRuntimeSystems } from './systems/installedGameSystems/runtime.js'
+import {
+  installedAttackTriggers,
+  installedCreatureRuleFactCompilers,
+  installedRuleCapabilities,
+  installedRuleOperations
+} from './systems/installedGameSystems/runtime.js'
 
 export { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
 export { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
@@ -41,12 +46,12 @@ export interface GameSystemRuntimeTier {
 }
 
 export const installedGameSystemRuleCapabilities: readonly GameSystemRuleCapabilityContract[] =
-  installedRuntimeSystems.flatMap((module) => module.capabilities)
+  /* @__PURE__ */ installedRuleCapabilities.flat()
 
-export const installedGameSystemRuleOperations: readonly RuleOperationContract[] = [
-  ...coreRuleOperations,
-  ...installedRuntimeSystems.flatMap((module) => module.operations)
-]
+export const installedGameSystemRuleOperations: readonly RuleOperationContract[] = /* @__PURE__ */ [
+  coreRuleOperations,
+  ...installedRuleOperations
+].flat()
 
 /**
  * Selects the installed System's compiler by immutable System identity. The
@@ -59,10 +64,10 @@ export function compileInstalledCreatureRuleFacts(input: {
   if (input.creature.systemId !== input.vocabulary.systemId) {
     throw new Error('Creature and System vocabulary identities do not match.')
   }
-  const registration = installedRuntimeSystems.find(
+  const registration = installedCreatureRuleFactCompilers.find(
     (module) => module.gameSystemId === input.vocabulary.systemId
   )
-  if (!registration?.compileCreatureRuleFacts) {
+  if (!registration) {
     throw new Error(
       `No Creature rule-fact compiler is registered for Game System "${input.vocabulary.systemId}".`
     )
@@ -70,8 +75,9 @@ export function compileInstalledCreatureRuleFacts(input: {
   return registration.compileCreatureRuleFacts(input)
 }
 
+/** Every runtime tier classifies attack triggers, so their list names the installed runtime Systems. */
 function requireInstalledRuntimeModule(gameSystemId: string) {
-  const registration = installedRuntimeSystems.find(
+  const registration = installedAttackTriggers.find(
     (module) => module.gameSystemId === gameSystemId
   )
   if (!registration) {
@@ -101,8 +107,7 @@ export function findInstalledGameSystemRuleCapability(
   gameSystemId: string
 ): GameSystemRuleCapabilityDto | null {
   return (
-    installedRuntimeSystems
-      .flatMap((module) => module.capabilities)
+    installedGameSystemRuleCapabilities
       .map((candidate) => gameSystemRuleCapabilityDtoSchema.parse(candidate))
       .find((candidate) => candidate.gameSystemId === gameSystemId) ?? null
   )
@@ -122,11 +127,6 @@ export function requireInstalledGameSystemRuleCapability(
 export function createPlatformRulesRuntime(input: {
   definitions: PublishedRuleDefinitionSource
 }): RulesRuntimeService {
-  const registrations = installedRuntimeSystems.map((module) => module.gameSystemId)
-  if (new Set(registrations).size !== registrations.length) {
-    throw new Error('Each installed System may register only one rules runtime module.')
-  }
-
   return createRulesRuntimeService({
     capabilities: installedGameSystemRuleCapabilities,
     definitions: input.definitions,

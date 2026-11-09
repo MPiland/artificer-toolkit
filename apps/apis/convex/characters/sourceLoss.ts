@@ -13,7 +13,7 @@ import {
   resolveCharacterPlayRecordStats,
   type CharacterPlayRecordStats
 } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
-import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import {
@@ -147,6 +147,26 @@ async function saveDraft(input: {
   )
 }
 
+/** The draft Character carrying the held rules the active Character retained for the same items. */
+function withHeldRules(draft: CharacterAuthored, current: CharacterAuthored): CharacterAuthored {
+  const retainedByItemId = new Map(current.state.equipment.inventory.map((item) => [item.id, item]))
+  return {
+    ...draft,
+    state: {
+      ...draft.state,
+      equipment: {
+        ...draft.state.equipment,
+        inventory: draft.state.equipment.inventory.map((item) => {
+          const held = retainedByItemId.get(item.id)
+          return held?.equipmentId === item.equipmentId && held.retainedRulesJson
+            ? { ...item, retainedRulesJson: held.retainedRulesJson }
+            : item
+        })
+      }
+    }
+  }
+}
+
 /** The Character's draft, carrying the held rules its active record retained, and both choice maps. */
 async function readSourceLossSubjects(
   ctx: MutationCtx,
@@ -160,23 +180,8 @@ async function readSourceLossSubjects(
   if (draftRecord && draftRecord.userId !== current.userId)
     throw new Error('Stored Character draft ownership mismatch.')
   const draft = draftRecord ? await readCharacterDraft(ctx, draftRecord, record) : null
-  const retainedByItemId = new Map(current.state.equipment.inventory.map((item) => [item.id, item]))
-  const draftCharacterWithRetainedRules: CharacterAuthored | null = draft
-    ? ({
-        ...draft.payload.character,
-        state: {
-          ...draft.payload.character.state,
-          equipment: {
-            ...draft.payload.character.state.equipment,
-            inventory: draft.payload.character.state.equipment.inventory.map((item) => {
-              const held = retainedByItemId.get(item.id)
-              return held?.equipmentId === item.equipmentId && held.retainedRulesJson
-                ? { ...item, retainedRulesJson: held.retainedRulesJson }
-                : item
-            })
-          }
-        }
-      } as CharacterAuthored)
+  const draftCharacterWithRetainedRules = draft
+    ? withHeldRules(draft.payload.character as CharacterAuthored, current)
     : null
   const currentChoiceKinds = await readCharacterAuthoredChoiceKinds(ctx, current)
   const draftChoiceKinds = draft
@@ -233,7 +238,7 @@ export async function persistCharacterContextChange(
   )
     return false
   const { maximumHitPoints, speeds, classSummary, totalLevel } = record.play
-  await writeCharacterRecord(ctx, {
+  const written = await writeCharacterRecord(ctx, {
     current: record,
     fields: {
       streamVersion: record.play.streamVersion,
@@ -242,6 +247,24 @@ export async function persistCharacterContextChange(
     document: next,
     stats: { maximumHitPoints, speeds, classSummary, totalLevel }
   })
+  // An open draft moves with the Character, as the reconcile moves it, so it stays committable
+  // while the reconcile is queued: it takes the retained rules and the server-owned currency.
+  const draftRecord = await ctx.db
+    .query('characterDrafts')
+    .withIndex('by_characterId', (q) => q.eq('characterId', record.id))
+    .unique()
+  if (draftRecord) {
+    const draft = await readCharacterDraft(ctx, draftRecord, record)
+    const carried = withHeldRules(draft.payload.character as CharacterAuthored, next)
+    await saveDraft({
+      ctx,
+      active: { ...record, updatedAt: written.row.updatedAt },
+      draft: draftRecord,
+      character: { ...carried, state: { ...carried.state, currency: state.currency } },
+      builderIntent: draft.payload.builderIntent,
+      baseActiveUpdatedAt: written.row.updatedAt
+    })
+  }
   return true
 }
 

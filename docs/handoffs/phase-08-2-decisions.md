@@ -1377,8 +1377,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     step ends the Run effects (unless the Character was assigned to the Campaign again or the room
     holds it), trims attunement, clamps HP, keeps play history and reconciles source loss. It
     records its `CAMPAIGN_CHARACTER_RECONCILED` event under the step id, so a retried or duplicate
-    step changes nothing. Until the step runs, readers see the departed Character with the
-    Campaign's settings still applied, and a draft opened before the departure must be reopened.
+    step changes nothing.
+  - **Amended 2026-11-09 (PERF-6.T13, orchestrator ruling):** until the step runs, the Character
+    stays ACTIVE with its Run effects, attunement and HP unsettled, but the departure has already
+    removed its Campaign authority and shares. A Character that uses a removed shared source is
+    not Sheet-ready at once: its Sheet reads report Builder repair, and its queued Sheet store
+    lands without storing sections (the fixture state is MISSING). The step then records the
+    repair (the Character becomes DRAFT) and its write queues the Sheet store again, so the Sheet
+    reaches its post-departure state with no other action. Proofs that read what the step settles
+    wait for it (`awaitCharacterReconcile`). When the departure writes the Character (currency
+    returned, held rules retained), it also moves an open Builder draft onto that write: the draft
+    takes the retained rules and currency and is rebased, as the step's reconcile does, so the
+    player can commit it before the step runs; it is not reopened.
   - **Live-held (D74):** play stays the room's. Settlement runs when the hold drops at a checkpoint
     (`reconcileCharacterHolds`) or at room release (`releaseCharacterHolds` through authority
     release). The room ignores maintained-effect dependents whose Character owner is no longer
@@ -1849,6 +1859,7 @@ Every platform registry (capabilities, policy registrations, core codes) builds 
 Amended 2026-10-25 (RULES-2.T12 measurement): there is one installed list per load tier, in `installedGameSystems/` (`vocabulary.ts`, `policy.ts`, `encounter.ts`). Each System exports one module object per tier. This keeps the authoring vocabulary boundary (`schemaBoundary.test.ts`) and the Sheet and Encounter policy tiers separate. The tracer Vitest project aliases all three. The tracer is Fate-like in vocabulary, but its check runs through the neutral d20 settlement (ADR 0039 decision 2); a non-d20 resolution is a future enhancement. T12 split into T12a and T12b (user approved +2).
 
 Amended again 2026-10-25 (RULES-2.T12a import closures): there are five load tiers, not three: vocabulary, policy, character, encounter and runtime. The lists live in `packages/rules-runtime/src/systems/installedGameSystems/`, and the `platform*.ts` files stay the only composition roots under the source ratchet. Every load keeps its current weight, and the tracer Vitest project aliases all five lists. Clarified 2026-10-25 (T12a review): it aliases a tier only where the tracer installs something. The tracer has no Characters, so the character list stays dnd5e-only and the tracer's character capabilities fail closed. No empty tracer tier is written.
+Amended 2026-11-09 (orchestrator ruling, PERF-6.T12, [ADR 0042](../adr/0042-tree-shakable-system-capability-registries.md)): each installed list file exports one list per capability, not per tier, and each System declares a tier as named exports, one per capability, so a bundle keeps only the adapters it calls. Each list file asserts the System's tier module against `GameSystem<Tier>Tier` with a type-only check. The five load tiers, the composition roots and the tracer aliases are unchanged.
 
 ### D196: the orchestrator resets local data after stored-shape changes (user ruling, 2026-10-26, Q30)
 

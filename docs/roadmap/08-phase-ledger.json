@@ -5502,7 +5502,7 @@
         {
           "id": "SHEET-1",
           "title": "View and edit a Character Sheet",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/web/tests/e2e/app/characterSheet.spec.ts",
             "apps/web/tests/e2e/app/characterSheetSpells.spec.ts"
@@ -5540,6 +5540,36 @@
               "proof": [".codex/validation/phase82-sheet-read/local-progress.md"],
               "origin": ["P04.4"],
               "id": "SHEET-1.4"
+            },
+            {
+              "id": "SHEET-1.5",
+              "text": "A Character that needs Builder repair opens on its Sheet route to the same draft state an incomplete import shows, with a way into the Builder, never the generic load error. This holds while its Campaign reconcile step is still queued and after it settles to a repair draft.",
+              "status": "TODO",
+              "origin": ["PERF-6.T13"],
+              "proof": []
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 3,
+            "size": 1,
+            "finalSource": true
+          },
+          "tasks": [
+            {
+              "id": "SHEET-1.T1",
+              "status": "TODO",
+              "closes": ["SHEET-1.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 1,
+                "finalSource": true
+              },
+              "text": "Bug found by PERF-6.T13: the Sheet read throws CharacterRequiresBuilderRepairError (characters/sheetSlices.ts:52, rules-runtime character/sheetPreparation.ts:50) and CharacterSheetPage reads it with useSuspenseQuery, so a repair-state Character falls through to the root RouteErrorState (\"This page couldn't load\", Try again) instead of the existing CharacterSheetDraftOnlyState that incomplete imports show. Fix at the cause through a shared packages/schema contract: the Sheet read reports repair as a typed result rather than a thrown error, and the page renders the draft-only state for it, both for a settled repair DRAFT and for an ACTIVE Character whose queued reconcile step has not run yet (no draft row may exist in that window). Proofs: a convex-test for both states, a web unit test for the page, and the campaign-assignment-lifecycle journey opening the departed Character's Sheet and seeing the draft state.",
+              "note": "Registered 2026-11-09 by the orchestrator. User ruling 2026-11-09: move the Sheet to the draft state the way incomplete imports do. Bug exception to the D187 freeze."
             }
           ]
         },
@@ -24787,12 +24817,12 @@
                 "finalSource": true
               },
               "text": "After the module-floor fixes (T2, T3, T8) land, re-measure CI user p95 of authoring/nodeRuntime:resolve and of the session reads in the removeMember invalidation herd from a full Browser journeys capture. Add the T9-proposed resolve read budget (Fighter class map <= 900 documents and <= 1,450,000 bytes; small maps <= 10 documents). Share memoizeTransactionReads with encounters/projectionReads:get, pendingPrepared and scenes/sceneBindings:get. If resolve or the herd still miss the PERF-6.2 targets, fix at the cause (keyed source reads for resolve; a narrower session read set so a membership change does not rerun every member's subscriptions). Also re-measure social/blockLists and social/admissionLists, which still load the app schema (PERF-6.T3 finding). If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; it changes what the rules context holds, so trace the Builder catalogue and grant consumers first).",
-              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin. Recurred 2026-11-08 in merge batch m662 (Browser journeys 42521151283, passage, same step): activeReads:active (request fa79463fee8fa6e6) and scenes/sceneBindings:get (request 841e4d7c67fa71d7) both timed out at 1 s; m662 was refused and T7 merged on retry as m663. Two hits in about three runs: this now blocks merges, so T11 starts as soon as T8 lands. PERF-6.T6 finding 2026-11-08 (pre-existing): capturing an Equipment with an open Spell grant reads the Spell catalogue in every capturing transaction, ITEM_ADD included. convex-test worst case (one unfiltered all-Spells grant over the 319 SRD Spells): about 2,254 reads and 4.1 MB per add; each Spell root is read 3 times (960 reads) and the same content source 643 times. No SRD Equipment or CI proof has one yet. Fix at the cause with transaction-scoped caching of those two lookups and prove it with a read budget. Also seen 2026-11-09 (RELIABILITY-22.T1 Browser journeys 42554917658, shard 8, passed on rerun): encounter-action-contention asserted the duplicate RESOLVE_ACTION Run at version 3 but read 2 (apps/apis/tests/developmentEncounterActionTransactions.ts:186). Check whether the Run read after both duplicate mutations resolve can trail the commit. PERF-6.T6 probe finding 2026-11-09 (Browser journeys 42575022963): after T8, cold first executions dominate. Cold exec tracks bundle size at about 0.3 ms per KB, while the warm-cache module floor in functionBundleBudget (8-13 ms) hides it. characterReconcileSteps:run took 1,002-1,269 ms cold vs 213 ms warm, on a 3.2 MB bundle. encounters/encounterPorts.ts encounterWriteTransaction alone pulls in 2,976 KB (the whole encounter command graph) and endCharacterRunEffects 1,672 KB. Check whether the passage timeouts are cold runs of large bundles, and budget bundle KB, not only the warm floor. T6 takes a narrow write port for its step; shrinking endCharacterRunEffects is T11 scope.",
+              "note": "Registered 2026-11-07 from the PERF-6.T9 profile (follow-ups section). Within AC PERF-6.2; no new scope. Evidence 2026-11-08: encounters/activeReads:active timed out at the 1 s query limit in passage (owner verify departed player refusal; full journeys 42513838886 attempt 1, request 12cde25aae69afb7); its other runs read 2-75 KB in 0.26-0.52 s. T11 must show it clears with margin. Recurred 2026-11-08 in merge batch m662 (Browser journeys 42521151283, passage, same step): activeReads:active (request fa79463fee8fa6e6) and scenes/sceneBindings:get (request 841e4d7c67fa71d7) both timed out at 1 s; m662 was refused and T7 merged on retry as m663. Two hits in about three runs: this now blocks merges, so T11 starts as soon as T8 lands. PERF-6.T6 finding 2026-11-08 (pre-existing): capturing an Equipment with an open Spell grant reads the Spell catalogue in every capturing transaction, ITEM_ADD included. convex-test worst case (one unfiltered all-Spells grant over the 319 SRD Spells): about 2,254 reads and 4.1 MB per add; each Spell root is read 3 times (960 reads) and the same content source 643 times. No SRD Equipment or CI proof has one yet. Fix at the cause with transaction-scoped caching of those two lookups and prove it with a read budget. Also seen 2026-11-09 (RELIABILITY-22.T1 Browser journeys 42554917658, shard 8, passed on rerun): encounter-action-contention asserted the duplicate RESOLVE_ACTION Run at version 3 but read 2 (apps/apis/tests/developmentEncounterActionTransactions.ts:186). Check whether the Run read after both duplicate mutations resolve can trail the commit. PERF-6.T6 probe finding 2026-11-09 (Browser journeys 42575022963): after T8, cold first executions dominate. Cold exec tracks bundle size at about 0.3 ms per KB, while the warm-cache module floor in functionBundleBudget (8-13 ms) hides it. characterReconcileSteps:run took 1,002-1,269 ms cold vs 213 ms warm, on a 3.2 MB bundle. encounters/encounterPorts.ts encounterWriteTransaction alone pulls in 2,976 KB (the whole encounter command graph) and endCharacterRunEffects 1,672 KB. Check whether the passage timeouts are cold runs of large bundles, and budget bundle KB, not only the warm floor. T6 takes a narrow write port for its step; shrinking endCharacterRunEffects is T11 scope. Split 2026-11-09 (orchestrator): T11 delivers the contention flake fix, the schema-graph cut and sceneBindings bar, the resolve read budget with memoizeTransactionReads sharing, Spell capture caching, and a recorded CI p95 re-measure (item 2). The removeMember herd fix (narrower session read set), the passage 0-timeout gate and the bounded Class-list read move to PERF-6.T14.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-6.T12",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24803,7 +24833,40 @@
                 "finalSource": true
               },
               "text": "Cold-compile cost of the Character write path (split from T11, 2026-11-09). The departure step campaigns/characterReconcileSteps:run must reach 0 timeouts on the CI membership proof and cold p95 <= 500 ms. Its bundle is 3,190 KB iife and cold exec is about 0.3 ms/KB. Fix at the cause: (1) a lazily loaded installed-System registry, so System-neutral platform modules (encounterGrantLifetimes -> encounterActorForm, encounterActiveGrants, documents -> actorProjectionFacts) stop bundling 512 KB of dnd5e tiers. ADR before code. (2) Remove the direct dnd5e imports from neutral character modules (characterSpellCastActions, characterActionRuleFacts, characterRuleRollProjection), a System-boundary defect. (3) A narrow Character write port for the step: endCharacterRunEffects 1,672 KB, characterWrites 1,680 KB (dnd5e 155, zod 103, obscenity 64, polygon-clipping 50), storeCharacterSheetSections about 220 KB. Set a bundle bar from the measured result, red against 3,190 KB. A first cut of (3) exists on local branch perf-6-t6-narrow-port (28631974b, not merged): the step module goes from 3,192 to 2,918 KB and account deletion from 3,201 to 2,894 KB; review it and reuse it rather than rebuild. The largest dnd5e edge is installedGameSystems/encounter.ts -> dnd5e/encounterTier.ts (410 KB).",
-              "note": "Registered 2026-11-09 from the PERF-6.T6 findings (perf-6-t6-report.md, sections \"Ruling (B)\" and \"Ruling (C)\"). Within AC PERF-6.2; carries the T6 bars that T6 could not meet. Independent of T11, so both can run in parallel."
+              "note": "Registered 2026-11-09 from the PERF-6.T6 findings (perf-6-t6-report.md, sections \"Ruling (B)\" and \"Ruling (C)\"). Within AC PERF-6.2; carries the T6 bars that T6 could not meet. Independent of T11, so both can run in parallel. Ruling 2026-11-09: ADR 0042 (tree-shakable System capability registries, amends ADR 0039 decision 5 and D195) approved with a type-only completeness check per System tier. Hard gates: bundle-size bars (step and encounters/activeReads) and 0 step timeouts on the CI membership proof. Cold p95 <= 500 ms is recorded, not gated, per the AC PERF-6.2 note (read budget is the hard gate; timing recorded and acted on). sideEffects:false on workspace packages is the next lever, not in T12.",
+              "mergedAt": "2026-11-09",
+              "proof": "m668 (9ff3e4611), slice tip 962516f3a: Tests 42651781156, Live backend 42651781195, Browser journeys 42651781227 green. ADR 0042 accepted: per-capability installed lists, named tier exports asserted against Required<Tier>, /* @__PURE__ */ registries, character/ free of systems/dnd5e imports. functionBundleBudget bars: reconcile step 2,900 KB (measured 2,829, phase 3,188), accountDeletion 2,880 (2,805, phase 3,201), encounters/activeReads 1,880 (1,826, phase 2,161); all red against the phase code. Cold membership timings recorded only; the remaining step 0-timeout gate is PERF-6.T14 (removeMember herd)."
+            },
+            {
+              "id": "PERF-6.T13",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 1,
+                "after": ["PERF-6.T6"],
+                "finalSource": true
+              },
+              "text": "Regression from PERF-6.T6 (m667): the campaign-assignment-lifecycle Browser journey fails since m667 (passed at m666 backstop 42571936393; fails on a5bf57344, probe run 42636584794, and on every ci/perf-6-t11 run) because commitCharacter rejects with \"Character changed since this draft opened\". Suspected cause: a Builder draft opened after the departure commits but before the queued campaigns/characterReconcileSteps:run step writes the Character. Confirm the cause, add a regression test that fails before the fix, and fix it at the cause so the user-visible flow passes: a player who leaves or is removed from a Campaign and then edits the Character in the Builder can commit. Keep D81 departure semantics and the T6 step split.",
+              "note": "Registered 2026-11-09 by the orchestrator. The m667 full-run backstop (42577955714) did not reach this journey because its shard failed at setup, so the regression went unnoticed until T11. It blocks any slice whose imports reach the journey.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PERF-6.T14",
+              "status": "TODO",
+              "closes": ["PERF-6.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["PERF-6.T11", "PERF-6.T12", "PERF-6.T13"],
+                "finalSource": true
+              },
+              "text": "The removeMember subscription herd (split from T11, 2026-11-09). A membership change reruns about 20 subscribed queries per member at once (about 50 executions and 16-17 s of user CPU on the CI runner); the departed player's half all throw CAMPAIGN_NOT_FOUND. That herd causes the 1 s timeouts in passage (encounters/activeReads:active, scenes/sceneBindings:get) and the cold timeouts of campaigns/characterReconcileSteps:run (T6, T12). Fix at the cause: a narrower session read set so a membership change does not rerun every member's subscriptions, without changing any public contract. Gates: 0 timeouts on passage and on the CI membership proof for the reconcile step, across at least 3 CI runs. Record CI p95 for the herd queries and the step. If CI Sheet p95 still misses, read the Class list rows bounded to the levels the Character can cast (PERF-6.T5 option B; trace the Builder catalogue and grant consumers first).",
+              "note": "Registered 2026-11-09 from the T11 passage diagnosis and the T12 report. Within AC PERF-6.2; scope already named in T11 text, moved here so T11's increment merges. Candidate levers recorded 2026-11-09, to use only if the herd fix leaves a miss: from T11, the @artificer-toolkit/shared/core barrel (about 87 KB across about 55 importers), the encounterRuleCommands -> vttScenes edge (about 40 KB), and checking encounter-reaction-contention for the same missing room checkpoint T11 fixed in the action-contention callers; from T12, sideEffects:false on the workspace packages (about -222 KB on the reconcile step), lazy loading of the obscenity filter (64 KB), and the duplicate zod copy in apps/apis."
             },
             {
               "id": "PERF-6.T10",
