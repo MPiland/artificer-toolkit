@@ -948,7 +948,9 @@ grants, read live (never copied into a Run actor), and the assigned player alway
 GM-only (`campaigns/characterControllers:setControllers`), bump the CAMPAIGN and PLAY revisions and take effect in
 open rooms with the next authorization read; a departing member is stripped from every grant. Departure (`characterDeparture`) retains held
 Equipment rules, returns Campaign coins to loose party custody with an OWNER audit, freezes open Runs and deletes
-the assignment and the `campaignCharacterStates` overlay in one mutation. It then queues a `DEPARTED` step
+the assignment and the `campaignCharacterStates` overlay in one mutation. When that mutation writes the Character it
+also moves an open Builder draft onto the write (retained rules, currency, rebased `baseActiveUpdatedAt`), as the
+step's reconcile does, so the draft stays committable while the step is queued (PERF-6.T13). It then queues a `DEPARTED` step
 (`campaigns/characterReconcileSteps:run`, PERF-6.T6). In its own transaction the step settles D81: it ends what
 the Campaign or its Runs own on the Character (effects, and emptied maintained states in Runs the room does not
 hold), trims attunement to the System limit, clamps HP and refreshes stats. It also reconciles personal source
@@ -970,7 +972,7 @@ Campaign System and a current publication; Homebrew children need every Homebrew
 parent in an enabled catalogue. Lists recheck author membership and the current publication, omit missing roots
 and fail closed on corrupt published data. Unshare is one active-Campaign, expected-version mutation with an
 actor-bound command fingerprint: it removes the share and dependent children, retains held Equipment rules on assigned
-Characters and evacuates Vehicle cargo to party custody. For each Character that held or references a lost
+Characters (an open draft moves with that write, as at departure) and evacuates Vehicle cargo to party custody. For each Character that held or references a lost
 source it queues a step (`campaigns/characterReconcileSteps:run`), listed in the receipt's
 `pendingCharacterReconcileIds`. The step prunes lost selections from the Character and its draft; an Active
 Character that can no longer be prepared becomes a repair DRAFT. Each step has a `campaignCharacterReconciles`

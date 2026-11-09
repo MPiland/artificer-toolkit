@@ -1378,7 +1378,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     holds it), trims attunement, clamps HP, keeps play history and reconciles source loss. It
     records its `CAMPAIGN_CHARACTER_RECONCILED` event under the step id, so a retried or duplicate
     step changes nothing. Until the step runs, readers see the departed Character with the
-    Campaign's settings still applied, and a draft opened before the departure must be reopened.
+    Campaign's settings still applied. When the departure writes the Character (currency returned,
+    held rules retained), it also moves an open Builder draft onto that write (PERF-6.T13,
+    2026-11-09): the draft takes the retained rules and currency and is rebased, as the step's
+    reconcile does, so the player can commit it before the step runs.
   - **Live-held (D74):** play stays the room's. Settlement runs when the hold drops at a checkpoint
     (`reconcileCharacterHolds`) or at room release (`releaseCharacterHolds` through authority
     release). The room ignores maintained-effect dependents whose Character owner is no longer
