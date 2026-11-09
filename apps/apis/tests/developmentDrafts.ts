@@ -4367,7 +4367,11 @@ try {
         player: player.client,
         anonymous: publicClient,
         campaignId: campaign.id,
-        characterId
+        characterId,
+        checkpoint: async () => {
+          const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+          await awaitCampaignCheckpoint(owner.client, campaign.id)
+        }
       })
     }
   } else if (process.argv.includes('--equipment-character')) {
