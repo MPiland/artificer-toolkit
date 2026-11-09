@@ -29,12 +29,12 @@ export async function verifyEncounterActionTransactions({
   initiativePolicyDefinitionId: string
   initiativePolicyCatalogueId: string
   creatureId: string
-  /** Publishes a room-held Run to Convex before the proof reads its projection there. */
-  checkpoint?: () => Promise<void>
+  /** Publishes every room-held Run to Convex before the proof reads a projection there. */
+  checkpoint: () => Promise<void>
 }) {
   assert.notEqual(owner, peer, 'Action contenders require independent clients.')
   const readRun = async (encounterId: string) => {
-    await checkpoint?.()
+    await checkpoint()
     return owner.query(api.encounters.projectionReads.get, { encounterId })
   }
   assert.notEqual(duplicateCampaignId, contentionCampaignId)
