@@ -1,6 +1,6 @@
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it, vi } from 'vitest'
-import { encodeBrotliBase64 } from '../../tests/srdManifestBrotli'
+import { encodeBrotliBase64 } from '../../tests/srdManifestEncoding'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { sourceImportDefinitionDtoSchema } from '@artificer-toolkit/schema/api/sourceImport'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
