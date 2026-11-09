@@ -32,6 +32,7 @@ import {
   makePublishedRootOwned
 } from '../../tests/fixtures/publication'
 import { handlerOf, inOwnTransaction } from '../../tests/fixtures/queryTransaction'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
   characterSheetSection,
@@ -1344,4 +1345,42 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       })
     ).toBe('MISSING')
   }, 60_000)
+
+  it('answers Builder repair with the typed result for the owner only (SHEET-1.5)', async () => {
+    const { t, player, gm, party, character, input } = await setup()
+    await t.run((ctx) =>
+      editCharacterRecord(ctx, character.id, (document) => ({ ...document, status: 'DRAFT' }))
+    )
+    const stranger = await createPartyUser(t, {
+      username: 'Stranger',
+      email: 'stranger@example.invalid'
+    })
+    const read = (caller: typeof player.caller, campaignId?: string) =>
+      caller
+        .query(api.characters.sheetSlices.get, {
+          id: character.id,
+          slice: 'COMMON',
+          ...(campaignId ? { campaignId } : {})
+        })
+        .then(
+          (value) => value,
+          (error: unknown) => error
+        )
+
+    expect(await read(player.caller)).toMatchObject({
+      slice: 'REPAIR_REQUIRED',
+      data: { label: character.label }
+    })
+    expect(await read(player.caller, input.campaignId)).toMatchObject({
+      slice: 'REPAIR_REQUIRED'
+    })
+    // No other reader is offered the Builder: they keep the refusal or the unavailable answer.
+    for (const other of [
+      await read(stranger.caller),
+      await read(stranger.caller, input.campaignId),
+      await read(party.caller, input.campaignId),
+      await read(gm.caller, input.campaignId)
+    ])
+      expect(other).not.toMatchObject({ slice: 'REPAIR_REQUIRED' })
+  })
 })

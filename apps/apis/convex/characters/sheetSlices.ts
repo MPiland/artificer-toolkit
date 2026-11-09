@@ -86,57 +86,60 @@ async function readCharacterSheetSlice(
   ctx: QueryCtx,
   userId: string,
   { id, campaignId, slice }: CharacterSheetSliceReadInput
-): Promise<CharacterSheetSliceResponseDto | null> {
-  if (slice === 'NOTES') {
-    const notes = await loadCharacterSheetNotes(ctx, userId, id, campaignId)
-    return notes ? { slice, data: notes } : null
+): Promise<CharacterSheetSliceReadResultDto | null> {
+  let party = false
+  try {
+    if (slice === 'NOTES') {
+      const notes = await loadCharacterSheetNotes(ctx, userId, id, campaignId)
+      return notes ? { slice, data: notes } : null
+    }
+    const characterId = await resolveCharacterId(ctx, id)
+    if (!characterId) return null
+    const reader = campaignId
+      ? await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
+      : { loadAsUserId: userId, party: false }
+    party = reader.party
+    const [stored] =
+      (await readStoredCharacterSheetSections(ctx, {
+        userId: reader.loadAsUserId,
+        lookupId: characterId,
+        campaignId,
+        party: reader.party,
+        sections: [characterSheetSection.slice(slice)],
+        whileQueued: true
+      })) ?? []
+    if (stored !== undefined) return characterSheetSliceResponseDtoSchema.parse(stored)
+    const current = await loadCharacterSheet(ctx, reader.loadAsUserId, characterId, campaignId)
+    if (!current) return null
+    if (reader.party && !current.sheetState.partyVisibility.sheet)
+      throw new Error('Assigned Character not found.')
+    const projected = projectCharacterSheetForViewer(
+      current.sheet,
+      reader.party
+        ? { ...current.campaignContext, viewer: 'PARTY_MEMBER' }
+        : current.campaignContext
+    )
+    return characterSheetSliceResponseDtoSchema.parse(projectCharacterSheetSlice(projected, slice))
+  } catch (error) {
+    // Only the Character's owner is offered the Builder: any other reader keeps the refusal.
+    if (!(error instanceof CharacterRequiresBuilderRepairError) || party) throw error
+    const characterId = await resolveCharacterId(ctx, id)
+    const head = characterId ? await readCharacterHead(ctx, characterId) : null
+    const route = head ? await readVisibleAuthoredRouteId(ctx, { subjectId: head.id }) : null
+    if (!head || !route || head.userId !== userId) throw error
+    return { slice: 'REPAIR_REQUIRED', data: { publicId: route.publicId, label: head.label } }
   }
-  const characterId = await resolveCharacterId(ctx, id)
-  if (!characterId) return null
-  const reader = campaignId
-    ? await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
-    : { loadAsUserId: userId, party: false }
-  const [stored] =
-    (await readStoredCharacterSheetSections(ctx, {
-      userId: reader.loadAsUserId,
-      lookupId: characterId,
-      campaignId,
-      party: reader.party,
-      sections: [characterSheetSection.slice(slice)],
-      whileQueued: true
-    })) ?? []
-  if (stored !== undefined) return characterSheetSliceResponseDtoSchema.parse(stored)
-  const current = await loadCharacterSheet(ctx, reader.loadAsUserId, characterId, campaignId)
-  if (!current) return null
-  if (reader.party && !current.sheetState.partyVisibility.sheet)
-    throw new Error('Assigned Character not found.')
-  const projected = projectCharacterSheetForViewer(
-    current.sheet,
-    reader.party ? { ...current.campaignContext, viewer: 'PARTY_MEMBER' } : current.campaignContext
-  )
-  return characterSheetSliceResponseDtoSchema.parse(projectCharacterSheetSlice(projected, slice))
 }
 
 /**
- * The one home of the repair answer: every Sheet read refuses a Character needing Builder repair
- * with CharacterRequiresBuilderRepairError only after its authority passed, so the route can
- * offer the Builder from the head, whether the repair is settled to a draft or its step is queued.
+ * Sheet slice read. A Character needing Builder repair, settled to a draft or with its reconcile
+ * step still queued, answers its owner with the typed `REPAIR_REQUIRED` result instead of an error.
  */
 export const get = query({
   args: () => zodToConvexFields(characterSheetSliceReadInputSchema.shape),
   returns: () => v.union(v.null(), zodToConvex(characterSheetSliceReadResultDtoSchema)),
   handler: async (ctx, args): Promise<CharacterSheetSliceReadResultDto | null> => {
     const { userId } = await requireIdentity(ctx)
-    const input = characterSheetSliceReadInputSchema.parse(args)
-    try {
-      return await readCharacterSheetSlice(ctx, userId, input)
-    } catch (error) {
-      if (!(error instanceof CharacterRequiresBuilderRepairError)) throw error
-      const characterId = await resolveCharacterId(ctx, input.id)
-      const head = characterId ? await readCharacterHead(ctx, characterId) : null
-      const route = head ? await readVisibleAuthoredRouteId(ctx, { subjectId: head.id }) : null
-      if (!head || !route) throw error
-      return { slice: 'REPAIR_REQUIRED', data: { publicId: route.publicId, label: head.label } }
-    }
+    return readCharacterSheetSlice(ctx, userId, characterSheetSliceReadInputSchema.parse(args))
   }
 })

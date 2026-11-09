@@ -17,13 +17,16 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
       getCharacterSheetSlice(routeCharacterId, 'COMMON')
     )
     const response = sliceResponse?.slice === 'COMMON' ? sliceResponse.data : null
-    const draft = response
-      ? null
-      : z
-          .nullable(characterBuilderDraftDtoSchema)
-          .parse(await context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId)))
-    const breadcrumbLabel = draft?.label ?? response?.identity.label ?? null
-    const characterPublicId = draft?.publicId ?? response?.publicId ?? params.characterPublicId
+    const repair = sliceResponse?.slice === 'REPAIR_REQUIRED' ? sliceResponse.data : null
+    const draft =
+      response || repair
+        ? null
+        : z
+            .nullable(characterBuilderDraftDtoSchema)
+            .parse(await context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId)))
+    const breadcrumbLabel = draft?.label ?? repair?.label ?? response?.identity.label ?? null
+    const characterPublicId =
+      draft?.publicId ?? repair?.publicId ?? response?.publicId ?? params.characterPublicId
     const characterId = draft?.characterId ?? response?.meta.characterId ?? routeCharacterId
     const routeSubject = breadcrumbLabel
       ? {
