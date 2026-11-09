@@ -5502,7 +5502,7 @@
         {
           "id": "SHEET-1",
           "title": "View and edit a Character Sheet",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/web/tests/e2e/app/characterSheet.spec.ts",
             "apps/web/tests/e2e/app/characterSheetSpells.spec.ts"
@@ -5540,6 +5540,36 @@
               "proof": [".codex/validation/phase82-sheet-read/local-progress.md"],
               "origin": ["P04.4"],
               "id": "SHEET-1.4"
+            },
+            {
+              "id": "SHEET-1.5",
+              "text": "A Character that needs Builder repair opens on its Sheet route to the same draft state an incomplete import shows, with a way into the Builder, never the generic load error. This holds while its Campaign reconcile step is still queued and after it settles to a repair draft.",
+              "status": "TODO",
+              "origin": ["PERF-6.T13"],
+              "proof": []
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 3,
+            "size": 1,
+            "finalSource": true
+          },
+          "tasks": [
+            {
+              "id": "SHEET-1.T1",
+              "status": "TODO",
+              "closes": ["SHEET-1.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 1,
+                "finalSource": true
+              },
+              "text": "Bug found by PERF-6.T13: the Sheet read throws CharacterRequiresBuilderRepairError (characters/sheetSlices.ts:52, rules-runtime character/sheetPreparation.ts:50) and CharacterSheetPage reads it with useSuspenseQuery, so a repair-state Character falls through to the root RouteErrorState (\"This page couldn't load\", Try again) instead of the existing CharacterSheetDraftOnlyState that incomplete imports show. Fix at the cause through a shared packages/schema contract: the Sheet read reports repair as a typed result rather than a thrown error, and the page renders the draft-only state for it, both for a settled repair DRAFT and for an ACTIVE Character whose queued reconcile step has not run yet (no draft row may exist in that window). Proofs: a convex-test for both states, a web unit test for the page, and the campaign-assignment-lifecycle journey opening the departed Character's Sheet and seeing the draft state.",
+              "note": "Registered 2026-11-09 by the orchestrator. User ruling 2026-11-09: move the Sheet to the draft state the way incomplete imports do. Bug exception to the D187 freeze."
             }
           ]
         },
