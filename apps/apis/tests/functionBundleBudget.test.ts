@@ -147,11 +147,13 @@ it.for([
 // they were 3,190-3,200 KB (PERF-6.T6). Each installed System exports one binding per capability, so
 // a bundle keeps only the adapters it reaches (ADR 0042): the reconcile step went from 2,917 to
 // 2,829 KB, account deletion from 2,894 to 2,805 KB and the Encounter active reads from 2,040 to
-// 1,826 KB (PERF-6.T12).
+// 1,826 KB (PERF-6.T12). The Encounter read queries import narrow subpaths of
+// `@artificer-toolkit/shared`, which took the active reads to 1,772 KB (PERF-6.T11).
 it.for([
   ['campaigns/characterReconcileSteps.ts', 2900],
   ['characters/accountDeletion.ts', 2880],
-  ['encounters/activeReads.ts', 1880]
+  ['encounters/activeReads.ts', 1825],
+  ['encounters/sceneBindings.ts', 1630]
 ] as const)('keeps the %s bundle within %i KB', ([entry, budgetKb]) => {
   const bundle = buildSync({ ...bundleOptions(entry), format: 'iife' }).outputFiles[0]
   expect(bundle.contents.byteLength / 1024).toBeLessThanOrEqual(budgetKb)
@@ -172,17 +174,8 @@ it.each(['contentSnapshots/heads.ts', 'campaigns/accountDeparture.ts'])(
 
 // The Encounter read queries rerun together, cold, when a membership change invalidates a Campaign's
 // subscribers; evaluation cost tracks bundle bytes (about 0.3 ms per KiB), and a departed member's
-// queries pay it before they are refused (PERF-6.T11). Their read graphs import narrow subpaths of
-// `@artificer-toolkit/shared`, so geometry's polygon clipper stays out.
-it.for([
-  ['encounters/activeReads.ts', 1960],
-  ['encounters/sceneBindings.ts', 1905]
-] as const)('keeps the %s bundle within %i KiB', ([entry, budgetKiB]) => {
-  expect(
-    bundleInputs(entry).reduce((total, { bytesInOutput }) => total + bytesInOutput, 0)
-  ).toBeLessThanOrEqual(budgetKiB * 1024)
-})
-
+// queries pay it before they are refused (PERF-6.T11). Their bundle bars are above; geometry's
+// polygon clipper stays out of them.
 it.each(['encounters/activeReads.ts', 'encounters/sceneBindings.ts'])(
   'keeps the polygon clipper out of the %s bundle',
   (entry) => {
