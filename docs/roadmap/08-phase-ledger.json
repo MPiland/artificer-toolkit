@@ -25201,7 +25201,7 @@
           "tasks": [
             {
               "id": "RELEASE-1.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELEASE-1.1", "RELEASE-1.2", "RELEASE-1.3"],
               "wsjf": {
                 "bv": 2,
@@ -25212,7 +25212,8 @@
                 "finalSource": true
               },
               "text": "Final-source docs reconciliation after the SPELLS/RULES lanes freeze: sweep docs/architecture, docs/adr, runbooks, root READMEs, CONTEXT.md and apps/web/README.md for retired-service wording (Supabase, Kysely, GoRules, tRPC, Netlify) and stale current-vs-historical labels; delete or reword the Historical Supabase runbook and threat-model references as appropriate; run the anchor-aware link audit across all Markdown and record link/file counts; update the three AC proofs with the fresh run. Agent can do all of it.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "internalReason": "Documentation, ADRs and runbooks; no user flow."
