@@ -1,5 +1,6 @@
 import {
   creatureFeature,
+  installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { solar } from '@artificer-toolkit/source-data/srd/creatures/solar.js'
@@ -32,7 +33,8 @@ const conditionId = (code: string) => {
 }
 const FREED = ['BLINDED', 'DEAFENED', 'POISONED'].map(conditionId)
 const KEPT = conditionId('FRIGHTENED')
-const healingTouch = creatureFeature(solar, 'Healing Touch (4/Day)')
+const installedSolar = installedSrdCreature(solar)
+const healingTouch = creatureFeature(installedSolar, 'Healing Touch (4/Day)')
 
 afterEach(() => {
   closeTrackedSockets()
@@ -51,7 +53,7 @@ describe('Solar Healing Touch in the room (SPELLS-33.T8b)', () => {
     )
     const room = await actionRoom({
       actors: [
-        srdCreatureActor({ id: SOLAR_ID, creature: solar, disposition: 'FRIENDLY' }),
+        srdCreatureActor({ id: SOLAR_ID, creature: installedSolar, disposition: 'FRIENDLY' }),
         srdCreatureActor({
           id: PATIENT_ID,
           creature: plainWolf,
