@@ -4,9 +4,11 @@ import {
   featureEffectDtoSchema
 } from '@artificer-toolkit/schema/effects/effect'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { EffectActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import type { CharacterRuleActionExecutionPlan } from '../characterRuleActionSystemAdapter.js'
 import {
   buildCompiledActionCompilerSource,
@@ -18,7 +20,7 @@ import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
-import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { srdCreatureActor, srdCreatureTarget, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 type AuthoredEffect = NonNullable<ReturnType<typeof parseEffect>>
 
@@ -36,7 +38,15 @@ const UPCAST_LEVEL = 9
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+/** The Creature every fact binding is bound against, built as the Encounter builds a target. */
+const BINDING_TARGET = srdCreatureTarget(
+  srdCreatureActor({
+    id: testUuid(0x0fff),
+    creature: srdBaselineContent.subjects.creatures.find(({ label }) => label === 'Goblin')!
+  })
+)
+
+const isRecord =(value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /** A node is an authored Effect only when an authored Effect schema accepts it. */
@@ -88,6 +98,10 @@ const describeGraph = ({
 }) =>
   `${checksum} nodes=${definition.nodes.length} outputs=${Object.keys(definition.outputs).length}`
 
+/** The graph an action runs first, which its active-effect plans and its fact binding read. */
+const publishedOf = (plan: CharacterRuleActionExecutionPlan) =>
+  plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
+
 function describePlan(plan: CharacterRuleActionExecutionPlan) {
   if (plan.kind === 'SINGLE_GRAPH') return `SINGLE_GRAPH ${describeGraph(plan.published)}`
   const outcomes = [...plan.outcomes]
@@ -97,14 +111,78 @@ function describePlan(plan: CharacterRuleActionExecutionPlan) {
   return `TEST_OUTCOME test=${describeGraph(plan.test.published)} outcomes=[${outcomes}]`
 }
 
-/** The plan a compile produced, or the failure it ended in. */
-function outcomeOf(compile: () => CharacterRuleActionExecutionPlan) {
+type Compiled = {
+  action: EffectActionCapabilityDescriptor
+  plan: CharacterRuleActionExecutionPlan
+}
+
+const refusal = (error: unknown) => {
+  const name = error instanceof Error ? error.name : 'UnknownError'
+  const message = error instanceof Error ? error.message : String(error)
+  return `REFUSED ${name}: ${message}`
+}
+
+/** A checksum of a product value as its JSON, so an absent optional field does not count. */
+const checksumOf = (value: unknown) => checksumRuleDocument(JSON.parse(JSON.stringify(value)))
+
+/** The action's active-effect plans in the System's order: each one's recurrence stage and checksum. */
+function describeActiveEffectPlans({ action, plan }: Compiled) {
+  const plans =
+    dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
+      action,
+      published: publishedOf(plan)
+    }) ?? []
+  return `[${plans.map((entry) => `${entry.recurrenceStage}=${checksumOf(entry)}`).join(',')}]`
+}
+
+/** The facts the action's first graph is bound with against the fixed target, and its d20 mode. */
+function describeFactBinding({ action, plan }: Compiled) {
+  const bound = dnd5eCharacterRuleActionSystemAdapter.bindFacts({
+    actionMechanic: {
+      outcomes: [],
+      ...(action.spellCastLevel !== undefined && { spellCastLevel: action.spellCastLevel })
+    },
+    published: publishedOf(plan),
+    sourceDerivedFacts: {},
+    targetActorId: BINDING_TARGET.actor.id,
+    targetDerivedFacts: BINDING_TARGET.targetDerivedFacts,
+    targetConditionIds: BINDING_TARGET.state.conditions,
+    currentHitPoints: BINDING_TARGET.state.current,
+    temporaryHitPoints: BINDING_TARGET.state.temporary,
+    maximumHitPoints: BINDING_TARGET.effectiveMaximumHitPoints,
+    targetScalarValues: BINDING_TARGET.effectiveScalarValues,
+    defenses: BINDING_TARGET.defenses,
+    conditionImmunityIds: BINDING_TARGET.conditionImmunityIds
+  })
+  return `${checksumOf(bound)} count=${Object.keys(bound.facts).length} d20=${bound.d20RollMode ?? 'NONE'}`
+}
+
+/**
+ * What a compile pinned: the plan it produced with its active-effect plans, or the failure it ended
+ * in; and the fact binding of that plan. A scaling variant is one whose `compiled` differs, since a
+ * cast level alone changes the facts of every leveled spell.
+ */
+type Outcome = { compiled: string; facts: string | null }
+
+function outcomeOf(compile: () => Compiled): Outcome {
+  let compiled: Compiled
+  let graph: string
   try {
-    return describePlan(compile())
+    compiled = compile()
+    graph = describePlan(compiled.plan)
   } catch (error) {
-    const name = error instanceof Error ? error.name : 'UnknownError'
-    const message = error instanceof Error ? error.message : String(error)
-    return `REFUSED ${name}: ${message}`
+    return { compiled: refusal(error), facts: null }
+  }
+  const column = (describe: (compiled: Compiled) => string) => {
+    try {
+      return describe(compiled)
+    } catch (error) {
+      return refusal(error)
+    }
+  }
+  return {
+    compiled: `${graph} | plans=${column(describeActiveEffectPlans)}`,
+    facts: column(describeFactBinding)
   }
 }
 
@@ -132,15 +210,15 @@ function characterOutcome(
       compilerSource: buildCompiledActionCompilerSource(action)
     })
     if (!plan) throw new Error('The System adapter has no execution plan.')
-    return plan
+    return { action, plan }
   })
 }
 
 type Line = { id: string; rank: number; text: string }
-const line = (id: string, rank: number, key: string, outcome: string): Line => ({
+const line = (id: string, rank: number, key: string, { compiled, facts }: Outcome): Line => ({
   id,
   rank,
-  text: `${id} ${key} | ${outcome}`
+  text: `${id} ${key} | ${compiled}${facts === null ? '' : ` | facts=${facts}`}`
 })
 
 const ownerKey = (kind: string, label: string) => `${kind} ${label.replaceAll('\n', ' ')}`
@@ -163,7 +241,7 @@ function characterLines(found: Found, kind: string): Line[] {
       outcome: characterOutcome(found, spellLevel, characterLevel)
     })),
     ...upcast
-  ].filter(({ outcome }) => outcome !== base)
+  ].filter(({ outcome }) => outcome.compiled !== base.compiled)
   return [
     line(effect.id, 0, ownerKey(kind, label), base),
     ...variants.map(({ tag, outcome }, index) => line(effect.id, index + 1, tag, outcome))
@@ -188,10 +266,11 @@ function creatureLines(creatureIndex: number): Line[] {
   return found.map(({ effect, label }) => {
     const capability = discovery.available.find((candidate) => candidate.effectId === effect.id)
     const outcome = capability
-      ? outcomeOf(() =>
-          compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
-        )
-      : 'NOT_A_DISCOVERED_ACTION'
+      ? outcomeOf(() => ({
+          action: capability,
+          plan: compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
+        }))
+      : { compiled: 'NOT_A_DISCOVERED_ACTION', facts: null }
     return line(effect.id, 0, ownerKey('CREATURE', label), outcome)
   })
 }
