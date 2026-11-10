@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  BaseEquipmentAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { arrows } from '@artificer-toolkit/source-data/srd/equipment/arrows.js'
 import { blowgunNeedles } from '@artificer-toolkit/source-data/srd/equipment/blowgun-needles.js'
@@ -24,6 +27,13 @@ import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
+/** Item-count limits are authored on base Equipment; variants inherit them. */
+function base(equipment: EquipmentAuthored): BaseEquipmentAuthored {
+  if (equipment.category === 'VARIANT')
+    throw new Error(`Expected base Equipment "${equipment.label}".`)
+  return equipment
+}
+
 async function normalized(authored: EquipmentAuthored) {
   const result = await normalizeNodeRuntimeValues(reader, {
     mapId: 'equipment',
@@ -35,7 +45,7 @@ async function normalized(authored: EquipmentAuthored) {
 }
 
 describe('item-count container capacity through the equipment node map (D217)', () => {
-  it.each([quiver, crossbowBoltCase, mapOrScrollCase, pouch])(
+  it.each([quiver, crossbowBoltCase, mapOrScrollCase, pouch].map(base))(
     'keeps the SRD $label limits exactly as authored, with no closed rule',
     async (container) => {
       expect(container.itemCapacity?.length).toBeGreaterThan(0)
@@ -47,8 +57,8 @@ describe('item-count container capacity through the equipment node map (D217)', 
   )
 
   it('fills an authored bandolier the same way it fills the SRD Pouch', async () => {
-    const bandolier: EquipmentAuthored = {
-      ...structuredClone(pouch),
+    const bandolier: BaseEquipmentAuthored = {
+      ...structuredClone(base(pouch)),
       id: '00000000-0000-4000-8000-0000000d2170',
       label: 'Bandolier',
       itemCapacity: [
