@@ -1504,7 +1504,7 @@ export function projectCharacterSheetBundle(
               equipmentIds: limit.equipmentIds && [...limit.equipmentIds],
               label:
                 limit.equipmentIds
-                  ?.flatMap((equipmentId) => equipmentLabels.get(equipmentId) ?? [])
+                  ?.flatMap((equipmentId) => presentation.equipment[equipmentId]?.label ?? [])
                   .join(' or ') || undefined
             })),
             itemIds: inventoryItems

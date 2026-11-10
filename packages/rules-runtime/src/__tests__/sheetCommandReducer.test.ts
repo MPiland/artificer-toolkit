@@ -1203,7 +1203,9 @@ describe('Character Sheet item-count container capacity (D217)', () => {
     looseArrows: '50000000-0000-4000-8000-000000000103',
     scrollCase: '50000000-0000-4000-8000-000000000104',
     parchment: '50000000-0000-4000-8000-000000000105',
-    club: '50000000-0000-4000-8000-000000000106'
+    club: '50000000-0000-4000-8000-000000000106',
+    looseArrowsPlus1: '50000000-0000-4000-8000-000000000107',
+    loosePaper: '50000000-0000-4000-8000-000000000108'
   } as const
 
   /** A ready Fighter holding `inventory`, with its Sheet projected by the real Sheet projection. */
@@ -1260,7 +1262,9 @@ describe('Character Sheet item-count container capacity (D217)', () => {
       { id: held.quiver, equipmentId: quiver.id, quantity: 1 },
       { id: held.arrows, equipmentId: arrows.id, quantity: 15, containerId: held.quiver },
       // Contents no limit names take no item-count room.
-      { id: held.club, equipmentId: club.id, quantity: 1, containerId: held.quiver }
+      { id: held.club, equipmentId: club.id, quantity: 1, containerId: held.quiver },
+      // A carried stack puts the variant on the Sheet; carried pieces fill no container.
+      { id: held.looseArrowsPlus1, equipmentId: arrowsPlus1.id, quantity: 1 }
     ])
     expect(() =>
       apply(played, addInto(arrowsPlus1.id, 6, held.quiver), { sheet: projected })
@@ -1283,7 +1287,8 @@ describe('Character Sheet item-count container capacity (D217)', () => {
         equipmentId: parchmentOneSheet.id,
         quantity: 4,
         containerId: held.scrollCase
-      }
+      },
+      { id: held.loosePaper, equipmentId: paperOneSheet.id, quantity: 1 }
     ])
     // Four of five Parchment fill 8 of 10 Paper.
     expect(() =>
@@ -1295,7 +1300,13 @@ describe('Character Sheet item-count container capacity (D217)', () => {
     expect(
       apply(played, addInto(paperOneSheet.id, 2, held.scrollCase), { sheet: projected }).state
         .equipment.inventory
-    ).toContainEqual(expect.objectContaining({ equipmentId: paperOneSheet.id, quantity: 2 }))
+    ).toContainEqual(
+      expect.objectContaining({
+        equipmentId: paperOneSheet.id,
+        quantity: 2,
+        containerId: held.scrollCase
+      })
+    )
   })
 
   it('refuses a move into a full container and a quantity increase past its room', async () => {

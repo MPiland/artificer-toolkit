@@ -536,6 +536,20 @@ export async function prepareCharacterRuleContext(
   )
   equipment.push(...pinnedEquipment.map((pinned) => pinned.equipment))
 
+  // Item-count limits name the Equipment they hold; their prose labels the held container (D217).
+  const limitedEquipment: CharacterRulePublication[] = []
+  const limitedEquipmentIds = new Set(
+    equipment.flatMap(
+      (record) => record.itemCapacity?.flatMap((limit) => limit.equipmentIds ?? []) ?? []
+    )
+  )
+  for (const equipmentId of limitedEquipmentIds) {
+    if (read.some((published) => published.id === equipmentId)) continue
+    const published = await readers.readPublication(equipmentId)
+    if (published?.subjectKind === 'EQUIPMENT' && published.systemId === character.systemId)
+      limitedEquipment.push(published)
+  }
+
   const context = {
     registry: {
       system,
@@ -549,7 +563,7 @@ export async function prepareCharacterRuleContext(
       creatureLoadoutEquipmentById
     },
     presentation: presentationLookup(
-      read,
+      [...read, ...limitedEquipment],
       featureSources,
       Object.fromEntries(
         pinnedEquipment.map((pinned) => [pinned.equipment.id, pinned.presentation])
