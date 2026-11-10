@@ -107,9 +107,8 @@ export function scopeObjects(
         category: entry.document.category,
         properties: entry.document.properties ?? [],
         builder: {
-          version: 1,
-          parentEquipmentId:
-            entry.document.category === 'VARIANT' ? entry.document.parentEquipmentId : null,
+          version: 2,
+          parentEquipmentIds: record.parentEquipmentIds,
           category: record.category,
           properties: record.properties,
           isContainer: record.isContainer,

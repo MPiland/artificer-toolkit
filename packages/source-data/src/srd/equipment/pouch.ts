@@ -12,7 +12,10 @@ export const pouch: EquipmentAuthored = {
   cost: S.sp(5),
   weight: S.lbs(1),
   capacity: { amount: 6, unit: S.MEASUREMENT_UNIT_CODE.POUNDS },
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(115), 'EQUIPMENT_POUCH_CAPACITY')],
+  itemCapacity: [
+    { amount: 20, equipmentIds: [S.equipId(102)] },
+    { amount: 50, equipmentIds: [S.equipId(100)] }
+  ],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

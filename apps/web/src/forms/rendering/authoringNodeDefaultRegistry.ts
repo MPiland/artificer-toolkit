@@ -79,6 +79,7 @@ type AuthoringDefaultKind =
   | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
+  | 'itemCapacity'
   | 'manifestBehavior'
   | 'manifestComponent'
   | 'manifestComponentRegion'
@@ -274,6 +275,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],
+  itemCapacity: ['itemCapacity'],
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
   manifestComponentRegion: ['manifestComponentRegion'],

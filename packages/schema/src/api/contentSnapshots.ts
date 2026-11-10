@@ -155,7 +155,8 @@ export const contentSnapshotBackgroundIndexEntrySchema = lazySchema(() =>
 const contentSnapshotEquipmentIndexEntrySchema = lazySchema(() =>
   z.strictObject({
     ...identityShape(),
-    parentEquipmentId: z.nullable(authoredIdentifierSchema),
+    /** Variant ancestry, nearest parent first; empty for base equipment. */
+    parentEquipmentIds: z.array(authoredIdentifierSchema).check(z.maxLength(500)),
     category: equipmentCategoryCodeSchema.check(z.refine((value) => value !== 'VARIANT')),
     isContainer: z.boolean(),
     maxStack: z.optional(z.number().check(z.int()).check(z.positive())),

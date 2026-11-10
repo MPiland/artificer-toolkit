@@ -239,7 +239,7 @@ it.each([
           parentEquipmentId: child.id,
           equipmentOptions: {
             ...root.equipmentOptions,
-            builder: { ...root.equipmentOptions.builder, parentEquipmentId: child.id }
+            builder: { ...root.equipmentOptions.builder, parentEquipmentIds: [child.id] }
           }
         })
       } else if (failure === 'metadata mismatch') {

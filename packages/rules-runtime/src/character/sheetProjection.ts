@@ -42,6 +42,7 @@ import { resolveCharacterRecordSummary } from './characterRecordStats.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { listActiveGrantListings, listSheetConcentrations } from '../activeGrantListings.js'
+import { isContainerEquipment } from '../containerCapacity.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
@@ -730,7 +731,7 @@ interface CharacterSheetProjectionBundle {
 export function projectCharacterSheetEquipmentOption(
   equipment: Pick<
     CharacterBuilderEquipmentCatalogRecord,
-    'id' | 'label' | 'isContainer' | 'maxStack' | 'requiresAttunement'
+    'id' | 'label' | 'isContainer' | 'maxStack' | 'parentEquipmentIds' | 'requiresAttunement'
   >
 ) {
   return {
@@ -738,6 +739,7 @@ export function projectCharacterSheetEquipmentOption(
     label: equipment.label,
     isContainer: equipment.isContainer,
     ...(equipment.maxStack ? { maxStack: equipment.maxStack } : {}),
+    parentEquipmentIds: [...equipment.parentEquipmentIds],
     requiresAttunement: equipment.requiresAttunement
   }
 }
@@ -1232,6 +1234,9 @@ export function projectCharacterSheetBundle(
         displayAsAttack: mechanics?.displayAsAttack,
         containerId: item.containerId,
         capacity: equipment?.capacity,
+        parentEquipmentIds: equipment?.parentEquipmentIds.length
+          ? [...equipment.parentEquipmentIds]
+          : undefined,
         notes: item.notes
       }
     })
@@ -1486,17 +1491,29 @@ export function projectCharacterSheetBundle(
     inventory: {
       items: inventoryItems,
       currencies,
-      containers: inventoryItems
-        .filter((item) => item.capacity)
-        .map((container) => ({
-          id: container.id,
-          label: container.label,
-          capacity: container.capacity,
-          itemIds: inventoryItems
-            .filter((item) => item.containerId === container.id)
-            .map((item) => item.id),
-          currencies: currencies.filter((currency) => currency.containerId === container.id)
-        }))
+      containers: inventoryItems.flatMap((container) => {
+        const equipment = equipmentForItem(container.id, container.equipmentId)
+        if (!equipment || !isContainerEquipment(equipment)) return []
+        return [
+          {
+            id: container.id,
+            label: container.label,
+            capacity: equipment.capacity,
+            itemCapacity: equipment.itemCapacity?.map((limit) => ({
+              amount: limit.amount,
+              equipmentIds: limit.equipmentIds && [...limit.equipmentIds],
+              label:
+                limit.equipmentIds
+                  ?.flatMap((equipmentId) => equipmentLabels.get(equipmentId) ?? [])
+                  .join(' or ') || undefined
+            })),
+            itemIds: inventoryItems
+              .filter((item) => item.containerId === container.id)
+              .map((item) => item.id),
+            currencies: currencies.filter((currency) => currency.containerId === container.id)
+          }
+        ]
+      })
     },
     reference: {
       features: [...sheetReferenceFeatures, ...equipmentReferenceFeatures],

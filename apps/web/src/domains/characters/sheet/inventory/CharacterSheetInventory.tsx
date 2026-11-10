@@ -178,9 +178,16 @@ export function CharacterSheetInventory({
                       <div>
                         <Text fw={700}>{container.label}</Text>
                         <Text className={panelStyles.muted} size='sm'>
-                          {container.capacity
-                            ? `${container.capacity.amount} ${container.capacity.unit.toLocaleLowerCase()} capacity`
-                            : 'Container'}
+                          {[
+                            container.capacity &&
+                              `${container.capacity.amount} ${container.capacity.unit.toLocaleLowerCase()} capacity`,
+                            container.itemCapacity?.length &&
+                              `Holds ${container.itemCapacity
+                                .map((limit) => `${limit.amount} ${limit.label ?? 'items'}`)
+                                .join(' or ')}`
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || 'Container'}
                         </Text>
                       </div>
                       <Badge variant='default'>{container.itemIds.length} items</Badge>
@@ -359,25 +366,28 @@ export function CharacterSheetInventory({
 
           <section className={detailStyles.drawerSection}>
             <Text fw={700}>Move items</Text>
-            {sheet.inventory.items.map((item) => (
-              <div className={inventoryStyles.itemManagementRow} key={item.id}>
-                <Text>{item.label}</Text>
-                <Select
-                  aria-label={`Move ${item.label}`}
-                  data={item.capacity ? [{ value: 'carried', label: 'Carried' }] : containerOptions}
-                  disabled={pending || Boolean(item.capacity && !item.containerId)}
-                  value={item.containerId ?? 'carried'}
-                  onChange={(value) =>
-                    submitCommand({
-                      type: 'UPDATE_INVENTORY_ITEM',
-                      itemId: item.id,
-                      containerId: value === 'carried' ? null : value,
-                      expectedVersion: version
-                    })
-                  }
-                />
-              </div>
-            ))}
+            {sheet.inventory.items.map((item) => {
+              const isContainer = containers.some((container) => container.id === item.id)
+              return (
+                <div className={inventoryStyles.itemManagementRow} key={item.id}>
+                  <Text>{item.label}</Text>
+                  <Select
+                    aria-label={`Move ${item.label}`}
+                    data={isContainer ? [{ value: 'carried', label: 'Carried' }] : containerOptions}
+                    disabled={pending || (isContainer && !item.containerId)}
+                    value={item.containerId ?? 'carried'}
+                    onChange={(value) =>
+                      submitCommand({
+                        type: 'UPDATE_INVENTORY_ITEM',
+                        itemId: item.id,
+                        containerId: value === 'carried' ? null : value,
+                        expectedVersion: version
+                      })
+                    }
+                  />
+                </div>
+              )
+            })}
           </section>
 
           <section className={detailStyles.drawerSection}>

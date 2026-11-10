@@ -164,6 +164,15 @@ export const capacityDtoSchema = lazySchema(() =>
 )
 export type CapacityDto = z.infer<typeof capacityDtoSchema>
 
+/** A container's room in pieces of the named equipment or its variants (any item when unnamed). */
+export const itemCapacityDtoSchema = lazySchema(() =>
+  z.object({
+    amount: z.number().check(z.int()).check(z.positive()),
+    equipmentIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
+  })
+)
+export type ItemCapacityDto = z.infer<typeof itemCapacityDtoSchema>
+
 export const containsDtoSchema = lazySchema(() =>
   z.object({
     equipmentId: authoredIdentifierSchema,

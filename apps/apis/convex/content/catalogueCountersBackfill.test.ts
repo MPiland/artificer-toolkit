@@ -170,8 +170,8 @@ describe('exact catalogue counter backfill', () => {
         equipmentOptions: {
           ...root.equipmentOptions,
           builder: {
-            version: 1 as const,
-            parentEquipmentId: null,
+            version: 2 as const,
+            parentEquipmentIds: [],
             category: 'WEAPON' as const,
             properties: ['SIMPLE', 'MELEE', 'LIGHT'] as const,
             isContainer: false,

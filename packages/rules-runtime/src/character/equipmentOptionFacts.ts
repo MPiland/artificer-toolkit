@@ -20,8 +20,8 @@ export function equipmentOptionFacts(
     ...(builder
       ? {
           builder: {
-            version: 1,
-            parentEquipmentId: document.category === 'VARIANT' ? document.parentEquipmentId : null,
+            version: 2,
+            parentEquipmentIds: builder.parentEquipmentIds,
             category: builder.category,
             properties: builder.properties,
             isContainer: builder.isContainer,

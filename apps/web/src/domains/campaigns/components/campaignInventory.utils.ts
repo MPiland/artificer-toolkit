@@ -200,7 +200,8 @@ export function getCharacterInventory(
         label: item.label,
         quantity: item.quantity,
         containerId: item.containerId ?? null,
-        isContainer: Boolean(item.capacity)
+        isContainer:
+          sheet.inventory.containers?.some((container) => container.id === item.id) ?? false
       })),
       currencies: currencyInventory.currencies
     }

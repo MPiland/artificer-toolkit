@@ -121,8 +121,8 @@ function indexSource<Kind extends ContentSnapshotKind>(
     subjectKind: 'EQUIPMENT',
     document: equipment,
     builder: {
-      version: 1,
-      parentEquipmentId: equipment.category === 'VARIANT' ? equipment.parentEquipmentId : null,
+      version: 2,
+      parentEquipmentIds: effective.parentEquipmentIds,
       category: effective.category!,
       isContainer: effective.isContainer,
       maxStack: effective.maxStack,

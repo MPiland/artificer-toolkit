@@ -736,8 +736,9 @@ function toEquipmentCatalogRecords(
       for (let current = entry; !verified.has(current.id);) {
         if (chain.has(current.id)) throw new Error('Equipment variant cycle detected.')
         chain.add(current.id)
-        if (current.parentEquipmentId === null) break
-        const parent = byId.get(current.parentEquipmentId)
+        const [parentId] = current.parentEquipmentIds
+        if (parentId === undefined) break
+        const parent = byId.get(parentId)
         if (!parent) throw new Error('Readable parent Equipment in the same System is required.')
         current = parent
       }
@@ -749,6 +750,7 @@ function toEquipmentCatalogRecords(
       category: entry.category,
       isContainer: entry.isContainer,
       ...(entry.maxStack === undefined ? {} : { maxStack: entry.maxStack }),
+      parentEquipmentIds: [...entry.parentEquipmentIds],
       properties: [...entry.properties],
       requiresAttunement: entry.requiresAttunement
     }))
