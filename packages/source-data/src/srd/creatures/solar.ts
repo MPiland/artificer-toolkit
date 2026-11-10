@@ -123,7 +123,8 @@ export const solar: CreatureAuthored = {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
               self: 'WARN'
-            }
+            },
+            resourceUse: { chargeId: S.actionId(256, 207), cost: 1 }
           },
           paths: [
             {
