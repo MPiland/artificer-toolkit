@@ -57,7 +57,8 @@ describe('Solar Healing Touch in the room (SPELLS-33.T8b)', () => {
         srdCreatureActor({
           id: PATIENT_ID,
           creature: plainWolf,
-          currentHitPoints: STARTING_HIT_POINTS
+          currentHitPoints: STARTING_HIT_POINTS,
+          conditionIds: held
         })
       ],
       autoRoll: 'BOTH',
