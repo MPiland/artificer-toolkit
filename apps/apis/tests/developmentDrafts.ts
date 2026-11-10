@@ -2058,6 +2058,16 @@ try {
       }
     }
     if (membershipObserver) {
+      // The observer GMs the repair proof's separate Campaign and publishes the shared Background.
+      for (const subjectKind of ['EQUIPMENT', 'BACKGROUND', 'CLASS', 'RACE'] as const) {
+        publicationAuthors.push({
+          client: membershipObserver.client,
+          userId: membershipObserver.identity.userId,
+          systemId: srdSystemRecord.id,
+          subjectKind
+        })
+        browserDraftAuthors.push({ client: membershipObserver.client, subjectKind })
+      }
       for (const author of players) {
         publicationAuthors.push({
           client: author.client,
@@ -2330,12 +2340,12 @@ try {
               const sponsorId = crypto.randomUUID()
               const repairId = crypto.randomUUID()
               characterFixtures.push(
-                { userId: owner.identity.userId, characterId: sponsorId },
+                { userId: membershipObserver.identity.userId, characterId: sponsorId },
                 { userId: secondPlayer.identity.userId, characterId: repairId }
               )
               const label = 'Repair proof fixture'
               await createDevelopmentCharacter(
-                owner.client,
+                membershipObserver.client,
                 sponsorId,
                 {},
                 'Repair sponsor fixture'
@@ -2347,28 +2357,34 @@ try {
                 label
               )
               // The GM shares their Character's Background; only an assigned Character reads it.
-              const sponsor = await owner.client.query(api.characters.builder.activeCharacter, {
-                id: sponsorId
-              })
+              const sponsor = await membershipObserver.client.query(
+                api.characters.builder.activeCharacter,
+                {
+                  id: sponsorId
+                }
+              )
               assert.ok(sponsor?.intent.startingEquipment?.background)
               const backgroundId = sponsor.intent.background.backgroundId
               assert.ok(backgroundId)
               // A separate Campaign keeps the repair out of the membership cohort's custody cleanup.
-              const created = await owner.client.mutation(api.campaigns.create.create, {
-                name: 'Encounter execution fixture',
-                format: 'ONGOING',
-                toneTags: ['HEROIC'],
-                contentMaturity: 'STANDARD',
-                gameSystemId: srdSystemRecord.id,
-                primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
-              })
+              const created = await membershipObserver.client.mutation(
+                api.campaigns.create.create,
+                {
+                  name: 'Encounter execution fixture',
+                  format: 'ONGOING',
+                  toneTags: ['HEROIC'],
+                  contentMaturity: 'STANDARD',
+                  gameSystemId: srdSystemRecord.id,
+                  primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+                }
+              )
               repair.campaign = created
               await admitCampaignCustodyPlayers({
-                ownerUserId: owner.identity.userId,
+                ownerUserId: membershipObserver.identity.userId,
                 playerUserIds,
                 campaignId: created.id
               })
-              await owner.client.mutation(api.campaigns.contentShares.share, {
+              await membershipObserver.client.mutation(api.campaigns.contentShares.share, {
                 campaignId: created.id,
                 subjectKind: 'BACKGROUND',
                 subjectId: backgroundId
@@ -2441,16 +2457,18 @@ try {
         const repairCampaign = repair.campaign
         assert.ok(repairCampaign, 'The repair Campaign must exist after the browser proof.')
         assert.deepEqual(
-          await owner.client.mutation(api.campaigns.deletion.remove, {
+          await membershipObserver.client.mutation(api.campaigns.deletion.remove, {
             campaignId: repairCampaign.id,
             expectedVersion: (
-              await owner.client.query(api.campaigns.queries.get, { id: repairCampaign.id })
+              await membershipObserver.client.query(api.campaigns.queries.get, {
+                id: repairCampaign.id
+              })
             ).version,
             confirmation: 'DELETE'
           }),
           { ok: true }
         )
-        await waitForCampaignDeletion(owner.client, repairCampaign.id, 'Repair')
+        await waitForCampaignDeletion(membershipObserver.client, repairCampaign.id, 'Repair')
       } else {
         proof = await runMembershipLifecycle()
       }
