@@ -12219,7 +12219,7 @@
         {
           "id": "SPELLS-4",
           "title": "Closed rules become core authoring options",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomConcentration.test.ts",
             "apps/session-worker/test/nativeRoomCoreOptionSpells.test.ts",
@@ -12238,7 +12238,7 @@
           "acs": [
             {
               "text": "Every CLOSED_RULE in the SRD corpus is replaced by core authoring options, adding generic options where a rule cannot yet be expressed, or by its description shown as a GM ruling when it is rare in play and no equivalent state change is automated (D187a); each conversion has an authoring-parity proof, and the closed-rule kind and its resolver are deleted.",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "proof": [
                 "candidateStep.test.ts",
                 "nativeRoomDispelMagic.test.ts",
@@ -12284,7 +12284,7 @@
                 "authored-length-amount-bounds.test.ts"
               ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Re-scoped from \"every closed rule has a resolver\" under the authorable-from-core-options rule. 2026-10-14 scan: 195 closed rules (154 spell, 41 equipment). Closed 2026-11-02 by SPELLS-4.T1c, SPELLS-4.T2a1, SPELLS-4.T2a1b, SPELLS-4.T2a2, SPELLS-4.T2a3, SPELLS-4.T2a4, SPELLS-4.T2a5, SPELLS-4.T2b, SPELLS-4.T2c1, SPELLS-4.T2c2, SPELLS-4.T2c2b, SPELLS-4.T2c3, SPELLS-4.T2d, SPELLS-4.T2d2, SPELLS-4.T2d3, SPELLS-4.T2d4, SPELLS-4.T2e, SPELLS-4.T2f, SPELLS-4.T2f3, SPELLS-4.T2f1a, SPELLS-4.T2f1b1, SPELLS-4.T2f1b2, SPELLS-4.T2g1, SPELLS-4.T2g2, SPELLS-4.T2h1, SPELLS-4.T2h2, SPELLS-4.T2h4, SPELLS-4.T2i, SPELLS-4.T2i3, SPELLS-4.T2i4a, SPELLS-4.T2i4b1, SPELLS-4.T2i4b2, SPELLS-4.T2i2a, SPELLS-4.T2i2b, SPELLS-4.T2j1, SPELLS-4.T2j2a, SPELLS-4.T2k1, SPELLS-4.T2k, SPELLS-4.T2k2, SPELLS-4.T2k2b, SPELLS-4.T2k3, SPELLS-4.T2k3b, SPELLS-4.T2k3c, SPELLS-4.T2l, SPELLS-4.T2lb, SPELLS-4.T2lb2a, SPELLS-4.T2lb2b1, SPELLS-4.T2lb2c, SPELLS-4.T2lb2d, SPELLS-4.T2l2, SPELLS-4.T2l3, SPELLS-4.T2m1, SPELLS-4.T2m1c, SPELLS-4.T2m1b1, SPELLS-4.T2m1b1b, SPELLS-4.T2m1b2a, SPELLS-4.T2m1b2b, SPELLS-4.T2m1b2c, SPELLS-4.T2m1d, SPELLS-4.T2m2, SPELLS-4.T2m2b, SPELLS-4.T2m3, SPELLS-4.T2n1, SPELLS-4.T2n2, SPELLS-4.T2n3, SPELLS-4.T2n4, SPELLS-4.T2o, SPELLS-4.T2p, SPELLS-4.T2q, SPELLS-4.T2r, SPELLS-4.T2s, SPELLS-4.T2s2, SPELLS-4.T2t, SPELLS-4.T2u, SPELLS-4.T2v, SPELLS-4.T2v2a1, SPELLS-4.T2v2a2a, SPELLS-4.T2v2a2b, SPELLS-4.T2v2a2c1, SPELLS-4.T2v2a2c2, SPELLS-4.T2v2a2c3, SPELLS-4.T2v2a3a, SPELLS-4.T2v2a3b, SPELLS-4.T2v2a3c, SPELLS-4.T2v2a3d, SPELLS-4.T2v2b, SPELLS-4.T2w, SPELLS-4.T2ps-a, SPELLS-4.T2ps-b, SPELLS-4.T2ps-c, SPELLS-4.T2ps-d1, SPELLS-4.T2ps-d2, SPELLS-4.T2ps-d3.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Re-scoped from \"every closed rule has a resolver\" under the authorable-from-core-options rule. 2026-10-14 scan: 195 closed rules (154 spell, 41 equipment). Closed 2026-11-02 by SPELLS-4.T1c, SPELLS-4.T2a1, SPELLS-4.T2a1b, SPELLS-4.T2a2, SPELLS-4.T2a3, SPELLS-4.T2a4, SPELLS-4.T2a5, SPELLS-4.T2b, SPELLS-4.T2c1, SPELLS-4.T2c2, SPELLS-4.T2c2b, SPELLS-4.T2c3, SPELLS-4.T2d, SPELLS-4.T2d2, SPELLS-4.T2d3, SPELLS-4.T2d4, SPELLS-4.T2e, SPELLS-4.T2f, SPELLS-4.T2f3, SPELLS-4.T2f1a, SPELLS-4.T2f1b1, SPELLS-4.T2f1b2, SPELLS-4.T2g1, SPELLS-4.T2g2, SPELLS-4.T2h1, SPELLS-4.T2h2, SPELLS-4.T2h4, SPELLS-4.T2i, SPELLS-4.T2i3, SPELLS-4.T2i4a, SPELLS-4.T2i4b1, SPELLS-4.T2i4b2, SPELLS-4.T2i2a, SPELLS-4.T2i2b, SPELLS-4.T2j1, SPELLS-4.T2j2a, SPELLS-4.T2k1, SPELLS-4.T2k, SPELLS-4.T2k2, SPELLS-4.T2k2b, SPELLS-4.T2k3, SPELLS-4.T2k3b, SPELLS-4.T2k3c, SPELLS-4.T2l, SPELLS-4.T2lb, SPELLS-4.T2lb2a, SPELLS-4.T2lb2b1, SPELLS-4.T2lb2c, SPELLS-4.T2lb2d, SPELLS-4.T2l2, SPELLS-4.T2l3, SPELLS-4.T2m1, SPELLS-4.T2m1c, SPELLS-4.T2m1b1, SPELLS-4.T2m1b1b, SPELLS-4.T2m1b2a, SPELLS-4.T2m1b2b, SPELLS-4.T2m1b2c, SPELLS-4.T2m1d, SPELLS-4.T2m2, SPELLS-4.T2m2b, SPELLS-4.T2m3, SPELLS-4.T2n1, SPELLS-4.T2n2, SPELLS-4.T2n3, SPELLS-4.T2n4, SPELLS-4.T2o, SPELLS-4.T2p, SPELLS-4.T2q, SPELLS-4.T2r, SPELLS-4.T2s, SPELLS-4.T2s2, SPELLS-4.T2t, SPELLS-4.T2u, SPELLS-4.T2v, SPELLS-4.T2v2a1, SPELLS-4.T2v2a2a, SPELLS-4.T2v2a2b, SPELLS-4.T2v2a2c1, SPELLS-4.T2v2a2c2, SPELLS-4.T2v2a2c3, SPELLS-4.T2v2a3a, SPELLS-4.T2v2a3b, SPELLS-4.T2v2a3c, SPELLS-4.T2v2a3d, SPELLS-4.T2v2b, SPELLS-4.T2w, SPELLS-4.T2ps-a, SPELLS-4.T2ps-b, SPELLS-4.T2ps-c, SPELLS-4.T2ps-d1, SPELLS-4.T2ps-d2, SPELLS-4.T2ps-d3. Reopened 2026-11-10 (D217): 32 closed-rule kinds were still authored; see the D217 tasks.",
               "id": "SPELLS-4.1"
             },
             {
@@ -13918,6 +13918,80 @@
                 "after": ["SPELLS-4.T2ps-d2"]
               },
               "note": "Split on seam trace; user approved 2026-11-01 (D208). The room journey must cover the area-cast lead path (leadActiveEffectPlans), which d2 left without its own test. Merged in m606 (7df20043b). Room journey nativeRoomPrismaticSpray.test.ts; parity prismaticSprayAuthoringParity.test.ts."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-4.T4a",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 1,
+                "after": []
+              },
+              "text": "Description-only per D156: Magnifying Glass, Tinderbox, Rope, Chain, the arcane and druidic focuses, Holy Symbol, Component Pouch, and the draft-animal and rowed-vessel vehicle rules; delete the redundant heavy-armor Strength closed rules (the speed modifier is already authored); delete the unused HOLY_AURA, COUATL_DIVINE_AID and ERINYES_LONGSWORD entries. Any item found to change resolved state is reported, not converted."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-4.T4b",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": []
+              },
+              "text": "Lance as a new generic option (D217): disadvantage on attacks against a target within 5 ft, and two-handed unless mounted. Crowbar and Portable Ram from core options as situational check bonuses (they fail the D198 rubric). Authoring-parity proofs; delete the three kinds."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-4.T4c",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": []
+              },
+              "text": "Item-count container capacity as a new generic option (D217): Quiver (20 arrows), Crossbow Bolt Case (20 bolts), Map or Scroll Case and Pouch limit their contents by count; authoring-parity proof and a Sheet inventory test; delete the four capacity kinds."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-4.T4d",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": []
+              },
+              "text": "Hooded Lantern hood as a new generic option (D217): a toggle that lowers the lantern's light to dim light in a 5 ft radius; authoring-parity proof; delete EQUIPMENT_HOODED_LANTERN."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-4.T4e",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T4k1",
+                  "SPELLS-31.T8a",
+                  "SPELLS-33.T8a",
+                  "SPELLS-33.T8b",
+                  "SPELLS-4.T4a",
+                  "SPELLS-4.T4b",
+                  "SPELLS-4.T4c",
+                  "SPELLS-4.T4d"
+                ]
+              },
+              "text": "Delete the CLOSED_RULE effect kind, CLOSED_RULE_KIND, the closedRuleEffect helper and the closed-rule schema once no kind remains, so a closed rule cannot be authored; set ADR 0038 to accepted and update the guides that describe closed rules; rerun the link audit on the touched docs. Runs last: it proves no closed rule is left in the SRD corpus for SPELLS-31.1 and SPELLS-33.1 as well."
             }
           ]
         },
@@ -16809,7 +16883,7 @@
         {
           "id": "SPELLS-31",
           "title": "Class feature closed rules become core authoring options",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -16820,9 +16894,9 @@
           "acs": [
             {
               "id": "SPELLS-31.1",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "origin": [],
-              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds. Closed 2026-11-03 by SPELLS-31.T1, SPELLS-31.T2, SPELLS-31.T3a, SPELLS-31.T3b, SPELLS-31.T3c, SPELLS-31.T3d, SPELLS-31.T4c1a, SPELLS-31.T4c1p, SPELLS-31.T4c1a2, SPELLS-31.T4c1b, SPELLS-31.T4c1b2, SPELLS-31.T4c1b3, SPELLS-31.T4c1b4, SPELLS-31.T4c1b4b, SPELLS-31.T4c1b5, SPELLS-31.T4c1c, SPELLS-31.T4c2, SPELLS-31.T4c2b, SPELLS-31.T4c2c, SPELLS-31.T4c3a, SPELLS-31.T4c3b1, SPELLS-31.T4c3b2, SPELLS-31.T4e, SPELLS-31.T4e2, SPELLS-31.T4f, SPELLS-31.T4f2, SPELLS-31.T4f2b, SPELLS-31.T4f2c, SPELLS-31.T4i, SPELLS-31.T4i2, SPELLS-31.T4j, SPELLS-31.T4k1, SPELLS-31.T4k2a, SPELLS-31.T4k2b, SPELLS-31.T4k2c, SPELLS-31.T4k2d2, SPELLS-31.T4l1, SPELLS-31.T4l2, SPELLS-31.T4l2b-1, SPELLS-31.T4l2b-2, SPELLS-31.T4m, SPELLS-31.T4n, SPELLS-31.T4o, SPELLS-31.T4r, SPELLS-31.T4s, SPELLS-31.T4v, SPELLS-31.T5a, SPELLS-31.T5b, SPELLS-31.T5c, SPELLS-31.T5d, SPELLS-31.T5e, SPELLS-31.T5e2a, SPELLS-31.T5e2b, SPELLS-31.T5f1, SPELLS-31.T5f2, SPELLS-31.T5f4, SPELLS-31.T5f3, SPELLS-31.T5g, SPELLS-31.T5g2, SPELLS-31.T5g3, SPELLS-31.T5h-1, SPELLS-31.T5h-3, SPELLS-31.T5h-2, SPELLS-31.T5i, SPELLS-31.T5j, SPELLS-31.T5k, SPELLS-31.T5l, SPELLS-31.T5m, SPELLS-31.T5n, SPELLS-31.T5n2, SPELLS-31.T5o, SPELLS-31.T5o2, SPELLS-31.T5p, SPELLS-31.T5q-A, SPELLS-31.T5q-B, SPELLS-31.T5ra, SPELLS-31.T5rb, SPELLS-31.T5s, SPELLS-31.T5t, SPELLS-31.T5i2, SPELLS-31.T5i3, SPELLS-31.T5i4, SPELLS-31.T4v2a, SPELLS-31.T4v2b, SPELLS-31.T4m2, SPELLS-31.T6w.",
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds. Closed 2026-11-03 by SPELLS-31.T1, SPELLS-31.T2, SPELLS-31.T3a, SPELLS-31.T3b, SPELLS-31.T3c, SPELLS-31.T3d, SPELLS-31.T4c1a, SPELLS-31.T4c1p, SPELLS-31.T4c1a2, SPELLS-31.T4c1b, SPELLS-31.T4c1b2, SPELLS-31.T4c1b3, SPELLS-31.T4c1b4, SPELLS-31.T4c1b4b, SPELLS-31.T4c1b5, SPELLS-31.T4c1c, SPELLS-31.T4c2, SPELLS-31.T4c2b, SPELLS-31.T4c2c, SPELLS-31.T4c3a, SPELLS-31.T4c3b1, SPELLS-31.T4c3b2, SPELLS-31.T4e, SPELLS-31.T4e2, SPELLS-31.T4f, SPELLS-31.T4f2, SPELLS-31.T4f2b, SPELLS-31.T4f2c, SPELLS-31.T4i, SPELLS-31.T4i2, SPELLS-31.T4j, SPELLS-31.T4k1, SPELLS-31.T4k2a, SPELLS-31.T4k2b, SPELLS-31.T4k2c, SPELLS-31.T4k2d2, SPELLS-31.T4l1, SPELLS-31.T4l2, SPELLS-31.T4l2b-1, SPELLS-31.T4l2b-2, SPELLS-31.T4m, SPELLS-31.T4n, SPELLS-31.T4o, SPELLS-31.T4r, SPELLS-31.T4s, SPELLS-31.T4v, SPELLS-31.T5a, SPELLS-31.T5b, SPELLS-31.T5c, SPELLS-31.T5d, SPELLS-31.T5e, SPELLS-31.T5e2a, SPELLS-31.T5e2b, SPELLS-31.T5f1, SPELLS-31.T5f2, SPELLS-31.T5f4, SPELLS-31.T5f3, SPELLS-31.T5g, SPELLS-31.T5g2, SPELLS-31.T5g3, SPELLS-31.T5h-1, SPELLS-31.T5h-3, SPELLS-31.T5h-2, SPELLS-31.T5i, SPELLS-31.T5j, SPELLS-31.T5k, SPELLS-31.T5l, SPELLS-31.T5m, SPELLS-31.T5n, SPELLS-31.T5n2, SPELLS-31.T5o, SPELLS-31.T5o2, SPELLS-31.T5p, SPELLS-31.T5q-A, SPELLS-31.T5q-B, SPELLS-31.T5ra, SPELLS-31.T5rb, SPELLS-31.T5s, SPELLS-31.T5t, SPELLS-31.T5i2, SPELLS-31.T5i3, SPELLS-31.T5i4, SPELLS-31.T4v2a, SPELLS-31.T4v2b, SPELLS-31.T4m2, SPELLS-31.T6w. Reopened 2026-11-10 (D217): 32 closed-rule kinds were still authored; see the D217 tasks.",
               "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
               "proof": [
                 "nativeRoomHideAction.test.ts",
@@ -17338,17 +17412,17 @@
             },
             {
               "id": "SPELLS-31.T4k1",
-              "status": "DONE",
+              "status": "TODO",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
-                "tc": 2,
+                "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2k", "SPELLS-4.T2l"]
+                "after": []
               },
-              "text": "Join SPELLS-4.T2k: the three Protection styles, Stand Against the Tide, Giant Killer. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "Merged m187 (4c68bae09)."
+              "text": "Protection fighting style (Champion, Fighter, Paladin) as a new generic reaction option (D217): while wielding a shield, impose disadvantage on an attack roll against another creature within 5 ft. Giant Killer from core options: a reaction attack against a Large or larger creature within 5 ft that attacked you. Authoring-parity proofs; delete the four kinds.",
+              "note": "Reopened 2026-11-10 (D217): the m187 cite was SPELLS-33.T4k1's merge and none of these kinds was converted. Stand Against the Tide moved to SPELLS-31.T8a."
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -18173,6 +18247,19 @@
               },
               "text": "Water Elemental Whelm as a self-centered area over the elemental's space, like Spirit Guardians, with the failed save holding the target through the save-gated hold and the recurring damage (D202). Replaces its GM ruling; the two-creature grapple limit may stay a ruling.",
               "note": "Directed by the user on 2026-10-31. Engulf and regurgitation stay GM rulings. Merged in m588 (66b841e3b)."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-31.T8a",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 1,
+                "after": []
+              },
+              "text": "Carry out the description-only rulings: Survivor, Quivering Palm and Dark One's Own Luck (D198) and Stand Against the Tide (D217) keep their descriptions as GM rulings; delete their closed-rule effects and kinds and register them in descriptionOnlyClassFeatures.test.ts."
             }
           ],
           "journeyTests": [
@@ -18314,7 +18401,7 @@
         {
           "id": "SPELLS-33",
           "title": "Creature trait and action closed rules become core authoring options",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -18325,9 +18412,9 @@
           "acs": [
             {
               "id": "SPELLS-33.1",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "origin": [],
-              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g, SPELLS-33.T6n4.",
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g, SPELLS-33.T6n4. Reopened 2026-11-10 (D217): 32 closed-rule kinds were still authored; see the D217 tasks.",
               "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
               "proof": [
                 "creatureReactionRulesAuthoringParity.test.ts",
@@ -19876,6 +19963,32 @@
               },
               "text": "Save-gated hold: a target held only after failing a save, generically through relationshipPlan in effectActionCompiler.ts, with Purple Worm Bite, Whelm and Engulf moved from GM rulings onto it. Each has an authoring-parity proof and a journey on the save path. Whelm, Engulf and Purple Worm stay GM rulings; the proof runs on a derived creature.",
               "note": "Growth approved by the user on 2026-10-31. Merged in m582 (bf0940e8e)."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-33.T8a",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": []
+              },
+              "text": "Mimic Grappler and the Grappler feat's advantage against a creature you grapple from the existing actor-relationship attack-roll influence (ADVANTAGE); the Grappler feat's Pin (both creatures restrained) from core options. Authoring-parity proofs; delete CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET and GRAPPLER_PIN."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-33.T8b",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": []
+              },
+              "text": "Solar Healing Touch from core options (HEAL, charges, END_EFFECTS for the curse, disease, poison, blindness and deafness it ends), with an authoring-parity proof; delete CREATURE_SOLAR_HEALING_TOUCH."
             }
           ],
           "journeyStatus": "verified",
@@ -25164,28 +25277,30 @@
           "acs": [
             {
               "text": "Canonical ownership and package-direction guides and ADR status text match the native Convex, Worker, authoring, rules-runtime and source-data boundaries, with no approval-pending removal wording.",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "proof": [
                 ".codex/validation/phase82-gate-progress-20260917/r07-native-adrs-complete-20260920/completed-checks.json",
                 ".codex/validation/phase82-gate-progress-20260917/r07-native-persistence-docs-20260920/evidence-manifest.json"
               ],
               "origin": ["R07.1"],
-              "id": "RELEASE-1.1"
+              "id": "RELEASE-1.1",
+              "note": "Reopened 2026-11-10 (D217): ADR 0038 still claims a closed-rule count; SPELLS-4.T4e sets its final status."
             },
             {
               "text": "Deployment guides and the release runbook match the final system.",
               "status": "DONE",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r07-release-runbook-20260920/completed-checks.json"
+                ".codex/validation/phase82-gate-progress-20260917/r07-release-runbook-20260920/completed-checks.json",
+                "RELEASE-1.T1 (m678)"
               ],
               "origin": ["R07.2"],
               "id": "RELEASE-1.2"
             },
             {
-              "text": "The anchor-aware link audit checks 436 links across 98 Markdown files with zero failures.",
+              "text": "The anchor-aware link audit checks 2953 links across 581 Markdown files with zero failures.",
               "status": "DONE",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r07-final-source-reconciliation-20260920/link-audit-result.json"
+                "RELEASE-1.T1 (m678): ad hoc anchor-aware link audit, 581 files, 2953 links, 0 broken"
               ],
               "origin": ["R07.3"],
               "id": "RELEASE-1.3"
@@ -25201,7 +25316,7 @@
           "tasks": [
             {
               "id": "RELEASE-1.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-1.1", "RELEASE-1.2", "RELEASE-1.3"],
               "wsjf": {
                 "bv": 2,
@@ -25213,7 +25328,22 @@
               },
               "text": "Final-source docs reconciliation after the SPELLS/RULES lanes freeze: sweep docs/architecture, docs/adr, runbooks, root READMEs, CONTEXT.md and apps/web/README.md for retired-service wording (Supabase, Kysely, GoRules, tRPC, Netlify) and stale current-vs-historical labels; delete or reword the Historical Supabase runbook and threat-model references as appropriate; run the anchor-aware link audit across all Markdown and record link/file counts; update the three AC proofs with the fresh run. Agent can do all of it.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10T09:30:00Z",
+              "proof": "Merged m678 (d84bce95c). Tests 42776768978, Live 42776769143 and Browser journeys 42776768892 green on b1f20bb1b. Deleted the Supabase and notification-delivery runbooks and the threat-model historical section, fixed 7 broken links; ad hoc anchor-aware link audit: 581 Markdown files, 2953 links, 0 broken. ADR 0038 status is corrected by SPELLS-4.T4e (D217)."
+            },
+            {
+              "id": "RELEASE-1.T2",
+              "status": "TODO",
+              "closes": ["RELEASE-1.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["SPELLS-4.T4e"],
+                "finalSource": true
+              },
+              "text": "After SPELLS-4.T4e, confirm ADR 0038 reads accepted and the guides describing closed rules match the source; rerun the link audit on the touched docs."
             }
           ],
           "internalReason": "Documentation, ADRs and runbooks; no user flow."
