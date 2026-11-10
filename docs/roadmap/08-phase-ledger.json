@@ -17418,10 +17418,10 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": []
               },
-              "text": "Protection fighting style (Champion, Fighter, Paladin) as a new generic reaction option (D217): while wielding a shield, impose disadvantage on an attack roll against another creature within 5 ft. Giant Killer from core options: a reaction attack against a Large or larger creature within 5 ft that attacked you. Authoring-parity proofs; delete the four kinds.",
+              "text": "Protection fighting style (Champion, Fighter, Paladin) through a new generic pre-roll reaction pause (D217): a bystander's reaction before an attack's d20 adds disadvantage, gated by authored shield, 5 ft and other-target predicates. Giant Killer through a new generic attack-resolved trigger (HIT, MISS or ANY, attacker size and reach predicates) and a reaction outcome that attacks the triggering creature (D217). Authoring-parity proofs and room journeys; remove the four closed-rule effects.",
               "note": "Reopened 2026-11-10 (D217): the m187 cite was SPELLS-33.T4k1's merge and none of these kinds was converted. Stand Against the Tide moved to SPELLS-31.T8a."
             },
             {
