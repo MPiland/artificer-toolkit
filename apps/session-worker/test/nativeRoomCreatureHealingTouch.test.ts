@@ -60,6 +60,7 @@ describe('Solar Healing Touch in the room (SPELLS-33.T8b)', () => {
           currentHitPoints: STARTING_HIT_POINTS
         })
       ],
+      autoRoll: 'BOTH',
       ownerFeatureId: healingTouch.id,
       rolls: [LOW_ROLL],
       fallbackRoll: LOW_ROLL,
