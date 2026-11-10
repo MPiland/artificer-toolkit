@@ -695,16 +695,18 @@ async function cleanup() {
     }
     assert.ok(deletions.size <= 16, 'Unexpected lifecycle fixture Campaign count.')
     for (const [campaignId, before] of deletions) {
-      const root = one(tables(before.campaignStateJson), 'campaigns')
+      const rows = tables(before.campaignStateJson)
+      const root = one(rows, 'campaigns')
+      const { version } = one(rows, 'campaignRevisions')
       assert.equal(root.id, campaignId)
       assert.equal(root.name, 'Encounter execution fixture')
       assert.equal(root.ownerUserId, author.ownerUserId)
       assert.ok(root.status === 'ACTIVE' || root.status === 'ARCHIVED')
-      assert.ok(typeof root.version === 'number')
+      assert.ok(typeof version === 'number')
       assert.deepEqual(
         await author.client.mutation(api.campaigns.deletion.remove, {
           campaignId,
-          expectedVersion: root.version,
+          expectedVersion: version,
           confirmation: 'DELETE'
         }),
         { ok: true }

@@ -255,11 +255,11 @@ export async function verifyCampaignLifecycle(input: {
       assert.equal(typeof map.assetId, 'string')
       detachedMapIds.add(map.assetId as string)
     }
-    const { version } = one(campaignRowsBefore, 'campaignRevisions')
-    assert.equal(typeof version, 'number')
+    const revision = one(campaignRowsBefore, 'campaignRevisions')
+    assert.equal(typeof revision.version, 'number')
     const deletion: DeleteCampaignInput = {
       campaignId,
-      expectedVersion: version as number,
+      expectedVersion: revision.version as number,
       confirmation: 'DELETE'
     }
     if (proveRollback) {
@@ -426,9 +426,9 @@ export async function verifyCampaignLifecycle(input: {
         )
         assert.ok(times[0]! >= fenceTimeMs)
       }
-      assert.equal(typeof root.updatedAt, 'string')
+      assert.equal(typeof revision.updatedAt, 'string')
       assert.ok(
-        fenceTimeMs >= Date.parse(root.updatedAt as string) + 1,
+        fenceTimeMs >= Date.parse(revision.updatedAt as string) + 1,
         'The deletion fence must advance the Campaign timestamp.'
       )
       characterReconciliation = reconcileCampaignDeletionPersonalExpected({
