@@ -43,7 +43,7 @@ describe('Solar Healing Touch in the room (SPELLS-33.T8b)', () => {
     const held = [...FREED, KEPT]
     const seeds = held.map((ownedConditionId) =>
       seedModifierGrant({
-        sourceActorId: PATIENT_ID,
+        sourceActorId: SOLAR_ID,
         holderActorId: PATIENT_ID,
         lifecycle: {},
         ownedConditionId
@@ -55,8 +55,7 @@ describe('Solar Healing Touch in the room (SPELLS-33.T8b)', () => {
         srdCreatureActor({
           id: PATIENT_ID,
           creature: plainWolf,
-          currentHitPoints: STARTING_HIT_POINTS,
-          conditionIds: held
+          currentHitPoints: STARTING_HIT_POINTS
         })
       ],
       ownerFeatureId: healingTouch.id,
