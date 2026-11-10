@@ -228,6 +228,8 @@ describe('effect node maps', () => {
       'ATTACKED_SELF',
       'SPELL_CAST',
       'ATTACK_ROLL_BY_OTHER',
+      'ATTACK_ON_OTHER',
+      'ATTACK_RESOLVED_ON_SELF',
       'DAMAGE_TAKEN',
       'TARGETED_SELF'
     ])

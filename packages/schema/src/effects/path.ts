@@ -35,6 +35,7 @@ import { concealFromObserversDtoSchema } from './concealFromObservers.js'
 import { removeFromPlayDtoSchema } from './removeFromPlay.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
+import { imposeRollModeOnTriggeringRollDtoSchema } from './imposeRollModeOnTriggeringRoll.js'
 import { subtractFromTriggeringRollDtoSchema } from './subtractFromTriggeringRoll.js'
 import { sourceImmunityDtoSchema } from './sourceImmunity.js'
 import { releaseChosenItemDtoSchema } from './releaseChosenItem.js'
@@ -108,6 +109,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
             subtractFromTriggeringRollDtoSchema,
+            imposeRollModeOnTriggeringRollDtoSchema,
             sourceImmunityDtoSchema,
             releaseChosenItemDtoSchema,
             endEffectsDtoSchema,
@@ -144,6 +146,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
             subtractFromTriggeringRollDtoSchema,
+            imposeRollModeOnTriggeringRollDtoSchema,
             sourceImmunityDtoSchema,
             releaseChosenItemDtoSchema,
             endEffectsDtoSchema,

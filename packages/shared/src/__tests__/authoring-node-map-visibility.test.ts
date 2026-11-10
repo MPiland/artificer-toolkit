@@ -193,7 +193,7 @@ describe('authoring node map visibility', () => {
     expect(kindCodes).not.toContain('SOURCE_EXCLUSIVE_TARGET')
     for (const key of ['activation', 'checks', 'dc', 'actorKinds']) {
       expect(isVisible(moduleNode(key), { kind: 'ESCAPE_CHECK' })).toBe(true)
-      expect(isVisible(moduleNode(key), { kind: 'TARGET_SIZE_MAXIMUM' })).toBe(false)
+      expect(isVisible(moduleNode(key), { kind: 'TARGET_SIZE_RANGE' })).toBe(false)
     }
 
     const checksNode = moduleNode('checks')

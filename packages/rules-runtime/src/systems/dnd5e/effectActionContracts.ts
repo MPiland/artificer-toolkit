@@ -268,6 +268,7 @@ export type Outcome =
     }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
   | { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }
+  | { kind: 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL' }
   | { kind: 'END_EFFECTS' }
   | {
       kind: 'FORCED_MOVEMENT'

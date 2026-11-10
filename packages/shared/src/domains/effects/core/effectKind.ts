@@ -31,6 +31,7 @@ export const EFFECT_KIND = {
   DETECT_CONCEALED: 'DETECT_CONCEALED',
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   SUBTRACT_FROM_TRIGGERING_ROLL: 'SUBTRACT_FROM_TRIGGERING_ROLL',
+  IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL: 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
   RELEASE_CHOSEN_ITEM: 'RELEASE_CHOSEN_ITEM',
   END_EFFECTS: 'END_EFFECTS',
@@ -197,6 +198,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Subtract From Triggering Roll',
     description:
       'Rolls a die and subtracts it from the d20 roll that triggered this reaction, before the roll’s result is shown.'
+  },
+  [EFFECT_KIND.IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL]: {
+    code: EFFECT_KIND.IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL,
+    label: 'Impose Roll Mode On Triggering Roll',
+    description:
+      'Gives the roll that triggered this reaction a roll mode, such as disadvantage on an attack roll.'
   },
   [EFFECT_KIND.SOURCE_IMMUNITY]: {
     code: EFFECT_KIND.SOURCE_IMMUNITY,

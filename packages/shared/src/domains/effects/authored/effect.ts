@@ -174,9 +174,49 @@ export type ReactionAttackRollByOtherTriggerBindingAuthored = {
   kind: 'ATTACK_ROLL_BY_OTHER'
 }
 
+/**
+ * A closed range of System sizes, either bound optional and inclusive; at least one is required.
+ * Bounds are System size codes.
+ */
+export type SizeRangeAuthored = {
+  minimumSizeCode?: string
+  maximumSizeCode?: string
+}
+
+/**
+ * A creature attacks another creature, before the attack roll; the reaction answers it (Protection).
+ * `targetWithinFeet` needs the attack's target (never the reactor itself) within that many feet of the
+ * reactor. `holderEquippedCategory` needs the reactor to have an item of that equipment category
+ * equipped (a shield), `attackerSize` an attacker whose size is in the range, `requiresSight` an
+ * attacker the reactor sees.
+ */
+export type ReactionAttackOnOtherTriggerBindingAuthored = {
+  kind: 'ATTACK_ON_OTHER'
+  requiresSight?: boolean
+  targetWithinFeet: number
+  holderEquippedCategory?: string
+  attackerSize?: SizeRangeAuthored
+}
+
+/**
+ * An attack against the reactor resolves as `outcome` (a hit, a miss, or either); the reaction
+ * answers it (Giant Killer). `attackerWithinFeet` needs the attacker within that many feet of the
+ * reactor, `attackerSize` an attacker whose size is in the range, `requiresSight` an attacker the
+ * reactor sees.
+ */
+export type ReactionAttackResolvedOnSelfTriggerBindingAuthored = {
+  kind: 'ATTACK_RESOLVED_ON_SELF'
+  outcome: 'HIT' | 'MISS' | 'ANY'
+  requiresSight?: boolean
+  attackerWithinFeet?: number
+  attackerSize?: SizeRangeAuthored
+}
+
 export type ReactionTriggerBindingAuthored =
   | ReactionMovementTriggerBindingAuthored
   | ReactionAttackRollByOtherTriggerBindingAuthored
+  | ReactionAttackOnOtherTriggerBindingAuthored
+  | ReactionAttackResolvedOnSelfTriggerBindingAuthored
   | ReactionAttackedSelfTriggerBindingAuthored
   | ReactionSpellCastTriggerBindingAuthored
   | ReactionDamageTakenTriggerBindingAuthored

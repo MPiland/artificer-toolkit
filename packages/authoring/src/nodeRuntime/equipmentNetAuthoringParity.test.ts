@@ -40,7 +40,7 @@ describe('the Net’s hold through the equipment node map (SPELLS-4.T2m2b)', () 
   it('keeps the SRD Net exactly as authored, with no closed rule', async () => {
     expect(JSON.stringify(net.effects)).not.toContain('CLOSED_RULE')
     expect(hold(net).modules.map(({ kind }) => kind)).toEqual([
-      'TARGET_SIZE_MAXIMUM',
+      'TARGET_SIZE_RANGE',
       'ESCAPE_CHECK',
       'SOURCE_INDEPENDENT_HOLD'
     ])

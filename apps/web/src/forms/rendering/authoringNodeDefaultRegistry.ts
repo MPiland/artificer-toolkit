@@ -76,6 +76,8 @@ type AuthoringDefaultKind =
   | 'followUpSaveRepeatTrigger'
   | 'healFraction'
   | 'higherLevelCheck'
+  | 'attackerSize'
+  | 'sizeRange'
   | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
@@ -271,6 +273,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveRepeatTrigger: ['followUpSaveRepeatTrigger'],
   healFraction: ['healFraction'],
   higherLevelCheck: ['higherLevelCheck'],
+  attackerSize: ['attackerSize'],
+  sizeRange: ['sizeRange'],
   degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],

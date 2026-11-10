@@ -17418,7 +17418,7 @@
             },
             {
               "id": "SPELLS-31.T4k1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -17428,11 +17428,13 @@
                 "after": []
               },
               "text": "Authoring for Protection and Giant Killer (D217; docs/handoffs/slice-spells-31-t4k1.md): the size-range, equipped-item-category and within-N-feet predicates, the ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF triggers and the IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL outcome, compiled with authoring-parity tests. No pause.",
-              "note": "Reopened 2026-11-10 (D217): the m187 cite was SPELLS-33.T4k1's merge and none of these kinds was converted. Stand Against the Tide moved to SPELLS-31.T8a."
+              "note": "Reopened 2026-11-10 (D217): the m187 cite was SPELLS-33.T4k1's merge and none of these kinds was converted. Stand Against the Tide moved to SPELLS-31.T8a.",
+              "mergedAt": "2026-11-10T16:28:59Z",
+              "proof": "attackReactionTriggersAuthoringParity.test.ts (Fighter, Paladin, Champion, Hunter SRD records and homebrew variants through the class node map), attack-reaction-trigger-contracts.test.ts, systemSizes sizeInRange cases, reactionTriggerCompile ATTACK_ON_OTHER case; TARGET_SIZE_MAXIMUM replaced by TARGET_SIZE_RANGE; four Protection/Giant Killer closed-rule kinds deleted (actions compile REFUSED until T4k1b/T4k1c). Tests 42844694535, Browser journeys 42844694398, Live 42848778630 green on 77aca0884; merged m681 (8aaedca07) after a green ci/merge-m681 batch."
             },
             {
               "id": "SPELLS-31.T4k1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -17445,7 +17447,7 @@
             },
             {
               "id": "SPELLS-31.T4k1c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
