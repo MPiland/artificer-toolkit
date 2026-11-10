@@ -17445,9 +17445,9 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4k1"]
+                "after": ["SPELLS-31.T4k1", "QUALITY-6.T1"]
               },
-              "text": "Protection end to end (D217): the ROLL_INFLUENCE_REACTION pre-roll pause in the Worker, Convex pending validators, the drawer offer, a room journey and the transport and persistence docs; remove the three Protection closed-rule effects."
+              "text": "Protection end to end (D217) as the first consumer of the shared reaction offer (QUALITY-7, same slice): the ATTACK_ON_OTHER pre-roll offer with its disadvantage on the triggering roll, the drawer offer, a room journey and docs; no pause kind of its own; remove the three Protection closed-rule effects."
             },
             {
               "id": "SPELLS-31.T4k1c",
@@ -17458,9 +17458,9 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4k1"]
+                "after": ["SPELLS-31.T4k1", "QUALITY-7.T1"]
               },
-              "text": "Giant Killer end to end (D217): the post-attack reaction offer on ATTACK_RESOLVED_ON_SELF with its pending record and timer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; remove the Giant Killer closed-rule effect."
+              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25162,7 +25162,7 @@
       "title": "Code quality: one home per rule",
       "kind": "feature",
       "dependsOn": [],
-      "summary": "Removes duplicated and diverging logic, pre-launch shims and monolithic files found by the 2026-10-17 audit, and adds lint guardrails so they cannot return. Principles in AGENTS.md Patterns to Avoid.",
+      "summary": "Removes duplicated and diverging logic, pre-launch shims and monolithic files found by the 2026-10-17 audit, and adds lint guardrails so they cannot return. Principles in AGENTS.md Patterns to Avoid. The 2026-11-10 pipeline audit adds QUALITY-4 to QUALITY-17: one pipeline per resolution, composed through events.",
       "regressionTests": [],
       "uat": [],
       "pbis": [
@@ -25268,6 +25268,568 @@
           ],
           "journeyTests": ["scripts/doubleCasts.test.mjs"],
           "journeyStatus": "verified"
+        },
+        {
+          "id": "QUALITY-4",
+          "title": "Dead pipeline code is gone",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 1,
+            "tc": 3,
+            "rr": 3,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "QUALITY-4.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R0.",
+              "text": "The four unused pending-context kinds (ENCOUNTER_CHARACTER_RULE_ACTION, ENCOUNTER_ACTOR_RULE_ACTION, ENCOUNTER_ACTOR_SPELL_CAST, ENCOUNTER_CREATURE_RULE_ACTION) and the test-only Convex entry encounters/actionContestSettlement.ts are deleted, and the shared d20 helpers move out of encounterMovementReactionActionExecution.ts to the d20 settlement module; existing suites stay green and bundle bars are unchanged or lower. (Unused closed rule kinds are SPELLS-4.T4e.)"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-4.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-4.1"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 3,
+                "rr": 3,
+                "size": 2
+              },
+              "text": "Delete the dead pending kinds and the test-only Convex entry; move the shared d20 helpers to their owning module."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-5",
+          "title": "The compile golden covers active-effect plans and fact binding",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 1,
+            "tc": 5,
+            "rr": 8,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "QUALITY-5.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R1.",
+              "text": "The SRD compile golden records each effect's active-effect plan and fact binding beside its graph; the file changes only by added columns."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-5.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-5.1"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Extend srdEffectCompileGolden to active-effect plans and fact binding."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-6",
+          "title": "Every authored reaction trigger compiles",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 5,
+            "after": ["QUALITY-5.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-6.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R2.",
+              "text": "The compiler accepts reaction triggers through a trigger registry rather than a per-trigger whitelist; ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF effects compile (Protection and Giant Killer rows leave REFUSED), and no other golden row changes."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-6.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-6.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-5.T1"]
+              },
+              "text": "A reaction-trigger registry in the compiler replacing the supported() whitelist; seed from the compiler work on WIP 9cf2d97ae (spells-31-t4k1b)."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-7",
+          "title": "One reaction offer driven by the event table",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 8,
+            "size": 8,
+            "after": ["QUALITY-4.T1", "QUALITY-6.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-7.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R3.",
+              "text": "Every attack, cast and roll-window reaction is offered by one offer function fed by the event table; Shield, Counterspell and Cutting Words pass through it; Protection is offered through it before the attack roll; no authored trigger except MOVEMENT (QUALITY-9) returns null from the event hooks; the three trigger-literal pin schemas collapse to one."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-7.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-7.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8,
+                "after": ["QUALITY-4.T1", "QUALITY-6.T1"]
+              },
+              "text": "One reaction offer from the event table, one pin schema, one timeout decline; ships in one slice with SPELLS-31.T4k1b (Protection, first consumer)."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-8",
+          "title": "A reaction runs as a child action",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 8,
+            "size": 8,
+            "after": ["QUALITY-7.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-8.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4.",
+              "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); replaying the parent raises the child once; Giant Killer's weapon attack runs this way."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-8.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8,
+                "after": ["QUALITY-7.T1"]
+              },
+              "text": "Reaction child actions through encounterSystemTrigger; occurrence owner recorded at creation; parent plus one child pending; ships in one slice with SPELLS-31.T4k1c (Giant Killer, first consumer)."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-9",
+          "title": "Cast, roll-window and movement reactions use the shared pipeline",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 13,
+            "after": ["QUALITY-8.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-9.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R5+R6.",
+              "text": "Counterspell, roll-window and movement reactions (opportunity attacks) are offered and run through the shared offer and child action; their dedicated pause kinds, MOVEMENT_REACTION and the nested movement-reaction workflow modules are deleted; the Counterspell, roll-window and nativeMovementDecisionReplay tests pass."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-9.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-8.T1"]
+              },
+              "text": "Fold cast and roll-window reactions (R5); delete their pause kinds."
+            },
+            {
+              "id": "QUALITY-9.T2",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-8.T1"]
+              },
+              "text": "Fold movement reactions (R6); delete MOVEMENT_REACTION and the nested workflow modules."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-10",
+          "title": "One d20 settlement",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 5,
+            "after": ["QUALITY-4.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-10.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R7.",
+              "text": "Every d20 test settles through settleEncounterD20Test with one d20 graph builder and one evidence-pin verifier, and the two contributor merges become one; a source ratchet fails on a hand-rolled d20 outside the settlement; the golden changes only where duplicate definitions merged."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-10.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-10.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-4.T1"]
+              },
+              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-11",
+          "title": "One after-commit trigger step",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 5,
+            "after": ["QUALITY-8.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-11.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R8.",
+              "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; DAMAGED is raised once per command and damage mirrors and defeat rewards settle once; a multi-trigger command raises children in today's order."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-11.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-11.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-8.T1"]
+              },
+              "text": "One after-commit subscriber step in the room; DAMAGED raised once; single settle of mirrors and rewards."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-12",
+          "title": "The Sheet gives the same result on Convex and in the room",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "QUALITY-12.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R9.",
+              "text": "The same Sheet command gives the same result on Convex and in the room, proved against both hosts: rolls apply carried test dice, minimum roll and effect spends; resource spend has one implementation; HP is clamped after a maximum change; ending concentration has one orchestration; casting places summons. The schema validators import the HP, temporary HP and death-save arithmetic. Manual HP edits still bypass defenses (D156)."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-12.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-12.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 5
+              },
+              "text": "One Sheet host module for Convex and the room; one resource spend; validators import the arithmetic; failing-first parity tests per divergence."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-13",
+          "title": "One per-target driver for single, list and area actions",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 13,
+            "after": ["QUALITY-8.T1", "QUALITY-10.T1"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-13.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R10.",
+              "text": "Single-target, chosen-list and area actions run one per-target driver and one commit skeleton; a chosen-list action offers a reaction and a save window; area tests are unchanged."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-13.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-8.T1", "QUALITY-10.T1"]
+              },
+              "text": "One per-target driver for the three target shapes."
+            },
+            {
+              "id": "QUALITY-13.T2",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T1"]
+              },
+              "text": "One commit skeleton for action, area, countered-cast and gated commits."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-14",
+          "title": "One effect-lifetime model and one concentration planner",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 13,
+            "after": ["QUALITY-11.T1", "QUALITY-13.T2"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-14.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R11.",
+              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-14.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-11.T1", "QUALITY-13.T2"]
+              },
+              "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table."
+            },
+            {
+              "id": "QUALITY-14.T2",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T1"]
+              },
+              "text": "One concentration planner for action and movement damage."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-15",
+          "title": "The compiler composes",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 5,
+            "size": 13,
+            "after": ["QUALITY-6.T1", "QUALITY-9.T2"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-15.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R12.",
+              "text": "Activation, targeting, test, outcome and lifetime compile independently; the refused count falls with no change to passing rows, and each remaining refusal is a game rule or invalid input."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-15.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-6.T1", "QUALITY-9.T2"]
+              },
+              "text": "Compiler composition replacing the shape ladders."
+            },
+            {
+              "id": "QUALITY-15.T2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T1"]
+              },
+              "text": "Refusal triage: implement unimplemented combinations; each remaining refusal names a game rule or invalid input."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-16",
+          "title": "No System names in neutral code",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 1,
+            "tc": 2,
+            "rr": 3,
+            "size": 5,
+            "after": ["QUALITY-14.T2"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-16.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R13.",
+              "text": "A content ratchet fails on dnd5e strings and System rule literals outside systems/; legendary discovery, relationship paths, lifetime literals and Kernel contributors read System data instead."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-16.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-16.1"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-14.T2"]
+              },
+              "text": "Move System literals behind System data; content ratchet."
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-17",
+          "title": "Turn and spatial effects fold damage once",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "QUALITY-17.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice bug.",
+              "text": "Several effects damaging one target in a turn-effect or spatial pass settle through one damage fold that honours damage interceptions; a failing-first regression test proves the defect before the fix, or the investigation records that none exists."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-17.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-17.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Investigate the double fold in encounterTurnEffects.ts and encounterSpatialCandidateExecution.ts with a failing-first test; fix through one fold."
+            }
+          ]
         }
       ],
       "uatByOtherFeatures": true
@@ -25295,7 +25857,8 @@
         "PRIVACY",
         "RELIABILITY",
         "VTT_UI",
-        "PERF"
+        "PERF",
+        "QUALITY"
       ],
       "summary": "Docs, the final local lifecycle on one source, staging promotion and production smoke.",
       "regressionTests": [],

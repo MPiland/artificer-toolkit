@@ -2,9 +2,21 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-21 (Q29 added).
+> Updated: 2026-11-10 (Q30 added).
 
 ## Open
+
+### Q30 (2026-11-10) Three Grappler rulings for SPELLS-33.T8a
+
+**Context:** SPELLS-33.T8a converts the Grappler closed rules (Mimic Grappler, the Grappler feat's advantage and Pin) to core options. It was held for the pipeline audit, which is now registered (QUALITY-4 to QUALITY-17). T8a blocks SPELLS-4.T4e, which deletes the closed-rule kind and precedes the release checks.
+
+**Options (my recommendation for each):**
+
+- (a) Advantage against a creature you grapple: an attacker-side authored option, "advantage on attacks against creatures you hold in relationship kind X", read from the existing actor-relationship attack-roll influence. No feature-specific code.
+- (b) Pin (both creatures restrained): description-only with a GM ruling (D156/D198), and a fast follow in `docs/roadmap/future-enhancements.md` for a mutual-condition outcome.
+- (c) Mimic Adhesive: automated in both forms (object and true form) from core options; the GM ends it by editing state.
+
+**Answer:**
 
 ### Q29 (2026-10-21) Should a Troll at 0 hit points stay up until its regeneration fails?
 
