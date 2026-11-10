@@ -159,3 +159,4 @@ Option B of the former architect packet, approved. Closes AC ATTACK-9.2.
 ### Proposed ledger edits
 
 ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.T2c (shape e) built; ATTACK-9.T2d (shape f, real SRD Sneak Attack) built; ATTACK-9.T2e (settled-mode gate, D124) built; ATTACK-9.2 closes with T2e.
+

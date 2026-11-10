@@ -94,7 +94,7 @@ async function wolfHitPointsLost(input: {
   expect(firstPrompt.pending.request.rollMode).toBe(input.wolfCondition ? 'ADVANTAGE' : 'NORMAL')
   // The roller takes the d20 in the chosen mode, then rolls every damage die the hit asks for.
   let mode: 'NORMAL' | 'ADVANTAGE' | null = input.rolledMode
-  for (let decision = firstPrompt; ;) {
+  for (let decision = firstPrompt; ; ) {
     expect((await room.rollDice(decision, mode)).type).toBe('COMMAND_COMMITTED')
     const held = (await readRoomHistory(room.room.base.stub)).evidenceRolls.at(-1)
     if (!held || !('request' in decision.pending)) throw new Error('The roll was not held.')
@@ -112,10 +112,7 @@ async function wolfHitPointsLost(input: {
   return before - (await hitPoints())
 }
 
-const riderDamage = async (input: {
-  wolfCondition: 'BLINDED' | 'PRONE' | null
-  rolledMode: 'NORMAL' | 'ADVANTAGE'
-}) =>
+const riderDamage = async (input: { wolfCondition: 'BLINDED' | 'PRONE' | null; rolledMode: 'NORMAL' | 'ADVANTAGE' }) =>
   (await wolfHitPointsLost({ ...input, withRider: true })) -
   (await wolfHitPointsLost({ ...input, withRider: false }))
 

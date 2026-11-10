@@ -1,6 +1,6 @@
 import { Loader } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { z } from 'zod'
@@ -28,7 +28,12 @@ export function CampaignLeave({
     onError: (error) => onFailed(error.message)
   })
 
+  const started = useRef(false)
+
   useEffect(() => {
+    // StrictMode reruns effects on the same instance; one mount sends one departure.
+    if (started.current) return
+    started.current = true
     removeCampaignQueries(queryClient, input.campaignId)
     mutate()
   }, [input.campaignId, mutate, queryClient])

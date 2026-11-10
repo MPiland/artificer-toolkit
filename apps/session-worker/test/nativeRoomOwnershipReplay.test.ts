@@ -62,9 +62,7 @@ function waitForClose(socket: WebSocket): Promise<CloseEvent> {
  */
 async function transferOwnership(room: Room, ownerId: string, formerOwnerId: string) {
   const { base } = room
-  const membershipEpoch = new Date(
-    Date.parse(base.capture.origin.membershipEpoch) + 1
-  ).toISOString()
+  const membershipEpoch = new Date(Date.parse(base.capture.origin.membershipEpoch) + 1).toISOString()
   base.authorization.members = [
     { membershipEpoch, role: 'OWNER', userId: ownerId },
     { membershipEpoch, role: 'PLAYER', userId: formerOwnerId }

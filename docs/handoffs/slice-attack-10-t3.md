@@ -23,13 +23,13 @@
 
 ## Proof paths
 
-| Criterion                                                                                                                                         | Proof                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| The reaction's perception applies Blinded and Invisible                                                                                           | `packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts`            |
-| An opportunity attack against a mover that can't see its reactor rolls with advantage and keeps the higher die                                    | `apps/session-worker/test/nativeMovementAttackSight.test.ts`                                  |
+| Criterion | Proof |
+| --- | --- |
+| The reaction's perception applies Blinded and Invisible | `packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts` |
+| An opportunity attack against a mover that can't see its reactor rolls with advantage and keeps the higher die | `apps/session-worker/test/nativeMovementAttackSight.test.ts` |
 | A player rolling an opportunity attack against a mover that can't see them is shown a normal roll, holds the die, and the GM sees the full reason | `nativeMovementAttackSight.test.ts` (player-view test; `movementRoomFixture.ts` `pendingFor`) |
-| Disarm against a Blinded target auto-rolls in the true mode, and a prompted initiator holds one die and settles in the true mode                  | `apps/session-worker/test/nativeRoomDisarm.test.ts`                                           |
-| A player's Disarm prompt hides the hidden fact (normal roll, generic held-die caption); the GM sees the full reason                               | `apps/apis/convex/encounters/actionDisarm.test.ts`                                            |
+| Disarm against a Blinded target auto-rolls in the true mode, and a prompted initiator holds one die and settles in the true mode | `apps/session-worker/test/nativeRoomDisarm.test.ts` |
+| A player's Disarm prompt hides the hidden fact (normal roll, generic held-die caption); the GM sees the full reason | `apps/apis/convex/encounters/actionDisarm.test.ts` |
 
 ## Open
 

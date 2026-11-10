@@ -10,24 +10,24 @@ Same harness and load profile as T1: `local-validation/platform-5-t1/run.mjs` (t
 
 Maximum `userExecutionTime` per mutation, in ms. Limit 1000. "Before" is the T1 code (`base-*` logs), "after" the final T2 code (`final-*` logs).
 
-| Mutation (replay)               | Before idle | Before 12 burners | After idle | After 12 burners |
-| ------------------------------- | ----------- | ----------------- | ---------- | ---------------- |
-| `bootstrap`                     | 68          | 65                | 47         | 59               |
-| `importSubjects`                | 174         | 221               | 138        | 208              |
-| `importDefinitions`             | 70          | 99                | 121        | 88               |
-| `syncClassDerived`              | 29          | 53                | 32         | 44               |
-| `raceRelationships.syncDerived` | 71          | 66                | 50         | 184              |
-| `syncEquipmentDerived`          | 86          | 170               | 140        | 289              |
+| Mutation (replay) | Before idle | Before 12 burners | After idle | After 12 burners |
+| --- | --- | --- | --- | --- |
+| `bootstrap` | 68 | 65 | 47 | 59 |
+| `importSubjects` | 174 | 221 | 138 | 208 |
+| `importDefinitions` | 70 | 99 | 121 | 88 |
+| `syncClassDerived` | 29 | 53 | 32 | 44 |
+| `raceRelationships.syncDerived` | 71 | 66 | 50 | 184 |
+| `syncEquipmentDerived` | 86 | 170 | 140 | 289 |
 
 - **Margin reached on replay:** every mutation is at most 289 ms at 12 burners (3.5 times under the limit; `syncEquipmentDerived`), `importSubjects` at most 208 ms. A fresh seed on the same code peaked at 167 ms for `importSubjects` (`final-fresh`).
 - **Run-to-run noise is as large as the differences above.** A maximum over 20 to 379 calls moves by 50 to 100 ms between identical runs (for example `importDefinitions` 70 to 121 ms idle, `syncEquipmentDerived` 86 to 140 ms idle). `importSubjects` per-call distribution, replay (ms):
 
-  | Run                | calls | sum   | p50 | p90 | p99 | max |
-  | ------------------ | ----- | ----- | --- | --- | --- | --- |
-  | before, idle       | 379   | 24281 | 55  | 97  | 155 | 174 |
-  | after, idle        | 379   | 24010 | 58  | 92  | 114 | 138 |
-  | before, 12 burners | 379   | 31757 | 75  | 123 | 186 | 221 |
-  | after, 12 burners  | 379   | 31598 | 74  | 121 | 174 | 208 |
+  | Run | calls | sum | p50 | p90 | p99 | max |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | before, idle | 379 | 24281 | 55 | 97 | 155 | 174 |
+  | after, idle | 379 | 24010 | 58 | 92 | 114 | 138 |
+  | before, 12 burners | 379 | 31757 | 75 | 123 | 186 | 221 |
+  | after, 12 burners | 379 | 31598 | 74 | 121 | 174 | 208 |
 
 ## What the replay path costs, and what did not help
 

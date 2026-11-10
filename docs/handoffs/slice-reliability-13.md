@@ -18,16 +18,16 @@ The events read now takes 17 and refuses more than 16 (one receipt per presentat
 
 ## ACs
 
-| AC                                                                                               | Proof                                                                            |
-| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| Cleanup removes a fixture whose presentation history holds six receipts, the proof's racing case | `developmentScene.test.ts` "removes a presentation history of 6 changes"         |
-| Cleanup removes a history at the bound (16)                                                      | "removes a presentation history of 16 changes"                                   |
-| A history beyond the bound is refused with nothing deleted                                       | "rejects a presentation history beyond sixteen changes without partial deletion" |
+| AC | Proof |
+| --- | --- |
+| Cleanup removes a fixture whose presentation history holds six receipts, the proof's racing case | `developmentScene.test.ts` "removes a presentation history of 6 changes" |
+| Cleanup removes a history at the bound (16) | "removes a presentation history of 16 changes" |
+| A history beyond the bound is refused with nothing deleted | "rejects a presentation history beyond sixteen changes without partial deletion" |
 
 ## Red-first checklist
 
-| Test                                              | Red log                                                                                                                                                                                            | Green log                                               |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Test | Red log | Green log |
+| --- | --- | --- |
 | `developmentScene.test.ts` (the three rows above) | `local-validation/reliability-13/red.log` (2 failed: 6 and 16 changes, "Fixture Scene bounds or ownership mismatch."; the 17-change row already passed at base because the base bound is stricter) | `local-validation/reliability-13/green.log` (20 passed) |
 
 ## Status log

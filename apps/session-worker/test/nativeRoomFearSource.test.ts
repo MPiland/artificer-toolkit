@@ -194,15 +194,12 @@ async function fleeSources(room: FearRoom) {
   const first = base.messages.length
   base.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
   const state = await vi.waitFor(() => {
-    const message = base.messages
-      .slice(first)
-      .find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
+    const message = base.messages.slice(first).find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
     if (message?.type !== 'ENCOUNTER_SESSION' || !message.session.held)
       throw new Error('The room has not sent the held Encounter session.')
     return message.session.state
   })
-  return state.turnMovement.find(({ actorId }) => actorId === FRIGHTENED_WOLF_ID)
-    ?.fleeSourceActorIds
+  return state.turnMovement.find(({ actorId }) => actorId === FRIGHTENED_WOLF_ID)?.fleeSourceActorIds
 }
 
 describe('room Fear follows its caster (SPELLS-29.T1)', () => {
@@ -282,12 +279,7 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
     await castFear(room)
     await room.advanceTurn()
 
-    const teleport = await moveFrightenedWolf(
-      room,
-      [WOLF_START, { x: 350, y: 150 }],
-      [],
-      'TELEPORT'
-    )
+    const teleport = await moveFrightenedWolf(room, [WOLF_START, { x: 350, y: 150 }], [], 'TELEPORT')
     expect(teleport).toMatchObject({
       type: 'COMMAND_REJECTED',
       reason: 'RULE_WARNINGS',
@@ -302,9 +294,7 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
     await castFear(room)
     expect(room.room.diceDrawn()).toBe(2)
     const { activeEffects } = await readRoomHistory(room.room.base.stub)
-    const fearOnWolf = activeEffects.find(
-      ({ targetActorId }) => targetActorId === FRIGHTENED_WOLF_ID
-    )
+    const fearOnWolf = activeEffects.find(({ targetActorId }) => targetActorId === FRIGHTENED_WOLF_ID)
 
     expect(await endFrightenedWolfTurn(room)).toEqual([
       expect.objectContaining({
@@ -327,9 +317,7 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
     const room = await fearRoom({ casterInvisible: true, rolls: [0, 0, 19] })
     await castFear(room)
     const { activeEffects } = await readRoomHistory(room.room.base.stub)
-    const fearOnWolf = activeEffects.find(
-      ({ targetActorId }) => targetActorId === FRIGHTENED_WOLF_ID
-    )
+    const fearOnWolf = activeEffects.find(({ targetActorId }) => targetActorId === FRIGHTENED_WOLF_ID)
 
     expect(await endFrightenedWolfTurn(room)).toEqual([
       expect.objectContaining({
@@ -366,9 +354,7 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
 })
 
 describe('room Fear makes its Frightened creatures flee the caster (SPELLS-29.T2)', () => {
-  const dashDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
-    ({ id }) => id === SRD_BASIC_ACTION_IDS.DASH
-  )
+  const dashDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DASH)
   if (dashDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('The SRD authors Dash.')
   const dashActionId = encounterBasicActionId(
     FRIGHTENED_WOLF_ID,
@@ -377,10 +363,7 @@ describe('room Fear makes its Frightened creatures flee the caster (SPELLS-29.T2
   )
 
   /** The frightened Wolf's turn, its Bite at the other Wolf: the room's answer. */
-  async function biteOnItsTurn(
-    room: FearRoom,
-    acknowledged: readonly EncounterRuleWarningCodeDto[]
-  ) {
+  async function biteOnItsTurn(room: FearRoom, acknowledged: readonly EncounterRuleWarningCodeDto[]) {
     const bite = plainWolf.features?.find((feature) => feature.label === 'Bite')
     if (!bite) throw new Error('The Wolf has a Bite.')
     const { answer } = await room.startAction(

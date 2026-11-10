@@ -8,11 +8,11 @@ Base: `codex/phase-08-2-convex-cutover`. Branch `quality-3` (worktree `angry-eng
 
 ## Rules and their cleanup (one commit each)
 
-| Rule                           | Where                                                                                                                             | Violations fixed                                                                                                                                                                                                                                                                     |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CI lint job                    | `lint` job in `.github/workflows/tests.yml` runs `yarn lint`; described in [CI validation](../architecture/ci-validation.md#lint) | 6 `no-unused-vars` errors that were already on the phase tip. 4 were removed. 2 were rest-sibling omissions, now allowed by `ignoreRestSiblings`. `argsIgnorePattern`/`varsIgnorePattern` `^_` keep oxlint's defaults.                                                               |
-| `react/only-export-components` | `.oxlintrc.jsonc` override for `apps/web`, `design-system` and `emails` `.tsx` files; route modules, tests and stories exempt     | 10 sites. 2 were real: `getSessionWorkspaceViews`/`SessionWorkspaceView` and `isCampaignTableSettingsEditable` moved into `domains/campaigns/campaignAccess.ts`, with their tests. 8 were false positives on TanStack Form HOCs, declared as `customHOCs: withForm, withFieldGroup`. |
-| No double casts outside tests  | `scripts/doubleCasts.mjs` (`yarn lint:casts`, chained into `yarn lint`; test `scripts/doubleCasts.test.mjs`)                      | 49 found: 24 typed properly, 6 now checked single assertions, 19 allowlisted (below)                                                                                                                                                                                                 |
+| Rule | Where | Violations fixed |
+| --- | --- | --- |
+| CI lint job | `lint` job in `.github/workflows/tests.yml` runs `yarn lint`; described in [CI validation](../architecture/ci-validation.md#lint) | 6 `no-unused-vars` errors that were already on the phase tip. 4 were removed. 2 were rest-sibling omissions, now allowed by `ignoreRestSiblings`. `argsIgnorePattern`/`varsIgnorePattern` `^_` keep oxlint's defaults. |
+| `react/only-export-components` | `.oxlintrc.jsonc` override for `apps/web`, `design-system` and `emails` `.tsx` files; route modules, tests and stories exempt | 10 sites. 2 were real: `getSessionWorkspaceViews`/`SessionWorkspaceView` and `isCampaignTableSettingsEditable` moved into `domains/campaigns/campaignAccess.ts`, with their tests. 8 were false positives on TanStack Form HOCs, declared as `customHOCs: withForm, withFieldGroup`. |
+| No double casts outside tests | `scripts/doubleCasts.mjs` (`yarn lint:casts`, chained into `yarn lint`; test `scripts/doubleCasts.test.mjs`) | 49 found: 24 typed properly, 6 now checked single assertions, 19 allowlisted (below) |
 
 The double-cast check is a repo script because oxlint has no native rule for it and its JS plugins are alpha. It parses every tracked non-test, non-generated TS module under `apps`, `packages` and `scripts` with `oxc-parser`.
 
@@ -50,6 +50,5 @@ TypeScript checks each one for comparability. Each narrows to the exact type at 
   - feature-grant facet `contexts` accept any subject, where the authored type pins them to `EQUIPMENT`.
 
   The parsed data carries the same fields, so nothing is dropped or misread at the table. This is a type-alignment refactor, not a bug.
-
 - **Effect outcome map builder generics.** `path.ts` reuses `OUTCOME_NODE_MAP` as the typed child map of damage and condition groups, and it reuses `registerOutcomeFields`' builder API for the non-manifest outcome map. Removing the casts means reworking the node-map builder generics, in the SPELLS-20 area.
 - **Inert hooks rule.** The top-level `react/rules-of-hooks: error` in `.oxlintrc.jsonc` is inert, because the react plugin is not enabled at the top level. Enabling the plugin repo-wide reports 222 findings, including 93 rules-of-hooks hits.

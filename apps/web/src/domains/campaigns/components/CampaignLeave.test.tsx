@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { screen, waitFor } from '@testing-library/react'
 import { getFunctionName } from 'convex/server'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
@@ -59,5 +60,21 @@ describe('CampaignLeave', () => {
     )
     expect(mocks.leave).toHaveBeenCalledTimes(2)
     for (const [sent] of mocks.leave.mock.calls) expect(sent).toBe(input)
+  })
+
+  it('sends one departure when StrictMode reruns the mount effect', async () => {
+    mocks.leave.mockResolvedValue({ ok: true })
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
+    renderWithAppProviders(
+      <StrictMode>
+        <CampaignLeave input={input} onFailed={vi.fn()} />
+      </StrictMode>
+    )
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/campaigns'))
+    expect(mocks.leave).toHaveBeenCalledTimes(1)
+    expect(mocks.removeCampaignQueries).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
   })
 })

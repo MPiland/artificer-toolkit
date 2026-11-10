@@ -1,10 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import type { ModifierGrantAuthored, ModifierGrantAuthoredFor } from '#authored'
-import {
-  compileModifierGrant,
-  compileModifierGrantResult,
-  type CompiledModifierGrant
-} from '#compilers'
+import { compileModifierGrant, compileModifierGrantResult, type CompiledModifierGrant } from '#compilers'
 import type { ModifierKind, ValueDomainCode } from '#core'
 
 type DamageAbilityModifier = Extract<
@@ -34,10 +30,7 @@ describe('modifier grant compiler', () => {
     const asAuthored: ModifierGrantAuthored = capped
 
     expectTypeOf(reorder(meleeDamageBonus, 2)).toEqualTypeOf<DamageAbilityModifier>()
-    expect(reorder(asAuthored, 2)).toMatchObject({
-      order: 2,
-      payload: { ability: 'STRENGTH', max: 0 }
-    })
+    expect(reorder(asAuthored, 2)).toMatchObject({ order: 2, payload: { ability: 'STRENGTH', max: 0 } })
   })
 
   it('compiles to one flat shape whose domain and kind override independently', () => {

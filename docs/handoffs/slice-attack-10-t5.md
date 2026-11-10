@@ -13,11 +13,11 @@
 
 ## Proof paths
 
-| Criterion                                                                                                                  | Proof                                                                                                                                                                                                                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The GM's projection carries each hidden creature's observers; a player's never does                                        | `packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts` ("gives the GM a concealment with its observers and gives no viewer but the GM any trace of it")                                                                                                                              |
-| The room sends the GM the list and a player nothing, including the edit's commit                                           | `apps/session-worker/test/nativeRoomHideAction.test.ts` ("who is shown the observers a hider is hidden from, in the room")                                                                                                                                                                             |
-| The GM lists, adds and removes observers; a player sees no list or control                                                 | `apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx` ("concealment observers (D116)")                                                                                                                                                                                         |
+| Criterion | Proof |
+| --- | --- |
+| The GM's projection carries each hidden creature's observers; a player's never does | `packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts` ("gives the GM a concealment with its observers and gives no viewer but the GM any trace of it") |
+| The room sends the GM the list and a player nothing, including the edit's commit | `apps/session-worker/test/nativeRoomHideAction.test.ts` ("who is shown the observers a hider is hidden from, in the room") |
+| The GM lists, adds and removes observers; a player sees no list or control | `apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx` ("concealment observers (D116)") |
 | Journey: the GM opens the creature, sees its observers and removes one; the player's table updates and shows nothing of it | `apps/web/tests/live-backend/encounterHide.ts` driven by `apps/apis/tests/developmentEncounterHide.ts`; run with `pwsh scripts/runLocalConvexProof.ps1 -Name <unique> -Proof hide-browser` (needs the local Convex deployment redeployed from this source, the Worker on 8787 and the web app on 3000) |
 
 ## Status log
@@ -32,3 +32,4 @@
 - A reseed after a corpus change will stop needing a reset once PLATFORM-18.T1 lands.
 - Environment findings recorded in the runbook: the local deployment's `LIVE_SESSION_WORKER_URL` must be `http://host.docker.internal:8787` (it was `127.0.0.1`, unreachable from the bridge container, now set), and the proof's evidence folder name must be short in a worktree (Windows path limit on the Worker's durable-object state).
 - Tooling shipped with the proof: `scripts/runLocalBrowserProof.mjs` (one proof, optional `--deploy`, never resets) and the shared `convexDeployArguments` in `scripts/convexSelfHosted.mjs`, used by the runner, the live-backend script and the single-proof runner.
+

@@ -76,14 +76,14 @@ spell grants the move; ordinary voluntary movement stays shown-not-enforced.
 ## Red-first checklist
 
 - [x] `packages/rules-runtime/src/__tests__/encounterTeleportAllowance.test.ts`: Misty Step and Dimension Door compile
-      and execute to the allowance (30 VISIBLE / 500 SPECIFIED_POINT); the custom core-option Spell gives 15; TARGET and
-      long-range teleports stay refused. Real authored SRD data, real compiler.
+  and execute to the allowance (30 VISIBLE / 500 SPECIFIED_POINT); the custom core-option Spell gives 15; TARGET and
+  long-range teleports stay refused. Real authored SRD data, real compiler.
 - [x] `packages/encounter-persistence/src/__tests__/turnTeleportAllowance.test.ts`: record, expiry on a new turn, select
-      smallest admitting, consume, restore, remove-refused-when-consumed.
+  smallest admitting, consume, restore, remove-refused-when-consumed.
 - [x] shared `teleportDestination` unit test: range, occupied, unseen, selection order.
 - [x] `apps/session-worker/test/nativeRoomTeleportAction.test.ts`: journey on the real room: player casts, the allowance
-      appears, the player's TELEPORT lands with no reaction, a second TELEPORT is refused, a player TELEPORT without a cast is
-      refused, GM TELEPORT is ungated, undo move then cast restores both, cast undo refused after the move.
+  appears, the player's TELEPORT lands with no reaction, a second TELEPORT is refused, a player TELEPORT without a cast is
+  refused, GM TELEPORT is ungated, undo move then cast restores both, cast undo refused after the move.
 - [x] Web model test: allowance in `turnMovement` turns a drag into a `TELEPORT` command; off otherwise.
 - [x] Convex/room read-model test: `turnMovement[].teleport` agrees between Convex and the room.
 

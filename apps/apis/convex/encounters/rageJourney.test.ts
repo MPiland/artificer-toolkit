@@ -51,7 +51,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
 
     // d20 15 hits the Wolf; the d12 rolls 5.
     await queueRoomRolls(fixture.campaign.id, { rolls: [14, 4] })
-    const hit = await actOnRun(fixture, raged, {
+    const hit = await actOnRun(fixture,raged, {
       actorId: fixture.actor.id,
       actionId: fixture.actions.axe.actionId,
       targetActorId: fixture.wolf.id
@@ -71,7 +71,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
     }))
     expect(wolfTurn.projection.currentActorId).toBe(fixture.wolf.id)
     await queueRoomRolls(fixture.campaign.id, { rolls: [14, 0, 3] })
-    const bitten = await actOnRun(fixture, wolfTurn, {
+    const bitten = await actOnRun(fixture,wolfTurn, {
       actorId: fixture.wolf.id,
       actionId: fixture.biteActionId,
       targetActorId: fixture.actor.id
@@ -256,28 +256,21 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
   })
 
   describe('ending early when the Barbarian is idle (ATTACK-9.T6)', () => {
-    const advance = (
-      fixture: BarbarianRun,
-      from: { projection: Pick<RunResult['projection'], 'version'> }
-    ) =>
+    const advance = (fixture: BarbarianRun, from: { projection: Pick<RunResult['projection'], 'version'> }) =>
       executeOnRun(fixture, (base) => ({
         ...base,
         type: 'ADVANCE_TURN',
         expectedVersion: from.projection.version
       }))
 
-    const undo = (
-      fixture: BarbarianRun,
-      from: { projection: Pick<RunResult['projection'], 'version'> }
-    ) =>
+    const undo = (fixture: BarbarianRun, from: { projection: Pick<RunResult['projection'], 'version'> }) =>
       executeOnRun(fixture, (base) => ({
         ...base,
         type: 'REVERT_LAST_ACTION',
         expectedVersion: from.projection.version
       }))
 
-    const grantCount = async (fixture: BarbarianRun) =>
-      (await barbarianState(fixture)).grantIds.length
+    const grantCount = async (fixture: BarbarianRun) => (await barbarianState(fixture)).grantIds.length
 
     /** The Barbarian rages and passes the turn; the Wolf holds the turn and the Rage is not yet at risk. */
     async function ragedAndPassed(fixture: BarbarianRun) {
