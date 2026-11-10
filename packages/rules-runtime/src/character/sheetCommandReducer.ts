@@ -44,6 +44,11 @@ import {
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
+import {
+  equipmentLineage,
+  itemCapacityRefusal,
+  type ContainedPieces
+} from '../containerCapacity.js'
 import { applyCharacterNoteCommand } from './sheetNotes.js'
 import {
   buildSheetSpellSummon,
@@ -405,6 +410,25 @@ export function applyCharacterSheetCommand(
     const containerItem = next.state.equipment.inventory.find((item) => item.id === containerId)
     if (containerItem?.containerId)
       throw new CharacterSheetCommandError('Nested containers are not supported.')
+  }
+
+  const heldLineage = (item: { readonly id: string; readonly equipmentId: string }) => [
+    item.equipmentId,
+    ...(findInventoryItem(sheet, item.id)?.parentEquipmentIds ?? [])
+  ]
+
+  const ensureItemCapacityRoom = (
+    containerId: string,
+    added: ContainedPieces & { readonly label: string },
+    movingItemId?: string
+  ) => {
+    const container = sheet.inventory.containers?.find((candidate) => candidate.id === containerId)
+    if (!container) return
+    const contents = next.state.equipment.inventory
+      .filter((item) => item.containerId === containerId && item.id !== movingItemId)
+      .map((item) => ({ equipmentIds: heldLineage(item), quantity: item.quantity }))
+    const refusal = itemCapacityRefusal(container, contents, added)
+    if (refusal) throw new CharacterSheetCommandError(refusal)
   }
 
   const ensureEmptyContainer = (itemId: string) => {
@@ -1041,6 +1065,12 @@ export function applyCharacterSheetCommand(
         )
       }
       ensureContainer(command.containerId)
+      if (command.containerId)
+        ensureItemCapacityRoom(command.containerId, {
+          equipmentIds: equipmentLineage(equipment),
+          quantity: command.quantity,
+          label: equipment.label
+        })
       const addedItems = Array.from(
         { length: equipment.maxStack === 1 ? command.quantity : 1 },
         () => ({
@@ -1109,11 +1139,27 @@ export function applyCharacterSheetCommand(
       }
 
       if (command.containerId !== undefined && command.containerId !== null) {
-        const movingItem = sheet.inventory.items.find((item) => item.id === command.itemId)
-        if (movingItem?.capacity) {
+        if (sheet.inventory.containers?.some((container) => container.id === command.itemId)) {
           throw new CharacterSheetCommandError('Nested containers are not supported.')
         }
         ensureContainer(command.containerId, command.itemId)
+      }
+      const destinationId =
+        command.containerId === null ? undefined : (command.containerId ?? existingItem.containerId)
+      const quantity = command.quantity ?? existingItem.quantity
+      if (
+        destinationId &&
+        (destinationId !== existingItem.containerId || quantity > existingItem.quantity)
+      ) {
+        ensureItemCapacityRoom(
+          destinationId,
+          {
+            equipmentIds: heldLineage(existingItem),
+            quantity,
+            label: findInventoryItemLabel(sheet, existingItem.id) ?? existingItem.equipmentId
+          },
+          existingItem.id
+        )
       }
 
       next.state.equipment.inventory = next.state.equipment.inventory.map((item) =>

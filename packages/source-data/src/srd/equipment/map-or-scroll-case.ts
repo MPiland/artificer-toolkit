@@ -11,8 +11,9 @@ export const mapOrScrollCase: EquipmentAuthored = {
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.gp(1),
   weight: S.lbs(1),
-  effects: [
-    S.passiveEquipmentClosedRuleEffect(S.equipId(114), 'EQUIPMENT_MAP_SCROLL_CASE_CAPACITY')
+  itemCapacity: [
+    { amount: 10, equipmentIds: [S.equipId(158)] },
+    { amount: 5, equipmentIds: [S.equipId(159)] }
   ],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,

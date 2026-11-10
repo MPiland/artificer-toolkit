@@ -5,7 +5,20 @@ import {
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
-import { characterSheetEquipmentOptionsResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
+import {
+  characterSheetEquipmentOptionsResponseDtoSchema,
+  characterSheetResponseDtoSchema
+} from '@artificer-toolkit/schema/api/characterSheetData'
+import {
+  prepareFixtureBuilder,
+  prepareFixtureSheet,
+  readyFighterFixture
+} from '@artificer-toolkit/rules-runtime/testing/characterContextFixtures'
+import { arrows } from '@artificer-toolkit/source-data/srd/equipment/arrows.js'
+import { mapOrScrollCase } from '@artificer-toolkit/source-data/srd/equipment/map-or-scroll-case.js'
+import { paperOneSheet } from '@artificer-toolkit/source-data/srd/equipment/paper-one-sheet.js'
+import { parchmentOneSheet } from '@artificer-toolkit/source-data/srd/equipment/parchment-one-sheet.js'
+import { quiver } from '@artificer-toolkit/source-data/srd/equipment/quiver.js'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createSheet, openEquipmentManager, showCarriedEquipment } from '../tests/sheetTestHarness'
 import { CharacterSheetInventory } from './CharacterSheetInventory'
@@ -404,5 +417,59 @@ describe('Character Sheet inventory', () => {
       expectedVersion: 4
     })
     expect(screen.getByRole('combobox', { name: /^currency type$/i })).toHaveValue(copper.label)
+  })
+
+  it('shows item-count limits and keeps containers out of other containers (D217)', async () => {
+    const user = userEvent.setup()
+    const fixture = readyFighterFixture()
+    const { character: built } = await prepareFixtureBuilder(fixture)
+    const quiverItemId = crypto.randomUUID()
+    const { sheet: projected } = await prepareFixtureSheet({
+      streamVersion: 4,
+      character: {
+        ...built,
+        state: {
+          ...built.state,
+          equipment: {
+            ...built.state.equipment,
+            inventory: [
+              { id: quiverItemId, equipmentId: quiver.id, quantity: 1 },
+              { id: crypto.randomUUID(), equipmentId: mapOrScrollCase.id, quantity: 1 },
+              {
+                id: crypto.randomUUID(),
+                equipmentId: arrows.id,
+                quantity: 12,
+                containerId: quiverItemId
+              }
+            ]
+          }
+        }
+      },
+      documents: {
+        ...fixture.documents,
+        EQUIPMENT: [quiver, arrows, mapOrScrollCase, paperOneSheet, parchmentOneSheet]
+      }
+    })
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending={false}
+        sheet={characterSheetResponseDtoSchema.parse(projected)}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('Holds 20 Arrows')).toBeInTheDocument()
+    expect(
+      screen.getByText('Holds 10 Paper (one sheet) or 5 Parchment (one sheet)')
+    ).toBeInTheDocument()
+    await openEquipmentManager(user)
+    expect(screen.getByRole('combobox', { name: 'Move Quiver' })).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Move Arrows' }))
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Carried',
+      'Map or Scroll Case',
+      'Quiver'
+    ])
   })
 })

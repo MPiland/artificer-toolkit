@@ -23,6 +23,7 @@ import type {
   FacetAuthored,
   FeatureAuthored,
   EquipmentVariantAuthored,
+  ItemCapacityAuthored,
   WeightAuthored
 } from '#authored'
 import {
@@ -59,6 +60,26 @@ export const CAPACITY_NODE_MAP = capacityNode.define('capacity', ({ map, nodes }
     })
   )
 })
+
+const itemCapacityNode = buildNodeMap<ItemCapacityAuthored>()
+
+export const ITEM_CAPACITY_NODE_MAP = itemCapacityNode.define(
+  'itemCapacity',
+  ({ map, nodes, data }) => {
+    const { number, selectMulti } = nodes
+    const { table } = data
+
+    map.set('amount', number(['amount'], 'Amount')).set(
+      'equipmentIds',
+      selectMulti(['equipmentIds'], 'Counted Equipment', {
+        kind: 'DATA',
+        relationship: table('equipment', {
+          selectColumns: ['id', 'label']
+        })
+      })
+    )
+  }
+)
 
 const costNode = buildNodeMap<CostAuthored>()
 
@@ -291,6 +312,16 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
           presentation: 'inline',
           section: EQUIPMENT_SECTIONS.properties,
           order: 30,
+          showIf: isBaseEquipment,
+          hiddenBehavior: 'CLEAR'
+        })
+      )
+      .set(
+        'itemCapacity',
+        groupArray(['itemCapacity'], 'Item Capacity', () => ITEM_CAPACITY_NODE_MAP, {
+          presentation: 'inline',
+          section: EQUIPMENT_SECTIONS.properties,
+          order: 35,
           showIf: isBaseEquipment,
           hiddenBehavior: 'CLEAR'
         })

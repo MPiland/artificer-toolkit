@@ -2798,6 +2798,11 @@ export declare const api: {
                 label: string;
               }>;
               id: string;
+              itemCapacity?: Array<{
+                amount: number;
+                equipmentIds?: Array<string>;
+                label?: string;
+              }>;
               itemIds: Array<string>;
               label: string;
             }>;
@@ -2842,6 +2847,7 @@ export declare const api: {
               id: string;
               label: string;
               notes?: string;
+              parentEquipmentIds?: Array<string>;
               properties?: Array<{
                 code:
                   | "LIGHT"
@@ -3093,6 +3099,7 @@ export declare const api: {
               isContainer: boolean;
               label: string;
               maxStack?: number;
+              parentEquipmentIds: Array<string>;
               requiresAttunement: boolean;
             }>;
             features: Array<{
@@ -14503,6 +14510,7 @@ export declare const api: {
           isContainer: boolean;
           label: string;
           maxStack?: number;
+          parentEquipmentIds: Array<string>;
           requiresAttunement: boolean;
         }>
       >;
@@ -17684,6 +17692,11 @@ export declare const api: {
                 label: string;
               }>;
               id: string;
+              itemCapacity?: Array<{
+                amount: number;
+                equipmentIds?: Array<string>;
+                label?: string;
+              }>;
               itemIds: Array<string>;
               label: string;
             }>;
@@ -17728,6 +17741,7 @@ export declare const api: {
               id: string;
               label: string;
               notes?: string;
+              parentEquipmentIds?: Array<string>;
               properties?: Array<{
                 code:
                   | "LIGHT"
@@ -17979,6 +17993,7 @@ export declare const api: {
               isContainer: boolean;
               label: string;
               maxStack?: number;
+              parentEquipmentIds: Array<string>;
               requiresAttunement: boolean;
             }>;
             features: Array<{
@@ -21450,6 +21465,11 @@ export declare const api: {
                     label: string;
                   }>;
                   id: string;
+                  itemCapacity?: Array<{
+                    amount: number;
+                    equipmentIds?: Array<string>;
+                    label?: string;
+                  }>;
                   itemIds: Array<string>;
                   label: string;
                 }>;
@@ -21494,6 +21514,7 @@ export declare const api: {
                   id: string;
                   label: string;
                   notes?: string;
+                  parentEquipmentIds?: Array<string>;
                   properties?: Array<{
                     code:
                       | "LIGHT"
@@ -21591,6 +21612,7 @@ export declare const api: {
                   isContainer: boolean;
                   label: string;
                   maxStack?: number;
+                  parentEquipmentIds: Array<string>;
                   requiresAttunement: boolean;
                 }>;
               };

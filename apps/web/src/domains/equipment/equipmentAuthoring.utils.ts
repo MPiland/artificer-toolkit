@@ -3,6 +3,7 @@ import type {
   CapacityDto,
   ContainsDto,
   CostDto,
+  ItemCapacityDto,
   WeightDto
 } from '@artificer-toolkit/schema/subjects/shared'
 import type { EquipmentAuthoringInputDto } from '@artificer-toolkit/schema/subjects/equipment'
@@ -36,6 +37,7 @@ export type EquipmentFormValues = {
   cost?: CostDto
   weight?: WeightDto
   capacity?: CapacityDto
+  itemCapacity?: ItemCapacityDto[]
   maxStack?: number
   armorClass?: number
   contains?: ContainsDto[]
@@ -71,6 +73,7 @@ export function createEmptyBaseEquipment({
     modifiers: [],
     features: [],
     contains: [],
+    itemCapacity: [],
     requiresAttunement: false
   }
 }
@@ -111,6 +114,7 @@ export function toEquipmentFormValues(
     modifiers: equipment.modifiers ?? [],
     features: equipment.features ?? [],
     contains: equipment.contains ?? [],
+    itemCapacity: equipment.itemCapacity ?? [],
     weight: equipment.weight ?? createEmptyWeight()
   }
 }
@@ -152,6 +156,7 @@ export function normalizeEquipmentForSubmit(
     cost: equipment.cost,
     weight: equipment.weight ?? createEmptyWeight(),
     capacity: equipment.capacity,
+    itemCapacity: equipment.itemCapacity ?? [],
     maxStack: equipment.maxStack,
     armorClass: equipment.armorClass,
     contains: equipment.contains ?? [],

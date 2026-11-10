@@ -1,7 +1,13 @@
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/subjects/core'
 import { z, lazySchema } from '../zod.js'
 
-import { capacityDtoSchema, containsDtoSchema, costDtoSchema, weightDtoSchema } from './shared.js'
+import {
+  capacityDtoSchema,
+  containsDtoSchema,
+  costDtoSchema,
+  itemCapacityDtoSchema,
+  weightDtoSchema
+} from './shared.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -42,6 +48,7 @@ const baseEquipmentAuthoredDtoSchemaBase = lazySchema(() =>
     effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
     charges: z.optional(chargeDtoSchema),
     capacity: z.optional(capacityDtoSchema),
+    itemCapacity: z.optional(authoredNestedCollectionSchema(itemCapacityDtoSchema)),
     modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
     maxStack: z.optional(z.number().check(z.int())),
     ammunitionEquipmentId: z.optional(authoredIdentifierSchema),

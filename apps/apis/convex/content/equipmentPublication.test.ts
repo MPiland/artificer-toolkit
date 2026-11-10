@@ -238,8 +238,7 @@ describe('native Equipment publication', () => {
         category: document.category,
         properties: document.properties ?? [],
         builder: {
-          version: 1,
-          parentEquipmentId: document.category === 'VARIANT' ? document.parentEquipmentId : null,
+          version: 2,
           ...builder
         }
       })
@@ -496,7 +495,7 @@ describe('native Equipment publication', () => {
           .unique(),
         versions: await ctx.db
           .query('authoredVersions')
-          .filter((q) => q.eq(q.field('id'), draft.subjectId))
+          .withIndex('by_id_version', (q) => q.eq('id', draft.subjectId))
           .collect(),
         route: await ctx.db
           .query('authoredRouteIds')

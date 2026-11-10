@@ -189,7 +189,7 @@ export function toContentSnapshotIndexEntry(
       return {
         id,
         label,
-        parentEquipmentId: builder.parentEquipmentId,
+        parentEquipmentIds: builder.parentEquipmentIds,
         category: builder.category,
         isContainer: builder.isContainer,
         maxStack: builder.maxStack,

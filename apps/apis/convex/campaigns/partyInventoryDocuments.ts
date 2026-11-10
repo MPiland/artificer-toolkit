@@ -14,6 +14,7 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
 import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
+import { isContainerEquipment } from '@artificer-toolkit/rules-runtime/containerCapacity'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { requireRulesCatalogueSources } from '../content/catalogueBinding'
@@ -230,7 +231,7 @@ async function presentCampaignItem(
   let equipment = await current
   if (!equipment) {
     const retained = readRetainedPartyEquipment(campaign, item)
-    equipment = { label: retained.label, isContainer: retained.capacity !== undefined }
+    equipment = { label: retained.label, isContainer: isContainerEquipment(retained) }
   }
   return inventoryItemDtoSchema.parse({
     id: item.id,

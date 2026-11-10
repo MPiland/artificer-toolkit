@@ -1216,18 +1216,21 @@ export const characterSheetFixture = {
         id: 'equipment-staff',
         label: 'Quarterstaff',
         isContainer: false,
+        parentEquipmentIds: [],
         requiresAttunement: false
       },
       {
         id: 'equipment-spellbook',
         label: 'Spellbook',
         isContainer: false,
+        parentEquipmentIds: [],
         requiresAttunement: true
       },
       {
         id: 'equipment-component-pouch',
         label: 'Component Pouch',
         isContainer: false,
+        parentEquipmentIds: [],
         requiresAttunement: false
       }
     ],

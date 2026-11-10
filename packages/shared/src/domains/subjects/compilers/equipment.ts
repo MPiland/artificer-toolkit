@@ -57,6 +57,7 @@ export interface ResolvedEquipmentVariantInherited {
   effects?: BaseEquipmentAuthored['effects']
   charges?: BaseEquipmentAuthored['charges']
   capacity?: BaseEquipmentAuthored['capacity']
+  itemCapacity?: BaseEquipmentAuthored['itemCapacity']
   modifiers?: BaseEquipmentAuthored['modifiers']
   maxStack?: BaseEquipmentAuthored['maxStack']
   rarityId: BaseEquipmentAuthored['rarityId']
@@ -94,6 +95,7 @@ export type CompiledEquipmentBase = {
   effects?: CompiledEquipmentEffectGroup[]
   charges?: CompiledCharge
   capacity?: CompiledCapacity
+  itemCapacity?: BaseEquipmentAuthored['itemCapacity']
   modifiers?: CompiledModifierGrant[]
   maxStack?: number
   rarityId: string
@@ -165,6 +167,7 @@ function compileEquipmentBase(
     weight: 'weight' in authored ? authored.weight : undefined,
     attributes: 'attributes' in authored ? authored.attributes : undefined,
     capacity: 'capacity' in authored ? authored.capacity : undefined,
+    itemCapacity: 'itemCapacity' in authored ? authored.itemCapacity : undefined,
     charges,
     effects,
     features,
@@ -217,6 +220,7 @@ export function resolveEquipmentAuthored(
     effects: mergeOrderedValues(resolvedParent.effects, authored.effects),
     charges: authored.charges ?? resolvedParent.charges,
     capacity: resolvedParent.capacity,
+    itemCapacity: resolvedParent.itemCapacity,
     modifiers: mergeOrderedValues(resolvedParent.modifiers, authored.modifiers),
     maxStack: resolvedParent.maxStack,
     rarityId: authored.rarityId,
@@ -245,6 +249,7 @@ export function resolveEquipmentAuthored(
         effects: resolvedParent.effects,
         charges: resolvedParent.charges,
         capacity: resolvedParent.capacity,
+        itemCapacity: resolvedParent.itemCapacity,
         modifiers: resolvedParent.modifiers,
         maxStack: resolvedParent.maxStack,
         rarityId: resolvedParent.rarityId,

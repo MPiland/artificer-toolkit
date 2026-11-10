@@ -232,6 +232,7 @@ function rootDescriptor(
         field('weight', value.weight),
         field('attributes', value.attributes),
         field('capacity', value.capacity),
+        field('itemCapacity', value.itemCapacity),
         field('maxStack', value.maxStack),
         field('rarityId', value.rarityId),
         field('armorClass', value.armorClass),

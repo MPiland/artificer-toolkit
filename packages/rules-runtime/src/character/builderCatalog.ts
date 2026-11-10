@@ -20,6 +20,7 @@ import type {
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
+import { equipmentLineage, isContainerEquipment } from '../containerCapacity.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 
 type RaceIndexEntry = ContentSnapshotIndexEntry<'RACE'>
@@ -132,6 +133,8 @@ export type CharacterBuilderEquipmentCatalogRecord = {
   category?: EquipmentCategoryCode
   isContainer: boolean
   maxStack?: number
+  /** Variant ancestry, nearest parent first; empty for base equipment. */
+  parentEquipmentIds: string[]
   properties: EquipmentPropertyCode[]
   requiresAttunement: boolean
 }
@@ -139,14 +142,20 @@ export type CharacterBuilderEquipmentCatalogRecord = {
 export function toCharacterBuilderEquipmentCatalogRecord(
   equipment: ResolvedEquipment | CompiledEquipment | CharacterBuilderEquipmentCatalogRecord
 ): CharacterBuilderEquipmentCatalogRecord {
-  if ('isContainer' in equipment) return { ...equipment, properties: [...equipment.properties] }
+  if ('isContainer' in equipment)
+    return {
+      ...equipment,
+      parentEquipmentIds: [...equipment.parentEquipmentIds],
+      properties: [...equipment.properties]
+    }
   const maxStack =
     equipment.maxStack != null && equipment.maxStack > 0 ? equipment.maxStack : undefined
   return {
     id: equipment.id,
     label: equipment.label,
     category: equipment.category,
-    isContainer: Boolean(equipment.capacity),
+    isContainer: isContainerEquipment(equipment),
+    parentEquipmentIds: equipmentLineage(equipment).slice(1),
     maxStack: equipment.charges ? 1 : maxStack,
     properties: [...equipment.properties],
     requiresAttunement: equipment.requiresAttunement ?? false

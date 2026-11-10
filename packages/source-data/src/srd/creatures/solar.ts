@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 export const solar: CreatureAuthored = {
@@ -122,7 +123,8 @@ export const solar: CreatureAuthored = {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
               self: 'WARN'
-            }
+            },
+            resourceUse: { chargeId: S.actionId(256, 207), cost: 1 }
           },
           paths: [
             {
@@ -145,8 +147,14 @@ export const solar: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(256, 213),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SOLAR_HEALING_TOUCH
+                    effectKind: S.EFFECT_KIND.END_EFFECTS,
+                    scope: 'ALL' as const,
+                    selectors: [
+                      {
+                        kind: 'CONDITION' as const,
+                        conditionIds: ['BLINDED', 'DEAFENED', 'POISONED'].map(conditionTypeId)
+                      }
+                    ]
                   }
                 ]
               }

@@ -159,7 +159,7 @@ export async function readCharacterEquipmentCatalogue(
     if (!facts || !builder || facts.checksum !== root.checksum)
       throw new Error('Stored Equipment builder facts are missing or stale.')
     if (
-      builder.parentEquipmentId !== root.parentEquipmentId ||
+      (builder.parentEquipmentIds[0] ?? null) !== root.parentEquipmentId ||
       (facts.category === 'VARIANT') !== (root.parentEquipmentId !== null)
     )
       throw new Error('Stored Equipment parent metadata mismatch.')
@@ -167,7 +167,7 @@ export async function readCharacterEquipmentCatalogue(
     entries.push({
       id: root.id,
       label: root.label,
-      parentEquipmentId: builder.parentEquipmentId,
+      parentEquipmentIds: [...builder.parentEquipmentIds],
       category: builder.category,
       isContainer: builder.isContainer,
       ...(builder.maxStack === undefined ? {} : { maxStack: builder.maxStack }),

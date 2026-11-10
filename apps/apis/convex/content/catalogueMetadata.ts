@@ -13,6 +13,10 @@ import { syncAccountUsage } from '../lib/accountUsage'
 import { requireSystem } from './systemDocuments'
 import { isImportRowVisible } from '../imports/visibility'
 import type { AuthoredPublishDraftInput } from '@artificer-toolkit/schema/api/authoredPublication'
+import {
+  isContainerEquipment,
+  type ItemCapacityLimit
+} from '@artificer-toolkit/rules-runtime/containerCapacity'
 import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { parsePublicationDocument } from './publicationDocumentRead'
 
@@ -29,7 +33,13 @@ function storedForm<Value>(value: Value): Value {
  */
 export function rootCatalogueFacts(
   subjectKind: AuthoredPublishDraftInput['subjectKind'],
-  document: { status?: string; quote?: string; parentEquipmentId?: string; capacity?: unknown }
+  document: {
+    status?: string
+    quote?: string
+    parentEquipmentId?: string
+    capacity?: object
+    itemCapacity?: readonly ItemCapacityLimit[]
+  }
 ) {
   // A canonical document carries no status and is active; publication always writes ACTIVE.
   const publishedActive = (document.status ?? 'ACTIVE') === 'ACTIVE'
@@ -42,7 +52,7 @@ export function rootCatalogueFacts(
           // A variant's capacity is always its base's (`resolveEquipmentAuthored`). The root's
           // `parentEquipmentId` is the one variant signal its readers and `hasRootCatalogueFacts` use.
           ...(document.parentEquipmentId === undefined
-            ? { container: document.capacity !== undefined }
+            ? { container: isContainerEquipment(document) }
             : {})
         }
       }

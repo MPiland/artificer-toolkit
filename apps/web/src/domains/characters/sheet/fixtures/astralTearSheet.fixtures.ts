@@ -125,6 +125,7 @@ export const astralTearCharacterSheetFixture = {
         id: astralTearEquipmentId,
         label: 'The Astral Tear Awakened',
         isContainer: false,
+        parentEquipmentIds: [],
         requiresAttunement: true
       },
       ...characterSheetFixture.reference.equipmentOptions

@@ -12,6 +12,11 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  equipmentLineage,
+  isContainerEquipment,
+  itemCapacityRefusal
+} from '@artificer-toolkit/rules-runtime/containerCapacity'
 import { mutation } from '../lib/mutations'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
@@ -51,8 +56,41 @@ async function requirePlacementContainer(
   if (container.containerId !== null)
     throw new Error('Nested inventory containers are unavailable.')
   const equipment = await readHeldPartyEquipment(ctx, campaign, container)
-  if (equipment.capacity === undefined) throw new Error('Inventory destination is not a container.')
-  return container
+  if (!isContainerEquipment(equipment)) throw new Error('Inventory destination is not a container.')
+  return { container, equipment }
+}
+
+/** Refuses `quantity` pieces of `equipment` beyond the container's item-count capacity. */
+async function requireItemCapacityRoom(
+  ctx: MutationCtx,
+  campaign: Doc<'campaigns'>,
+  vehicleId: string | undefined,
+  { container, equipment: holder }: Awaited<ReturnType<typeof requirePlacementContainer>>,
+  equipment: Awaited<ReturnType<typeof readHeldPartyEquipment>>,
+  quantity: number,
+  movingItemId?: string
+) {
+  if (!holder.itemCapacity?.length) return
+  const rows = await ctx.db
+    .query('campaignPartyItems')
+    .withIndex('by_campaignId_vehicleId_containerId', (q) =>
+      q.eq('campaignId', campaign.id).eq('vehicleId', vehicleId).eq('containerId', container.id)
+    )
+    .collect()
+  const contents = await Promise.all(
+    rows
+      .filter((row) => row.id !== movingItemId)
+      .map(async (row) => ({
+        equipmentIds: equipmentLineage(await readHeldPartyEquipment(ctx, campaign, row)),
+        quantity: row.quantity
+      }))
+  )
+  const refusal = itemCapacityRefusal(holder, contents, {
+    equipmentIds: equipmentLineage(equipment),
+    quantity,
+    label: equipment.label
+  })
+  if (refusal) throw new Error(refusal)
 }
 export const mutate = mutation({
   args: () => ({ input: zodToConvex(campaignPartyInventoryMutationInputSchema) }),
@@ -135,12 +173,22 @@ export const mutate = mutation({
     let payload: CampaignEventDto['payload']
     if (input.kind === 'ITEM_ADD') {
       const equipmentId = input.equipmentId.toLowerCase()
-      if (containerId !== undefined && containerId !== null)
-        await requirePlacementContainer(ctx, campaign, vehicleId, containerId)
+      const placement =
+        containerId !== undefined && containerId !== null
+          ? await requirePlacementContainer(ctx, campaign, vehicleId, containerId)
+          : null
       const equipment = await readPartyEquipment(ctx, campaign, equipmentId)
-      if (containerId !== undefined && containerId !== null) {
-        if (equipment.capacity !== undefined)
+      if (placement) {
+        if (isContainerEquipment(equipment))
           throw new Error('Nested inventory containers are unavailable.')
+        await requireItemCapacityRoom(
+          ctx,
+          campaign,
+          vehicleId,
+          placement,
+          equipment,
+          input.quantity
+        )
       }
       const item = campaignStoredPartyItemSchema.parse({
         campaignId: campaign.id,
@@ -158,7 +206,7 @@ export const mutate = mutation({
         quantity: item.quantity,
         containerId: item.containerId,
         label: equipment.label,
-        isContainer: equipment.capacity !== undefined
+        isContainer: isContainerEquipment(equipment)
       })
       await ctx.db.insert('campaignPartyItems', item)
       eventType = 'PARTY_ITEM_ADD'
@@ -187,19 +235,39 @@ export const mutate = mutation({
         .unique()
       if (!item) throw new Error('Party item is not available.')
       await requireInventoryRowEditable(ctx, item)
-      if (input.kind === 'ITEM_UPDATE' && containerId !== undefined && containerId !== null) {
-        if (containerId === item.id) throw new Error('An inventory item cannot contain itself.')
-        await requirePlacementContainer(ctx, campaign, vehicleId, containerId)
-      }
+      // An update fills its destination when it moves the item in or raises its quantity there.
+      const destinationId =
+        input.kind !== 'ITEM_UPDATE'
+          ? null
+          : containerId !== undefined
+            ? containerId
+            : input.quantity > item.quantity
+              ? item.containerId
+              : null
+      if (destinationId === item.id) throw new Error('An inventory item cannot contain itself.')
+      const placement =
+        destinationId !== null
+          ? await requirePlacementContainer(ctx, campaign, vehicleId, destinationId)
+          : null
       const { _id, _creationTime, ...storedItem } = item
       campaignStoredPartyItemSchema.parse(storedItem)
       const equipment =
         input.kind === 'ITEM_UPDATE' && input.quantity > item.quantity
           ? await readPartyEquipment(ctx, campaign, item.equipmentId)
           : await readHeldPartyEquipment(ctx, campaign, item)
-      if (input.kind === 'ITEM_UPDATE' && containerId !== undefined && containerId !== null) {
-        if (equipment.capacity !== undefined)
+      if (input.kind === 'ITEM_UPDATE' && placement) {
+        if (isContainerEquipment(equipment))
           throw new Error('Nested inventory containers are unavailable.')
+        if (destinationId !== item.containerId || input.quantity > item.quantity)
+          await requireItemCapacityRoom(
+            ctx,
+            campaign,
+            vehicleId,
+            placement,
+            equipment,
+            input.quantity,
+            item.id
+          )
       }
       const quantity =
         input.kind === 'ITEM_UPDATE'

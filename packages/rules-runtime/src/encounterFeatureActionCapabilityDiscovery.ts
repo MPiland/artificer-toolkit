@@ -1120,6 +1120,11 @@ export function featureActionMechanic(
           ? capability.damageExpressions?.[outcome.outcomeId]
           : undefined
       if (diceExpression !== undefined) return { ...outcome, diceExpression }
+      // A Creature's unscaled dice heal resolves to its authored dice, as a Character's heal row does.
+      if (outcome.kind === 'HEAL' && outcome.scalingKind === 'NONE') {
+        const dice = outcome.values[0]?.dice
+        if (typeof dice === 'string') return { ...outcome, expression: dice }
+      }
       // The bound weapon's damage bonus joins the attack's first damage, as a Character's does.
       return outcome === firstDamageOutcome && weaponDamageBonus !== 0
         ? { ...outcome, damageBonus: weaponDamageBonus }

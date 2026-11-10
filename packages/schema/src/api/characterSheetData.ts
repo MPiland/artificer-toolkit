@@ -14,7 +14,12 @@ import {
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
-import { capacityDtoSchema, costDtoSchema, weightDtoSchema } from '../subjects/shared.js'
+import {
+  capacityDtoSchema,
+  costDtoSchema,
+  itemCapacityDtoSchema,
+  weightDtoSchema
+} from '../subjects/shared.js'
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { characterConsequenceDtoSchema } from '../shared/consequenceRolls.js'
@@ -699,6 +704,8 @@ export const characterSheetInventoryItemDtoSchema = lazySchema(() =>
     displayAsAttack: z.optional(booleanSchema),
     containerId: z.optional(stringSchema),
     capacity: z.optional(capacityDtoSchema),
+    /** The held Equipment's variant ancestry, nearest parent first, which item-count limits match. */
+    parentEquipmentIds: z.optional(z.array(stringSchema)),
     notes: z.optional(stringSchema)
   })
 )
@@ -738,6 +745,7 @@ export const characterSheetReferenceDtoSchema = lazySchema(() =>
       z.extend(characterSheetOptionDtoSchema, {
         isContainer: booleanSchema,
         maxStack: z.optional(integerSchema.check(z.positive())),
+        parentEquipmentIds: z.array(stringSchema),
         requiresAttunement: booleanSchema
       })
     ),
@@ -834,6 +842,10 @@ export const characterSheetResponseDtoSchema = lazySchema(() =>
             id: stringSchema,
             label: stringSchema,
             capacity: z.optional(capacityDtoSchema),
+            /** Item-count limits, each labeled by the readable Equipment it counts. */
+            itemCapacity: z.optional(
+              z.array(z.extend(itemCapacityDtoSchema, { label: z.optional(stringSchema) }))
+            ),
             itemIds: z.array(stringSchema),
             currencies: z.array(characterSheetCurrencyDtoSchema)
           })
