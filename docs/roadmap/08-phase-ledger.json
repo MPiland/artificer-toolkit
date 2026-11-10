@@ -25308,7 +25308,7 @@
         {
           "id": "QUALITY-5",
           "title": "The compile golden covers active-effect plans and fact binding",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 1,
@@ -25319,16 +25319,17 @@
           "acs": [
             {
               "id": "QUALITY-5.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R1.",
-              "text": "The SRD compile golden records each effect's active-effect plan and fact binding beside its graph; the file changes only by added columns."
+              "text": "The SRD compile golden records each effect's active-effect plan and fact binding beside its graph; the file changes only by added columns.",
+              "proof": ["srdEffectCompileGolden.test.ts"]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-5.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-5.1"],
               "wsjf": {
                 "bv": 1,
@@ -25337,14 +25338,17 @@
                 "size": 3
               },
               "text": "Extend srdEffectCompileGolden to active-effect plans and fact binding.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10T20:10:48Z",
+              "proof": "m685 (f1ed52264) from slice tip 6ef983e35: Tests 42889963933, Live 42889963934, Browser journeys 42889963905 green. Golden rows gain plans=[stage=checksum] (real activeEffectPlans) and facts=checksum count d20 (real bindFacts against the SRD Goblin); all 1395 prior lines preserved as prefixes; two upcast variant rows added (Branding Smite, Magic Weapon) whose plans differ while the graph does not (accepted: the coverage the slice exists for)."
             }
-          ]
+          ],
+          "journeyTests": ["packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts"],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-6",
           "title": "Every authored reaction trigger compiles",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25356,7 +25360,7 @@
           "acs": [
             {
               "id": "QUALITY-6.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R2.",
               "text": "The compiler accepts reaction triggers through a trigger registry rather than a per-trigger whitelist; ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF effects compile (Protection and Giant Killer rows leave REFUSED), and no other golden row changes."
@@ -25365,7 +25369,7 @@
           "tasks": [
             {
               "id": "QUALITY-6.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-6.1"],
               "wsjf": {
                 "bv": 5,
@@ -25374,7 +25378,8 @@
                 "size": 5,
                 "after": ["QUALITY-5.T1"]
               },
-              "text": "A reaction-trigger registry in the compiler replacing the supported() whitelist; seed from the compiler work on WIP 9cf2d97ae (spells-31-t4k1b)."
+              "text": "A reaction-trigger registry in the compiler replacing the supported() whitelist; seed from the compiler work on WIP 9cf2d97ae (spells-31-t4k1b).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
