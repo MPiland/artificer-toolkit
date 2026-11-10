@@ -85,7 +85,9 @@ import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
 import { endGrantsOnHitPointsRegained } from '@artificer-toolkit/encounter-persistence/consumedGrantPersistence'
-import { endCarriedConcentration } from './sheetConcentration'
+import { endCarriedConcentrationOutsideRuns } from '@artificer-toolkit/encounter-persistence/concentrationChosenEnd'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
+import { readFightingCharacterIds } from '../encounters/runGrantCarryOver'
 import { prepareCharacterRest } from './rest'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { recordSheetDeathSaveRoll } from './sheetDeathSaveRoll'
@@ -566,9 +568,12 @@ export async function executeCharacterSheetCommand(
     // A named state is a Run's live Concentration, which the room ends; Convex holds none.
     if (command.stateId)
       throw new CharacterSheetCommandError('That Concentration is held in an active Encounter.')
-    await endCarriedConcentration(ctx, {
-      characterId: initial.active.id,
-      campaignId: initial.campaignContext.campaignId,
+    const { campaignId } = initial.campaignContext
+    await endCarriedConcentrationOutsideRuns(encounterWriteTransaction(ctx), {
+      casterCharacterId: initial.active.id,
+      fightingCharacterIds: campaignId
+        ? await readFightingCharacterIds(ctx, campaignId)
+        : new Set<string>(),
       occurredAt,
       endsSpellSummon: (initial.character.state.spellSummons ?? []).some(
         (summon) => summon.concentration

@@ -5,6 +5,7 @@ import {
   ensureResourceByOwner,
   resolveSpellCastSource
 } from './sheetCommandReducer.js'
+import { resourcePoolSpend } from './resourcePoolSpend.js'
 import { validateActionResourceUse } from './sheetCommandValidation.js'
 import { planSpellSlotExchange } from './sheetSpellSlotExchange.js'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
@@ -124,11 +125,12 @@ export function getSheetCommandResourceUsageUpdate(params: {
         resourceId: resource.id,
         amount
       })
-      if (amount > resource.remaining)
+      const spend = resourcePoolSpend({ used, remaining: resource.remaining }, amount, false)
+      if (!spend)
         throw new CharacterSheetCommandError(
           `Resource "${resource.label}" only has ${resource.remaining} uses remaining.`
         )
-      resourceUsageUpdate = { resource, used: used + amount }
+      resourceUsageUpdate = { resource, used: spend.afterUsed }
     } else if (command.type === 'RECOVER_SHEET_RESOURCE') {
       if (!resource.recoveries.some((recovery) => recovery.trigger === command.trigger))
         throw new CharacterSheetCommandError(`Resource cannot be recovered by ${command.trigger}.`)

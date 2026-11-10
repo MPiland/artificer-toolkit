@@ -5,6 +5,7 @@ import {
   readConversationEntryReplay
 } from '@artificer-toolkit/encounter-persistence/conversationPersistence'
 import { presentChatEntries } from '@artificer-toolkit/encounter-persistence/conversationPresentation'
+import { rollCharacterSheetRoll } from '@artificer-toolkit/encounter-persistence/characterSheetRoll'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectReads'
 import {
   readRollNoticeCreatureLabel,
@@ -135,11 +136,6 @@ export async function executeRoomCampaignChatCommand(input: {
         'Assign at least one Character before making a Campaign roll.'
       )
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
-    let resolved: ReturnType<typeof resolveCharacterSheetRoll> = {
-      expression: roll.expression,
-      rollMode: roll.rollMode,
-      source: roll.source
-    }
     if (character && roll.source.kind !== 'MANUAL') {
       const facts = await prepareRoomLiveCharacterSheet(
         store,
@@ -159,21 +155,32 @@ export async function executeRoomCampaignChatCommand(input: {
         { kind: 'CHARACTER', characterId: character.id },
         { ownerVerified: true }
       )
-      resolved = resolveCharacterSheetRoll(
-        { ...roll, characterId: character.id },
-        projectRoomCharacterSheet(facts, activeEffects),
-        projectRoomCharacterSheetForViewer(facts, activeEffects)
-      )
-    } else if (character) {
-      resolved = { ...resolved, source: { kind: 'MANUAL', label: 'Manual roll' } }
+      // The Sheet roll Convex makes: carried dice, the d20 floor and the effects the roll spends.
+      return rollCharacterSheetRoll(ctx, {
+        character,
+        system,
+        resolved: resolveCharacterSheetRoll(
+          { ...roll, characterId: character.id },
+          projectRoomCharacterSheet(facts, activeEffects),
+          projectRoomCharacterSheetForViewer(facts, activeEffects)
+        ),
+        activeEffects,
+        rules: {
+          grantFold: facts.ruleEvaluation.output.grantFold,
+          registry: facts.ruleEvaluation.registry
+        },
+        nextInt: input.random
+      })
     }
     return createRollRecord({
       characterId: character?.id ?? null,
       label: character?.label ?? username,
       system,
-      resolved,
-      // The dice the Sheet row carries (Bless, Divine Favor) join its roll, as on Convex.
-      addedDice: resolved.addedDice,
+      resolved: {
+        expression: roll.expression,
+        rollMode: roll.rollMode,
+        source: character ? { kind: 'MANUAL', label: 'Manual roll' } : roll.source
+      },
       nextInt: input.random
     })
   }
