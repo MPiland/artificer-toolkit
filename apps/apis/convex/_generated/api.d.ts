@@ -27536,7 +27536,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -31193,7 +31213,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -37358,7 +37398,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -40951,7 +41011,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -47186,7 +47266,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -50779,7 +50879,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -57162,7 +57282,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -60819,7 +60959,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -66984,7 +67144,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -70577,7 +70757,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -76812,7 +77012,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -80405,7 +80625,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -86797,7 +87037,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -90454,7 +90714,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -96619,7 +96899,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -100212,7 +100512,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -106447,7 +106767,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -110040,7 +110380,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -116423,7 +116783,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -120080,7 +120460,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -126245,7 +126645,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -129838,7 +130258,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -136073,7 +136513,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -139666,7 +140126,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -146084,7 +146564,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -149741,7 +150241,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -155906,7 +156426,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -159499,7 +160039,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -165734,7 +166294,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -169327,7 +169907,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -175710,7 +176310,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -179367,7 +179987,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -185532,7 +186172,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -189125,7 +189785,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -195360,7 +196040,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -198953,7 +199653,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -205323,7 +206043,27 @@ export declare const api: {
                                     kind: "TARGETED_SELF";
                                     sourceEffectIds?: Array<string>;
                                   }
-                                | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                | {
+                                    attackerSize?: {
+                                      maximumSizeCode?: string;
+                                      minimumSizeCode?: string;
+                                    };
+                                    holderEquippedCategory?: string;
+                                    kind: "ATTACK_ON_OTHER";
+                                    requiresSight?: boolean;
+                                    targetWithinFeet: number;
+                                  }
+                                | {
+                                    attackerSize?: {
+                                      maximumSizeCode?: string;
+                                      minimumSizeCode?: string;
+                                    };
+                                    attackerWithinFeet?: number;
+                                    kind: "ATTACK_RESOLVED_ON_SELF";
+                                    outcome: "HIT" | "MISS" | "ANY";
+                                    requiresSight?: boolean;
+                                  };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
                               ridesSpellIds?: never;
@@ -208964,7 +209704,27 @@ export declare const api: {
                                     kind: "TARGETED_SELF";
                                     sourceEffectIds?: Array<string>;
                                   }
-                                | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                | {
+                                    attackerSize?: {
+                                      maximumSizeCode?: string;
+                                      minimumSizeCode?: string;
+                                    };
+                                    holderEquippedCategory?: string;
+                                    kind: "ATTACK_ON_OTHER";
+                                    requiresSight?: boolean;
+                                    targetWithinFeet: number;
+                                  }
+                                | {
+                                    attackerSize?: {
+                                      maximumSizeCode?: string;
+                                      minimumSizeCode?: string;
+                                    };
+                                    attackerWithinFeet?: number;
+                                    kind: "ATTACK_RESOLVED_ON_SELF";
+                                    outcome: "HIT" | "MISS" | "ANY";
+                                    requiresSight?: boolean;
+                                  };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
                               ridesSpellIds?: never;
@@ -215046,7 +215806,27 @@ export declare const api: {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
                             }
-                          | { kind: "ATTACK_ROLL_BY_OTHER" };
+                          | { kind: "ATTACK_ROLL_BY_OTHER" }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              holderEquippedCategory?: string;
+                              kind: "ATTACK_ON_OTHER";
+                              requiresSight?: boolean;
+                              targetWithinFeet: number;
+                            }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              attackerWithinFeet?: number;
+                              kind: "ATTACK_RESOLVED_ON_SELF";
+                              outcome: "HIT" | "MISS" | "ANY";
+                              requiresSight?: boolean;
+                            };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -218590,7 +219370,27 @@ export declare const api: {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
                             }
-                          | { kind: "ATTACK_ROLL_BY_OTHER" };
+                          | { kind: "ATTACK_ROLL_BY_OTHER" }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              holderEquippedCategory?: string;
+                              kind: "ATTACK_ON_OTHER";
+                              requiresSight?: boolean;
+                              targetWithinFeet: number;
+                            }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              attackerWithinFeet?: number;
+                              kind: "ATTACK_RESOLVED_ON_SELF";
+                              outcome: "HIT" | "MISS" | "ANY";
+                              requiresSight?: boolean;
+                            };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -224743,7 +225543,27 @@ export declare const api: {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
                             }
-                          | { kind: "ATTACK_ROLL_BY_OTHER" };
+                          | { kind: "ATTACK_ROLL_BY_OTHER" }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              holderEquippedCategory?: string;
+                              kind: "ATTACK_ON_OTHER";
+                              requiresSight?: boolean;
+                              targetWithinFeet: number;
+                            }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              attackerWithinFeet?: number;
+                              kind: "ATTACK_RESOLVED_ON_SELF";
+                              outcome: "HIT" | "MISS" | "ANY";
+                              requiresSight?: boolean;
+                            };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -228287,7 +229107,27 @@ export declare const api: {
                               kind: "TARGETED_SELF";
                               sourceEffectIds?: Array<string>;
                             }
-                          | { kind: "ATTACK_ROLL_BY_OTHER" };
+                          | { kind: "ATTACK_ROLL_BY_OTHER" }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              holderEquippedCategory?: string;
+                              kind: "ATTACK_ON_OTHER";
+                              requiresSight?: boolean;
+                              targetWithinFeet: number;
+                            }
+                          | {
+                              attackerSize?: {
+                                maximumSizeCode?: string;
+                                minimumSizeCode?: string;
+                              };
+                              attackerWithinFeet?: number;
+                              kind: "ATTACK_RESOLVED_ON_SELF";
+                              outcome: "HIT" | "MISS" | "ANY";
+                              requiresSight?: boolean;
+                            };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
                         ridesSpellIds?: never;
@@ -234664,7 +235504,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -238321,7 +239181,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -244486,7 +245366,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -248079,7 +248979,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -254314,7 +255234,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -257907,7 +258847,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -264290,7 +265250,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -267947,7 +268927,27 @@ export declare const api: {
                                       kind: "TARGETED_SELF";
                                       sourceEffectIds?: Array<string>;
                                     }
-                                  | { kind: "ATTACK_ROLL_BY_OTHER" };
+                                  | { kind: "ATTACK_ROLL_BY_OTHER" }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      holderEquippedCategory?: string;
+                                      kind: "ATTACK_ON_OTHER";
+                                      requiresSight?: boolean;
+                                      targetWithinFeet: number;
+                                    }
+                                  | {
+                                      attackerSize?: {
+                                        maximumSizeCode?: string;
+                                        minimumSizeCode?: string;
+                                      };
+                                      attackerWithinFeet?: number;
+                                      kind: "ATTACK_RESOLVED_ON_SELF";
+                                      outcome: "HIT" | "MISS" | "ANY";
+                                      requiresSight?: boolean;
+                                    };
                                 resourceUse?: {
                                   chargeId: string;
                                   cost: number;
@@ -274112,7 +275112,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -277705,7 +278725,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -283940,7 +284980,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;
@@ -287533,7 +288593,27 @@ export declare const api: {
                                 kind: "TARGETED_SELF";
                                 sourceEffectIds?: Array<string>;
                               }
-                            | { kind: "ATTACK_ROLL_BY_OTHER" };
+                            | { kind: "ATTACK_ROLL_BY_OTHER" }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                holderEquippedCategory?: string;
+                                kind: "ATTACK_ON_OTHER";
+                                requiresSight?: boolean;
+                                targetWithinFeet: number;
+                              }
+                            | {
+                                attackerSize?: {
+                                  maximumSizeCode?: string;
+                                  minimumSizeCode?: string;
+                                };
+                                attackerWithinFeet?: number;
+                                kind: "ATTACK_RESOLVED_ON_SELF";
+                                outcome: "HIT" | "MISS" | "ANY";
+                                requiresSight?: boolean;
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
                           ridesSpellIds?: never;

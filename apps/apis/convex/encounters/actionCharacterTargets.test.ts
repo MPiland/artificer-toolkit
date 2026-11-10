@@ -208,8 +208,8 @@ async function setup(
                                   {
                                     id: '00000000-0000-4000-8000-000000000093',
                                     order: 1,
-                                    kind: 'TARGET_SIZE_MAXIMUM' as const,
-                                    sizeCode: 'MEDIUM' as const
+                                    kind: 'TARGET_SIZE_RANGE' as const,
+                                    sizeRange: { maximumSizeCode: 'MEDIUM' as const }
                                   }
                                 ],
                                 conditions: []

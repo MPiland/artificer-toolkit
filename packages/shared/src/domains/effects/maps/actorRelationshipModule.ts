@@ -6,6 +6,7 @@ import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { EFFECT_ID_NODE_MAP } from '../../shared/maps/index.js'
 import { FORCED_MOVEMENT_NODE_MAP } from './forcedMovement.js'
 import { ACTIVATION_NODE_MAP } from './invocation.js'
+import { SIZE_RANGE_NODE_MAP } from './sizeRange.js'
 
 const actorRelationshipModule = buildNodeMap<AllUnionFields<ActorRelationshipModuleAuthored>>()
 
@@ -33,7 +34,7 @@ export const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define
         selectSingle(['kind'], 'Module', {
           kind: 'INLINE_OPTIONS',
           options: [
-            { code: 'TARGET_SIZE_MAXIMUM', label: 'Target Size Maximum' },
+            { code: 'TARGET_SIZE_RANGE', label: 'Target Size Range' },
             { code: 'SOURCE_ACTION_TARGET_RESTRICTION', label: 'Source Action Restriction' },
             { code: 'SOURCE_ATTACK_ROLL_INFLUENCE', label: 'Source Attack Influence' },
             { code: 'SOURCE_FOLLOWS_TARGET', label: 'Source Follows Target' },
@@ -48,16 +49,12 @@ export const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define
         })
       )
       .set(
-        'sizeCode',
-        selectSingle(
-          ['sizeCode'],
-          'Maximum Size',
-          {
-            kind: 'DATA',
-            relationship: table('sizes', { selectColumns: ['id', 'label', 'description'] })
-          },
-          { showIf: local.field(['kind']).eq('TARGET_SIZE_MAXIMUM') }
-        )
+        'sizeRange',
+        groupObject(['sizeRange'], 'Target Size', () => SIZE_RANGE_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['kind']).eq('TARGET_SIZE_RANGE'),
+          hiddenBehavior: 'CLEAR'
+        })
       )
       .set(
         'actionEffectIds',

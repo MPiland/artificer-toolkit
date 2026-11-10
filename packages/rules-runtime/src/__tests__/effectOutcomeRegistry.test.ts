@@ -97,7 +97,8 @@ const PATH_GATED_OUTCOMES: readonly [Dnd5eRegisteredOutcome, string | null][] = 
   [{ kind: 'ADD_SPEED_TO_MOVEMENT' }, null],
   [{ kind: 'TELEPORT_ALLOWANCE', maxFeet: 30, destinationKind: 'VISIBLE' }, null],
   [{ kind: 'CANCEL_TRIGGERING_EVENT' }, null],
-  [{ kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }, null]
+  [{ kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }, null],
+  [{ kind: 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL' }, null]
 ]
 
 function publish(graph: RuleGraphDefinition) {
@@ -515,6 +516,10 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
         die: bardicInspirationDie(ROLLED_DIE_SIGN.SUBTRACT)
       },
       'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
+    ],
+    [
+      { effectKind: EFFECT_KIND.IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL, rollMode: 'DISADVANTAGE' },
+      'D&D impose-roll-mode-on-triggering-roll outcome belongs to an attack-on-other reaction.'
     ],
     [
       { effectKind: 'TELEPATHIC_LINK' },

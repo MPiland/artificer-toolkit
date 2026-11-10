@@ -127,6 +127,7 @@ import type {
   ResultBlockAuthored,
   ResultBlockGateAuthored,
   SavingThrowAuthored,
+  SizeRangeAuthored,
   SparesCreaturesAuthored,
   SavingThrowDcBonusAuthored,
   ScalarReductionAuthored,
@@ -858,6 +859,9 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'ATTACKED_SELF' } satisfies Partial<ReactionTriggerBindingAuthored>
     case 'higherLevelCheck':
       return { ability: 'SPELLCASTING', baseDc: 10 } satisfies ReactionHigherLevelCheckAuthored
+    case 'attackerSize':
+    case 'sizeRange':
+      return {} satisfies SizeRangeAuthored
     case 'optionalOnHit':
       return { kind: 'SPELL_SLOT' } satisfies OptionalOnHitAuthored
     case 'sparesCreatures':

@@ -1,6 +1,6 @@
 import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
-import type { ActivationAuthored } from './effect.js'
+import type { ActivationAuthored, SizeRangeAuthored } from './effect.js'
 import type { CheckChoiceAuthored, EscapeDcAuthored } from './check.js'
 import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { PathLifecycleTurnAnchorAuthored } from './path.js'
@@ -8,7 +8,7 @@ import type { AttackSlotCondition, SavingThrowAuthored } from '#authored'
 import { EFFECT_KIND, type LengthUnitCode } from '#core'
 
 export type ActorRelationshipModuleAuthored =
-  | { id: string; order: number; kind: 'TARGET_SIZE_MAXIMUM'; sizeCode: string }
+  | { id: string; order: number; kind: 'TARGET_SIZE_RANGE'; sizeRange: SizeRangeAuthored }
   | {
       id: string
       order: number

@@ -59,8 +59,8 @@ export const net: EquipmentAuthored = {
                   {
                     id: S.equipmentChildId(S.equipId(37), 0x221, 1),
                     order: 1,
-                    kind: 'TARGET_SIZE_MAXIMUM' as const,
-                    sizeCode: 'LARGE'
+                    kind: 'TARGET_SIZE_RANGE' as const,
+                    sizeRange: { maximumSizeCode: 'LARGE' }
                   },
                   {
                     id: S.equipmentChildId(S.equipId(37), 0x222, 1),

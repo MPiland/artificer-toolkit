@@ -116,8 +116,8 @@ function rugSmotherCapability(heldAtOnce = 1, recurrence: RecurrenceOverrides = 
                 {
                   id: rugIds.moduleA,
                   order: 1,
-                  kind: 'TARGET_SIZE_MAXIMUM',
-                  sizeCode: 'MEDIUM'
+                  kind: 'TARGET_SIZE_RANGE',
+                  sizeRange: { maximumSizeCode: 'MEDIUM' }
                 },
                 {
                   id: rugIds.moduleC,

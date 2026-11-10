@@ -7,7 +7,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -15,7 +14,6 @@ import {
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
   MANUAL_ADJUDICATION_REASON,
   RANGE_KIND,
@@ -33,10 +31,10 @@ import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
   attacksPerAttackActionGrant,
-  closedRuleEffect,
   duelingRestriction,
   greatWeaponFightingGrant,
   gmRulingEffect,
+  protectionReactionEffect,
   twoWeaponFightingGrants,
   equippedCategoryRestriction
 } from './mechanics.js'
@@ -492,25 +490,12 @@ export const fighter: ClassAuthored = {
             'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
           order: 4,
           effects: [
-            closedRuleEffect({
-              id: classRowId(F, 0x60, 0x85),
-              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_PROTECTION,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: {
-                  id: classRowId(F, 0x69, 0x85),
-                  rangeKind: RANGE_KIND.DISTANCE,
-                  amount: 5,
-                  unit: MEASUREMENT_UNIT_CODE.FEET
-                },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY',
-                  self: 'WARN'
-                }
-              }
+            protectionReactionEffect({
+              effect: classRowId(F, 0x60, 0x85),
+              range: classRowId(F, 0x69, 0x85),
+              path: classRowId(F, 0xd0, 0x85),
+              result: classRowId(F, 0xd1, 0x85),
+              outcome: classRowId(F, 0xd2, 0x85)
             })
           ]
         },

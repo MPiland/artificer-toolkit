@@ -11,6 +11,7 @@ import type {
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './subtractFromTriggeringRoll.js'
+import { DND5E_IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './imposeRollModeOnTriggeringRoll.js'
 import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
@@ -219,6 +220,10 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
       { pathGated: true, changesTargetState: false }
     ),
+    IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL: targetOnly(
+      DND5E_IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+      { pathGated: true, changesTargetState: false }
+    ),
     END_EFFECTS: targetOnly(DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY, {
       pathGated: false,
       changesTargetState: false
@@ -380,6 +385,11 @@ const REACTION_ONLY_OUTCOMES = {
   SUBTRACT_FROM_TRIGGERING_ROLL: {
     trigger: 'ATTACK_ROLL_BY_OTHER',
     refusal: 'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
+  },
+  IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL: {
+    trigger: 'ATTACK_ON_OTHER',
+    refusal:
+      'D&D impose-roll-mode-on-triggering-roll outcome belongs to an attack-on-other reaction.'
   }
 } as const
 
