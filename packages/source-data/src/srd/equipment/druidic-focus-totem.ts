@@ -10,7 +10,6 @@ export const druidicFocusTotem: EquipmentAuthored = {
   properties: [],
   cost: S.gp(1),
   weight: S.lbs(0),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(93), 'EQUIPMENT_DRUIDIC_FOCUS')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

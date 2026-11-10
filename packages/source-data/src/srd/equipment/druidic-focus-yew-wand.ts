@@ -10,7 +10,6 @@ export const druidicFocusYewWand: EquipmentAuthored = {
   properties: [],
   cost: S.gp(10),
   weight: S.lbs(1),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(95), 'EQUIPMENT_DRUIDIC_FOCUS')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

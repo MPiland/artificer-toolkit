@@ -380,19 +380,19 @@ export const hunterConclave: ClassAuthored = {
             'When a hostile creature misses you with a melee attack, you can use your reaction to force that creature to repeat the same attack against another creature (other than itself) of your choice.',
           order: 1,
           effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 9),
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: { id: classRowId(RA, 21, 9), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'HOSTILE'
-                }
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(RA, 20, 9),
+                range: classRowId(RA, 21, 9),
+                path: classRowId(RA, 0xd0, 4),
+                result: classRowId(RA, 0xd1, 4),
+                outcome: classRowId(RA, 0xd2, 4)
               },
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_STAND_AGAINST_THE_TIDE
+              label: 'Stand Against the Tide',
+              instructions:
+                'When a hostile creature misses you with a melee attack, you can use your reaction to force it to repeat the same attack against another creature (other than itself) of your choice. The GM rolls the redirected attack against the creature you choose.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              activationCode: ACTIVATION_CODE.REACTION
             })
           ]
         },
