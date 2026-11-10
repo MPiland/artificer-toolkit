@@ -10,6 +10,7 @@ import {
 } from '../../../apis/tests/developmentClient'
 import type { CampaignMembershipLifecycleStage } from '../../../apis/tests/developmentCampaignMembershipLifecycle'
 import { awaitCurrentCharacterSheet } from '../../../apis/tests/fixtures/characterSheetSlices'
+import { buildCharacterRouteParams } from '../../src/routing/authoredRouteParams'
 import {
   signIn,
   waitForRouterIdle,
@@ -32,6 +33,12 @@ type CampaignMembershipBrowserInput = {
   campaignId: string
   accounts: readonly [MembershipAccount, MembershipAccount, MembershipAccount, MembershipAccount]
   evidenceDirectory: string
+  /**
+   * Native fixture step the proof calls once, after observing BEFORE_REMOVE. It leaves the removed
+   * player's assigned Character on a Campaign-shared Background, so the removal leaves that
+   * Character in Builder repair for the Sheet route to answer (SHEET-1.5).
+   */
+  prepareRepairCharacter: () => Promise<{ publicId: string; label: string }>
 }
 
 const stages: readonly CampaignMembershipLifecycleStage[] = [
@@ -79,6 +86,7 @@ export async function verifyCampaignMembershipBrowser<T>(
   let currentStage = 'start'
   let authenticatingReload = false
   let completedStages = 0
+  let repairCharacter: Awaited<ReturnType<typeof input.prepareRepairCharacter>> | undefined
   let failure: unknown
   let failed = false
 
@@ -543,6 +551,38 @@ export async function verifyCampaignMembershipBrowser<T>(
     )
   }
 
+  // The removed player (account 2) owns the repair Character. Opening its Sheet route by public ID
+  // alone must redirect to the canonical handle and answer the draft-only state.
+  async function assertRepairSheet(repair: NonNullable<typeof repairCharacter>) {
+    const ownerIndex = 2
+    const page = pages[ownerIndex]!
+    const canonical = buildCharacterRouteParams(repair.publicId, repair.label)
+    await navigateWithAuthRecovery(
+      ownerIndex,
+      page,
+      authenticatedSockets[ownerIndex]!,
+      async () => {
+        await page.goto(`${origin}/characters/${encodeURIComponent(repair.publicId)}`, {
+          waitUntil: 'domcontentloaded'
+        })
+      }
+    )
+    await waitForRouterIdle(page)
+    await expect(page).toHaveURL(
+      `${origin}/characters/${canonical.characterPublicId}/${canonical.characterSlug}`,
+      { timeout: 30_000 }
+    )
+    await expect(page.getByText('Builder draft in progress', { exact: true })).toBeVisible({
+      timeout: 30_000
+    })
+    await expect(page.getByRole('alert').filter({ hasText: repair.label })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Resume Builder', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Back to characters', exact: true })
+    ).toBeVisible()
+    await evidence('AFTER_REMOVE', 'repair-sheet')
+  }
+
   async function onStage(stage: CampaignMembershipLifecycleStage) {
     assert.equal(
       stage,
@@ -605,6 +645,11 @@ export async function verifyCampaignMembershipBrowser<T>(
       before,
       `${stage}: reload/reconnect observer must not write native state`
     )
+    if (stage === 'BEFORE_REMOVE') repairCharacter = await input.prepareRepairCharacter()
+    if (stage === 'AFTER_REMOVE') {
+      assert.ok(repairCharacter, 'The repair Character must be prepared at BEFORE_REMOVE')
+      await assertRepairSheet(repairCharacter)
+    }
     assert.deepEqual(diagnostics, [], `${stage}: independent browser diagnostics must be empty`)
     completedStages++
   }

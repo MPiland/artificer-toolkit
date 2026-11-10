@@ -2324,6 +2324,79 @@ try {
             publicId: campaign.publicId,
             campaignId: campaign.id,
             evidenceDirectory: resolve(evidenceDirectory, 'membership-browser'),
+            prepareRepairCharacter: async () => {
+              const { createDevelopmentCharacter } = await import('./developmentCharacterFixture')
+              const sponsorId = crypto.randomUUID()
+              const repairId = crypto.randomUUID()
+              characterFixtures.push(
+                { userId: owner.identity.userId, characterId: sponsorId },
+                { userId: secondPlayer.identity.userId, characterId: repairId }
+              )
+              const label = 'Repair proof fixture'
+              await createDevelopmentCharacter(
+                owner.client,
+                sponsorId,
+                {},
+                'Repair sponsor fixture'
+              )
+              const { committed } = await createDevelopmentCharacter(
+                secondPlayer.client,
+                repairId,
+                {},
+                label
+              )
+              // The GM shares their Character's Background; only an assigned Character reads it.
+              const sponsor = await owner.client.query(api.characters.builder.activeCharacter, {
+                id: sponsorId
+              })
+              assert.ok(sponsor?.intent.startingEquipment?.background)
+              const backgroundId = sponsor.intent.background.backgroundId
+              assert.ok(backgroundId)
+              await owner.client.mutation(api.campaigns.contentShares.share, {
+                campaignId: campaign.id,
+                subjectKind: 'BACKGROUND',
+                subjectId: backgroundId
+              })
+              await secondPlayer.client.mutation(api.campaigns.assignments.assign, {
+                campaignId: campaign.id,
+                characterId: repairId
+              })
+              const current = await secondPlayer.client.query(
+                api.characters.builder.activeCharacter,
+                { id: repairId }
+              )
+              assert.ok(current)
+              const draft = await secondPlayer.client.mutation(api.characters.drafts.create, {
+                id: repairId,
+                systemId: current.systemId
+              })
+              const saved = await secondPlayer.client.mutation(api.characters.drafts.save, {
+                characterId: repairId,
+                expectedDraftId: draft.id,
+                mode: 'edit',
+                baseActiveUpdatedAt: draft.baseActiveUpdatedAt,
+                character: {
+                  ...draft.payload.character,
+                  intent: {
+                    ...current.intent,
+                    background: { backgroundId },
+                    startingEquipment: {
+                      ...current.intent.startingEquipment,
+                      background: sponsor.intent.startingEquipment.background
+                    }
+                  }
+                },
+                ...(draft.payload.builderIntent === undefined
+                  ? {}
+                  : { builderIntent: draft.payload.builderIntent })
+              })
+              await secondPlayer.client.mutation(api.characters.commit.commit, {
+                expectedDraftId: saved.id,
+                mode: 'edit',
+                character: saved.payload.character
+              })
+              return { publicId: committed.publicId, label }
+            },
             accounts: [
               { ...owner, userId: owner.identity.userId, characterIds: [] },
               {
