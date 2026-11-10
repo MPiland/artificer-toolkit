@@ -13988,7 +13988,9 @@
                   "SPELLS-4.T4a",
                   "SPELLS-4.T4b",
                   "SPELLS-4.T4c",
-                  "SPELLS-4.T4d"
+                  "SPELLS-4.T4d",
+                  "SPELLS-31.T4k1b",
+                  "SPELLS-31.T4k1c"
                 ]
               },
               "text": "Delete the CLOSED_RULE effect kind, CLOSED_RULE_KIND, the closedRuleEffect helper and the closed-rule schema once no kind remains, so a closed rule cannot be authored; set ADR 0038 to accepted and update the guides that describe closed rules; rerun the link audit on the touched docs. Runs last: it proves no closed rule is left in the SRD corpus for SPELLS-31.1 and SPELLS-33.1 as well."
@@ -17418,11 +17420,37 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": []
               },
-              "text": "Protection fighting style (Champion, Fighter, Paladin) through a new generic pre-roll reaction pause (D217): a bystander's reaction before an attack's d20 adds disadvantage, gated by authored shield, 5 ft and other-target predicates. Giant Killer through a new generic attack-resolved trigger (HIT, MISS or ANY, attacker size and reach predicates) and a reaction outcome that attacks the triggering creature (D217). Authoring-parity proofs and room journeys; remove the four closed-rule effects.",
+              "text": "Authoring for Protection and Giant Killer (D217; docs/handoffs/slice-spells-31-t4k1.md): the size-range, equipped-item-category and within-N-feet predicates, the ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF triggers and the IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL outcome, compiled with authoring-parity tests. No pause.",
               "note": "Reopened 2026-11-10 (D217): the m187 cite was SPELLS-33.T4k1's merge and none of these kinds was converted. Stand Against the Tide moved to SPELLS-31.T8a."
+            },
+            {
+              "id": "SPELLS-31.T4k1b",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4k1"]
+              },
+              "text": "Protection end to end (D217): the ROLL_INFLUENCE_REACTION pre-roll pause in the Worker, Convex pending validators, the drawer offer, a room journey and the transport and persistence docs; remove the three Protection closed-rule effects."
+            },
+            {
+              "id": "SPELLS-31.T4k1c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4k1"]
+              },
+              "text": "Giant Killer end to end (D217): the post-attack reaction offer on ATTACK_RESOLVED_ON_SELF with its pending record and timer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; remove the Giant Killer closed-rule effect."
             },
             {
               "id": "SPELLS-31.T4k2a",
