@@ -72,7 +72,7 @@ describe('an attack’s close range (D217)', () => {
       }
     }
     expect(() => planOf(withCloseRange)).toThrow(
-      'D&D test actions must use one bounded single-target action or movement-reaction shape.'
+      'D&D test action has an unsupported bounded shape.'
     )
   })
 })
