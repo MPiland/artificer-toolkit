@@ -36,16 +36,18 @@ import { CharacterControllersField } from './CharacterControllersField'
 export function CampaignParty({
   campaign,
   currentUserId,
-  openCharacterPicker = false
+  openCharacterPicker = false,
+  onLeave
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
   openCharacterPicker?: boolean
+  /** Leaving unmounts the Campaign's subscriptions first, so the page runs it (D216). */
+  onLeave: (input: z.infer<typeof leaveCampaignInputSchema>) => void
 }) {
   const liveSummary = useCampaignLiveSummary(campaign.id)
   const assignCharacter = useConvexMutation(convexApi.campaigns.assignments.assign)
   const unassignCharacter = useConvexMutation(convexApi.campaigns.assignments.unassign)
-  const leaveCampaign = useConvexMutation(convexApi.campaigns.membershipDeparture.leave)
   const removeMember = useConvexMutation(convexApi.campaigns.membershipDeparture.removeMember)
   const [membershipError, setMembershipError] = useState<string | null>(null)
   const [characterPickerOpened, characterPicker] = useDisclosure(false)
@@ -101,20 +103,10 @@ export function CampaignParty({
     if (openCharacterPicker && campaign.capabilities.assignOwnCharacter) characterPicker.open()
   }, [campaign.capabilities.assignOwnCharacter, characterPicker, openCharacterPicker])
 
-  const membershipAction = useMutation({
+  const removeMemberAction = useMutation({
     retry: 1,
-    mutationFn: (
-      action:
-        | {
-            kind: 'REMOVE'
-            input: z.infer<typeof removeCampaignMemberInputSchema>
-          }
-        | { kind: 'LEAVE'; input: z.infer<typeof leaveCampaignInputSchema> }
-    ) => (action.kind === 'REMOVE' ? removeMember(action.input) : leaveCampaign(action.input)),
-    onSuccess: (_result, action) => {
-      setMembershipConfirm(null)
-      if (action.kind === 'LEAVE') window.location.assign('/campaigns')
-    }
+    mutationFn: (input: z.infer<typeof removeCampaignMemberInputSchema>) => removeMember(input),
+    onSuccess: () => setMembershipConfirm(null)
   })
   const unassign = useMutation({
     retry: false,
@@ -270,7 +262,7 @@ export function CampaignParty({
                         size='xs'
                         variant='subtle'
                         onClick={() => {
-                          membershipAction.reset()
+                          removeMemberAction.reset()
                           setMembershipError(null)
                           setMembershipConfirm({
                             kind: 'REMOVE',
@@ -313,7 +305,7 @@ export function CampaignParty({
             color='red'
             variant='subtle'
             onClick={() => {
-              membershipAction.reset()
+              removeMemberAction.reset()
               setMembershipError(null)
               setMembershipConfirm({ kind: 'LEAVE' })
             }}
@@ -334,8 +326,8 @@ export function CampaignParty({
             ? `@${membershipConfirm.username} will lose Campaign access and their assigned Character will be removed from the roster. They must be invited again to return.`
             : 'You will lose Campaign access and your assigned Character will leave the roster. You must be invited again to return.'}
         </Text>
-        {membershipAction.error || membershipError ? (
-          <Alert color='red'>{membershipAction.error?.message ?? membershipError}</Alert>
+        {removeMemberAction.error || membershipError ? (
+          <Alert color='red'>{removeMemberAction.error?.message ?? membershipError}</Alert>
         ) : null}
         <Group justify='flex-end' mt='lg'>
           <Button variant='default' onClick={() => setMembershipConfirm(null)}>
@@ -343,10 +335,10 @@ export function CampaignParty({
           </Button>
           <Button
             color='red'
-            loading={membershipAction.isPending}
+            loading={removeMemberAction.isPending}
             onClick={() => {
-              if (membershipAction.isError && membershipAction.variables) {
-                membershipAction.mutate(membershipAction.variables)
+              if (removeMemberAction.isError && removeMemberAction.variables) {
+                removeMemberAction.mutate(removeMemberAction.variables)
                 return
               }
               if (!membershipConfirm) return
@@ -363,11 +355,12 @@ export function CampaignParty({
                 expectedMembershipAccessStartedAt: membership.accessStartedAt,
                 commandId: crypto.randomUUID()
               }
-              membershipAction.mutate(
-                membershipConfirm.kind === 'REMOVE'
-                  ? { kind: 'REMOVE', input: { ...input, userId } }
-                  : { kind: 'LEAVE', input }
-              )
+              if (membershipConfirm.kind === 'REMOVE')
+                removeMemberAction.mutate({ ...input, userId })
+              else {
+                setMembershipConfirm(null)
+                onLeave(input)
+              }
             }}
           >
             {membershipConfirm?.kind === 'REMOVE' ? 'Remove player' : 'Leave Campaign'}

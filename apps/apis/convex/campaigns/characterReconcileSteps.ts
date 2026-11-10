@@ -12,6 +12,11 @@ import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { readCharacterDraft, readCharacterRecord } from '../characters/documents'
+import {
+  CAMPAIGN_BACKGROUND_SETTLE_MS,
+  CAMPAIGN_SHEET_STORE_DELAY_MS,
+  scheduleCharacterSheetSections
+} from '../characters/sheetSectionStores'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { readCharacterSourceAccessLoss, readStillLostSources } from '../characters/sourceAccessLoss'
 import { reconcileCharacterSourceLoss } from '../characters/sourceLoss'
@@ -32,8 +37,16 @@ export const CHARACTER_RECONCILE_ATTEMPTS = 3
 
 /** Queues the step's run and the check that queues it again if the run fails or times out. */
 async function scheduleRun(ctx: MutationCtx, step: CampaignCharacterReconcileStep) {
-  const scheduledId = await ctx.scheduler.runAfter(0, runReference, step)
-  await ctx.scheduler.runAfter(CHARACTER_RECONCILE_CHECK_MS, verifyReference, step)
+  const scheduledId = await ctx.scheduler.runAfter(
+    CAMPAIGN_BACKGROUND_SETTLE_MS,
+    runReference,
+    step
+  )
+  await ctx.scheduler.runAfter(
+    CAMPAIGN_BACKGROUND_SETTLE_MS + CHARACTER_RECONCILE_CHECK_MS,
+    verifyReference,
+    step
+  )
   return scheduledId
 }
 
@@ -44,7 +57,11 @@ function readPendingReconcile(ctx: MutationCtx, stepId: string) {
     .unique()
 }
 
-/** Queues one Character's reconcile after the caller's authority change commits. */
+/**
+ * Queues one Character's reconcile after the caller's authority change commits. The step's own
+ * write queues the Sheet store the Character needs, so the store the caller's writes queued moves
+ * behind the step: the Character derives once, not before and after it (D216).
+ */
 export async function queueCharacterReconcile(
   ctx: MutationCtx,
   input: Omit<CampaignCharacterReconcileStep, 'stepId'>
@@ -55,6 +72,7 @@ export async function queueCharacterReconcile(
     scheduledId: await scheduleRun(ctx, step),
     attempts: 1
   })
+  await scheduleCharacterSheetSections(ctx, input.characterId, CAMPAIGN_SHEET_STORE_DELAY_MS)
 }
 
 /**

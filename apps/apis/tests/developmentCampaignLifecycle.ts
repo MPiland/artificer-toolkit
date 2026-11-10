@@ -43,6 +43,7 @@ import {
 import { bindScene, bindToken } from './developmentEncounterLifecycle'
 import { populateCampaignLifecycleInventory } from './developmentCampaignLifecycleInventory'
 import { verifyCampaignGmState } from './developmentCampaignGmState'
+import { awaitCharacterReconcile } from './fixtures/characterReconcileSteps'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import {
   populateCampaignLifecycleCharacter,
@@ -288,6 +289,9 @@ export async function verifyCampaignLifecycle(input: {
       )
     stage('native-deletion-fenced', { deletion, initialStatus })
     await assertRemoved(campaignId, before)
+    // The deletion's Character reconcile waits for subscribers to settle (D216).
+    if (campaignRowsBefore.campaignCharacterAssignments!.length > 0)
+      await awaitCharacterReconcile(characterId)
     const personalAfterJson = await cli(
       'campaigns/developmentLifecycle:inspectPersonal',
       fixture(campaignId),

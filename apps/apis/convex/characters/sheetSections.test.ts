@@ -40,10 +40,11 @@ import {
   readStoredCharacterSheetSections
 } from './sheetSections'
 import {
+  CAMPAIGN_BACKGROUND_SETTLE_MS,
   CHARACTER_SHEET_STORE_CHECK_MS,
-  CHARACTER_SHEET_STORE_DELAY_MS,
   scheduleCharacterSheetSections
 } from './sheetSectionStores'
+import { withSceneVisionTracking } from '../lib/mutations'
 import { deriveAndStoreCharacterSheet, storeCharacterSheetSections } from './sheetSectionDerivation'
 import { loadCharacterSheetFacts } from './sheetFacts'
 import { removePrivateCharacter } from './accountDeletion'
@@ -1110,7 +1111,11 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         subjectId: acolyte.id
       })
     )
-    await expectQueuedThenCurrent(async () => {
+    // A membership change queues the Campaign only when that member shared content (D216): the
+    // Sheet reads the sharer's membership. The party member shared nothing and owns no assigned
+    // Character here, so their departure queues no Sheet store.
+    expect(await readCommon()).not.toBeNull()
+    {
       const { version, accessStartedAt } = await t.run(async (ctx) => ({
         version: (await ctx.db
           .query('campaigns')
@@ -1129,7 +1134,9 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         expectedMembershipAccessStartedAt: accessStartedAt,
         commandId: crypto.randomUUID()
       })
-    })
+    }
+    expect(await readPending()).toEqual([])
+    expect(await readCommon()).not.toBeNull()
     await expectQueuedThenCurrent(() =>
       gm.caller.mutation(api.campaigns.currencySystems.save, {
         campaignId: campaign.id,
@@ -1138,6 +1145,22 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         denominations: [{ label: 'Token', abbreviation: 'tk', scaleInReference: 1 }]
       })
     )
+    // The sharer's membership is a Sheet input: the GM shared the Background, so their membership
+    // change queues the party's Sheets. Shared content stops being valid, so the Sheet need not
+    // serve afterwards; only the queueing is asserted.
+    await t.run(async (ctx) => {
+      const tracked = withSceneVisionTracking(ctx)
+      const membership = await tracked.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_userId', (q) =>
+          q.eq('campaignId', campaign.id).eq('userId', gm.userId)
+        )
+        .unique()
+      await tracked.db.patch(membership!._id, { status: 'LEFT', leftAt: new Date().toISOString() })
+    })
+    expect(await readPending()).toEqual([character.id])
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readPending()).toEqual([])
   }, 60_000)
 
   it("runs a Campaign change's stores one at a time, and every assigned Character ends current", async () => {
@@ -1169,7 +1192,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       expect(queued.length).toBeLessThanOrEqual(1)
       for (const characterId of queued)
         if (!started.includes(characterId)) started.push(characterId)
-      vi.advanceTimersByTime(CHARACTER_SHEET_STORE_DELAY_MS)
+      vi.advanceTimersByTime(CAMPAIGN_BACKGROUND_SETTLE_MS)
       await t.finishInProgressScheduledFunctions()
     }
     await t.finishAllScheduledFunctions(vi.runAllTimers)

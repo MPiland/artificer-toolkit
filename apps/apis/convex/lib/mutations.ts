@@ -12,10 +12,12 @@ import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import {
   characterSheetInputs,
+  memberSharesContent,
   type CharacterSheetInput,
   type CharacterSheetStoreTarget
 } from '../characters/sheetFingerprintInputs'
 import {
+  CAMPAIGN_SHEET_STORE_DELAY_MS,
   readCharacterSheetPendingStore,
   scheduleCampaignCharacterSheetSections,
   scheduleCharacterSheetSections
@@ -301,6 +303,8 @@ triggers.register('campaignMemberships', async (ctx, change) => {
   if (change.operation === 'insert') return
   const { oldDoc, newDoc } = change
   if (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role) return
+  // Only a member who shared content moves what the snapshot holds; share deletes mark themselves.
+  if (!(await memberSharesContent(ctx.innerDb, oldDoc.campaignId, oldDoc.userId))) return
   await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.campaignId }, false)
 })
 
@@ -325,7 +329,15 @@ async function queueCharacterSheetStore(ctx: TriggerContext, target: CharacterSh
     (await readCharacterSheetPendingStore(scheduling, characterId))?.scheduledId === queued
   )
     return
-  sheetStoreJobs.set(characterId, await scheduleCharacterSheetSections(scheduling, characterId))
+  sheetStoreJobs.set(
+    characterId,
+    await scheduleCharacterSheetSections(
+      scheduling,
+      characterId,
+      // Behind the departure reconcile step, whose write to this Character replaces this store.
+      target.afterCampaignSettle ? CAMPAIGN_SHEET_STORE_DELAY_MS : undefined
+    )
+  )
 }
 
 // Every Sheet fingerprint input queues the stores its write moves, in the same transaction, however

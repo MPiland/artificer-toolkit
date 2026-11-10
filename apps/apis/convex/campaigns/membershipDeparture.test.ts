@@ -21,6 +21,7 @@ import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
+import { CAMPAIGN_BACKGROUND_SETTLE_MS } from '../characters/sheetSectionStores'
 import { joinCharacterPlay, readCharacterRecord } from '../characters/stateDocuments'
 import * as removal from './contentShareRemoval'
 
@@ -420,4 +421,54 @@ describe('native Campaign membership departure', () => {
     }
     expect(await base.snapshot()).toEqual(before)
   })
+
+  // D216: one departure used to queue enough background work at once to push the Convex 1 s limit
+  // on a 4-vCPU runner. The budget is what a departure with an assigned Character and a shared
+  // item queues now; a change that raises it needs the herd re-measured, not a larger number.
+  it.each(['leave', 'removal'] as const)(
+    'bounds the background work one %s queues and delays it until subscribers settle',
+    async (kind) => {
+      const base = await setup()
+      await assign(base)
+      await shareBackground(base, base.owner.userId)
+      const readWork = () =>
+        base.t.run(async (ctx) => ({
+          jobs: await ctx.db.system.query('_scheduled_functions').collect(),
+          pendingStores: await ctx.db.query('characterSheetPendingStores').collect()
+        }))
+      const before = await readWork()
+      const knownJobs = new Set(before.jobs.map((job) => job._id))
+      const departedAt = Date.now()
+      if (kind === 'leave') await base.owner.caller.mutation(leave, base.request)
+      else
+        await base.other.caller.mutation(removeMember, {
+          ...base.request,
+          userId: base.owner.userId
+        })
+      const after = await readWork()
+      // A store the departure queued and the reconcile step then replaced is canceled: no work.
+      const queued = after.jobs.filter(
+        (job) => !knownJobs.has(job._id) && job.state.kind === 'pending'
+      )
+      const countByName: Record<string, number> = {}
+      for (const job of queued) countByName[job.name] = (countByName[job.name] ?? 0) + 1
+      expect(countByName).toEqual({
+        'campaigns/characterReconcileSteps:run': 1,
+        'campaigns/characterReconcileSteps:verify': 1,
+        'characters/sheetSectionDerivation:store': 1,
+        'characters/sheetSectionDerivation:verify': 1,
+        'contentSnapshots/actions:build': 1,
+        'liveSessions/control:evictUser': 1
+      })
+      expect(after.pendingStores).toHaveLength(1)
+      const reconcile = queued.find((job) => job.name === 'campaigns/characterReconcileSteps:run')
+      expect(reconcile!.scheduledTime - departedAt).toBeGreaterThanOrEqual(
+        CAMPAIGN_BACKGROUND_SETTLE_MS
+      )
+      // The Character store follows the step, whose write to the Character replaces it.
+      const store = queued.find((job) => job.name === 'characters/sheetSectionDerivation:store')
+      expect(store!.scheduledTime).toBeGreaterThan(reconcile!.scheduledTime)
+      expect((await base.snapshot()).campaigns[0]?.version).toBe(base.campaign.version + 1)
+    }
+  )
 })

@@ -45,6 +45,10 @@ env:
   # The one machine-readable source of the image digest: the digest the local phase82-convex-local-linux
   # container runs (apps/apis/README.md points here).
   CONVEX_BACKEND_IMAGE: ghcr.io/convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8
+  # The one source of the concurrent query and mutation cap of every CI Convex container (D216). The
+  # backend queues beyond it (a request waits up to 5 s for a permit), so a burst of subscription
+  # reruns starts a few at a time instead of time-slicing every one against the 1 s limit.
+  CONVEX_BACKEND_MAX_CONCURRENT: 4
 
 jobs:
   live-backend:
@@ -71,6 +75,8 @@ jobs:
           # domain). The instance name matches the local container, so one /instance_name check serves both.
           docker run -d --name convex-live -p 127.0.0.1:3210:3210 -p 127.0.0.1:3211:3211 \
             -e INSTANCE_NAME=phase82-local-linux \
+            -e APPLICATION_MAX_CONCURRENT_QUERIES="$CONVEX_BACKEND_MAX_CONCURRENT" \
+            -e APPLICATION_MAX_CONCURRENT_MUTATIONS="$CONVEX_BACKEND_MAX_CONCURRENT" \
             -e CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210 -e CONVEX_SITE_ORIGIN=http://127.0.0.1:3211 \
             "$CONVEX_BACKEND_IMAGE"
           for _ in $(seq 60); do
