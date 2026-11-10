@@ -25272,7 +25272,7 @@
         {
           "id": "QUALITY-4",
           "title": "Dead pipeline code is gone",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 1,
@@ -25283,16 +25283,17 @@
           "acs": [
             {
               "id": "QUALITY-4.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R0.",
-              "text": "The four unused pending-context kinds (ENCOUNTER_CHARACTER_RULE_ACTION, ENCOUNTER_ACTOR_RULE_ACTION, ENCOUNTER_ACTOR_SPELL_CAST, ENCOUNTER_CREATURE_RULE_ACTION) and the test-only Convex entry encounters/actionContestSettlement.ts are deleted, and the shared d20 helpers move out of encounterMovementReactionActionExecution.ts to the d20 settlement module; existing suites stay green and bundle bars are unchanged or lower. (Unused closed rule kinds are SPELLS-4.T4e.)"
+              "text": "The four unused pending-context kinds (ENCOUNTER_CHARACTER_RULE_ACTION, ENCOUNTER_ACTOR_RULE_ACTION, ENCOUNTER_ACTOR_SPELL_CAST, ENCOUNTER_CREATURE_RULE_ACTION) and the test-only Convex entry encounters/actionContestSettlement.ts are deleted, and the shared d20 helpers move out of encounterMovementReactionActionExecution.ts to the d20 settlement module; existing suites stay green and bundle bars are unchanged or lower. (Unused closed rule kinds are SPELLS-4.T4e.)",
+              "proof": ["rules-runtime-contracts.test.ts", "actionDisarmSettlement.test.ts"]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-4.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-4.1"],
               "wsjf": {
                 "bv": 1,
@@ -25301,9 +25302,15 @@
                 "size": 2
               },
               "text": "Delete the dead pending kinds and the test-only Convex entry; move the shared d20 helpers to their owning module.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10T20:49:56Z",
+              "proof": "m687 (e97684eeb, batch with QUALITY-12) from slice tip 792cf8cc3: Tests 42892040230, Live 42895796156, Browser journeys 42892040152 green. Deleted the four writerless pending-context kinds (ENCOUNTER_CHARACTER_RULE_ACTION, ENCOUNTER_ACTOR_RULE_ACTION, ENCOUNTER_ACTOR_SPELL_CAST, ENCOUNTER_CREATURE_RULE_ACTION) with their refines and void arms, and the actionContestSettlement wrapper; the action d20 helpers moved to encounterD20Settlement.ts."
             }
-          ]
+          ],
+          "journeyTests": [
+            "packages/schema/src/__tests__/rules-runtime-contracts.test.ts",
+            "apps/apis/convex/encounters/actionDisarmSettlement.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-5",
@@ -25510,7 +25517,7 @@
         {
           "id": "QUALITY-10",
           "title": "One d20 settlement",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 2,
@@ -25522,7 +25529,7 @@
           "acs": [
             {
               "id": "QUALITY-10.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R7.",
               "text": "Every d20 test settles through settleEncounterD20Test with one d20 graph builder and one evidence-pin verifier, and the two contributor merges become one; a source ratchet fails on a hand-rolled d20 outside the settlement; the golden changes only where duplicate definitions merged."
@@ -25531,7 +25538,7 @@
           "tasks": [
             {
               "id": "QUALITY-10.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-10.1"],
               "wsjf": {
                 "bv": 2,
@@ -25540,7 +25547,8 @@
                 "size": 5,
                 "after": ["QUALITY-4.T1"]
               },
-              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet."
+              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -25584,7 +25592,7 @@
         {
           "id": "QUALITY-12",
           "title": "The Sheet gives the same result on Convex and in the room",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25595,16 +25603,17 @@
           "acs": [
             {
               "id": "QUALITY-12.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R9.",
-              "text": "The same Sheet command gives the same result on Convex and in the room, proved against both hosts: rolls apply carried test dice, minimum roll and effect spends; resource spend has one implementation; HP is clamped after a maximum change; ending concentration has one orchestration; casting places summons. The schema validators import the HP, temporary HP and death-save arithmetic. Manual HP edits still bypass defenses (D156)."
+              "text": "The same Sheet command gives the same result on Convex and in the room, proved against both hosts: rolls apply carried test dice, minimum roll and effect spends; resource spend has one implementation; HP is clamped after a maximum change; ending concentration has one orchestration; casting places summons. The schema validators import the HP, temporary HP and death-save arithmetic. Manual HP edits still bypass defenses (D156).",
+              "proof": ["nativeRoomSheetCarriedRollDice.test.ts", "resourcePoolSpend.test.ts"]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-12.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-12.1"],
               "wsjf": {
                 "bv": 5,
@@ -25613,9 +25622,15 @@
                 "size": 5
               },
               "text": "One Sheet host module for Convex and the room; one resource spend; validators import the arithmetic; failing-first parity tests per divergence.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10T20:49:56Z",
+              "proof": "m687 (e97684eeb, batch with QUALITY-4) from slice tip 8554b1082: Tests 42893811752, Live 42893811740, Browser journeys 42893811730 green. Both hosts roll Sheet rows through rollCharacterSheetRoll (carried dice, d20 floor, after-roll offers, spent effects); one resourcePoolSpend rule with the D11 override kept; Concentration ending shared via endCarriedConcentrationOutsideRuns; receipt validators share replayHitPointReceipt; HP clamp already equal. Ruling: \"casting places summons\" reads as Convex-only per D190. Red proof: nativeRoomSheetCarriedRollDice.test.ts RED, resourcePoolSpend.test.ts RED-IMPORT. Follow-up for QUALITY-14.T2: a room Sheet roll that spends a Concentration effect (Guidance) leaves the Run caster slot held."
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomSheetCarriedRollDice.test.ts",
+            "packages/rules-runtime/src/__tests__/resourcePoolSpend.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-13",
@@ -25807,7 +25822,7 @@
         {
           "id": "QUALITY-17",
           "title": "Turn and spatial effects fold damage once",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25818,16 +25833,17 @@
           "acs": [
             {
               "id": "QUALITY-17.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice bug.",
-              "text": "Several effects damaging one target in a turn-effect or spatial pass settle through one damage fold that honours damage interceptions; a failing-first regression test proves the defect before the fix, or the investigation records that none exists."
+              "text": "Several effects damaging one target in a turn-effect or spatial pass settle through one damage fold that honours damage interceptions; a failing-first regression test proves the defect before the fix, or the investigation records that none exists.",
+              "proof": ["encounterTurnEffects.test.ts", "encounterMeleeRetaliation.test.ts"]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-17.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-17.1"],
               "wsjf": {
                 "bv": 5,
@@ -25836,9 +25852,15 @@
                 "size": 2
               },
               "text": "Investigate the double fold in encounterTurnEffects.ts and encounterSpatialCandidateExecution.ts with a failing-first test; fix through one fold.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10T20:21:14Z",
+              "proof": "m686 (75e75196c) from slice tip 7f23a5ed3: Tests 42890100993, Live 42890101038, Browser journeys 42890100986 green. Turn-boundary and spatial contact effects run applyDamageInterceptions per execution and thread the unspent interceptions, so a Death Ward target no longer fails with a stale transition. Red proof: encounterTurnEffects.test.ts and encounterMeleeRetaliation.test.ts RED on the base."
             }
-          ]
+          ],
+          "journeyTests": [
+            "packages/rules-runtime/src/__tests__/encounterTurnEffects.test.ts",
+            "packages/rules-runtime/src/__tests__/encounterMeleeRetaliation.test.ts"
+          ],
+          "journeyStatus": "verified"
         }
       ],
       "uatByOtherFeatures": true
