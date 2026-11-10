@@ -105,7 +105,12 @@ export function useCharacterSheetCommandMutation(
     convexApi.characters.sheetCommands.execute
   ).withOptimisticUpdate((localStore, { id, command }) => {
     for (const { args, value } of localStore.getAllQueries(convexApi.characters.sheetSlices.get)) {
-      if (value?.data.meta.characterId === id && !args.campaignId) {
+      if (
+        value &&
+        value.slice !== 'REPAIR_REQUIRED' &&
+        value.data.meta.characterId === id &&
+        !args.campaignId
+      ) {
         localStore.setQuery(
           convexApi.characters.sheetSlices.get,
           args,
@@ -128,8 +133,10 @@ export function useCharacterSheetCommandMutation(
   ).withOptimisticUpdate((localStore, { campaignId, characterId, command }) => {
     for (const { args, value } of localStore.getAllQueries(convexApi.characters.sheetSlices.get)) {
       if (
+        value &&
+        value.slice !== 'REPAIR_REQUIRED' &&
         (!args.campaignId || args.campaignId === campaignId) &&
-        value?.data.meta.characterId === characterId &&
+        value.data.meta.characterId === characterId &&
         (value.slice === 'NOTES'
           ? args.campaignId === campaignId
           : value.data.meta.campaignId === campaignId)

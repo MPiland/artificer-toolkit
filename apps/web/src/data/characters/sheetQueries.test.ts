@@ -5,6 +5,7 @@ import {
   getCharacterBuilderActiveCharacter,
   getCharacterDraft,
   getCharacterPreparationOptions,
+  getCharacterSheetRepairRequired,
   getCharacterSheetSlice,
   getCharacterSheetEquipmentOptions,
   getCharacterSheetExtraOptions,
@@ -18,6 +19,18 @@ describe('native character sheet query adapters', () => {
     expect(getCharacterBuilderActiveCharacter('character-handle').queryKey).toEqual(
       convexQuery(convexApi.characters.builder.activeCharacter, { id: 'character-handle' }).queryKey
     )
+  })
+
+  it('treats the Builder repair answer as no data for every slice consumer', () => {
+    const repair = {
+      slice: 'REPAIR_REQUIRED' as const,
+      data: { publicId: 'abc12', label: 'Departed Hero' }
+    }
+    // Party cards, the Campaign inventory and the feature panels read through this one selector.
+    for (const slice of ['COMMON', 'ACTIONS', 'INVENTORY', 'NOTES'] as const)
+      expect(getCharacterSheetSlice('character-1', slice).select(repair)).toBeNull()
+    expect(getCharacterSheetRepairRequired('character-1').select(repair)).toEqual(repair.data)
+    expect(getCharacterSheetRepairRequired('character-1').select(null)).toBeNull()
   })
 
   it('uses generated references and serialized arguments', () => {

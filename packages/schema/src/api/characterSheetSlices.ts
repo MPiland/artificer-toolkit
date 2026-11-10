@@ -105,6 +105,22 @@ export const characterSheetSliceResponseDtoSchema = lazySchema(() =>
   ])
 )
 
+/**
+ * The Sheet read's answer for a Character that needs Builder repair: a settled repair draft, or an
+ * ACTIVE Character whose queued reconcile step has not run yet. Carries what the route needs to
+ * offer the Builder, so no draft row has to exist.
+ */
+export const characterSheetRepairRequiredDtoSchema = lazySchema(() =>
+  z.strictObject({
+    slice: z.literal('REPAIR_REQUIRED'),
+    data: z.strictObject({ publicId: z.string(), label: z.string() })
+  })
+)
+
+export const characterSheetSliceReadResultDtoSchema = lazySchema(() =>
+  z.union([characterSheetSliceResponseDtoSchema, characterSheetRepairRequiredDtoSchema])
+)
+
 export type CharacterSheetCommonDto = z.infer<typeof characterSheetCommonDtoSchema>
 export type CharacterSheetActionsDto = z.infer<typeof characterSheetActionsDtoSchema>
 export type CharacterSheetSpellsDto = z.infer<typeof characterSheetSpellsDtoSchema>
@@ -112,6 +128,10 @@ export type CharacterSheetInventoryDto = z.infer<typeof characterSheetInventoryD
 export type CharacterSheetExtrasSliceDto = z.infer<typeof characterSheetExtrasSliceDtoSchema>
 export type CharacterSheetFeaturesDto = z.infer<typeof characterSheetFeaturesDtoSchema>
 export type CharacterSheetNotesSliceDto = z.infer<typeof characterSheetNotesSliceDtoSchema>
+export type CharacterSheetRepairRequiredDto = z.infer<typeof characterSheetRepairRequiredDtoSchema>
+export type CharacterSheetSliceReadResultDto = z.infer<
+  typeof characterSheetSliceReadResultDtoSchema
+>
 export type CharacterSheetSliceReadInput = z.infer<typeof characterSheetSliceReadInputSchema>
 export type CharacterSheetSliceResponseDto = z.infer<typeof characterSheetSliceResponseDtoSchema>
 export type CharacterSheetSliceDtoMap = {

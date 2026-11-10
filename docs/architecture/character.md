@@ -851,6 +851,8 @@ stored Character/route/draft identity, and does not evaluate rules or persist re
 A Character requiring Builder repair therefore remains discoverable. There is no new list table,
 stored projection or total-count scan.
 
+characters/sheetSlices:get answers a Character needing Builder repair, a settled repair draft or an ACTIVE Character whose queued reconcile step has not run, with the typed `REPAIR_REQUIRED` result (`characterSheetRepairRequiredDtoSchema`) instead of throwing. The Sheet route renders the same draft-only state an incomplete import shows, with Resume Builder, in both windows.
+
 The web list and Campaign's own-Character picker subscribe to both native page streams, loading all
 personal summaries before exposing the existing client-side filters, sorting and totals. Active
 pages supply edit-draft summaries; only draft-only identities absent from those pages are merged
