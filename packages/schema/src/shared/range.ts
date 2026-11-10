@@ -25,6 +25,8 @@ export const distanceRangeDtoSchema = lazySchema(() =>
       amount: authoredLengthAmountSchema,
       /** A ranged weapon attack's long range ("range 80/320 ft."): beyond `amount` it has disadvantage. */
       longAmount: z.optional(authoredLengthAmountSchema),
+      /** An attack's close range (a Lance): against a target within it the attack has disadvantage. */
+      closeAmount: z.optional(authoredLengthAmountSchema),
       unit: lengthUnitCodeSchema,
       scaling: z.optional(createBreakpointScalingDtoSchema(rangeMeasurementDtoSchema))
     })
@@ -32,6 +34,12 @@ export const distanceRangeDtoSchema = lazySchema(() =>
       z.refine(
         (range) => range.longAmount === undefined || range.longAmount > range.amount,
         'Long range must be greater than the normal range.'
+      )
+    )
+    .check(
+      z.refine(
+        (range) => range.closeAmount === undefined || range.closeAmount < range.amount,
+        'Close range must be less than the normal range.'
       )
     )
 )

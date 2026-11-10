@@ -2059,7 +2059,8 @@ function supported(
     invocation.range.unit === 'FEET' &&
     Number.isSafeInteger(invocation.range.amount) &&
     invocation.range.amount > 0 &&
-    invocation.range.longAmount === undefined
+    invocation.range.longAmount === undefined &&
+    invocation.range.closeAmount === undefined
       ? invocation.range.amount
       : null
   const firstEntry = effect.entries[0]
@@ -2079,7 +2080,8 @@ function supported(
     (invocation.range.rangeKind === 'DISTANCE' &&
       Number.isSafeInteger(invocation.range.amount) &&
       invocation.range.amount > 0 &&
-      invocation.range.longAmount === undefined)
+      invocation.range.longAmount === undefined &&
+      invocation.range.closeAmount === undefined)
   // Excluded creature types stay on the invocation: the room warns for an excluded target and the
   // table can override it, so they never make an action unsupported.
   const supportsSingleTarget =

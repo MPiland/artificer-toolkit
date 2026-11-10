@@ -57,7 +57,8 @@ export function isSupportedArea(
       range.rangeKind !== 'DISTANCE' ||
       !Number.isSafeInteger(range.amount) ||
       range.amount < 1 ||
-      range.longAmount !== undefined
+      range.longAmount !== undefined ||
+      range.closeAmount !== undefined
     )
       return false
   }
@@ -137,6 +138,13 @@ export function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSou
     invocation.range.rangeKind === 'DISTANCE' &&
     invocation.range.longAmount !== undefined &&
     (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
+  )
+    return false
+  // Only an attack has a close range it has disadvantage within (a Lance, D217).
+  if (
+    invocation.range.rangeKind === 'DISTANCE' &&
+    invocation.range.closeAmount !== undefined &&
+    (attackKind === null || !Number.isSafeInteger(invocation.range.closeAmount))
   )
     return false
   if (

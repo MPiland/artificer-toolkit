@@ -17,7 +17,8 @@ export const lance: EquipmentAuthored = {
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(21)),
   effects: [
-    ...S.meleeReachWeaponEffects(S.equipId(21), 'PIERCING', '1d12', S.EQUIPMENT_GRIP.ONE_HANDED),
+    ...S.meleeReachWeaponEffects(S.equipId(21), 'PIERCING', '1d12', S.EQUIPMENT_GRIP.ONE_HANDED, 5),
+    // Two-handed unless mounted waits on a mounted-state ruling (SPELLS-4.T4b).
     S.passiveEquipmentClosedRuleEffect(S.equipId(21), 'EQUIPMENT_LANCE', 2, 0x2e0)
   ],
   cost: S.gp(10),

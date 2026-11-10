@@ -611,11 +611,12 @@ function meleeRange(childId: EquipmentChildId, effectBucket: number) {
     unit: MEASUREMENT_UNIT_CODE.FEET
   }
 }
-function reachRange(childId: EquipmentChildId, effectBucket: number) {
+function reachRange(childId: EquipmentChildId, effectBucket: number, closeFt?: number) {
   return {
     id: childId(effectBucket + 1, 1),
     rangeKind: RANGE_KIND.DISTANCE,
     amount: 10,
+    ...(closeFt !== undefined && { closeAmount: closeFt }),
     unit: MEASUREMENT_UNIT_CODE.FEET
   }
 }
@@ -902,12 +903,16 @@ export function thrownVersatileWeaponEffects(
     }
   ]
 }
-/** Reach melee weapon (glaive, halberd, pike, lance, whip): 10ft range. */
+/**
+ * Reach melee weapon (glaive, halberd, pike, lance, whip): 10ft range. `closeFt` is a close range
+ * the attack has disadvantage within (a Lance's 5 ft).
+ */
 export function meleeReachWeaponEffects(
   childId: EquipmentChildId,
   damageTypeId: string,
   diceConfig: string,
-  grip: EquipmentGrip
+  grip: EquipmentGrip,
+  closeFt?: number
 ): EquipmentEffectAuthored[] {
   return [
     {
@@ -918,7 +923,7 @@ export function meleeReachWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: reachRange(childId, 0x210),
+        range: reachRange(childId, 0x210, closeFt),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY

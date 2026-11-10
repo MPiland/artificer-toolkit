@@ -23,6 +23,7 @@ import {
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { FacingRule } from './optionalCombatPolicyCapability.js'
 import {
+  ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource
 } from './encounterRollModeReasons.js'
@@ -285,25 +286,44 @@ function policyRangeLengths(range: MeasuredRange) {
 }
 
 /**
- * A ranged weapon attack against a target beyond its normal range and within its long range has
- * disadvantage (D62), a contributor derived like any other roll-mode reason. None without a long
- * range or a Scene to measure on; beyond the long range the target policy warns instead.
+ * The disadvantage an attack's range itself gives, a contributor derived like any other roll-mode
+ * reason: a ranged weapon attack against a target beyond its normal range and within its long
+ * range (D62), or an attack against a target within its close range (a Lance, D217). None without
+ * a long or close range or a Scene to measure on; beyond the long range the target policy warns
+ * instead.
  */
-export function encounterActionLongRangeContributor(input: {
+export function encounterActionRangeContributor(input: {
   targetPolicy: CompiledActionTargetPolicy
   sceneContext: EncounterActionSceneContext | null
 }): EncounterRelationshipD20Contributor | null {
   const { range } = input.targetPolicy
-  if (range.rangeKind !== 'DISTANCE' || range.longAmount === undefined || !input.sceneContext)
-    return null
-  const { grid, sourceToken, targetToken } = input.sceneContext
-  return sceneRangeBand(grid, sourceToken, targetToken, policyRangeLengths(range)) === 'LONG'
+  const { sceneContext } = input
+  if (range.rangeKind !== 'DISTANCE' || !sceneContext) return null
+  const { grid, sourceToken, targetToken } = sceneContext
+  const close =
+    range.closeAmount === undefined
+      ? null
+      : measuredDistance(sceneContext, { amount: range.closeAmount, unit: range.unit })
+  const rule =
+    range.longAmount !== undefined &&
+    sceneRangeBand(grid, sourceToken, targetToken, policyRangeLengths(range)) === 'LONG'
+      ? {
+          sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+          id: ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE
+        }
+      : close && close.measured <= close.maximum
+        ? {
+            sourceId: ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
+            id: ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE
+          }
+        : null
+  return rule
     ? {
-        sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+        sourceId: rule.sourceId,
         grantId: null,
-        domainKey: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+        domainKey: rule.sourceId,
         influence: 'DISADVANTAGE',
-        source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
+        source: encounterRuleContributorSource(rule.id)
       }
     : null
 }

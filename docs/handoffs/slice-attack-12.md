@@ -34,7 +34,7 @@ Base: `origin/codex/phase-08-2-convex-cutover`. CI branch `ci/attack-12`.
   - Receipt fixtures migrate in the same change.
 - **Positional home (ruling 2, superseding the `flankingContributor` replacement above).**
   - `flankingContributor` reads compiler-only `positionalFacts` that no live path supplies, so it never applies at the table. The facing contributor therefore does not replace it.
-  - Instead, `encounterActionPositionalContributors` (next to `encounterActionLongRangeContributor`) is the live merge's single home for positional contributors. It reads `encounterFacingRule(state)`, the Scene tokens' `rotationDegrees` and the rule's arc table, and its contributors carry `positional: { arc }`.
+  - Instead, `encounterActionPositionalContributors` (next to `encounterActionRangeContributor`) is the live merge's single home for positional contributors. It reads `encounterFacingRule(state)`, the Scene tokens' `rotationDegrees` and the rule's arc table, and its contributors carry `positional: { arc }`.
   - `flankingContributor` stays untouched in this slice.
   - Live flanking is a separate bug (settings list the rule as integrated, but it never applies). Its fix moves flanking into the positional home and deletes the compiler-only path. The user approved it as T2f (see "T2f shape").
 

@@ -16,6 +16,8 @@ export type RangeAuthored =
       amount: number
       /** A ranged weapon attack's long range; beyond `amount` the attack has disadvantage. */
       longAmount?: number
+      /** An attack's close range (a Lance); against a target within it the attack has disadvantage. */
+      closeAmount?: number
       unit: LengthUnitCode
       scaling?: ScalableValueAuthored<RangeMeasurementAuthored>
     }
