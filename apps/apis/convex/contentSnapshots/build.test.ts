@@ -539,7 +539,7 @@ describe('content snapshot builds', () => {
       const roots = await readPart(userSource, await head(userSource), 'EQUIPMENT')
       expect(roots).toHaveLength(2)
       expect(roots.find((root) => root.id === variant)).toMatchObject({
-        parentEquipmentId: parent,
+        parentEquipmentIds: [parent],
         category: club.category
       })
     } finally {
