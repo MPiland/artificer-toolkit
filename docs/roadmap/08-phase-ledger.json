@@ -13920,7 +13920,7 @@
               "note": "Split on seam trace; user approved 2026-11-01 (D208). The room journey must cover the area-cast lead path (leadActiveEffectPlans), which d2 left without its own test. Merged in m606 (7df20043b). Room journey nativeRoomPrismaticSpray.test.ts; parity prismaticSprayAuthoringParity.test.ts."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-4.T4a",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -13930,10 +13930,12 @@
                 "size": 1,
                 "after": []
               },
-              "text": "Description-only per D156: Magnifying Glass, Tinderbox, Rope, Chain, the arcane and druidic focuses, Holy Symbol, Component Pouch, and the draft-animal and rowed-vessel vehicle rules; delete the redundant heavy-armor Strength closed rules (the speed modifier is already authored); delete the unused HOLY_AURA, COUATL_DIVINE_AID and ERINYES_LONGSWORD entries. Any item found to change resolved state is reported, not converted."
+              "text": "Description-only per D156: Magnifying Glass, Tinderbox, Rope, Chain, the arcane and druidic focuses, Holy Symbol, Component Pouch, and the draft-animal and rowed-vessel vehicle rules; delete the redundant heavy-armor Strength closed rules (the speed modifier is already authored); delete the unused HOLY_AURA, COUATL_DIVINE_AID and ERINYES_LONGSWORD entries. Any item found to change resolved state is reported, not converted.",
+              "mergedAt": "2026-11-10T14:25:32Z",
+              "proof": "descriptionOnlyEquipmentAndVehicles.test.ts (18 utility items, 3 heavy armors keep the authored SPEED modifier, 2 vehicle features); AUTHORED_SOURCE_FACTS_VERSION 5; vehiclePublication.test.ts checks every nested copied id is new. Green on 5ff60b3a1; merged m679 (7f721ff46)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T4b",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -13946,30 +13948,30 @@
               "text": "Lance as a new generic option (D217): disadvantage on attacks against a target within 5 ft, and two-handed unless mounted. Crowbar and Portable Ram from core options as situational check bonuses (they fail the D198 rubric). Authoring-parity proofs; delete the three kinds."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T4c",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": []
               },
-              "text": "Item-count container capacity as a new generic option (D217): Quiver (20 arrows), Crossbow Bolt Case (20 bolts), Map or Scroll Case and Pouch limit their contents by count; authoring-parity proof and a Sheet inventory test; delete the four capacity kinds."
+              "text": "Item-count container capacity as a new generic option (D217 ruling 2026-11-10, Option A): an authored itemCapacity list inherited by variants, matched on equipment id or variant ancestor, limits sharing the container, unnamed contents not counted, over-limit refused on the Sheet and in Party/Vehicle inventory; Sheet DTO and snapshot index carry ancestry. Quiver (20 arrows), Crossbow Bolt Case (20 bolts), Map or Scroll Case (10 paper or 5 parchment), Pouch (20 sling bullets or 50 blowgun needles). Authoring-parity proof, reducer and party-inventory tests and a Sheet inventory test; delete the four capacity kinds."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T4d",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": []
               },
-              "text": "Hooded Lantern hood as a new generic option (D217): a toggle that lowers the lantern's light to dim light in a 5 ft radius; authoring-parity proof; delete EQUIPMENT_HOODED_LANTERN."
+              "text": "Hooded Lantern hood is description-only (D217 ruling 2026-11-10, D156: Character carried light is not resolved); delete EQUIPMENT_HOODED_LANTERN with a description-only proof; record Character carried light as a fast follow in future-enhancements.md."
             },
             {
               "status": "TODO",
@@ -18277,7 +18279,7 @@
               "note": "Directed by the user on 2026-10-31. Engulf and regurgitation stay GM rulings. Merged in m588 (66b841e3b)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-31.T8a",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
@@ -18287,7 +18289,9 @@
                 "size": 1,
                 "after": []
               },
-              "text": "Carry out the description-only rulings: Survivor, Quivering Palm and Dark One's Own Luck (D198) and Stand Against the Tide (D217) keep their descriptions as GM rulings; delete their closed-rule effects and kinds and register them in descriptionOnlyClassFeatures.test.ts."
+              "text": "Carry out the description-only rulings: Survivor, Quivering Palm and Dark One's Own Luck (D198) and Stand Against the Tide (D217) keep their descriptions as GM rulings; delete their closed-rule effects and kinds and register them in descriptionOnlyClassFeatures.test.ts.",
+              "mergedAt": "2026-11-10T14:25:32Z",
+              "proof": "descriptionOnlyClassFeatures.test.ts (Survivor, Quivering Palm, Dark One's Own Luck, Stand Against the Tide as GM rulings, no CLOSED_RULE effect); srdEffectCompile golden reviewed. Tests 42829989195, Live 42829989648, Browser journeys 42829989162 green on 5ff60b3a1; merged m679 (7f721ff46)."
             }
           ],
           "journeyTests": [
