@@ -24621,7 +24621,7 @@
         {
           "id": "PERF-6",
           "title": "Hot Convex functions stay small and fast",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "origin": ["RELEASE-2"],
@@ -24638,9 +24638,13 @@
             {
               "id": "PERF-6.2",
               "text": "Each profiled function stays within a deterministic read budget (documents and bytes read) enforced by a convex-test that fails CI when exceeded, and its CI-recorded timing meets query p95 <= 250 ms and mutation p95 <= 500 ms on the GitHub runners; the top offenders are fixed at the cause (compute moved out of reads, served reads small and precomputed).",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["RELEASE-2"],
-              "note": "User approved 2026-11-07: CI is the conservative bar for backend timing (Convex runs on Convex's servers, not user hardware); timing is recorded and acted on, the read budget is the hard gate."
+              "note": "User approved 2026-11-07: CI is the conservative bar for backend timing (Convex runs on Convex's servers, not user hardware); timing is recorded and acted on, the read budget is the hard gate.",
+              "proof": [
+                "Read budgets: deterministic convex-test budgets for the profiled functions (T2-T9, T11 module-size and read-budget tests, T14 departure execution budget, T15 no root write).",
+                "D216 (user ruling 2026-11-09): CI Convex containers cap concurrency at 4 and the gate is executions per departure; timeouts and p95 are recorded, not gated. Recorded on m676: movement x3, passage x3, campaign-membership-browser, campaign-membership-custody and campaign-lifecycle with 0 timeouts."
+              ]
             },
             {
               "id": "PERF-6.3",
@@ -24929,7 +24933,7 @@
             },
             {
               "id": "PERF-6.T15",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-6.2"],
               "wsjf": {
                 "bv": 5,
@@ -24941,7 +24945,11 @@
               },
               "text": "Split the Campaign hot fields (D216; review finding 2, docs/validation/perf-6-fable-timeout-review-2026-11-09.md). readCampaignAuthority (campaigns/authority.ts) reads the whole campaigns document, so every Campaign subscription of every member reruns when a departure, unshare, archive, update, ownership change or notebook section write patches version, updatedAt or notebookRevision. Move version, updatedAt and notebookRevision to a one-row-per-Campaign revision document read only by the queries that return them and the mutations that check the version; keep identity, settings, owner, System and status on campaigns. Update the packages/schema contracts that carry these fields, migrate development data in the same change (pre-launch, no shims) and trace every reader (about 31 references in 17 files) plus copy, archive, ownership and deletion. Proofs: a convex-test that fails if a departure or a notebook section write patches the campaigns table; the T14 execution-budget test tightened to the new count; the membership and notebook journeys stay green.",
               "note": "Registered 2026-11-09. User ruling D216: split the hot fields (chosen over skipping the version bump on share-less departures). Scope growth under the D187 freeze approved by the user 2026-11-09. After T14 because both touch lib/mutations.ts.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10",
+              "proof": [
+                "m677 (912a6a877), fast path; slice tip 3e4822855: Tests 42772901040 (red proof: all 23 changed test files RED), Live backend 42772900925, Browser journeys 42772900816, campaign-lifecycle 42773197587, campaign-membership-browser 42773202239, campaign-collaboration-browser 42773206301 green.",
+                "campaignRevisions (one row per Campaign, unique by_campaignId) holds version, updatedAt and notebookRevision; campaigns keeps identity, settings, owner, System and status. Created with the root (create.ts, copy goes through it) and deleted with it (deletion custody); invariant in docs/architecture/persistence.md. notebooks.test.ts proves a notebook section write leaves the Campaign root unchanged; membershipDeparture.test.ts proves a departure leaves the campaigns table unchanged (root writes per departure 1 -> 0, 6 queued jobs)."
+              ]
             }
           ]
         },
