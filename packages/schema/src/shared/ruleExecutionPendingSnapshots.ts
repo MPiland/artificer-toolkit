@@ -391,10 +391,7 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
           })
         }
         const twoPhase =
-          (snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' ||
-            snapshot.applicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
-            snapshot.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
-            snapshot.applicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
+          snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
           snapshot.applicationContext.twoPhase?.phase === 'OUTCOME'
             ? snapshot.applicationContext.twoPhase
             : snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&

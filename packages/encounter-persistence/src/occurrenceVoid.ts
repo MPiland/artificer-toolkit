@@ -70,10 +70,6 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
   switch (context.kind) {
     case 'ENCOUNTER_ACTION':
     case 'ENCOUNTER_AREA_ACTION':
-    case 'ENCOUNTER_CHARACTER_RULE_ACTION':
-    case 'ENCOUNTER_ACTOR_RULE_ACTION':
-    case 'ENCOUNTER_ACTOR_SPELL_CAST':
-    case 'ENCOUNTER_CREATURE_RULE_ACTION':
       return { kind: 'CANCEL' }
     case 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING':
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE':
