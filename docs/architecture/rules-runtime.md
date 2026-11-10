@@ -345,7 +345,10 @@ added dice and floor when present); `settleEncounterD20Answer` settles an answer
 (faces, kept mode, added dice); `settleEncounterD20Test` resumes the test graph with the kept natural
 and the added dice's total and verifies the System-named `rawDie`, `addedTotal` and `total` output
 ports. Tests whose graph can pause again or is verified through its trace (action phases, target-bound
-effects) resume through `resumeEncounterD20` directly. D20
+effects) resume through `resumeEncounterD20` directly. The same module owns an action's d20 policy
+(`deriveEncounterActionD20Policy`, `nestedOutcomeD20Policy`) and the evidence sealed from it
+(`buildEncounterActionD20Evidence`, `buildEncounterSaveD20Evidence`,
+`requireEncounterSaveD20EvidenceTrace`). D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
 `rollModeReasons` in `packages/encounter-persistence`). **Typed contributor source (RELIABILITY-6.9,

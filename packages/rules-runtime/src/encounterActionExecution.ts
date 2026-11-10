@@ -24,14 +24,6 @@ import {
   resolveEncounterActionPhaseExecution
 } from './encounterActionPhaseExecution.js'
 import {
-  buildEncounterActionD20Evidence,
-  buildEncounterSaveD20Evidence,
-  deriveEncounterActionD20Policy,
-  nestedOutcomeD20Policy,
-  policyAuditDice,
-  requireEncounterSaveD20EvidenceTrace
-} from './encounterMovementReactionActionExecution.js'
-import {
   encounterAttackD20Belief,
   isEncounterSightGovernedD20,
   type EncounterAttackD20Belief,
@@ -56,6 +48,12 @@ import {
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import {
   actionResponse,
+  buildEncounterActionD20Evidence,
+  buildEncounterSaveD20Evidence,
+  deriveEncounterActionD20Policy,
+  nestedOutcomeD20Policy,
+  policyAuditDice,
+  requireEncounterSaveD20EvidenceTrace,
   settleEncounterD20Answer,
   type SettledActionResponse
 } from './encounterD20Settlement.js'

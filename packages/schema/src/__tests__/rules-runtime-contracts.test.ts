@@ -27,6 +27,7 @@ import {
   type StoredRuleExecutionResultDto
 } from '../shared/rulesExecution.js'
 import { actionResolvedPath } from '../shared/ruleExecutionResults.js'
+import { directActionTwoPhaseDtoSchema } from '../shared/ruleExecutionDirectActionPendingContexts.js'
 
 const SYSTEM_ID = '11111111-1111-4111-8111-111111111111'
 const SEEDED_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
@@ -679,78 +680,36 @@ describe('rules runtime contracts', () => {
     ).toThrow()
   })
 
-  it('retains a bounded Character-to-Encounter-actor action pause without Character-target pins', () => {
-    const pending = {
-      kind: 'ENCOUNTER_ACTOR_RULE_ACTION' as const,
-      schemaVersion: 1 as const,
-      actionId: 'action:fire-bolt',
-      sourceActorId: turnBatchIds.actor,
-      targetActorId: '00000000-0000-4000-8000-000000000301',
-      sourceCharacterId: turnBatchIds.character,
-      sourceCharacterStreamVersion: 4,
-      sourceProjectionChecksum: 'a'.repeat(64),
-      sourceMechanicalContextChecksum: 'b'.repeat(64),
-      targetCurrentnessChecksum: 'c'.repeat(64),
-      publishedDefinitionId: DEFINITION_ID,
-      publishedDefinitionChecksum: 'd'.repeat(64),
-      phase: {
-        kind: 'ACTION_EVIDENCE' as const,
-        d20: {
-          rollMode: 'NORMAL' as const,
-          keep: 'FIRST' as const,
-          contributors: [],
-          contributorChecksum: 'e'.repeat(64),
-          modifier: 5,
-          defenseOrDc: 14
-        }
-      }
-    }
-    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
-      kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
-      targetActorId: pending.targetActorId,
-      twoPhase: null
-    })
+  it('retains a sealed direct-action phase identity and its nested OUTCOME d20 evidence', () => {
     expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...pending,
-        twoPhase: {
-          phase: 'TEST',
-          compilerSourceChecksum: 'f'.repeat(64),
-          testTemplateChecksum: 'a'.repeat(64),
-          boundFactsChecksum: 'b'.repeat(64)
-        }
+      directActionTwoPhaseDtoSchema.parse({
+        phase: 'TEST',
+        compilerSourceChecksum: 'f'.repeat(64),
+        testTemplateChecksum: 'a'.repeat(64),
+        boundFactsChecksum: 'b'.repeat(64)
       })
-    ).toMatchObject({
-      kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
-      twoPhase: { phase: 'TEST' }
-    })
+    ).toMatchObject({ phase: 'TEST' })
     const testExecution = turnBatchResult().executions[0]!.execution
     const testExecutionChecksum = checksumRuleDocument(testExecution)
     expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...pending,
-        twoPhase: {
-          phase: 'OUTCOME',
-          compilerSourceChecksum: 'f'.repeat(64),
-          testTemplateChecksum: 'a'.repeat(64),
-          outcomeTemplateChecksum: 'b'.repeat(64),
-          boundFactsChecksum: 'c'.repeat(64),
-          testExecution,
-          testExecutionChecksum,
-          testRollEvidence: {
-            requestId: 'test-roll',
-            rollMode: 'NORMAL',
-            keep: 'FIRST',
-            derivedRollMode: 'NORMAL',
-            rawFaces: [12],
-            selectedNatural: 12
-          }
+      directActionTwoPhaseDtoSchema.parse({
+        phase: 'OUTCOME',
+        compilerSourceChecksum: 'f'.repeat(64),
+        testTemplateChecksum: 'a'.repeat(64),
+        outcomeTemplateChecksum: 'b'.repeat(64),
+        boundFactsChecksum: 'c'.repeat(64),
+        testExecution,
+        testExecutionChecksum,
+        testRollEvidence: {
+          requestId: 'test-roll',
+          rollMode: 'NORMAL',
+          keep: 'FIRST',
+          derivedRollMode: 'NORMAL',
+          rawFaces: [12],
+          selectedNatural: 12
         }
       })
-    ).toMatchObject({
-      kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
-      twoPhase: { phase: 'OUTCOME', testExecutionChecksum }
-    })
+    ).toMatchObject({ phase: 'OUTCOME', testExecutionChecksum })
     const nestedContributors = [
       {
         sourceId: 'nested-save-test',
@@ -784,56 +743,39 @@ describe('rules runtime contracts', () => {
       defenseOrDc: nestedOutcomeD20.dc,
       resultPath: 'ON_SAVE_SUCCESS'
     }
-    const nestedPending = {
-      ...pending,
-      twoPhase: {
-        phase: 'OUTCOME' as const,
-        compilerSourceChecksum: 'f'.repeat(64),
-        testTemplateChecksum: 'a'.repeat(64),
-        outcomeTemplateChecksum: 'b'.repeat(64),
-        boundFactsChecksum: 'c'.repeat(64),
-        testExecution,
-        testExecutionChecksum,
-        testRollEvidence: {
-          requestId: 'test-roll',
-          rollMode: 'NORMAL' as const,
-          keep: 'FIRST' as const,
-          derivedRollMode: 'NORMAL' as const,
-          rawFaces: [12],
-          selectedNatural: 12
-        },
-        nestedOutcomeD20,
-        nestedOutcomeD20Evidence
-      }
+    const nestedTwoPhase = {
+      phase: 'OUTCOME' as const,
+      compilerSourceChecksum: 'f'.repeat(64),
+      testTemplateChecksum: 'a'.repeat(64),
+      outcomeTemplateChecksum: 'b'.repeat(64),
+      boundFactsChecksum: 'c'.repeat(64),
+      testExecution,
+      testExecutionChecksum,
+      testRollEvidence: {
+        requestId: 'test-roll',
+        rollMode: 'NORMAL' as const,
+        keep: 'FIRST' as const,
+        derivedRollMode: 'NORMAL' as const,
+        rawFaces: [12],
+        selectedNatural: 12
+      },
+      nestedOutcomeD20,
+      nestedOutcomeD20Evidence
     }
-    expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse(nestedPending)
-    ).toMatchObject({
-      twoPhase: { nestedOutcomeD20Evidence }
+    expect(directActionTwoPhaseDtoSchema.parse(nestedTwoPhase)).toMatchObject({
+      nestedOutcomeD20Evidence
     })
     expect(() =>
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...nestedPending,
-        twoPhase: {
-          ...nestedPending.twoPhase,
-          nestedOutcomeD20Evidence: {
-            ...nestedOutcomeD20Evidence,
-            requestNodeId: 'different-nested-save-d20'
-          }
+      directActionTwoPhaseDtoSchema.parse({
+        ...nestedTwoPhase,
+        nestedOutcomeD20Evidence: {
+          ...nestedOutcomeD20Evidence,
+          requestNodeId: 'different-nested-save-d20'
         }
       })
     ).toThrow()
     expect(() =>
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...nestedPending,
-        twoPhase: { ...nestedPending.twoPhase, nestedOutcomeD20: null }
-      })
-    ).toThrow()
-    expect(() =>
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...pending,
-        targetCurrentnessChecksum: 'not-a-checksum'
-      })
+      directActionTwoPhaseDtoSchema.parse({ ...nestedTwoPhase, nestedOutcomeD20: null })
     ).toThrow()
   })
 

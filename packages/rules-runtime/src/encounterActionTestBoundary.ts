@@ -21,7 +21,7 @@ import { resumeEncounterD20 } from './encounterD20AddedDice.js'
 import {
   buildEncounterActionD20Evidence,
   deriveEncounterActionD20Policy
-} from './encounterMovementReactionActionExecution.js'
+} from './encounterD20Settlement.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
 /**
