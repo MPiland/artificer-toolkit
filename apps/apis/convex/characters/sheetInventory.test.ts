@@ -11,7 +11,10 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { HAND_CONFLICT_MESSAGE } from '@artificer-toolkit/shared/core'
+import { arrows } from '@artificer-toolkit/source-data/srd/equipment/arrows.js'
+import { arrowsPlus1 } from '@artificer-toolkit/source-data/srd/equipment/arrows-plus-1.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { quiver } from '@artificer-toolkit/source-data/srd/equipment/quiver.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
@@ -688,5 +691,84 @@ describe('native Character Sheet inventory commands', () => {
         }
       })
     ).rejects.toThrow('is not available for this character')
+  })
+})
+
+describe('native Character Sheet item-count container capacity (D217)', () => {
+  it('holds 20 Arrows in a Quiver, counts Arrows +1 by ancestry, and refuses overfilling adds, moves and increases', async () => {
+    const base = await readyCharacterFixture()
+    await importSeededSubjects(base.t, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [quiver, arrows, arrowsPlus1].map((document) =>
+        importedSubject({ subjectKind: 'EQUIPMENT', ...document, document })
+      )
+    })
+    const { draft, character } = await base.createCharacter()
+    await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character
+    })
+    const readState = () => base.t.run((ctx) => readCharacterRow(ctx, character.id))
+    let version = 1
+    const run = async (command: CharacterSheetExecuteInput['command']) => {
+      version = (await base.owner.caller.mutation(execute, { id: character.id, command }))
+        .streamVersion
+      return (await base.owner.caller.query(getSheet, { id: character.id }))!
+    }
+    const add = (equipmentId: string, quantity: number, containerId?: string) =>
+      ({
+        type: 'ADD_INVENTORY_ITEM',
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        equipmentId,
+        quantity,
+        ...(containerId ? { containerId } : {})
+      }) as const
+    const update = (itemId: string, change: { quantity?: number; containerId?: string }) =>
+      ({
+        type: 'UPDATE_INVENTORY_ITEM',
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        itemId,
+        ...change
+      }) as const
+
+    const holder = (await run(add(quiver.id, 1))).inventory.containers!.find(
+      (container) => container.label === quiver.label
+    )!
+    expect(holder.itemCapacity).toEqual([
+      { amount: 20, equipmentIds: [arrows.id], label: arrows.label }
+    ])
+    await run(add(arrows.id, 15, holder.id))
+    const beforeOverfill = await readState()
+    await expect(run(add(arrowsPlus1.id, 6, holder.id))).rejects.toThrow(
+      '"Quiver" has room for only 5 more "Arrows +1".'
+    )
+    expect(await readState()).toEqual(beforeOverfill)
+    await run(add(arrowsPlus1.id, 5, holder.id))
+    const sheet = await run(add(arrows.id, 1))
+    const loose = sheet.inventory.items.find(
+      (item) => item.equipmentId === arrows.id && !item.containerId
+    )!
+    const held = sheet.inventory.items.find(
+      (item) => item.equipmentId === arrows.id && item.containerId === holder.id
+    )!
+    const beforeRefusals = await readState()
+    await expect(run(update(loose.id, { containerId: holder.id }))).rejects.toThrow(
+      '"Quiver" has no room for "Arrows".'
+    )
+    await expect(run(update(held.id, { quantity: 16 }))).rejects.toThrow(
+      '"Quiver" has room for only 15 more "Arrows".'
+    )
+    expect(await readState()).toEqual(beforeRefusals)
+
+    await run(update(held.id, { quantity: 14 }))
+    const filled = await run(update(loose.id, { containerId: holder.id }))
+    expect(
+      filled.inventory.items
+        .filter((item) => item.containerId === holder.id)
+        .reduce((total, item) => total + item.quantity, 0)
+    ).toBe(20)
   })
 })

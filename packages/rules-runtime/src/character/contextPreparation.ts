@@ -536,6 +536,20 @@ export async function prepareCharacterRuleContext(
   )
   equipment.push(...pinnedEquipment.map((pinned) => pinned.equipment))
 
+  // Item-count limits name the Equipment they hold; their prose labels the held container (D217).
+  const limitedEquipment: CharacterRulePublication[] = []
+  const limitedEquipmentIds = new Set(
+    equipment.flatMap(
+      (record) => record.itemCapacity?.flatMap((limit) => limit.equipmentIds ?? []) ?? []
+    )
+  )
+  for (const equipmentId of limitedEquipmentIds) {
+    if (read.some((published) => published.id === equipmentId)) continue
+    const published = await readers.readPublication(equipmentId)
+    if (published?.subjectKind === 'EQUIPMENT' && published.systemId === character.systemId)
+      limitedEquipment.push(published)
+  }
+
   const context = {
     registry: {
       system,
@@ -549,7 +563,7 @@ export async function prepareCharacterRuleContext(
       creatureLoadoutEquipmentById
     },
     presentation: presentationLookup(
-      read,
+      [...read, ...limitedEquipment],
       featureSources,
       Object.fromEntries(
         pinnedEquipment.map((pinned) => [pinned.equipment.id, pinned.presentation])
@@ -736,8 +750,9 @@ function toEquipmentCatalogRecords(
       for (let current = entry; !verified.has(current.id);) {
         if (chain.has(current.id)) throw new Error('Equipment variant cycle detected.')
         chain.add(current.id)
-        if (current.parentEquipmentId === null) break
-        const parent = byId.get(current.parentEquipmentId)
+        const [parentId] = current.parentEquipmentIds
+        if (parentId === undefined) break
+        const parent = byId.get(parentId)
         if (!parent) throw new Error('Readable parent Equipment in the same System is required.')
         current = parent
       }
@@ -749,6 +764,7 @@ function toEquipmentCatalogRecords(
       category: entry.category,
       isContainer: entry.isContainer,
       ...(entry.maxStack === undefined ? {} : { maxStack: entry.maxStack }),
+      parentEquipmentIds: [...entry.parentEquipmentIds],
       properties: [...entry.properties],
       requiresAttunement: entry.requiresAttunement
     }))

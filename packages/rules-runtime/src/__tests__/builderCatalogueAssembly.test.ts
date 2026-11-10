@@ -294,7 +294,7 @@ describe('Builder catalogue from content snapshots', () => {
               failure === 'missing parent'
                 ? object.roots.filter((root) => root.id !== backpack.id)
                 : object.roots.map((root) =>
-                    root.id === child.id ? { ...root, parentEquipmentId: child.id } : root
+                    root.id === child.id ? { ...root, parentEquipmentIds: [child.id] } : root
                   )
           })
         : object

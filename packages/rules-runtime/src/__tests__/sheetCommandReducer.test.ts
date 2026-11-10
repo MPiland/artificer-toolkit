@@ -26,6 +26,18 @@ import { effectiveHitPointMaximum } from '../character/activeEffectGrantTotals.j
 import { SRD_CONDITION_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { currentConditionDefinition } from './srdConditionDefinitions.js'
+import {
+  prepareFixtureBuilder,
+  prepareFixtureSheet,
+  readyFighterFixture
+} from '../testing/characterContextFixtures.js'
+import { arrows } from '@artificer-toolkit/source-data/srd/equipment/arrows.js'
+import { arrowsPlus1 } from '@artificer-toolkit/source-data/srd/equipment/arrows-plus-1.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { mapOrScrollCase } from '@artificer-toolkit/source-data/srd/equipment/map-or-scroll-case.js'
+import { paperOneSheet } from '@artificer-toolkit/source-data/srd/equipment/paper-one-sheet.js'
+import { parchmentOneSheet } from '@artificer-toolkit/source-data/srd/equipment/parchment-one-sheet.js'
+import { quiver } from '@artificer-toolkit/source-data/srd/equipment/quiver.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -1181,6 +1193,182 @@ describe('Character Sheet held items (SHEET-8)', () => {
         commandId: '50000000-0000-4000-8000-00000000000d'
       })
     ).not.toThrow()
+  })
+})
+
+describe('Character Sheet item-count container capacity (D217)', () => {
+  const held = {
+    quiver: '50000000-0000-4000-8000-000000000101',
+    arrows: '50000000-0000-4000-8000-000000000102',
+    looseArrows: '50000000-0000-4000-8000-000000000103',
+    scrollCase: '50000000-0000-4000-8000-000000000104',
+    parchment: '50000000-0000-4000-8000-000000000105',
+    club: '50000000-0000-4000-8000-000000000106',
+    looseArrowsPlus1: '50000000-0000-4000-8000-000000000107',
+    loosePaper: '50000000-0000-4000-8000-000000000108'
+  } as const
+
+  /** A ready Fighter holding `inventory`, with its Sheet projected by the real Sheet projection. */
+  async function holding(inventory: CharacterAuthored['state']['equipment']['inventory']) {
+    const fixture = readyFighterFixture()
+    const { character: built } = await prepareFixtureBuilder(fixture)
+    const played = {
+      ...built,
+      state: { ...built.state, equipment: { ...built.state.equipment, inventory } }
+    }
+    const { sheet: projected } = await prepareFixtureSheet({
+      character: played,
+      documents: {
+        ...fixture.documents,
+        EQUIPMENT: [
+          ...fixture.documents.EQUIPMENT,
+          quiver,
+          arrows,
+          arrowsPlus1,
+          mapOrScrollCase,
+          paperOneSheet,
+          parchmentOneSheet
+        ]
+      }
+    })
+    return { played, projected }
+  }
+
+  const addInto = (equipmentId: string, quantity: number, containerId: string) =>
+    ({ ...base, type: 'ADD_INVENTORY_ITEM', equipmentId, quantity, containerId }) as const
+
+  it('projects each limit with the readable Equipment it counts', async () => {
+    const { projected } = await holding([
+      { id: held.quiver, equipmentId: quiver.id, quantity: 1 },
+      { id: held.scrollCase, equipmentId: mapOrScrollCase.id, quantity: 1 }
+    ])
+    expect(projected.inventory.containers).toEqual([
+      expect.objectContaining({
+        id: held.scrollCase,
+        itemCapacity: [
+          { amount: 10, equipmentIds: [paperOneSheet.id], label: paperOneSheet.label },
+          { amount: 5, equipmentIds: [parchmentOneSheet.id], label: parchmentOneSheet.label }
+        ]
+      }),
+      expect.objectContaining({
+        id: held.quiver,
+        itemCapacity: [{ amount: 20, equipmentIds: [arrows.id], label: arrows.label }]
+      })
+    ])
+  })
+
+  it('counts a variant by its ancestry and refuses the pieces past the limit', async () => {
+    const { played, projected } = await holding([
+      { id: held.quiver, equipmentId: quiver.id, quantity: 1 },
+      { id: held.arrows, equipmentId: arrows.id, quantity: 15, containerId: held.quiver },
+      // Contents no limit names take no item-count room.
+      { id: held.club, equipmentId: club.id, quantity: 1, containerId: held.quiver },
+      // A carried stack puts the variant on the Sheet; carried pieces fill no container.
+      { id: held.looseArrowsPlus1, equipmentId: arrowsPlus1.id, quantity: 1 }
+    ])
+    expect(() =>
+      apply(played, addInto(arrowsPlus1.id, 6, held.quiver), { sheet: projected })
+    ).toThrow(new CharacterSheetCommandError('"Quiver" has room for only 5 more "Arrows +1".'))
+    const filled = apply(played, addInto(arrowsPlus1.id, 5, held.quiver), { sheet: projected })
+    expect(
+      filled.state.equipment.inventory.filter((item) => item.containerId === held.quiver)
+    ).toEqual([
+      expect.objectContaining({ equipmentId: arrows.id, quantity: 15 }),
+      expect.objectContaining({ equipmentId: club.id, quantity: 1 }),
+      expect.objectContaining({ equipmentId: arrowsPlus1.id, quantity: 5 })
+    ])
+  })
+
+  it('shares one container between its limits with exact fractions', async () => {
+    const { played, projected } = await holding([
+      { id: held.scrollCase, equipmentId: mapOrScrollCase.id, quantity: 1 },
+      {
+        id: held.parchment,
+        equipmentId: parchmentOneSheet.id,
+        quantity: 4,
+        containerId: held.scrollCase
+      },
+      { id: held.loosePaper, equipmentId: paperOneSheet.id, quantity: 1 }
+    ])
+    // Four of five Parchment fill 8 of 10 Paper.
+    expect(() =>
+      apply(played, addInto(paperOneSheet.id, 3, held.scrollCase), { sheet: projected })
+    ).toThrow('"Map or Scroll Case" has room for only 2 more "Paper (one sheet)".')
+    expect(() =>
+      apply(played, addInto(parchmentOneSheet.id, 2, held.scrollCase), { sheet: projected })
+    ).toThrow('"Map or Scroll Case" has room for only 1 more "Parchment (one sheet)".')
+    expect(
+      apply(played, addInto(paperOneSheet.id, 2, held.scrollCase), { sheet: projected }).state
+        .equipment.inventory
+    ).toContainEqual(
+      expect.objectContaining({
+        equipmentId: paperOneSheet.id,
+        quantity: 2,
+        containerId: held.scrollCase
+      })
+    )
+  })
+
+  it('refuses a move into a full container and a quantity increase past its room', async () => {
+    const { played, projected } = await holding([
+      { id: held.quiver, equipmentId: quiver.id, quantity: 1 },
+      { id: held.arrows, equipmentId: arrows.id, quantity: 20, containerId: held.quiver },
+      { id: held.looseArrows, equipmentId: arrows.id, quantity: 3 }
+    ])
+    const move = {
+      ...base,
+      type: 'UPDATE_INVENTORY_ITEM',
+      itemId: held.looseArrows,
+      containerId: held.quiver
+    } as const
+    expect(() => apply(played, move, { sheet: projected })).toThrow(
+      '"Quiver" has no room for "Arrows".'
+    )
+    expect(() =>
+      apply(
+        played,
+        { ...base, type: 'UPDATE_INVENTORY_ITEM', itemId: held.arrows, quantity: 21 },
+        { sheet: projected }
+      )
+    ).toThrow('"Quiver" has room for only 20 more "Arrows".')
+    // Shrinking in place and carrying out are never refused.
+    const fewer = apply(
+      played,
+      { ...base, type: 'UPDATE_INVENTORY_ITEM', itemId: held.arrows, quantity: 17 },
+      { sheet: projected }
+    )
+    expect(fewer.state.equipment.inventory).toContainEqual(
+      expect.objectContaining({ id: held.arrows, quantity: 17 })
+    )
+    expect(
+      apply(
+        played,
+        { ...base, type: 'UPDATE_INVENTORY_ITEM', itemId: held.arrows, containerId: null },
+        { sheet: projected }
+      ).state.equipment.inventory
+    ).toContainEqual(expect.objectContaining({ id: held.arrows, containerId: undefined }))
+  })
+
+  it('keeps a container with item-count limits out of other containers', async () => {
+    const { played, projected } = await holding([
+      { id: held.quiver, equipmentId: quiver.id, quantity: 1 },
+      { id: held.scrollCase, equipmentId: mapOrScrollCase.id, quantity: 1 }
+    ])
+    expect(() =>
+      apply(
+        played,
+        {
+          ...base,
+          type: 'UPDATE_INVENTORY_ITEM',
+          itemId: held.quiver,
+          containerId: held.scrollCase
+        },
+        { sheet: projected }
+      )
+    ).toThrow('Nested containers are not supported.')
+    expect(() =>
+      apply(played, addInto(quiver.id, 1, held.scrollCase), { sheet: projected })
+    ).toThrow('Nested containers are not supported.')
   })
 })
 

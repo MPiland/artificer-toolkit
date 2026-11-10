@@ -362,12 +362,14 @@ export const characterSheetMulticlassFixture = {
         id: 'equipment-shortsword',
         label: 'Shortsword',
         isContainer: false,
+        parentEquipmentIds: [],
         requiresAttunement: false
       },
       {
         id: 'equipment-thieves-tools',
         label: "Thieves' Tools",
         isContainer: false,
+        parentEquipmentIds: [],
         requiresAttunement: false
       }
     ]

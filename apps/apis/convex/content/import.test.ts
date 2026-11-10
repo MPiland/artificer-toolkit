@@ -233,11 +233,8 @@ describe('internal canonical source import', () => {
         id === base.id ? (baseDocument as EquipmentAuthored) : undefined
       )
     )
-    expect(before.root.equipmentOptions?.builder).toEqual({
-      version: 1,
-      parentEquipmentId: base.id,
-      ...builder
-    })
+    expect(before.root.equipmentOptions?.builder).toEqual({ version: 2, ...builder })
+    expect(builder.parentEquipmentIds).toEqual([base.id])
     const imported = { contentSourceId: sourceId, subjects: [variant, base] }
     expect(await t.mutation(internal.content.import.importSubjects, imported)).toEqual({
       inserted: 0,

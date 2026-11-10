@@ -1105,6 +1105,12 @@ records. Spell-source state is not an item-FK row; broader source-loss cleanup r
 Currency commands preserve the existing debit clamping and zero-balance rows, reject unavailable
 containers/denominations as applicable, and move balances atomically. Nested containers and removal
 of containers with items/currency or assigned equipment remain rejected by the shared reducer.
+A container is Equipment with a weight `capacity` or an item-count `itemCapacity` (D217). Adding,
+moving or increasing items into an item-count container goes through the one fit check in
+`packages/rules-runtime/src/containerCapacity.ts`, which Party and Vehicle inventory placement
+also uses: items match a limit by their own Equipment or a variant ancestor, the limits share the
+container's space, and unnamed contents are not counted. Rule-context preparation also reads the
+readable Equipment a held container's limits name, so the Sheet labels each limit by its prose.
 
 Extra creation resolves the requested current published Creature/Vehicle through the same
 owner/System/source/checksum boundary, rejects unavailable or inactive sources, and initializes

@@ -34,8 +34,9 @@ export const authoredEquipmentOptionFactsSchema = lazySchema(() =>
     // Optional while existing roots receive the current effective selector projection.
     builder: z.optional(
       z.strictObject({
-        version: z.literal(1),
-        parentEquipmentId: z.nullable(postgresUuidSchema),
+        version: z.literal(2),
+        /** Variant ancestry, nearest parent first; empty for base equipment. */
+        parentEquipmentIds: z.array(postgresUuidSchema).check(z.maxLength(500)),
         category: equipmentCategoryCodeSchema.check(z.refine((value) => value !== 'VARIANT')),
         properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema),
         isContainer: z.boolean(),

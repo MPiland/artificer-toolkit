@@ -29,6 +29,16 @@ export interface CapacityAuthored {
   unit: MeasurementUnitCode
 }
 
+/**
+ * A container's room counted in items: `amount` pieces of the equipment named by `equipmentIds`
+ * (or of a variant of it), or of any item when `equipmentIds` is absent. Limits share the
+ * container's space, and contents no limit names take no room.
+ */
+export interface ItemCapacityAuthored {
+  amount: number
+  equipmentIds?: string[]
+}
+
 /** Item cost in the system’s currency registry */
 export interface CostAuthored {
   amount: number
@@ -80,6 +90,7 @@ export type BaseEquipmentAuthored = BaseEquipmentCategoryAuthored & {
   effects?: EquipmentEffectAuthored[]
   charges?: ChargeAuthored
   capacity?: CapacityAuthored
+  itemCapacity?: ItemCapacityAuthored[]
   modifiers?: ModifierGrantAuthored[]
   maxStack?: number
   /**

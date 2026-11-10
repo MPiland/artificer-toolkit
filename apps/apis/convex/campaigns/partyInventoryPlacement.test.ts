@@ -7,7 +7,10 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
+import { blowgunNeedles } from '@artificer-toolkit/source-data/srd/equipment/blowgun-needles.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { pouch } from '@artificer-toolkit/source-data/srd/equipment/pouch.js'
+import { slingBullets } from '@artificer-toolkit/source-data/srd/equipment/sling-bullets.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
@@ -247,6 +250,69 @@ describe('native party and Vehicle inventory placement', () => {
       await expect(base.execute(command)).rejects.toThrow(/unavailable|not a container|itself/)
       expect(await base.read()).toEqual(before)
     }
+  })
+
+  it('shares a Vehicle Pouch between Sling Bullets and Blowgun Needles and refuses overfilling adds, moves and increases (D217)', async () => {
+    const base = await setup()
+    await importSeededSubjects(base.t, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [pouch, slingBullets, blowgunNeedles].map((document) =>
+        importedSubject({ subjectKind: 'EQUIPMENT', ...document, document })
+      )
+    })
+    const vehicleId = base.vehicle.id
+    await base.execute({ kind: 'ITEM_ADD', equipmentId: pouch.id, quantity: 1 }, vehicleId)
+    const held = (equipmentId: string, containerId: string | null) =>
+      base
+        .read()
+        .then(({ items }) =>
+          items.find((row) => row.equipmentId === equipmentId && row.containerId === containerId)
+        )
+    const bag = await held(pouch.id, null)
+    if (!bag) throw new Error('Pouch is missing.')
+    const into = (equipmentId: string, quantity: number) =>
+      ({ kind: 'ITEM_ADD', equipmentId, quantity, containerId: bag.id }) as const
+
+    await base.execute(into(slingBullets.id, 10), vehicleId)
+    const beforeOverfill = await base.read()
+    await expect(base.execute(into(blowgunNeedles.id, 26), vehicleId)).rejects.toThrow(
+      '"Pouch" has room for only 25 more "Blowgun Needles".'
+    )
+    expect(await base.read()).toEqual(beforeOverfill)
+    await base.execute(into(blowgunNeedles.id, 25), vehicleId)
+    await expect(base.execute(into(slingBullets.id, 1), vehicleId)).rejects.toThrow(
+      '"Pouch" has no room for "Sling Bullets".'
+    )
+    // Contents no limit names take no item-count room.
+    await base.execute(into(club.id, 1), vehicleId)
+
+    await base.execute({ kind: 'ITEM_ADD', equipmentId: slingBullets.id, quantity: 1 }, vehicleId)
+    const loose = await held(slingBullets.id, null)
+    const bullets = await held(slingBullets.id, bag.id)
+    if (!loose || !bullets) throw new Error('Sling Bullets are missing.')
+    const beforeRefusals = await base.read()
+    await expect(
+      base.execute(
+        { kind: 'ITEM_UPDATE', itemId: loose.id, quantity: 1, containerId: bag.id },
+        vehicleId
+      )
+    ).rejects.toThrow('"Pouch" has no room for "Sling Bullets".')
+    await expect(
+      base.execute({ kind: 'ITEM_UPDATE', itemId: bullets.id, quantity: 11 }, vehicleId)
+    ).rejects.toThrow('"Pouch" has room for only 10 more "Sling Bullets".')
+    expect(await base.read()).toEqual(beforeRefusals)
+
+    await base.execute({ kind: 'ITEM_UPDATE', itemId: bullets.id, quantity: 9 }, vehicleId)
+    await base.execute(
+      { kind: 'ITEM_UPDATE', itemId: loose.id, quantity: 1, containerId: bag.id },
+      vehicleId
+    )
+    const contents = (await base.read()).items.filter((row) => row.containerId === bag.id)
+    const total = (equipmentId: string) =>
+      contents
+        .filter((row) => row.equipmentId === equipmentId)
+        .reduce((sum, row) => sum + row.quantity, 0)
+    expect([total(slingBullets.id), total(blowgunNeedles.id), total(club.id)]).toEqual([10, 25, 1])
   })
 
   it('drains all 49 groups while preserving qualified collisions, empty group identities, and overflow rollback', async () => {

@@ -30,6 +30,7 @@ import type {
   ClassStartingGoldDto,
   ContainsDto,
   CostDto,
+  ItemCapacityDto,
   WeightDto
 } from '@artificer-toolkit/schema/subjects/shared'
 import type { ClassSpellcastingDto } from '@artificer-toolkit/schema/subjects/class'
@@ -321,6 +322,11 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         equipmentId: '',
         quantity: 1
       } satisfies ContainsDto
+    case 'itemCapacity':
+      return {
+        amount: 1,
+        equipmentIds: []
+      } satisfies ItemCapacityDto
     case 'cost':
       return {
         amount: 0,
