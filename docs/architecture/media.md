@@ -259,7 +259,7 @@ fence. V04 is accepted at LOCAL_INTEGRATION; ordered evidence is
 `.codex/validation/phase82-v04-retention/acceptance.md`. Remaining live Scene and product account
 deletion work retain their own cases.
 
-#### Transitional implementation
+#### Retired Supabase-era implementation (historical)
 
 Supabase Postgres owns asset metadata, storage-provider identity, and product references. Private Supabase Storage owns ordinary media bytes; private Cloudflare R2 owns new `VTT_MAP` originals, variants, and tiles. `apps/apis` is the control plane: it authorizes upload, completion, finalization, attachment, removal, and delivery. Web and later native clients may transfer bytes directly only through an exact, short-lived signed permission issued by that control plane.
 

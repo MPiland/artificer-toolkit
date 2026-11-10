@@ -257,7 +257,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - **Description-only (mechanics follow-up):** Kraken Fling, Solar Flying Sword, Succubus/Incubus Etherealness, Stone Giant Rock Catching, the Aboleth Tentacle's disease, Enslave's control and repeat saves, Charm's repeat saves and immunity, and Wall of Ice's save damage and frigid air.
     - **Swarms.** The six SRD swarms are seeded as Medium beasts with description-only Swarm traits. The Swarm of Ravens' Beaks run in the room. The other five bite at reach 0 ft. a creature in the swarm's space, which waits on a swarm model (sweep reason `SWARM_SPACE`).
     - **Found outside M7:** 45 printed attacks on 31 Creatures are description-only, with no Effect, so they never reach the sweep and the Behir's Lightning Breath has none either. They are the Ape (Fist, Rock), Behir (Bite, Constrict), Doppelganger (Slam), Dryad (Club), Duergar (War Pick, Javelin), Earth Elemental (Slam), Ettin (Battleaxe), Fire Elemental (Touch), Frost Giant (Greataxe, Rock), Gargoyle (Bite, Claws), Giant Crocodile (Bite), Gibbering Mouther (Bites), Gladiator (Spear, Shield Bash), Gnoll (Bite, Spear, Longbow), Gold Dragon Wyrmling (Bite), Gray Ooze (Pseudopod), Half-Red Dragon Veteran (Longsword), Harpy (Claws, Club), Hippogriff (Beak, Claws), Homunculus (Bite), Magmin (Touch), Otyugh (Bite, Tentacle), Polar Bear (Bite, Claws), Sahuagin (Bite), Salamander (Spear, Tail), Stone Giant (Rock), Tyrannosaurus Rex (Bite, Tail), Violet Fungus (Rotting Touch), Wyvern (Bite), and the Young Brass and Young Green Dragons (Bite).
-    - **Model gaps, escalated.** See [the M7 model gaps question](#open).
+    - **Model gaps, escalated.** See the M7 model gaps question.
 * **D59** Adopt lazy schemas (spike branch `worktree-agent-a007a1dd573f90707`; write-up `d55-lazy-schema-spike-2026-09-27.md`).
   - **Measured:** module load drops 73–84% on every hot function, and all 2,168 exported schemas, Convex validators, JSON Schema, parse results and deploy metadata are identical.
   - **What's included:**
@@ -1298,7 +1298,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     remove them.
   - **Outside live play:** the existing account-global Convex buckets in
     `apps/apis/convex/lib/rateLimits.ts` remain.
-  - [Codex proposal](../../local-validation/live-rate-scope-proposal.md).
+  - Codex proposal (`local-validation/live-rate-scope-proposal.md`, not retained in the repository).
 - **D73 (2026-10-01): the room pushes the held Sheet. Proposed by Claude; approved by the user
   on 2026-10-01.**
   - When `sheetSlices.liveAuthority` is non-null, the Sheet page opens the room socket and

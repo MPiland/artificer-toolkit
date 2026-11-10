@@ -290,13 +290,13 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 
 ### Invariants
 
-- `apps/apis` is the only product-data boundary; do not add direct database or Supabase data writes to browser features.
+- `apps/apis` is the only product-data boundary; do not add direct database writes to browser features.
 - SSR loaders must use a request-scoped client from `createAuthenticatedConvexClient(request)` (`src/server/auth/convex.server.ts`). Never share the browser Convex client across server requests: it would mix authenticated identities.
 - Use focused exports from `packages/schema` and `packages/shared`; do not invent local DTO shapes.
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.
 - Public-registration behavior comes from the server-owned `PUBLIC_SIGN_UP_ENABLED` flag. The root loader exposes only its parsed boolean to routes; Better Auth independently enforces it and requires email verification.
 - Library import remains hidden unless the server-owned `LIBRARY_IMPORT_ENABLED` flag is exactly `true`. Disabled direct-route requests return to the authenticated Home surface.
-- (Historical) Supabase Postgres owned product-notification feed engagement and channel preferences. Authenticated notification APIs resolve only the caller; private Realtime messages invalidate cached state but never replace the authoritative API read. Notification links contain public source IDs and always reauthorize through the owning Social or Campaign API.
+- Authenticated notification APIs resolve only the caller. Notification links contain public source IDs and always reauthorize through the owning Social or Campaign API.
 - `/auth/confirmed` is Better Auth's informational email-verification landing. Failed links show fixed recovery guidance; the page neither verifies tokens nor creates a session. The native sender sets this callback for signup and sign-in resends. Browser sign-in leaves its callback unset so the router retains ownership of successful-login navigation. Initial invitations instead use fragment-based `/update-password` setup and atomic native redemption. Public signup requires a username; sign-in accepts email or username without exposing the associated email. Password recovery and confirmation remain independent of the public-registration flag. See the [native verification contract](../../docs/architecture/transport.md).
 
 ### Focused validation

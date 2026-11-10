@@ -889,7 +889,7 @@ command each, inside the clock's transaction; a fighting Character's are checked
 `campaignNotebookSections` (UUID, text, `visibility`, version, `authorUserId`, `updatedBy`). Updates need the
 exact version. Removal (`noteRemoval.ts`) deletes matching Session reference pins and associated attachments
 (starting the media grace for the last reference, see
-[media](media.md#native-campaign-attachment-metadata--partial-local-implementation)).
+[media](media.md#lifecycle)).
 
 ### Note visibility (D87)
 

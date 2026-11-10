@@ -1073,7 +1073,7 @@ fixtures: this R2 substitute and the email sink (`tests/localEmailSink.ts`) on c
 from the backend's Node actions. The sink writes each message as an HTML file under
 `/tmp/artificer-local-fixtures/email` and keeps the newest 50; `-Action mail` copies them to the
 ignored `local-validation/local-email/` folder for testers
-([Reading local email](../../docs/validation/uat/README.md#reading-local-email)). The sink is a local
+([Reading local email](../../docs/validation/uat/OPERATOR.md#reading-local-email)). The sink is a local
 fixture only: Convex never deploys `tests/`, and `sendRenderedEmail` takes the local path only when
 both `CONVEX_SITE_URL` and `LOCAL_EMAIL_SINK_URL` are loopback, which a Convex Cloud deployment's
 system-set site URL never is. `start` is idempotent: it reuses fixtures that
