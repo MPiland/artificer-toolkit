@@ -17,6 +17,7 @@ import type {
   MaintenanceLinkHook,
   ZoneEventSubscription
 } from './encounterEventTable.js'
+import { REACTION_TRIGGERS } from './reactionTriggers.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
 
@@ -219,8 +220,10 @@ type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
 /**
  * The hook an event meets in a held reaction: an authored reaction whose trigger the event meets with
  * the qualifiers it adds (a melee or ranged attack, a weapon attack, an attacker the holder sees, a damage type the hit deals, a
- * cast of a listed spell). A cast reaction answers a cast only by cancelling it. A movement reaction
- * meets none here: the movement path discovers it from the reach it is moved through.
+ * cast of a listed spell). The trigger registry names the event that announces each trigger's moment
+ * and the outcome a reaction must carry to resume it (a cast reaction answers a cast only by
+ * cancelling it). A trigger whose moment no event announces meets none here: the movement path
+ * discovers a movement reaction from the reach it is moved through.
  */
 function reactionHookMet(
   { mechanicFacts: { invocation, outcomes } }: ReactionCandidate,
@@ -228,6 +231,15 @@ function reactionHookMet(
 ): EncounterReactionHook | null {
   const trigger = invocation.reactionTrigger
   if (invocation.activation?.code !== 'REACTION' || !trigger) return null
+  const { moment, resume } = REACTION_TRIGGERS[trigger.kind]
+  if (
+    event.kind !== moment ||
+    ('outcome' in resume &&
+      !outcomes.some(
+        (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === resume.outcome
+      ))
+  )
+    return null
   switch (trigger.kind) {
     case 'ATTACKED_SELF':
       return event.kind === 'HIT_BY_ATTACK' &&
@@ -246,18 +258,11 @@ function reactionHookMet(
         : null
     }
     case 'SPELL_CAST':
-      return event.kind === 'SPELL_CAST_BY_OTHER' &&
-        outcomes.some(
-          (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'CANCEL_TRIGGERING_EVENT'
-        )
+      return event.kind === 'SPELL_CAST_BY_OTHER'
         ? { event: event.kind, trigger: trigger.kind }
         : null
     case 'ATTACK_ROLL_BY_OTHER':
-      return event.kind === 'ATTACK_ROLLED_BY_OTHER' &&
-        outcomes.some(
-          (outcome) =>
-            outcome.kind === 'EFFECT' && outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL'
-        )
+      return event.kind === 'ATTACK_ROLLED_BY_OTHER'
         ? { event: event.kind, trigger: trigger.kind }
         : null
     case 'TARGETED_SELF':
@@ -266,11 +271,9 @@ function reactionHookMet(
         ? { event: event.kind, trigger: trigger.kind }
         : null
     case 'MOVEMENT':
-    // The movement path discovers its reaction from the reach it is moved through.
     case 'ATTACK_ON_OTHER':
     case 'ATTACK_RESOLVED_ON_SELF':
-      // No Encounter event raises these two yet: the pause they answer is SPELLS-31.T4k1b and
-      // T4k1c's, and the compiler refuses their actions until then (supported in the effect compiler).
+      // The registry names no event for these yet, so no event reaches here.
       return null
   }
 }

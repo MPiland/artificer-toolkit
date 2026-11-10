@@ -8,6 +8,7 @@ import type {
   EffectOutcomeDefinition,
   EffectOutcomeTargetPrecondition
 } from '../../effectOutcomeRegistry.js'
+import { reactionTriggerRow } from '../../events/reactionTriggers.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './subtractFromTriggeringRoll.js'
@@ -376,32 +377,25 @@ export function dnd5eUnsupportedPlanUnderTest(kind: string): never {
   )
 }
 
-/** The reaction trigger an outcome that acts on the triggering event or roll belongs to. */
-const REACTION_ONLY_OUTCOMES = {
-  CANCEL_TRIGGERING_EVENT: {
-    trigger: 'SPELL_CAST',
-    refusal: 'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
-  },
-  SUBTRACT_FROM_TRIGGERING_ROLL: {
-    trigger: 'ATTACK_ROLL_BY_OTHER',
-    refusal: 'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
-  },
-  IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL: {
-    trigger: 'ATTACK_ON_OTHER',
-    refusal:
-      'D&D impose-roll-mode-on-triggering-roll outcome belongs to an attack-on-other reaction.'
-  }
+/**
+ * The refusal of an outcome that resumes the triggering event or roll, on an action whose reaction
+ * trigger does not resume by it (the trigger registry pairs them).
+ */
+const REACTION_ONLY_OUTCOME_REFUSALS = {
+  CANCEL_TRIGGERING_EVENT: 'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.',
+  SUBTRACT_FROM_TRIGGERING_ROLL:
+    'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.',
+  IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL:
+    'D&D impose-roll-mode-on-triggering-roll outcome belongs to an attack-on-other reaction.'
 } as const
 
 /** The refusal for an outcome that needs a reaction trigger the action does not have; else null. */
 export function dnd5eReactionOnlyOutcomeRefusal(effectKind: string, invocation: object | null) {
-  if (!(effectKind in REACTION_ONLY_OUTCOMES)) return null
-  const required = REACTION_ONLY_OUTCOMES[effectKind as keyof typeof REACTION_ONLY_OUTCOMES]
-  const triggerKind =
-    invocation && 'reactionTrigger' in invocation
-      ? (invocation.reactionTrigger as { kind?: string } | undefined)?.kind
-      : undefined
-  return required.trigger === triggerKind ? null : required.refusal
+  if (!Object.hasOwn(REACTION_ONLY_OUTCOME_REFUSALS, effectKind)) return null
+  const resume = reactionTriggerRow(invocation)?.resume
+  return resume && 'outcome' in resume && resume.outcome === effectKind
+    ? null
+    : REACTION_ONLY_OUTCOME_REFUSALS[effectKind as keyof typeof REACTION_ONLY_OUTCOME_REFUSALS]
 }
 
 /**
