@@ -5502,7 +5502,7 @@
         {
           "id": "SHEET-1",
           "title": "View and edit a Character Sheet",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/web/tests/e2e/app/characterSheet.spec.ts",
             "apps/web/tests/e2e/app/characterSheetSpells.spec.ts"
@@ -5544,9 +5544,12 @@
             {
               "id": "SHEET-1.5",
               "text": "A Character that needs Builder repair opens on its Sheet route to the same draft state an incomplete import shows, with a way into the Builder, never the generic load error. This holds while its Campaign reconcile step is still queued and after it settles to a repair draft.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["PERF-6.T13"],
-              "proof": []
+              "proof": [
+                "SHEET-1.T1 (m674): owner-only REPAIR_REQUIRED Sheet read for a queued reconcile step and a settled repair draft, convex-test and CharacterSheetPage unit test.",
+                "SHEET-1.T2 (m675): campaign-membership-browser opens the repair-state Character's Sheet route and sees the draft state with Resume Builder."
+              ]
             }
           ],
           "wsjf": {
@@ -5578,8 +5581,7 @@
             },
             {
               "id": "SHEET-1.T2",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["SHEET-1.5"],
               "wsjf": {
                 "bv": 3,
@@ -5590,7 +5592,12 @@
                 "finalSource": true
               },
               "text": "Browser proof for SHEET-1.5 (Definition of Done: the criterion is about what the user sees). Extend campaign-membership-browser (apps/web/tests/live-backend/campaignMembership.ts): share a published Background into the Campaign, build a player Character on it, and after the remove stage the owner opens that Character's Sheet route and sees the draft-only state (\"Builder draft in progress\") with its Resume Builder button, the breadcrumb label and the canonical URL. No existing journey reaches a repair-state Character (SHEET-1.T1 report).",
-              "note": "Registered 2026-11-10 by the orchestrator as the remaining DoD proof of SHEET-1.5, split from SHEET-1.T1 so its increment merged."
+              "note": "Registered 2026-11-10 by the orchestrator as the remaining DoD proof of SHEET-1.5, split from SHEET-1.T1 so its increment merged.",
+              "mergedAt": "2026-11-10",
+              "proof": [
+                "m675 (47fa12387), fast path; slice tip 0ef50d459: Tests 42730216952, Live backend 42730216902, Browser journeys 42730217130 and the campaign-membership-browser dispatch 42730219091 green (test-only change; red-proof job skipped).",
+                "campaign-membership-browser builds a Character on a shared Background in a separate GM-hosted Campaign, unassigns it into repair, and after the remove stage the owner opens its Sheet route: canonical URL, \"Builder draft in progress\" alert with the label, Resume Builder and Back to characters buttons."
+              ]
             }
           ]
         },
