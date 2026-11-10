@@ -197,6 +197,11 @@ export function foldCharacterMechanicsApplications<
   afterOwnConditionIds: string[]
   /** The actor's absence after the batch; null when the batch ran without a Run actor. */
   afterAbsence: EncounterActorAbsenceDto | null
+  /**
+   * The interceptions the batch left unspent, in spend order: what a later fold of the same pass
+   * starts from, so several effects settling one target spend each interception once.
+   */
+  afterDamageInterceptions: HeldDamageInterception[]
   stateChanged: boolean
 } {
   const granted = input.grantedMaximumHitPoints ?? 0
@@ -705,6 +710,7 @@ export function foldCharacterMechanicsApplications<
     applications: receipt,
     afterOwnConditionIds: [...ownConditions],
     afterAbsence: absence,
+    afterDamageInterceptions: unspentInterceptions,
     stateChanged:
       before.currentHitPoints !== after.currentHitPoints ||
       before.temporaryHitPoints !== after.temporaryHitPoints ||

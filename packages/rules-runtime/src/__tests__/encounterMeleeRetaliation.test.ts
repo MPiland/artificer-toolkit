@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { meleeRetaliationEvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
+import { deathWard } from '@artificer-toolkit/source-data/srd/spells/death-ward.js'
 
 import {
   meleeRetaliationCharacterTransition,
@@ -16,6 +18,7 @@ import {
   testUuid,
   TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
+import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 import { SLEEP_CONDITION_ID, sleepEffectOn } from '../testing/sleepEffectFixture.js'
 import { placedFireShield } from '../testing/fireShieldZoneFixture.js'
 import {
@@ -179,6 +182,60 @@ describe('a melee retaliation ending the effects its damage ends on the attacker
     expect(settlement?.endedEffects).toEqual([sleeper])
     expect(settlement?.plan.targetTransition.after.conditionIds).not.toContain(ASLEEP)
     expect(projectedAttacker.activeEffects).toEqual([])
+  })
+})
+
+describe('a melee retaliation against an attacker holding a damage interception (QUALITY-17.T1)', () => {
+  const [wardEffect] = deathWard.effects ?? []
+  if (!wardEffect) throw new Error('The SRD Death Ward has no effect.')
+  const planned = plannedModifierGrant({
+    encounterId: state.id,
+    sourceActorId: GOBLIN_ID,
+    holderActorId: GOBLIN_ID,
+    lifecycle: {},
+    effect: wardEffect,
+    sourceLabel: deathWard.label
+  })
+  const ward: ActiveRuleEffectRecord = {
+    ...planned,
+    id: testUuid(0x3e0),
+    owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: GOBLIN_ID },
+    sourceEncounterId: state.id,
+    maintainedEffectStateId: null,
+    createdOrdinal: 1,
+    version: 1,
+    definitionChecksum: 'a'.repeat(64),
+    lifecycleChecksum: 'b'.repeat(64),
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP,
+    lifecycle: { ...planned.lifecycle, remainingUses: 1 }
+  }
+  /** The highest face: each shield's 2d8 rolls 16, more than the Goblin's 7 hit points. */
+  const warded = (zones: ReturnType<typeof shield>[]) =>
+    plan(select(zones)!, {
+      random: (maximum) => maximum - 1,
+      attacker: srdCreatureTarget(goblin, [ward])
+    })
+  const hitPoints = ({ evidence }: Awaited<ReturnType<typeof plan>>) =>
+    evidence.executions.map(({ targetTransition: { before, after } }) => [
+      before.currentHitPoints,
+      after.currentHitPoints
+    ])
+
+  it('leaves the attacker at 1 hit point when its Death Ward meets the one shield that would drop it', async () => {
+    const burned = await warded([shield(0x3c0)])
+    expect(hitPoints(burned)).toEqual([[7, 1]])
+    expect(burned.settlement?.plan.targetTransition.after.currentHitPoints).toBe(1)
+    expect(burned.projectedAttacker.state.current).toBe(1)
+  })
+
+  it('spends the Death Ward on the first of two shields, so the second drops the attacker', async () => {
+    const burned = await warded([shield(0x3c3), shield(0x3c9, 'CHILL')])
+    expect(hitPoints(burned)).toEqual([
+      [7, 1],
+      [1, 0]
+    ])
+    expect(burned.settlement?.plan.targetTransition.after.currentHitPoints).toBe(0)
   })
 })
 

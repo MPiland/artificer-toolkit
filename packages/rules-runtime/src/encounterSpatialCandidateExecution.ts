@@ -9,6 +9,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { encounterActorBody } from './encounterActorBody.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
+import {
+  applyDamageInterceptions,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import {
@@ -35,6 +39,8 @@ export type SpatialTargetState = {
   temporary: number
   conditions: string[]
   deathSaves: CharacterDeathSaves | null
+  /** The target's damage interceptions its earlier contacts in this pass left unspent. */
+  damageInterceptions: readonly HeldDamageInterception[]
 }
 
 export type SpatialMovementTarget = {
@@ -79,7 +85,11 @@ export function toSpatialMovementTarget<TCharacterFacts extends ProjectableChara
           }
         : null,
     maximumHitPoints: target.effectiveMaximumHitPoints,
-    state: { ...target.state, conditions: [...target.state.conditions] },
+    state: {
+      ...target.state,
+      conditions: [...target.state.conditions],
+      damageInterceptions: target.damageInterceptions
+    },
     targetDerivedFacts: target.targetDerivedFacts,
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds,
@@ -219,7 +229,12 @@ export function spatialCandidateEvidence(input: {
   }
 }
 
-/** The outcome a finished spatial candidate records: its evidence, and the target's folded transition. */
+/**
+ * A finished spatial candidate: the outcome it records (its evidence, and the target's folded
+ * transition) and the state the target's next contact in this pass starts from. Its damage meets the
+ * target's unspent interceptions as the target's settlement decides them
+ * (`planEncounterMechanicsBatch`).
+ */
 export function spatialExecutionOutcome(input: {
   target: SpatialMovementTarget
   state: SpatialTargetState
@@ -235,17 +250,33 @@ export function spatialExecutionOutcome(input: {
     conditionIds: input.state.conditions,
     scalarValues: input.target.scalarValues,
     invulnerable: encounterActorBody(input.target.actor).invulnerable,
-    applications: input.result.applications
+    applications: applyDamageInterceptions({
+      applications: input.result.applications,
+      currentHitPoints: input.state.current,
+      temporaryHitPoints: input.state.temporary,
+      interceptions: input.state.damageInterceptions
+    }),
+    damageInterceptions: input.state.damageInterceptions
   })
+  const state: SpatialTargetState = {
+    current: folded.after.currentHitPoints,
+    temporary: folded.after.temporaryHitPoints,
+    conditions: [...folded.after.conditionIds],
+    deathSaves: folded.after.deathSaves,
+    damageInterceptions: folded.afterDamageInterceptions
+  }
   return {
-    execution: input.result.execution,
-    d20: input.result.d20,
-    targetTransition: {
-      checksum: input.targetStateChecksum,
-      before: folded.before,
-      after: folded.after
+    outcome: {
+      execution: input.result.execution,
+      d20: input.result.d20,
+      targetTransition: {
+        checksum: input.targetStateChecksum,
+        before: folded.before,
+        after: folded.after
+      },
+      applications: folded.applications
     },
-    applications: folded.applications
+    state
   }
 }
 

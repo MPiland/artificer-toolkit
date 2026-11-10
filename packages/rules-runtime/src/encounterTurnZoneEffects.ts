@@ -370,19 +370,12 @@ export async function prepareEncounterTurnZoneEffects<
         })
       }
     }
-    const outcome = spatialExecutionOutcome({
+    const { outcome, state: targetState } = spatialExecutionOutcome({
       target: entry.spatialTarget,
       state: entry.state,
       targetStateChecksum: current.target.targetStateChecksum,
       result
     })
-    const after = outcome.targetTransition.after
-    const targetState: SpatialTargetState = {
-      current: after.currentHitPoints,
-      temporary: after.temporaryHitPoints,
-      conditions: [...after.conditionIds],
-      deathSaves: after.deathSaves
-    }
     // D141: a failed save of a zone that costs the Action spends it for this turn, if it is unspent.
     const allowance =
       effect.placement.failedSaveLosesAction &&

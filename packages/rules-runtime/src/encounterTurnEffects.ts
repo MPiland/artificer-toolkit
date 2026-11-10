@@ -43,6 +43,10 @@ import {
   type ProjectableCharacterFacts
 } from './encounterActionProjection.js'
 import { encounterConditionSaveAutoFails } from './conditionSaveAutoFail.js'
+import {
+  applyDamageInterceptions,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
@@ -290,8 +294,14 @@ function completeExecution(input: {
   effect: ActiveRuleEffectRecord
   state: ReturnType<typeof executionState>
   retainedConditionIds: readonly string[]
+  /** The holder's interceptions its earlier executions at this boundary left unspent. */
+  damageInterceptions: readonly HeldDamageInterception[]
   result: TargetBoundActiveRuleEffectExecutionResult
-}): { execution: TurnExecution; ownConditions: string[] } {
+}): {
+  execution: TurnExecution
+  ownConditions: string[]
+  damageInterceptions: HeldDamageInterception[]
+} {
   const { target, effect, result } = input
   const folded = foldCharacterMechanicsApplications({
     targetActorId: target.actor.id,
@@ -310,7 +320,16 @@ function completeExecution(input: {
         (condition) => condition.conditionTypeId
       )
     },
-    applications: result.applications
+    // Decided as the holder's settlement decides them (`planEncounterMechanicsBatch`), so the next
+    // execution starts from the hit points an interception left.
+    applications: applyDamageInterceptions({
+      applications: result.applications,
+      currentHitPoints: input.state.current,
+      temporaryHitPoints: input.state.temporary,
+      temporaryHitPointsSourceEffectId: input.state.temporarySourceEffectId,
+      interceptions: input.damageInterceptions
+    }),
+    damageInterceptions: input.damageInterceptions
   })
   const sourceActorId = sourceActorIdOf(effect)
   const execution: TurnExecution = {
@@ -344,7 +363,11 @@ function completeExecution(input: {
     applications: folded.applications,
     lifecycle: lifecycle(effect, result.terminal, result.saveTally)
   }
-  return { execution, ownConditions: folded.afterOwnConditionIds }
+  return {
+    execution,
+    ownConditions: folded.afterOwnConditionIds,
+    damageInterceptions: folded.afterDamageInterceptions
+  }
 }
 
 async function evaluateEncounterTurnEffects(input: {
@@ -423,6 +446,9 @@ async function evaluateEncounterTurnEffects(input: {
   // Each holder's state chains through its own executions only.
   const states = new Map(
     [...input.holders].map(([actorId, { target }]) => [actorId, executionState(target)])
+  )
+  const unspentInterceptions = new Map(
+    [...input.holders].map(([actorId, { target }]) => [actorId, target.damageInterceptions])
   )
   for (const [ordinal, candidate] of input.candidates.entries()) {
     const { effect } = candidate
@@ -599,15 +625,17 @@ async function evaluateEncounterTurnEffects(input: {
       ]
     }
     for (const { id } of ended.endedEffects) damageEnded.add(id)
-    const { execution, ownConditions } = completeExecution({
+    const { execution, ownConditions, damageInterceptions } = completeExecution({
       ordinal,
       boundary: input.boundary,
       target,
       effect,
       state,
       retainedConditionIds: turnEffectRetainedConditions(effect, effects, expired),
+      damageInterceptions: unspentInterceptions.get(target.actor.id)!,
       result: settled
     })
+    unspentInterceptions.set(target.actor.id, damageInterceptions)
     if (existing && !same(existing, execution))
       throw new Error('Retained turn effect execution is stale.')
     executions.push(execution)
