@@ -53,7 +53,12 @@ describe('Solar Healing Touch in the room (SPELLS-33.T8b)', () => {
     )
     const room = await actionRoom({
       actors: [
-        srdCreatureActor({ id: SOLAR_ID, creature: installedSolar, disposition: 'FRIENDLY' }),
+        srdCreatureActor({
+          id: SOLAR_ID,
+          creature: installedSolar,
+          disposition: 'FRIENDLY',
+          featureCharges: { [healingTouch.id]: 0 }
+        }),
         srdCreatureActor({
           id: PATIENT_ID,
           creature: plainWolf,
