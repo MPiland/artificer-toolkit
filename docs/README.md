@@ -58,7 +58,6 @@ or JSDoc.
 - [Convex notification delivery](runbooks/convex-notification-delivery.md)
 - [Social Hub retention](runbooks/social-retention.md)
 - [VTT map R2](runbooks/vtt-map-r2.md)
-- Historical only: [Novu notification delivery](runbooks/notification-delivery.md) and [Supabase notification delivery](runbooks/supabase-notification-delivery.md)
 
 ## Audits and research
 

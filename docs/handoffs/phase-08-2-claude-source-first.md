@@ -4,7 +4,7 @@
 **Status:** Claude continuation handoff; current source is unvalidated. Prepared before the user's
 **3% usage remaining** deadline. The last usage observation during this update was 96% used,
 4% remaining. Source identity and inspection logs are retained in
-[`local-validation/claude-handoff/`](../../local-validation/claude-handoff/); they are not release evidence.
+`local-validation/claude-handoff/` (untracked, not retained in the repository); they are not release evidence.
 
 ## Active direction and workspace
 
@@ -168,12 +168,12 @@ transition code, not the current binding or geometry dispatch.
 
 Two local proposals are pending architectural approval and must not be treated as adopted:
 
-- [Character head checksum proposal](../../local-validation/character-head-checksum-proposal.md):
+- Character head checksum proposal (`local-validation/character-head-checksum-proposal.md`, not retained in the repository):
   Codex proposed removing persisted aggregate structure hashes while retaining typed record checks
   and assembled capture hashes. Automatic approval review rejected that integrity-boundary change;
   the partial source change was restored. Existing aggregate validation remains, and the narrow
   note writer is frozen pending approval. Do not silently remove checks to reduce reads.
-- [Live rate-scope proposal](../../local-validation/live-rate-scope-proposal.md): Codex recommends
+- Live rate-scope proposal (`local-validation/live-rate-scope-proposal.md`, not retained in the repository): Codex recommends
   shared per-account counters within each room, retaining chat/roll 30/min with burst 30 and Scene
   240/min with burst 80. Exact account-global counters across Campaign rooms conflict with zero warm
   Convex calls without separately approved coordination. This cross-Campaign aggregation change is

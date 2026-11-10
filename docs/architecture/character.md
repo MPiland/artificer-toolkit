@@ -1180,8 +1180,8 @@ Campaign visibility, source-loss reconciliation, remaining Builder/Sheet browser
 managed concurrency retain their owning cases.
 
 The exhaustion command preserves the checked-in transitional policy: level tracking and rest recovery,
-not automatic exhaustion penalties on rolls, speed or maximum HP. The existing GoRules fixture at
-level 2 explicitly expects normal roll modes. Adding automatic penalties is a separate System-rule
+not automatic exhaustion penalties on rolls, speed or maximum HP. The retired GoRules fixture at
+level 2 explicitly expected normal roll modes. Adding automatic penalties is a separate System-rule
 change; the cutover must not claim that behavior from presentation text alone.
 
 ### Native web Sheet — local integration, acceptance pending
