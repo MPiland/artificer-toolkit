@@ -2310,6 +2310,7 @@ try {
           membershipBrowser ? 'MEMBERSHIP_ONLY' : 'CUSTODY'
         )
       let proof: Awaited<ReturnType<typeof verifyCampaignMembershipLifecycle>>
+      const repair: { campaign?: typeof campaign } = {}
       if (membershipBrowser) {
         const evidenceDirectory = process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY
         assert.ok(
@@ -2352,13 +2353,28 @@ try {
               assert.ok(sponsor?.intent.startingEquipment?.background)
               const backgroundId = sponsor.intent.background.backgroundId
               assert.ok(backgroundId)
+              // A separate Campaign keeps the repair out of the membership cohort's custody cleanup.
+              const created = await owner.client.mutation(api.campaigns.create.create, {
+                name: 'Encounter execution fixture',
+                format: 'ONGOING',
+                toneTags: ['HEROIC'],
+                contentMaturity: 'STANDARD',
+                gameSystemId: srdSystemRecord.id,
+                primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+              })
+              repair.campaign = created
+              await admitCampaignCustodyPlayers({
+                ownerUserId: owner.identity.userId,
+                playerUserIds,
+                campaignId: created.id
+              })
               await owner.client.mutation(api.campaigns.contentShares.share, {
-                campaignId: campaign.id,
+                campaignId: created.id,
                 subjectKind: 'BACKGROUND',
                 subjectId: backgroundId
               })
               await secondPlayer.client.mutation(api.campaigns.assignments.assign, {
-                campaignId: campaign.id,
+                campaignId: created.id,
                 characterId: repairId
               })
               const current = await secondPlayer.client.query(
@@ -2395,6 +2411,10 @@ try {
                 mode: 'edit',
                 character: saved.payload.character
               })
+              // Leaving the Campaign takes the shared Background away: the Character needs repair.
+              await secondPlayer.client.mutation(api.campaigns.assignments.unassign, {
+                campaignId: created.id
+              })
               return { publicId: committed.publicId, label }
             },
             accounts: [
@@ -2418,6 +2438,19 @@ try {
           },
           runMembershipLifecycle
         )
+        const repairCampaign = repair.campaign
+        assert.ok(repairCampaign, 'The repair Campaign must exist after the browser proof.')
+        assert.deepEqual(
+          await owner.client.mutation(api.campaigns.deletion.remove, {
+            campaignId: repairCampaign.id,
+            expectedVersion: (
+              await owner.client.query(api.campaigns.queries.get, { id: repairCampaign.id })
+            ).version,
+            confirmation: 'DELETE'
+          }),
+          { ok: true }
+        )
+        await waitForCampaignDeletion(owner.client, repairCampaign.id, 'Repair')
       } else {
         proof = await runMembershipLifecycle()
       }
