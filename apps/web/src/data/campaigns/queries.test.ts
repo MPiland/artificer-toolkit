@@ -11,14 +11,16 @@ describe('removeCampaignQueries', () => {
   it('ends the Convex subscription of each unobserved query of the Campaign and no other', async () => {
     const client = new ConvexReactClient('https://example.convex.cloud')
     const active = new Set<string>()
-    vi.spyOn(client, 'watchQuery').mockImplementation((_, args) => {
-      const id = JSON.stringify(args)
+    vi.spyOn(client, 'watchQuery').mockImplementation((...call) => {
+      const id = JSON.stringify(call[1])
       return {
         localQueryResult: () => ({ id }),
         journal: () => undefined,
         onUpdate: () => {
           active.add(id)
-          return () => active.delete(id)
+          return () => {
+            active.delete(id)
+          }
         }
       }
     })
@@ -46,12 +48,14 @@ describe('removeCampaignQueries', () => {
   it('keeps a query a mounted observer still reads', async () => {
     const client = new ConvexReactClient('https://example.convex.cloud')
     const active = new Set<string>()
-    vi.spyOn(client, 'watchQuery').mockImplementation((_, args) => ({
+    vi.spyOn(client, 'watchQuery').mockImplementation((...call) => ({
       localQueryResult: () => ({}),
       journal: () => undefined,
       onUpdate: () => {
-        active.add(JSON.stringify(args))
-        return () => active.delete(JSON.stringify(args))
+        active.add(JSON.stringify(call[1]))
+        return () => {
+          active.delete(JSON.stringify(call[1]))
+        }
       }
     }))
     vi.spyOn(client, 'query').mockImplementation(async () => ({}))
