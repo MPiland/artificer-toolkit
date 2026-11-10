@@ -2051,17 +2051,19 @@ function supported(
   const checkAction = invocation.triggerCode === 'CHECK'
   const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
   const supportsSelf = namesOnlyItsUser(invocation, conditionPlan?.playAbsenceContribution != null)
+  // A plain distance: a positive whole amount, with no long or close range of disadvantage.
+  const { range } = invocation
+  const plainDistance =
+    range.rangeKind === 'DISTANCE' &&
+    Number.isSafeInteger(range.amount) &&
+    range.amount > 0 &&
+    range.longAmount === undefined &&
+    range.closeAmount === undefined
   // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
   // the range bounds the teleport, not a target.
   const teleportReachFeet =
-    invocation.range.rangeKind === 'DISTANCE' &&
-    invocation.targeting?.selectionKind === 'SELF' &&
-    invocation.range.unit === 'FEET' &&
-    Number.isSafeInteger(invocation.range.amount) &&
-    invocation.range.amount > 0 &&
-    invocation.range.longAmount === undefined &&
-    invocation.range.closeAmount === undefined
-      ? invocation.range.amount
+    plainDistance && invocation.targeting?.selectionKind === 'SELF' && range.unit === 'FEET'
+      ? range.amount
       : null
   const firstEntry = effect.entries[0]
   const firstOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : undefined
@@ -2075,13 +2077,7 @@ function supported(
       : null
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
   const supportsTargetRange =
-    invocation.range.rangeKind === 'UNLIMITED' ||
-    invocation.range.rangeKind === 'TOUCH' ||
-    (invocation.range.rangeKind === 'DISTANCE' &&
-      Number.isSafeInteger(invocation.range.amount) &&
-      invocation.range.amount > 0 &&
-      invocation.range.longAmount === undefined &&
-      invocation.range.closeAmount === undefined)
+    range.rangeKind === 'UNLIMITED' || range.rangeKind === 'TOUCH' || plainDistance
   // Excluded creature types stay on the invocation: the room warns for an excluded target and the
   // table can override it, so they never make an action unsupported.
   const supportsSingleTarget =
