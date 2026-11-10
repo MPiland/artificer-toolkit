@@ -17447,7 +17447,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4k1", "QUALITY-6.T1"]
               },
-              "text": "Protection end to end (D217) as the first consumer of the shared reaction offer (QUALITY-7, same slice): the ATTACK_ON_OTHER pre-roll offer with its disadvantage on the triggering roll, the drawer offer, a room journey and docs; no pause kind of its own; remove the three Protection closed-rule effects."
+              "text": "Protection end to end (D217) as the first consumer of the shared reaction offer (QUALITY-7, same slice): the ATTACK_ON_OTHER pre-roll offer with its disadvantage on the triggering roll, the drawer offer, a room journey and docs; no pause kind of its own; remove the three Protection closed-rule effects.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4k1c",
@@ -25355,7 +25356,7 @@
         {
           "id": "QUALITY-6",
           "title": "Every authored reaction trigger compiles",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25367,16 +25368,17 @@
           "acs": [
             {
               "id": "QUALITY-6.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R2.",
-              "text": "The compiler accepts reaction triggers through a trigger registry rather than a per-trigger whitelist; ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF effects compile (Protection and Giant Killer rows leave REFUSED), and no other golden row changes."
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R2. Amended at review 2026-11-10: Giant Killer's golden row stays REFUSED here because its bare Feature weapon attack takes its outcomes from a wielded weapon at runtime (as Volley and Whirlwind Attack); the row moves to QUALITY-8.1 with Giant Killer itself.",
+              "text": "The compiler accepts reaction triggers through a trigger registry rather than a per-trigger whitelist; ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF effects compile (Protection rows leave REFUSED; an ATTACK_RESOLVED_ON_SELF reaction attack compiles), and no other golden row changes.",
+              "proof": ["reactionTriggerCompile.test.ts", "srdEffectCompileGolden.test.ts"]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-6.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-6.1"],
               "wsjf": {
                 "bv": 5,
@@ -25386,14 +25388,20 @@
                 "after": ["QUALITY-5.T1"]
               },
               "text": "A reaction-trigger registry in the compiler replacing the supported() whitelist; seed from the compiler work on WIP 9cf2d97ae (spells-31-t4k1b).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10T22:14:16Z",
+              "proof": "m688 (d8779be4e) from slice tip f1fbba35b: Tests 42909128429, Live 42909128424, Browser journeys 42909128483 green. REACTION_TRIGGERS (packages/rules-runtime/src/events/reactionTriggers.ts) gives each reactionTrigger kind a moment and a resume mode; both compiler whitelists, the reaction-only outcome refusal and reactionHookMet read it. Golden: the three Protection rows leave REFUSED, no other row moves. Red proof: reactionTriggerCompile.test.ts RED (Protection; ATTACK_RESOLVED_ON_SELF reaction attack). Transitional: a SIGHT single-target range compiles but the runtime measure still refuses it (QUALITY-7 adds it for Protection); ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF have no announcing event yet (QUALITY-7, QUALITY-8)."
             }
-          ]
+          ],
+          "journeyTests": [
+            "packages/rules-runtime/src/__tests__/reactionTriggerCompile.test.ts",
+            "packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-7",
           "title": "One reaction offer driven by the event table",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -25405,7 +25413,7 @@
           "acs": [
             {
               "id": "QUALITY-7.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R3.",
               "text": "Every attack, cast and roll-window reaction is offered by one offer function fed by the event table; Shield, Counterspell and Cutting Words pass through it; Protection is offered through it before the attack roll; no authored trigger except MOVEMENT (QUALITY-9) returns null from the event hooks; the three trigger-literal pin schemas collapse to one."
@@ -25414,7 +25422,7 @@
           "tasks": [
             {
               "id": "QUALITY-7.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-7.1"],
               "wsjf": {
                 "bv": 8,
@@ -25423,7 +25431,8 @@
                 "size": 8,
                 "after": ["QUALITY-4.T1", "QUALITY-6.T1"]
               },
-              "text": "One reaction offer from the event table, one pin schema, one timeout decline; ships in one slice with SPELLS-31.T4k1b (Protection, first consumer)."
+              "text": "One reaction offer from the event table, one pin schema, one timeout decline; ships in one slice with SPELLS-31.T4k1b (Protection, first consumer).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -25445,7 +25454,7 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4.",
-              "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); replaying the parent raises the child once; Giant Killer's weapon attack runs this way."
+              "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); replaying the parent raises the child once; Giant Killer's weapon attack runs this way, and its SRD compile golden row leaves REFUSED."
             }
           ],
           "tasks": [
