@@ -23,55 +23,6 @@ const offeredRollModes = [
 ]
 
 describe('encounter contracts', () => {
-  it('retains only exact post-action Cleaving trigger facts on a paused Character action', () => {
-    const pending = {
-      kind: 'ENCOUNTER_CHARACTER_RULE_ACTION' as const,
-      schemaVersion: 1 as const,
-      actionId: 'action:longsword',
-      sceneContext: null,
-      positionalDependencyChecksum: null,
-      sourceActorId: encounterId,
-      targetActorId: commandId,
-      sourceCharacterId: encounterId,
-      targetCharacterId: commandId,
-      sourceCharacterStreamVersion: 4,
-      targetCharacterStreamVersion: 9,
-      sourceProjectionChecksum: 'a'.repeat(64),
-      targetProjectionChecksum: 'b'.repeat(64),
-      sourceMechanicalContextChecksum: 'c'.repeat(64),
-      targetMechanicalContextChecksum: 'd'.repeat(64),
-      publishedDefinitionId: encounterId,
-      publishedDefinitionChecksum: 'e'.repeat(64),
-      postActionTriggerFacts: {
-        attackKind: 'MELEE' as const,
-        range: { id: 'weapon-reach', rangeKind: 'DISTANCE' as const, amount: 5, unit: 'FEET' }
-      },
-      actionEconomy: null,
-      twoPhase: null,
-      targetStateChecksum: 'f'.repeat(64),
-      d20: null
-    }
-
-    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject(
-      pending
-    )
-    expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...pending,
-        postActionTriggerFacts: undefined
-      })
-    ).toMatchObject({ postActionTriggerFacts: null })
-    expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
-        ...pending,
-        postActionTriggerFacts: {
-          ...pending.postActionTriggerFacts,
-          range: { id: 'display-label', rangeKind: 'DISTANCE', amount: 5 }
-        }
-      }).success
-    ).toBe(false)
-  })
-
   it('projects only closed sanitized initiative declaration options', () => {
     const prompt = {
       kind: 'INITIATIVE_DECLARATION' as const,

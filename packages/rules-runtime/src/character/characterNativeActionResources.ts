@@ -14,6 +14,7 @@ import { EncounterValidationError, StaleCharacterActionError } from '../encounte
 import { dividesHealing, spendsChosenUnits } from './characterChosenSpend.js'
 import { selectAmmunition, type AmmunitionStack } from './characterAmmunition.js'
 import { readSpellCastSlot } from './characterSpellCastActions.js'
+import { resourcePoolSpend } from './resourcePoolSpend.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
 
 type CompiledCharacterAction = Extract<
@@ -201,8 +202,7 @@ export function spendCharacterResource(input: {
     resource.rawUsed < 0 ||
     resource.remaining === null ||
     !Number.isSafeInteger(resource.remaining) ||
-    resource.remaining < 0 ||
-    (!input.overridable && resource.remaining < binding.cost)
+    resource.remaining < 0
   )
     stale()
 
@@ -224,15 +224,20 @@ export function spendCharacterResource(input: {
   const existing = matchingUsage[0]
   const beforeUsed = existing?.used ?? 0
   if (beforeUsed !== resource.rawUsed) stale()
+  const spend = resourcePoolSpend(
+    { used: beforeUsed, remaining: resource.remaining },
+    binding.cost,
+    input.overridable
+  )
+  if (!spend) stale()
   if (input.automationMode === 'MANUAL') return null
-  const spent = Math.min(binding.cost, resource.remaining)
+  const { spent, afterUsed } = spend
   if (spent < binding.cost)
     input.ruleWarnings.push({
       code: 'RESOURCE_UNAVAILABLE',
       message: `Not enough uses left: needs ${binding.cost}, has ${resource.remaining}.`
     })
   if (spent === 0) return null
-  const afterUsed = beforeUsed + spent
   if (!Number.isSafeInteger(afterUsed)) stale()
   return {
     poolId: binding.poolId,

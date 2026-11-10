@@ -17,7 +17,8 @@ import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
-import { settleContest } from './actionContestSettlement'
+import { settleContest } from '@artificer-toolkit/encounter-persistence/contestSettlement'
+import { encounterWriteTransaction } from './encounterPorts'
 
 useLocalRoomWorker()
 
@@ -99,7 +100,7 @@ async function settle(
       .withIndex('by_publicId', (q) => q.eq('id', state.campaignId))
       .unique()
     if (!campaign) throw new Error('Missing Disarm Campaign.')
-    const settled = await settleContest(ctx, {
+    const settled = await settleContest(encounterWriteTransaction(ctx), {
       state,
       campaign,
       actors: [actor, target],

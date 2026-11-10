@@ -8,7 +8,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { z } from 'zod'
 
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
-import { deriveEncounterActionD20Policy } from './encounterMovementReactionActionExecution.js'
+import { deriveEncounterActionD20Policy } from './encounterD20Settlement.js'
 
 export type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
 

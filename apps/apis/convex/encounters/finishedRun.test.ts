@@ -22,7 +22,9 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { api, components, internal } from '../_generated/api'
-import { endCarriedConcentration } from '../characters/sheetConcentration'
+import { endCarriedConcentrationOutsideRuns } from '@artificer-toolkit/encounter-persistence/concentrationChosenEnd'
+import { encounterWriteTransaction } from './encounterPorts'
+import { readFightingCharacterIds } from './runGrantCarryOver'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 useLocalRoomWorker()
@@ -647,10 +649,10 @@ it('skips a holder an ACTIVE Run holds instead of refusing, leaving it to the ro
     )
   expect(await carried()).toHaveLength(1)
   // The Run is ACTIVE and holds the Character: Convex leaves its grant to the room.
-  await t.run((ctx) =>
-    endCarriedConcentration(ctx, {
-      characterId: casterId,
-      campaignId: campaign.id,
+  await t.run(async (ctx) =>
+    endCarriedConcentrationOutsideRuns(encounterWriteTransaction(ctx), {
+      casterCharacterId: casterId,
+      fightingCharacterIds: await readFightingCharacterIds(ctx, campaign.id),
       occurredAt: new Date().toISOString(),
       endsSpellSummon: false
     })

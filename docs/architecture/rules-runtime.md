@@ -345,7 +345,10 @@ added dice and floor when present); `settleEncounterD20Answer` settles an answer
 (faces, kept mode, added dice); `settleEncounterD20Test` resumes the test graph with the kept natural
 and the added dice's total and verifies the System-named `rawDie`, `addedTotal` and `total` output
 ports. Tests whose graph can pause again or is verified through its trace (action phases, target-bound
-effects) resume through `resumeEncounterD20` directly. D20
+effects) resume through `resumeEncounterD20` directly. The same module owns an action's d20 policy
+(`deriveEncounterActionD20Policy`, `nestedOutcomeD20Policy`) and the evidence sealed from it
+(`buildEncounterActionD20Evidence`, `buildEncounterSaveD20Evidence`,
+`requireEncounterSaveD20EvidenceTrace`). D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
 `rollModeReasons` in `packages/encounter-persistence`). **Typed contributor source (RELIABILITY-6.9,
@@ -3582,8 +3585,9 @@ the Creature (`withActiveGrantSpeeds`) and Character (`characterMovementAndSense
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it
 (`endChosenConcentration` in `packages/encounter-persistence`, a `CONCENTRATION_END` child receipt with
 reason `CHOSEN`, keyed on the command id, plus a chat line); otherwise Convex ends the grants a finished
-Run carried (`apps/apis/convex/characters/sheetConcentration.ts`, found through the
-`by_concentrationCaster` index). When a holder of the caster's carried grant is in an ACTIVE Run, the web
+Run carried (`endCarriedConcentrationOutsideRuns`, beside the room's two ends in
+`packages/encounter-persistence/src/concentrationChosenEnd.ts`; Convex only reads which Characters an
+ACTIVE Run holds; the grants are found through the `by_concentrationCaster` index). When a holder of the caster's carried grant is in an ACTIVE Run, the web
 asks `characters.sheetLive.concentrationRoomRoute` and sends the command to Convex (the caster's own
 and every outside holder; a holder an ACTIVE Run holds is skipped) and then through the room under the
 same command id, even though the caster is not held; the room authorizes the caller, runs
