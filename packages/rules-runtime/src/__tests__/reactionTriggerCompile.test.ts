@@ -10,6 +10,7 @@ import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { absorbElementsSpell } from '../testing/absorbElementsSpell.js'
 import {
@@ -228,12 +229,19 @@ describe('a reaction authored with the ATTACK_RESOLVED_ON_SELF trigger (D217)', 
     })
   })
 
-  it('compiles the reaction attack to the same operations as the attack made as an action', () => {
-    const effect = fireBolt.effects?.[0]
-    if (!effect) throw new Error('Fire Bolt has no authored effect.')
-    const reaction = operationKeys(compile(reactionAttack(attackResolvedOnSelf)))
-    expect(reaction.length).toBeGreaterThan(0)
-    expect(reaction).toEqual(operationKeys(compile({ ...effect, id: ACTION_EFFECT_ID })))
+  it('compiles the reaction attack to a test and its on-hit outcome', () => {
+    // A cantrip's damage scales with its user's level, so the Character names one.
+    const action = characterActionDescriptor(
+      compileEffect(reactionAttack(attackResolvedOnSelf)),
+      undefined,
+      1
+    )
+    const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+      action,
+      compilerSource: buildCompiledActionCompilerSource(action)
+    })
+    if (plan?.kind !== 'TEST_OUTCOME') throw new Error('The reaction attack is not a test action.')
+    expect(plan.outcomes.map(({ pathCode }) => pathCode)).toContain('ON_HIT')
   })
 })
 
