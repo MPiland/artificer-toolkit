@@ -198,8 +198,8 @@ describe('Campaign Character control grants (SCENE-5.1)', () => {
     await grant(base, base.owner.caller, [base.other.userId])
     const campaign = await base.t.run((ctx) =>
       ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
     )
     if (!campaign) throw new Error('Missing Campaign.')

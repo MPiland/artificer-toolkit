@@ -106,6 +106,7 @@ async function setup() {
   const snapshot = () =>
     base.t.run(async (ctx) => ({
       campaigns: await ctx.db.query('campaigns').collect(),
+      revisions: await ctx.db.query('campaignRevisions').collect(),
       memberships: await ctx.db.query('campaignMemberships').collect(),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
@@ -158,9 +159,9 @@ describe('native account Campaign departure', () => {
       })
       expect(after.assignments).toHaveLength(0)
       expect(after.overlays).toHaveLength(0)
-      expect(after.campaigns.find((row) => row.id === base.campaign.id)?.version).toBeGreaterThan(
-        base.campaign.version
-      )
+      expect(
+        after.revisions.find((row) => row.campaignId === base.campaign.id)?.version
+      ).toBeGreaterThan(base.campaign.version)
       expect(after.events).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

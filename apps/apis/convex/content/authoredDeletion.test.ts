@@ -347,7 +347,8 @@ describe('native authored deletion source-loss cleanup', () => {
         (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
       ),
       drafts: await ctx.db.query('characterDrafts').collect(),
-      campaigns: await ctx.db.query('campaigns').collect()
+      campaigns: await ctx.db.query('campaigns').collect(),
+      revisions: await ctx.db.query('campaignRevisions').collect()
     }))
 
     await base.owner.caller.mutation(deleteActive, {
@@ -369,6 +370,7 @@ describe('native authored deletion source-loss cleanup', () => {
       ),
       drafts: await ctx.db.query('characterDrafts').collect(),
       campaigns: await ctx.db.query('campaigns').collect(),
+      revisions: await ctx.db.query('campaignRevisions').collect(),
       shares: await ctx.db
         .query('campaignContentShares')
         .withIndex('by_subjectKind_subjectId_campaignId', (q) =>
@@ -387,9 +389,12 @@ describe('native authored deletion source-loss cleanup', () => {
       basePublishedChecksum: null
     })
     expect(after.shares).toEqual([])
-    for (const beforeCampaign of before.campaigns) {
-      const current = after.campaigns.find((campaign) => campaign.id === beforeCampaign.id)
-      expect(current?.version).toBe(beforeCampaign.version + 1)
+    expect(before.revisions).toHaveLength(before.campaigns.length)
+    for (const beforeRevision of before.revisions) {
+      const current = after.revisions.find(
+        (revision) => revision.campaignId === beforeRevision.campaignId
+      )
+      expect(current?.version).toBe(beforeRevision.version + 1)
     }
     for (const beforeCharacter of before.characters) {
       const current = after.characters.find((character) => character.id === beforeCharacter.id)
