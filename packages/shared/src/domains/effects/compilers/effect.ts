@@ -277,6 +277,7 @@ export type CompiledEffectOutcome =
   | import('#authored').DetectConcealedAuthored
   | import('#authored').CancelTriggeringEventAuthored
   | import('#authored').SubtractFromTriggeringRollAuthored
+  | import('#authored').ImposeRollModeOnTriggeringRollAuthored
   | import('#authored').SourceImmunityAuthored
   | import('#authored').ReleaseChosenItemAuthored
   | import('#authored').EndEffectsAuthored
@@ -399,6 +400,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.DETECT_CONCEALED:
     case EFFECT_KIND.CANCEL_TRIGGERING_EVENT:
     case EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL:
+    case EFFECT_KIND.IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL:
     case EFFECT_KIND.SOURCE_IMMUNITY:
     case EFFECT_KIND.RELEASE_CHOSEN_ITEM:
     case EFFECT_KIND.END_EFFECTS:

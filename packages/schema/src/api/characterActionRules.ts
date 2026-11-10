@@ -321,6 +321,8 @@ const actionEffectFactSchema = lazySchema(() =>
     ),
     /** The die a SUBTRACT_FROM_TRIGGERING_ROLL outcome rolls and subtracts from the roll it answers. */
     rolledDie: z.optional(rolledDiePayloadDtoSchema),
+    /** The roll mode an IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL outcome gives the roll it answers. */
+    imposedRollMode: z.optional(systemCoreCodeSchema),
     label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))
   })
 )

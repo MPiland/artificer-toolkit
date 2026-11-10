@@ -16,7 +16,6 @@ export const chainMail: EquipmentAuthored = {
     S.stealthDisadvantageModifier(S.equipId(47)),
     S.heavyArmorStrengthModifier(S.equipId(47), 13, 2)
   ],
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(47), 'EQUIPMENT_ARMOR_STRENGTH_13')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

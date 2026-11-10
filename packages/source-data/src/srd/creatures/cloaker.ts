@@ -275,8 +275,8 @@ export const cloaker: CreatureAuthored = {
                       {
                         id: S.actionId(9141, 106),
                         order: 1,
-                        kind: 'TARGET_SIZE_MAXIMUM',
-                        sizeCode: S.SIZE_CODE.LARGE
+                        kind: 'TARGET_SIZE_RANGE',
+                        sizeRange: { maximumSizeCode: S.SIZE_CODE.LARGE }
                       },
                       {
                         id: S.actionId(9141, 107),

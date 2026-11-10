@@ -19,7 +19,7 @@ import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAtta
 import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import { selectScalingRow } from './scalingRowSelection.js'
-import { sizeRank } from './systemSizes.js'
+import { sizeInRange } from './systemSizes.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
@@ -464,12 +464,13 @@ export function prepareRecurringActiveEffect(
       )
     )
       return null
-    const maximum = relationshipContribution.modules.find(
-      (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
+    const sizeLimit = relationshipContribution.modules.find(
+      (module) => module.kind === 'TARGET_SIZE_RANGE'
     )
-    const targetRank = sizeRank(input.published.gameSystemId, input.target.effectiveSize)
-    const maximumRank = maximum ? sizeRank(input.published.gameSystemId, maximum.sizeCode) : null
-    if (maximum && (targetRank === null || maximumRank === null || targetRank > maximumRank))
+    if (
+      sizeLimit &&
+      !sizeInRange(input.published.gameSystemId, input.target.effectiveSize, sizeLimit.sizeRange)
+    )
       return null
     const sameSourceRelationships = encounterSourceRelationships(
       input.activeEffectsByActorId,

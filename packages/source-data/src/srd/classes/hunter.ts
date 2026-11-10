@@ -5,7 +5,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
@@ -29,7 +28,6 @@ import {
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
 import {
-  closedRuleEffect,
   evasionGrant,
   gmRulingEffect,
   incomingDamageReactionEffect,
@@ -159,12 +157,22 @@ export const hunterConclave: ClassAuthored = {
             'When a Large or larger creature within 5 feet of you hits or misses you with an attack, you can use your reaction to attack that creature immediately after its attack, provided that you can see the creature.',
           order: 1,
           effects: [
-            closedRuleEffect({
+            // The reaction attack against a Large or larger attacker that hit or missed the hunter (D217).
+            // The offer is the trigger; using it runs an ordinary reaction weapon attack (SPELLS-31.T4k1c).
+            {
               id: classRowId(RA, 20, 2),
+              order: 0,
               invocation: {
                 kind: 'ACTION',
                 triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
                 activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+                reactionTrigger: {
+                  kind: 'ATTACK_RESOLVED_ON_SELF',
+                  outcome: 'ANY',
+                  requiresSight: true,
+                  attackerWithinFeet: 5,
+                  attackerSize: { minimumSizeCode: 'LARGE' }
+                },
                 range: {
                   id: classRowId(RA, 21, 2),
                   rangeKind: RANGE_KIND.DISTANCE,
@@ -176,9 +184,9 @@ export const hunterConclave: ClassAuthored = {
                   dispositionKind: 'ANY'
                 }
               },
-              pathCode: PATH_CODE.ON_ATTACK,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_GIANT_KILLER
-            })
+              weaponAttack: {},
+              paths: []
+            }
           ]
         },
         {
@@ -380,19 +388,19 @@ export const hunterConclave: ClassAuthored = {
             'When a hostile creature misses you with a melee attack, you can use your reaction to force that creature to repeat the same attack against another creature (other than itself) of your choice.',
           order: 1,
           effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 9),
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: { id: classRowId(RA, 21, 9), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'HOSTILE'
-                }
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(RA, 20, 9),
+                range: classRowId(RA, 21, 9),
+                path: classRowId(RA, 0xd0, 4),
+                result: classRowId(RA, 0xd1, 4),
+                outcome: classRowId(RA, 0xd2, 4)
               },
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_STAND_AGAINST_THE_TIDE
+              label: 'Stand Against the Tide',
+              instructions:
+                'When a hostile creature misses you with a melee attack, you can use your reaction to force it to repeat the same attack against another creature (other than itself) of your choice. The GM rolls the redirected attack against the creature you choose.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              activationCode: ACTIVATION_CODE.REACTION
             })
           ]
         },

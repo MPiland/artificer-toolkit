@@ -767,8 +767,8 @@ export function grappledOutcome(
           {
             id: id(2),
             order: 0,
-            kind: 'TARGET_SIZE_MAXIMUM' as const,
-            sizeCode: rider.largestTarget
+            kind: 'TARGET_SIZE_RANGE' as const,
+            sizeRange: { maximumSizeCode: rider.largestTarget }
           }
         ]
       : []),

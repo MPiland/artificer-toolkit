@@ -13,6 +13,7 @@ import {
 import { lengthUnitCodeSchema, pathLifecycleTurnAnchorDtoSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
+import { sizeRangeDtoSchema } from '../shared/sizeRange.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const moduleBase = lazySchemaParts(() => ({
@@ -27,8 +28,8 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({
       ...moduleBase(),
-      kind: z.literal('TARGET_SIZE_MAXIMUM'),
-      sizeCode: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80))
+      kind: z.literal('TARGET_SIZE_RANGE'),
+      sizeRange: sizeRangeDtoSchema
     }),
     z.object({
       ...moduleBase(),

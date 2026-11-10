@@ -10,7 +10,6 @@ export const rope50FtHempen: EquipmentAuthored = {
   properties: [],
   cost: S.gp(1),
   weight: S.lbs(10),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(167), 'EQUIPMENT_ROPE')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

@@ -1,16 +1,11 @@
 import {
-  ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   GRANT_KIND,
-  MEASUREMENT_UNIT_CODE,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  RANGE_KIND,
-  TARGET_SELECTION_KIND,
-  TRIGGER,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
@@ -18,10 +13,11 @@ import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { ABILITY_CODE, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
   attackingItemPropertyRestriction,
-  closedRuleEffect,
   criticalHitThresholdGrants,
   duelingRestriction,
   greatWeaponFightingGrant,
+  gmRulingEffect,
+  protectionReactionEffect,
   twoWeaponFightingGrants
 } from './mechanics.js'
 
@@ -209,25 +205,12 @@ export const championMartialArchetype: ClassAuthored = {
             'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
           order: 4,
           effects: [
-            closedRuleEffect({
-              id: classRowId(F, 20, 5),
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: {
-                  id: classRowId(F, 21, 5),
-                  rangeKind: RANGE_KIND.DISTANCE,
-                  amount: 5,
-                  unit: MEASUREMENT_UNIT_CODE.FEET
-                },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY',
-                  self: 'WARN'
-                }
-              },
-              ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_PROTECTION
+            protectionReactionEffect({
+              effect: classRowId(F, 20, 5),
+              range: classRowId(F, 21, 5),
+              path: classRowId(F, 0xd0, 5),
+              result: classRowId(F, 0xd1, 5),
+              outcome: classRowId(F, 0xd2, 5)
             })
           ]
         },
@@ -265,15 +248,18 @@ export const championMartialArchetype: ClassAuthored = {
       availableAtLevel: 18,
       order: 4,
       effects: [
-        closedRuleEffect({
-          id: classRowId(F, 20, 8),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(F, 21, 8), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(F, 20, 8),
+            range: classRowId(F, 21, 8),
+            path: classRowId(F, 0xd0, 1),
+            result: classRowId(F, 0xd1, 1),
+            outcome: classRowId(F, 0xd2, 1)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_SURVIVOR
+          label: 'Survivor',
+          instructions:
+            'At the start of each of your turns, if you have no more than half of your hit points and more than 0, the GM restores 5 + your Constitution modifier hit points to you.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     }

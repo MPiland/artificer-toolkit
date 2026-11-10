@@ -49,6 +49,7 @@ import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllow
 import { isTeleportAllowanceDestinationKind } from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './subtractFromTriggeringRoll.js'
+import { DND5E_IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './imposeRollModeOnTriggeringRoll.js'
 import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
@@ -400,6 +401,11 @@ export const dnd5eCancelTriggeringEventProposalOperation = targetOnlyProposalOpe
 export const dnd5eSubtractFromTriggeringRollProposalOperation = targetOnlyProposalOperation(
   DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
   'subtract from triggering roll',
+  false
+)
+export const dnd5eImposeRollModeOnTriggeringRollProposalOperation = targetOnlyProposalOperation(
+  DND5E_IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+  'impose roll mode on triggering roll',
   false
 )
 export const dnd5eEndEffectsProposalOperation = targetOnlyProposalOperation(
@@ -1194,7 +1200,8 @@ export const dnd5ePathGatedTargetProposalOperations = [
   dnd5eAddSpeedToMovementProposalOperation,
   dnd5eTeleportAllowanceProposalOperation,
   dnd5eCancelTriggeringEventProposalOperation,
-  dnd5eSubtractFromTriggeringRollProposalOperation
+  dnd5eSubtractFromTriggeringRollProposalOperation,
+  dnd5eImposeRollModeOnTriggeringRollProposalOperation
 ].map((base) =>
   pathGatedProposalOperation(base, dnd5ePathGatedOperationKey(base.key), dnd5eResultPathSatisfies)
 )
@@ -1488,6 +1495,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+    DND5E_IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
     DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
