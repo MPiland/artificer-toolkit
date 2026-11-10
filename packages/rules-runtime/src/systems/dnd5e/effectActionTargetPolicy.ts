@@ -5,6 +5,7 @@ import {
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored
 } from '../../encounterAreaAction.js'
+import { reactionTriggerRow } from '../../events/reactionTriggers.js'
 import { shapeExtent } from '../../shapeMeasurement.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
@@ -183,11 +184,7 @@ export function isSupportedTestActivation(
     return (
       dnd5eAttackKind(invocation.triggerCode) !== null || invocation.triggerCode === 'SAVING_THROW'
     )
-  return (
-    invocation.activation.code === 'REACTION' &&
-    'reactionTrigger' in invocation &&
-    invocation.reactionTrigger?.kind === 'MOVEMENT'
-  )
+  return invocation.activation.code === 'REACTION' && reactionTriggerRow(invocation) !== null
 }
 
 /**

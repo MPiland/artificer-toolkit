@@ -6,9 +6,11 @@ import { BARDIC_INSPIRATION_CHARGE_ID } from '@artificer-toolkit/source-data/srd
 import { cuttingWordsReaction } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
 import { protectionReactionEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
+import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { absorbElementsSpell } from '../testing/absorbElementsSpell.js'
 import {
@@ -19,6 +21,8 @@ import {
 const MODIFIER_GRANT_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const CANCEL_TRIGGERING_EVENT_OPERATION_KEY = 'dnd5e.cancel-triggering-event-proposal'
 const SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY = 'dnd5e.subtract-from-triggering-roll-proposal'
+const IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_OPERATION_KEY =
+  'dnd5e.impose-roll-mode-on-triggering-roll-proposal'
 
 /** Every operation key the compiled output names, wherever it nests. */
 function operationKeys(value: unknown): string[] {
@@ -177,8 +181,67 @@ describe('a reaction authored with the ATTACK_ON_OTHER trigger (SPELLS-31.T4k1, 
     })
   })
 
-  it('refuses the reaction as not yet executable until the Protection pause lands (T4k1b)', () => {
-    expect(() => compile(protection())).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  it('compiles the real SRD Protection to the impose-roll-mode-on-triggering-roll proposal', () => {
+    expect(operationKeys(compile(protection()))).toContain(
+      IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_OPERATION_KEY
+    )
+  })
+
+  it('refuses the roll-mode outcome on a reaction to any other trigger', () => {
+    const effect = protection()
+    expect(() =>
+      compile({
+        ...effect,
+        invocation: { ...effect.invocation, reactionTrigger: { kind: 'ATTACKED_SELF' } }
+      } as EffectAuthored)
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  })
+})
+
+describe('a reaction authored with the ATTACK_RESOLVED_ON_SELF trigger (D217)', () => {
+  // A reaction attack that carries its own outcomes: the real SRD Fire Bolt, made as a reaction to
+  // an attack resolved on its user.
+  function reactionAttack(reactionTrigger: Record<string, unknown>): EffectAuthored {
+    const effect = fireBolt.effects?.[0]
+    if (!effect) throw new Error('Fire Bolt has no authored effect.')
+    return {
+      ...effect,
+      id: ACTION_EFFECT_ID,
+      invocation: {
+        ...effect.invocation,
+        activation: { code: 'REACTION', amount: 1 },
+        reactionTrigger
+      }
+    } as EffectAuthored
+  }
+  const attackResolvedOnSelf = {
+    kind: 'ATTACK_RESOLVED_ON_SELF',
+    outcome: 'ANY',
+    requiresSight: true,
+    attackerWithinFeet: 5,
+    attackerSize: { minimumSizeCode: 'LARGE' }
+  }
+
+  it('carries the trigger and its predicates onto the compiled invocation', () => {
+    expect(compileEffect(reactionAttack(attackResolvedOnSelf)).invocation).toMatchObject({
+      activation: { code: 'REACTION', amount: 1 },
+      reactionTrigger: attackResolvedOnSelf
+    })
+  })
+
+  it('compiles the reaction attack to a test and its on-hit outcome', () => {
+    // A cantrip's damage scales with its user's level, so the Character names one.
+    const action = characterActionDescriptor(
+      compileEffect(reactionAttack(attackResolvedOnSelf)),
+      undefined,
+      1
+    )
+    const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+      action,
+      compilerSource: buildCompiledActionCompilerSource(action)
+    })
+    if (plan?.kind !== 'TEST_OUTCOME') throw new Error('The reaction attack is not a test action.')
+    expect(plan.outcomes.map(({ pathCode }) => pathCode)).toContain('ON_HIT')
   })
 })
 

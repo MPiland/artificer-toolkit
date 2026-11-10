@@ -46,6 +46,7 @@ import {
 } from './effectActionGates.js'
 import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
+import { reactionTriggerRow } from '../../events/reactionTriggers.js'
 import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
   activeEffectGraphNodeId,
@@ -2061,9 +2062,13 @@ function supported(
       firstOutcome.destinationKind === 'SPECIFIED_POINT')
       ? { maxFeet: teleportReachFeet, destinationKind: firstOutcome.destinationKind }
       : null
-  // A DISTANCE or Touch range only warns when the target is out of range (D11).
+  // A DISTANCE or Touch range only warns when the target is out of range (D11); a Sight range bounds
+  // no distance.
   const supportsTargetRange =
-    range.rangeKind === 'UNLIMITED' || range.rangeKind === 'TOUCH' || plainDistance
+    range.rangeKind === 'UNLIMITED' ||
+    range.rangeKind === 'SIGHT' ||
+    range.rangeKind === 'TOUCH' ||
+    plainDistance
   // Excluded creature types stay on the invocation: the room warns for an excluded target and the
   // table can override it, so they never make an action unsupported.
   const supportsSingleTarget =
@@ -2102,16 +2107,9 @@ function supported(
       ? isChargedFreeActivation(invocation) || supportsSelf
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
-          // A reaction to being attacked, to taking damage, to being chosen as a target, to a spell
-          // being cast or to another creature's attack roll; the triggering event's pending decision
-          // offers it (never a direct action).
-          (invocation.activation.code === 'REACTION' &&
-            'reactionTrigger' in invocation &&
-            (invocation.reactionTrigger?.kind === 'ATTACKED_SELF' ||
-              invocation.reactionTrigger?.kind === 'DAMAGE_TAKEN' ||
-              invocation.reactionTrigger?.kind === 'TARGETED_SELF' ||
-              invocation.reactionTrigger?.kind === 'SPELL_CAST' ||
-              invocation.reactionTrigger?.kind === 'ATTACK_ROLL_BY_OTHER'))) &&
+          // A reaction to a registered trigger; the triggering event's pending decision offers it
+          // (never a direct action).
+          (invocation.activation.code === 'REACTION' && reactionTriggerRow(invocation) !== null)) &&
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
