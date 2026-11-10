@@ -11,7 +11,19 @@ export const crowbar: EquipmentAuthored = {
   properties: [],
   cost: S.gp(2),
   weight: S.lbs(5),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(136), 'EQUIPMENT_CROWBAR')],
+  effects: [
+    S.situationalCheckEffect(S.equipId(136), {
+      id: S.equipmentChildId(S.equipId(136), 0x215, 1),
+      grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+      valueDomainCode: S.VALUE_DOMAIN_CODE.ABILITY_CHECK,
+      domain: { ability: S.ABILITY_CODE.STRENGTH },
+      modifierKind: S.MODIFIER_KIND.ROLL_INFLUENCE,
+      payload: { influence: 'ADVANTAGE' },
+      scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+      selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+      order: 1
+    })
+  ],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

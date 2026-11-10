@@ -3,11 +3,13 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import { glaive } from '@artificer-toolkit/source-data/srd/equipment/glaive.js'
+import { lance } from '@artificer-toolkit/source-data/srd/equipment/lance.js'
 import { longbow } from '@artificer-toolkit/source-data/srd/equipment/longbow.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 
 import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import { encounterActionChoiceRange } from '../encounterActionRange.js'
+import { encounterActionRangeContributor } from '../encounterActionTargetPolicy.js'
 import { buildCompiledActionTargetPolicy } from '../encounterActionEntryPointCompiler.js'
 import { evaluateEncounterAreaTargetPolicy } from '../encounterAreaAction.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
@@ -244,6 +246,26 @@ describe('encounter action range from SRD actions', () => {
         encounterActionChoiceRange({ ...longbowPolicy, ...override }).range,
         name
       ).toBeUndefined()
+  })
+
+  it('compiles the SRD Lance’s close range, so its attack has disadvantage only within 5 ft (D217)', () => {
+    const policy = policyOf(lance.effects?.[0])
+    expect(policy.range).toMatchObject({ rangeKind: 'DISTANCE', amount: 10, closeAmount: 5 })
+    expect(encounterActionChoiceRange(policy)).toEqual({
+      range: { kind: 'WITHIN', distance: feet(10) },
+      rangeLabel: '10 ft'
+    })
+    const influenceAt = (column: number) =>
+      encounterActionRangeContributor({
+        targetPolicy: policy,
+        sceneContext: {
+          grid: FEET_GRID,
+          sourceToken: SOURCE_TOKEN,
+          targetToken: { ...SOURCE_TOKEN, position: { x: 50 + column * 100, y: 50 } }
+        }
+      })?.influence
+    expect(influenceAt(1)).toBe('DISADVANTAGE')
+    expect(influenceAt(2)).toBeUndefined()
   })
 
   it('keeps the label an action already carries when it has no policy', () => {

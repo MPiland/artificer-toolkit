@@ -85,7 +85,7 @@ import {
 } from './encounterRelationshipActionFacts.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
 import {
-  encounterActionLongRangeContributor,
+  encounterActionRangeContributor,
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
 import { encounterFacingRule } from './encounterFacing.js'
@@ -802,7 +802,7 @@ export async function prepareEncounterActionMechanics<
   // advantage or disadvantage, or take every advantage away (Elusive), those that require the holder
   // to see the attacker only when it can, those limited to an occasion only on it, and only from the
   // attackers and on the turn their effect admits, and so does a target
-  // beyond a ranged attack's normal range (D62). The attacker's and the target's condition
+  // beyond a ranged attack's normal range (D62) or within an attack's close range (D217). The attacker's and the target's condition
   // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
   // advantage, an unseen target disadvantage.
   const attackDomain = attackKind === null ? null : profile.attackDomain(attackKind)
@@ -826,7 +826,7 @@ export async function prepareEncounterActionMechanics<
         turnActorId: state.currentActorId
       })
   )
-  const longRange = encounterActionLongRangeContributor({
+  const rangeContributor = encounterActionRangeContributor({
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
@@ -962,7 +962,7 @@ export async function prepareEncounterActionMechanics<
     attackSight && attackKind !== null
       ? attackSight.trueSight
       : attacksAgainst.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
-    longRange ? [longRange] : [],
+    rangeContributor ? [rangeContributor] : [],
     attackKind === null
       ? []
       : encounterActionPositionalContributors({

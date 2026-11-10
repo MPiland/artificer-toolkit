@@ -234,6 +234,59 @@ export function passiveEquipmentClosedRuleEffect(
   }
 }
 
+/**
+ * A situational check bonus an item gives when its user says it applies (a Crowbar's leverage, a
+ * Portable Ram against a door): a free action on its user grants an ability check `modifier` until
+ * the end of the turn, used up by the next ability check.
+ */
+export function situationalCheckEffect(
+  equipmentId: string,
+  modifier: ModifierGrantAuthored
+): EquipmentEffectAuthored {
+  return {
+    id: equipmentChildId(equipmentId, 0x210, 1),
+    order: 1,
+    grip: null,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.FREE },
+      range: { id: equipmentChildId(equipmentId, 0x211, 1), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+    },
+    paths: [
+      {
+        id: equipmentChildId(equipmentId, 0x212, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${equipmentChildId(equipmentId, 0x212, 1)}__result`,
+          resultKind: 'SINGLE',
+          duration: {
+            id: equipmentChildId(equipmentId, 0x213, 1),
+            durationKind: DURATION_KIND.TURN,
+            amount: 1
+          },
+          lifecycle: {
+            turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' }]
+          },
+          outcomes: [
+            {
+              id: equipmentChildId(equipmentId, 0x214, 1),
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: { modifiers: [modifier] }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 export function lightSourceEffect(
   equipmentId: string,
   brightFeet: number,
@@ -474,13 +527,15 @@ export function meleeReachWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   diceConfig: string,
-  grip: EquipmentGrip
+  grip: EquipmentGrip,
+  closeFt?: number
 ): EquipmentEffectAuthored[] {
   return sharedMeleeReachWeaponEffects(
     srdChildId(equipmentId),
     damageTypeId(damageTypeCode),
     diceConfig,
-    grip
+    grip,
+    closeFt
   )
 }
 export function rangedWeaponEffects(

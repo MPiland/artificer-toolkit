@@ -5,7 +5,7 @@ import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contr
 import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
-  encounterActionLongRangeContributor,
+  encounterActionRangeContributor,
   encounterActorRelationship,
   encounterActionReachFeet,
   evaluateEncounterActionTargetPolicy,
@@ -13,6 +13,7 @@ import {
   withoutCreatureTypeRestrictions
 } from '../encounterActionTargetPolicy.js'
 import {
+  ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource,
@@ -595,7 +596,7 @@ describe('encounter action target range', () => {
       pathOverrides: []
     }
     const contributor = (column: number | null) =>
-      encounterActionLongRangeContributor({
+      encounterActionRangeContributor({
         targetPolicy,
         sceneContext:
           column === null
@@ -617,7 +618,7 @@ describe('encounter action target range', () => {
     expect(contributor(null)).toBeNull()
     // A range without a long range never gives disadvantage.
     expect(
-      encounterActionLongRangeContributor({
+      encounterActionRangeContributor({
         targetPolicy: {
           ...targetPolicy,
           range: { id: 'range', rangeKind: 'DISTANCE', amount: 80, unit: 'FEET' }
@@ -632,6 +633,57 @@ describe('encounter action target range', () => {
         contributors: [longRange]
       })
     ).toEqual(['Long range'])
+  })
+
+  it('gives an attack disadvantage against a target within its close range, as a Lance’s 5 ft (D217)', () => {
+    const targetPolicy = {
+      range: {
+        id: 'range',
+        rangeKind: 'DISTANCE' as const,
+        amount: 10,
+        closeAmount: 5,
+        unit: 'FEET' as const
+      },
+      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const },
+      shape: null,
+      pathOverrides: []
+    }
+    const contributor = (column: number | null) =>
+      encounterActionRangeContributor({
+        targetPolicy,
+        sceneContext:
+          column === null
+            ? null
+            : { grid: FEET_GRID, sourceToken: token(0, 0), targetToken: token(column, 0) }
+      })
+    const closeRange = {
+      sourceId: ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
+      grantId: null,
+      domainKey: ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
+      influence: 'DISADVANTAGE' as const,
+      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE)
+    }
+    // An adjacent target is within 5 ft; one a square further is at the full 10 ft reach.
+    expect(contributor(1)).toEqual(closeRange)
+    expect(contributor(2)).toBeNull()
+    expect(contributor(null)).toBeNull()
+    // The same weapon without a close range has no disadvantage up close.
+    expect(
+      encounterActionRangeContributor({
+        targetPolicy: {
+          ...targetPolicy,
+          range: { id: 'range', rangeKind: 'DISTANCE', amount: 10, unit: 'FEET' }
+        },
+        sceneContext: { grid: FEET_GRID, sourceToken: token(0, 0), targetToken: token(1, 0) }
+      })
+    ).toBeNull()
+    // Assisted names the reason.
+    expect(
+      labelEncounterRollModeReasons(new Map())({
+        rollMode: 'DISADVANTAGE',
+        contributors: [closeRange]
+      })
+    ).toEqual(['Close range'])
   })
 
   it.each(['EQUAL', 'ALTERNATING', 'EUCLIDEAN'] as const)(
@@ -656,7 +708,7 @@ describe('encounter action target range', () => {
           })
           bandsSeen.add(band)
           const warnings = rangeWarnings({ range, scene: { grid, source, target } })
-          const contributor = encounterActionLongRangeContributor({
+          const contributor = encounterActionRangeContributor({
             targetPolicy: {
               range,
               targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
@@ -687,7 +739,7 @@ describe('encounter action target range', () => {
       pathOverrides: []
     }
     const contributorAt = (column: number) =>
-      encounterActionLongRangeContributor({
+      encounterActionRangeContributor({
         targetPolicy,
         sceneContext: {
           grid: FEET_GRID,

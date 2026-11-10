@@ -11,7 +11,20 @@ export const portableRam: EquipmentAuthored = {
   properties: [],
   cost: S.gp(4),
   weight: S.lbs(35),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(163), 'EQUIPMENT_PORTABLE_RAM')],
+  // The helper's advantage is the Help action.
+  effects: [
+    S.situationalCheckEffect(S.equipId(163), {
+      id: S.equipmentChildId(S.equipId(163), 0x215, 1),
+      grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+      valueDomainCode: S.VALUE_DOMAIN_CODE.ABILITY_CHECK,
+      domain: { ability: S.ABILITY_CODE.STRENGTH },
+      modifierKind: S.MODIFIER_KIND.BONUS,
+      payload: { valueKind: 'FIXED', amount: 4 },
+      scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+      selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+      order: 1
+    })
+  ],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

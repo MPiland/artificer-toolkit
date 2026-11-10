@@ -30,6 +30,9 @@ export type EncounterRollModeReasons = (input: {
 /** A ranged attack beyond its normal range (D62): a rules-owned contributor with no authored source. */
 export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE}`
 
+/** An attack against a target within its close range (a Lance, D217): disadvantage. */
+export const ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE}`
+
 /** An attacker standing in an arc of its target's facing that the Facing rule names (ATTACK-12). */
 export const ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.FACING}`
 
@@ -53,6 +56,7 @@ export function encounterRuleContributorSource(
 const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
   [ROLL_MODE_RULE_SOURCE_IDS.FACING, 'Facing'],
   [ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE, 'Long range'],
+  [ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE, 'Close range'],
   [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER, 'Unseen attacker'],
   [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET, 'Unseen target'],
   [ROLL_MODE_RULE_SOURCE_IDS.CAST_MODIFIER, 'Spell modifier']

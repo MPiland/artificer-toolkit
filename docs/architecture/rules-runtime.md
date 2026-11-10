@@ -3015,7 +3015,8 @@ riders merge only onto equipment-sourced attacks (`collectOnHitRiders`), so a Fe
 a creature-style Bite Feature, gets no rider.
 
 The immediate follow-up save shapes the
-adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
+adapter supports, ranged long range (`longAmount`) and an attack's close range, inside which it has
+disadvantage (`closeAmount`, a Lance's 5 ft, D217; both through `encounterActionRangeContributor`), reach 0 swarm
 attacks, timed conditions (one effect owning several conditions and, beside them, a speed grant:
 `conditionContributions` and the plan-level `lifecycle`, SPELLS-27.T9) and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one

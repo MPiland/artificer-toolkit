@@ -1351,6 +1351,7 @@
 00000060-0000-0210-007a-000000000001 CHARACTER:equipment Ball Bearings (bag of 1000) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-0210-0080-000000000001 CHARACTER:equipment Caltrops (bag of 20) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-0210-0081-000000000001 CHARACTER:equipment Candle | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000060-0000-0210-0088-000000000001 CHARACTER:equipment Crowbar | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000060-0000-0210-008c-000000000001 CHARACTER:equipment Healer's Kit | SINGLE_GRAPH c426e91b9aa7d9431e66b4fe59f2eb8c18f231f7b0c41a77719c02cc9692a94d nodes=1 outputs=1
 00000060-0000-0210-008d-000000000001 CHARACTER:equipment Holy Water (flask) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000060-0000-0210-008f-000000000001 CHARACTER:equipment Hunting Trap | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -1359,6 +1360,7 @@
 00000060-0000-0210-0096-000000000001 CHARACTER:equipment Hooded Lantern | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-0210-0099-000000000001 CHARACTER:equipment Manacles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000060-0000-0210-009d-000000000001 CHARACTER:equipment Oil (flask) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
+00000060-0000-0210-00a3-000000000001 CHARACTER:equipment Portable Ram | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000060-0000-0210-00a4-000000000001 CHARACTER:equipment Potion of Healing | SINGLE_GRAPH 08694d6d00c2be954c2c7d5abb8de9361c5ea7dd3631a6319ac89a6ef319467e nodes=5 outputs=2
 00000060-0000-0210-00b3-000000000001 CHARACTER:equipment Torch | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-0210-016c-000000000001 CHARACTER:equipment Poison, Basic (vial) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
@@ -1391,6 +1393,3 @@
 00000060-0000-0240-0009-000000000001 CHARACTER:equipment Sickle | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=2effa49c54c647cc7a23e6f098c45e244ca08581a68fa54335042a4ac796e7ed,ON_HIT=2effa49c54c647cc7a23e6f098c45e244ca08581a68fa54335042a4ac796e7ed]
 00000060-0000-0240-001b-000000000001 CHARACTER:equipment Scimitar | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=26b7d4764b983e063b9f9affb91637301fff321717e238cfbeb20fd8e603bc9b,ON_HIT=26b7d4764b983e063b9f9affb91637301fff321717e238cfbeb20fd8e603bc9b]
 00000060-0000-0240-001c-000000000001 CHARACTER:equipment Shortsword | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=9df6d618fd05d1af89ce66c973dc301bcae54c33f183cde130b5da42bb731e95,ON_HIT=9df6d618fd05d1af89ce66c973dc301bcae54c33f183cde130b5da42bb731e95]
-00000060-0000-02e0-0015-000000000001 CHARACTER:equipment Lance | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0088-000000000001 CHARACTER:equipment Crowbar | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-00a3-000000000001 CHARACTER:equipment Portable Ram | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

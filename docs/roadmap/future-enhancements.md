@@ -247,6 +247,7 @@ Candidate, not yet registered. From the first real users on, every stored-shape 
 
 - **Choosing when to spend a rolled die (D156, SPELLS-4.T2c):** Guidance and Resistance are used up on the holder's first matching test. The player can't save them for a later roll or decide after seeing the d20. Most Guidance casts happen right before the check they're cast for.
 - **Rolled dice on initiative (D156, SPELLS-4.T2c):** Guidance doesn't apply to initiative, which is a Dexterity check. Using it there is a table trick.
+- **Crowbar and Portable Ram grants are spent by any check (D217, SPELLS-4.T4b):** the free action grants a Strength check modifier until the end of the turn, but the next ability check of any ability uses it up, not only the next Strength check. A player declares the leverage right before the check it's for, so another check in between is rare.
 - **Critical range on damage that is not an attack (D158, SPELLS-31.T5d):** a critical threshold and Brutal Critical's extra dice apply to attack rolls only. A save-based or automatic hit has no d20 to lower, which matches the SRD text.
 - **Added damage dice outside the single-target attack (D156, SPELLS-4.T2d):** Branding Smite ends on the first hit of a single-target attack; area and multi-target attack outcomes don't consume it, and outcome branches that return early add no damage dice. Smites and marks are nearly always used on one weapon attack.
 - **Reduce's damage floor (D156, SPELLS-4.T2d):** a reduced creature's damage floors at 0 (the System floor), where the SRD says 1. It only matters when a 1-damage hit rolls high on the d4.
@@ -581,6 +582,10 @@ Players add bought items to their inventory by hand and subtract the coin themse
 ### Hands for spellcasting and War Caster
 
 D107 tracks what each hand holds, but spellcasting ignores it: a caster with a sword and shield can still cast a spell with somatic or material components. Candidate: an optional enforcement that requires a free hand (or a focus in hand) for those components, with War Caster lifting the somatic requirement. Optional because many tables house-rule it. Raised by the user on 2026-10-10 during ATTACK-7 design; post-launch.
+
+### Mounted combat
+
+There is no rider or mount state, so a rule such as "two-handed unless mounted" can't be checked. Example: the Lance is authored two-handed, and its one-handed use while mounted is description-only (user ruling, 2026-11-10, SPELLS-4.T4b). Candidate direction: rider state on the Encounter (who is mounted on what), with grip and other mounted rules keyed on it. Post-launch.
 
 ### One free object interaction per turn
 

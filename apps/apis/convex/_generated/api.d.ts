@@ -22559,6 +22559,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -23826,6 +23827,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -25010,6 +25012,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -26183,6 +26186,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -27408,6 +27412,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -28726,6 +28731,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -29902,6 +29908,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -31085,6 +31092,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -32497,6 +32505,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -33744,6 +33753,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -34912,6 +34922,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -36069,6 +36080,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -37272,6 +37284,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -38567,6 +38580,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -39724,6 +39738,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -40885,6 +40900,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -42365,6 +42381,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -43612,6 +43629,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -44780,6 +44798,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -45937,6 +45956,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -47140,6 +47160,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -48435,6 +48456,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -49592,6 +49614,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -50753,6 +50776,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -52305,6 +52329,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -53572,6 +53597,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -54756,6 +54782,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -55929,6 +55956,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -57154,6 +57182,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -58472,6 +58501,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -59648,6 +59678,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -60831,6 +60862,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -62243,6 +62275,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -63490,6 +63523,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -64658,6 +64692,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -65815,6 +65850,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -67018,6 +67054,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -68313,6 +68350,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -69470,6 +69508,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -70631,6 +70670,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -72111,6 +72151,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -73358,6 +73399,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -74526,6 +74568,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -75683,6 +75726,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -76886,6 +76930,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -78181,6 +78226,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -79338,6 +79384,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -80499,6 +80546,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -82060,6 +82108,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -83327,6 +83376,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -84511,6 +84561,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -85684,6 +85735,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -86909,6 +86961,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -88227,6 +88280,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -89403,6 +89457,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -90586,6 +90641,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -91998,6 +92054,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -93245,6 +93302,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -94413,6 +94471,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -95570,6 +95629,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -96773,6 +96833,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -98068,6 +98129,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -99225,6 +99287,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -100386,6 +100449,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -101866,6 +101930,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -103113,6 +103178,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -104281,6 +104347,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -105438,6 +105505,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -106641,6 +106709,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -107936,6 +108005,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -109093,6 +109163,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -110254,6 +110325,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -111806,6 +111878,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -113073,6 +113146,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -114257,6 +114331,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -115430,6 +115505,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -116655,6 +116731,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -117973,6 +118050,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -119149,6 +119227,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -120332,6 +120411,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -121744,6 +121824,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -122991,6 +123072,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -124159,6 +124241,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -125316,6 +125399,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -126519,6 +126603,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -127814,6 +127899,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -128971,6 +129057,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -130132,6 +130219,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -131612,6 +131700,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -132859,6 +132948,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -134027,6 +134117,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -135184,6 +135275,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -136387,6 +136479,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -137682,6 +137775,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -138839,6 +138933,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -140000,6 +140095,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -141587,6 +141683,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -142854,6 +142951,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -144038,6 +144136,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -145211,6 +145310,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -146436,6 +146536,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -147754,6 +147855,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -148930,6 +149032,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -150113,6 +150216,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -151525,6 +151629,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -152772,6 +152877,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -153940,6 +154046,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -155097,6 +155204,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -156300,6 +156408,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -157595,6 +157704,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -158752,6 +158862,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -159913,6 +160024,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -161393,6 +161505,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -162640,6 +162753,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -163808,6 +163922,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -164965,6 +165080,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -166168,6 +166284,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -167463,6 +167580,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -168620,6 +168738,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -169781,6 +169900,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -171333,6 +171453,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -172600,6 +172721,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -173784,6 +173906,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -174957,6 +175080,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -176182,6 +176306,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -177500,6 +177625,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -178676,6 +178802,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -179859,6 +179986,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -181271,6 +181399,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -182518,6 +182647,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -183686,6 +183816,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -184843,6 +184974,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -186046,6 +186178,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -187341,6 +187474,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -188498,6 +188632,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -189659,6 +189794,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -191139,6 +191275,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -192386,6 +192523,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -193554,6 +193692,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -194711,6 +194850,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -195914,6 +196054,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -197209,6 +197350,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -198366,6 +198508,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -199527,6 +199670,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -201081,6 +201225,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -202344,6 +202489,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -203527,6 +203673,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -204699,6 +204846,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -205917,6 +206065,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -207230,6 +207379,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -208402,6 +208552,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -209578,6 +209729,7 @@ export declare const api: {
                                   }
                                 | {
                                     amount: number;
+                                    closeAmount?: number;
                                     id: string;
                                     longAmount?: number;
                                     rangeKind: "DISTANCE";
@@ -210985,6 +211137,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -212213,6 +212366,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -213368,6 +213522,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -214512,6 +214667,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -215696,6 +215852,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -216968,6 +217125,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -218112,6 +218270,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -219260,6 +219419,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -220722,6 +220882,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -221950,6 +222111,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -223105,6 +223267,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -224249,6 +224412,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -225433,6 +225597,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -226705,6 +226870,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -227849,6 +228015,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -228997,6 +229164,7 @@ export declare const api: {
                             }
                           | {
                               amount: number;
+                              closeAmount?: number;
                               id: string;
                               longAmount?: number;
                               rangeKind: "DISTANCE";
@@ -230527,6 +230695,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -231794,6 +231963,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -232978,6 +233148,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -234151,6 +234322,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -235376,6 +235548,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -236694,6 +236867,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -237870,6 +238044,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -239053,6 +239228,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -240465,6 +240641,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -241712,6 +241889,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -242880,6 +243058,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -244037,6 +244216,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -245240,6 +245420,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -246535,6 +246716,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -247692,6 +247874,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -248853,6 +249036,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -250333,6 +250517,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -251580,6 +251765,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -252748,6 +252934,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -253905,6 +254092,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -255108,6 +255296,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -256403,6 +256592,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -257560,6 +257750,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -258721,6 +258912,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -260273,6 +260465,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -261540,6 +261733,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -262724,6 +262918,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -263897,6 +264092,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -265122,6 +265318,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -266440,6 +266637,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -267616,6 +267814,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -268799,6 +268998,7 @@ export declare const api: {
                                     }
                                   | {
                                       amount: number;
+                                      closeAmount?: number;
                                       id: string;
                                       longAmount?: number;
                                       rangeKind: "DISTANCE";
@@ -270211,6 +270411,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -271458,6 +271659,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -272626,6 +272828,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -273783,6 +273986,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -274986,6 +275190,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -276281,6 +276486,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -277438,6 +277644,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -278599,6 +278806,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -280079,6 +280287,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -281326,6 +281535,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -282494,6 +282704,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -283651,6 +283862,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -284854,6 +285066,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -286149,6 +286362,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -287306,6 +287520,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";
@@ -288467,6 +288682,7 @@ export declare const api: {
                               }
                             | {
                                 amount: number;
+                                closeAmount?: number;
                                 id: string;
                                 longAmount?: number;
                                 rangeKind: "DISTANCE";

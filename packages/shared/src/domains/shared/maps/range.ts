@@ -12,11 +12,14 @@ const RANGE_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
   MEASUREMENT_NODE_MAP
 )
 
-/** An attack or effect range also carries a long range and level scaling; a sense range does not. */
+/**
+ * An attack or effect range also carries a long range, a close range and level scaling; a sense
+ * range does not.
+ */
 function createRangeNodeMap(
   mapId: string,
   rangeKindOptions: typeof RANGE_OPTIONS,
-  withLongRangeAndScaling: boolean
+  withAttackRangeFields: boolean
 ) {
   return range.define(mapId, ({ map, cond, nodes }) => {
     const local = cond.local()
@@ -55,13 +58,13 @@ function createRangeNodeMap(
             options: LENGTH_UNIT_OPTIONS
           },
           {
-            order: 4,
+            order: 5,
             requiredIf: true,
             showIf: local.field(['rangeKind']).eq('DISTANCE')
           }
         )
       )
-    if (!withLongRangeAndScaling) return
+    if (!withAttackRangeFields) return
     map
       .set(
         'longAmount',
@@ -71,10 +74,17 @@ function createRangeNodeMap(
         })
       )
       .set(
+        'closeAmount',
+        number(['closeAmount'], 'Close Range', {
+          order: 4,
+          showIf: local.field(['rangeKind']).eq('DISTANCE')
+        })
+      )
+      .set(
         'scaling',
         groupObject(['scaling'], 'Scaling', () => RANGE_SCALING_NODE_MAP, {
           presentation: 'inline',
-          order: 5,
+          order: 6,
           showIf: local.field(['rangeKind']).eq('DISTANCE')
         })
       )
