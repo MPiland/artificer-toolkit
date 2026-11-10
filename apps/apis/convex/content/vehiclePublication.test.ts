@@ -242,9 +242,19 @@ describe('native Vehicle publication', () => {
     expect(documents.get(`${warship.label} Copy`)?.speed).toBe(2.5)
     const copiedCart = documents.get(`${cart.label} Copy`)
     expect(copiedCart?.features?.[0]?.id).not.toBe(cart.features?.[0]?.id)
-    expect(copiedCart?.features?.[0]?.effects?.[0]?.id).not.toBe(
-      cart.features?.[0]?.effects?.[0]?.id
-    )
+    // The Cart's draft-animal rule is description-only (D217), so its feature has no nested effect to
+    // compare; every id nested anywhere in the copy must still be new.
+    const nestedIds = (value: unknown): string[] =>
+      Array.isArray(value)
+        ? value.flatMap(nestedIds)
+        : typeof value === 'object' && value !== null
+          ? Object.entries(value).flatMap(([key, entry]) =>
+              key === 'id' && typeof entry === 'string' ? [entry] : nestedIds(entry)
+            )
+          : []
+    const sourceIds = new Set(nestedIds(cart.features))
+    expect(sourceIds.size).toBeGreaterThan(0)
+    expect(nestedIds(copiedCart?.features).filter((id) => sourceIds.has(id))).toEqual([])
     expect(copiedCart?.cost?.currencyId).toBe(cart.cost?.currencyId)
     expect(
       await t.run(async (ctx) =>

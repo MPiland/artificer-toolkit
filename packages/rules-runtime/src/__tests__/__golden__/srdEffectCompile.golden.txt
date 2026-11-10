@@ -45,8 +45,7 @@
 00000000-0000-0000-c005-608500000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-0b1500000000 CHARACTER:classes Wholeness of Body | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
 00000000-0000-0000-c006-140200000000 CHARACTER:classes Tranquility | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c006-140300000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-140400000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c006-140300000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-140500000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-140600000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-140700000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
@@ -111,7 +110,7 @@
 00000000-0000-0000-c00a-601900000000 CHARACTER:classes Quickened Spell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-601a00000000 CHARACTER:classes Subtle Spell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-601b00000000 CHARACTER:classes Twinned Spell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c00b-140300000000 CHARACTER:classes Dark One's Own Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c00b-140300000000 CHARACTER:classes Dark One's Own Luck | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00b-140400000000 CHARACTER:classes Fiendish Resilience | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000000-0000-0000-c00b-140500000000 CHARACTER:classes Hurl Through Hell | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00b-600500000000 CHARACTER:classes Repelling Blast | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
@@ -1394,37 +1393,9 @@
 00000060-0000-0240-001b-000000000001 CHARACTER:equipment Scimitar | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=26b7d4764b983e063b9f9affb91637301fff321717e238cfbeb20fd8e603bc9b,ON_HIT=26b7d4764b983e063b9f9affb91637301fff321717e238cfbeb20fd8e603bc9b]
 00000060-0000-0240-001c-000000000001 CHARACTER:equipment Shortsword | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=9df6d618fd05d1af89ce66c973dc301bcae54c33f183cde130b5da42bb731e95,ON_HIT=9df6d618fd05d1af89ce66c973dc301bcae54c33f183cde130b5da42bb731e95]
 00000060-0000-02e0-0015-000000000001 CHARACTER:equipment Lance | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-002f-000000000001 CHARACTER:equipment Chain Mail | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0030-000000000001 CHARACTER:equipment Splint Armor | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0031-000000000001 CHARACTER:equipment Plate Armor | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0057-000000000001 CHARACTER:equipment Arcane Focus: Crystal | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0058-000000000001 CHARACTER:equipment Arcane Focus: Orb | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0059-000000000001 CHARACTER:equipment Arcane Focus: Rod | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-005a-000000000001 CHARACTER:equipment Arcane Focus: Staff | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-005b-000000000001 CHARACTER:equipment Arcane Focus: Wand | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-005c-000000000001 CHARACTER:equipment Druidic Focus: Sprig of Mistletoe | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-005d-000000000001 CHARACTER:equipment Druidic Focus: Totem | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-005e-000000000001 CHARACTER:equipment Druidic Focus: Wooden Staff | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-005f-000000000001 CHARACTER:equipment Druidic Focus: Yew Wand | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0060-000000000001 CHARACTER:equipment Holy Symbol: Amulet | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0061-000000000001 CHARACTER:equipment Holy Symbol: Emblem | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0062-000000000001 CHARACTER:equipment Holy Symbol: Reliquary | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-02e0-0067-000000000001 CHARACTER:equipment Crossbow Bolt Case | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-02e0-0068-000000000001 CHARACTER:equipment Quiver | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-02e0-0072-000000000001 CHARACTER:equipment Map or Scroll Case | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-02e0-0073-000000000001 CHARACTER:equipment Pouch | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0087-000000000001 CHARACTER:equipment Component Pouch | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-02e0-0088-000000000001 CHARACTER:equipment Crowbar | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0098-000000000001 CHARACTER:equipment Magnifying Glass | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-02e0-00a3-000000000001 CHARACTER:equipment Portable Ram | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-00a7-000000000001 CHARACTER:equipment Rope (50 ft, hempen) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-00a8-000000000001 CHARACTER:equipment Rope (50 ft, silk) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-00b2-000000000001 CHARACTER:equipment Tinderbox | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-02e0-0174-000000000001 CHARACTER:equipment Chain (10 feet) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-0002-000000000001 CHARACTER:vehicles Rowed Vessels | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-0004-000000000001 CHARACTER:vehicles Rowed Vessels | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-0007-000000000001 CHARACTER:vehicles Mounts and Vehicles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-0008-000000000001 CHARACTER:vehicles Mounts and Vehicles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-0009-000000000001 CHARACTER:vehicles Mounts and Vehicles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-000a-000000000001 CHARACTER:vehicles Mounts and Vehicles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000080-0000-0211-000b-000000000001 CHARACTER:vehicles Mounts and Vehicles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
