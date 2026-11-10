@@ -8,7 +8,7 @@ type Node = Record<string, unknown>
 /**
  * The utility equipment and vehicle rules that change no resolved state: no spell component or focus
  * use is enforced, and none touches HP, conditions, attacks, saves, checks, movement, zones,
- * resources or Sheet values, so the description is the whole rule (D156, D217, SPELLS-4.T4a).
+ * resources or Sheet values, so the description is the whole rule (D156, D217, SPELLS-4.T4a, T4d).
  */
 const DESCRIPTION_ONLY_EQUIPMENT = [
   'Magnifying Glass',
@@ -70,6 +70,24 @@ describe('description-only SRD equipment and vehicle rules (D156, SPELLS-4.T4a)'
         (modifier) => modifier.valueDomainCode === VALUE_DOMAIN_CODE.SPEED
       )
     ).toBe(true)
+  })
+
+  it('the Hooded Lantern keeps its hood in the description and its light unchanged (SPELLS-4.T4d)', () => {
+    // Character carried light is not resolved yet, so the hood is description-only (D156 ruling,
+    // 2026-11-10); the lantern's own authored light stays.
+    const lantern = equipmentLabelled('Hooded Lantern')
+    expect(closedRules(lantern)).toEqual([])
+    expect(lantern.description).toContain('lower the hood')
+    expect(nodesWhere(lantern, (node) => node.effectKind === 'MANIFEST')).toEqual([
+      expect.objectContaining({
+        manifestKind: 'OBJECT',
+        attachmentKind: 'SOURCE',
+        light: {
+          bright: { amount: 30, unit: 'FEET' },
+          dimAdditional: { amount: 30, unit: 'FEET' }
+        }
+      })
+    ])
   })
 
   it.each(VEHICLE_RULE_FEATURES)('the %s vehicle rule is description-only', (label) => {

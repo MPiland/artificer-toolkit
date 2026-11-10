@@ -13935,7 +13935,7 @@
               "proof": "descriptionOnlyEquipmentAndVehicles.test.ts (18 utility items, 3 heavy armors keep the authored SPEED modifier, 2 vehicle features); AUTHORED_SOURCE_FACTS_VERSION 5; vehiclePublication.test.ts checks every nested copied id is new. Green on 5ff60b3a1; merged m679 (7f721ff46)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T4b",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -13948,30 +13948,32 @@
               "text": "Lance as a new generic option (D217): disadvantage on attacks against a target within 5 ft, and two-handed unless mounted. Crowbar and Portable Ram from core options as situational check bonuses (they fail the D198 rubric). Authoring-parity proofs; delete the three kinds."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T4c",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": []
               },
-              "text": "Item-count container capacity as a new generic option (D217): Quiver (20 arrows), Crossbow Bolt Case (20 bolts), Map or Scroll Case and Pouch limit their contents by count; authoring-parity proof and a Sheet inventory test; delete the four capacity kinds."
+              "text": "Item-count container capacity as a new generic option (D217 ruling 2026-11-10, Option A): an authored itemCapacity list inherited by variants, matched on equipment id or variant ancestor, limits sharing the container, unnamed contents not counted, over-limit refused on the Sheet and in Party/Vehicle inventory; Sheet DTO and snapshot index carry ancestry. Quiver (20 arrows), Crossbow Bolt Case (20 bolts), Map or Scroll Case (10 paper or 5 parchment), Pouch (20 sling bullets or 50 blowgun needles). Authoring-parity proof, reducer and party-inventory tests and a Sheet inventory test; delete the four capacity kinds."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-4.T4d",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": []
               },
-              "text": "Hooded Lantern hood as a new generic option (D217): a toggle that lowers the lantern's light to dim light in a 5 ft radius; authoring-parity proof; delete EQUIPMENT_HOODED_LANTERN."
+              "text": "Hooded Lantern hood is description-only (D217 ruling 2026-11-10, D156: Character carried light is not resolved); delete EQUIPMENT_HOODED_LANTERN with a description-only proof; record Character carried light as a fast follow in future-enhancements.md.",
+              "mergedAt": "2026-11-10T15:47:34Z",
+              "proof": "descriptionOnlyEquipmentAndVehicles.test.ts proves the Hooded Lantern has no CLOSED_RULE, keeps the hood text and its 30/30 ft light; EQUIPMENT_HOODED_LANTERN deleted; golden row removed; Character carried light recorded as a fast follow in future-enhancements.md. Tests 42841835949, Live 42845737910, Browser journeys 42841835953 green on 4f754598d; merged m680 (b45fc4ee2)."
             },
             {
               "status": "TODO",

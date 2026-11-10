@@ -11,10 +11,7 @@ export const hoodedLantern: EquipmentAuthored = {
   properties: [],
   cost: S.gp(5),
   weight: S.lbs(2),
-  effects: [
-    S.lightSourceEffect(S.equipId(150), 30, 30, 6),
-    S.passiveEquipmentClosedRuleEffect(S.equipId(150), 'EQUIPMENT_HOODED_LANTERN', 2, 0x220)
-  ],
+  effects: [S.lightSourceEffect(S.equipId(150), 30, 30, 6)],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
