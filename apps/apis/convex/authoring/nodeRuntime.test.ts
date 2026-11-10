@@ -22,6 +22,7 @@ import {
   SRD_RULES_CATALOGUE,
   SRD_REUSABLE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { importSeededSubjects } from '../../tests/fixtures/publication'
 import { api, components, internal } from '../_generated/api'
 import schema from '../schema'
@@ -194,6 +195,14 @@ describe('native Convex authoring resolver', () => {
     } satisfies NodeRuntimeResolveRequestDto
 
     const compact = await caller.query(resolve, request)
+    const reads = createDatabaseIoTotals()
+    await t.run(async (ctx) => {
+      const counted = { ...ctx, db: countDatabaseIo(ctx.db, reads) }
+      await resolveNodeRuntime(
+        await createSystemSourceReader(counted, request.systemId, userId),
+        request
+      )
+    })
     let readerCalls = 0
     const { original, perScope } = await t.run(async (ctx) => {
       const reader = await createSystemSourceReader(ctx, request.systemId, userId)
@@ -234,6 +243,9 @@ describe('native Convex authoring resolver', () => {
     // RELIABILITY-21.T19: re-resolving 1,283 scopes that share 62 models cost ~335 reader calls and
     // ~30,000 resolved nodes, which ran past resolve's 1 s budget on CI. Equal scopes resolve once.
     expect(readerCalls).toBeLessThan(60)
+    // PERF-6.T9 measured the Fighter class map resolving over its Convex budget on CI.
+    expect(reads.reads.documents).toBeLessThanOrEqual(900)
+    expect(reads.reads.bytes).toBeLessThanOrEqual(1_450_000)
     expect(perScope).toEqual(
       original.scopes.map(({ mapId, steps, clearPaths }) => ({ mapId, steps, clearPaths }))
     )
@@ -244,6 +256,19 @@ describe('native Convex authoring resolver', () => {
     // (756 KB before nodes were interned).
     expect(new TextEncoder().encode(JSON.stringify(compact)).byteLength).toBeLessThan(500_000)
     expect(expandNodeRuntimeResponse(compact)).toEqual(JSON.parse(JSON.stringify(original)))
+  })
+
+  it('resolves a small map within ten document reads', async () => {
+    const { t, userId } = await fixture()
+    const reads = createDatabaseIoTotals()
+    await t.run(async (ctx) => {
+      const counted = { ...ctx, db: countDatabaseIo(ctx.db, reads) }
+      await resolveNodeRuntime(
+        await createSystemSourceReader(counted, skillInput.systemId, userId),
+        skillInput
+      )
+    })
+    expect(reads.reads.documents).toBeLessThanOrEqual(10)
   })
 
   it('requires current authentication and rejects identity or source injection', async () => {

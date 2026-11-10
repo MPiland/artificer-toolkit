@@ -4471,7 +4471,12 @@ try {
           contentionCampaignId: contentionCampaign.id,
           initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
           initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
-          creatureId: actionDraft.subjectId
+          creatureId: actionDraft.subjectId,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, duplicateCampaign.id)
+            await awaitCampaignCheckpoint(owner.client, contentionCampaign.id)
+          }
         })
         console.log('Encounter action contention proof passed.')
       }
@@ -4486,7 +4491,11 @@ try {
         player: player.client,
         anonymous: publicClient,
         campaignId: campaign.id,
-        characterId
+        characterId,
+        checkpoint: async () => {
+          const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+          await awaitCampaignCheckpoint(owner.client, campaign.id)
+        }
       })
     }
   } else if (process.argv.includes('--equipment-character')) {

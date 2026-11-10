@@ -23,6 +23,7 @@ import {
   readEncounterPreparedPending
 } from '@artificer-toolkit/encounter-persistence/sessionReads'
 import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { memoizeTransactionReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -51,9 +52,10 @@ export const get = query({
   },
   handler: async (ctx, args): Promise<EncounterProjection> => {
     const input = getEncounterInputDtoSchema.parse({ encounterId: args.encounterId.toLowerCase() })
-    const { run, campaign, membership } = await readMemberEncounter(ctx, input.encounterId)
+    const read: QueryCtx = { ...ctx, db: memoizeTransactionReads(ctx.db) }
+    const { run, campaign, membership } = await readMemberEncounter(read, input.encounterId)
     return encounterProjectionDtoSchema.parse(
-      await presentEncounterRun(encounterReadTransaction(ctx), run, campaign, membership)
+      await presentEncounterRun(encounterReadTransaction(read), run, campaign, membership)
     )
   }
 })
@@ -127,11 +129,12 @@ export const pendingPrepared = query({
     const input = getCampaignEncounterInputDtoSchema.parse({
       campaignId: args.campaignId.toLowerCase()
     })
-    const { userId } = await requireIdentity(ctx)
-    const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
+    const read: QueryCtx = { ...ctx, db: memoizeTransactionReads(ctx.db) }
+    const { userId } = await requireIdentity(read)
+    const { campaign, membership } = await requireCampaignAuthority(read, input.campaignId, userId)
     return encounterPreparedPendingListDtoSchema.parse(
-      await readEncounterPreparedPending(encounterReadTransaction(ctx), {
-        rows: await ctx.db
+      await readEncounterPreparedPending(encounterReadTransaction(read), {
+        rows: await read.db
           .query('encounterRuns')
           .withIndex('by_campaignId_status', (q) =>
             q.eq('campaignId', campaign.id).eq('status', 'PREPARED')

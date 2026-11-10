@@ -1,4 +1,3 @@
-import polygonClipping, { type MultiPolygon } from 'polygon-clipping'
 import RBush from 'rbush'
 import { orient2d } from 'robust-predicates'
 
@@ -676,15 +675,4 @@ export function measureScenePathMovementCost(
     walked = distance
   }
   return cost
-}
-
-function toMultiPolygon(polygon: ScenePolygon): MultiPolygon {
-  return [[polygon.points.map((point) => [point.x, point.y])]]
-}
-
-export function unionScenePolygons(polygons: readonly ScenePolygon[]): MultiPolygon {
-  if (polygons.length === 0) return []
-  const [first, ...rest] = polygons
-  if (!first) return []
-  return polygonClipping.union(toMultiPolygon(first), ...rest.map(toMultiPolygon))
 }

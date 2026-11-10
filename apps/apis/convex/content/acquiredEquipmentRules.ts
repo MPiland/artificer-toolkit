@@ -2,6 +2,7 @@ import {
   acquiredEquipmentRulesSchema,
   type AcquiredPresentation
 } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
+import { memoizeTransactionReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 import type { QueryCtx } from '../_generated/server'
@@ -25,7 +26,7 @@ import {
  * rows, their catalogue facts and stored compilations only, never an authored payload.
  */
 export async function captureAcquiredEquipmentRules(
-  ctx: QueryCtx,
+  caller: QueryCtx,
   input: {
     equipmentId: string
     systemId: string
@@ -37,6 +38,9 @@ export async function captureAcquiredEquipmentRules(
     lookupRoot?: (id: string) => Promise<Doc<'authoredRoots'> | null>
   }
 ): Promise<string> {
+  // Capture only reads, so the open-grant sweep and the pinning pass share each document read
+  // (the content source and root rows repeat per Spell).
+  const ctx: QueryCtx = { ...caller, db: memoizeTransactionReads(caller.db) }
   async function readRoot(id: string, kind: 'EQUIPMENT' | 'SPELL') {
     const root = input.lookupRoot
       ? await input.lookupRoot(id)

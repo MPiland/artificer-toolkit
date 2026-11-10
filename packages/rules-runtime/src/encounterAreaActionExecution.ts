@@ -1,10 +1,10 @@
 import {
   spatialTokensInsideArea,
   spatialTokensWithinSpaceRadius,
-  type ScenePoint,
   type SpatialAreaShape,
   type SpatialSceneToken
-} from '@artificer-toolkit/shared/vtt'
+} from '@artificer-toolkit/shared/vtt/spatial'
+import { type ScenePoint } from '@artificer-toolkit/shared/vtt/scene'
 
 import type { CharacterHitPointOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import {

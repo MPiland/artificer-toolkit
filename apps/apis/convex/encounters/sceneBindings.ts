@@ -11,6 +11,7 @@ import {
   presentSceneEncounterBinding,
   readBoundEncounterScene
 } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
+import { memoizeTransactionReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery, query } from '../lib/queries'
@@ -56,7 +57,10 @@ export const get = query({
   returns: () => zodToConvex(z.nullable(sceneEncounterBindingSchema)),
   handler: async (ctx, args): Promise<SceneEncounterBinding | null> => {
     const input = sceneEncounterBindingInputSchema.parse(args)
-    const { run, binding } = await readBoundSceneScope(ctx, input)
+    const { run, binding } = await readBoundSceneScope(
+      { ...ctx, db: memoizeTransactionReads(ctx.db) },
+      input
+    )
     return presentSceneEncounterBinding(run, binding)
   }
 })

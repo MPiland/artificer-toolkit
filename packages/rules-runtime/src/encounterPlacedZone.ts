@@ -9,13 +9,13 @@ import { spatialRuleEffectPlacementDtoSchema } from '@artificer-toolkit/schema/s
 import {
   isDirectedAreaShape,
   undirectedAreaGeometry,
-  type ScenePoint,
   type SpatialAreaShape,
   type SpatialPointAreaShape,
   type SpatialWallAreaShape,
   type SpatialWallSide,
   wallSideBandGeometry
-} from '@artificer-toolkit/shared/vtt'
+} from '@artificer-toolkit/shared/vtt/spatial'
+import { type ScenePoint } from '@artificer-toolkit/shared/vtt/scene'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { compileEffectGraph } from './encounterActionEffectPlans.js'

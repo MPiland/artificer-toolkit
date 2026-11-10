@@ -20,7 +20,15 @@ import {
   bindPresentedScene,
   createEncounterSceneFixture as setup
 } from '../../tests/fixtures/encounterScene'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
+import { handlerOf } from '../../tests/fixtures/queryTransaction'
+import { get as getBindingHandler } from './sceneBindings'
+
+// The binding read re-checks the Campaign and memberships through each port; the transaction serves
+// each identical read once (PERF-6.T11).
+// Measured on this fixture: 14 documents before, 10 after.
+const BINDING_READ_DOCUMENTS = 10
 
 const getBinding = makeFunctionReference<
   'query',
@@ -228,6 +236,19 @@ describe('native Encounter recipient bindings', () => {
       base.owner.caller.action(encounterBindings, await bindingInput(base, base.owner.caller))
     ).resolves.toMatchObject({ page: [] })
   }, 60000)
+
+  it('reads the presented binding within its document budget', async () => {
+    const base = await prepare(1)
+    const totals = createDatabaseIoTotals()
+    const binding = await base.owner.caller.run((ctx) =>
+      handlerOf<SceneEncounterBinding | null>(getBindingHandler)(
+        { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+        { encounterId: base.run.id, sceneId: base.sceneId }
+      )
+    )
+    expect(binding?.encounterId).toBe(base.run.id)
+    expect(totals.reads.documents).toBeLessThanOrEqual(BINDING_READ_DOCUMENTS)
+  })
 
   it('returns null without a binding and rejects foreign access or a no-longer-presented Scene', async () => {
     const unbound = await prepare()

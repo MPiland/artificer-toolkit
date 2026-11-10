@@ -14,22 +14,26 @@ import {
   authoredLengthInSceneCoordinates,
   directedAreaInSceneCoordinates,
   isDirectedAreaOriginOnToken,
-  lengthMeasurementInSceneUnits,
-  measureSceneDistance,
   pointAreaInSceneCoordinates,
   pointAreaOfShape,
-  sceneFootprintMeasureHalfExtent,
-  sceneTokenFootprintsOverlap,
   wallAreaBoundsInSceneCoordinates,
-  type SceneGrid,
-  type ScenePoint,
-  type SceneToken,
   type SpatialDirectedAreaShape,
   type SpatialPointAreaShape,
   type SpatialTokenFootprint,
   type SpatialWallAreaShape,
   type SpatialWallSide
-} from '@artificer-toolkit/shared/vtt'
+} from '@artificer-toolkit/shared/vtt/spatial'
+import { lengthMeasurementInSceneUnits } from '@artificer-toolkit/shared/vtt/sceneReducer'
+import { measureSceneDistance } from '@artificer-toolkit/shared/vtt/geometry'
+import {
+  sceneFootprintMeasureHalfExtent,
+  sceneTokenFootprintsOverlap
+} from '@artificer-toolkit/shared/vtt/sceneCombatPerception'
+import {
+  type SceneGrid,
+  type ScenePoint,
+  type SceneToken
+} from '@artificer-toolkit/shared/vtt/scene'
 
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
 import { selectScalingRow } from './scalingRowSelection.js'
