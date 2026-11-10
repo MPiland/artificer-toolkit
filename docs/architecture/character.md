@@ -1065,9 +1065,34 @@ panel/command validators are shared with transitional adapters, which retain onl
 
 Resource usage is keyed by the shared canonical resource owner, not by an authored-state counter.
 The current Sheet supplies available pools, action cost/availability and allowed recovery triggers.
-Current Convex commands use `getSheetCommandResourceUsageUpdate` in the neutral
-`sheetResourceUsage` module for pool admission, raw usage, casting costs and recovery;
-room Sheet integration remains pending.
+Convex and room Sheet commands both use `getSheetCommandResourceUsageUpdate` in the neutral
+`sheetResourceUsage` module for pool admission, raw usage, casting costs and recovery.
+
+**One Sheet command, two hosts (current, QUALITY-12.1).** A Sheet command gives the same result in
+Convex and in the room because both hosts call the same package code and keep only authorization,
+loading and persistence:
+
+- A Sheet roll is `rollCharacterSheetRoll` (`packages/encounter-persistence/src/characterSheetRoll.ts`):
+  it adds the dice the Character's effects carry, applies the d20 floor, offers the dice held for after
+  the roll (D168) and ends the effects the roll spends (D156). Each host supplies its randomness.
+- A pool spend is `resourcePoolSpend` (`packages/rules-runtime/src/character/resourcePoolSpend.ts`),
+  called by the Sheet's `getSheetCommandResourceUsageUpdate` and the Encounter action's
+  `spendCharacterResource`. A spend the pool cannot cover is refused; only the Encounter's logged
+  "Do it anyway" (D11) spends what remains and records a `RESOURCE_UNAVAILABLE` warning. The Sheet
+  offers no override.
+- Current hit points never exceed the effective maximum (`effectiveHitPointMaximum`). The commands
+  that change the maximum (adjustments, panel reset, `SET_HIT_POINTS` with `maxOverride`) are
+  Convex-only and clamp in their mutation; the room clamps a held Character whenever it prepares the
+  Sheet (`prepareRoomLiveCharacterSheet`), so an ended effect that lowers the maximum clamps there.
+- Ending Concentration is orchestrated in `packages/encounter-persistence/src/concentrationChosenEnd.ts`
+  for a caster outside any ACTIVE Run (Convex), outside this Run (room) and held by the Run (room).
+- A Sheet cast places a summon only outside an Encounter (D190), so only Convex supplies the summon
+  placement; in an Encounter the Run actor is the summon's one record and the room cast adds none.
+- The Character and Encounter actor receipt validators replay heal, temporary hit point, damage and
+  hit-point-loss receipts through `replayHitPointReceipt`
+  (`packages/schema/src/shared/ruleExecutionHitPointReplay.ts`), which imports the temporary hit point
+  and death-save arithmetic.
+
 Use commands cannot exceed remaining capacity; restoration decrements raw stored usage even when
 the current display has clamped it to a lower capacity. Full recovery removes the usage row. Reads
 reject cross-Character rows and duplicate row/owner identities. Existing Sheet envelopes without

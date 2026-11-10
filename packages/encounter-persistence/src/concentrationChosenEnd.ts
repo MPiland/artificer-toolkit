@@ -4,6 +4,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { carriedConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
+import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { persistNativeConcentrationEnd } from './actionChildPersistence.js'
@@ -16,8 +17,63 @@ import {
 import { postConcentrationEndMessage } from './concentrationEnd.js'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
+import type {
+  EncounterCharacterEffectsTransaction,
+  EncounterCharacterWriteTransaction,
+  EncounterWritePorts
+} from './ports.js'
 import { appendSystemRunEntry } from './systemRunEntries.js'
+
+/**
+ * SPELLS-5.11: outside any ACTIVE Run, the caster ends the Concentration whose grants a finished Run
+ * carried onto the Campaign clock. Every grant stamped with the caster ends; the caster's own is
+ * deleted here for the Sheet write to settle, and each other holder's stream moves once. Throws when
+ * nothing is carried and the Sheet held no Concentration summon (D190) for the same command to end.
+ * The caster's `concentrationCasterCharacterId` stamp lets a later checkpoint finish any holder this
+ * call skipped.
+ *
+ * A holder in an ACTIVE Run belongs to that Run's room (Q1): this call skips it, and the same user
+ * action ends it through the room (`endOutsideCasterConcentration`) with the same command id. A
+ * caller that skips the room leaves those grants to the next checkpoint (the safety net).
+ */
+export async function endCarriedConcentrationOutsideRuns(
+  ctx: EncounterCharacterEffectsTransaction,
+  input: {
+    casterCharacterId: string
+    /** The Campaign's Characters that an ACTIVE Run's room holds. */
+    fightingCharacterIds: ReadonlySet<string>
+    occurredAt: string
+    /** The command also ends a Concentration summon the Sheet holds. */
+    endsSpellSummon: boolean
+  }
+): Promise<void> {
+  const store = createActiveRuleEffectStore(ctx)
+  const { casterCharacterId } = input
+  const carried = planConcentrationCarriedGrantEnds({
+    casterCharacterId,
+    effects: await store.listCarriedByCaster(casterCharacterId)
+  })
+  if (carried.length === 0) {
+    if (input.endsSpellSummon) return
+    throw new CharacterSheetCommandError('This Character is not concentrating.')
+  }
+  for (const effect of carried)
+    if (effect.owner.kind === 'CHARACTER' && effect.owner.characterId === casterCharacterId)
+      await store.deleteCas({
+        id: effect.id,
+        owner: effect.owner,
+        expectedVersion: effect.version,
+        // Outside a Run no turn counts down, so nothing an effect would leave behind is left.
+        removal: 'REMOVED'
+      })
+  await endCarriedGrantsOfConcentratingCasters(ctx, {
+    encounterId: null,
+    casterCharacterIds: [casterCharacterId],
+    includesHolder: (characterId) =>
+      characterId !== casterCharacterId && !input.fightingCharacterIds.has(characterId),
+    occurredAt: input.occurredAt
+  })
+}
 
 /**
  * SPELLS-5.11 (Q1): a caster outside this ACTIVE Run, whose Concentration grants a finished Run

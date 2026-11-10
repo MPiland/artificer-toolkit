@@ -3573,8 +3573,9 @@ the Creature (`withActiveGrantSpeeds`) and Character (`characterMovementAndSense
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it
 (`endChosenConcentration` in `packages/encounter-persistence`, a `CONCENTRATION_END` child receipt with
 reason `CHOSEN`, keyed on the command id, plus a chat line); otherwise Convex ends the grants a finished
-Run carried (`apps/apis/convex/characters/sheetConcentration.ts`, found through the
-`by_concentrationCaster` index). When a holder of the caster's carried grant is in an ACTIVE Run, the web
+Run carried (`endCarriedConcentrationOutsideRuns`, beside the room's two ends in
+`packages/encounter-persistence/src/concentrationChosenEnd.ts`; Convex only reads which Characters an
+ACTIVE Run holds; the grants are found through the `by_concentrationCaster` index). When a holder of the caster's carried grant is in an ACTIVE Run, the web
 asks `characters.sheetLive.concentrationRoomRoute` and sends the command to Convex (the caster's own
 and every outside holder; a holder an ACTIVE Run holds is skipped) and then through the room under the
 same command id, even though the caster is not held; the room authorizes the caller, runs

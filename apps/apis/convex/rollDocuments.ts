@@ -11,10 +11,8 @@ import {
   withoutAfterRollOffers
 } from '@artificer-toolkit/rules-runtime/character/rollRecord'
 import { nextRollInt } from './lib/rollRandom'
-import {
-  carriedTestDice,
-  resolveCharacterSheetRoll
-} from '@artificer-toolkit/rules-runtime/character/sheetRoll'
+import { resolveCharacterSheetRoll } from '@artificer-toolkit/rules-runtime/character/sheetRoll'
+import { rollCharacterSheetRoll } from '@artificer-toolkit/encounter-persistence/characterSheetRoll'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { createConvexEncounterStore } from './lib/convexEncounterStore'
@@ -62,47 +60,41 @@ export async function evaluateCharacterRoll(
   const maturity = sheet
     ? sheet.contentMaturity
     : ((await readCharacterCampaign(ctx, character, character.userId))?.contentMaturity ?? null)
-  const resolved = sheet
-    ? resolveCharacterSheetRoll(
-        input,
-        sheet.sheet,
-        projectCharacterSheetForViewer(sheet.sheet, sheet.campaignContext)
+  const rollSystem = {
+    id: system.id,
+    rulesetCode: system.rulesetCode,
+    rulesetVersion: system.rulesetVersion
+  }
+  const record = sheet
+    ? await rollCharacterSheetRoll(
+        { db: createConvexEncounterStore(ctx) },
+        {
+          character,
+          system: rollSystem,
+          resolved: resolveCharacterSheetRoll(
+            input,
+            sheet.sheet,
+            projectCharacterSheetForViewer(sheet.sheet, sheet.campaignContext)
+          ),
+          activeEffects: sheet.activeEffects,
+          rules: {
+            grantFold: sheet.ruleEvaluation.output.grantFold,
+            registry: sheet.ruleEvaluation.registry
+          },
+          nextInt: nextRollInt
+        }
       )
-    : {
-        expression: input.expression,
-        rollMode: input.rollMode,
-        source: { kind: 'MANUAL' as const, label: 'Manual roll' }
-      }
-  // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction;
-  // an attack or damage roll adds the dice its Sheet row carries (Bless, Divine Favor).
-  const { addedDice, spent, minimumRoll, afterRollOffers } = sheet
-    ? carriedTestDice(resolved, sheet.activeEffects, {
-        grantFold: sheet.ruleEvaluation.output.grantFold,
-        registry: sheet.ruleEvaluation.registry
+    : createRollRecord({
+        characterId: character.id,
+        label: character.label,
+        system: rollSystem,
+        resolved: {
+          expression: input.expression,
+          rollMode: input.rollMode,
+          source: { kind: 'MANUAL', label: 'Manual roll' }
+        },
+        nextInt: nextRollInt
       })
-    : { addedDice: [], spent: [], minimumRoll: null, afterRollOffers: [] }
-  const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
-  for (const effect of spent)
-    await effectStore.deleteCas({
-      id: effect.id,
-      owner: effect.owner,
-      expectedVersion: effect.version,
-      removal: 'ENDED'
-    })
-  const record = createRollRecord({
-    characterId: character.id,
-    label: character.label,
-    system: {
-      id: system.id,
-      rulesetCode: system.rulesetCode,
-      rulesetVersion: system.rulesetVersion
-    },
-    resolved,
-    addedDice,
-    minimumRoll: minimumRoll ?? undefined,
-    afterRollOffers,
-    nextInt: nextRollInt
-  })
   return { record, maturity }
 }
 
