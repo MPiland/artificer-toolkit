@@ -9,6 +9,7 @@ import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/s
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { deathWard } from '@artificer-toolkit/source-data/srd/spells/death-ward.js'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
@@ -22,6 +23,7 @@ import {
   srdEncounterState,
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
+import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 import {
   activeEffect,
   GOBLIN,
@@ -64,6 +66,34 @@ function effect(seed: number, input: Partial<TurnSaveDamageEffectInput> = {}) {
 async function effectPair(first: Partial<TurnSaveDamageEffectInput>, second = first) {
   const earlier = await effect(1, first)
   return [earlier, await effect(2, { ...second, currentEffects: [earlier] })] as const
+}
+
+/** The SRD Death Ward as the Goblin holds it with its one use: no turn recurrence, so it never runs. */
+function heldDeathWard(): ActiveRuleEffectRecord {
+  const [wardEffect] = deathWard.effects ?? []
+  if (!wardEffect) throw new Error('The SRD Death Ward has no effect.')
+  const planned = plannedModifierGrant({
+    encounterId: ENCOUNTER_ID,
+    sourceActorId: GOBLIN_ID,
+    holderActorId: GOBLIN_ID,
+    lifecycle: {},
+    effect: wardEffect,
+    sourceLabel: deathWard.label
+  })
+  return {
+    ...planned,
+    id: testUuid(0x2f2),
+    owner: OWNER,
+    sourceEncounterId: ENCOUNTER_ID,
+    maintainedEffectStateId: null,
+    createdOrdinal: 9,
+    version: 1,
+    definitionChecksum: 'a'.repeat(64),
+    lifecycleChecksum: 'b'.repeat(64),
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    lifecycle: { ...planned.lifecycle, remainingUses: 1 }
+  }
 }
 
 const root = turnCoordinatorRootDtoSchema.parse({
@@ -437,6 +467,54 @@ describe('prepareEncounterTurnEffects', () => {
     expect(result.phase).toEqual({ kind: 'STAGED', plan: result.plan })
     expect(run.remainingFaces()).toBe(0)
   })
+
+  it.each([
+    {
+      name: 'the second effect is the one that would drop it to 0',
+      damage: [2, 9],
+      transitions: [
+        [7, 5],
+        [5, 1]
+      ],
+      wardedOrdinal: 1,
+      hitPoints: 1
+    },
+    {
+      name: 'the first effect spends the ward and the second then drops it to 0',
+      damage: [9, 1],
+      transitions: [
+        [7, 1],
+        [1, 0]
+      ],
+      wardedOrdinal: 0,
+      hitPoints: 0
+    }
+  ])(
+    'spends a held Death Ward once across two effects damaging one creature: $name (QUALITY-17.T1)',
+    async ({ damage, transitions, wardedOrdinal, hitPoints }) => {
+      const [first, second] = await effectPair({ damage: damage[0]! }, { damage: damage[1]! })
+      const ward = heldDeathWard()
+      const run = prepare({ effects: [first, second, ward], faces: [10, 10] })
+
+      const result = await complete(run)
+
+      const executions = result.plan?.executions ?? []
+      expect(
+        executions.map((execution) => [
+          execution.targetTransition.before.currentHitPoints,
+          execution.targetTransition.after.currentHitPoints
+        ])
+      ).toEqual(transitions)
+      expect(
+        executions.map((execution) =>
+          execution.applications.flatMap((application) =>
+            application.kind === 'DAMAGE' ? [application.interceptedBy ?? null] : []
+          )
+        )
+      ).toEqual([0, 1].map((ordinal) => [ordinal === wardedOrdinal ? ward.id : null]))
+      expect(creatureHitPoints(result.actors)).toEqual([hitPoints])
+    }
+  )
 
   it('pauses for each save when the roller does not auto-roll, then resumes with entered and app-rolled dice', async () => {
     const [heavier, lighter] = await effectPair({ damage: 2 }, { damage: 1 })

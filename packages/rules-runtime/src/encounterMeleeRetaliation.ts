@@ -167,20 +167,14 @@ export async function planEncounterMeleeRetaliation<
     })
     if ('continuation' in result)
       throw new Error('Melee retaliation requested evidence the system cannot roll.')
-    const outcome = spatialExecutionOutcome({
+    const settled = spatialExecutionOutcome({
       target: spatialTarget,
       state,
       targetStateChecksum: candidate.target.targetStateChecksum,
       result
     })
-    const after = outcome.targetTransition.after
-    state = {
-      current: after.currentHitPoints,
-      temporary: after.temporaryHitPoints,
-      conditions: [...after.conditionIds],
-      deathSaves: after.deathSaves
-    }
-    executions.push({ ordinal, candidate, ...outcome })
+    state = settled.state
+    executions.push({ ordinal, candidate, ...settled.outcome })
   }
   const settled = planNativeSpatialMovementPrefix<TCharacterFacts>({
     targets: new Map([[attacker.actor.id, attacker]]),

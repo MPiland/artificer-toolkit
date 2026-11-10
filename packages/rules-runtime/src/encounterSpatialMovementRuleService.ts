@@ -675,7 +675,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         execution: stored.execution,
         d20Evidence: stored.d20
       })
-      const rebuilt = completeExecution({
+      const { execution: rebuilt, state: rebuiltState } = completeExecution({
         ordinal,
         pending: currentCandidate,
         target,
@@ -684,7 +684,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       })
       if (checksumRuleDocument(rebuilt) !== checksumRuleDocument(stored))
         throw new EncounterConflictError('The completed spatial execution cannot be reconstructed.')
-      stageExecution({ execution: rebuilt, states, applications, executions })
+      stageExecution({ execution: rebuilt, state: rebuiltState, states, applications, executions })
       if (spatialExecutionStopsMovement(rebuilt, root.movementKind)) {
         stopAtDistance ??= candidate.pathDistance
       }
@@ -810,14 +810,20 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         pendingSnapshot: nextPendingSnapshot
       }
     }
-    const completed = completeExecution({
+    const { execution: completed, state: completedState } = completeExecution({
       ordinal,
       pending: currentCandidate,
       target,
       state,
       result
     })
-    stageExecution({ execution: completed, states, applications, executions })
+    stageExecution({
+      execution: completed,
+      state: completedState,
+      states,
+      applications,
+      executions
+    })
     if (spatialExecutionStopsMovement(completed, root.movementKind)) {
       stopAtDistance ??= candidate.pathDistance
     }
@@ -1033,31 +1039,24 @@ function completeExecution(input: {
   target: SpatialMovementTarget
   state: SpatialTargetState
   result: TargetBoundActiveRuleEffectExecutionResult
-}): SpatialExecution {
-  return {
-    ordinal: input.ordinal,
-    candidate: input.pending,
-    ...spatialExecutionOutcome({
-      target: input.target,
-      state: input.state,
-      targetStateChecksum: input.pending.target.targetStateChecksum,
-      result: input.result
-    })
-  }
+}): { execution: SpatialExecution; state: SpatialTargetState } {
+  const { outcome, state } = spatialExecutionOutcome({
+    target: input.target,
+    state: input.state,
+    targetStateChecksum: input.pending.target.targetStateChecksum,
+    result: input.result
+  })
+  return { execution: { ordinal: input.ordinal, candidate: input.pending, ...outcome }, state }
 }
 
 function stageExecution(input: {
   execution: SpatialExecution
+  state: SpatialTargetState
   states: Map<string, SpatialTargetState>
   applications: Map<string, CharacterRuleActionApplication[]>
   executions: SpatialExecution[]
 }) {
-  input.states.set(input.execution.candidate.candidate.targetActorId, {
-    current: input.execution.targetTransition.after.currentHitPoints,
-    temporary: input.execution.targetTransition.after.temporaryHitPoints,
-    conditions: [...input.execution.targetTransition.after.conditionIds],
-    deathSaves: input.execution.targetTransition.after.deathSaves
-  })
+  input.states.set(input.execution.candidate.candidate.targetActorId, input.state)
   input.applications.set(input.execution.candidate.candidate.targetActorId, [
     ...(input.applications.get(input.execution.candidate.candidate.targetActorId) ?? []),
     ...input.execution.applications.map((application) => ({
@@ -1288,7 +1287,8 @@ function copyState(state: SpatialTargetState): SpatialTargetState {
     current: state.current,
     temporary: state.temporary,
     conditions: [...state.conditions],
-    deathSaves: state.deathSaves
+    deathSaves: state.deathSaves,
+    damageInterceptions: state.damageInterceptions
   }
 }
 function samePoint(left: ScenePoint, right: ScenePoint) {
