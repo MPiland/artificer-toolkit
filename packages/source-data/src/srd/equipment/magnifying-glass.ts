@@ -11,7 +11,6 @@ export const magnifyingGlass: EquipmentAuthored = {
   properties: [],
   cost: S.gp(100),
   weight: S.lbs(0),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(152), 'EQUIPMENT_MAGNIFYING_GLASS')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

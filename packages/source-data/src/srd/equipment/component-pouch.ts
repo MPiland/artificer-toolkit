@@ -11,7 +11,6 @@ export const componentPouch: EquipmentAuthored = {
   properties: [],
   cost: S.gp(25),
   weight: S.lbs(2),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(135), 'EQUIPMENT_COMPONENT_POUCH')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

@@ -7,12 +7,14 @@ type Node = Record<string, unknown>
 /**
  * The class and subclass features whose closed rule only restated their description or a sibling
  * grant (D156, SPELLS-31.T2, class C). `grant` marks a feature whose resolved part is already an
- * authored grant on the same node; `description` marks one that changes no resolved state.
+ * authored grant on the same node; `description` marks one that changes no resolved state. The
+ * T8a entries (D217) keep a GM-ruling effect, so they assert on authored effects only.
  */
 const DESCRIPTION_ONLY_FEATURES: ReadonlyArray<{
   owner: string
   feature: string
-  kind: string
+  /** The retired closed rule kind, when it has been deleted from the kind list. */
+  kind?: string
   resolvedBy: 'grant' | 'description'
 }> = [
   {
@@ -192,7 +194,11 @@ const DESCRIPTION_ONLY_FEATURES: ReadonlyArray<{
     feature: 'Evocation Savant',
     kind: 'SCHOOL_OF_EVOCATION_EVOCATION_SAVANT',
     resolvedBy: 'description'
-  }
+  },
+  { owner: 'Champion', feature: 'Survivor', resolvedBy: 'description' },
+  { owner: 'Way of the Open Hand', feature: 'Quivering Palm', resolvedBy: 'description' },
+  { owner: 'The Fiend', feature: "Dark One's Own Luck", resolvedBy: 'description' },
+  { owner: 'Hunter', feature: 'Stand Against the Tide', resolvedBy: 'description' }
 ]
 
 const isNode = (value: unknown): value is Node => typeof value === 'object' && value !== null
@@ -226,8 +232,8 @@ describe('description-only SRD class features (D156, SPELLS-31.T2, class C)', ()
   it('leaves none of their closed rule kinds', () => {
     const kinds = Object.keys(CLOSED_RULE_KIND)
     expect(
-      DESCRIPTION_ONLY_FEATURES.map(({ kind }) => `CLASS_${kind}`).filter((kind) =>
-        kinds.includes(kind)
+      DESCRIPTION_ONLY_FEATURES.flatMap(({ kind }) => (kind ? [`CLASS_${kind}`] : [])).filter(
+        (kind) => kinds.includes(kind)
       )
     ).toEqual([])
   })

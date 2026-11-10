@@ -3,7 +3,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
   DURATION_KIND,
   EFFECT_KIND,
@@ -23,7 +22,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { ABILITY_CODE, SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -128,17 +127,19 @@ export const theFiend: ClassAuthored = {
         amount: 1
       },
       effects: [
-        closedRuleEffect({
-          id: classRowId(W, 20, 3),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            resourceUse: { chargeId: classRowId(W, 22, 1), cost: 1 },
-            activation: { code: ACTIVATION_CODE.FREE },
-            range: { id: classRowId(W, 21, 3), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(W, 20, 3),
+            range: classRowId(W, 21, 3),
+            path: classRowId(W, 0x74, 2),
+            result: classRowId(W, 0x75, 2),
+            outcome: classRowId(W, 0x76, 2)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_DARK_ONES_OWN_LUCK
+          label: "Dark One's Own Luck",
+          instructions:
+            'When you make an ability check or a saving throw, you can add a d10 to your roll after seeing the initial roll but before any of its effects occur. Roll the d10 and add it by hand; the GM applies the new total.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          resourceUse: { chargeId: classRowId(W, 22, 1), cost: 1 }
         })
       ]
     },

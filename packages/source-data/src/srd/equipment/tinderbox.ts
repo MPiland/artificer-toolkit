@@ -11,7 +11,6 @@ export const tinderbox: EquipmentAuthored = {
   properties: [],
   cost: S.sp(5),
   weight: S.lbs(1),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(178), 'EQUIPMENT_TINDERBOX')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

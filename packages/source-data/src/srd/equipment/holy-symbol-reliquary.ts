@@ -10,7 +10,6 @@ export const holySymbolReliquary: EquipmentAuthored = {
   properties: [],
   cost: S.gp(5),
   weight: S.lbs(2),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(98), 'EQUIPMENT_HOLY_SYMBOL')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
