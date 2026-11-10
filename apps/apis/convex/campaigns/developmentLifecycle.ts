@@ -331,6 +331,13 @@ async function campaignRows(
       1,
       'campaignPlaySettings'
     ),
+    campaignRevisions: await rows(
+      ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId)),
+      1,
+      'campaignRevisions'
+    ),
     campaignCharacterAssignments: await rows(
       ctx.db
         .query('campaignCharacterAssignments')

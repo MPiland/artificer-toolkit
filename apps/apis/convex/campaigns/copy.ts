@@ -11,6 +11,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { createCampaignForOwner } from './create'
+import { requireCampaignVersion } from './revisions'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
 
 function copyReceiptDestinationId(payloadJson: string, expectedVersion: number) {
@@ -77,8 +78,7 @@ export const copy = mutation({
     const sourceAuthority = await requireCampaignAuthority(ctx, campaignId, userId)
     if (sourceAuthority.membership.role !== 'OWNER')
       throw new Error('Only the Campaign owner can copy a Campaign.')
-    if (sourceAuthority.campaign.version !== input.expectedVersion)
-      throw new Error('Campaign changed before this action completed.')
+    await requireCampaignVersion(ctx, sourceAuthority.campaign.id, input.expectedVersion)
     const source = sourceAuthority.campaign
     const copied = await createCampaignForOwner(
       ctx,

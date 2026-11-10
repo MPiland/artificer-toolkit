@@ -497,9 +497,9 @@ describe('native authored deletion source-loss cleanup', () => {
       subjectId: publication.subjectId
     })
     const state = await base.t.run(async (ctx) => ({
-      campaign: await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+      revision: await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
         .unique(),
       character: await ctx.db
         .query('characters')
@@ -510,7 +510,7 @@ describe('native authored deletion source-loss cleanup', () => {
         .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))
         .collect()
     }))
-    expect(state.campaign?.version).toBe(campaign.version + 1)
+    expect(state.revision?.version).toBe(campaign.version + 1)
     expect(state.character?.status).toBe('DRAFT')
     expect(
       state.events.filter((event) => event.type === 'CAMPAIGN_CHARACTER_RECONCILED')

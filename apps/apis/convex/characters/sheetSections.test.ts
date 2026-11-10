@@ -1118,8 +1118,8 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     {
       const { version, accessStartedAt } = await t.run(async (ctx) => ({
         version: (await ctx.db
-          .query('campaigns')
-          .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+          .query('campaignRevisions')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
           .unique())!.version,
         accessStartedAt: (await ctx.db
           .query('campaignMemberships')

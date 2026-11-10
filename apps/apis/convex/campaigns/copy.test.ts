@@ -46,6 +46,7 @@ async function setup() {
   const state = () =>
     base.t.run(async (ctx) => ({
       campaigns: await ctx.db.query('campaigns').collect(),
+      revisions: await ctx.db.query('campaignRevisions').collect(),
       memberships: await ctx.db.query('campaignMemberships').collect(),
       settings: await ctx.db.query('campaignPlaySettings').collect(),
       notes: await ctx.db.query('campaignNotebookSections').collect(),
@@ -135,6 +136,12 @@ describe('native Campaign copy', () => {
     expect(after.campaigns.find((row) => row.id === campaign.id)).toEqual(
       before.campaigns.find((row) => row.id === campaign.id)
     )
+    expect(after.revisions.filter((row) => row.campaignId === campaign.id)).toEqual(
+      before.revisions
+    )
+    expect(after.revisions.filter((row) => row.campaignId === copied.id)).toEqual([
+      expect.objectContaining({ version: 0, updatedAt: copied.updatedAt, notebookRevision: null })
+    ])
     expect(after.notes.filter((row) => row.campaignId === campaign.id)).toEqual(before.notes)
     expect(after.notes.filter((row) => row.campaignId === copied.id)).toEqual([])
     expect(after.items.filter((row) => row.campaignId === copied.id)).toEqual([])
@@ -162,8 +169,13 @@ describe('native Campaign copy', () => {
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
         .unique()
-      if (!source) throw new Error('Missing source campaign.')
-      await ctx.db.patch(source._id, { status: 'ARCHIVED', version: 7 })
+      const revision = await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+        .unique()
+      if (!source || !revision) throw new Error('Missing source campaign.')
+      await ctx.db.patch(source._id, { status: 'ARCHIVED' })
+      await ctx.db.patch(revision._id, { version: 7 })
     })
     await expect(owner.caller.mutation(copy, command)).resolves.toEqual(first)
     await expect(owner.caller.mutation(copy, { ...command, expectedVersion: 7 })).rejects.toThrow(

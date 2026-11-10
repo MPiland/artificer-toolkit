@@ -199,6 +199,55 @@ describe('native Campaign notebooks', () => {
     ).rejects.toThrow('Notebook section not found')
   })
 
+  // D216: every Campaign subscription reads the root, so a notebook write moves only the revision row.
+  it('advances the notebook revision without writing the Campaign root', async () => {
+    const { t, owner, campaign } = await setup()
+    const stored = () =>
+      t.run(async (ctx) => ({
+        root: await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+          .unique(),
+        revision: await ctx.db
+          .query('campaignRevisions')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+          .unique()
+      }))
+    const before = await stored()
+    expect(before.revision).toMatchObject({
+      version: campaign.version,
+      updatedAt: campaign.updatedAt,
+      notebookRevision: null
+    })
+    const revisions = new Set<string | null>([null])
+    const expectOnlyRevisionMoved = async () => {
+      const after = await stored()
+      expect(after.root).toEqual(before.root)
+      expect(after.revision).toMatchObject({
+        _id: before.revision?._id,
+        version: before.revision?.version,
+        updatedAt: before.revision?.updatedAt
+      })
+      expect(revisions.has(after.revision?.notebookRevision ?? null)).toBe(false)
+      revisions.add(after.revision?.notebookRevision ?? null)
+    }
+    const section = await owner.caller.mutation(create, {
+      campaignId: campaign.id,
+      title: 'Revision',
+      content: '<p>Revision</p>'
+    })
+    await expectOnlyRevisionMoved()
+    await owner.caller.mutation(update, {
+      campaignId: campaign.id,
+      sectionId: section.id,
+      expectedVersion: 0,
+      title: 'Revised'
+    })
+    await expectOnlyRevisionMoved()
+    await owner.caller.mutation(remove, { campaignId: campaign.id, sectionId: section.id })
+    await expectOnlyRevisionMoved()
+  })
+
   it('keeps mature shared text original and exposes all rows through native pages', async () => {
     const { t, owner, other, campaign } = await setup('MATURE')
     const created = await Promise.all(

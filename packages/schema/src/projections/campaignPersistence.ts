@@ -5,7 +5,7 @@ import {
   campaignRoleDtoSchema,
   campaignInviteDtoSchema
 } from '../api/campaignCore.js'
-import { timestampSchema, uuidSchema } from '../api/campaignContractSchemas.js'
+import { timestampSchema, uuidSchema, versionSchema } from '../api/campaignContractSchemas.js'
 
 export const campaignStoredRecordSchema = lazySchema(() =>
   z.extend(
@@ -16,10 +16,26 @@ export const campaignStoredRecordSchema = lazySchema(() =>
       capabilities: true,
       assignedCharacter: true,
       memberships: true,
-      rollModes: true
+      rollModes: true,
+      version: true,
+      updatedAt: true
     }),
-    { ownerUserId: uuidSchema, notebookRevision: z.optional(uuidSchema) }
+    { ownerUserId: uuidSchema }
   )
+)
+
+/**
+ * A Campaign's frequently written fields, one row per Campaign (D216). Departures, unshares and
+ * notebook writes advance this row instead of `campaigns`, so a read of the root does not rerun.
+ */
+export const campaignStoredRevisionSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    version: versionSchema,
+    updatedAt: timestampSchema,
+    /** Changes on every notebook section write; a copy aborts when it moves. */
+    notebookRevision: z.nullable(uuidSchema)
+  })
 )
 
 export const campaignStoredMembershipSchema = lazySchema(() =>

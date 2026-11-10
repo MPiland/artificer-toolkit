@@ -12,6 +12,7 @@ import { requireIdentity } from '../lib/identity'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { requireCampaignAuthority, readCampaignDetail } from './documents'
 import { readCampaignAccessTime } from './conversationDocuments'
+import { advanceCampaignRevision, readCampaignRevision } from './revisions'
 import { closeCampaignAdmission } from '../social/admissionClosure'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
 
@@ -107,13 +108,12 @@ export const accept = mutation({
       userId: recipient.userId,
       membershipEpoch: recipient.accessStartedAt ?? recipient.joinedAt
     })
-    await ctx.db.patch(campaign._id, {
-      ownerUserId: userId,
-      version: campaign.version + 1,
-      updatedAt: new Date(
-        Math.max(Date.parse(now), Date.parse(campaign.updatedAt) + 1)
-      ).toISOString()
-    })
+    await ctx.db.patch(campaign._id, { ownerUserId: userId })
+    await advanceCampaignRevision(
+      ctx,
+      await readCampaignRevision(ctx, campaign.id),
+      Date.parse(now)
+    )
     await ctx.db.delete(transfer._id)
     await syncAccountUsage(ctx, 'activeHostedCampaigns', campaign.id)
     return readCampaignDetail(ctx, await requireCampaignAuthority(ctx, campaign.id, userId))

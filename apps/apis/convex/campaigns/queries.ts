@@ -27,6 +27,7 @@ import {
   readCampaignDetail,
   requireCampaignAuthority
 } from './documents'
+import { readCampaignRevision } from './revisions'
 
 export const get = query({
   args: () => zodToConvexFields(campaignLookupInputSchema.shape),
@@ -114,11 +115,18 @@ export const list = query({
               member.campaignId,
               userId
             )
-            const [members, assignedCharacter] = await Promise.all([
+            const [revision, members, assignedCharacter] = await Promise.all([
+              readCampaignRevision(ctx, campaign.id),
               readActiveCampaignMembers(ctx, campaign),
               readCampaignAssignedCharacter(ctx, campaign, membership)
             ])
-            return presentCampaignSummary(campaign, membership, members, assignedCharacter)
+            return presentCampaignSummary(
+              campaign,
+              revision,
+              membership,
+              members,
+              assignedCharacter
+            )
           })
         )
       ).filter((campaign) => campaign !== null)

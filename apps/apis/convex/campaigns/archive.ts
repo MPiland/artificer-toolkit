@@ -8,6 +8,7 @@ import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
+import { advanceCampaignRevision, requireCampaignVersion } from './revisions'
 import { closeCampaignAdmission } from '../social/admissionClosure'
 import { scheduleLiveSessionRoomClosure } from '../liveSessions/controlScheduling'
 
@@ -20,16 +21,11 @@ export const archive = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('You cannot perform this Campaign action.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    if (campaign.version !== expectedVersion)
-      throw new Error('Campaign changed before this action completed.')
+    const revision = await requireCampaignVersion(ctx, campaign.id, expectedVersion)
 
-    const now = new Date(Math.max(Date.now(), Date.parse(campaign.updatedAt) + 1)).toISOString()
+    const { updatedAt: now } = await advanceCampaignRevision(ctx, revision)
     await closeCampaignAdmission(ctx, campaign, campaign.ownerUserId, now)
-    await ctx.db.patch(campaign._id, {
-      status: 'ARCHIVED',
-      version: campaign.version + 1,
-      updatedAt: now
-    })
+    await ctx.db.patch(campaign._id, { status: 'ARCHIVED' })
     await syncAccountUsage(ctx, 'activeHostedCampaigns', campaign.id)
     await scheduleLiveSessionRoomClosure(ctx, campaign.id)
     return readCampaignDetail(ctx, await requireCampaignAuthority(ctx, campaignId, userId))

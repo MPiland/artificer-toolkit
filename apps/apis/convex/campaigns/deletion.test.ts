@@ -138,6 +138,7 @@ describe('native Campaign deletion', () => {
     for (const name of [
       'campaigns',
       'campaignMemberships',
+      'campaignRevisions',
       'campaignPlaySettings',
       'campaignSessions',
       'campaignSessionAttendance',
@@ -190,6 +191,19 @@ describe('native Campaign deletion', () => {
     })
     const draft = await base.owner.caller.mutation(api.characters.drafts.create, input())
     const before = await snapshot(base.t)
+    // Creation writes exactly one revision row; deletion custody removes it with the root.
+    expect(
+      before.tables.campaignRevisions.filter(
+        (row) => 'campaignId' in row && row.campaignId === campaign.id
+      )
+    ).toEqual([
+      expect.objectContaining({
+        campaignId: campaign.id,
+        version: 0,
+        updatedAt: campaign.createdAt,
+        notebookRevision: null
+      })
+    ])
     await expect(base.owner.caller.mutation(remove, command(campaign))).resolves.toEqual({
       ok: true
     })
@@ -198,6 +212,7 @@ describe('native Campaign deletion', () => {
     const changed = new Set([
       'campaigns',
       'campaignMemberships',
+      'campaignRevisions',
       'campaignPlaySettings',
       'authoredRouteIds',
       'sceneVisionRevisions',
@@ -220,7 +235,7 @@ describe('native Campaign deletion', () => {
     expect(after.tables.campaigns).toEqual(
       before.tables.campaigns.filter((row) => !('id' in row && row.id === campaign.id))
     )
-    for (const name of ['campaignMemberships', 'campaignPlaySettings'])
+    for (const name of ['campaignMemberships', 'campaignRevisions', 'campaignPlaySettings'])
       expect(after.tables[name]).toEqual(
         before.tables[name].filter(
           (row) => !('campaignId' in row && row.campaignId === campaign.id)

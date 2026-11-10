@@ -8,6 +8,7 @@ import {
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
+import { nextCampaignChangeTime, requireCampaignVersion } from './revisions'
 import { closeCampaignAdmission } from '../social/admissionClosure'
 import { scheduleCampaignDeletion } from './deletionJobs'
 import { readCampaignLiveAuthority } from '../liveSessions/authorityGuard'
@@ -46,8 +47,7 @@ export const remove = internalMutation({
     }
     const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('You cannot perform this Campaign action.')
-    if (campaign.version !== expectedVersion)
-      throw new Error('Campaign changed before this action completed.')
+    const revision = await requireCampaignVersion(ctx, campaign.id, expectedVersion)
 
     const listing = await ctx.db
       .query('socialListings')
@@ -72,7 +72,7 @@ export const remove = internalMutation({
     }
 
     const liveAuthority = await readCampaignLiveAuthority(ctx, campaign.id)
-    const now = new Date(Math.max(Date.now(), Date.parse(campaign.updatedAt) + 1)).toISOString()
+    const now = nextCampaignChangeTime(revision)
     await closeCampaignAdmission(ctx, campaign, campaign.ownerUserId, now, true)
 
     const jobId = await ctx.db.insert('campaignDeletionJobs', {

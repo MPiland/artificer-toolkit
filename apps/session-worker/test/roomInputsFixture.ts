@@ -104,9 +104,7 @@ export function roomInputsResponse(
               primaryRulesCatalogueId: zero,
               additionalRulesCatalogueIds: [],
               status: 'ACTIVE',
-              version: 1,
               createdAt: fixtureTime,
-              updatedAt: fixtureTime,
               ownerUserId: owner,
               attunementSlotOverride: null
             })

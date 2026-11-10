@@ -135,8 +135,8 @@ describe('native account Campaign departure', () => {
       if (status === 'ARCHIVED') {
         const current = await base.t.run((ctx) =>
           ctx.db
-            .query('campaigns')
-            .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+            .query('campaignRevisions')
+            .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
             .unique()
         )
         if (!current) throw new Error('Missing Campaign.')

@@ -168,7 +168,10 @@ export async function verifyDevelopmentCampaignLifecycleBrowser(
             current.version > prior.detail.version
         )
         const inspection = await capture(detail)
-        assert.equal(one(tables(inspection.campaignStateJson), 'campaigns').version, detail.version)
+        assert.equal(
+          one(tables(inspection.campaignStateJson), 'campaignRevisions').version,
+          detail.version
+        )
         source = { detail, inspection }
         stage('updated-public-detail-version', { prior: prior.detail, detail, inspection })
         return
@@ -184,9 +187,9 @@ export async function verifyDevelopmentCampaignLifecycleBrowser(
           inspection: await inspect(detail.id),
           categories: notebookCategories ?? []
         }
-        const root = one(tables(pending.inspection.campaignStateJson), 'campaigns')
-        assert.equal(root.status, detail.status)
-        assert.equal(root.version, detail.version)
+        const pendingRows = tables(pending.inspection.campaignStateJson)
+        assert.equal(one(pendingRows, 'campaigns').status, detail.status)
+        assert.equal(one(pendingRows, 'campaignRevisions').version, detail.version)
         stage('before-copy', {
           detail,
           notebookCategories: pending.categories,
@@ -389,13 +392,13 @@ async function assertCompletedCopy(
     id: destination.id,
     publicId: destination.publicId,
     status: 'ACTIVE',
-    version: 0,
-    createdAt: destinationRoot.createdAt,
-    updatedAt: destinationRoot.updatedAt
+    createdAt: destinationRoot.createdAt
   }
-  delete expectedRoot.notebookRevision
   assert.deepEqual(destinationRoot, expectedRoot)
-  assert.equal(destinationRoot.createdAt, destinationRoot.updatedAt)
+  const destinationRevision = one(destinationRows, 'campaignRevisions')
+  assert.equal(destinationRevision.campaignId, destination.id)
+  assert.equal(destinationRevision.version, 0)
+  assert.equal(destinationRoot.createdAt, destinationRevision.updatedAt)
   assert.equal(one(destinationRows, 'campaignMemberships').userId, input.ownerUserId)
   assert.equal(one(destinationRows, 'campaignMemberships').role, 'OWNER')
   assert.equal(one(destinationRows, 'campaignMemberships').status, 'ACTIVE')
@@ -437,6 +440,7 @@ async function assertCompletedCopy(
     'campaigns',
     'campaignMemberships',
     'campaignPlaySettings',
+    'campaignRevisions',
     'campaignNotebookSections',
     'authoredRouteIds',
     'accountUsageEntries',

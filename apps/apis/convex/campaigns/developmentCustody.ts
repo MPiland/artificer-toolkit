@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readOwnedCurrentPublication } from './contentAccess'
+import { readCampaignRevision } from './revisions'
 import { requireCampaignVehicleDefinition } from './vehicleSources'
 import {
   campaignEventDtoSchema,
@@ -183,6 +184,7 @@ export const removeFixtureState = internalMutation({
       [input.ownerUserId, ...playerUserIds].map((userId) => requireFixtureAccount(ctx, userId))
     )
     const campaign = await readCampaign(ctx, input.ownerUserId, input.campaignId)
+    const { version: campaignVersion } = await readCampaignRevision(ctx, campaign.id)
     const memberships = await fixtureMemberships(ctx, campaign.id, input.ownerUserId, playerUserIds)
     const [
       assignments,
@@ -482,7 +484,7 @@ export const removeFixtureState = internalMutation({
           !removal.commandId ||
           !removal.inputFingerprint ||
           receipt.eventId !== removal.id ||
-          receipt.campaignVersion > campaign.version ||
+          receipt.campaignVersion > campaignVersion ||
           checksumCanonicalJson(payload) !==
             checksumCanonicalJson({
               reason,
@@ -547,7 +549,7 @@ export const removeFixtureState = internalMutation({
           !removal.inputFingerprint ||
           !Number.isFinite(removalCreatedAt) ||
           receipt.eventId !== removal.id ||
-          receipt.campaignVersion > campaign.version ||
+          receipt.campaignVersion > campaignVersion ||
           receipt.removedShares.length !== 1 ||
           !share ||
           !['VEHICLE', 'EQUIPMENT'].includes(share.subjectKind) ||
@@ -615,7 +617,7 @@ export const removeFixtureState = internalMutation({
         !removal.commandId ||
         !removal.inputFingerprint ||
         receipt.eventId !== removal.id ||
-        receipt.campaignVersion > campaign.version ||
+        receipt.campaignVersion > campaignVersion ||
         receipt.removedShares.length !== 1 ||
         !share ||
         !['VEHICLE', 'EQUIPMENT', 'BACKGROUND'].includes(share.subjectKind) ||
