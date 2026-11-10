@@ -476,6 +476,9 @@ export function normalizeCharacterActionMechanicFacts(
       ...(outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL'
         ? { rolledDie: { ...outcome.die } }
         : {}),
+      ...(outcome.effectKind === 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL'
+        ? { imposedRollMode: outcome.rollMode }
+        : {}),
       label: nullableLabel(entry.label) ?? nullableLabel('label' in outcome ? outcome.label : null)
     })
   }

@@ -11,7 +11,7 @@ import type {
   ResourceUseAuthored,
   SparesCreaturesAuthored
 } from '#authored'
-import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
+import { ACTIVATION_OPTIONS, EQUIPMENT_CATEGORY_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap, type NodeSelectSource } from '#utils'
 import {
   MEASUREMENT_NODE_MAP,
@@ -20,6 +20,7 @@ import {
   SHAPE_NODE_MAP
 } from '../../shared/maps/index.js'
 import { CHECK_NODE_MAP } from './check.js'
+import { SIZE_RANGE_NODE_MAP } from './sizeRange.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 
 /**
@@ -376,6 +377,8 @@ const REACTION_TRIGGER_KIND_OPTIONS: {
   { code: 'ATTACKED_SELF', label: 'You are hit by an attack' },
   { code: 'SPELL_CAST', label: 'A creature casts a spell' },
   { code: 'ATTACK_ROLL_BY_OTHER', label: 'A creature makes an attack roll' },
+  { code: 'ATTACK_ON_OTHER', label: 'A creature attacks another creature near you' },
+  { code: 'ATTACK_RESOLVED_ON_SELF', label: 'An attack against you hits or misses' },
   { code: 'DAMAGE_TAKEN', label: 'You take damage' },
   { code: 'TARGETED_SELF', label: 'You are chosen as a target' }
 ]
@@ -417,8 +420,8 @@ const reactionTrigger = buildNodeMap<ReactionTriggerBindingAuthored>()
 
 const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
   'reactionTrigger',
-  ({ map, nodes, cond, data }) => {
-    const { selectSingle, selectMulti, text, groupObject, toggle } = nodes
+  ({ map, nodes, cond, logic, data }) => {
+    const { selectSingle, selectMulti, text, groupObject, toggle, number } = nodes
     const { table } = data
     const local = cond.local()
     const isMovement = local.field(['kind']).eq('MOVEMENT')
@@ -426,6 +429,10 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
     const isSpellCast = local.field(['kind']).eq('SPELL_CAST')
     const isTargetedSelf = local.field(['kind']).eq('TARGETED_SELF')
     const isAttackedSelf = local.field(['kind']).eq('ATTACKED_SELF')
+    const isAttackOnOther = local.field(['kind']).eq('ATTACK_ON_OTHER')
+    const isAttackResolvedOnSelf = local.field(['kind']).eq('ATTACK_RESOLVED_ON_SELF')
+    const answersAnAttacker = logic.or([isAttackedSelf, isAttackOnOther, isAttackResolvedOnSelf])
+    const filtersAttackerSize = logic.or([isAttackOnOther, isAttackResolvedOnSelf])
 
     map
       .set(
@@ -537,7 +544,65 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
         'requiresSight',
         toggle(['requiresSight'], 'Only against an attacker you see', {
           order: 9,
-          showIf: isAttackedSelf,
+          showIf: answersAnAttacker,
+          hiddenBehavior: 'CLEAR'
+        })
+      )
+      .set(
+        'targetWithinFeet',
+        number(['targetWithinFeet'], 'Attack target within (ft) of you', {
+          order: 11,
+          constraints: { minimum: 1 },
+          requiredIf: isAttackOnOther,
+          showIf: isAttackOnOther,
+          hiddenBehavior: 'CLEAR'
+        })
+      )
+      .set(
+        'holderEquippedCategory',
+        selectSingle(
+          ['holderEquippedCategory'],
+          'Only while you have equipped',
+          { kind: 'INLINE_OPTIONS', options: EQUIPMENT_CATEGORY_OPTIONS },
+          { order: 12, showIf: isAttackOnOther, hiddenBehavior: 'CLEAR' }
+        )
+      )
+      .set(
+        'outcome',
+        selectSingle(
+          ['outcome'],
+          'The attack',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'HIT', label: 'Hits you' },
+              { code: 'MISS', label: 'Misses you' },
+              { code: 'ANY', label: 'Hits or misses you' }
+            ]
+          },
+          {
+            order: 13,
+            requiredIf: isAttackResolvedOnSelf,
+            showIf: isAttackResolvedOnSelf,
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'attackerWithinFeet',
+        number(['attackerWithinFeet'], 'Attacker within (ft) of you', {
+          order: 14,
+          constraints: { minimum: 1 },
+          showIf: isAttackResolvedOnSelf,
+          hiddenBehavior: 'CLEAR'
+        })
+      )
+      .set(
+        'attackerSize',
+        groupObject(['attackerSize'], 'Attacker size', () => SIZE_RANGE_NODE_MAP, {
+          presentation: 'inline',
+          order: 15,
+          showIf: filtersAttackerSize,
           hiddenBehavior: 'CLEAR'
         })
       )

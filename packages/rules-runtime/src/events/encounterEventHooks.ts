@@ -266,6 +266,11 @@ function reactionHookMet(
         ? { event: event.kind, trigger: trigger.kind }
         : null
     case 'MOVEMENT':
+    // The movement path discovers its reaction from the reach it is moved through.
+    case 'ATTACK_ON_OTHER':
+    case 'ATTACK_RESOLVED_ON_SELF':
+      // No Encounter event raises these two yet: the pause they answer is SPELLS-31.T4k1b and
+      // T4k1c's, and the compiler refuses their actions until then (supported in the effect compiler).
       return null
   }
 }

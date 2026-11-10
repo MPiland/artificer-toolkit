@@ -1,11 +1,9 @@
 import {
-  ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   GRANT_KIND,
-  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   RANGE_KIND,
@@ -22,6 +20,7 @@ import {
   criticalHitThresholdGrants,
   duelingRestriction,
   greatWeaponFightingGrant,
+  protectionReactionEffect,
   twoWeaponFightingGrants
 } from './mechanics.js'
 
@@ -209,25 +208,12 @@ export const championMartialArchetype: ClassAuthored = {
             'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
           order: 4,
           effects: [
-            closedRuleEffect({
-              id: classRowId(F, 20, 5),
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: {
-                  id: classRowId(F, 21, 5),
-                  rangeKind: RANGE_KIND.DISTANCE,
-                  amount: 5,
-                  unit: MEASUREMENT_UNIT_CODE.FEET
-                },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY',
-                  self: 'WARN'
-                }
-              },
-              ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_PROTECTION
+            protectionReactionEffect({
+              effect: classRowId(F, 20, 5),
+              range: classRowId(F, 21, 5),
+              path: classRowId(F, 0xd0, 5),
+              result: classRowId(F, 0xd1, 5),
+              outcome: classRowId(F, 0xd2, 5)
             })
           ]
         },

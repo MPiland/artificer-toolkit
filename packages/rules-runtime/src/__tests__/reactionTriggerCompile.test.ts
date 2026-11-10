@@ -4,6 +4,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { BARDIC_INSPIRATION_CHARGE_ID } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { cuttingWordsReaction } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { protectionReactionEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
@@ -150,6 +151,34 @@ describe('a reaction authored with the ATTACK_ROLL_BY_OTHER trigger compiles thr
     expect(operationKeys(compile(homebrew as unknown as EffectAuthored))).toContain(
       SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY
     )
+  })
+})
+
+describe('a reaction authored with the ATTACK_ON_OTHER trigger (SPELLS-31.T4k1, D217)', () => {
+  const id = (entry: number) => `7e57a000-0000-4000-8000-${entry.toString(16).padStart(12, '0')}`
+  const protection = (): EffectAuthored =>
+    protectionReactionEffect({
+      effect: ACTION_EFFECT_ID,
+      range: id(1),
+      path: id(2),
+      result: id(3),
+      outcome: id(4)
+    })
+
+  it('carries the trigger and its predicates onto the compiled invocation', () => {
+    expect(compileEffect(protection()).invocation).toMatchObject({
+      activation: { code: 'REACTION', amount: 1 },
+      reactionTrigger: {
+        kind: 'ATTACK_ON_OTHER',
+        requiresSight: true,
+        targetWithinFeet: 5,
+        holderEquippedCategory: 'SHIELD'
+      }
+    })
+  })
+
+  it('refuses the reaction as not yet executable until the Protection pause lands (T4k1b)', () => {
+    expect(() => compile(protection())).toThrow(CharacterRuleActionUnsupportedCompilationError)
   })
 })
 

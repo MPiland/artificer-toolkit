@@ -1984,6 +1984,9 @@ const DND5E_DIRECT_OUTCOMES: {
   // The reaction rolls its die for the roll it answered: nothing is stored on its target, the roller.
   SUBTRACT_FROM_TRIGGERING_ROLL: (_outcome, input) =>
     offList({ kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }, input),
+  // The reaction gives the roll it answered a roll mode: nothing is stored on its target, the attacker.
+  IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL: (_outcome, input) =>
+    offList({ kind: 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL' }, input),
   // The commit ends the held effects its plan selects; nothing is stored on the target here.
   END_EFFECTS: (_outcome, input) => offList({ kind: 'END_EFFECTS' }, input),
   APPLY_GRANT: (_outcome, { plans }) =>

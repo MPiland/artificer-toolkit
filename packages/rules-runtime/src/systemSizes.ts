@@ -21,6 +21,24 @@ export function sizeRank(gameSystemId: string, size: string | null | undefined):
   return rank === -1 ? null : rank
 }
 
+/**
+ * Whether size falls in the inclusive range, by its step in the System size list. A missing or
+ * unknown size, or a bound the System does not define, is outside the range.
+ */
+export function sizeInRange(
+  gameSystemId: string,
+  size: string | null | undefined,
+  range: { minimumSizeCode?: string; maximumSizeCode?: string }
+): boolean {
+  const rank = sizeRank(gameSystemId, size)
+  if (rank === null) return false
+  const minimum =
+    range.minimumSizeCode === undefined ? 0 : sizeRank(gameSystemId, range.minimumSizeCode)
+  const maximum =
+    range.maximumSizeCode === undefined ? Infinity : sizeRank(gameSystemId, range.maximumSizeCode)
+  return minimum !== null && maximum !== null && rank >= minimum && rank <= maximum
+}
+
 /** The edge in feet of the space a creature of `size` fills; null for a missing size or one with no modelled space. */
 export function sizeSpaceFeet(
   gameSystemId: string,

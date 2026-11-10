@@ -3,7 +3,7 @@ import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
-import { defaultSize, sceneSizes, sizeRank, sizeSpaceFeet } from '../systemSizes.js'
+import { defaultSize, sceneSizes, sizeInRange, sizeRank, sizeSpaceFeet } from '../systemSizes.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
@@ -54,6 +54,26 @@ describe('System sizes', () => {
     expect(sizeRank(DND5E_SYSTEM_ID, 'ENORMOUS')).toBeNull()
     expect(sizeRank(DND5E_SYSTEM_ID, null)).toBeNull()
     expect(sizeRank(DND5E_SYSTEM_ID, undefined)).toBeNull()
+  })
+
+  it.each([
+    ['LARGE', { minimumSizeCode: 'LARGE' }, true],
+    ['HUGE', { minimumSizeCode: 'LARGE' }, true],
+    ['MEDIUM', { minimumSizeCode: 'LARGE' }, false],
+    ['LARGE', { maximumSizeCode: 'LARGE' }, true],
+    ['HUGE', { maximumSizeCode: 'LARGE' }, false],
+    ['MEDIUM', { minimumSizeCode: 'SMALL', maximumSizeCode: 'LARGE' }, true],
+    ['TINY', { minimumSizeCode: 'SMALL', maximumSizeCode: 'LARGE' }, false],
+    ['GARGANTUAN', { minimumSizeCode: 'SMALL', maximumSizeCode: 'LARGE' }, false]
+  ])('puts size %s in the range %o: %s', (size, range, inRange) => {
+    expect(sizeInRange(DND5E_SYSTEM_ID, size, range)).toBe(inRange)
+  })
+
+  it('keeps a missing or unknown size, or an unknown bound, outside every range', () => {
+    expect(sizeInRange(DND5E_SYSTEM_ID, undefined, { minimumSizeCode: 'TINY' })).toBe(false)
+    expect(sizeInRange(DND5E_SYSTEM_ID, 'ENORMOUS', { maximumSizeCode: 'COLOSSAL' })).toBe(false)
+    expect(sizeInRange(DND5E_SYSTEM_ID, 'LARGE', { minimumSizeCode: 'ENORMOUS' })).toBe(false)
+    expect(sizeInRange(DND5E_SYSTEM_ID, 'LARGE', { maximumSizeCode: 'ENORMOUS' })).toBe(false)
   })
 
   it('gives the edge of the square a creature of each size fills, and null for no size', () => {

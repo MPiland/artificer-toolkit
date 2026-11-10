@@ -102,8 +102,8 @@ export const rugOfSmothering: CreatureAuthored = {
                       {
                         id: S.actionId(7705, 4),
                         order: 1,
-                        kind: 'TARGET_SIZE_MAXIMUM',
-                        sizeCode: S.SIZE_CODE.MEDIUM
+                        kind: 'TARGET_SIZE_RANGE',
+                        sizeRange: { maximumSizeCode: S.SIZE_CODE.MEDIUM }
                       },
                       {
                         id: S.actionId(7705, 5),

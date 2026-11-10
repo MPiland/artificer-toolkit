@@ -11,6 +11,7 @@ import {
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { ruleCapabilityRefreshBoundaryDtoSchema } from './ruleState.js'
+import { sizeRangeDtoSchema } from './sizeRange.js'
 import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
 import {
@@ -163,7 +164,29 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
       kind: z.literal('TARGETED_SELF'),
       sourceEffectIds: z.optional(sourceEffectIdsFilterDtoSchema)
     }),
-    z.strictObject({ kind: z.literal('ATTACK_ROLL_BY_OTHER') })
+    z.strictObject({ kind: z.literal('ATTACK_ROLL_BY_OTHER') }),
+    z.strictObject({
+      kind: z.literal('ATTACK_ON_OTHER'),
+      /** Answers only an attacker the reactor sees. */
+      requiresSight: z.optional(z.boolean()),
+      /** The attack's target (not the reactor) stands within this many feet of the reactor. */
+      targetWithinFeet: authoredPositiveLengthAmountSchema,
+      /** The reactor has an item of this equipment category equipped (a shield). */
+      holderEquippedCategory: z.optional(systemCoreCodeSchema),
+      /** Answers only an attacker whose size falls in this range. */
+      attackerSize: z.optional(sizeRangeDtoSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('ATTACK_RESOLVED_ON_SELF'),
+      /** Answers only an attack that hit, only one that missed, or either. */
+      outcome: z.enum(['HIT', 'MISS', 'ANY']),
+      /** Answers only an attacker the reactor sees. */
+      requiresSight: z.optional(z.boolean()),
+      /** Answers only an attacker within this many feet of the reactor. */
+      attackerWithinFeet: z.optional(authoredPositiveLengthAmountSchema),
+      /** Answers only an attacker whose size falls in this range. */
+      attackerSize: z.optional(sizeRangeDtoSchema)
+    })
   ])
 )
 

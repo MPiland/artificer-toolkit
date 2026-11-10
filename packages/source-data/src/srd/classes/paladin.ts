@@ -6,7 +6,6 @@ import {
   CLASS_ATTRIBUTE,
   CHARGE_BONUS_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -52,9 +51,9 @@ import {
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
-  closedRuleEffect,
   duelingRestriction,
-  greatWeaponFightingGrant
+  greatWeaponFightingGrant,
+  protectionReactionEffect
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -1044,25 +1043,12 @@ export const paladin: ClassAuthored = {
           description:
             'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
           effects: [
-            closedRuleEffect({
-              id: classRowId(P, 0x60, 23),
-              ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_FIGHTING_STYLE_PROTECTION,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: {
-                  id: classRowId(P, 0x69, 23),
-                  rangeKind: RANGE_KIND.DISTANCE,
-                  amount: 5,
-                  unit: MEASUREMENT_UNIT_CODE.FEET
-                },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.ANY,
-                  self: 'WARN'
-                }
-              }
+            protectionReactionEffect({
+              effect: classRowId(P, 0x60, 23),
+              range: classRowId(P, 0x69, 23),
+              path: classRowId(P, 0xd0, 23),
+              result: classRowId(P, 0xd1, 23),
+              outcome: classRowId(P, 0xd2, 23)
             })
           ],
           order: 3

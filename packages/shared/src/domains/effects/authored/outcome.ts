@@ -29,6 +29,7 @@ import type { RemoveFromPlayAuthored } from './removeFromPlay.js'
 import type { DetectConcealedAuthored } from './detectConcealed.js'
 import type { CancelTriggeringEventAuthored } from './cancelTriggeringEvent.js'
 import type { SubtractFromTriggeringRollAuthored } from './subtractFromTriggeringRoll.js'
+import type { ImposeRollModeOnTriggeringRollAuthored } from './imposeRollModeOnTriggeringRoll.js'
 import type { SourceImmunityAuthored } from './sourceImmunity.js'
 import type { ReleaseChosenItemAuthored } from './releaseChosenItem.js'
 import type { EndEffectsAuthored } from './endEffects.js'
@@ -69,6 +70,7 @@ export type OutcomeAuthored =
   | DetectConcealedAuthored
   | CancelTriggeringEventAuthored
   | SubtractFromTriggeringRollAuthored
+  | ImposeRollModeOnTriggeringRollAuthored
   | SourceImmunityAuthored
   | ReleaseChosenItemAuthored
   | EndEffectsAuthored

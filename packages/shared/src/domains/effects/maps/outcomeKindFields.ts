@@ -1,6 +1,7 @@
 import { registerConditionOutcomeFields } from './conditionOutcomeFields.js'
 import { registerEndEffectsOutcomeFields } from './endEffectsOutcomeFields.js'
 import { registerHealOutcomeFields } from './healOutcomeFields.js'
+import { registerImposeRollModeOutcomeFields } from './imposeRollModeOutcomeFields.js'
 import { registerRemoveFromPlayOutcomeFields } from './removeFromPlayOutcomeFields.js'
 import { registerRestoreResourceOutcomeFields } from './restoreResourceOutcomeFields.js'
 import { registerReviveOutcomeFields } from './reviveOutcomeFields.js'
@@ -18,6 +19,7 @@ export function registerOutcomeKindFields(
   registerConditionOutcomeFields(map, nodes, cond, logic)
   registerEndEffectsOutcomeFields(map, nodes, cond, data)
   registerHealOutcomeFields(map, nodes, cond, logic)
+  registerImposeRollModeOutcomeFields(map, nodes, cond, data)
   registerReviveOutcomeFields(map, nodes, cond, logic)
   registerRemoveFromPlayOutcomeFields(map, nodes, cond)
   registerRestoreResourceOutcomeFields(map, nodes, cond)

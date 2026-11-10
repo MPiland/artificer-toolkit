@@ -159,12 +159,22 @@ export const hunterConclave: ClassAuthored = {
             'When a Large or larger creature within 5 feet of you hits or misses you with an attack, you can use your reaction to attack that creature immediately after its attack, provided that you can see the creature.',
           order: 1,
           effects: [
-            closedRuleEffect({
+            // The reaction attack against a Large or larger attacker that hit or missed the hunter (D217).
+            // The offer is the trigger; using it runs an ordinary reaction weapon attack (SPELLS-31.T4k1c).
+            {
               id: classRowId(RA, 20, 2),
+              order: 0,
               invocation: {
                 kind: 'ACTION',
                 triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
                 activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+                reactionTrigger: {
+                  kind: 'ATTACK_RESOLVED_ON_SELF',
+                  outcome: 'ANY',
+                  requiresSight: true,
+                  attackerWithinFeet: 5,
+                  attackerSize: { minimumSizeCode: 'LARGE' }
+                },
                 range: {
                   id: classRowId(RA, 21, 2),
                   rangeKind: RANGE_KIND.DISTANCE,
@@ -176,9 +186,9 @@ export const hunterConclave: ClassAuthored = {
                   dispositionKind: 'ANY'
                 }
               },
-              pathCode: PATH_CODE.ON_ATTACK,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_GIANT_KILLER
-            })
+              weaponAttack: {},
+              paths: []
+            }
           ]
         },
         {

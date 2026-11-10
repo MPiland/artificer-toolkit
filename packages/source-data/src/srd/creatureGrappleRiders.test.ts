@@ -197,10 +197,10 @@ function printedRider(paragraph: string) {
 
 function authoredRider(relationship: Relationship) {
   const escape = relationship.modules.find((module) => module.kind === 'ESCAPE_CHECK')
-  const size = relationship.modules.find((module) => module.kind === 'TARGET_SIZE_MAXIMUM')
+  const size = relationship.modules.find((module) => module.kind === 'TARGET_SIZE_RANGE')
   return {
     dc: escape?.dc?.kind === 'FIXED' ? escape.dc.value : undefined,
-    sizeLimit: size?.sizeCode,
+    sizeLimit: size?.sizeRange.maximumSizeCode,
     conditions: (relationship.conditions ?? [])
       .map((condition) => conditionCodeById.get(condition.conditionId) ?? condition.conditionId)
       .sort()

@@ -3,12 +3,15 @@ import {
   AUTHORING_SELECTION_KIND,
   DURATION_KIND,
   EFFECT_KIND,
+  EQUIPMENT_CATEGORY_CODE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
   type ActivationCode,
@@ -31,6 +34,61 @@ import type {
 import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
 export { closedRuleEffect } from '../closed-rule-effect.js'
+
+/**
+ * The Protection fighting style: while the holder has a shield equipped, a creature they see attacks
+ * another creature within 5 feet of them, and they may use their reaction to give that attack roll
+ * disadvantage. The attacker is the reaction's target.
+ */
+export function protectionReactionEffect(ids: {
+  effect: string
+  range: string
+  path: string
+  result: string
+  outcome: string
+}): EffectAuthored {
+  return {
+    id: ids.effect,
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+      reactionTrigger: {
+        kind: 'ATTACK_ON_OTHER',
+        requiresSight: true,
+        targetWithinFeet: 5,
+        holderEquippedCategory: EQUIPMENT_CATEGORY_CODE.SHIELD
+      },
+      range: { id: ids.range, rangeKind: RANGE_KIND.SIGHT },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+      }
+    },
+    paths: [
+      {
+        id: ids.path,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: ids.result,
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: ids.outcome,
+              effectKind: EFFECT_KIND.IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL,
+              rollMode: 'DISADVANTAGE'
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 
 type FixedResultBlock = Extract<
   EffectAuthored['paths'][number],
