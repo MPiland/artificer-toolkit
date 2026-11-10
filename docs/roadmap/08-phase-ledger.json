@@ -13961,7 +13961,7 @@
               "text": "Item-count container capacity as a new generic option (D217 ruling 2026-11-10, Option A): an authored itemCapacity list inherited by variants, matched on equipment id or variant ancestor, limits sharing the container, unnamed contents not counted, over-limit refused on the Sheet and in Party/Vehicle inventory; Sheet DTO and snapshot index carry ancestry. Quiver (20 arrows), Crossbow Bolt Case (20 bolts), Map or Scroll Case (10 paper or 5 parchment), Pouch (20 sling bullets or 50 blowgun needles). Authoring-parity proof, reducer and party-inventory tests and a Sheet inventory test; delete the four capacity kinds."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-4.T4d",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -13971,7 +13971,9 @@
                 "size": 1,
                 "after": []
               },
-              "text": "Hooded Lantern hood is description-only (D217 ruling 2026-11-10, D156: Character carried light is not resolved); delete EQUIPMENT_HOODED_LANTERN with a description-only proof; record Character carried light as a fast follow in future-enhancements.md."
+              "text": "Hooded Lantern hood is description-only (D217 ruling 2026-11-10, D156: Character carried light is not resolved); delete EQUIPMENT_HOODED_LANTERN with a description-only proof; record Character carried light as a fast follow in future-enhancements.md.",
+              "mergedAt": "2026-11-10T15:47:34Z",
+              "proof": "descriptionOnlyEquipmentAndVehicles.test.ts proves the Hooded Lantern has no CLOSED_RULE, keeps the hood text and its 30/30 ft light; EQUIPMENT_HOODED_LANTERN deleted; golden row removed; Character carried light recorded as a fast follow in future-enhancements.md. Tests 42841835949, Live 42845737910, Browser journeys 42841835953 green on 4f754598d; merged m680 (b45fc4ee2)."
             },
             {
               "status": "TODO",
