@@ -50,6 +50,7 @@ function checkModifier(equipment: EquipmentAuthored) {
 describe('the Lance’s close range through the equipment node map (SPELLS-4.T4b)', () => {
   it('keeps the SRD Lance, a two-handed 10 ft reach with a 5 ft close range and no closed rule, exactly as authored', async () => {
     expect(attackRange(lance)).toMatchObject({ amount: 10, closeAmount: 5, unit: 'FEET' })
+    expect(lance.properties).toContain('TWO_HANDED')
     expect(lance.effects?.map(({ grip }) => grip)).toEqual(['TWO_HANDED'])
     expect(JSON.stringify(lance.effects)).not.toContain('CLOSED_RULE')
     await expectKept(lance)
