@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
@@ -155,14 +154,6 @@ export const solar: CreatureAuthored = {
                         conditionIds: ['BLINDED', 'DEAFENED', 'POISONED'].map(conditionTypeId)
                       }
                     ]
-                  },
-                  {
-                    id: S.actionId(256, 703),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Frees the target from curse and disease',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      'The target is also freed from any curse or disease afflicting it: the GM ends them.'
                   }
                 ]
               }

@@ -12,8 +12,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 /**
  * SPELLS-33.T8b (D217): the Solar's Healing Touch is written from the options a Builder author has on
  * a creature feature: a charge-limited action that heals (HEAL), ends the effects of named conditions
- * (END_EFFECTS) and leaves the curses and diseases it frees the target from to the GM
- * (MANUAL_ADJUDICATION). The feature must pass the creature node map exactly as authored, and no
+ * (END_EFFECTS). Curses and diseases change no resolved state, so they stay in the printed
+ * description (D156). The feature must pass the creature node map exactly as authored, and no
  * closed rule remains in it.
  */
 
@@ -42,12 +42,8 @@ const outcomesOf = (creature: CreatureAuthored) =>
   )
 
 describe('Solar Healing Touch from core options (D217)', () => {
-  it('heals, ends the named conditions and leaves curse and disease to the GM, with no closed rule', async () => {
-    expect(outcomesOf(solar).map(({ effectKind }) => effectKind)).toEqual([
-      'HEAL',
-      'END_EFFECTS',
-      'MANUAL_ADJUDICATION'
-    ])
+  it('heals and ends the named conditions, with no closed rule', async () => {
+    expect(outcomesOf(solar).map(({ effectKind }) => effectKind)).toEqual(['HEAL', 'END_EFFECTS'])
     expect(JSON.stringify(healingTouch(solar))).not.toContain('CLOSED_RULE')
     expect(healingTouch(solar).charges).toMatchObject({ amount: 4 })
     const ends = outcomesOf(solar).find(({ effectKind }) => effectKind === 'END_EFFECTS')
