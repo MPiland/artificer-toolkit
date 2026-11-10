@@ -25272,7 +25272,7 @@
         {
           "id": "QUALITY-4",
           "title": "Dead pipeline code is gone",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 1,
@@ -25283,7 +25283,7 @@
           "acs": [
             {
               "id": "QUALITY-4.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R0.",
               "text": "The four unused pending-context kinds (ENCOUNTER_CHARACTER_RULE_ACTION, ENCOUNTER_ACTOR_RULE_ACTION, ENCOUNTER_ACTOR_SPELL_CAST, ENCOUNTER_CREATURE_RULE_ACTION) and the test-only Convex entry encounters/actionContestSettlement.ts are deleted, and the shared d20 helpers move out of encounterMovementReactionActionExecution.ts to the d20 settlement module; existing suites stay green and bundle bars are unchanged or lower. (Unused closed rule kinds are SPELLS-4.T4e.)"
@@ -25292,7 +25292,7 @@
           "tasks": [
             {
               "id": "QUALITY-4.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-4.1"],
               "wsjf": {
                 "bv": 1,
@@ -25300,14 +25300,15 @@
                 "rr": 3,
                 "size": 2
               },
-              "text": "Delete the dead pending kinds and the test-only Convex entry; move the shared d20 helpers to their owning module."
+              "text": "Delete the dead pending kinds and the test-only Convex entry; move the shared d20 helpers to their owning module.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
         {
           "id": "QUALITY-5",
           "title": "The compile golden covers active-effect plans and fact binding",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 1,
@@ -25318,7 +25319,7 @@
           "acs": [
             {
               "id": "QUALITY-5.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R1.",
               "text": "The SRD compile golden records each effect's active-effect plan and fact binding beside its graph; the file changes only by added columns."
@@ -25327,7 +25328,7 @@
           "tasks": [
             {
               "id": "QUALITY-5.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-5.1"],
               "wsjf": {
                 "bv": 1,
@@ -25335,7 +25336,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Extend srdEffectCompileGolden to active-effect plans and fact binding."
+              "text": "Extend srdEffectCompileGolden to active-effect plans and fact binding.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -25577,7 +25579,7 @@
         {
           "id": "QUALITY-12",
           "title": "The Sheet gives the same result on Convex and in the room",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25588,7 +25590,7 @@
           "acs": [
             {
               "id": "QUALITY-12.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R9.",
               "text": "The same Sheet command gives the same result on Convex and in the room, proved against both hosts: rolls apply carried test dice, minimum roll and effect spends; resource spend has one implementation; HP is clamped after a maximum change; ending concentration has one orchestration; casting places summons. The schema validators import the HP, temporary HP and death-save arithmetic. Manual HP edits still bypass defenses (D156)."
@@ -25597,7 +25599,7 @@
           "tasks": [
             {
               "id": "QUALITY-12.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-12.1"],
               "wsjf": {
                 "bv": 5,
@@ -25605,7 +25607,8 @@
                 "rr": 5,
                 "size": 5
               },
-              "text": "One Sheet host module for Convex and the room; one resource spend; validators import the arithmetic; failing-first parity tests per divergence."
+              "text": "One Sheet host module for Convex and the room; one resource spend; validators import the arithmetic; failing-first parity tests per divergence.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -25799,7 +25802,7 @@
         {
           "id": "QUALITY-17",
           "title": "Turn and spatial effects fold damage once",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25810,7 +25813,7 @@
           "acs": [
             {
               "id": "QUALITY-17.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice bug.",
               "text": "Several effects damaging one target in a turn-effect or spatial pass settle through one damage fold that honours damage interceptions; a failing-first regression test proves the defect before the fix, or the investigation records that none exists."
@@ -25819,7 +25822,7 @@
           "tasks": [
             {
               "id": "QUALITY-17.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-17.1"],
               "wsjf": {
                 "bv": 5,
@@ -25827,7 +25830,8 @@
                 "rr": 5,
                 "size": 2
               },
-              "text": "Investigate the double fold in encounterTurnEffects.ts and encounterSpatialCandidateExecution.ts with a failing-first test; fix through one fold."
+              "text": "Investigate the double fold in encounterTurnEffects.ts and encounterSpatialCandidateExecution.ts with a failing-first test; fix through one fold.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         }
