@@ -10,7 +10,6 @@ export const arcaneFocusOrb: EquipmentAuthored = {
   properties: [],
   cost: S.gp(20),
   weight: S.lbs(3),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(88), 'EQUIPMENT_ARCANE_FOCUS')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

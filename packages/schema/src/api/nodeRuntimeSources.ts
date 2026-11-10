@@ -112,7 +112,7 @@ export function isNodeRuntimeSourceColumn(table: NodeRuntimeSourceTable, column:
  * different rows from the same document; an older or absent version is re-derived by the seed
  * (canonical rows) and `content/sourceMigrations` (all rows), never treated as a conflict.
  */
-export const AUTHORED_SOURCE_FACTS_VERSION = 4
+export const AUTHORED_SOURCE_FACTS_VERSION = 5
 
 // Server-derived, checksum-bound option metadata on a cohesive authored root. These
 // source keys adapt the existing resolver, not independent editable SQL-style tables.

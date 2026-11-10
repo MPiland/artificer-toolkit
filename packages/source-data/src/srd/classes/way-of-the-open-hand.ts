@@ -2,7 +2,7 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import {
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
-  CLOSED_RULE_KIND,
+  MANUAL_ADJUDICATION_REASON,
   DURATION_KIND,
   FOLLOW_UP_SAVE_TIMING,
   MEASUREMENT_UNIT_CODE,
@@ -25,7 +25,7 @@ import {
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { conditionTypeId } from '../equipment/shared.js'
-import { closedRuleEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
 import { FLURRY_OF_BLOWS_EFFECT_ID } from './monk.js'
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -356,91 +356,19 @@ export const wayOfTheOpenHand: ClassAuthored = {
       availableAtLevel: 17,
       order: 3,
       effects: [
-        closedRuleEffect({
-          id: classRowId(M, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.UNARMED_ATTACK,
-            range: { id: classRowId(M, 21, 3), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 20, 3),
+            range: classRowId(M, 21, 3),
+            path: classRowId(M, 27, 4),
+            result: classRowId(M, 28, 4),
+            outcome: classRowId(M, 29, 7)
           },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_WAY_OF_THE_OPEN_HAND_QUIVERING_PALM
-        }),
-        {
-          id: classRowId(M, 20, 4),
-          order: 1,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(M, 25, 2),
-              dcMethod: 'DERIVED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 8,
-              bonuses: [
-                {
-                  id: classRowId(M, 26, 3),
-                  bonusKind: 'ABILITY_MODIFIER',
-                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
-                },
-                {
-                  id: classRowId(M, 26, 4),
-                  bonusKind: 'PROFICIENCY_BONUS'
-                }
-              ]
-            },
-            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: classRowId(M, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          paths: [
-            {
-              id: classRowId(M, 27, 4),
-              order: 1,
-              pathCode: PATH_CODE.ON_SAVE_FAIL,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${classRowId(M, 27, 4)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(M, 29, 7),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_WAY_OF_THE_OPEN_HAND_QUIVERING_PALM
-                  }
-                ]
-              }
-            },
-            {
-              id: classRowId(M, 28, 4),
-              order: 2,
-              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${classRowId(M, 28, 4)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(M, 29, 8),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_WAY_OF_THE_OPEN_HAND_QUIVERING_PALM
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          label: 'Quivering Palm',
+          instructions:
+            'When you hit a creature with an unarmed strike, you can spend 3 ki points to start the vibrations; track the one creature affected and its duration (your monk level in days). To end them, you use your action and the creature makes a Constitution saving throw against your ki save DC. The GM applies the result by hand: on a failure it is reduced to 0 hit points, on a success it takes 10d10 necrotic damage.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
+        })
       ]
     }
   ]

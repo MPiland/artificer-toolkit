@@ -10,7 +10,6 @@ export const chain10Feet: EquipmentAuthored = {
   properties: [],
   cost: S.gp(5),
   weight: S.lbs(10),
-  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(372), 'EQUIPMENT_CHAIN')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
