@@ -5559,7 +5559,7 @@
           "tasks": [
             {
               "id": "SHEET-1.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SHEET-1.5"],
               "wsjf": {
                 "bv": 5,
@@ -5570,7 +5570,27 @@
               },
               "text": "Bug found by PERF-6.T13: the Sheet read throws CharacterRequiresBuilderRepairError (characters/sheetSlices.ts:52, rules-runtime character/sheetPreparation.ts:50) and CharacterSheetPage reads it with useSuspenseQuery, so a repair-state Character falls through to the root RouteErrorState (\"This page couldn't load\", Try again) instead of the existing CharacterSheetDraftOnlyState that incomplete imports show. Fix at the cause through a shared packages/schema contract: the Sheet read reports repair as a typed result rather than a thrown error, and the page renders the draft-only state for it, both for a settled repair DRAFT and for an ACTIVE Character whose queued reconcile step has not run yet (no draft row may exist in that window). Proofs: a convex-test for both states, a web unit test for the page, and the campaign-assignment-lifecycle journey opening the departed Character's Sheet and seeing the draft state.",
               "note": "Registered 2026-11-09 by the orchestrator. User ruling 2026-11-09: move the Sheet to the draft state the way incomplete imports do. Bug exception to the D187 freeze.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-10",
+              "proof": [
+                "m674 (ea4396960), fast path; slice tip 4ff1795cf: Tests 42715007952, Live backend 42724291436, Browser journeys 42715008163 green. Red proof RED on characterReconcileSteps.test.ts, sheetSections.test.ts (owner-only repair answer), sheetQueries.test.ts and CharacterSheetPage.test.tsx.",
+                "Contract characterSheetRepairRequiredDtoSchema / characterSheetSliceReadResultDtoSchema (packages/schema api/characterSheetSlices). sheetSlices:get answers REPAIR_REQUIRED to the owner only, for a queued reconcile step and a settled repair draft; party members, the GM and strangers keep the refusal. The Sheet route loader and page render CharacterSheetDraftOnlyState from it. The native campaign-assignment-lifecycle proof asserts the typed answer after departure; the browser assertion is SHEET-1.T2."
+              ]
+            },
+            {
+              "id": "SHEET-1.T2",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["SHEET-1.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SHEET-1.T1"],
+                "finalSource": true
+              },
+              "text": "Browser proof for SHEET-1.5 (Definition of Done: the criterion is about what the user sees). Extend campaign-membership-browser (apps/web/tests/live-backend/campaignMembership.ts): share a published Background into the Campaign, build a player Character on it, and after the remove stage the owner opens that Character's Sheet route and sees the draft-only state (\"Builder draft in progress\") with its Resume Builder button, the breadcrumb label and the canonical URL. No existing journey reaches a repair-state Character (SHEET-1.T1 report).",
+              "note": "Registered 2026-11-10 by the orchestrator as the remaining DoD proof of SHEET-1.5, split from SHEET-1.T1 so its increment merged."
             }
           ]
         },
