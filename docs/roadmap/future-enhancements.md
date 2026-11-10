@@ -104,6 +104,14 @@ Candidate, not yet registered. From the first real users on, every stored-shape 
 - **In-app superadmin invitations (user request, 2026-11-03):** an admin page where a superadmin enters an email address and sends an account invitation through the same path as `authInvitationsCli:invite`, with a list of pending invitations to reissue or revoke. Until then, invitations are sent with that function from the Convex dashboard's Functions page (staging and production) or `apps/apis/scripts/convexRunLocal.mjs` (local).
 - **Mailpit for local email (user request, 2026-11-03):** run Mailpit as a container beside the local Convex backend and point the local email sender at its send API in place of the current sink (`apps/apis/tests/localEmailSink.ts`, read with `scripts/localConvexFixtures.ps1 -Action mail`), so local mail to any throwaway address is read in a browser inbox. Local only: staging and production keep real delivery through Resend.
 - **Revisit Postgres behind the Session Durable Object (user note, 2026-11-03):** with rules and live state in the room (ADR 0035), Phase 8.1's slowness and ADR 0022's move off normalized hydration both trace to rules running outside the room, not to Postgres. A normalized Postgres store (Supabase or Hyperdrive from Workers) would give foreign keys, cascades, uniqueness and joins that Convex code hand-builds, at the cost of Convex reactivity for non-live screens, transactional TypeScript functions and convex-test. Revisit after beta if cost per player (PERF-2.T1 reads per session) or repeated Convex limit work grows. Retired SQL-era commits predate ADRs 0022–0037, so a return would reuse ideas, not code.
+- **Fast follow: Character carried light (user ruling, 2026-11-10, SPELLS-4.T4d):**
+  - **Problem:** Characters carry authored light that nothing resolves. Equipment light effects compile as REFUSED for Characters (`srdEffectCompile.golden.txt`), and only Creature feature light reaches the token (`creatureLight.ts`). The GM places Scene lights by hand.
+  - **Examples:** a Torch, a Lantern, and the Hooded Lantern's hood. The hood is description-only under D156 until this ships.
+  - **Candidate direction:**
+    - a lit or unlit state for each light item, held in Sheet play state;
+    - authored alternate light profiles, such as the hood's dim light in a 5-foot radius;
+    - token emission in the live session.
+  - **Constraint:** one light-emission path shared with spell lights such as Light and Dancing Lights, so carried, spell and Creature light compose the same way.
 
 ### Deferred edge cases (watch for in real use)
 
