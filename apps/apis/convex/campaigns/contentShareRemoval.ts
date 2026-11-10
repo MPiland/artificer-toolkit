@@ -26,6 +26,7 @@ import { readOwnedCurrentPublication } from './contentAccess'
 import { finalizeCampaignContentRemoval } from './contentRemovalFinalization'
 import { queueCharacterReconcile } from './characterReconcileSteps'
 import { readActiveCampaignMembers, requireCampaignAuthority } from './authority'
+import { requireCampaignVersion } from './revisions'
 import { isImportRowVisible } from '../imports/visibility'
 
 interface ShareSelection {
@@ -176,8 +177,7 @@ export async function unshareCampaignContentAndReconcile(input: {
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (membership.role !== 'OWNER' && sharedBy !== actorUserId)
     throw new Error('You cannot remove this Campaign content share.')
-  if (campaign.version !== request.expectedCampaignVersion)
-    throw new Error('Campaign changed before this action completed.')
+  await requireCampaignVersion(ctx, campaign.id, request.expectedCampaignVersion)
   const direct = await ctx.db
     .query('campaignContentShares')
     .withIndex('by_campaignId_subjectKind_subjectId', (q) =>

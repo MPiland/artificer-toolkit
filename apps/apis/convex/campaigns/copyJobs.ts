@@ -24,6 +24,7 @@ import { readAuthUser } from '../lib/authUserReads'
 import { createCampaignForOwner } from './create'
 import { readCampaignContentRefusal } from './contentUsage'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
+import { readCampaignRevision, requireCampaignVersion } from './revisions'
 
 const PAGE_SIZE = 8
 const MAX_BYTES = 1024 * 1024
@@ -122,9 +123,10 @@ async function assertWorkerOwner(ctx: Parameters<typeof requireIdentity>[0], job
   const authority = await requireCampaignAuthority(ctx, job.command.campaignId, job.ownerUserId)
   if (authority.membership.role !== 'OWNER' || authority.campaign.ownerUserId !== job.ownerUserId)
     throw new Error('Only the Campaign owner can copy a Campaign.')
+  const revision = await readCampaignRevision(ctx, authority.campaign.id)
   if (
-    authority.campaign.version !== job.command.expectedVersion ||
-    (authority.campaign.notebookRevision ?? null) !== job.sourceNotebookRevision
+    revision.version !== job.command.expectedVersion ||
+    revision.notebookRevision !== job.sourceNotebookRevision
   )
     throw new Error('Campaign changed before this copy completed.')
   return authority.campaign
@@ -184,8 +186,11 @@ export const begin = mutation({
       sourceAuthority.campaign.ownerUserId !== userId
     )
       throw new Error('Only the Campaign owner can copy a Campaign.')
-    if (sourceAuthority.campaign.version !== command.expectedVersion)
-      throw new Error('Campaign changed before this action completed.')
+    const sourceRevision = await requireCampaignVersion(
+      ctx,
+      sourceAuthority.campaign.id,
+      command.expectedVersion
+    )
     const source = sourceAuthority.campaign
     const settings = createCampaignInputSchema.parse({
       name: source.name,
@@ -205,7 +210,7 @@ export const begin = mutation({
       destinationCampaignId: crypto.randomUUID(),
       settings,
       attunementSlotOverride: source.attunementSlotOverride,
-      sourceNotebookRevision: source.notebookRevision ?? null
+      sourceNotebookRevision: sourceRevision.notebookRevision
     }
     const valid = campaignStoredCopySchema.parse({
       id: crypto.randomUUID(),

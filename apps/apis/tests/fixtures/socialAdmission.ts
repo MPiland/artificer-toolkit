@@ -213,6 +213,7 @@ export async function fixture() {
 export async function snapshot(base: Awaited<ReturnType<typeof fixture>>) {
   return base.t.run(async (ctx) => ({
     campaigns: await ctx.db.query('campaigns').collect(),
+    revisions: await ctx.db.query('campaignRevisions').collect(),
     memberships: await ctx.db.query('campaignMemberships').collect(),
     listings: await ctx.db.query('socialListings').collect(),
     applications: await ctx.db.query('socialApplications').collect(),

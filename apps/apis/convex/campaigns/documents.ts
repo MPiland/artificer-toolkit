@@ -15,12 +15,14 @@ import type { QueryCtx } from '../_generated/server'
 import { readAuthUsers } from '../lib/authUserReads'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
 import { readActiveCampaignMembers, requireCampaignAuthority } from './authority'
+import { readCampaignRevision } from './revisions'
 
 export { readActiveCampaignMembers, requireCampaignAuthority } from './authority'
 export { readCampaignAssignedCharacter } from './assignedCharacter'
 
 export function presentCampaignSummary(
   campaign: Doc<'campaigns'>,
+  revision: Doc<'campaignRevisions'>,
   membership: Doc<'campaignMemberships'>,
   members: Doc<'campaignMemberships'>[],
   assignedCharacter: CampaignSummaryDto['assignedCharacter'],
@@ -47,11 +49,11 @@ export function presentCampaignSummary(
     additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds,
     status: campaign.status,
     role: membership.role,
-    version: campaign.version,
+    version: revision.version,
     memberCount: members.length,
     playerCount: members.filter((member) => member.role === 'PLAYER').length,
     createdAt: campaign.createdAt,
-    updatedAt: campaign.updatedAt,
+    updatedAt: revision.updatedAt,
     capabilities: getCampaignCapabilities(campaign.status, membership.role),
     assignedCharacter
   })
@@ -63,7 +65,10 @@ export async function readCampaignDetail(
   privateOwnerView = false
 ) {
   if (privateOwnerView && membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
-  const members = await readActiveCampaignMembers(ctx, campaign)
+  const [members, revision] = await Promise.all([
+    readActiveCampaignMembers(ctx, campaign),
+    readCampaignRevision(ctx, campaign.id)
+  ])
   const grantsByUserId = new Map(
     (
       await ctx.db
@@ -108,6 +113,7 @@ export async function readCampaignDetail(
   return campaignDetailDtoSchema.parse({
     ...presentCampaignSummary(
       campaign,
+      revision,
       membership,
       members,
       own.assignedCharacter,

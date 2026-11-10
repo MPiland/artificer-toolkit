@@ -232,8 +232,8 @@ async function readCampaignVersion(base: Base, campaignId: string) {
     async (ctx) =>
       (
         await ctx.db
-          .query('campaigns')
-          .withIndex('by_publicId', (q) => q.eq('id', campaignId))
+          .query('campaignRevisions')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
           .unique()
       )?.version
   )

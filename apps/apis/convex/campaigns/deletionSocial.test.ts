@@ -289,6 +289,7 @@ describe('Campaign deletion Social boundaries', () => {
     for (const name of [
       'campaigns',
       'campaignMemberships',
+      'campaignRevisions',
       'campaignPlaySettings',
       'socialListings',
       'socialApplications',
@@ -298,6 +299,7 @@ describe('Campaign deletion Social boundaries', () => {
     const changed = new Set([
       'campaigns',
       'campaignMemberships',
+      'campaignRevisions',
       'campaignPlaySettings',
       'authoredRouteIds',
       'sceneVisionRevisions',

@@ -36,10 +36,10 @@ describe('native Campaign update', () => {
     expect(after.campaigns[0]).toMatchObject({
       id: base.campaign.id,
       ownerUserId: base.owner.userId,
-      version: before.campaigns[0]!.version + 1,
       description: null,
       toneDetails: null
     })
+    expect(after.revisions[0]).toMatchObject({ version: before.revisions[0]!.version + 1 })
     expect(after.listings[0]).toMatchObject({
       id: base.listingId,
       ownerUserId: base.owner.userId,
@@ -178,22 +178,22 @@ describe('native Campaign update', () => {
     const base = await setup()
     const future = '2099-01-01T00:00:00.000Z'
     await base.t.run(async (ctx) => {
-      const campaign = await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+      const revision = await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
       const listing = await ctx.db
         .query('socialListings')
         .withIndex('by_publicId', (q) => q.eq('id', base.listingId))
         .unique()
-      if (!campaign || !listing) throw new Error('Missing campaign fixture records.')
-      await ctx.db.patch(campaign._id, { updatedAt: future })
+      if (!revision || !listing) throw new Error('Missing campaign fixture records.')
+      await ctx.db.patch(revision._id, { updatedAt: future })
       await ctx.db.patch(listing._id, { updatedAt: future })
     })
     const before = await snapshot(base)
     await update(base, changes)
     const after = await snapshot(base)
-    expect(Date.parse(after.campaigns[0]!.updatedAt)).toBeGreaterThan(Date.parse(future))
+    expect(Date.parse(after.revisions[0]!.updatedAt)).toBeGreaterThan(Date.parse(future))
     expect(after.listings[0]).toMatchObject({
       version: before.listings[0]!.version,
       updatedAt: future

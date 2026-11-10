@@ -135,15 +135,15 @@ describe('Campaign room storage recovery', () => {
       const input = { campaignId: base.campaign.id, epoch: crypto.randomUUID() }
       const current = await base.t.mutation(recoverStorage, input)
       if (status === 'DELETING') {
-        const campaign = await base.t.run((ctx) =>
+        const revision = await base.t.run((ctx) =>
           ctx.db
-            .query('campaigns')
-            .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+            .query('campaignRevisions')
+            .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
             .unique()
         )
         await base.other.caller.mutation(api.campaigns.deletion.remove, {
           campaignId: base.campaign.id,
-          expectedVersion: campaign!.version,
+          expectedVersion: revision!.version,
           confirmation: 'DELETE'
         })
       } else {

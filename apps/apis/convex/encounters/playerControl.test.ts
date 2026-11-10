@@ -189,8 +189,8 @@ describe('Encounter actor control', () => {
     // A departing member stops controlling every open Run actor.
     const campaign = await base.t.run((ctx) =>
       ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
     )
     if (!campaign) throw new Error('Missing player control Campaign.')

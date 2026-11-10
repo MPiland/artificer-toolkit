@@ -12,6 +12,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from './authority'
+import { readCampaignRevision } from './revisions'
 import { readCampaignInventory } from './partyInventoryDocuments'
 import { evacuateCampaignVehicle, assertCampaignVehicleCargo } from './vehicleEvacuation'
 import { campaignStoredVehicleSchema } from '@artificer-toolkit/schema/projections/campaignVehicleCleanupPersistence'
@@ -192,7 +193,7 @@ export async function executeCampaignVehicleLifecycle(
     if (!(await probeVehicleCleanup(ctx, campaign.id, vehicle.id, mode)).ordinary) {
       const acknowledgement = await beginVehicleCleanup(ctx, {
         campaignId: campaign.id,
-        campaignVersion: campaign.version,
+        campaignVersion: (await readCampaignRevision(ctx, campaign.id)).version,
         vehicleId: vehicle.id,
         vehicleVersion: metadata.version,
         sourceInventoryVersion: inventory?.version ?? 0,

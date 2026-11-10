@@ -205,9 +205,9 @@ async function setup(cargoItems = 36) {
     override: Partial<VehicleCleanupGrant> = {}
   ) =>
     base.t.run(async (ctx) => {
-      const currentCampaign = await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+      const currentRevision = await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
         .unique()
       const currentVehicle = await ctx.db
         .query('campaignVehicles')
@@ -215,7 +215,7 @@ async function setup(cargoItems = 36) {
         .unique()
       const grant: VehicleCleanupGrant = {
         campaignId: campaign.id,
-        campaignVersion: currentCampaign!.version,
+        campaignVersion: currentRevision!.version,
         vehicleId: vehicle.id,
         vehicleVersion: currentVehicle!.version,
         sourceInventoryVersion: (await ctx.db

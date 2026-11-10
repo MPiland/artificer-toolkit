@@ -16,6 +16,7 @@ import { resolveListingSuspension } from '../social/profileInvalidation'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
 import { readSettings, resolvePlaySettingsSources } from './playSettings'
 import { validateCampaignUpdateDependencies } from './updateDependencies'
+import { advanceCampaignRevision, requireCampaignVersion } from './revisions'
 
 export const update = mutation({
   args: () => zodToConvexFields(updateCampaignInputSchema.shape),
@@ -26,8 +27,7 @@ export const update = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('You cannot perform this Campaign action.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    if (campaign.version !== expectedVersion)
-      throw new Error('Campaign changed before this action completed.')
+    const revision = await requireCampaignVersion(ctx, campaign.id, expectedVersion)
     let listing = await ctx.db
       .query('socialListings')
       .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
@@ -51,21 +51,17 @@ export const update = mutation({
         )
     }
     const { _id, _creationTime, ...stored } = campaign
-    const now = new Date(
-      Math.max(
-        Date.now(),
-        Date.parse(campaign.updatedAt) + 1,
-        ...(listing ? [Date.parse(listing.updatedAt) + 1] : [])
-      )
-    ).toISOString()
+    const { updatedAt: now } = await advanceCampaignRevision(
+      ctx,
+      revision,
+      listing ? Math.max(Date.now(), Date.parse(listing.updatedAt) + 1) : undefined
+    )
     const next = campaignStoredRecordSchema.parse({
       ...stored,
       ...changes,
       additionalRulesCatalogueIds: [
         ...(changes.additionalRulesCatalogueIds ?? campaign.additionalRulesCatalogueIds)
-      ].sort(),
-      version: campaign.version + 1,
-      updatedAt: now
+      ].sort()
     })
     const proposed = { ...campaign, ...next }
     const catalogueChanged =

@@ -5,6 +5,7 @@ import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { removeFixtureRunState } from './developmentRuns'
+import { readCampaignRevision } from '../campaigns/revisions'
 
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 
@@ -77,6 +78,7 @@ export const removeFixtureCampaign = internalMutation({
     if (!campaign) return null
     if (campaign.ownerUserId !== ownerUserId || campaign.name !== FIXTURE_CAMPAIGN_NAME)
       throw new Error('Fixture Campaign ownership mismatch.')
+    const revision = await readCampaignRevision(ctx, campaign.id)
 
     const sceneReferences = await Promise.all([
       ctx.db
@@ -197,7 +199,7 @@ export const removeFixtureCampaign = internalMutation({
           },
           receipt: {
             eventId: departureEvent.id,
-            campaignVersion: campaign.version,
+            campaignVersion: revision.version,
             removedShares: [],
             affectedCharacters: [],
             evacuatedVehicles: []
@@ -388,6 +390,7 @@ export const removeFixtureCampaign = internalMutation({
     if (route) await ctx.db.delete(route._id)
     for (const announcement of announcements) await ctx.db.delete(announcement._id)
     await ctx.db.delete(campaign._id)
+    await ctx.db.delete(revision._id)
     await syncAccountUsage(ctx, 'activeHostedCampaigns', campaign.id)
     return null
   }

@@ -132,6 +132,7 @@ describe('native Campaign membership departure effects', () => {
     })
     const before = await base.t.run(async (ctx) => ({
       campaign: (await ctx.db.query('campaigns').collect())[0],
+      revision: (await ctx.db.query('campaignRevisions').collect())[0],
       character: await readCharacterRow(ctx, base.character.id),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
@@ -142,7 +143,7 @@ describe('native Campaign membership departure effects', () => {
     const request = {
       campaignId: base.campaign.id,
       userId: base.departingUserId,
-      expectedCampaignVersion: before.campaign!.version,
+      expectedCampaignVersion: before.revision!.version,
       expectedMembershipAccessStartedAt: base.campaign.createdAt,
       commandId: crypto.randomUUID()
     }
@@ -151,6 +152,7 @@ describe('native Campaign membership departure effects', () => {
     const after = await base.t.run(async (ctx) => ({
       memberships: await ctx.db.query('campaignMemberships').collect(),
       campaign: (await ctx.db.query('campaigns').collect())[0],
+      revision: (await ctx.db.query('campaignRevisions').collect())[0],
       character: await readCharacterRow(ctx, base.character.id),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
@@ -158,7 +160,7 @@ describe('native Campaign membership departure effects', () => {
       shares: await ctx.db.query('campaignContentShares').collect(),
       events: await ctx.db.query('campaignEvents').collect()
     }))
-    expect(after.campaign?.version).toBe(before.campaign!.version + 1)
+    expect(after.revision?.version).toBe(before.revision!.version + 1)
     expect(after.shares).toEqual([])
     expect(after.assignments).toEqual(before.assignments)
     expect(after.overlays).toEqual(before.overlays)
@@ -192,6 +194,7 @@ describe('native Campaign membership departure effects', () => {
       await base.t.run(async (ctx) => ({
         memberships: await ctx.db.query('campaignMemberships').collect(),
         campaigns: await ctx.db.query('campaigns').collect(),
+        revisions: await ctx.db.query('campaignRevisions').collect(),
         characters: await Promise.all(
           (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
         ),
@@ -204,6 +207,7 @@ describe('native Campaign membership departure effects', () => {
     ).toEqual({
       memberships: after.memberships,
       campaigns: [after.campaign],
+      revisions: [after.revision],
       characters: [after.character],
       assignments: after.assignments,
       overlays: after.overlays,
@@ -310,26 +314,26 @@ describe('native Campaign membership departure effects', () => {
         })
       )
     })
-    const currentCampaign = await base.t.run((ctx) =>
+    const currentRevision = await base.t.run((ctx) =>
       ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
     )
-    if (!currentCampaign) throw new Error('Missing Campaign.')
+    if (!currentRevision) throw new Error('Missing Campaign revision.')
     const request = {
       campaignId: base.campaign.id,
       userId: base.owner.userId,
-      expectedCampaignVersion: currentCampaign.version,
+      expectedCampaignVersion: currentRevision.version,
       expectedMembershipAccessStartedAt: base.campaign.createdAt,
       commandId: crypto.randomUUID()
     }
     expect(await base.other.caller.mutation(removeMember, request)).toEqual({ ok: true })
     await runDueScheduledWork(base.t)
     const state = await base.t.run(async (ctx) => ({
-      campaign: await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+      revision: await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique(),
       vehicle: await ctx.db
         .query('campaignVehicles')
@@ -342,7 +346,7 @@ describe('native Campaign membership departure effects', () => {
       currencies: await ctx.db.query('campaignPartyCurrencies').collect(),
       events: await ctx.db.query('campaignEvents').collect()
     }))
-    expect(state.campaign?.version).toBe(currentCampaign.version + 1)
+    expect(state.revision?.version).toBe(currentRevision.version + 1)
     expect(state.vehicle).toBeNull()
     expect(state.inventory).toEqual([expect.objectContaining({ version: 5 })])
     expect(state.inventory.every((inventory) => !('vehicleId' in inventory))).toBe(true)

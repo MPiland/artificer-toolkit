@@ -7,6 +7,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { readOwnedCurrentPublication } from './contentAccess'
+import { readCampaignRevision } from './revisions'
 
 /** Removes only the bounded P12 driver state before the existing Campaign fixture cleanup. */
 export const removeFixtureState = internalMutation({
@@ -155,7 +156,7 @@ export const removeFixtureState = internalMutation({
         evacuation.commandId !== undefined ||
         !evacuation.inputFingerprint ||
         receipt.eventId !== removal.id ||
-        receipt.campaignVersion !== campaign.version ||
+        receipt.campaignVersion !== (await readCampaignRevision(ctx, campaign.id)).version ||
         receipt.removedShares.length !== 1 ||
         !share ||
         share.subjectKind !== 'VEHICLE' ||

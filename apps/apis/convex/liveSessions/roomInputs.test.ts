@@ -1462,9 +1462,9 @@ describe('live room inputs (ADR 0035 S2)', () => {
     async function departed() {
       const base = await setup()
       const { version, accessStartedAt } = await base.t.run(async (ctx) => {
-        const campaign = await ctx.db
-          .query('campaigns')
-          .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+        const revision = await ctx.db
+          .query('campaignRevisions')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
           .unique()
         const membership = await ctx.db
           .query('campaignMemberships')
@@ -1472,8 +1472,8 @@ describe('live room inputs (ADR 0035 S2)', () => {
             q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
           )
           .unique()
-        if (!campaign || !membership) throw new Error('Fixture Campaign is unavailable.')
-        return { version: campaign.version, accessStartedAt: membership.accessStartedAt }
+        if (!revision || !membership) throw new Error('Fixture Campaign is unavailable.')
+        return { version: revision.version, accessStartedAt: membership.accessStartedAt }
       })
       await base.player.caller.mutation(leave, {
         campaignId: base.campaign.id,

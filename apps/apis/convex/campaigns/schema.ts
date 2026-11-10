@@ -9,6 +9,7 @@ import {
   campaignStoredAssignmentSchema,
   campaignStoredMembershipSchema,
   campaignStoredRecordSchema,
+  campaignStoredRevisionSchema,
   campaignStoredOwnershipTransferSchema,
   campaignStoredInviteSchema
 } from '@artificer-toolkit/schema/projections/campaignPersistence'
@@ -310,6 +311,10 @@ export const campaignTables = {
   campaigns: defineTable(zodToConvexFields(campaignStoredRecordSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_ownerUserId_status', ['ownerUserId', 'status']),
+  campaignRevisions: defineTable(zodToConvexFields(campaignStoredRevisionSchema.shape)).index(
+    'by_campaignId',
+    ['campaignId']
+  ),
   campaignMemberships: defineTable(zodToConvexFields(campaignStoredMembershipSchema.shape))
     .index('by_campaignId_userId', ['campaignId', 'userId'])
     .index('by_campaignId_status', ['campaignId', 'status'])

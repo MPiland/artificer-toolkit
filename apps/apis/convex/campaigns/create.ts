@@ -16,6 +16,7 @@ import { syncAccountUsage } from '../lib/accountUsage'
 import { ensureAuthoredRouteId } from '../content/routeIds'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
+import { insertCampaignRevision } from './revisions'
 
 export async function createCampaignForOwner(
   ctx: MutationCtx,
@@ -66,11 +67,10 @@ export async function createCampaignForOwner(
       ),
       attunementSlotOverride,
       status: 'ACTIVE',
-      version: 0,
-      createdAt: now,
-      updatedAt: now
+      createdAt: now
     })
   )
+  await insertCampaignRevision(ctx, id, now)
   await ctx.db.insert('campaignMemberships', {
     campaignId: id,
     userId,

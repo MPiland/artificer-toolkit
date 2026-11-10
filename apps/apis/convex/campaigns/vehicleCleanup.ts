@@ -213,10 +213,10 @@ export async function beginVehicleCleanup(
       invalid('Cleanup event was reused with different input.')
     return acknowledgement(found.job)
   }
-  const [campaign, vehicle, inventory] = await Promise.all([
+  const [campaignRevision, vehicle, inventory] = await Promise.all([
     ctx.db
-      .query('campaigns')
-      .withIndex('by_publicId', (q) => q.eq('id', grant.campaignId))
+      .query('campaignRevisions')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', grant.campaignId))
       .unique(),
     ctx.db
       .query('campaignVehicles')
@@ -231,7 +231,7 @@ export async function beginVehicleCleanup(
       )
       .unique()
   ])
-  if (!campaign || !vehicle) invalid('Cleanup owner is unavailable.')
+  if (!campaignRevision || !vehicle) invalid('Cleanup owner is unavailable.')
   const metadata = parsed(campaignStoredVehicleSchema, stored(vehicle))
   if (metadata.cleanupJobId) invalid('Vehicle already has a cleanup job.')
   if (inventory) parsed(campaignStoredPartyInventorySchema, stored(inventory))
@@ -259,7 +259,7 @@ export async function beginVehicleCleanup(
     if (cargo.some(Boolean)) invalid('Vehicle inventory owner is unavailable.')
   }
   if (
-    campaign.version !== grant.campaignVersion ||
+    campaignRevision.version !== grant.campaignVersion ||
     metadata.version !== grant.vehicleVersion ||
     (inventory?.version ?? 0) !== grant.sourceInventoryVersion ||
     metadata.vehicleDefinitionId !== grant.vehicleDefinitionId ||

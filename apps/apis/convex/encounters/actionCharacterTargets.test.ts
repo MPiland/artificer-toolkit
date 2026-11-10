@@ -488,6 +488,10 @@ describe('native Creature actions against Character targets', () => {
       campaign: await ctx.db
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', base.run.campaignId))
+        .unique(),
+      revision: await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.run.campaignId))
         .unique()
     }))
     // Fake timers keep the scheduler from running the job's steps behind the test.
@@ -547,20 +551,31 @@ describe('native Creature actions against Character targets', () => {
           .unique()
       )
     ).resolves.toEqual(preservedOwner.profile)
-    const afterCampaign = await base.t.run((ctx) =>
-      ctx.db
+    const retained = await base.t.run(async (ctx) => ({
+      campaign: await ctx.db
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', base.run.campaignId))
+        .unique(),
+      revision: await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.run.campaignId))
         .unique()
+    }))
+    if (
+      !preservedOwner.campaign ||
+      !preservedOwner.revision ||
+      !retained.campaign ||
+      !retained.revision
     )
-    if (!preservedOwner.campaign || !afterCampaign) throw new Error('Missing retained Campaign.')
-    expect(afterCampaign).toEqual({
-      ...preservedOwner.campaign,
-      version: preservedOwner.campaign.version + 1,
-      updatedAt: afterCampaign.updatedAt
+      throw new Error('Missing retained Campaign.')
+    expect(retained.campaign).toEqual(preservedOwner.campaign)
+    expect(retained.revision).toEqual({
+      ...preservedOwner.revision,
+      version: preservedOwner.revision.version + 1,
+      updatedAt: retained.revision.updatedAt
     })
-    expect(Date.parse(afterCampaign.updatedAt)).toBeGreaterThanOrEqual(
-      Date.parse(preservedOwner.campaign.updatedAt)
+    expect(Date.parse(retained.revision.updatedAt)).toBeGreaterThanOrEqual(
+      Date.parse(preservedOwner.revision.updatedAt)
     )
   }, 30000)
 

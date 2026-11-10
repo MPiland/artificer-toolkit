@@ -85,20 +85,25 @@ export const step = internalMutation({
   handler: async (ctx, input) => {
     const job = await ctx.db.get(input.jobId)
     if (!job || job.status !== 'DELETING' || job.revision !== input.revision) return null
-    const [capturedRoot, currentRoot] = await Promise.all([
+    const [capturedRoot, currentRoot, revision] = await Promise.all([
       ctx.db.get(job.campaignRootId),
       ctx.db
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', job.campaignId))
+        .unique(),
+      ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', job.campaignId))
         .unique()
     ])
     if (job.stage !== undefined && job.stage !== 'PURGE') {
       if (
         !capturedRoot ||
+        !revision ||
         capturedRoot._id !== currentRoot?._id ||
         capturedRoot.id !== job.campaignId ||
         capturedRoot.ownerUserId !== job.ownerUserId ||
-        capturedRoot.version !== job.expectedVersion
+        revision.version !== job.expectedVersion
       )
         throw new Error('Campaign deletion root changed.')
       let stage: NonNullable<Doc<'campaignDeletionJobs'>['stage']> = job.stage
@@ -154,6 +159,7 @@ export const step = internalMutation({
             )
               throw new Error('Stored Campaign route mismatch.')
             await ctx.db.delete(capturedRoot._id)
+            await ctx.db.delete(revision._id)
             await ctx.db.delete(route._id)
             await scheduleSourceCopyCleanup(ctx, job.campaignId)
             await syncAccountUsage(ctx, 'activeHostedCampaigns', job.campaignId)

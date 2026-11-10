@@ -795,7 +795,16 @@ and wire formats.
 
 ### Campaign records
 
-`campaigns/create` writes the root, ACTIVE OWNER membership, default play settings and route in one mutation,
+The root holds identity, settings, owner, System and status. Its hot fields live in `campaignRevisions`, one row
+per Campaign (unique by `campaignId`): `version` (the optimistic-concurrency token every Campaign command
+checks), `updatedAt` and `notebookRevision` (a UUID each notebook section write replaces; null until the first).
+Every Campaign subscription reads the root through Campaign authority, so a departure, unshare or other version
+bump and every notebook write patch only the revision row, and only the queries that return those fields rerun
+(D216). A Campaign never exists without its revision row: `campaigns/create` (which copy also uses) inserts both,
+and deletion custody deletes it in the transaction that deletes the root.
+
+`campaigns/create` writes the root, revision row, ACTIVE OWNER membership, default play settings and route in one
+mutation,
 reading the indexed active-owned count against the entitlement (archived Campaigns do not consume host
 capacity). `campaigns/archive:archive` checks OWNER authority and the expected version, closes the listing,
 expires SUBMITTED applications and PENDING invitations and cancels their notifications in the same transaction;
@@ -805,7 +814,7 @@ evaluates assigned ACTIVE Sheets for attunement changes dynamically, and updates
 `campaigns/playSettings:save` validates the initiative policies and optional-combat selections against the
 Campaign's enabled same-System catalogues and advances only the settings document. `campaigns/copy:copy` starts a
 `campaignCopyJobs` job that stages at most eight notebook rows per transaction against a captured
-`campaigns.notebookRevision`, then publishes the destination atomically (ADR 0015); source changes abort the
+`campaignRevisions.notebookRevision`, then publishes the destination atomically (ADR 0015); source changes abort the
 copy and failure, cancellation or deadline cleans only validated unpublished staging.
 
 ### Campaign read gates for players — current (D87)

@@ -11,6 +11,7 @@ import { type MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
+import { requireCampaignVersion } from './revisions'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeCampaignSharesAndReconcile } from './contentShareRemoval'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
@@ -82,8 +83,7 @@ async function depart(
     throw new Error('An active player membership is required; the Campaign owner cannot leave.')
   if (Date.parse(departing.accessStartedAt) !== Date.parse(input.expectedMembershipAccessStartedAt))
     throw new Error('Campaign membership changed before this action completed.')
-  if (campaign.version !== input.expectedCampaignVersion)
-    throw new Error('Campaign changed before this action completed.')
+  await requireCampaignVersion(ctx, campaign.id, input.expectedCampaignVersion)
 
   const assignment = await ctx.db
     .query('campaignCharacterAssignments')

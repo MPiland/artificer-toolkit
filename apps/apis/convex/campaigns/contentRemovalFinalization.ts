@@ -12,6 +12,7 @@ import { readVehicleCleanupLock } from './vehicleCleanupDocuments'
 import { campaignStoredVehicleSchema } from '@artificer-toolkit/schema/projections/campaignVehicleCleanupPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readCampaignInventory } from './partyInventoryDocuments'
+import { advanceCampaignRevision, readCampaignRevision } from './revisions'
 
 /** Writes the common Campaign consequences after a producer has removed source visibility. */
 export async function finalizeCampaignContentRemoval(input: {
@@ -49,7 +50,8 @@ export async function finalizeCampaignContentRemoval(input: {
     throw new Error('Campaign content-removal event identity is required.')
   const eventId = crypto.randomUUID()
   const occurredAt = new Date().toISOString()
-  const campaignVersion = campaign.version + 1
+  const revision = await readCampaignRevision(ctx, campaign.id)
+  const campaignVersion = revision.version + 1
   const evacuatedVehicles: CampaignContentRemovalReceiptDto['evacuatedVehicles'] = []
   const pendingVehicleCleanupIds: string[] = []
   for (const vehicle of vehicles.sort((left, right) => left.id.localeCompare(right.id))) {
@@ -65,7 +67,7 @@ export async function finalizeCampaignContentRemoval(input: {
       const inventory = await readCampaignInventory(ctx, campaign.id, vehicle.id)
       const acknowledgement = await beginVehicleCleanup(ctx, {
         campaignId: campaign.id,
-        campaignVersion: campaign.version,
+        campaignVersion: revision.version,
         vehicleId: vehicle.id,
         vehicleVersion: metadata.version,
         sourceInventoryVersion: inventory?.version ?? 0,
@@ -161,10 +163,7 @@ export async function finalizeCampaignContentRemoval(input: {
       ? { pendingCharacterReconcileIds: [...pendingCharacterReconcileIds].sort() }
       : {})
   })
-  await ctx.db.patch(campaign._id, {
-    version: campaignVersion,
-    updatedAt: new Date(Math.max(Date.now(), Date.parse(campaign.updatedAt) + 1)).toISOString()
-  })
+  await advanceCampaignRevision(ctx, revision)
   if (removedShares.length > 0 || memberDeparture) {
     await ctx.db.insert(
       'campaignEvents',

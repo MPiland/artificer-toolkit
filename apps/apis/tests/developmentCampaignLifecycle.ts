@@ -173,6 +173,7 @@ export async function verifyCampaignLifecycle(input: {
     assert.equal(one(rows, 'campaignMemberships').role, 'OWNER')
     assert.equal(one(rows, 'campaignMemberships').status, 'ACTIVE')
     assert.equal(one(rows, 'campaignPlaySettings').campaignId, created.id)
+    assert.equal(one(rows, 'campaignRevisions').version, 0)
     assert.equal(one(rows, 'authoredRouteIds').publicId, created.publicId)
     assert.equal(one(rows, 'accountUsageEntries').ownerUserId, ownerUserId)
     stage('create-root-membership-defaults-route-usage', { created, state })
@@ -254,10 +255,11 @@ export async function verifyCampaignLifecycle(input: {
       assert.equal(typeof map.assetId, 'string')
       detachedMapIds.add(map.assetId as string)
     }
-    assert.equal(typeof root.version, 'number')
+    const revision = one(campaignRowsBefore, 'campaignRevisions')
+    assert.equal(typeof revision.version, 'number')
     const deletion: DeleteCampaignInput = {
       campaignId,
-      expectedVersion: root.version as number,
+      expectedVersion: revision.version as number,
       confirmation: 'DELETE'
     }
     if (proveRollback) {
@@ -424,9 +426,9 @@ export async function verifyCampaignLifecycle(input: {
         )
         assert.ok(times[0]! >= fenceTimeMs)
       }
-      assert.equal(typeof root.updatedAt, 'string')
+      assert.equal(typeof revision.updatedAt, 'string')
       assert.ok(
-        fenceTimeMs >= Date.parse(root.updatedAt as string) + 1,
+        fenceTimeMs >= Date.parse(revision.updatedAt as string) + 1,
         'The deletion fence must advance the Campaign timestamp.'
       )
       characterReconciliation = reconcileCampaignDeletionPersonalExpected({
@@ -542,14 +544,14 @@ export async function verifyCampaignLifecycle(input: {
       id: copied.id,
       publicId: copied.publicId,
       status: 'ACTIVE',
-      version: 0,
-      createdAt: targetRoot.createdAt,
-      updatedAt: targetRoot.updatedAt
+      createdAt: targetRoot.createdAt
     }
-    // Source-only invalidation markers are independent of the fresh destination identity.
-    delete expectedRoot.notebookRevision
     assert.deepEqual(targetRoot, expectedRoot, 'Copy retains every raw metadata field.')
-    assert.equal(targetRoot.createdAt, targetRoot.updatedAt)
+    // Source-only invalidation markers are independent of the fresh destination identity.
+    const targetRevision = one(targetRows, 'campaignRevisions')
+    assert.equal(targetRevision.campaignId, copied.id)
+    assert.equal(targetRevision.version, 0)
+    assert.equal(targetRoot.createdAt, targetRevision.updatedAt)
     assert.equal(one(targetRows, 'campaignMemberships').role, 'OWNER')
     const selectedCategories = new Set<string>(notebookCategories)
     const originalNotes = sourceRows
@@ -587,6 +589,7 @@ export async function verifyCampaignLifecycle(input: {
       'campaigns',
       'campaignMemberships',
       'campaignPlaySettings',
+      'campaignRevisions',
       'campaignNotebookSections',
       'authoredRouteIds',
       'accountUsageEntries',
@@ -1218,9 +1221,10 @@ export async function verifyCampaignLifecycle(input: {
     const archiveRows = tables(beforeArchive.campaignStateJson)
     const archivePersonal = tables(beforeArchive.personalStateJson)
     const rootBefore = one(archiveRows, 'campaigns')
+    const revisionBefore = one(archiveRows, 'campaignRevisions')
     const current = await owner.query(api.campaigns.queries.get, { id: campaign.id })
     assert.equal(rootBefore.status, 'ACTIVE')
-    assert.equal(rootBefore.version, current.version)
+    assert.equal(revisionBefore.version, current.version)
     campaign = await owner.mutation(api.campaigns.archive.archive, {
       campaignId: current.id,
       expectedVersion: current.version
@@ -1234,16 +1238,12 @@ export async function verifyCampaignLifecycle(input: {
     assert.equal(archivedPlayer.capabilities.edit, false)
     const afterArchive = await inspect(campaign.id)
     const afterRows = tables(afterArchive.campaignStateJson)
-    const archivedRoot = one(afterRows, 'campaigns')
-    assert.equal(typeof archivedRoot.updatedAt, 'string')
-    const occurredAt = archivedRoot.updatedAt
-    archiveRows.campaigns = [
-      {
-        ...rootBefore,
-        status: 'ARCHIVED',
-        version: Number(rootBefore.version) + 1,
-        updatedAt: occurredAt
-      }
+    const archivedRevision = one(afterRows, 'campaignRevisions')
+    assert.equal(typeof archivedRevision.updatedAt, 'string')
+    const occurredAt = archivedRevision.updatedAt
+    archiveRows.campaigns = [{ ...rootBefore, status: 'ARCHIVED' }]
+    archiveRows.campaignRevisions = [
+      { ...revisionBefore, version: Number(revisionBefore.version) + 1, updatedAt: occurredAt }
     ]
     assert.equal(archiveRows.accountUsageEntries!.length, 1)
     assert.equal(archiveRows.accountUsageEntries![0]!.resource, 'activeHostedCampaigns')

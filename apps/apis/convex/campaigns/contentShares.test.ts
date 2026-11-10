@@ -198,9 +198,9 @@ describe('native Campaign content sharing', () => {
       owner.caller.mutation(unshare, { ...request, commandId: crypto.randomUUID() })
     ).rejects.toThrow('Campaign changed')
     const state = await t.run(async (ctx) => ({
-      campaign: await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+      revision: await ctx.db
+        .query('campaignRevisions')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
         .unique(),
       shares: await ctx.db.query('campaignContentShares').collect(),
       visionRevision: await ctx.db
@@ -214,7 +214,7 @@ describe('native Campaign content sharing', () => {
         )
         .collect()
     }))
-    expect(state.campaign?.version).toBe(campaign.version + 1)
+    expect(state.revision?.version).toBe(campaign.version + 1)
     expect(state.shares).toEqual([])
     expect(state.visionRevision?.revision).not.toBe(sharedRevision?.revision)
     expect(state.receiptEvents).toHaveLength(1)

@@ -61,6 +61,7 @@ async function fixture() {
 async function stored(t: Awaited<ReturnType<typeof fixture>>['t']) {
   return t.run(async (ctx) => ({
     campaigns: await ctx.db.query('campaigns').collect(),
+    revisions: await ctx.db.query('campaignRevisions').collect(),
     memberships: await ctx.db.query('campaignMemberships').collect(),
     settings: await ctx.db.query('campaignPlaySettings').collect(),
     routes: await ctx.db.query('authoredRouteIds').collect(),
@@ -91,6 +92,14 @@ describe('native Campaign creation and member reads', () => {
     expect(campaign.id).toMatch(/^[0-9a-f-]{36}$/)
     const state = await stored(t)
     expect(state.campaigns).toHaveLength(1)
+    expect(state.revisions).toEqual([
+      expect.objectContaining({
+        campaignId: campaign.id,
+        version: 0,
+        updatedAt: campaign.createdAt,
+        notebookRevision: null
+      })
+    ])
     expect(state.memberships).toHaveLength(1)
     expect(state.settings).toHaveLength(1)
     expect(state.settings[0]).toMatchObject({
@@ -210,9 +219,8 @@ describe('native Campaign creation and member reads', () => {
     const after = await stored(t)
     expect(after).toEqual({
       ...before,
-      campaigns: [
-        { ...before.campaigns[0], status: 'ARCHIVED', version: 1, updatedAt: archived.updatedAt }
-      ]
+      campaigns: [{ ...before.campaigns[0], status: 'ARCHIVED' }],
+      revisions: [{ ...before.revisions[0], version: 1, updatedAt: archived.updatedAt }]
     })
     await expect(owner.caller.query(get, { id: campaign.publicId })).resolves.toEqual(archived)
     await expect(other.caller.query(get, { id: campaign.id })).resolves.toMatchObject({

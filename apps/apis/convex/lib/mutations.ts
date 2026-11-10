@@ -365,11 +365,12 @@ triggers.register('campaignNotebookSections', async (ctx, change) => {
     [change.oldDoc, change.newDoc].flatMap((document) => (document ? [document.campaignId] : []))
   )
   for (const campaignId of campaignIds) {
-    const campaign = await ctx.innerDb
-      .query('campaigns')
-      .withIndex('by_publicId', (q) => q.eq('id', campaignId))
+    // Campaign deletion purges sections after the root and its revision row are gone.
+    const revision = await ctx.innerDb
+      .query('campaignRevisions')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
       .unique()
-    if (campaign) await ctx.innerDb.patch(campaign._id, { notebookRevision: crypto.randomUUID() })
+    if (revision) await ctx.innerDb.patch(revision._id, { notebookRevision: crypto.randomUUID() })
   }
 })
 

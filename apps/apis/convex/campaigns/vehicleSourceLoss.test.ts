@@ -209,8 +209,8 @@ async function applyProducer(producer: Producer, fixture: Awaited<ReturnType<typ
     })
   const campaign = await fixture.base.t.run((ctx) =>
     ctx.db
-      .query('campaigns')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.campaign.id))
+      .query('campaignRevisions')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', fixture.campaign.id))
       .unique()
   )
   if (!campaign) throw new Error('Missing Campaign.')

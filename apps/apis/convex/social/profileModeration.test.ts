@@ -235,12 +235,21 @@ describe('native profile moderation', () => {
           .query('campaigns')
           .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
           .unique()
-        if (!campaign) throw new Error('Missing source Campaign.')
+        const revision = await ctx.db
+          .query('campaignRevisions')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+          .unique()
+        if (!campaign || !revision) throw new Error('Missing source Campaign.')
         const {
           _id: _campaignRowId,
           _creationTime: _campaignCreationTime,
           ...storedCampaign
         } = campaign
+        const {
+          _id: _revisionRowId,
+          _creationTime: _revisionCreationTime,
+          ...storedRevision
+        } = revision
         const {
           _id: _listingRowId,
           _creationTime: _listingCreationTime,
@@ -268,6 +277,7 @@ describe('native profile moderation', () => {
           applicationIds.push(applicationId)
           invitationIds.push(invitationId)
           await ctx.db.insert('campaigns', { ...storedCampaign, id: campaignId })
+          await ctx.db.insert('campaignRevisions', { ...storedRevision, campaignId })
           await ctx.db.insert('socialListings', {
             ...storedListing,
             id: listingId,

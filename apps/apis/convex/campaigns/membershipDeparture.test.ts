@@ -72,6 +72,7 @@ async function setup() {
     base.t.run(async (ctx) => ({
       memberships: await ctx.db.query('campaignMemberships').collect(),
       campaigns: await ctx.db.query('campaigns').collect(),
+      revisions: await ctx.db.query('campaignRevisions').collect(),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
       shares: await ctx.db.query('campaignContentShares').collect(),
@@ -207,7 +208,7 @@ describe('native Campaign membership departure', () => {
       accessStartedAt: base.campaign.createdAt,
       leftAt: expect.any(String)
     })
-    expect(after.campaigns[0]?.version).toBe(base.campaign.version + 1)
+    expect(after.revisions[0]?.version).toBe(base.campaign.version + 1)
     expect(after.conversations).toEqual(before.conversations)
     expect(after.conversationMembers).toEqual(before.conversationMembers)
     expect(after.entries).toEqual(before.entries)
@@ -424,7 +425,8 @@ describe('native Campaign membership departure', () => {
 
   // D216: one departure used to queue enough background work at once to push the Convex 1 s limit
   // on a 4-vCPU runner. The budget is what a departure with an assigned Character and a shared
-  // item queues now; a change that raises it needs the herd re-measured, not a larger number.
+  // item queues now; a change that raises it needs the herd re-measured, not a larger number. It
+  // writes no Campaign root either, so the root's subscribers do not rerun.
   it.each(['leave', 'removal'] as const)(
     'bounds the background work one %s queues and delays it until subscribers settle',
     async (kind) => {
@@ -434,7 +436,8 @@ describe('native Campaign membership departure', () => {
       const readWork = () =>
         base.t.run(async (ctx) => ({
           jobs: await ctx.db.system.query('_scheduled_functions').collect(),
-          pendingStores: await ctx.db.query('characterSheetPendingStores').collect()
+          pendingStores: await ctx.db.query('characterSheetPendingStores').collect(),
+          campaigns: await ctx.db.query('campaigns').collect()
         }))
       const before = await readWork()
       const knownJobs = new Set(before.jobs.map((job) => job._id))
@@ -461,6 +464,7 @@ describe('native Campaign membership departure', () => {
         'liveSessions/control:evictUser': 1
       })
       expect(after.pendingStores).toHaveLength(1)
+      expect(after.campaigns).toEqual(before.campaigns)
       const reconcile = queued.find((job) => job.name === 'campaigns/characterReconcileSteps:run')
       expect(reconcile!.scheduledTime - departedAt).toBeGreaterThanOrEqual(
         CAMPAIGN_BACKGROUND_SETTLE_MS
@@ -468,7 +472,7 @@ describe('native Campaign membership departure', () => {
       // The Character store follows the step, whose write to the Character replaces it.
       const store = queued.find((job) => job.name === 'characters/sheetSectionDerivation:store')
       expect(store!.scheduledTime).toBeGreaterThan(reconcile!.scheduledTime)
-      expect((await base.snapshot()).campaigns[0]?.version).toBe(base.campaign.version + 1)
+      expect((await base.snapshot()).revisions[0]?.version).toBe(base.campaign.version + 1)
     }
   )
 })

@@ -287,6 +287,10 @@ describe('native Social report capture', () => {
           .query('campaigns')
           .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
           .unique()
+        const revision = await ctx.db
+          .query('campaignRevisions')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+          .unique()
         const host = await ctx.db
           .query('socialProfiles')
           .withIndex('by_userId', (q) => q.eq('userId', base.owner.userId))
@@ -295,7 +299,8 @@ describe('native Social report capture', () => {
           .query('socialProfiles')
           .withIndex('by_userId', (q) => q.eq('userId', base.other.userId))
           .unique()
-        if (!listing || !campaign || !host || !player) throw new Error('Missing source.')
+        if (!listing || !campaign || !revision || !host || !player)
+          throw new Error('Missing source.')
         await ctx.db.patch(listing._id, {
           status: 'CLOSED',
           audience: 'PRIVATE',
@@ -306,15 +311,15 @@ describe('native Social report capture', () => {
         await ctx.db.insert('socialBlocks', {
           blockerProfileId: host.id,
           blockedProfileId: player.id,
-          createdAt: campaign.updatedAt
+          createdAt: revision.updatedAt
         })
         for (const row of await ctx.db.query('socialApplications').take(3)) {
           if (relationship === 'INVITATION') await ctx.db.delete(row._id)
-          else await ctx.db.patch(row._id, { status: 'WITHDRAWN', withdrawnAt: campaign.updatedAt })
+          else await ctx.db.patch(row._id, { status: 'WITHDRAWN', withdrawnAt: revision.updatedAt })
         }
         for (const row of await ctx.db.query('campaignInvites').take(3)) {
           if (relationship === 'APPLICATION') await ctx.db.delete(row._id)
-          else await ctx.db.patch(row._id, { status: 'DECLINED', respondedAt: campaign.updatedAt })
+          else await ctx.db.patch(row._id, { status: 'DECLINED', respondedAt: revision.updatedAt })
         }
       })
       await expect(

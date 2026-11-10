@@ -60,6 +60,7 @@ async function transfer(base: Awaited<ReturnType<typeof setup>>) {
 async function state(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => ({
     campaigns: await ctx.db.query('campaigns').collect(),
+    revisions: await ctx.db.query('campaignRevisions').collect(),
     memberships: await ctx.db.query('campaignMemberships').collect(),
     transfers: await ctx.db.query('campaignOwnershipTransfers').collect(),
     assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
@@ -106,6 +107,7 @@ describe('native Campaign ownership transfer', () => {
     expect(Date.parse(renewed!.expiresAt)).toBeGreaterThanOrEqual(renewalRequestedAt + sevenDays)
     expect(Date.parse(renewed!.expiresAt)).toBeLessThanOrEqual(renewalCompletedAt + sevenDays)
     expect(after.campaigns).toEqual(before.campaigns)
+    expect(after.revisions).toEqual(before.revisions)
     expect(after.memberships).toEqual(before.memberships)
     expect(after.assignments).toEqual(before.assignments)
     expect(after.overlays).toEqual(before.overlays)
@@ -201,10 +203,8 @@ describe('native Campaign ownership transfer', () => {
       ]
     ])
     expect(after.transfers).toEqual([])
-    expect(after.campaigns[0]).toMatchObject({
-      ownerUserId: base.other.userId,
-      version: base.campaign.version + 1
-    })
+    expect(after.campaigns[0]).toMatchObject({ ownerUserId: base.other.userId })
+    expect(after.revisions[0]).toMatchObject({ version: base.campaign.version + 1 })
     expect(after.memberships).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -241,9 +241,7 @@ describe('native Campaign ownership transfer', () => {
           (
             await ctx.db
               .query('sceneVisionRevisions')
-              .withIndex('by_scope_id', (q) =>
-                q.eq('scope', 'CAMPAIGN').eq('id', base.campaign.id)
-              )
+              .withIndex('by_scope_id', (q) => q.eq('scope', 'CAMPAIGN').eq('id', base.campaign.id))
               .unique()
           )?.revision
       )

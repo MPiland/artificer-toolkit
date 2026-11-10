@@ -11,6 +11,7 @@ import { internalMutation } from '../lib/mutations'
 import { removeAccountCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import { readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
 import { requireCampaignAuthority } from './authority'
+import { readCampaignRevision } from './revisions'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
 import { removeCampaignCharacterController } from './characterControllers'
@@ -106,7 +107,7 @@ export async function departAccountCampaignMembership(
         operation: 'ACCOUNT_DELETION',
         campaignId: freshCampaign.id,
         userId,
-        campaignVersion: freshCampaign.version,
+        campaignVersion: (await readCampaignRevision(ctx, freshCampaign.id)).version,
         membershipAccessStartedAt: membership.accessStartedAt
       })
     })

@@ -19,6 +19,7 @@ import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRej
 import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
 import { readCampaignAuthority } from '../campaigns/authority'
+import { readCampaignRevision } from '../campaigns/revisions'
 import { requireIdentity } from '../lib/identity'
 import { reconcileOpenRunsAtRelease } from './releaseReconcile'
 import { reconcileCharacterHolds, releaseCharacterHolds } from './characterHolds'
@@ -80,7 +81,7 @@ async function activationFingerprint(ctx: MutationCtx, campaign: Doc<'campaigns'
         .unique()
     : null
   return checksumCanonicalJson({
-    campaign: { id: campaign.id, version: campaign.version },
+    campaign: { id: campaign.id, version: (await readCampaignRevision(ctx, campaign.id)).version },
     presentation: presentation
       ? { sceneId: presentation.sceneId, version: presentation.version }
       : null,
