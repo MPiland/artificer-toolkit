@@ -13935,7 +13935,7 @@
               "proof": "descriptionOnlyEquipmentAndVehicles.test.ts (18 utility items, 3 heavy armors keep the authored SPEED modifier, 2 vehicle features); AUTHORED_SOURCE_FACTS_VERSION 5; vehiclePublication.test.ts checks every nested copied id is new. Green on 5ff60b3a1; merged m679 (7f721ff46)."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-4.T4b",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -13945,7 +13945,9 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Lance as a new generic option (D217): disadvantage on attacks against a target within 5 ft, and two-handed unless mounted. Crowbar and Portable Ram from core options as situational check bonuses (they fail the D198 rubric). Authoring-parity proofs; delete the three kinds."
+              "text": "Lance as a new generic option (D217): disadvantage on attacks against a target within 5 ft (close-range distance), and two-handed via the TWO_HANDED property and grip; the mounted exception is description-only (D156) until mounted combat exists (user ruling 2026-11-10). Crowbar and Portable Ram from core options as situational check bonuses (they fail the D198 rubric). Authoring-parity proofs; EQUIPMENT_LANCE, CROWBAR and PORTABLE_RAM kinds deleted.",
+              "mergedAt": "2026-11-10T19:16:02Z",
+              "proof": "m684 (3186fd423) from slice tip 1fe764a57: Tests 42868797863, Live 42868797869, Browser journeys 42868797851 green. Close-range distance, situational-check and two-handed grip parity tests from core options; the three closed-rule kinds deleted; mounted-Lance follow-up recorded in future-enhancements."
             },
             {
               "status": "DONE",
