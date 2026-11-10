@@ -9,7 +9,9 @@ import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 // tracked mutation loads this module, so it imports no fingerprint or derivation code.
 
 /** A Character whose Sheet store a write queues, or a Campaign whose party's stores it queues. */
-export type CharacterSheetStoreTarget = { characterId: string } | { campaignId: string }
+export type CharacterSheetStoreTarget =
+  | { characterId: string; afterCampaignSettle?: true }
+  | { campaignId: string }
 
 type SheetInputChange<TableName extends TableNames> = {
   oldDoc: Doc<TableName> | null
@@ -177,7 +179,9 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
           )
           .unique()
         return [
-          ...(assignment ? [{ characterId: assignment.characterId }] : []),
+          ...(assignment
+            ? [{ characterId: assignment.characterId, afterCampaignSettle: true as const }]
+            : []),
           ...((await memberSharesContent(db, campaignId, userId)) ? [{ campaignId }] : [])
         ]
       }

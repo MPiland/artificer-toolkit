@@ -17,6 +17,7 @@ import {
   type CharacterSheetStoreTarget
 } from '../characters/sheetFingerprintInputs'
 import {
+  CAMPAIGN_SHEET_STORE_DELAY_MS,
   readCharacterSheetPendingStore,
   scheduleCampaignCharacterSheetSections,
   scheduleCharacterSheetSections
@@ -328,7 +329,15 @@ async function queueCharacterSheetStore(ctx: TriggerContext, target: CharacterSh
     (await readCharacterSheetPendingStore(scheduling, characterId))?.scheduledId === queued
   )
     return
-  sheetStoreJobs.set(characterId, await scheduleCharacterSheetSections(scheduling, characterId))
+  sheetStoreJobs.set(
+    characterId,
+    await scheduleCharacterSheetSections(
+      scheduling,
+      characterId,
+      // Behind the departure reconcile step, whose write to this Character replaces this store.
+      target.afterCampaignSettle ? CAMPAIGN_SHEET_STORE_DELAY_MS : undefined
+    )
+  )
 }
 
 // Every Sheet fingerprint input queues the stores its write moves, in the same transaction, however

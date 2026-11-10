@@ -446,7 +446,10 @@ describe('native Campaign membership departure', () => {
           userId: base.owner.userId
         })
       const after = await readWork()
-      const queued = after.jobs.filter((job) => !knownJobs.has(job._id))
+      // A store the departure queued and the reconcile step then replaced is canceled: no work.
+      const queued = after.jobs.filter(
+        (job) => !knownJobs.has(job._id) && job.state.kind === 'pending'
+      )
       const countByName: Record<string, number> = {}
       for (const job of queued) countByName[job.name] = (countByName[job.name] ?? 0) + 1
       expect(countByName).toEqual({
@@ -462,6 +465,9 @@ describe('native Campaign membership departure', () => {
       expect(reconcile!.scheduledTime - departedAt).toBeGreaterThanOrEqual(
         CAMPAIGN_BACKGROUND_SETTLE_MS
       )
+      // The Character store follows the step, whose write to the Character replaces it.
+      const store = queued.find((job) => job.name === 'characters/sheetSectionDerivation:store')
+      expect(store!.scheduledTime).toBeGreaterThan(reconcile!.scheduledTime)
       expect((await base.snapshot()).campaigns[0]?.version).toBe(base.campaign.version + 1)
     }
   )

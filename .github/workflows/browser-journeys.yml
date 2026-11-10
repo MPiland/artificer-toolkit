@@ -103,9 +103,12 @@ jobs:
           # Image digest: the single source is CONVEX_BACKEND_IMAGE in live-backend.yml.
           image=$(sed -nE 's/^  CONVEX_BACKEND_IMAGE: (.+)$/\1/p' .github/workflows/live-backend.yml)
           [ -n "$image" ] || { echo 'CONVEX_BACKEND_IMAGE not found in live-backend.yml.' >&2; exit 1; }
+          cap=$(sed -nE 's/^  CONVEX_BACKEND_MAX_CONCURRENT: (.+)$/\1/p' .github/workflows/live-backend.yml)
+          [ -n "$cap" ] || { echo 'CONVEX_BACKEND_MAX_CONCURRENT not found in live-backend.yml.' >&2; exit 1; }
           docker run -d --name phase82-convex-local-linux --network host \
             --add-host host.docker.internal:127.0.0.1 \
             -e INSTANCE_NAME=phase82-local-linux \
+            -e APPLICATION_MAX_CONCURRENT_QUERIES="$cap" -e APPLICATION_MAX_CONCURRENT_MUTATIONS="$cap" \
             -e CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210 -e CONVEX_SITE_ORIGIN=http://127.0.0.1:3211 \
             "$image"
           for _ in $(seq 60); do

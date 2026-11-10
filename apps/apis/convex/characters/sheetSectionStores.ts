@@ -31,6 +31,14 @@ export const CHARACTER_SHEET_STORE_DELAY_MS = 300
  */
 export const CAMPAIGN_BACKGROUND_SETTLE_MS = 1_500
 
+/**
+ * How long a Campaign-scope Sheet store waits: the settle delay, then the ordinary debounce. A
+ * departure reconcile step runs at the settle point and its own write replaces the store of the
+ * Character it moves, so that Character derives once instead of before and after the step (D216).
+ */
+export const CAMPAIGN_SHEET_STORE_DELAY_MS =
+  CAMPAIGN_BACKGROUND_SETTLE_MS + CHARACTER_SHEET_STORE_DELAY_MS
+
 /** How long after a store is due its check runs, and how often it looks again until it ran. */
 export const CHARACTER_SHEET_STORE_CHECK_MS = 2_000
 
@@ -97,7 +105,8 @@ async function scheduleCharacterSheetStore(
  */
 export async function scheduleCharacterSheetSections(
   ctx: SheetStoreScheduling,
-  characterId: string
+  characterId: string,
+  delayMs = CHARACTER_SHEET_STORE_DELAY_MS
 ) {
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending) await cancelCharacterSheetPendingStore(ctx, pending)
@@ -108,7 +117,7 @@ export async function scheduleCharacterSheetSections(
     retried: false,
     ...(pending?.campaignId === undefined ? {} : { campaignId: pending.campaignId })
   }
-  const jobs = await scheduleCharacterSheetStore(ctx, store, CHARACTER_SHEET_STORE_DELAY_MS)
+  const jobs = await scheduleCharacterSheetStore(ctx, store, delayMs)
   if (pending)
     await ctx.db.replace('characterSheetPendingStores', pending._id, { ...store, ...jobs })
   else await ctx.db.insert('characterSheetPendingStores', { ...store, ...jobs })
@@ -159,7 +168,7 @@ export async function scheduleCampaignCharacterSheetSections(
       retried: false
     })
   }
-  await scheduleNextCampaignCharacterSheetStore(ctx, campaignId, CAMPAIGN_BACKGROUND_SETTLE_MS)
+  await scheduleNextCampaignCharacterSheetStore(ctx, campaignId, CAMPAIGN_SHEET_STORE_DELAY_MS)
 }
 
 /**
