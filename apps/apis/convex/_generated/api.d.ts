@@ -22197,6 +22197,10 @@ export declare const api: {
             };
             slice: "NOTES";
           }
+        | {
+            data: { label: string; publicId: string };
+            slice: "REPAIR_REQUIRED";
+          }
       >;
     };
   };

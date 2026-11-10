@@ -487,6 +487,19 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
       base.t.query(characterReconcileState, { characterId: base.character.id })
     const readSheet = () =>
       base.owner.caller.query(api.characters.sheet.get, { id: base.character.id })
+    const readRepairSlice = async () => ({
+      result: await base.owner.caller.query(api.characters.sheetSlices.get, {
+        id: base.character.id,
+        slice: 'COMMON'
+      }),
+      repair: {
+        slice: 'REPAIR_REQUIRED',
+        data: {
+          publicId: base.committed.publicId,
+          label: (await base.readState()).character?.label
+        }
+      }
+    })
     expect(await sheetState()).toBe('CURRENT')
 
     await base.owner.caller.mutation(api.campaigns.assignments.unassign, {
@@ -501,6 +514,10 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     expect((await base.readState()).character?.status).toBe('ACTIVE')
     expect(await sheetState()).toBe('MISSING')
     await expect(readSheet()).rejects.toThrow('Builder repair')
+    // SHEET-1.5: the slice read the route opens with answers the repair as a typed result, with
+    // the Character still ACTIVE and no draft row yet.
+    const queuedRepair = await readRepairSlice()
+    expect(queuedRepair.result).toEqual(queuedRepair.repair)
 
     // The step and every store it queues run with no other action, leaving the post-departure state.
     await base.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer())
@@ -508,6 +525,8 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     expect((await base.readState()).character?.status).toBe('DRAFT')
     expect(await sheetState()).toBe('NO_SHEET')
     await expect(readSheet()).rejects.toThrow('Builder repair')
+    const settledRepair = await readRepairSlice()
+    expect(settledRepair.result).toEqual(settledRepair.repair)
   })
 
   it('queues a failed step again, which then completes; the settled step queued again is a no-op', async () => {

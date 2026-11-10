@@ -56,7 +56,8 @@ export function CharacterSheetFeaturePanel({
     liveSheet && slice !== 'NOTES' ? projectCharacterSheetSlice(liveSheet, slice) : query.data
   if (query.error) return <Alert color='red'>{query.error.message}</Alert>
   if (!data && query.isPending) return <Loader aria-label='Loading character collection' />
-  if (!data) return <Alert color='yellow'>Character collection unavailable.</Alert>
+  if (!data || data.slice === 'REPAIR_REQUIRED')
+    return <Alert color='yellow'>Character collection unavailable.</Alert>
   // Notes stay on Convex, whose version the room's push does not track.
   const current = liveSheet !== undefined || data.data.meta.streamVersion === meta.streamVersion
   const props = { hideTitle: true, openPanel, pending: pending || !current, submitCommand }

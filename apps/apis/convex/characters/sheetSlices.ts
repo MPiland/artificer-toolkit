@@ -3,8 +3,10 @@ import { v } from 'convex/values'
 import {
   characterSheetNotesSliceDtoSchema,
   characterSheetSliceReadInputSchema,
+  type CharacterSheetSliceReadInput,
+  characterSheetSliceReadResultDtoSchema,
   characterSheetSliceResponseDtoSchema,
-  type CharacterSheetSliceResponseDto
+  type CharacterSheetSliceReadResultDto
 } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { readCharacterCollectionValues } from '@artificer-toolkit/schema/projections/characterOperationalState'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
@@ -79,12 +81,13 @@ export async function loadCharacterSheetNotes(
   })
 }
 
-export const get = query({
-  args: () => zodToConvexFields(characterSheetSliceReadInputSchema.shape),
-  returns: () => v.union(v.null(), zodToConvex(characterSheetSliceResponseDtoSchema)),
-  handler: async (ctx, args): Promise<CharacterSheetSliceResponseDto | null> => {
-    const { userId } = await requireIdentity(ctx)
-    const { id, campaignId, slice } = characterSheetSliceReadInputSchema.parse(args)
+async function readCharacterSheetSlice(
+  ctx: QueryCtx,
+  userId: string,
+  { id, campaignId, slice }: CharacterSheetSliceReadInput
+): Promise<CharacterSheetSliceReadResultDto | null> {
+  let party = false
+  try {
     if (slice === 'NOTES') {
       const notes = await loadCharacterSheetNotes(ctx, userId, id, campaignId)
       return notes ? { slice, data: notes } : null
@@ -94,6 +97,7 @@ export const get = query({
     const reader = campaignId
       ? await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
       : { loadAsUserId: userId, party: false }
+    party = reader.party
     const [stored] =
       (await readStoredCharacterSheetSections(ctx, {
         userId: reader.loadAsUserId,
@@ -115,5 +119,26 @@ export const get = query({
         : current.campaignContext
     )
     return characterSheetSliceResponseDtoSchema.parse(projectCharacterSheetSlice(projected, slice))
+  } catch (error) {
+    // Only the Character's owner is offered the Builder: any other reader keeps the refusal.
+    if (!(error instanceof CharacterRequiresBuilderRepairError) || party) throw error
+    const characterId = await resolveCharacterId(ctx, id)
+    const head = characterId ? await readCharacterHead(ctx, characterId) : null
+    const route = head ? await readVisibleAuthoredRouteId(ctx, { subjectId: head.id }) : null
+    if (!head || !route || head.userId !== userId) throw error
+    return { slice: 'REPAIR_REQUIRED', data: { publicId: route.publicId, label: head.label } }
+  }
+}
+
+/**
+ * Sheet slice read. A Character needing Builder repair, settled to a draft or with its reconcile
+ * step still queued, answers its owner with the typed `REPAIR_REQUIRED` result instead of an error.
+ */
+export const get = query({
+  args: () => zodToConvexFields(characterSheetSliceReadInputSchema.shape),
+  returns: () => v.union(v.null(), zodToConvex(characterSheetSliceReadResultDtoSchema)),
+  handler: async (ctx, args): Promise<CharacterSheetSliceReadResultDto | null> => {
+    const { userId } = await requireIdentity(ctx)
+    return readCharacterSheetSlice(ctx, userId, characterSheetSliceReadInputSchema.parse(args))
   }
 })

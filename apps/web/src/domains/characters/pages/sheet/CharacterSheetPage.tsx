@@ -1,7 +1,11 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { getCharacterDraft, getCharacterSheetSlice } from '#app/data/characters/queries'
+import {
+  getCharacterDraft,
+  getCharacterSheetRepairRequired,
+  getCharacterSheetSlice
+} from '#app/data/characters/queries'
 import { CharacterSheetDraftOnlyState } from '../../sheet/core/CharacterSheetDraftOnlyState'
 import { CharacterSheetView } from '../../sheet/core/CharacterSheetView'
 
@@ -28,7 +32,10 @@ export function CharacterSheetPage() {
 
 function CharacterSheetUnavailable({ characterPublicId }: { characterPublicId: string }) {
   const navigate = useNavigate()
+  const { data: repair } = useSuspenseQuery(getCharacterSheetRepairRequired(characterPublicId))
   const { data: draft } = useSuspenseQuery(getCharacterDraft(characterPublicId))
+  if (repair)
+    return <CharacterSheetDraftOnlyState characterPublicId={repair.publicId} label={repair.label} />
   if (draft)
     return <CharacterSheetDraftOnlyState characterPublicId={draft.publicId} label={draft.label} />
   return (

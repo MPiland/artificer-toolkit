@@ -12,7 +12,8 @@ import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/chara
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import type {
   CharacterSheetSlice,
-  CharacterSheetSliceResponseDto,
+  CharacterSheetRepairRequiredDto,
+  CharacterSheetSliceReadResultDto,
   CharacterSheetSliceDtoMap
 } from '@artificer-toolkit/schema/api/characterSheetSlices'
 
@@ -84,9 +85,21 @@ export function getCharacterSheetSlice<Slice extends CharacterSheetSlice>(
     ),
     gcTime: 0,
     select: (
-      response: CharacterSheetSliceResponseDto | null
+      response: CharacterSheetSliceReadResultDto | null
     ): CharacterSheetSliceDtoMap[Slice] | null =>
       response?.slice === slice ? (response.data as CharacterSheetSliceDtoMap[Slice]) : null
+  }
+}
+
+/** The repair answer of the Sheet read, shared with getCharacterSheetSlice through one cache entry. */
+export function getCharacterSheetRepairRequired(id: string) {
+  return {
+    ...convexQuery(convexApi.characters.sheetSlices.get, { id, slice: 'COMMON' }),
+    gcTime: 0,
+    select: (
+      response: CharacterSheetSliceReadResultDto | null
+    ): CharacterSheetRepairRequiredDto['data'] | null =>
+      response?.slice === 'REPAIR_REQUIRED' ? response.data : null
   }
 }
 
