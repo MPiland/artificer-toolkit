@@ -63,7 +63,8 @@ export function protectionReactionEffect(ids: {
       range: { id: ids.range, rangeKind: RANGE_KIND.SIGHT },
       targeting: {
         selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+        self: 'WARN'
       }
     },
     paths: [
