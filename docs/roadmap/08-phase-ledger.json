@@ -25515,19 +25515,33 @@
           ],
           "tasks": [
             {
-              "id": "QUALITY-8.T1a",
+              "id": "QUALITY-8.T1a1",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 8,
-                "size": 5,
+                "size": 3,
                 "after": ["QUALITY-7.T1"]
               },
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
-              "text": "REACTION system-trigger seam (replay raises the child once); Protection as an immediate child resuming ADJUST_ROLL from the child execution; reaction spent when chosen; undo and void of the parent cascade to the child, undo grouped by occurrence; the facts-only roll-mode shortcut is deleted."
+              "note": "Split 2026-11-11 from QUALITY-8.T1a at its fence trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
+              "text": "REACTION system-trigger seam and admission: the parent is persisted pending with the child command id before the child commits; the child is admitted by that record, and its commit re-pins the parent occurrence version; resume fences read the occurrence version; the root replay fence counts committed REACTION children. Persistence-level tests."
+            },
+            {
+              "id": "QUALITY-8.T1a2",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-8.T1a1"]
+              },
+              "note": "Split 2026-11-11 from QUALITY-8.T1a at its fence trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
+              "text": "Room flow: Protection as an immediate child; the parent resumes without a response and reads the roll mode from the child execution through the capability registry; reaction spent when chosen; undo and void of the parent cascade to the committed child; the facts-only roll-mode shortcut is deleted."
             },
             {
               "id": "QUALITY-8.T1b",
@@ -25538,7 +25552,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-8.T1a"]
+                "after": ["QUALITY-8.T1a2"]
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
               "text": "Persisted SUSPENDED occurrence state for a parent with one pending child; occurrence owner recorded at creation; a homebrew reaction whose outcome sits behind a save proves the four resume modes."
@@ -25764,7 +25778,7 @@
             "tc": 3,
             "rr": 5,
             "size": 13,
-            "after": ["QUALITY-8.T1a", "QUALITY-10.T1"]
+            "after": ["QUALITY-8.T1a2", "QUALITY-10.T1"]
           },
           "acs": [
             {
@@ -25785,7 +25799,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-8.T1a", "QUALITY-10.T1"]
+                "after": ["QUALITY-8.T1a2", "QUALITY-10.T1"]
               },
               "text": "One per-target driver for the three target shapes."
             },
