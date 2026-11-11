@@ -33,10 +33,13 @@ export async function readLiveEncounterActionAdmission(
   if (
     userId !== input.expectedUserId ||
     input.command.encounterId.toLowerCase() !== input.encounterId ||
-    input.command.expectedVersion !== input.expectedVersion ||
-    (input.response &&
-      (input.response.encounterId.toLowerCase() !== input.encounterId ||
-        input.response.expectedVersion !== input.expectedVersion))
+    // An answer carries the stored root, whose version each committed reaction child left behind
+    // (D219): the answer's own version is the scope's, and the response admission pins it to the
+    // pending occurrence.
+    (input.response
+      ? input.response.encounterId.toLowerCase() !== input.encounterId ||
+        input.response.expectedVersion !== input.expectedVersion
+      : input.command.expectedVersion !== input.expectedVersion)
   )
     throw new Error('Live Session Encounter command scope mismatch.')
   await ctx.ports.requireActiveLiveAuthority({

@@ -273,6 +273,25 @@ current version; the general expected-version check still applies. A later playe
 window, so a stale failed save never raises. A RULE root reverts with the action that raised it, as the
 defeat arm does; two rule roots raised from one action refuse the undo (adjust manually).
 
+Reaction arm (persistence seam current, QUALITY-8.T1a1, D219; the room flow that raises it is target,
+QUALITY-8.T1a2). A reaction its holder chose against a pending action is the holder's own action
+(`systemTrigger.trigger: REACTION`, built by `systemTriggerReactionCommand`): an `ACTOR` root whose id is
+`systemTriggerCommandId(parent, holder, actionId)`. Its parent is the pending action's root command, which is
+not committed, so the proof is the pending action's own record instead: `reactionChildren` in the
+`ENCOUNTER_ACTION` pending context lists the command id of each reaction chosen against it
+(`readReactionChildParent`, `reactionChildren.ts`). An open offer alone admits nothing. A fresh child runs on
+the Run version the pending occurrence is pinned to (`expectedEncounterVersion`), for a holder that still
+stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionRoot`)
+advances the Run one version and re-pins the pending occurrence to it in the same transaction
+(`repinReactionChildParent`), so the fences read as follows:
+
+- A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
+  `expectedVersion`; the live answer scope compares the answer's version, not the stored root's.
+- `readNativeActionPending` accepts a pin at most one version past the root for each recorded child.
+- A replay of the parent root expects its commit at the root's version plus its committed REACTION children
+  plus one. The children are counted from `encounterRunCommands` (`countCommittedReactionChildren`); no
+  counter is stored.
+
 ### Encounter record shapes (ADR 0035 Amendment 12)
 
 - **Character play state.** A Character is a `characters` row (structure, clocked by `updatedAt`) and a

@@ -87,6 +87,16 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        */
       usedReactions: z.optional(
         z.array(encounterUsedReactionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
+      /**
+       * The child actions of the reactions chosen against this action, in the order they were chosen
+       * (D219). Only a child recorded here is admitted while the action is pending, and each one that
+       * commits moves the action's occurrence one Run version past its root command.
+       */
+      reactionChildren: z.optional(
+        z
+          .array(z.strictObject({ commandId: ruleExecutionUuidSchema }))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       )
     })
     .check(

@@ -12,8 +12,8 @@ import { readEncounterActorDefeated } from './characterStates.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActor } from './documents.js'
 import { rejectDomain } from './domainRejections.js'
-import type { EncounterDocument } from './store.js'
-import type { EncounterReadTransaction } from './ports.js'
+import { readReactionChildParent } from './reactionChildren.js'
+import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 // Answers and rule-raised roots since the command that opened the window; more is not one chain.
 const RULE_TRIGGER_SCAN_LIMIT = 64
@@ -24,7 +24,7 @@ const RULE_TRIGGER_SCAN_LIMIT = 64
  * settle the decisions its damage owed, and raised roots run after them, so none opens a new window;
  * any other command does. Null when no such command is within the scan.
  */
-export async function ruleTriggerWindowStart(ctx: EncounterReadTransaction, encounterId: string) {
+export async function ruleTriggerWindowStart(ctx: EncounterReadContext, encounterId: string) {
   const recent = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_encounterId_version', (query) => query.eq('encounterId', encounterId))
@@ -80,10 +80,12 @@ export function ruleFailedSaveAction(
  * as the answers arrive in later commands. A Legendary Action root is the area option a turn end
  * delegated: its parent is that ADVANCE_TURN, and it runs while the Run still holds the delegation
  * for that holder, action and aim, whatever other rule roots ran since, for a holder that still
- * stands.
+ * stands. A reaction root is the action of a reaction chosen against a pending action (D219): its
+ * parent is not committed, so it is proved by that pending action's record of this root instead, and
+ * a fresh one runs on the Run version the pending action is pinned to, for a holder that still stands.
  */
 export async function requireSystemTriggerAdmission(
-  ctx: EncounterReadTransaction,
+  ctx: Parameters<typeof readEncounterActorDefeated>[0],
   input: {
     run: EncounterDocument<'encounterRuns'>
     state: EncounterRunState
@@ -95,6 +97,30 @@ export async function requireSystemTriggerAdmission(
   const parentCommandId = command.systemTrigger.parentCommandId.toLowerCase()
   const holderActorId = command.actorId.toLowerCase()
   const { trigger } = command.systemTrigger
+  if (trigger === 'REACTION') {
+    const pendingParent =
+      command.target.kind === 'ACTOR' &&
+      command.commandId.toLowerCase() ===
+        systemTriggerCommandId(parentCommandId, holderActorId, command.actionId)
+        ? await readReactionChildParent(ctx, {
+            campaignId: run.campaignId,
+            encounterId: run.id,
+            parentCommandId,
+            childCommandId: command.commandId.toLowerCase()
+          })
+        : null
+    if (!pendingParent)
+      rejectDomain('COMMAND_ID_REUSED', 'The reaction was not chosen against a pending action.')
+    if (!input.fresh) return
+    if (
+      pendingParent.expectedEncounterVersion !== state.version ||
+      command.expectedVersion !== state.version
+    )
+      rejectDomain('VERSION_STALE')
+    if (await readEncounterActorDefeated(ctx, await readRunActor(ctx, state, holderActorId)))
+      rejectDomain('ACTOR_DEFEATED')
+    return
+  }
   const readReceipt = () =>
     ctx.db
       .query('encounterRuleReceipts')
