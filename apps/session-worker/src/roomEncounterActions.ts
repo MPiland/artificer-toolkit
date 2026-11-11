@@ -17,7 +17,9 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { systemTriggerReactionCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { planNativeLiveEncounterAction } from './nativeEncounterRules.js'
@@ -58,7 +60,11 @@ export async function executeRoomEncounterAction(input: {
   inputs: RoomInputs
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
-  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
+  command:
+    | ResolveEncounterActionInputDto
+    | ResolveRuleOccurrenceInputDto
+    | RemoveAreaTargetInputDto
+    | LiveSessionEncounterActionResume
   runtime: RulesRuntimeService
   random(maximum: number): number
 }) {
@@ -213,24 +219,44 @@ export async function executeRoomEncounterAction(input: {
       { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
       callbacks
     )
-  return plan.kind === 'PENDING' ||
-    plan.kind === 'CAST_PENDING' ||
-    plan.kind === 'GATE_PENDING' ||
-    plan.kind === 'RETARGET_PENDING'
-    ? persistEncounterActionPending(
-        ctx,
-        {
-          ...buildNativeLiveEncounterActionPendingInput(scope, plan),
-          revisions
-        },
-        callbacks
-      )
-    : persistEncounterActionCommit(
-        ctx,
-        {
-          ...buildNativeLiveEncounterActionCommitInput(scope, plan),
-          revisions
-        },
-        callbacks
-      )
+  if (plan.kind === 'PLANNED')
+    return persistEncounterActionCommit(
+      ctx,
+      {
+        ...buildNativeLiveEncounterActionCommitInput(scope, plan),
+        revisions
+      },
+      callbacks
+    )
+  const pending = await persistEncounterActionPending(
+    ctx,
+    {
+      ...buildNativeLiveEncounterActionPendingInput(scope, plan),
+      revisions
+    },
+    callbacks
+  )
+  if (plan.kind !== 'CAST_PENDING' || !plan.reactionChild) return pending
+  // A chosen reaction runs as its own action, and the room then resumes the held action in the same turn (D219).
+  await executeRoomEncounterAction({
+    ...input,
+    command: systemTriggerReactionCommand({
+      encounterId: scope.encounterId,
+      expectedVersion: scope.expectedVersion,
+      parentCommandId: plan.command.commandId,
+      ...plan.reactionChild
+    })
+  })
+  const expectedVersion = scope.expectedVersion + 1
+  return executeRoomEncounterAction({
+    ...input,
+    scope: { ...scope, expectedVersion },
+    command: {
+      type: 'RESUME_ACTION',
+      encounterId: scope.encounterId,
+      expectedVersion,
+      occurrenceId: plan.occurrenceId,
+      expectedOccurrenceVersion: plan.occurrenceVersion
+    }
+  })
 }

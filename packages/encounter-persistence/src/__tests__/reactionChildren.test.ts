@@ -21,10 +21,14 @@ import { insertRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import { writePendingSnapshot } from '../pendingSnapshots.js'
 import {
+  awaitsReactionChild,
   countCommittedReactionChildren,
+  reactionChildrenKept,
   readReactionChildParent,
   repinReactionChildParent
 } from '../reactionChildren.js'
+import { readNativeEncounterActionResumeAdmission } from '../actionResumeAdmission.js'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { requireSystemTriggerAdmission } from '../systemTriggerAdmission.js'
 
 const ATTACKER_ID = testUuid(0x8a01)
@@ -83,7 +87,10 @@ const link = {
  * `reactionChildren`, the command ids of the reactions chosen against it.
  */
 async function pausedAttack(
-  input: { reactionChildren?: { commandId: string }[]; protectorDefeated?: boolean } = {}
+  input: {
+    reactionChildren?: { commandId: string; rollMode?: 'DISADVANTAGE' }[]
+    protectorDefeated?: boolean
+  } = {}
 ) {
   const memory = createMemoryEncounterStore()
   const ctx = {
@@ -363,6 +370,100 @@ describe('re-pinning the pending action to the Run its reaction child left (D219
     })
     await expect(readNativeActionPending(behind.ctx, behind.occurrence())).rejects.toThrow(
       'Stored Encounter action root mismatch.'
+    )
+  })
+})
+
+describe('the reaction children a pending action keeps from one context to the next (D219)', () => {
+  const first = { commandId: testUuid(0x8a10) }
+  const second = { commandId: testUuid(0x8a11) }
+  const resolved = (child: { commandId: string }, rollMode: string | null = 'DISADVANTAGE') => ({
+    ...child,
+    rollMode
+  })
+
+  it('waits on a child only while one is recorded without its resolved mode', () => {
+    expect(awaitsReactionChild({})).toBe(false)
+    expect(awaitsReactionChild({ reactionChildren: [first] })).toBe(true)
+    expect(awaitsReactionChild({ reactionChildren: [resolved(first, null)] })).toBe(false)
+    expect(awaitsReactionChild({ reactionChildren: [resolved(first), second] })).toBe(true)
+  })
+
+  it('adds at most one unresolved child after the recorded ones', () => {
+    expect(reactionChildrenKept({}, {})).toBe(true)
+    expect(reactionChildrenKept({}, { reactionChildren: [first] })).toBe(true)
+    expect(reactionChildrenKept({}, { reactionChildren: [first, second] })).toBe(false)
+    expect(reactionChildrenKept({}, { reactionChildren: [resolved(first)] })).toBe(false)
+  })
+
+  it('keeps every recorded child, in order and resolved, and never rewrites a resolved mode', () => {
+    const waiting = { reactionChildren: [first] }
+    expect(reactionChildrenKept(waiting, { reactionChildren: [resolved(first)] })).toBe(true)
+    expect(reactionChildrenKept(waiting, { reactionChildren: [resolved(first, null)] })).toBe(true)
+    expect(reactionChildrenKept(waiting, { reactionChildren: [resolved(first), second] })).toBe(
+      true
+    )
+    // Dropped, still unresolved, or replaced by another command.
+    expect(reactionChildrenKept(waiting, {})).toBe(false)
+    expect(reactionChildrenKept(waiting, waiting)).toBe(false)
+    expect(reactionChildrenKept(waiting, { reactionChildren: [resolved(second)] })).toBe(false)
+
+    const settled = { reactionChildren: [resolved(first), resolved(second, null)] }
+    expect(reactionChildrenKept(settled, settled)).toBe(true)
+    expect(
+      reactionChildrenKept(settled, {
+        reactionChildren: [resolved(first, 'ADVANTAGE'), resolved(second, null)]
+      })
+    ).toBe(false)
+    expect(
+      reactionChildrenKept(settled, {
+        reactionChildren: [resolved(second, null), resolved(first)]
+      })
+    ).toBe(false)
+  })
+})
+
+describe('admitting the room’s resume of a pending action (D219)', () => {
+  const resumeOf = async (
+    paused: Awaited<ReturnType<typeof pausedAttack>>,
+    overrides: Partial<LiveSessionEncounterActionResume> = {}
+  ) =>
+    readNativeEncounterActionResumeAdmission(
+      // The refusals under test are decided from the store alone, before any port is read.
+      paused.ctx as unknown as Parameters<typeof readNativeEncounterActionResumeAdmission>[0],
+      {
+        type: 'RESUME_ACTION',
+        encounterId: ENCOUNTER_ID,
+        expectedVersion: ROOT_VERSION,
+        occurrenceId: OCCURRENCE_ID,
+        expectedOccurrenceVersion: paused.occurrence().version,
+        ...overrides
+      },
+      paused.memory.documents('encounterRuns')[0]!,
+      USER_ID
+    )
+
+  it('refuses a resume of an action that records no reaction child: an open offer resumes nothing', async () => {
+    await expect(resumeOf(await pausedAttack())).rejects.toThrow('DECISION_NOT_PENDING')
+  })
+
+  it('refuses a second resume from a child the action already resumed from', async () => {
+    const paused = await pausedAttack({
+      reactionChildren: [{ commandId: reactionChild().commandId, rollMode: 'DISADVANTAGE' }]
+    })
+    await expect(resumeOf(paused)).rejects.toThrow('DECISION_NOT_PENDING')
+  })
+
+  it('refuses a resume of no pending action, or on a stale version', async () => {
+    const paused = await pausedAttack(recorded)
+    await expect(resumeOf(paused, { occurrenceId: testUuid(0x8a12) })).rejects.toThrow(
+      'DECISION_NOT_PENDING'
+    )
+    await expect(resumeOf(paused, { expectedOccurrenceVersion: 9 })).rejects.toThrow(
+      'VERSION_STALE'
+    )
+    await expect(resumeOf(paused, { expectedVersion: ROOT_VERSION + 1 })).rejects.toThrow(
+      'VERSION_STALE'
     )
   })
 })

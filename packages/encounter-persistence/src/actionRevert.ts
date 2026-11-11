@@ -21,7 +21,6 @@ import {
 import { interceptionChargesSpent } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { withCharacterTemporaryHitPoints } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
@@ -38,7 +37,6 @@ import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encoun
 import { revertDamageTypesTaken } from '@artificer-toolkit/rules-runtime/encounterDamageTypesSinceTurnStart'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
-import { revertEncounterSpellCastingTransition } from '@artificer-toolkit/rules-runtime/encounterSpellCasting'
 import {
   revertEncounterActorItemDraw,
   revertEncounterActorItemRelease
@@ -58,6 +56,11 @@ import {
   withHitPointsBefore,
   type ActionBatch
 } from './targetMechanicsInverse.js'
+import {
+  FEATURE_CHARGES_CHANGED,
+  returnSpentActionEconomy,
+  returnSpentFeatureCharge
+} from './spentAllowanceReturn.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
@@ -164,10 +167,10 @@ const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
   CHOSEN: 'lost Concentration because its holder ended it'
 }
 
-/** The command a rule-raised action was raised by, or null for an action a player took. */
-function storedSystemTriggerParentId(root: { commandJson: string }) {
+/** What raised a rule-raised action, or null for an action a player took. */
+function storedSystemTrigger(root: { commandJson: string }) {
   const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(root.commandJson))
-  return command.systemTrigger?.parentCommandId.toLowerCase() ?? null
+  return command.systemTrigger ?? null
 }
 
 /**
@@ -307,14 +310,42 @@ export async function revertLastEncounterAction(
     return revertCheckAction(ctx, { ...scope, root, checkReceipt: root.root.checkReceipt })
   }
   const { ruleOccurrenceId } = root.root
-  // A rule-raised action (a defeat trigger) goes back with the action that raised it, system first.
-  const parentCommandId = storedSystemTriggerParentId(root)
-  const groupRoots: Omit<RevertGroup, 'receipts'>[] = [
+  const rootTrigger = storedSystemTrigger(root)
+  // A reaction's action commits before the action it was chosen against (D219), so one that is the
+  // Run's last action answered an action the GM voided: it goes back with that action's other reactions.
+  const reactedCommandId =
+    rootTrigger?.trigger === 'REACTION' ? rootTrigger.parentCommandId.toLowerCase() : root.commandId
+  // Any other rule-raised action (a defeat trigger) goes back with the action that raised it, system first.
+  const parentCommandId =
+    rootTrigger && rootTrigger.trigger !== 'REACTION'
+      ? rootTrigger.parentCommandId.toLowerCase()
+      : null
+  const groupRoots: Pick<RevertGroup, 'root' | 'ruleOccurrenceId' | 'laterEntries'>[] = [
     { root, ruleOccurrenceId, laterEntries: recent.slice(0, rootIndex) }
   ]
+  // The reactions chosen against an action committed as its children before it did: each goes back
+  // with it, the latest first.
+  let answersFrom = rootIndex + 1
+  for (let index = answersFrom; index < recent.length; index += 1) {
+    const entry = recent[index]!
+    if (entry.commandType === 'RESOLVE_RULE_OCCURRENCE') continue
+    if (entry.commandType !== 'RESOLVE_ACTION' || entry.root.kind !== 'RULE_OCCURRENCE') break
+    const trigger = storedSystemTrigger(entry)
+    if (
+      trigger?.trigger !== 'REACTION' ||
+      trigger.parentCommandId.toLowerCase() !== reactedCommandId
+    )
+      break
+    groupRoots.push({
+      root: entry,
+      ruleOccurrenceId: entry.root.ruleOccurrenceId,
+      laterEntries: recent.slice(answersFrom, index)
+    })
+    answersFrom = index + 1
+  }
   if (parentCommandId) {
     const parentIndex = recent.findIndex(
-      (entry, index) => index > rootIndex && entry.commandType !== 'RESOLVE_RULE_OCCURRENCE'
+      (entry, index) => index >= answersFrom && entry.commandType !== 'RESOLVE_RULE_OCCURRENCE'
     )
     const parent = recent[parentIndex]
     if (parent?.commandType !== 'RESOLVE_ACTION' || parent.root.kind !== 'RULE_OCCURRENCE')
@@ -322,7 +353,7 @@ export async function revertLastEncounterAction(
     groupRoots.push({
       root: parent,
       ruleOccurrenceId: parent.root.ruleOccurrenceId,
-      laterEntries: recent.slice(rootIndex + 1, parentIndex)
+      laterEntries: recent.slice(answersFrom, parentIndex)
     })
   }
 
@@ -336,20 +367,19 @@ export async function revertLastEncounterAction(
   if (receipts.length === RECEIPT_SCAN_LIMIT)
     revertUnavailable('This action has too many follow-up results to undo; adjust manually.')
   // The raising command is the parent's own, or an answer that settled it (one receipt, no Run row).
-  const raisingRoot = groupRoots[1]?.root
+  const raisingRoot = parentCommandId ? groupRoots.at(-1)!.root : null
   if (
     raisingRoot &&
     raisingRoot.commandId !== parentCommandId &&
     !receipts.some((receipt) => receipt.commandId === parentCommandId)
   )
     revertUnavailable('The action that raised this one changed after it; adjust manually.')
-  const plans = groupRoots.map((group, index) =>
+  const plans = groupRoots.map((group) =>
     planRevertRoot({
       ...group,
-      receipts: receipts.filter(
-        (receipt) =>
-          receipt.encounterVersion >= group.root.version &&
-          (index === 0 || receipt.encounterVersion < groupRoots[index - 1]!.root.version)
+      receipts,
+      otherRootOccurrenceIds: new Set(
+        groupRoots.flatMap((other) => (other === group ? [] : [other.ruleOccurrenceId]))
       )
     })
   )
@@ -915,12 +945,24 @@ type RevertGroup = {
   ruleOccurrenceId: string
   /** The answers committed after the root; each must settle one of the root's own children. */
   laterEntries: readonly StoredCommand[]
-  /** The receipts committed from this root's version until the next group's root. */
+  /** Every receipt committed since the earliest root of the undo. */
   receipts: readonly EncounterDocument<'encounterRuleReceipts'>[]
+  /** The occurrences of the other roots undone with this one. */
+  otherRootOccurrenceIds: ReadonlySet<string>
 }
 
-/** What one root's receipts say to invert, or a refusal naming what undo can't restore. */
-function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: RevertGroup) {
+/**
+ * What one root's receipts say to invert, or a refusal naming what undo can't restore. A receipt
+ * belongs to the occurrence that recorded it, so the receipts of the other roots and of their
+ * children are theirs to read, whatever Run version they were committed at.
+ */
+function planRevertRoot({
+  root,
+  ruleOccurrenceId,
+  laterEntries,
+  receipts,
+  otherRootOccurrenceIds
+}: RevertGroup) {
   const laterOccurrenceIds = new Set(
     laterEntries.map((entry) => {
       if (entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
@@ -940,6 +982,17 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
     if (checksumRuleDocument(result) !== receipt.resultChecksum)
       throw new Error('Stored Encounter rule receipt mismatch.')
     const outputs = 'applicationOutputs' in result ? result.applicationOutputs : null
+    if (
+      otherRootOccurrenceIds.has(receipt.occurrenceId) ||
+      (outputs &&
+        'parentOccurrenceId' in outputs &&
+        outputs.parentOccurrenceId !== undefined &&
+        otherRootOccurrenceIds.has(outputs.parentOccurrenceId)) ||
+      (outputs?.kind === 'CHECK_ACTION' &&
+        outputs.source.kind === 'SPELL_CAST' &&
+        otherRootOccurrenceIds.has(outputs.source.castOccurrenceId))
+    )
+      continue
     if (receipt.occurrenceId === ruleOccurrenceId) {
       if (receipt.commandId !== root.commandId || receipt.commandType !== 'RESOLVE_ACTION') continue
       if (
@@ -1145,55 +1198,6 @@ async function revertCheckAction(
       })
   }
   return commitRevert(ctx, { ...input, actors, nextActors, updatedAt })
-}
-
-const FEATURE_CHARGES_CHANGED =
-  "The actor's feature charges changed after this action; adjust manually."
-
-/**
- * Gives a Creature feature's spent charges, or the spell slot its cast spent, back, refusing if they
- * changed since.
- */
-function returnSpentFeatureCharge(
-  actor: EncounterRunActorState,
-  feature: {
-    ownerActorId: string
-    ownerFeatureId: string
-    /** The slot row a spell cast spent; its use is counted under the row, not the Feature. */
-    slotRowId?: string
-    beforeUsed: number
-    afterUsed: number
-  } | null
-): EncounterRunActorState {
-  if (!feature) return actor
-  if (feature.ownerActorId !== actor.id)
-    throw new Error('Stored feature charge receipt is invalid.')
-  const chargeKey = feature.slotRowId ?? feature.ownerFeatureId
-  if (featureChargeUsed(actor, chargeKey) !== feature.afterUsed)
-    revertUnavailable(FEATURE_CHARGES_CHANGED)
-  return encounterRunActorStateSchema.parse({
-    ...actor,
-    resources: withFeatureChargeUsed(actor, chargeKey, feature.beforeUsed)
-  })
-}
-
-/** Gives a spent allowance back, refusing if the actor used it again since. */
-function returnSpentActionEconomy(
-  actor: EncounterRunActorState,
-  economy: EncounterActionEconomyConsumption | null
-): EncounterRunActorState {
-  if (!economy) return actor
-  if (encounterRuleUsageUsed(actor, economy.definitionId) !== economy.afterUsed)
-    revertUnavailable("The actor's action economy changed after this action; adjust manually.")
-  const returned = encounterRunActorStateSchema.parse({
-    ...actor,
-    resources: withEncounterRuleUsageUsed(actor, economy.definitionId, economy.beforeUsed)
-  })
-  if (!economy.spellCasting) return returned
-  const restored = revertEncounterSpellCastingTransition(returned, economy.spellCasting)
-  if (!restored)
-    revertUnavailable("The actor's spell casting changed after this action; adjust manually.")
-  return restored
 }
 
 /**

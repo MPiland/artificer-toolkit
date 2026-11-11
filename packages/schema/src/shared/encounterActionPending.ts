@@ -22,6 +22,7 @@ import {
 } from './ruleExecutionPrimitives.js'
 import { serverContestCheckPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 
 // Explicitly typed so the pending-context declaration stays within the compiler's size limit (TS7056).
 export type EncounterActionHeldD20Dto = {
@@ -91,11 +92,18 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       /**
        * The child actions of the reactions chosen against this action, in the order they were chosen
        * (D219). Only a child recorded here is admitted while the action is pending, and each one that
-       * commits moves the action's occurrence one Run version past its root command.
+       * commits moves the action's occurrence one Run version past its root command. `rollMode` is
+       * the mode the committed child imposes on the action's roll, null when it imposes none; it is
+       * absent until the room resumes the action after the child.
        */
       reactionChildren: z.optional(
         z
-          .array(z.strictObject({ commandId: ruleExecutionUuidSchema }))
+          .array(
+            z.strictObject({
+              commandId: ruleExecutionUuidSchema,
+              rollMode: z.optional(z.nullable(systemCoreCodeSchema))
+            })
+          )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       )
     })

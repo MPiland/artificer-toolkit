@@ -7,7 +7,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readNativeEncounterActionAdmission } from './actionAdmission.js'
-import { readNativeEncounterActionResponseAdmission } from './actionResumeAdmission.js'
+import {
+  readNativeEncounterActionResponseAdmission,
+  readNativeEncounterActionResumeAdmission
+} from './actionResumeAdmission.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor } from './documents.js'
 import { requireTargetSeenByMember } from './targetVisibility.js'
@@ -30,16 +33,19 @@ export async function readLiveEncounterActionAdmission(
   > & { removal?: RemoveAreaTargetInputDto | null }
 ) {
   const { userId } = await ctx.ports.requireIdentity()
+  const continuation = input.response ?? input.resume
   if (
     userId !== input.expectedUserId ||
     input.command.encounterId.toLowerCase() !== input.encounterId ||
     // An answer carries the stored root, whose version each committed reaction child left behind
     // (D219): the answer's own version is the scope's, and the response admission pins it to the
-    // pending occurrence.
-    (input.response
-      ? input.response.encounterId.toLowerCase() !== input.encounterId ||
-        input.response.expectedVersion !== input.expectedVersion
-      : input.command.expectedVersion !== input.expectedVersion)
+    // pending occurrence. The room's resume after such a child is fenced the same way.
+    (continuation
+      ? continuation.encounterId.toLowerCase() !== input.encounterId ||
+        continuation.expectedVersion !== input.expectedVersion
+      : input.command.expectedVersion !== input.expectedVersion) ||
+    (input.response && input.resume) ||
+    (input.removal && continuation)
   )
     throw new Error('Live Session Encounter command scope mismatch.')
   await ctx.ports.requireActiveLiveAuthority({
@@ -47,28 +53,36 @@ export async function readLiveEncounterActionAdmission(
     epoch: input.authorityEpoch
   })
   let responseAdmission = null
-  if (input.response) {
+  let resumeAdmission = null
+  if (continuation) {
     const run = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (query) => query.eq('id', input.encounterId))
       .unique()
     if (!run) throw new Error('Encounter Run was not found.')
-    responseAdmission = await readNativeEncounterActionResponseAdmission(
-      ctx,
-      input.response,
-      run,
-      userId
-    )
-    if (!responseAdmission) throw new Error('The occurrence is not an ordinary Encounter action.')
+    if (input.response) {
+      responseAdmission = await readNativeEncounterActionResponseAdmission(
+        ctx,
+        input.response,
+        run,
+        userId
+      )
+      if (!responseAdmission) throw new Error('The occurrence is not an ordinary Encounter action.')
+    } else if (input.resume)
+      resumeAdmission = await readNativeEncounterActionResumeAdmission(
+        ctx,
+        input.resume,
+        run,
+        userId
+      )
   }
-  if (input.removal && input.response)
-    throw new Error('Live Session Encounter command scope mismatch.')
   const removalAdmission = input.removal
     ? await readAreaRemovalCommitAdmission(ctx, input.removal, userId)
     : null
   const removal = removalAdmission?.removal ?? null
   const admission =
     responseAdmission?.admission ??
+    resumeAdmission?.admission ??
     removalAdmission?.admission ??
     (await readNativeEncounterActionAdmission(ctx, input.command, userId))
   // An answer that turns a ward-stopped action on another creature continues it as that creature's
@@ -93,7 +107,7 @@ export async function readLiveEncounterActionAdmission(
   if (
     admission.state.campaignId !== input.campaignId ||
     admission.membership.role !== input.expectedRole ||
-    ((responseAdmission || removal) && checksumCanonicalJson(input.command) !== fingerprint)
+    ((continuation || removal) && checksumCanonicalJson(input.command) !== fingerprint)
   )
     throw new Error('Live Session Encounter scope mismatch.')
   // A lost response replays before checking the revisions consumed by its transaction.
@@ -105,15 +119,16 @@ export async function readLiveEncounterActionAdmission(
       resume: null
     }
   if (admission.kind === 'REPLAY') return { ...admission, resume: null }
-  const resume = responseAdmission?.kind === 'READY' ? responseAdmission : null
+  const answered = responseAdmission?.kind === 'READY' ? responseAdmission : null
   // An area's push pick names its own request, which the response admission already matched.
   if (
-    resume &&
-    !(resume.area && resume.resolution.kind === 'FORCED_MOVEMENT') &&
-    'requestId' in resume.resolution &&
-    resume.resolution.requestId !== resume.pending.snapshot.request.requestId
+    answered &&
+    !(answered.area && answered.resolution.kind === 'FORCED_MOVEMENT') &&
+    'requestId' in answered.resolution &&
+    answered.resolution.requestId !== answered.pending.snapshot.request.requestId
   )
     rejectDomain('VERSION_STALE', 'The action evidence request is stale.')
+  const resume = answered ?? resumeAdmission
   return retargeted
     ? { ...admission, input: retargeted, fingerprint, resume, removal }
     : { ...admission, resume, removal }
@@ -185,9 +200,12 @@ export async function readLiveEncounterActionScope(
     throw new Error('The admitted action response is unavailable.')
   const admission =
     response?.admission ??
-    (input.action.kind === 'ACTION_COMMAND'
-      ? await readNativeEncounterActionAdmission(ctx, input.action.command, userId)
-      : null)
+    (input.action.kind === 'ACTION_RESUME'
+      ? (await readNativeEncounterActionResumeAdmission(ctx, input.action.resume, run, userId))
+          .admission
+      : input.action.kind === 'ACTION_COMMAND'
+        ? await readNativeEncounterActionAdmission(ctx, input.action.command, userId)
+        : null)
   if (
     admission?.kind !== 'READY' ||
     admission.state.id !== input.encounterId ||

@@ -207,6 +207,12 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   The last answer, the last decision, a settling removal, or the open when every save auto-rolls commits the
   area in one transaction: a root receipt with the source spend plus one child receipt per kept creature
   (current, D103).
+- `RESUME_ACTION` (room-internal, current, QUALITY-8.T1a2, D219) continues a pending action after a reaction
+  chosen against it committed as its own action. Only the room raises it, in the same room turn as the choice
+  and the child (`roomEncounterActions.ts`), routed with `ACTION_RESUME` admission
+  (`readNativeEncounterActionResumeAdmission`). The client frame schema has no such command, and admission
+  refuses it unless the pending action records a committed child it has not resumed from. It names the
+  occurrence, carries no command id and writes no receipt; the parent's own commit is the next Run version.
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").

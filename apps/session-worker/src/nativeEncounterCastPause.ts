@@ -6,14 +6,24 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import {
+  prepareEncounterActionMechanics,
+  withEncounterRollInfluences
+} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { PendingReactionChildren } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import { characterReactionCandidates } from '@artificer-toolkit/rules-runtime/encounterReactors'
+import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { REACTION_TRIGGERS } from '@artificer-toolkit/rules-runtime/events/reactionTriggers'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { discoverNativeAimedReactions } from './nativeEncounterAimedReaction.js'
+import {
+  authoredImposedRollMode,
+  discoverNativeAimedReactions
+} from './nativeEncounterAimedReaction.js'
 import {
   advanceNativeCastReactions,
   advanceNativeTargetedReactions,
@@ -74,8 +84,60 @@ export function createNativeCastPause(input: {
   /** Whether this replays a pending occurrence rather than opening one. */
   resumed: boolean
   usedReactions: readonly EncounterUsedReactionDto[]
+  /** The reactions chosen against this action that run as their holders' own child actions (D219). */
+  reactionChildren: {
+    /** The child the pending action records for each, with the roll mode it resumed with. */
+    recorded: PendingReactionChildren
+    /** Those of them that committed: who reacted with what, and whether it imposed its roll mode. */
+    committed: readonly LiveSessionReactionChild[]
+    /** The answered offer the room resumes this action past, its reactor's child now committed. */
+    resumedOffer: { reactorActorId: string; declinedReactorActorIds: readonly string[] } | null
+  }
 }) {
   const { prepared, state, command } = input
+  const { resumedOffer } = input.reactionChildren
+  const committedChild = (commandId: string) => {
+    const child = input.reactionChildren.committed.find((child) => child.commandId === commandId)
+    if (!child) throw new Error('Reaction evidence is stale.')
+    return child
+  }
+  /**
+   * The recorded children with the mode of the one the action resumes from resolved: the mode its
+   * reaction authors when its committed action imposed one on the roll it answered, and none otherwise.
+   */
+  const resolveReactionChildren = () =>
+    Promise.all(
+      input.reactionChildren.recorded.map(async (recorded) => {
+        if (recorded.rollMode !== undefined) return recorded
+        const { reactorActorId, actionId, imposesRollMode } = committedChild(recorded.commandId)
+        if (!imposesRollMode) return { ...recorded, rollMode: null }
+        const reactor = input.actors.find((actor) => actor.id === reactorActorId)
+        const held = reactor
+          ? characterReactionCandidates(
+              input.movementTargets.get(reactor.id) ?? (await input.loadTarget(reactor))
+            ).find((candidate) => candidate.actionId === actionId)
+          : undefined
+        const rollMode = held && authoredImposedRollMode(held)
+        if (!rollMode) throw new Error('Reaction evidence is stale.')
+        return { ...recorded, rollMode }
+      })
+    )
+  /**
+   * How the reactions that ran as child actions before an attack's d20 change that attack: each imposes
+   * the roll mode its child resolved on the roll (D217). The attack is re-prepared as its pauses are
+   * answered, so the same reactions are applied to each preparation.
+   */
+  const imposeChildRollModes =
+    (children: PendingReactionChildren) =>
+    <Attack extends Parameters<typeof withEncounterRollInfluences>[0]>(attack: Attack) =>
+      withEncounterRollInfluences(
+        attack,
+        children.flatMap(({ commandId, rollMode }) =>
+          rollMode
+            ? [{ reaction: { reactorActorId: committedChild(commandId).reactorActorId }, rollMode }]
+            : []
+        )
+      )
   const triggerLevel = preparedSpellCastLevel(prepared)
   const castConsumption = prepared.characterActionState?.spellConsumption
   /** The spell a Character casts, which a reaction to being targeted may be limited to. */
@@ -189,7 +251,7 @@ export function createNativeCastPause(input: {
       discover: async (trigger) => {
         const { moment } = REACTION_TRIGGERS[trigger]
         if (moment === 'TARGETED_BY_CAST') return discoverTargeted()
-        if (moment === 'ATTACK_AIMED_AT_OTHER') return discoverAimed()
+        // A reaction to an attack aimed at another is spent by its own child action, never here (D219).
         if (moment !== 'SPELL_CAST_BY_OTHER' || triggerLevel === null)
           throw new Error('Reaction evidence is stale.')
         return discoverCast(triggerLevel)
@@ -211,8 +273,15 @@ export function createNativeCastPause(input: {
     ruleOverrides: Parameters<typeof planNativeCounteredCast>[0]['ruleOverrides']
     occurrenceVersion: number
   }) => {
-    if (input.resumed && !input.answer)
-      return { kind: 'NONE' as const, usedReactions: input.usedReactions }
+    if (input.resumed && !input.answer && !resumedOffer)
+      return {
+        kind: 'NONE' as const,
+        usedReactions: input.usedReactions,
+        reactionChildren: input.reactionChildren.recorded
+      }
+    const reactionChildren = resumedOffer
+      ? await resolveReactionChildren()
+      : input.reactionChildren.recorded
     // An answer to an offer the action resumes from was made after every counter offer was heard, and
     // one to an attack aimed at another after every offer the cast made.
     const resumeAnswer =
@@ -228,6 +297,7 @@ export function createNativeCastPause(input: {
     if (
       triggerLevel !== null &&
       !resumeAnswer &&
+      !resumedOffer &&
       input.readScene &&
       input.actors.some((actor) => actor.kind === 'CHARACTER' && actor.id !== prepared.actor.id)
     ) {
@@ -272,7 +342,9 @@ export function createNativeCastPause(input: {
           continuation: advanced.continuation,
           rollerActorId: advanced.reactor.id,
           pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          usedReactions: advanced.usedReactions
+          usedReactions: advanced.usedReactions,
+          reactionChildren,
+          reactionChild: null
         }
       usedReactions = advanced.usedReactions
       declinedReactorActorIds = advanced.declinedReactorActorIds
@@ -282,11 +354,17 @@ export function createNativeCastPause(input: {
     for (const stage of [
       {
         kind: 'TARGETED_SELF' as const,
-        offered: triggerLevel !== null && !aimedAnswer && input.chosenActorIds && castOwnerId,
+        offered:
+          triggerLevel !== null &&
+          !aimedAnswer &&
+          !resumedOffer &&
+          input.chosenActorIds &&
+          castOwnerId,
         discover: discoverTargeted,
         answer: targetedAnswer,
         triggerLevel,
-        declinedReactorActorIds
+        declinedReactorActorIds,
+        runsAsChild: false
       },
       {
         kind: 'ATTACK_ON_OTHER' as const,
@@ -298,7 +376,11 @@ export function createNativeCastPause(input: {
         discover: discoverAimed,
         answer: aimedAnswer,
         triggerLevel: null,
-        declinedReactorActorIds: []
+        // The creature whose child the action resumes from has been heard, like one that declined.
+        declinedReactorActorIds: resumedOffer
+          ? [...resumedOffer.declinedReactorActorIds, resumedOffer.reactorActorId]
+          : [],
+        runsAsChild: true
       }
     ]) {
       if (!stage.offered) {
@@ -314,21 +396,45 @@ export function createNativeCastPause(input: {
         discover: stage.discover(),
         answer: stage.answer,
         usedReactions,
-        declinedReactorActorIds: stage.declinedReactorActorIds
+        declinedReactorActorIds: stage.declinedReactorActorIds,
+        runsAsChild: stage.runsAsChild
       })
+      // The reaction chosen runs as its holder's own action at the creature acting: the room commits
+      // that child, then resumes this action, which keeps the answered offer until then.
+      if (advanced.kind === 'CHILD')
+        return {
+          kind: 'CAST_PENDING' as const,
+          continuation: advanced.continuation,
+          rollerActorId: advanced.child.holderActorId,
+          pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
+          usedReactions: advanced.usedReactions,
+          reactionChildren: [
+            ...reactionChildren,
+            {
+              commandId: systemTriggerCommandId(
+                command.commandId,
+                advanced.child.holderActorId,
+                advanced.child.actionId
+              )
+            }
+          ],
+          reactionChild: { ...advanced.child, targetActorId: prepared.actor.id }
+        }
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,
           continuation: advanced.continuation,
           rollerActorId: advanced.reactor.id,
           pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          usedReactions: advanced.usedReactions
+          usedReactions: advanced.usedReactions,
+          reactionChildren,
+          reactionChild: null
         }
       usedReactions = advanced.usedReactions
     }
-    return { kind: 'NONE' as const, usedReactions }
+    return { kind: 'NONE' as const, usedReactions, reactionChildren }
   }
-  return { advance, planUsedReactions }
+  return { advance, planUsedReactions, imposeChildRollModes }
 }
 
 export type NativeCastPause = ReturnType<typeof createNativeCastPause>

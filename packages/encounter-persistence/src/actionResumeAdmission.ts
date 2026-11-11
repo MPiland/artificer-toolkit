@@ -8,6 +8,8 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readNativeEncounterActionAdmission } from './actionAdmission.js'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
+import { awaitsReactionChild, readCommittedReactionChildren } from './reactionChildren.js'
 import {
   canAnswerNativeActionEvidence,
   canControlEvidenceRoller,
@@ -188,6 +190,9 @@ export async function readNativeEncounterActionResponseAdmission(
     occurrence.expectedEncounterVersion !== run.version
   )
     rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
+  // A chosen reaction's child action is still to commit or be resumed from (D219): the offer it
+  // answered takes no further answer.
+  if (awaitsReactionChild(pending.context)) rejectDomain('DECISION_NOT_PENDING')
   if (areaPick) {
     if (
       answer.kind !== 'FORCED_MOVEMENT' ||
@@ -263,6 +268,61 @@ export async function readNativeEncounterActionResponseAdmission(
     pending,
     area: area ? { snapshot: area.snapshot, actorId: areaAnswer!.actorId } : null,
     resolution,
-    appRoll
+    appRoll,
+    reactionChildren: await readCommittedReactionChildren(ctx, {
+      campaignId: run.campaignId,
+      gameSystemId: admission.state.gameSystemId,
+      recorded: pending.context.reactionChildren ?? []
+    })
   }
+}
+
+/**
+ * The room's resume of a pending action whose chosen reaction's child action committed (D219). It
+ * is admitted only while the action records a committed child it has not yet resumed from, so no
+ * client can raise one: without that child there is nothing to resume.
+ */
+export async function readNativeEncounterActionResumeAdmission(
+  ctx: EncounterReadTransaction,
+  resume: LiveSessionEncounterActionResume,
+  run: EncounterDocument<'encounterRuns'>,
+  userId: string
+) {
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (query) => query.eq('id', resume.occurrenceId))
+    .unique()
+  if (
+    !occurrence ||
+    occurrence.encounterId !== run.id ||
+    occurrence.campaignId !== run.campaignId ||
+    occurrence.state !== 'PENDING'
+  )
+    rejectDomain('DECISION_NOT_PENDING')
+  const pending = await readNativeActionPending(ctx, occurrence)
+  if (
+    occurrence.version !== resume.expectedOccurrenceVersion ||
+    run.version !== resume.expectedVersion ||
+    occurrence.expectedEncounterVersion !== run.version
+  )
+    rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
+  const recorded = pending.context.reactionChildren ?? []
+  const { command } = pending
+  if (command.type !== 'RESOLVE_ACTION' || !awaitsReactionChild(pending.context))
+    rejectDomain('DECISION_NOT_PENDING')
+  const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
+  if (!(await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence })))
+    rejectDomain('NOT_ACTOR_CONTROLLER')
+  const admission = await readNativeEncounterActionAdmission(ctx, command, userId, {
+    occurrence,
+    initiatorUserId: pending.context.initiatorUserId
+  })
+  if (admission.kind !== 'READY') rejectDomain('DECISION_NOT_PENDING')
+  const reactionChildren = await readCommittedReactionChildren(ctx, {
+    campaignId: run.campaignId,
+    gameSystemId: admission.state.gameSystemId,
+    recorded
+  })
+  if (reactionChildren.length !== recorded.length) rejectDomain('DECISION_NOT_PENDING')
+  return { kind: 'READY' as const, admission, occurrence, pending, area: null, reactionChildren }
 }

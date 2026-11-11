@@ -60,7 +60,9 @@ export function nativeLiveRelationshipFacts(input: {
 /**
  * Every action path admits an action through here: a Legendary Action is taken only in its own
  * window, or as the root a turn end delegated it to (admission proves that root against the turn's
- * receipt), and a reaction only when its trigger happens, never as an ordinary action.
+ * receipt), and a reaction only when its trigger happens, never as an ordinary action: as the child
+ * action of the reaction its holder chose against a pending action (D219; admission proves that
+ * action records the child).
  */
 export function refuseActionOutsideItsWindow(
   prepared: Pick<Prepared, 'actor' | 'source'>,
@@ -79,7 +81,7 @@ export function refuseActionOutsideItsWindow(
     })
   const { mechanicFacts } =
     source.kind === 'CHARACTER_ACTION' ? source.candidate : source.capability
-  if (mechanicFacts.invocation.reactionTrigger)
+  if (mechanicFacts.invocation.reactionTrigger && command.systemTrigger?.trigger !== 'REACTION')
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'REACTION_TRIGGER_ONLY',

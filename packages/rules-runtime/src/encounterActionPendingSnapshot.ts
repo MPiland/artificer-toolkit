@@ -9,6 +9,17 @@ import type {
   ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
 
+/**
+ * The child action of each reaction chosen against a pending action (D219), with the roll mode it
+ * imposed on the action's roll once the action resumed from it.
+ */
+export type PendingReactionChildren = NonNullable<
+  Extract<
+    ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
+    { kind: 'ENCOUNTER_ACTION' }
+  >['reactionChildren']
+>
+
 /** The kernel request a sealed snapshot waits on, without the application's wrapping. */
 export function pendingSnapshotContinuation(
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
@@ -68,6 +79,7 @@ export function buildEncounterActionPendingSnapshot(input: {
   currentnessChecksum: string
   usedReactions?: readonly EncounterUsedReactionDto[]
   passedIncomingGate?: string
+  reactionChildren?: PendingReactionChildren
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   const { execution } = input
   return {
@@ -93,7 +105,8 @@ export function buildEncounterActionPendingSnapshot(input: {
       ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
       ...(execution.pause ? { pause: execution.pause } : {}),
       ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
-      ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
+      ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
+      ...(input.reactionChildren?.length ? { reactionChildren: [...input.reactionChildren] } : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }
@@ -119,6 +132,7 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
   currentnessChecksum: string
   usedReactions?: readonly EncounterUsedReactionDto[]
   passedIncomingGate?: string
+  reactionChildren?: PendingReactionChildren
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
@@ -136,7 +150,8 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
       twoPhase: null,
       pause: input.pause,
       ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
-      ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
+      ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
+      ...(input.reactionChildren?.length ? { reactionChildren: [...input.reactionChildren] } : {})
     }
   }
 }

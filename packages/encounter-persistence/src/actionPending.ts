@@ -24,6 +24,7 @@ import {
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { readRunActor, readRunState } from './documents.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
+import { awaitsReactionChild } from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -142,6 +143,7 @@ type CastPendingContext = {
         payload: unknown
       }
   usedReactions?: readonly PendingCounter[]
+  reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
   /** The ward whose save the attacker already passed. */
   passedIncomingGate?: string
 }
@@ -238,7 +240,13 @@ export function castPendingContinues(
   )
     return false
   if (!castReaction) return sameMembers(usedNext, usedPrevious)
-  const answer = castAnswer(previous, response)
+  // An action whose chosen reaction ran as a child takes no answer: the room's resume moves it on as
+  // the reactor's decline would, since the child, not this action, spent the reaction (D219).
+  const answer = awaitsReactionChild(previous)
+    ? response
+      ? null
+      : 'DECLINE'
+    : castAnswer(previous, response)
   const roller = previous.rollerActorId
   if (!answer || roller === undefined) return false
   const spends = answer === 'SPEND'
@@ -246,6 +254,20 @@ export function castPendingContinues(
   const castDeclinedPrevious = castReaction.chain?.castDeclinedReactorActorIds ?? []
   const chainPrevious = chainReactorIds(previous)
   const chainNext = chainReactorIds(next)
+  // The chosen reaction runs as a child action: the same offer stays held until the room resumes it.
+  if ((next.reactionChildren?.length ?? 0) > (previous.reactionChildren?.length ?? 0))
+    return (
+      spends &&
+      !castReaction.check &&
+      !castReaction.chain &&
+      nextCastReaction != null &&
+      !nextCastReaction.check &&
+      !nextCastReaction.chain &&
+      next.rollerActorId === roller &&
+      sameMembers(usedNext, usedPrevious) &&
+      sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
+      awaitsReactionChild(next)
+    )
   // The counter owes a check: the cast stays held for the same reactor, now on that roll.
   if (spends && !castReaction.check && nextCastReaction?.check !== undefined)
     return (

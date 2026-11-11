@@ -171,6 +171,51 @@ describe('castPendingContinues', () => {
     expect(castPendingContinues(held, decline, next(['first', 'third']))).toBe(false)
   })
 
+  describe('a chosen reaction that runs as its own action (D219)', () => {
+    const child = { commandId: 'child' }
+    const raised = { ...held, reactionChildren: [child] }
+    const resumed = { reactionChildren: [{ ...child, rollMode: 'DISADVANTAGE' }] }
+
+    it('keeps the same offer held for the same reactor, recording the child unresolved', () => {
+      expect(castPendingContinues(held, option, raised)).toBe(true)
+      expect(castPendingContinues(held, decline, raised)).toBe(false)
+      expect(castPendingContinues(held, null, raised)).toBe(false)
+      expect(castPendingContinues(held, option, { ...raised, rollerActorId: 'third' })).toBe(false)
+      expect(castPendingContinues(held, option, { ...held, ...resumed })).toBe(false)
+      expect(
+        castPendingContinues(held, option, { ...raised, usedReactions: [failedBy('second')] })
+      ).toBe(false)
+      expect(
+        castPendingContinues(held, option, {
+          ...raised,
+          pause: {
+            kind: 'CAST_REACTION' as const,
+            payload: { declinedReactorActorIds: ['first', 'second'] }
+          }
+        })
+      ).toBe(false)
+    })
+
+    it('moves on only by the room’s resume, as the reactor’s decline would, spending nothing', () => {
+      expect(castPendingContinues(raised, null, resumed)).toBe(true)
+      expect(
+        castPendingContinues(raised, null, {
+          ...resumed,
+          pause: {
+            kind: 'CAST_REACTION' as const,
+            payload: { declinedReactorActorIds: ['first', 'second'] }
+          }
+        })
+      ).toBe(true)
+      expect(castPendingContinues(raised, decline, resumed)).toBe(false)
+      expect(castPendingContinues(raised, option, resumed)).toBe(false)
+      expect(castPendingContinues(raised, dice, resumed)).toBe(false)
+      expect(
+        castPendingContinues(raised, null, { ...resumed, usedReactions: [failedBy('second')] })
+      ).toBe(false)
+    })
+  })
+
   it('holds the cast for the same reactor on its check when the counter owes one', () => {
     const toCheck = (overrides: Partial<typeof checking>) => ({ ...checking, ...overrides })
     expect(castPendingContinues(held, option, toCheck({ usedReactions: [] }))).toBe(true)

@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import {
   liveSessionActionCaptureScopeSchema,
+  liveSessionEncounterActionResumeSchema,
   liveSessionEncounterBasicActionCommandSchema,
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
@@ -34,6 +35,7 @@ import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
   actionAreaSceneRequestDtoSchema,
   actionSceneRequestDtoSchema,
+  encounterActionIdSchema,
   escapeRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
@@ -101,6 +103,25 @@ export const liveSessionEncounterTurnCommandSchema = lazySchema(() =>
   ])
 )
 
+/**
+ * The committed child actions of the reactions chosen against a pending action (D219), in the order
+ * the action records them: who reacted with what, and whether the child's committed execution
+ * imposes a roll mode on the action's roll.
+ */
+const liveSessionReactionChildrenSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        commandId: postgresUuidSchema,
+        reactorActorId: postgresUuidSchema,
+        actionId: encounterActionIdSchema,
+        imposesRollMode: z.boolean()
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+export type LiveSessionReactionChild = z.infer<typeof liveSessionReactionChildrenSchema>[number]
+
 /** Private, authorized stored records for DO rules; no evaluated facts or write instructions. */
 export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -117,6 +138,10 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTION_RESPONSE'),
       response: resolveRuleOccurrenceInputDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_RESUME'),
+      resume: liveSessionEncounterActionResumeSchema
     }),
     z.strictObject({
       kind: z.literal('AREA_REMOVAL'),
@@ -507,7 +532,18 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       /** The answered request's sealed continuation; for an area save, the answering creature's own. */
       snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
       /** Set only when the answer belongs to a point-area action: the whole pending area. */
-      areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema)
+      areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema),
+      reactionChildren: liveSessionReactionChildrenSchema
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_RESUME'),
+      revisions: liveSessionRulesRevisionsSchema,
+      autoRollByActorId: encounterAutoRollByActorIdSchema,
+      command: resolveEncounterActionInputDtoSchema,
+      fingerprint: projectionChecksumSchema,
+      /** The pending action as its reaction choice left it. */
+      snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema,
+      reactionChildren: liveSessionReactionChildrenSchema
     }),
     z.strictObject({
       kind: z.literal('AREA_REMOVAL'),
