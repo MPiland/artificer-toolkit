@@ -9,7 +9,6 @@ import {
   ammunitionCommandChoice,
   castChoice,
   resolveCheckActionInputDtoSchema,
-  resolveEncounterActionInputDtoSchema,
   type RemoveAreaTargetInputDto,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
@@ -101,8 +100,11 @@ import {
   planNativeWindowReactions,
   type NativeRollReaction
 } from './nativeEncounterRollReaction.js'
-import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHandlers.js'
-import type { NativePauseAnswer } from './nativePauseTypes.js'
+import { settleNativePauseAnswer } from './nativePauseHandlers.js'
+import {
+  readNativePendingActionAnswer,
+  readNativeResumedReactionOffer
+} from './nativePendingActionAnswer.js'
 import { createNativeCurrentReaction } from './nativePauseReaction.js'
 import { advanceNativeIncomingGate, planNativeGatedAction } from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
@@ -114,7 +116,6 @@ import {
   settleEncounterAttackRetarget,
   type EncounterAttackRetargetCandidate
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
-import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
@@ -252,83 +253,38 @@ export async function planNativeLiveEncounterAction(
     admission.kind !== 'AREA_REMOVAL'
   )
     throw new Error('Encounter command is unavailable.')
-  if (
-    (admission.kind === 'ACTION_COMMAND' || admission.kind === 'ACTION_RESPONSE') &&
-    admission.result
-  )
+  if ('result' in admission && admission.result)
     return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
-  const snapshot =
-    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'ACTION_RESUME'
-      ? admission.snapshot
-      : null
+  const pendingAdmission =
+    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'ACTION_RESUME' ? admission : null
+  const snapshot = pendingAdmission?.snapshot ?? null
+  /** What the pending ordinary action this command continues recorded so far, if it continues one. */
+  const pendingContext =
+    snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' ? snapshot.applicationContext : null
   const areaSnapshot =
     admission.kind === 'ACTION_RESPONSE' || admission.kind === 'AREA_REMOVAL'
       ? admission.areaSnapshot
       : null
   /** The committed child action of each reaction chosen against this action, if it is pending (D219). */
-  const committedReactionChildren =
-    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'ACTION_RESUME'
-      ? admission.reactionChildren
-      : []
-  if (resumeCommand) {
-    const context = snapshot?.applicationContext
-    if (
-      context?.kind !== 'ENCOUNTER_ACTION' ||
-      snapshot?.occurrenceId !== resumeCommand.occurrenceId ||
-      context.commandFingerprint !== admission.fingerprint ||
-      context.pause?.kind !== 'CAST_REACTION' ||
-      admission.command.target.kind !== 'ACTOR' ||
-      context.contest ||
-      snapshot.deferredCleaving
-    )
-      throw new Error('The pending action evidence is invalid.')
-  }
-  let areaDecision: Extract<
-    ResolveRuleOccurrenceInputDto['resolution'],
-    { kind: 'AREA_LEGENDARY_RESISTANCE' }
-  > | null = null
-  let areaLanding: Extract<
-    ResolveRuleOccurrenceInputDto['resolution'],
-    { kind: 'FORCED_MOVEMENT' }
-  > | null = null
-  let pauseAnswer: NativePauseAnswer | null = null
-  if (responseCommand) {
-    if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
-      throw new Error('The pending action snapshot is unavailable.')
-    // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-    const resolution = withEncounterAppRoll(
-      responseCommand.resolution,
-      admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null
-    )
-    if (resolution.kind === 'AREA_LEGENDARY_RESISTANCE') areaDecision = resolution
-    // An area's push pick is the area's own, never its pushed creature's save (D157).
-    else if (areaSnapshot && resolution.kind === 'FORCED_MOVEMENT') areaLanding = resolution
-    else {
-      pauseAnswer = readNativePauseAnswer({
-        pause: snapshot.applicationContext.pause,
+  const committedReactionChildren = pendingAdmission?.reactionChildren ?? []
+  const resumedOffer = resumeCommand
+    ? readNativeResumedReactionOffer({
+        resume: resumeCommand,
         snapshot,
-        resolution
+        command: admission.command,
+        fingerprint: admission.fingerprint
       })
-    }
-    const context = snapshot.applicationContext
-    const root = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
-    if (
-      // An area save is sealed under its own occurrence id; the answer names the area's.
-      (areaSnapshot ?? snapshot).occurrenceId !== responseCommand.occurrenceId ||
-      context.commandFingerprint !== admission.fingerprint ||
-      checksumCanonicalJson(root) !== admission.fingerprint ||
-      (pauseAnswer?.kind === 'EVIDENCE' &&
-        (snapshot.request.requestId !== pauseAnswer.answer.requestId ||
-          (context.d20Policy === null && pauseAnswer.answer.kind === 'ENTER_DICE') ||
-          (context.d20Policy !== null && pauseAnswer.answer.kind === 'ENTER_INTEGER')))
-    )
-      throw new Error('The pending action evidence is invalid.')
-    // Contests (Disarm) and deferred Cleaving have their own planners; their evidence never
-    // routes here.
-    if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
-      throw new Error('The pending action is not an ordinary action.')
-  }
+    : null
+  const { areaDecision, areaLanding, pauseAnswer } = responseCommand
+    ? readNativePendingActionAnswer({
+        response: responseCommand,
+        snapshot,
+        areaSnapshot,
+        appRoll: admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null,
+        fingerprint: admission.fingerprint
+      })
+    : { areaDecision: null, areaLanding: null, pauseAnswer: null }
   const retargetAnswer = pauseAnswer?.kind === 'ATTACK_RETARGET' ? pauseAnswer.answer : null
   const castAnswer = pauseAnswer?.kind === 'CAST_REACTION' ? pauseAnswer.answer : null
   const gateAnswer = pauseAnswer?.kind === 'INCOMING_GATE' ? pauseAnswer.answer : null
@@ -917,37 +873,24 @@ export async function planNativeLiveEncounterAction(
             return owner ? (movementTargets.get(owner.id) ?? (await loadTarget(owner))) : null
           },
           autoRoll: requireAutoRoll(prepared.actor.id),
-          passedEffectId:
-            snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-              ? snapshot.applicationContext.passedIncomingGate
-              : undefined,
+          passedEffectId: pendingContext?.passedIncomingGate,
           answer: gateAnswer
         })
       : { kind: 'NONE' as const, passed: null }
   /** The ward whose save the attacker has passed, carried by every later pause of this action. */
   const passedIncomingGate =
-    gate.kind === 'PASSED'
-      ? gate.effectId
-      : snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-        ? snapshot.applicationContext.passedIncomingGate
-        : undefined
+    gate.kind === 'PASSED' ? gate.effectId : pendingContext?.passedIncomingGate
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
   /** The child of each reaction chosen against this action so far, set once its offers are heard. */
-  let reactionChildren: PendingReactionChildren =
-    snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-      ? (snapshot.applicationContext.reactionChildren ?? [])
-      : []
+  let reactionChildren: PendingReactionChildren = pendingContext?.reactionChildren ?? []
   const preflight = () => ({
     command,
     response: responseCommand,
     resume: resumeCommand,
     reactionChildren,
     // A response continues the original initiator's action; the responder is authorized in Convex.
-    initiatorUserId:
-      snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-        ? snapshot.applicationContext.initiatorUserId
-        : initial.expectedUserId,
+    initiatorUserId: pendingContext?.initiatorUserId ?? initial.expectedUserId,
     fingerprint,
     occurrenceId,
     occurrenceVersion,
@@ -1045,25 +988,13 @@ export async function planNativeLiveEncounterAction(
     reactionChildren: {
       recorded: reactionChildren,
       committed: committedReactionChildren,
-      resumedOffer:
-        resumeCommand &&
-        snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-        snapshot.applicationContext.pause?.kind === 'CAST_REACTION'
-          ? {
-              reactorActorId: snapshot.applicationContext.rollerActorId,
-              declinedReactorActorIds:
-                snapshot.applicationContext.pause.payload.declinedReactorActorIds
-            }
-          : null
+      resumedOffer
     },
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,
     // The counters that failed against this cast so far; its terminal commit spends them (D127).
-    usedReactions:
-      snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-        ? (snapshot.applicationContext.usedReactions ?? [])
-        : []
+    usedReactions: pendingContext?.usedReactions ?? []
   })
   const cast = await castPause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
