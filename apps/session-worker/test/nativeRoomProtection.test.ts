@@ -60,7 +60,7 @@ const protection: ClassFeature = {
 }
 
 /** A homebrew reaction authored as Protection is, but needing no shield and reaching 10 feet. */
-const distract: ClassFeature = (() => {
+const distract = ((): ClassFeature => {
   const effect = protectionReactionEffect({
     effect: testUuid(0x7e8),
     range: testUuid(0x7e9),
