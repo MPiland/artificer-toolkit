@@ -115,7 +115,7 @@ export async function readCommittedReactionChildren(
         query.eq('campaignId', input.campaignId).eq('commandId', commandId)
       )
       .unique()
-    if (!command || !receipt) continue
+    if (command?.commandType !== 'RESOLVE_ACTION' || !receipt) continue
     const { actorId, actionId } = resolveEncounterActionInputDtoSchema.parse(
       JSON.parse(command.commandJson)
     )
