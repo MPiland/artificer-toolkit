@@ -1,7 +1,4 @@
-import {
-  rollModeKeptFace,
-  type RollModeKeep
-} from '@artificer-toolkit/schema/shared/systemCoreCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type {
@@ -19,7 +16,11 @@ import { contestCheckCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
-import { settleEncounterD20Answer } from './encounterD20Settlement.js'
+import {
+  recordedD20Natural,
+  settleEncounterD20Answer,
+  settleEncounterD20Test
+} from './encounterD20Settlement.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import {
   heldStageD20,
@@ -168,8 +169,14 @@ function completeEncounterOptionalContestActionExecution(input: {
   if (!initiatorFaces || !defenderFaces) {
     throw new EncounterValidationError('Optional combat contest evidence is incomplete.')
   }
-  const initiatorNatural = rollModeKeptFace(input.initiator.keep, initiatorFaces)
-  const defenderNatural = rollModeKeptFace(input.defender.keep, defenderFaces)
+  const initiatorNatural = recordedD20Natural({
+    keep: input.initiator.keep,
+    rawFaces: initiatorFaces
+  })
+  const defenderNatural = recordedD20Natural({
+    keep: input.defender.keep,
+    rawFaces: defenderFaces
+  })
   if (
     input.execution.outputs.initiatorNaturalD20 !== initiatorNatural ||
     input.execution.outputs.targetNaturalD20 !== defenderNatural ||
@@ -269,9 +276,13 @@ export async function executeEncounterOptionalContestAction(input: {
         : null)
     if (!faces) break
     rolls.set(participant, faces)
-    execution = await input.runtime.resume({
+    execution = await settleEncounterD20Test({
       continuation: execution.continuation,
-      response: { requestId, value: rollModeKeptFace(policy.keep, faces) }
+      roll: {
+        natural: recordedD20Natural({ keep: policy.keep, rawFaces: faces }),
+        addedDice: []
+      },
+      resume: (step) => input.runtime.resume(step)
     })
   }
   if (execution.status === 'PAUSED') {

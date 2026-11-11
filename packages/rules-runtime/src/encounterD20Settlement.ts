@@ -103,12 +103,18 @@ export function settleEncounterD20Answer(input: {
 }
 
 /**
- * Resumes a d20 test graph with a settled roll and verifies the completed graph against it. Each
- * named output port must carry its value: `rawDie` the kept natural, `addedTotal` the added dice's
- * signed total, and `total` the natural plus `modifier` plus that total. A graph that does not
- * complete or reports other values throws `refusal`.
+ * The natural a recorded d20 kept: the face its keep selects from its faces. A settled roll is
+ * stored as its faces and keep, so a later stage that resumes a graph with it, rebuilds its
+ * evidence or checks a stored natural reads it here.
  */
-export async function settleEncounterD20Test(input: {
+export function recordedD20Natural(roll: {
+  keep: RollModeKeep
+  rawFaces: readonly number[]
+}): number {
+  return rollModeKeptFace(roll.keep, roll.rawFaces)
+}
+
+type D20TestResume = {
   continuation: ServerRuleExecutionContinuationDto
   roll: Pick<EncounterD20Roll, 'natural' | 'addedDice'>
   mayAddDice?: boolean
@@ -116,10 +122,29 @@ export async function settleEncounterD20Test(input: {
     continuation: ServerRuleExecutionContinuationDto
     response: { requestId: string; value: number }
   }) => Promise<ServerRuleExecutionResultDto>
+}
+
+type D20TestOutputs = {
   outputs: { rawDie: string; addedTotal?: string; total?: { port: string; modifier: number } }
   refusal: () => Error
-}): Promise<ServerCompletedRuleExecutionDto> {
-  const { roll, outputs } = input
+}
+
+/**
+ * Resumes a d20 test graph with a settled roll: the kept natural, then the added dice's total. A
+ * test that names `outputs` must complete, and each named output port must carry its value:
+ * `rawDie` the kept natural, `addedTotal` the added dice's signed total, and `total` the natural
+ * plus `modifier` plus that total. A graph that does not complete or reports other values throws
+ * `refusal`. A test whose graph can pause again, or whose completion is checked through its trace
+ * (an action phase, a contest, a target-bound effect), names none and takes the result as resumed.
+ */
+export function settleEncounterD20Test(
+  input: D20TestResume & D20TestOutputs
+): Promise<ServerCompletedRuleExecutionDto>
+export function settleEncounterD20Test(input: D20TestResume): Promise<ServerRuleExecutionResultDto>
+export async function settleEncounterD20Test(
+  input: D20TestResume & Partial<D20TestOutputs>
+): Promise<ServerRuleExecutionResultDto> {
+  const { roll, outputs, refusal } = input
   const execution = await resumeEncounterD20({
     continuation: input.continuation,
     natural: roll.natural,
@@ -127,6 +152,7 @@ export async function settleEncounterD20Test(input: {
     mayAddDice: input.mayAddDice,
     resume: input.resume
   })
+  if (!outputs || !refusal) return execution
   const addedTotal = d20AddedDiceTotal(roll.addedDice)
   if (
     execution.status !== 'COMPLETE' ||
@@ -135,7 +161,7 @@ export async function settleEncounterD20Test(input: {
     (outputs.total !== undefined &&
       execution.outputs[outputs.total.port] !== roll.natural + outputs.total.modifier + addedTotal)
   )
-    throw input.refusal()
+    throw refusal()
   return execution
 }
 
@@ -329,7 +355,7 @@ export function buildEncounterActionD20Evidence(input: {
   /** The policy's added dice with the faces they rolled, in the policy's order. */
   addedDice: readonly D20RolledAddedDieDto[]
 }): ServerRuleExecutionD20EvidenceDto {
-  const natural = rollModeKeptFace(input.keep, input.faces)
+  const natural = recordedD20Natural({ keep: input.keep, rawFaces: input.faces })
   const trace = input.execution.evidence.trace.find(
     (entry) => entry.evidence?.requestId === input.requestId && entry.evidence.value === natural
   )
@@ -367,7 +393,7 @@ export function buildEncounterSaveD20Evidence(input: {
   keep: RollModeKeep
   addedDice: readonly D20RolledAddedDieDto[]
 }): ServerRuleExecutionNestedD20EvidenceDto {
-  const natural = rollModeKeptFace(input.keep, input.faces)
+  const natural = recordedD20Natural({ keep: input.keep, rawFaces: input.faces })
   const total = natural + input.policy.modifier + d20AddedDiceTotal(input.addedDice)
   return serverRuleExecutionNestedD20EvidenceDtoSchema.parse({
     requestNodeId: input.policy.requestNodeId,

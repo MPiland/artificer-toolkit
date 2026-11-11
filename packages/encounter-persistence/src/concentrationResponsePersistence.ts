@@ -26,6 +26,7 @@ import {
   damageSaveCheckMutatesRun
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import { requireDerivedD20Mode } from '@artificer-toolkit/rules-runtime/encounterD20ModeValidation'
+import { d20EvidenceMatchesPins } from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
   chosenEncounterD20WindowHeldOption,
@@ -140,8 +141,7 @@ export async function persistEncounterConcentrationResponse(
     (!window && output.d20.requestId !== resolution.requestId) ||
     output.d20.rollMode !== save.rollMode ||
     output.d20.keep !== save.keep ||
-    output.d20.modifier !== save.modifier ||
-    output.d20.contributorChecksum !== save.contributorChecksum ||
+    !d20EvidenceMatchesPins(output.d20, save) ||
     checksumCanonicalJson(output.d20.contributors) !== checksumCanonicalJson(save.contributors) ||
     (!window &&
       resolution.kind === 'ENTER_DICE' &&

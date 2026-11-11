@@ -12,11 +12,11 @@ import {
   isD20WindowReactionDie
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
-import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { z } from 'zod'
 
 import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
 import { requireDerivedD20Mode } from './encounterD20ModeValidation.js'
+import { recordedD20Natural } from './encounterD20Settlement.js'
 import { isEncounterSightGovernedD20 } from './encounterAttackBelief.js'
 import { spendEncounterD20WindowDie } from './encounterD20Window.js'
 import { type EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
@@ -149,7 +149,7 @@ export function resolutionForRetainedEvidence(input: {
     if (
       !evidence ||
       evidence.derivedRollMode !== input.pending.d20Policy.rollMode ||
-      rollModeKeptFace(evidence.keep, evidence.rawFaces) !== evidence.selectedNatural ||
+      recordedD20Natural(evidence) !== evidence.selectedNatural ||
       // A roll sight decides is settled in the rules-derived mode; a chosen mode never replaces it.
       (isEncounterSightGovernedD20({
         policy: input.pending.d20Policy,

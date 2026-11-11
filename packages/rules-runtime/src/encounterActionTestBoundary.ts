@@ -17,10 +17,10 @@ import {
   type EncounterActionAutoRoll,
   type NativeTwoPhase
 } from './encounterActionRequest.js'
-import { resumeEncounterD20 } from './encounterD20AddedDice.js'
 import {
   buildEncounterActionD20Evidence,
-  deriveEncounterActionD20Policy
+  deriveEncounterActionD20Policy,
+  settleEncounterD20Test
 } from './encounterD20Settlement.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
@@ -126,10 +126,9 @@ export async function requireNativeTestBoundary(input: {
   })
   if (checksumRuleDocument(evidence) !== checksumRuleDocument(boundary.d20))
     throw new Error('The native action TEST evidence is stale.')
-  let replayed = await resumeEncounterD20({
+  let replayed = await settleEncounterD20Test({
     continuation: boundary.continuation,
-    natural: boundary.d20.selectedNatural,
-    addedDice: boundary.d20.addedDice ?? [],
+    roll: { natural: boundary.d20.selectedNatural, addedDice: boundary.d20.addedDice ?? [] },
     // A holder's window may have added no die; the retained execution below proves what was asked.
     mayAddDice: true,
     resume: (step) => input.source.runtime.resume(step)

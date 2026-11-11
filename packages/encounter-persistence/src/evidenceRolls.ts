@@ -20,7 +20,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
-import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
+import { recordedD20Natural } from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { withAddedDiceTerms } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -234,7 +234,7 @@ export async function rollEncounterRuleEvidence(
   const faces = evaluated
     ? evaluated.evidence.terms[0]!.rolls
     : [admitted.request.min + nextInt(admitted.request.max - admitted.request.min + 1)]
-  const value = keep ? rollModeKeptFace(keep, faces) : faces[0]!
+  const value = keep ? recordedD20Natural({ keep, rawFaces: faces }) : faces[0]!
   const addedDice = ('addedDice' in admitted.request ? (admitted.request.addedDice ?? []) : []).map(
     (die) => ({
       ...die,

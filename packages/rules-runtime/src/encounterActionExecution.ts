@@ -35,7 +35,6 @@ import {
   type EncounterEvidenceAnswer,
   testDieAnswer
 } from './encounterEvidenceAnswer.js'
-import { resumeEncounterD20 } from './encounterD20AddedDice.js'
 import { windowSpentReactions } from './encounterD20Window.js'
 import {
   heldWindowedSave,
@@ -55,6 +54,7 @@ import {
   policyAuditDice,
   requireEncounterSaveD20EvidenceTrace,
   settleEncounterD20Answer,
+  settleEncounterD20Test,
   type SettledActionResponse
 } from './encounterD20Settlement.js'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -196,10 +196,9 @@ export async function executeNativeActionGraphs(input: {
             addedDice
           })
         }
-        result = await resumeEncounterD20({
+        result = await settleEncounterD20Test({
           continuation,
-          natural,
-          addedDice,
+          roll: { natural, addedDice },
           resume: (step) => input.runtime.resume(step)
         })
       } else {
@@ -497,10 +496,9 @@ export async function prepareNativeActionTest(
     keep = response.keep
     modeAdjustment = response.modeAdjustment
     addedDice = [...response.addedDice, ...(input.windowDice ?? [])]
-    result = await resumeEncounterD20({
+    result = await settleEncounterD20Test({
       continuation,
-      natural: response.value,
-      addedDice,
+      roll: { natural: response.value, addedDice },
       mayAddDice,
       resume: (step) => input.runtime.resume(step)
     })
@@ -553,10 +551,9 @@ export async function prepareNativeActionTest(
     keep = automatic.keep
     addedDice = automatic.addedDice
     policy = pendingPolicy
-    result = await resumeEncounterD20({
+    result = await settleEncounterD20Test({
       continuation: result.continuation,
-      natural: automatic.value,
-      addedDice,
+      roll: { natural: automatic.value, addedDice },
       mayAddDice,
       resume: (step) => input.runtime.resume(step)
     })
@@ -578,10 +575,9 @@ export async function prepareNativeActionTest(
       resolution: testDieAnswer(result.continuation.request.requestId, input.testDice),
       random
     })
-    result = await resumeEncounterD20({
+    result = await settleEncounterD20Test({
       continuation: result.continuation,
-      natural: die.value,
-      addedDice: [],
+      roll: { natural: die.value, addedDice: [] },
       mayAddDice,
       resume: (step) => input.runtime.resume(step)
     })
@@ -831,10 +827,9 @@ export async function continueNativeActionAfterTest(
       resolution: input.resume.resolution,
       random
     })
-    result = await resumeEncounterD20({
+    result = await settleEncounterD20Test({
       continuation: pending.continuation,
-      natural: response.value,
-      addedDice: response.addedDice,
+      roll: { natural: response.value, addedDice: response.addedDice },
       resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode && response.keep) {
@@ -894,10 +889,9 @@ export async function continueNativeActionAfterTest(
       })
       twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
     }
-    result = await resumeEncounterD20({
+    result = await settleEncounterD20Test({
       continuation: result.continuation,
-      natural: response.value,
-      addedDice: response.addedDice,
+      roll: { natural: response.value, addedDice: response.addedDice },
       resume: (step) => input.runtime.resume(step)
     })
   }
@@ -1127,10 +1121,9 @@ export async function advanceNativeActionGraphs(input: {
         roller: actionRequestRoller({ continuation, policy, bound, twoPhase }),
         ...(phaseReceipts.length ? { phaseReceipts } : {})
       }
-    const resumed = await resumeEncounterD20({
+    const resumed = await settleEncounterD20Test({
       continuation,
-      natural: response.value,
-      addedDice: response.addedDice,
+      roll: { natural: response.value, addedDice: response.addedDice },
       mayAddDice: resolution.kind === 'ROLL_WINDOW' || (next?.dice.length ?? 0) > 0,
       resume: (step) => input.runtime.resume(step)
     })

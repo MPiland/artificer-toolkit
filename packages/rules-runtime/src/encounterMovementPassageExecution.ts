@@ -9,8 +9,8 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
-import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { recordedD20Natural } from './encounterD20Settlement.js'
 import { resolveEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import { executeEncounterMovementPassageContest } from './encounterMovementPassageContest.js'
 import { contestDefenderPolicy } from './encounterOptionalContestActionExecution.js'
@@ -165,7 +165,7 @@ function receipt(input: {
     rollMode: policy.rollMode,
     keep: policy.keep,
     rawFaces: [...rawFaces],
-    selectedNatural: rollModeKeptFace(policy.keep, rawFaces),
+    selectedNatural: recordedD20Natural({ keep: policy.keep, rawFaces }),
     modifier: policy.modifier,
     total
   })

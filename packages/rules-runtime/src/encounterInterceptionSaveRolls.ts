@@ -1,3 +1,5 @@
+import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
+
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   rollModeCapabilityRegistry,
@@ -10,7 +12,7 @@ import { EncounterValidationError } from './encounterErrors.js'
 
 /**
  * The target with each save its damage interceptions ask rolled once, before any blow lands: the
- * holder's saving throw for the authored ability with its roll mode, so the planner and the fold
+ * holder's saving throw for the authored ability with its roll mode and added dice (D156), so the planner and the fold
  * settle the same die. A target none of whose interceptions ask a save draws nothing. A condition
  * that fails the save outright is not read here.
  */
@@ -31,17 +33,24 @@ export function withInterceptionSaveRolls<
       const row = rows.find((entry) => entry.abilityDefinitionId === abilityDefinitionId)
       if (!row) throw new EncounterValidationError('A damage interception save has no ability.')
       // No request stands behind this save: the server rolls it under the holder's derived mode.
-      const { natural } = settleEncounterD20Answer({
+      const { natural, addedDice } = settleEncounterD20Answer({
         gameSystemId,
         d20: {
           rollMode: row.rollMode,
-          keep: rollModeCapabilityRegistry.rollModeKeep({ gameSystemId, rollMode: row.rollMode })
+          keep: rollModeCapabilityRegistry.rollModeKeep({ gameSystemId, rollMode: row.rollMode }),
+          addedDice: savingThrows.addedDice(
+            target.targetDerivedFacts.savingThrowAddedDice,
+            row.abilityDefinitionId
+          )
         },
         answer: { kind: 'AUTO_ROLL', requestId: interception.effectId },
         rollD20: () => random(20) + 1,
         random
       })
-      return { ...interception, saveRoll: { rawDie: natural, addedTotal: row.modifier } }
+      return {
+        ...interception,
+        saveRoll: { rawDie: natural, addedTotal: row.modifier + d20AddedDiceTotal(addedDice) }
+      }
     })
   }
 }

@@ -13,6 +13,8 @@ import {
   withRecordedInterceptionSaveRolls
 } from '../encounterInterceptionSaveRolls.js'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
+import { savingThrowCapabilityRegistry } from '../platformPolicyModules.js'
+import { DND5E_CONSTITUTION_ABILITY_DEFINITION_ID } from '../systems/dnd5e/concentrationPolicy.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { srdCreatureActor, srdCreatureTarget, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
@@ -136,6 +138,37 @@ describe('feature-held damage interceptions on SRD Creatures (SPELLS-33.T4i2b)',
     })
     // The d20 is the draw plus one; the Zombie's Constitution 16 adds +3.
     expect(target.damageInterceptions[0]?.saveRoll).toEqual({ rawDie: 9, addedTotal: 3 })
+    expect(draws).toEqual([])
+  })
+
+  it('keeps the holder advantage and adds its saving-throw dice', () => {
+    const base = srdCreatureTarget(
+      srdCreatureActor({ id: testUuid(0x5007), creature: srdCreature('Zombie') })
+    )
+    const rows = savingThrowCapabilityRegistry.require(DND5E_SYSTEM_ID).holderSaves(base)
+    const draws = [3, 8, 2]
+    const target = withInterceptionSaveRolls({
+      gameSystemId: DND5E_SYSTEM_ID,
+      target: {
+        ...base,
+        targetDerivedFacts: {
+          ...base.targetDerivedFacts,
+          savingThrowDefinitions: rows.map((row) =>
+            row.abilityDefinitionId === DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+              ? { ...row, rollMode: 'ADVANTAGE' }
+              : row
+          ),
+          savingThrowAddedDice: {
+            [DND5E_CONSTITUTION_ABILITY_DEFINITION_ID]: [
+              { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
+            ]
+          }
+        }
+      },
+      random: () => draws.shift() ?? 0
+    })
+    // Advantage keeps the higher of 4 and 9; Constitution +3 and the d4's 3 add 6.
+    expect(target.damageInterceptions[0]?.saveRoll).toEqual({ rawDie: 9, addedTotal: 6 })
     expect(draws).toEqual([])
   })
 

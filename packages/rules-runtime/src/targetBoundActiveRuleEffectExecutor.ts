@@ -36,7 +36,6 @@ import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPol
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   rollModeKeepFaceCount,
-  rollModeKeptFace,
   type RollModeKeep
 } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { EncounterConflictError } from './encounterErrors.js'
@@ -48,8 +47,11 @@ import {
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
-import { resumeEncounterD20 } from './encounterD20AddedDice.js'
-import { settleEncounterD20Answer } from './encounterD20Settlement.js'
+import {
+  recordedD20Natural,
+  settleEncounterD20Answer,
+  settleEncounterD20Test
+} from './encounterD20Settlement.js'
 import {
   d20AddedDiceTotal,
   type D20RolledAddedDieDto
@@ -551,7 +553,7 @@ function d20EvidenceForCompletion(input: {
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 raw faces are invalid.'
     )
-  const selectedNatural = rollModeKeptFace(keep, rawFaces)
+  const selectedNatural = recordedD20Natural({ keep, rawFaces })
   if (
     selectedNatural !== entry.evidence.value ||
     execution.outputs.total !== selectedNatural + policy.modifier + d20AddedDiceTotal(addedDice)
@@ -815,10 +817,9 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
           value: resolution.value
         })
       })
-    : await resumeEncounterD20({
+    : await settleEncounterD20Test({
         continuation: input.continuation,
-        natural: rollModeKeptFace(roll!.keep, roll!.rawFaces),
-        addedDice: roll!.addedDice,
+        roll: { natural: recordedD20Natural(roll!), addedDice: roll!.addedDice },
         mayAddDice: input.afterWindow,
         resume: resumeStep
       })

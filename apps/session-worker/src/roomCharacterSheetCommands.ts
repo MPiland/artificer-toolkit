@@ -35,6 +35,10 @@ import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/ch
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { sheetCommandConditionMaximum } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
 import { sheetCommandReachesConditionDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
+import {
+  freezeD20Context,
+  settleEncounterD20Answer
+} from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import {
   assertCampaignGmSheetCommandAllowed,
@@ -254,7 +258,22 @@ export async function executeRoomCharacterSheetCommand(input: {
       Date.parse(initial.active.play.updatedAt) + 1
     )
   ).toISOString()
-  const deathSaveDie = command.type === 'ROLL_DEATH_SAVE' ? input.random(20) + 1 : undefined
+  // A Sheet death save is one auto-rolled d20 in the Normal mode, settled like every other d20.
+  const deathSaveDie =
+    command.type === 'ROLL_DEATH_SAVE'
+      ? settleEncounterD20Answer({
+          gameSystemId: campaign.gameSystemId,
+          d20: freezeD20Context({
+            gameSystemId: campaign.gameSystemId,
+            rollMode: 'NORMAL',
+            contributors: [],
+            modifier: 0
+          }),
+          answer: { kind: 'AUTO_ROLL', requestId: command.commandId },
+          rollD20: () => input.random(20) + 1,
+          random: input.random
+        }).natural
+      : undefined
   const readCurrentDefinition = (definitionId: string) =>
     ctx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
   const conditionDeath = await sheetCommandReachesConditionDeath({

@@ -343,9 +343,11 @@ and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn on
 test freezes its roller facts with `freezeD20Context` (mode, contributors and their checksum, modifier,
 added dice and floor when present); `settleEncounterD20Answer` settles an answer against that context
 (faces, kept mode, added dice); `settleEncounterD20Test` resumes the test graph with the kept natural
-and the added dice's total and verifies the System-named `rawDie`, `addedTotal` and `total` output
-ports. Tests whose graph can pause again or is verified through its trace (action phases, target-bound
-effects) resume through `resumeEncounterD20` directly. The same module owns an action's d20 policy
+and the added dice's total and, for a test that names them, verifies the System-named `rawDie`,
+`addedTotal` and `total` output ports. Tests whose graph can pause again or is verified through its
+trace (action phases, contests, target-bound effects) resume through the same function without
+naming ports; nothing else resumes a d20 graph. `recordedD20Natural` reads the natural a stored
+roll kept from its faces and keep, for a stage that replays or checks one. The same module owns an action's d20 policy
 (`deriveEncounterActionD20Policy`, `nestedOutcomeD20Policy`) and the evidence sealed from it
 (`buildEncounterActionD20Evidence`, `buildEncounterSaveD20Evidence`,
 `requireEncounterSaveD20EvidenceTrace`). **One home each (QUALITY-10.1, current).** A d20 test graph
@@ -355,8 +357,8 @@ takes its d20 evidence node and added-dice node from `dnd5eD20Node` and `dnd5eD2
 contributor checksum and modifier. `mergeCanonicalD20Contributors` is the one contributor merge: it
 sorts canonically and keeps one copy of a contributor that two producers name. The `lint:ratchets` d20
 ratchet ([CI validation](ci-validation.md)) fails on a d20 settled outside these modules;
-`scripts/d20SettlementAllowlist.json` lists the modules that still resume or keep a d20 face
-themselves, and that list only shrinks. D20
+`scripts/d20SettlementAllowlist.json` names those settlement modules, and its `handSettled` list of
+modules that resume or keep a d20 face themselves is empty (QUALITY-10.T2) and stays empty. D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
 `rollModeReasons` in `packages/encounter-persistence`). **Typed contributor source (RELIABILITY-6.9,

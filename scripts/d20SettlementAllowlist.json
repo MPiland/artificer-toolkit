@@ -5,16 +5,5 @@
     "packages/rules-runtime/src/encounterSightGovernedD20.ts": "Settles a d20 whose roll mode sight decides, for the settlement.",
     "packages/rules-runtime/src/systems/dnd5e/d20AddedDiceGraph.ts": "The one d20 graph builder: the d20 evidence node and its added-dice node."
   },
-  "handSettled": [
-    "apps/apis/convex/characters/sheetCommands.ts",
-    "apps/session-worker/src/nativeTargetOutcome.ts",
-    "apps/session-worker/src/roomCharacterSheetCommands.ts",
-    "packages/encounter-persistence/src/evidenceRolls.ts",
-    "packages/rules-runtime/src/encounterActionExecution.ts",
-    "packages/rules-runtime/src/encounterActionRetainedEvidence.ts",
-    "packages/rules-runtime/src/encounterActionTestBoundary.ts",
-    "packages/rules-runtime/src/encounterMovementPassageExecution.ts",
-    "packages/rules-runtime/src/encounterOptionalContestActionExecution.ts",
-    "packages/rules-runtime/src/targetBoundActiveRuleEffectExecutor.ts"
-  ]
+  "handSettled": []
 }

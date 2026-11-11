@@ -55,6 +55,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import {
+  freezeD20Context,
+  settleEncounterD20Answer
+} from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { sheetCommandConditionMaximum } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
 import { sheetCommandReachesConditionDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
@@ -230,7 +234,22 @@ export async function executeCharacterSheetCommand(
     throw new Error('Character Sheet changed; refresh before applying this command.')
 
   const command = input.command
-  const deathSaveDie = command.type === 'ROLL_DEATH_SAVE' ? nextRollInt(20) + 1 : undefined
+  // A Sheet death save is one auto-rolled d20 in the Normal mode, settled like every other d20.
+  const deathSaveDie =
+    command.type === 'ROLL_DEATH_SAVE'
+      ? settleEncounterD20Answer({
+          gameSystemId: initial.character.systemId,
+          d20: freezeD20Context({
+            gameSystemId: initial.character.systemId,
+            rollMode: 'NORMAL',
+            contributors: [],
+            modifier: 0
+          }),
+          answer: { kind: 'AUTO_ROLL', requestId: command.commandId },
+          rollD20: () => nextRollInt(20) + 1,
+          random: nextRollInt
+        }).natural
+      : undefined
   const extraDefaults = {
     creatures: new Map<string, Pick<CreatureAuthored, 'hitPoints' | 'hitDice'>>(),
     vehicles: new Map<string, Pick<VehicleAuthored, 'hitPoints'>>()

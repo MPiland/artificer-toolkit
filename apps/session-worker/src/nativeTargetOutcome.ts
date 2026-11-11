@@ -8,8 +8,10 @@ import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-r
 import { resolveEncounterActionPhaseExecution } from '@artificer-toolkit/rules-runtime/encounterActionPhaseExecution'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { resumeEncounterD20 } from '@artificer-toolkit/rules-runtime/encounterD20AddedDice'
-import { actionResponse } from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
+import {
+  actionResponse,
+  settleEncounterD20Test
+} from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import type {
   EncounterD20RollMode,
   EncounterEvidenceAnswer
@@ -136,10 +138,9 @@ export async function planNativeTargetOutcome(
       resolution,
       random: input.random
     })
-    return resumeEncounterD20({
+    return settleEncounterD20Test({
       continuation,
-      natural: response.value,
-      addedDice: response.addedDice,
+      roll: { natural: response.value, addedDice: response.addedDice },
       resume: (step) => runtime.resume(step)
     })
   }
