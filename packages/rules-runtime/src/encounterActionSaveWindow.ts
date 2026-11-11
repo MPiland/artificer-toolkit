@@ -21,7 +21,7 @@ import {
   type EncounterD20WindowDie,
   type EncounterD20WindowHeldDie
 } from './encounterD20Window.js'
-import type { SettledActionResponse } from './encounterD20Settlement.js'
+import { d20EvidenceMatchesPins, type SettledActionResponse } from './encounterD20Settlement.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
 /** A roller's answer to a d20 window, before it settles into the roll the window froze. */
@@ -107,9 +107,7 @@ export function windowedSaveResponse(input: {
   if (
     !policy ||
     d20.requestId !== input.continuation.request.requestId ||
-    d20.derivedRollMode !== policy.rollMode ||
-    d20.contributorChecksum !== policy.contributorChecksum ||
-    d20.modifier !== policy.modifier
+    !d20EvidenceMatchesPins(d20, policy)
   )
     throw new Error('The action TEST evidence is stale.')
   return {

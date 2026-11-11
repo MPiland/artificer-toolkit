@@ -2140,6 +2140,50 @@
             }
           ],
           "internalReason": "Authorization hardening: proved by the PLATFORM-27.1 coverage test and the PLATFORM-27.2 refusal tests; it adds no user flow."
+        },
+        {
+          "id": "PLATFORM-28",
+          "title": "Stories show real seeded data",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [
+            "User approval 2026-11-11 (D187 growth, D218): Storybook reads seeded data from the CI throwaway Convex backend instead of hand-typed DTO fixtures"
+          ],
+          "acs": [
+            {
+              "id": "PLATFORM-28.1",
+              "status": "TODO",
+              "origin": [
+                "User approval 2026-11-11 (D187 growth, D218): Storybook reads seeded data from the CI throwaway Convex backend instead of hand-typed DTO fixtures"
+              ],
+              "text": "Page and route stories read seeded data from a real Convex backend, locally and in CI, through createAppQueryClient(convex); writes are spied with fn() and never sent; state stories (loading, error, empty, after-write) are composed from their base story with one single-query override each and reuse its play steps; no hand-typed DTO fixture remains; and a Storybook run logs no \"No queryFn\" message."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 5,
+            "size": 8,
+            "after": ["QUALITY-16.T1"]
+          },
+          "tasks": [
+            {
+              "id": "PLATFORM-28.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-16.T1"]
+              },
+              "text": "Seam audit first (stories that query, write, need a test identity or a seed-impossible state; fixture modules; CI setup reuse with Browser journeys), then split: wire Storybook to the seeded backend and the CI stack, migrate story files by domain, delete the DTO fixtures.",
+              "note": "Re-split into domain tasks at the seam audit; re-score WSJF then."
+            }
+          ],
+          "internalReason": "Developer tooling: changes where Storybook stories get their data, not a product flow."
         }
       ]
     },
@@ -25547,17 +25591,33 @@
           "tasks": [
             {
               "id": "QUALITY-10.T1",
+              "status": "DONE",
+              "closes": ["QUALITY-10.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-4.T1"]
+              },
+              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet.",
+              "mergedAt": "2026-11-11T17:03:38Z",
+              "proof": "m689 (6300420f3) from slice tip affd108ac: Tests 43051035138 (Storybook jobs rerun three times past a GitHub-runner DNS failure resolving Ubuntu mirrors), Live 43053942776, Browser journeys 43051035556 green. Increment of QUALITY-10.1: one contributor merge (duplicate sourceId/grantId/domainKey/influence contributors collapse to the earliest group copy instead of throwing), one evidence-pin check (d20EvidenceMatchesPins), one d20 evidence node builder (d20AddedDiceGraph), and the shrink-only d20 settlement ratchet in scripts/sourceRatchets.mjs with scripts/d20SettlementAllowlist.json. Red proof: encounterAttackBelief.test.ts RED (2 of 23), sourceRatchets.test.mjs RED (24 of 26). Remaining: the ten handSettled modules (QUALITY-10.T2)."
+            },
+            {
+              "id": "QUALITY-10.T2",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-10.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
-                "after": ["QUALITY-4.T1"]
+                "size": 3,
+                "after": ["QUALITY-10.T1"]
               },
-              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Route the ten modules still on the d20SettlementAllowlist handSettled list through settleEncounterD20Test and remove each entry; the retained-evidence and Concentration-response pin checks read d20EvidenceMatchesPins; prove the interception save keeps advantage and its added dice (addedTotal currently takes only row.modifier).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Split at review 2026-11-11 from QUALITY-10.T1 within AC QUALITY-10.1 (no scope growth); WSJF size re-scored 5 -> 3 + 3."
             }
           ]
         },

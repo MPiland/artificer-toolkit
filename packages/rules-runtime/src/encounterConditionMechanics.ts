@@ -5,7 +5,6 @@ import type {
   ConditionMechanicDto,
   PinnedConditionRuleStateDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleState'
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { measureSceneTokenFootprintDistance } from '@artificer-toolkit/shared/vtt/sceneCombatPerception'
 import { type SceneGrid } from '@artificer-toolkit/shared/vtt/scene'
 
@@ -14,7 +13,10 @@ import {
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import {
+  mergeCanonicalD20Contributors,
+  type EncounterRelationshipD20Contributor
+} from './encounterRelationshipActionFacts.js'
 import {
   creatureConditionCapabilityRegistry,
   rollModeCapabilityRegistry
@@ -176,7 +178,7 @@ export function applyEncounterConditionMechanics<T extends MovementTarget>(input
                 abilityDefinitionId: String(definition.abilityDefinitionId)
               })
               if (!contributors.length) return definition
-              const merged = uniqueContributors([
+              const merged = mergeCanonicalD20Contributors([
                 ...(definition.contributors as EncounterRelationshipD20Contributor[]),
                 ...contributors
               ])
@@ -241,17 +243,6 @@ function conditionContributor(
   }
 }
 
-function uniqueContributors(
-  contributors: readonly EncounterRelationshipD20Contributor[]
-): EncounterRelationshipD20Contributor[] {
-  return [...contributors]
-    .sort(compareCanonicalD20Contributors)
-    .filter(
-      (contributor, index, sorted) =>
-        index === 0 || compareCanonicalD20Contributors(sorted[index - 1]!, contributor) !== 0
-    )
-}
-
 /** Without a Scene to measure on, a melee attack is within the range and a ranged one beyond it. */
 function attackInRange(range: ConditionMechanicAttackRangeDto, attack: EncounterConditionAttack) {
   if (range.kind === 'ANY') return true
@@ -270,7 +261,7 @@ export function encounterConditionAttackContributors(input: {
   target: readonly EncounterConditionMechanic[]
   attack: EncounterConditionAttack
 }): EncounterRelationshipD20Contributor[] {
-  return uniqueContributors([
+  return mergeCanonicalD20Contributors([
     ...input.attacker.flatMap(({ conditionDefinitionId, mechanic }) =>
       mechanic.kind === 'D20_ROLL_MODE' && mechanic.roll.kind === 'ATTACKS_BY'
         ? [conditionContributor(conditionDefinitionId, input.attackerActorId, mechanic.influence)]
@@ -303,7 +294,7 @@ function encounterConditionSaveContributors(input: {
   mechanics: readonly EncounterConditionMechanic[]
   abilityDefinitionId: string
 }): EncounterRelationshipD20Contributor[] {
-  return uniqueContributors(
+  return mergeCanonicalD20Contributors(
     input.mechanics.flatMap(({ conditionDefinitionId, mechanic }) =>
       mechanic.kind === 'D20_ROLL_MODE' &&
       mechanic.roll.kind === 'SAVES' &&
@@ -334,7 +325,10 @@ export function withEncounterConditionCheckContributors(input: {
   )
   if (!conditionContributors.length)
     return { contributors: [...input.roll.contributors], rollMode: input.roll.rollMode }
-  const contributors = uniqueContributors([...input.roll.contributors, ...conditionContributors])
+  const contributors = mergeCanonicalD20Contributors([
+    ...input.roll.contributors,
+    ...conditionContributors
+  ])
   return {
     contributors,
     rollMode: rollModeCapabilityRegistry.resolveRollMode({

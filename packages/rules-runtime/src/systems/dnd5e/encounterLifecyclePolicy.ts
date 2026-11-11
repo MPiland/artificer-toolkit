@@ -26,7 +26,7 @@ import type { D20TestDefinitionCapabilityAdapter } from '../../d20TestDefinition
 import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilityStateService.js'
 import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from './reactionEligibilityPolicy.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
-import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { dnd5eAddedDiceFacts, dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 
 const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000e1'
@@ -276,14 +276,7 @@ export function createDnd5eDeathSaveDefinition() {
     id: DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
-      },
-      dnd5eAddedDiceNode('d20')
-    ],
+    nodes: dnd5eD20TestNodes('d20'),
     outputs: {
       rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
       addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' }
@@ -307,14 +300,7 @@ export function createDnd5eCheckDefinition(definitionId: string) {
     id: definitionId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
-      },
-      dnd5eAddedDiceNode('d20')
-    ],
+    nodes: dnd5eD20TestNodes('d20'),
     outputs: {
       rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
       addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' }
