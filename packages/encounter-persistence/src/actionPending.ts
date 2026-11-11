@@ -64,10 +64,13 @@ export async function readNativeActionPending(
       ? escapeRelationshipInputDtoSchema
       : resolveEncounterActionInputDtoSchema
   ).parse(JSON.parse(context.commandJson))
+  // Each committed reaction child moved the occurrence one Run version past its root (D219).
+  const versionsPastRoot = occurrence.expectedEncounterVersion - command.expectedVersion
   if (
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
-    command.expectedVersion !== occurrence.expectedEncounterVersion ||
+    versionsPastRoot < 0 ||
+    versionsPastRoot > (context.reactionChildren?.length ?? 0) ||
     checksumCanonicalJson(command) !== context.commandFingerprint
   )
     throw new Error('Stored Encounter action root mismatch.')

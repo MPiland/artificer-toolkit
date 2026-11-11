@@ -8,6 +8,7 @@ import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtim
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { readEncounterActorDefeated } from './characterStates.js'
+import { countCommittedReactionChildren } from './reactionChildren.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -84,11 +85,20 @@ export async function readNativeEncounterActionAdmission(
     .unique()
   if (replay) {
     presentTimelineEntry(replay)
+    if (replay.commandType !== 'RESOLVE_ACTION') rejectDomain('COMMAND_ID_REUSED')
+    // The root committed one Run version after each reaction child that committed while it was pending (D219).
+    const committedVersion =
+      input.expectedVersion +
+      (await countCommittedReactionChildren(ctx, {
+        encounterId: run.id,
+        rootCommandId: input.commandId,
+        afterVersion: input.expectedVersion,
+        beforeVersion: replay.version
+      }))
     if (
-      replay.commandType !== 'RESOLVE_ACTION' ||
       replay.encounterId !== run.id ||
       replay.actorUserId !== initiatorUserId ||
-      replay.version !== input.expectedVersion + 1 ||
+      replay.version !== committedVersion + 1 ||
       replay.version > state.version ||
       replay.commandFingerprint !== fingerprint
     )
@@ -150,7 +160,7 @@ export async function readNativeEncounterActionAdmission(
       payload.occurrenceId !== occurrence.id ||
       payload.occurrenceVersion !== occurrence.version ||
       metadata.transition !== 'START' ||
-      metadata.expectedAggregateVersion !== input.expectedVersion ||
+      metadata.expectedAggregateVersion !== committedVersion ||
       metadata.optionalCombatSnapshotChecksum !== root.optionalCombatSnapshotChecksum ||
       replayReceipt.occurrence?.status !== 'COMPLETE' ||
       replayReceipt.occurrence.occurrenceId !== occurrence.id ||
@@ -275,7 +285,10 @@ export async function readNativeEncounterActionAdmission(
       await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
     }
   }
-  if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
+  // A pending action is pinned to its occurrence, which each committed reaction child moved past
+  // the root command's own version (D219).
+  if (state.version !== (resume?.occurrence.expectedEncounterVersion ?? input.expectedVersion))
+    rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
@@ -288,7 +301,13 @@ export async function readNativeEncounterActionAdmission(
     )
     .take(2)
   if (pending.length > 1) throw new Error('Stored Encounter occurrence state is invalid.')
-  if (pending.length === 1) {
+  // A reaction's own action runs while the action it was chosen against is pending; the system-trigger
+  // admission above proved that pending action records it.
+  const reactionChildOf =
+    !resume && systemTrigger?.trigger === 'REACTION'
+      ? systemTrigger.parentCommandId.toLowerCase()
+      : null
+  if (pending.length === 1 && pending[0]!.rootCommandId !== reactionChildOf) {
     const occurrence = pending[0]!
     if (occurrence.rootCommandId !== input.commandId) rejectDomain('PENDING_DECISION')
     const { context } = await readNativePendingRoot(ctx, occurrence)

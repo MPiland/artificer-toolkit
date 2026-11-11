@@ -92,3 +92,31 @@ export function systemTriggerSelfCommand(input: {
     systemTrigger: { parentCommandId: input.parentCommandId, trigger: input.trigger }
   }
 }
+
+/**
+ * The root command for the action of a reaction its holder chose against a pending action (D219):
+ * the holder's own action at the creature the reaction names, raised by that pending action's root
+ * command. Admission proves it against the pending action's record of this command id.
+ */
+export function systemTriggerReactionCommand(input: {
+  encounterId: string
+  expectedVersion: number
+  parentCommandId: string
+  holderActorId: string
+  actionId: string
+  targetActorId: string
+}): ResolveEncounterActionInputDto {
+  return {
+    type: 'RESOLVE_ACTION',
+    encounterId: input.encounterId,
+    expectedVersion: input.expectedVersion,
+    commandId: systemTriggerCommandId(input.parentCommandId, input.holderActorId, input.actionId),
+    actorId: input.holderActorId,
+    actionId: input.actionId,
+    target: { kind: 'ACTOR', actorId: input.targetActorId },
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
+    sceneContext: null,
+    systemTrigger: { parentCommandId: input.parentCommandId, trigger: 'REACTION' }
+  }
+}

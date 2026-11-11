@@ -22,6 +22,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { changedFields } from './documents.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
+import { repinReactionChildParent } from './reactionChildren.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { insertRunCommand } from './timelineEntries.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
@@ -106,7 +107,8 @@ export type ApplyEncounterSummonTokens = (input: {
 
 /**
  * Records a committed action: advances the Run, stores the root's one receipt and inserts the one
- * RESOLVE_ACTION command a replay and an undo find it by.
+ * RESOLVE_ACTION command a replay and an undo find it by. A reaction's own action also moves the
+ * pending action it answers to the Run version it produced (D219).
  */
 export async function recordActionRoot(
   ctx: EncounterWriteContext,
@@ -165,6 +167,14 @@ export async function recordActionRoot(
     stateChecksum: checksumCanonicalJson(nextState),
     updatedAt: input.occurredAt
   })
+  if (command.systemTrigger?.trigger === 'REACTION')
+    await repinReactionChildParent(ctx, {
+      campaignId: state.campaignId,
+      encounterId: state.id,
+      parentCommandId: command.systemTrigger.parentCommandId.toLowerCase(),
+      childCommandId: command.commandId.toLowerCase(),
+      version: nextState.version
+    })
   await ctx.db.insert(
     'encounterRuleReceipts',
     encounterStoredRuleReceiptSchema.parse({

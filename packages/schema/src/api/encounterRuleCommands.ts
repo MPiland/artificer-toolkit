@@ -324,8 +324,9 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
      */
     delegatingActorId: z.optional(uuidSchema),
     /**
-     * Set only on a root the rules raise themselves, never on one a player submits: the committed
-     * command whose result raised it. Admission proves the link against that command's receipt.
+     * Set only on a root the rules raise themselves, never on one a player submits: the command
+     * whose result raised it. Admission proves the link against that command's receipt, or, for a
+     * REACTION, against the pending parent's own record of the child.
      */
     systemTrigger: z.optional(
       z.strictObject({
@@ -333,9 +334,10 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
         /**
          * Absent for the default, reaching 0 hit points. RULE: an optional combat rule's own action,
          * raised by the rule's failed save the parent receipt records. LEGENDARY_ACTION: a delegated
-         * Legendary Action option, raised by the ADVANCE_TURN that selected it.
+         * Legendary Action option, raised by the ADVANCE_TURN that selected it. REACTION: the action
+         * of a reaction its holder chose, raised by the pending action that offered it (D219).
          */
-        trigger: z.optional(z.enum(['START_OF_TURN', 'RULE', 'LEGENDARY_ACTION']))
+        trigger: z.optional(z.enum(['START_OF_TURN', 'RULE', 'LEGENDARY_ACTION', 'REACTION']))
       })
     ),
     acceptedWieldConflict: z._default(
