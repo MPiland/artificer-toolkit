@@ -25516,7 +25516,7 @@
           "tasks": [
             {
               "id": "QUALITY-8.T1a1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25525,9 +25525,10 @@
                 "size": 3,
                 "after": ["QUALITY-7.T1"]
               },
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "note": "Split 2026-11-11 from QUALITY-8.T1a at its fence trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
-              "text": "REACTION system-trigger seam and admission: the parent is persisted pending with the child command id before the child commits; the child is admitted by that record, and its commit re-pins the parent occurrence version; resume fences read the occurrence version; the root replay fence counts committed REACTION children. Persistence-level tests."
+              "text": "REACTION system-trigger seam and admission: the parent is persisted pending with the child command id before the child commits; the child is admitted by that record, and its commit re-pins the parent occurrence version; resume fences read the occurrence version; the root replay fence counts committed REACTION children. Persistence-level tests.",
+              "mergedAt": "2026-11-11T19:04:33Z",
+              "proof": "m692 (2d96fddd5, fast path) from slice tip 4bf446cad: Tests 43080224989 (red proof job green), Live 43080224858, Browser journeys 43080224834 green. REACTION system trigger (schema enum, systemTriggerReactionCommand); the pending context records reactionChildren and only a recorded child is admitted while its parent is pending (reactionChildren.ts); the child commit re-pins the parent occurrence version; resume fences read the occurrence version; the root replay fence counts committed REACTION children from the Run commands. Proof: packages/encounter-persistence/src/__tests__/reactionChildren.test.ts. Persisted pending context gained an optional field (no reset needed)."
             },
             {
               "id": "QUALITY-8.T1a2",
