@@ -25532,7 +25532,7 @@
             },
             {
               "id": "QUALITY-8.T1a2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25541,13 +25541,14 @@
                 "size": 3,
                 "after": ["QUALITY-8.T1a1"]
               },
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "note": "Split 2026-11-11 from QUALITY-8.T1a2 at its seam trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Room-internal ACTION_RESUME request kind and admission; imposesRollModeOnTriggeringRoll on the capability registry; the REACTION window admits a reaction child; room flow choice, child commit, resume; reaction spent at choice with the resolved mode recorded; the facts-only roll-mode shortcut is deleted."
+              "text": "Room-internal ACTION_RESUME request kind and admission; imposesRollModeOnTriggeringRoll on the capability registry; the REACTION window admits a reaction child; room flow choice, child commit, resume; reaction spent at choice with the resolved mode recorded; the facts-only roll-mode shortcut is deleted.",
+              "mergedAt": "2026-11-11T23:15:27Z",
+              "proof": "m693 (cbea88f83, fast path) from slice tip 65acb1c5d: Tests 43115420155, Live 43115420138, Browser journeys 43115420195 green. Room-internal RESUME_ACTION/ACTION_RESUME (client frame schema rejects it; resume admission requires a committed, unresumed child); choice, child and resume run in one room turn; roll mode read from the committed child via imposesRollModeOnTriggeringRoll; facts-only shortcut deleted; one reaction spend, owned by the child action economy charge. Red proof: nativeRoomProtection.test.ts RED (3 of 10), actionPendingOffers.test.ts RED (2 of 29), reactionChildren.test.ts RED (6 of 20), live-session-contracts.test.ts RED-IMPORT. Persisted shape: reactionChildren[].rollMode."
             },
             {
               "id": "QUALITY-8.T1a2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25557,11 +25558,13 @@
                 "after": ["QUALITY-8.T1a2a"]
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1a2 at its seam trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Undo and void of the parent cascade to its committed reaction child: one undo rule (a receipt belongs to the occurrence that recorded it) and the occurrenceVoid premise; docs."
+              "text": "Undo and void of the parent cascade to its committed reaction child: one undo rule (a receipt belongs to the occurrence that recorded it) and the occurrenceVoid premise; docs.",
+              "mergedAt": "2026-11-11T23:15:27Z",
+              "proof": "m693 (cbea88f83, fast path) from slice tip 65acb1c5d: Tests 43115420155, Live 43115420138, Browser journeys 43115420195 green. Undo groups a root with its REACTION children and attributes receipts by occurrence; a void of the pending parent reverts its committed reactions in the same transaction (refused whole with REVERT_UNAVAILABLE when they are not the latest commands). Follow-up for T1c: undo treats a REACTION child that is the last root as having an uncommitted parent; post-commit children must revisit it."
             },
             {
               "id": "QUALITY-8.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -25571,7 +25574,8 @@
                 "after": ["QUALITY-8.T1a2b"]
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Persisted SUSPENDED occurrence state for a parent with one pending child; occurrence owner recorded at creation; a homebrew reaction whose outcome sits behind a save proves the four resume modes."
+              "text": "Persisted SUSPENDED occurrence state for a parent with one pending child; occurrence owner recorded at creation; a homebrew reaction whose outcome sits behind a save proves the four resume modes.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1c",
@@ -25787,7 +25791,7 @@
         {
           "id": "QUALITY-13",
           "title": "One per-target driver for single, list and area actions",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -25799,7 +25803,7 @@
           "acs": [
             {
               "id": "QUALITY-13.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R10.",
               "text": "Single-target, chosen-list and area actions run one per-target driver and one commit skeleton; a chosen-list action offers a reaction and a save window; area tests are unchanged."
@@ -25808,7 +25812,7 @@
           "tasks": [
             {
               "id": "QUALITY-13.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -25817,7 +25821,8 @@
                 "size": 8,
                 "after": ["QUALITY-8.T1a2b", "QUALITY-10.T1"]
               },
-              "text": "One per-target driver for the three target shapes."
+              "text": "One per-target driver for the three target shapes.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T2",
