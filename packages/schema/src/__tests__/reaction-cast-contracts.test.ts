@@ -108,9 +108,9 @@ describe('cast reaction offers', () => {
     expect(parses({ ...offer, kind: 'COUNTER', reactions: [castPin(1)] })).toBe(true)
   })
 
-  it('holds the reactions of one other trigger the action resumes from, never mixed (QUALITY-7.1)', () => {
+  it('holds an ATTACK_ON_OTHER offer of ATTACK_ON_OTHER pins only, under its own kind (QUALITY-7.1)', () => {
     const offer = (...triggers: EncounterReactionPinDto['trigger'][]) => ({
-      kind: 'TARGETED_SELF' as const,
+      kind: 'ATTACK_ON_OTHER' as const,
       reactions: triggers.map((trigger, index) => castPin(index + 1, trigger)),
       declinedReactorActorIds: []
     })
@@ -118,6 +118,9 @@ describe('cast reaction offers', () => {
     expect(parses(offer('ATTACK_ON_OTHER', 'ATTACK_ON_OTHER'))).toBe(true)
     expect(parses(offer('ATTACK_ON_OTHER', 'TARGETED_SELF'))).toBe(false)
     expect(parses({ ...offer('ATTACK_ON_OTHER'), kind: 'COUNTER' })).toBe(false)
+    // The aimed offer does not travel under the targeted kind, nor the targeted offer under the aimed.
+    expect(parses({ ...offer('ATTACK_ON_OTHER'), kind: 'TARGETED_SELF' })).toBe(false)
+    expect(parses(offer('TARGETED_SELF'))).toBe(false)
   })
 
   it('holds a chain only with a counter standing, and the declines it outranks', () => {

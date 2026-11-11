@@ -10,7 +10,7 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { type LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
@@ -115,8 +115,8 @@ export type ReachCastResume = {
   answer: NativeCastReactionAnswer
   initiatorUserId: string
   currentnessChecksum: string
-  /** The counters that failed against the cast before this answer (D127). */
-  failedCounters: readonly EncounterFailedCounterDto[]
+  /** The reactions used against the cast before this answer (D127). */
+  usedReactions: readonly EncounterUsedReactionDto[]
 }
 
 /**
@@ -727,7 +727,7 @@ export function reachCastPause(
     occurrenceId: string
     occurredAt: string
     answer: NativeCastReactionAnswer | null
-    failedCounters: readonly EncounterFailedCounterDto[]
+    usedReactions: readonly EncounterUsedReactionDto[]
   }
 ) {
   const { scene } = cast.reach
@@ -765,7 +765,7 @@ export function reachCastPause(
     userId: input.initial.expectedUserId,
     answer: cast.answer,
     resumed: input.castResume !== undefined,
-    failedCounters: cast.failedCounters
+    usedReactions: cast.usedReactions
   })
 }
 
@@ -777,7 +777,7 @@ export type ReachCastWindow = {
   /** The answer that resumed the cast; null when it opened just now. */
   response: ResolveRuleOccurrenceInputDto | null
   initiatorUserId: string
-  failedCounters: readonly EncounterFailedCounterDto[]
+  usedReactions: readonly EncounterUsedReactionDto[]
   pause: ReturnType<typeof reachCastPause>
 }
 
@@ -820,7 +820,7 @@ export async function openReachCastWindow(
     occurrenceId,
     occurredAt,
     answer: castResume?.answer ?? null,
-    failedCounters: castResume?.failedCounters ?? []
+    usedReactions: castResume?.usedReactions ?? []
   })
   const advanced = await pause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (advanced.kind !== 'NONE')
@@ -850,7 +850,7 @@ export async function openReachCastWindow(
       occurredAt,
       response: castResume?.response ?? null,
       initiatorUserId,
-      failedCounters: advanced.failedCounters,
+      usedReactions: advanced.usedReactions,
       pause
     } satisfies ReachCastWindow
   }

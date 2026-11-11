@@ -302,7 +302,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       command,
       caster,
       occurredAt: window.occurredAt,
-      failedCounters: await window.pause.planFailedCounters(window.failedCounters),
+      usedReactions: await window.pause.planUsedReactions(window.usedReactions),
       movementTargets,
       kept: reached.map(({ actor, prepared }) => ({ actor, target: { prepared } })),
       lead: lead.prepared,
@@ -445,7 +445,7 @@ export async function sealReachSaves(
     placesSummon: Boolean(reach.summon),
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
-    ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),
+    ...(window.usedReactions.length > 0 ? { usedReactions: [...window.usedReactions] } : {}),
     ...(unaffectedActorIds.length > 0 ? { unaffectedActorIds: [...unaffectedActorIds] } : {}),
     targets
   })
@@ -1112,21 +1112,21 @@ export async function planNativeLiveEncounterAreaCommit(
 
   const resumed = input.response ?? input.removal
   const occurredAt = new Date().toISOString()
-  const sealedFailedCounters = context.failedCounters ?? []
+  const sealedUsedReactions = context.usedReactions ?? []
   const plan = await completeAreaCommit({
     input,
     command,
     caster,
     occurredAt,
-    failedCounters: await reachCastPause(input, {
+    usedReactions: await reachCastPause(input, {
       reach: base,
       lead,
       chosenActorIds: null,
       occurrenceId: areaOccurrenceId,
       occurredAt,
       answer: null,
-      failedCounters: sealedFailedCounters
-    }).planFailedCounters(sealedFailedCounters),
+      usedReactions: sealedUsedReactions
+    }).planUsedReactions(sealedUsedReactions),
     movementTargets: base.movementTargets,
     kept,
     lead,

@@ -105,7 +105,7 @@ export async function planAreaOutcomes(args: {
   consumedGrants: ReturnType<typeof actionEndedEffects>['consumedGrants']
   sourceReleases: ReturnType<typeof actionEndedEffects>['sourceReleases']
   casterCounterConsumptions: ReturnType<typeof counterConsumptionsOf>
-  failedReactorSlots: ReadonlySet<string>
+  usedReactorSlots: ReadonlySet<string>
   discoverResistance: (
     prepared: AreaPrepared
   ) => ReturnType<typeof discoverNativeLegendaryResistance>
@@ -133,7 +133,7 @@ export async function planAreaOutcomes(args: {
     consumedGrants,
     sourceReleases,
     casterCounterConsumptions,
-    failedReactorSlots,
+    usedReactorSlots,
     discoverResistance
   } = args
   const { state } = input
@@ -287,8 +287,8 @@ export async function planAreaOutcomes(args: {
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
-    const carriesFailedCounterSpend =
-      actor.id !== caster.id && failedReactorSlots.has(actor.id) && firstEntry
+    const carriesUsedReactionSpend =
+      actor.id !== caster.id && usedReactorSlots.has(actor.id) && firstEntry
     const enterForm =
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
@@ -308,7 +308,7 @@ export async function planAreaOutcomes(args: {
         grantedMaximumHitPoints: effects.hitPointMaximumRaise,
         sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
         forceTargetVersionAdvance:
-          prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesFailedCounterSpend),
+          prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesUsedReactionSpend),
         ...(carriesSpend
           ? { sourceReleases, counterSpellConsumptions: casterCounterConsumptions }
           : {}),
@@ -368,7 +368,7 @@ export async function planAreaOutcomes(args: {
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
-        targetReactorSpend: carriesFailedCounterSpend,
+        targetReactorSpend: carriesUsedReactionSpend,
         reactionEffectTransitions: projectNativeActionEffectTransitions({
           state: null,
           recurring: reactionRecord ?? null,

@@ -204,19 +204,20 @@ export const encounterCastReactionCheckDtoSchema: z.ZodMiniType<EncounterCastRea
  * outer level needs when the chain resolves (the declines to the cast itself, and the level of the last
  * counter, which is the cast the reactions now answer).
  *
- * `kind` names what is offered: `COUNTER` offers counters to the cast (`SPELL_CAST` reactions);
- * `TARGETED_SELF` offers a creature the reactions it holds, of one other trigger, that the action resumes
- * from once used: those of a creature the cast names as a target (Shield against Magic Missile), which
- * let the cast resolve against the reactor as the reaction leaves it, or those of a creature beside an
- * attack aimed at another (`ATTACK_ON_OTHER`), which adjust the roll the attack then makes.
+ * `kind` names what is offered: `COUNTER` offers counters to the cast (`SPELL_CAST` reactions). The
+ * other kinds carry the trigger of the reactions they offer, which the action resumes from once one is
+ * used: `TARGETED_SELF` offers a creature the cast names as a target its reactions (Shield against Magic
+ * Missile), and the cast then resolves against the reactor as the reaction leaves it; `ATTACK_ON_OTHER`
+ * offers a creature beside an attack aimed at another its reactions, which adjust the roll the attack
+ * then makes.
  */
 export type EncounterCastReactionOfferDto = {
-  kind: 'COUNTER' | 'TARGETED_SELF'
+  kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER'
   reactions: EncounterReactionPinDto[]
   declinedReactorActorIds: string[]
   check?: EncounterCastReactionCheckDto
   chain?: {
-    counters: EncounterFailedCounterDto[]
+    counters: EncounterUsedReactionDto[]
     castDeclinedReactorActorIds: string[]
     castLevel: number
   }
@@ -226,7 +227,7 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
   lazySchema(() =>
     z
       .strictObject({
-        kind: z.enum(['COUNTER', 'TARGETED_SELF']),
+        kind: z.enum(['COUNTER', 'TARGETED_SELF', 'ATTACK_ON_OTHER']),
         reactions: z
           .array(encounterReactionPinDtoSchema)
           .check(z.minLength(1))
@@ -236,7 +237,7 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
         chain: z.optional(
           z.strictObject({
             counters: z
-              .array(encounterFailedCounterDtoSchema)
+              .array(encounterUsedReactionDtoSchema)
               .check(z.minLength(1))
               .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
             castDeclinedReactorActorIds: z
@@ -251,13 +252,13 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
           const [first] = value.reactions
           if (
             value.reactions.some((reaction) => reaction.trigger !== first?.trigger) ||
-            (value.kind === 'COUNTER') !== (first?.trigger === 'SPELL_CAST')
+            value.kind !== (first?.trigger === 'SPELL_CAST' ? 'COUNTER' : first?.trigger)
           )
             context.addIssue({
               code: 'custom',
               path: ['reactions'],
               message:
-                'An offer holds reactions of one trigger: counters to a cast, or reactions the action resumes from.'
+                'An offer holds reactions of one trigger: counters to a cast, or the trigger its kind names.'
             })
         })
       )
@@ -275,16 +276,15 @@ const encounterCounterCheckEvidenceDtoSchema: z.ZodMiniType<EncounterCounterChec
   )
 
 /**
- * A counter the reactor used that did not counter the cast: its check failed, or it was itself
- * countered. It is part of the cast's own occurrence: carried by every pending of the cast, it is spent
- * with whatever terminal commit the cast reaches. `againstActorId` is the creature whose cast it was
- * offered against (the caster, or the creature that cast the counter it answers), which is where its
- * range and target are measured from; `check` is null when the counter was not above its level. The
- * same record carries every other reaction used before the action executed (to being named a target, to
- * an attack aimed at another), which is spent the same way; `triggerLevel` is null when the action it
- * answered is not a cast.
+ * A reaction a reactor used before the action executed and that did not cancel it: a counter whose
+ * check failed or that was itself countered, a reaction to being named a target, or a reaction to an
+ * attack aimed at another. It is part of the action's own occurrence: carried by every pending of the
+ * action, it is spent with whatever terminal commit the action reaches. `againstActorId` is the creature
+ * whose action it was offered against (the actor, or the creature that cast the counter it answers),
+ * which is where its range and target are measured from; `triggerLevel` is null when the action it
+ * answered is not a cast, and `check` is null when it owed no check.
  */
-export type EncounterFailedCounterDto = {
+export type EncounterUsedReactionDto = {
   reaction: EncounterReactionPinDto
   choiceExecution: ServerCompletedRuleExecutionDto
   triggerLevel: number | null
@@ -292,7 +292,7 @@ export type EncounterFailedCounterDto = {
   check: EncounterCounterCheckEvidenceDto | null
 }
 
-const failedCounterShape = () => ({
+const usedReactionShape = () => ({
   reaction: encounterReactionPinDtoSchema,
   choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
   triggerLevel: z.nullable(nonNegativeIntegerSchema),
@@ -300,9 +300,9 @@ const failedCounterShape = () => ({
   check: z.nullable(encounterCounterCheckEvidenceDtoSchema)
 })
 
-export const encounterFailedCounterDtoSchema: z.ZodMiniType<EncounterFailedCounterDto> = lazySchema(
+export const encounterUsedReactionDtoSchema: z.ZodMiniType<EncounterUsedReactionDto> = lazySchema(
   () =>
-    z.strictObject(failedCounterShape()).check(
+    z.strictObject(usedReactionShape()).check(
       z.superRefine((value, context) => {
         validateEncounterReactionPin(value.reaction, context, ['reaction'])
       })
@@ -386,13 +386,13 @@ export const encounterCounteredCastReceiptDtoSchema: z.ZodMiniType<EncounterCoun
       .check(z.superRefine(validateCounterSpend))
   )
 
-/** A failed counter once its spend is settled with the cast's terminal commit. */
-export type EncounterFailedCounterReceiptDto = EncounterFailedCounterDto & CounterSpendDto
+/** A used reaction once its spend is settled with the action's terminal commit. */
+export type EncounterUsedReactionReceiptDto = EncounterUsedReactionDto & CounterSpendDto
 
-export const encounterFailedCounterReceiptDtoSchema: z.ZodMiniType<EncounterFailedCounterReceiptDto> =
+export const encounterUsedReactionReceiptDtoSchema: z.ZodMiniType<EncounterUsedReactionReceiptDto> =
   lazySchema(() =>
     z
-      .strictObject({ ...failedCounterShape(), ...counterSpendShape() })
+      .strictObject({ ...usedReactionShape(), ...counterSpendShape() })
       .check(z.superRefine(validateCounterSpend))
   )
 

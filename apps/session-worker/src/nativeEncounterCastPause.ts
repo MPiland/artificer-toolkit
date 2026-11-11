@@ -4,7 +4,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
@@ -20,7 +20,7 @@ import {
   discoverNativeCastReactions,
   discoverNativeTargetedReactions,
   planNativeCounteredCast,
-  planNativeFailedCounters,
+  planNativeUsedReactions,
   type NativeCastReactionAnswer
 } from './nativeEncounterCastReaction.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
@@ -73,7 +73,7 @@ export function createNativeCastPause(input: {
   answer: NativeCastReactionAnswer | null
   /** Whether this replays a pending occurrence rather than opening one. */
   resumed: boolean
-  failedCounters: readonly EncounterFailedCounterDto[]
+  usedReactions: readonly EncounterUsedReactionDto[]
 }) {
   const { prepared, state, command } = input
   const triggerLevel = preparedSpellCastLevel(prepared)
@@ -182,10 +182,10 @@ export function createNativeCastPause(input: {
    * What each reaction spent before the action did anything spends when it ends, planned against the
    * reactor as it stands now; the moment its trigger answers names the discovery that finds it again.
    */
-  const planFailedCounters = async (counters: readonly EncounterFailedCounterDto[]) => {
+  const planUsedReactions = async (counters: readonly EncounterUsedReactionDto[]) => {
     if (counters.length === 0) return []
-    return planNativeFailedCounters({
-      failedCounters: counters,
+    return planNativeUsedReactions({
+      usedReactions: counters,
       discover: async (trigger) => {
         const { moment } = REACTION_TRIGGERS[trigger]
         if (moment === 'TARGETED_BY_CAST') return discoverTargeted()
@@ -212,22 +212,18 @@ export function createNativeCastPause(input: {
     occurrenceVersion: number
   }) => {
     if (input.resumed && !input.answer)
-      return { kind: 'NONE' as const, failedCounters: input.failedCounters }
+      return { kind: 'NONE' as const, usedReactions: input.usedReactions }
     // An answer to an offer the action resumes from was made after every counter offer was heard, and
     // one to an attack aimed at another after every offer the cast made.
     const resumeAnswer =
-      input.answer?.kind === 'SELECTION' && input.answer.offer.kind === 'TARGETED_SELF'
+      input.answer?.kind === 'SELECTION' && input.answer.offer.kind !== 'COUNTER'
         ? input.answer
         : null
-    const aimedAnswer =
-      resumeAnswer &&
-      REACTION_TRIGGERS[resumeAnswer.offer.reactions[0]!.trigger].moment === 'ATTACK_AIMED_AT_OTHER'
-        ? resumeAnswer
-        : null
+    const aimedAnswer = resumeAnswer?.offer.kind === 'ATTACK_ON_OTHER' ? resumeAnswer : null
     const targetedAnswer = aimedAnswer ? null : resumeAnswer
     if (input.answer && !aimedAnswer && triggerLevel === null)
       throw new Error('Reaction evidence is stale.')
-    let failedCounters = input.failedCounters
+    let usedReactions = input.usedReactions
     let declinedReactorActorIds: readonly string[] = []
     if (
       triggerLevel !== null &&
@@ -243,7 +239,7 @@ export function createNativeCastPause(input: {
         casterActorId: prepared.actor.id,
         triggerLevel,
         answer: input.answer,
-        failedCounters,
+        usedReactions,
         autoRoll: input.requireAutoRoll,
         rollD20: () => (input.random ?? nextRollInt)(20) + 1,
         discover: await discoverCast(triggerLevel)
@@ -267,7 +263,7 @@ export function createNativeCastPause(input: {
             occurredAt: input.occurredAt,
             userId: input.userId,
             countered: advanced,
-            failedCounters: await planFailedCounters(advanced.failedCounters)
+            usedReactions: await planUsedReactions(advanced.usedReactions)
           })
         }
       if (advanced.kind === 'OFFER' || advanced.kind === 'CHECK')
@@ -276,15 +272,16 @@ export function createNativeCastPause(input: {
           continuation: advanced.continuation,
           rollerActorId: advanced.reactor.id,
           pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          failedCounters: advanced.failedCounters
+          usedReactions: advanced.usedReactions
         }
-      failedCounters = advanced.failedCounters
+      usedReactions = advanced.usedReactions
       declinedReactorActorIds = advanced.declinedReactorActorIds
     }
     // Each moment the action resumes from offers its reactions in turn: being named a cast's target,
     // then an attack aimed at another creature. A moment already answered past is not offered again.
     for (const stage of [
       {
+        kind: 'TARGETED_SELF' as const,
         offered: triggerLevel !== null && !aimedAnswer && input.chosenActorIds && castOwnerId,
         discover: discoverTargeted,
         answer: targetedAnswer,
@@ -292,6 +289,7 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds
       },
       {
+        kind: 'ATTACK_ON_OTHER' as const,
         offered:
           prepared.makesAttackRoll &&
           prepared.actor.id !== prepared.target.id &&
@@ -310,11 +308,12 @@ export function createNativeCastPause(input: {
       const advanced = await advanceNativeTargetedReactions({
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,
+        kind: stage.kind,
         casterActorId: prepared.actor.id,
         triggerLevel: stage.triggerLevel,
         discover: stage.discover(),
         answer: stage.answer,
-        failedCounters,
+        usedReactions,
         declinedReactorActorIds: stage.declinedReactorActorIds
       })
       if (advanced.kind === 'OFFER')
@@ -323,13 +322,13 @@ export function createNativeCastPause(input: {
           continuation: advanced.continuation,
           rollerActorId: advanced.reactor.id,
           pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          failedCounters: advanced.failedCounters
+          usedReactions: advanced.usedReactions
         }
-      failedCounters = advanced.failedCounters
+      usedReactions = advanced.usedReactions
     }
-    return { kind: 'NONE' as const, failedCounters }
+    return { kind: 'NONE' as const, usedReactions }
   }
-  return { advance, planFailedCounters }
+  return { advance, planUsedReactions }
 }
 
 export type NativeCastPause = ReturnType<typeof createNativeCastPause>

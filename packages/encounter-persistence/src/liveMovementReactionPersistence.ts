@@ -24,10 +24,10 @@ import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectReads.js'
 import {
-  applyFailedCounterSpends,
-  failedCounterSpends,
-  requireFailedCounterReceipt
-} from './failedCounterSpend.js'
+  applyUsedReactionSpends,
+  usedReactionSpends,
+  requireUsedReactionReceipt
+} from './usedReactionSpend.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
@@ -107,7 +107,7 @@ export async function persistLiveMovementReaction(
     )
   )
     throw new Error('Live movement reaction window reactions do not match the rolled dice.')
-  const windowSpends = failedCounterSpends({
+  const windowSpends = usedReactionSpends({
     windowReactions: step.windowReactions,
     actors: input.actors,
     source
@@ -229,7 +229,7 @@ export async function persistLiveMovementReaction(
       (step.createdEffects.length > 0 || Boolean(targetWindow?.spends)),
     ...(targetWindow?.mutation ?? {})
   })
-  if (targetWindow) requireFailedCounterReceipt(targetWindow, mechanics)
+  if (targetWindow) requireUsedReactionReceipt(targetWindow, mechanics)
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||
@@ -281,7 +281,7 @@ export async function persistLiveMovementReaction(
   if (targetWindow)
     nextTarget = consumeEncounterActionEconomy({
       actor: nextTarget,
-      consumption: targetWindow.failed.receipt.actionEconomyTransition,
+      consumption: targetWindow.used.receipt.actionEconomyTransition,
       overridden: false
     })
   const allowance = receipt.allowance
@@ -321,7 +321,7 @@ export async function persistLiveMovementReaction(
       throw new Error('Live movement reaction actor changed before settlement.')
     await writeRunActor(ctx, row._id, after)
   }
-  const settledReactors = await applyFailedCounterSpends(ctx, {
+  const settledReactors = await applyUsedReactionSpends(ctx, {
     state,
     occurrenceId: input.occurrenceId,
     sourceCommandId: input.sourceCommandId,
@@ -433,7 +433,7 @@ export async function persistLiveMovementReaction(
         ]
       : []),
     ...(batch.maintenanceTransition?.characterOwnerTransitions ?? []),
-    ...windowSpends.flatMap(({ reactor, failed: { receipt: spend } }) =>
+    ...windowSpends.flatMap(({ reactor, used: { receipt: spend } }) =>
       reactor.kind === 'CHARACTER' &&
       spend.reaction.characterStreamVersion !== null &&
       spend.characterStreamVersion !== null

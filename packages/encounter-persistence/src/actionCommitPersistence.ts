@@ -29,10 +29,10 @@ import {
   settleActionSourceSpend
 } from './actionSourceSpend.js'
 import {
-  applyFailedCounterSpends,
-  failedCounterSpends,
-  requireFailedCounterReceipt
-} from './failedCounterSpend.js'
+  applyUsedReactionSpends,
+  usedReactionSpends,
+  requireUsedReactionReceipt
+} from './usedReactionSpend.js'
 import {
   completeActionOccurrence,
   recordActionRoot,
@@ -124,10 +124,10 @@ export async function persistEncounterActionCommit(
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
     // Failed counters come from a cast's earlier pauses, so a commit with none behind it carries none.
-    (!resume && (input.failedCounters.length > 0 || input.windowReactions.length > 0)) ||
+    (!resume && (input.usedReactions.length > 0 || input.windowReactions.length > 0)) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
-        failedCounters: input.failedCounters.map(({ receipt }) => receipt),
+        usedReactions: input.usedReactions.map(({ receipt }) => receipt),
         // A ward passed earlier stays passed through the terminal commit; only the planner passes it.
         passedIncomingGate: resume.pending.context.passedIncomingGate
       })) ||
@@ -254,23 +254,23 @@ export async function persistEncounterActionCommit(
   })
   // Every counter that failed against this cast spends its reactor's slot and reaction with the cast
   // (D127), and every reaction rolled against the attack roll its reaction and charge (D207).
-  const failedSpends = failedCounterSpends({
-    failedCounters: input.failedCounters,
+  const reactionSpends = usedReactionSpends({
+    usedReactions: input.usedReactions,
     windowReactions: input.windowReactions,
     actors,
     source
   })
   // The cast's target pays its own failed counter in its single mechanics call; a Shield-like reaction
   // would be a second spend of the same reaction.
-  const targetFailed = failedSpends.find(({ reactor }) => reactor.id === target.id)
-  if (targetFailed && reaction)
-    throw new Error('Live Session failed counter and reaction spend the same reaction.')
+  const targetUsed = reactionSpends.find(({ reactor }) => reactor.id === target.id)
+  if (targetUsed && reaction)
+    throw new Error('Live Session used reaction and reaction spend the same reaction.')
   // The source's counter to a Counterspell against its cast spends its slot in the source's one
   // mechanics call, after the cast's, so the Character advances once.
-  const sourceFailed =
+  const sourceUsed =
     source.id === target.id
       ? undefined
-      : failedSpends.find(({ reactor }) => reactor.id === source.id)
+      : reactionSpends.find(({ reactor }) => reactor.id === source.id)
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -308,7 +308,7 @@ export async function persistEncounterActionCommit(
                   source.maximumFraction
                 ),
           forceVersionAdvance: false,
-          ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
+          ...combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {})
         })
       : null
   // The item the outcome made the target drop (Heat Metal), applied again from the room's receipt.
@@ -350,15 +350,15 @@ export async function persistEncounterActionCommit(
     ...combineSpendMutations(
       source.id === target.id ? sourceMutation : {},
       reactionSpend.mutation,
-      targetFailed?.mutation ?? {}
+      targetUsed?.mutation ?? {}
     )
   })
   if (
-    sourceFailed &&
-    sourceFailed.failed.receipt.characterStreamVersion !== sourceMechanics?.characterStreamVersion
+    sourceUsed &&
+    sourceUsed.used.receipt.characterStreamVersion !== sourceMechanics?.characterStreamVersion
   )
-    throw new Error('Live Session failed counter Character receipt mismatch.')
-  if (targetFailed) requireFailedCounterReceipt(targetFailed, mechanics)
+    throw new Error('Live Session used reaction Character receipt mismatch.')
+  if (targetUsed) requireUsedReactionReceipt(targetUsed, mechanics)
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||
@@ -392,9 +392,7 @@ export async function persistEncounterActionCommit(
   if (targetCharge && targetCharge.ownerActorId !== target.id)
     throw new Error('Live Session action charge scope mismatch.')
   const targetReactionEconomy =
-    reaction?.actionEconomyTransition ??
-    targetFailed?.failed.receipt.actionEconomyTransition ??
-    null
+    reaction?.actionEconomyTransition ?? targetUsed?.used.receipt.actionEconomyTransition ?? null
   const settledTarget =
     targetCharge || targetReactionEconomy
       ? await settleActionSourceSpend(ctx, {
@@ -417,13 +415,13 @@ export async function persistEncounterActionCommit(
     economyOverridden: overridesActionEconomy(input.ruleOverrides),
     engages: attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target })
   })
-  const settledSource = sourceFailed
+  const settledSource = sourceUsed
     ? await settleActionSourceSpend(ctx, {
         encounterId: state.id,
         source: castSettledSource,
         spend: {
           featureResourceConsumption: null,
-          actionEconomyTransition: sourceFailed.failed.receipt.actionEconomyTransition,
+          actionEconomyTransition: sourceUsed.used.receipt.actionEconomyTransition,
           attackActionTransition: undefined
         },
         economyOverridden: false
@@ -443,12 +441,12 @@ export async function persistEncounterActionCommit(
           economyOverridden: false
         })
       : null
-  const settledFailed = await applyFailedCounterSpends(ctx, {
+  const settledReactors = await applyUsedReactionSpends(ctx, {
     state,
     occurrenceId: execution.occurrenceId,
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt,
-    spends: failedSpends,
+    spends: reactionSpends,
     exceptActorIds: [source.id, target.id],
     applyMechanics: callbacks.applyMechanics,
     currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
@@ -460,7 +458,7 @@ export async function persistEncounterActionCommit(
         ? settledTarget
         : actor.id === settledCommander?.id
           ? settledCommander
-          : (settledFailed.get(actor.id) ?? actor)
+          : (settledReactors.get(actor.id) ?? actor)
   )
   nextActors = await callbacks.persistActionEffects({
     ...effectInput,
@@ -581,7 +579,7 @@ export async function persistEncounterActionCommit(
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: failedSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : [])),
+    checks: reactionSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : [])),
     response: input.response,
     responderUserId: userId,
     initiatorUserId,
@@ -653,7 +651,7 @@ export async function persistEncounterActionCommit(
       forcedMovementLandings: settledMovements.landings,
       turnUses,
       clearedDamageTypes,
-      failedCounters: input.failedCounters.map(({ receipt }) => receipt),
+      usedReactions: input.usedReactions.map(({ receipt }) => receipt),
       windowReactions: input.windowReactions.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },

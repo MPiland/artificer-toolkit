@@ -158,6 +158,7 @@ describe('Protection against an attack on another creature in the room (SPELLS-3
     const context = await readPendingActionContext(room.room.base.stub)
     if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'CAST_REACTION')
       throw new Error('Expected the shared reaction pause.')
+    expect(context.pause.payload.kind).toBe('ATTACK_ON_OTHER')
     expect(context.pause.payload.reactions.map(({ trigger }) => trigger)).toEqual([
       'ATTACK_ON_OTHER'
     ])

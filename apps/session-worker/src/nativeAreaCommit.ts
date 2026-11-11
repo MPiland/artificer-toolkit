@@ -206,8 +206,8 @@ export async function completeAreaCommit(args: {
   command: ResolveEncounterActionInputDto
   caster: EncounterRunActorState
   occurredAt: string
-  /** What each counter that failed against the cast spends with this commit (D127). */
-  failedCounters: Awaited<ReturnType<ReachCastWindow['pause']['planFailedCounters']>>
+  /** What each reaction used against the cast before it executed spends with this commit (D127). */
+  usedReactions: Awaited<ReturnType<ReachCastWindow['pause']['planUsedReactions']>>
   /** The effect each creature's used reaction to being chosen leaves on it, by actor id. */
   reactionEffects?: ReadonlyMap<
     string,
@@ -254,7 +254,7 @@ export async function completeAreaCommit(args: {
     command,
     caster,
     occurredAt,
-    failedCounters,
+    usedReactions,
     reactionEffects,
     movementTargets,
     kept: caughtKept,
@@ -317,9 +317,9 @@ export async function completeAreaCommit(args: {
   const struckStart = caughtKept.length + collisions.kept.length
   // The caster's counters to a counter cast against its cast spend in the caster's one batch with the cast;
   // a kept creature that countered pays its slot in its own first outcome.
-  const casterCounterConsumptions = counterConsumptionsOf(failedCounters, caster.id)
-  const failedReactorSlots = new Set(
-    failedCounters.flatMap(({ receipt, spellConsumption }) =>
+  const casterCounterConsumptions = counterConsumptionsOf(usedReactions, caster.id)
+  const usedReactorSlots = new Set(
+    usedReactions.flatMap(({ receipt, spellConsumption }) =>
       spellConsumption ? [receipt.reaction.reactorActorId] : []
     )
   )
@@ -377,7 +377,7 @@ export async function completeAreaCommit(args: {
     consumedGrants,
     sourceReleases,
     casterCounterConsumptions,
-    failedReactorSlots,
+    usedReactorSlots,
     discoverResistance: (prepared) => discoverNativeLegendaryResistance(input, prepared)
   })
   const { maintainedState, zoneMaintenanceTransition } = openZoneOnlyMaintenance({
@@ -410,7 +410,7 @@ export async function completeAreaCommit(args: {
     removal,
     rollsPerTarget,
     ruleOverrides,
-    failedCounters,
+    usedReactions,
     actionEconomy,
     attackAction,
     forcedMovements,
@@ -467,7 +467,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
     spellConsumption: plan.spellConsumption,
-    failedCounters: plan.failedCounters.map(({ receipt, spellConsumption }) => ({
+    usedReactions: plan.usedReactions.map(({ receipt, spellConsumption }) => ({
       receipt,
       spellConsumption
     })),

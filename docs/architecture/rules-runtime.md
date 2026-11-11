@@ -1587,7 +1587,7 @@ caster's slot and action and the reactor's slot and reaction are spent, nothing 
 Concentration starts. Undo restores both creatures. Character ACTORS-target and area casts hold the same
 `CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
 each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
-that occurrence; the area commit input carries `failedCounters` and spends them like the single-target commit.
+that occurrence; the area commit input carries `usedReactions` and spends them like the single-target commit.
 A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
@@ -1596,9 +1596,9 @@ makes a reaction cast below the triggering cast's level owe an ability check at 
 (`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
 and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules
 (`ENTER_DICE`/`SYSTEM_ROLL`, or the app roll for an auto-rolling player). A pass is a countered cast whose
-`counter.check` seals the d20. A fail is a _failed counter_ (`failedCounters` on the pending context): the reactor
+`counter.check` seals the d20. A fail is a _failed counter_ (recorded in `usedReactions` on the pending context): the reactor
 joins the declined set and is not offered again, and the cast's terminal commit (normal or countered) spends every
-failed reactor's slot and reaction atomically with the cast (`failedCounterSpend.ts`), so one undo reverses them all.
+failed reactor's slot and reaction atomically with the cast (`usedReactionSpend.ts`), so one undo reverses them all.
 Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
 is the cast's target spends through the target's own mechanics call.
 
@@ -1610,7 +1610,7 @@ Counterspell cast against its spell (never to its own cast), planned against the
 caster (`discoverNativeCastReactions` `against`). Each answer adds one counter, so depth needs no cap in code. When a
 level has nobody left to ask the chain resolves by parity (`advanceNativeCastReactions`): odd, the first counter stands
 and the cast is countered; even, the chain is spent without effect and the cast is offered again at its own level with
-its declines restored. `failedCounters` holds every counter used that did not counter the cast (a failed check, or
+its declines restored. `usedReactions` holds every counter used that did not counter the cast (a failed check, or
 itself countered; `againstActorId` records the cast it answered), all spent with the cast's terminal commit. The
 persistence validators (`actionPending.ts`) check this bookkeeping by set equality.
 
@@ -1662,13 +1662,15 @@ target requirements refuse is not offered. The four callers differ only in the m
 Every sealed offer pins its reactions with one schema, `encounterReactionPinDtoSchema`
 (`packages/schema/src/shared/ruleExecutionReactionChoice.ts`): the reactor, the action, the preparation checksums and
 the `trigger`, which is any `reactionTrigger` kind. The former per-trigger pin schemas (hit, cast and roll window) are
-removed. A reaction used before its action did anything is carried on the pending context in `failedCounters`
-(`triggerLevel` is null when the action is not a spell cast) and is spent by the action's terminal commit. The name is
-historical: the list holds every reaction spent before the action's own effects, not only a counter that failed.
+removed. A reaction used before its action did anything is carried on the pending context in `usedReactions`
+(`triggerLevel` is null when the action is not a spell cast) and is spent by the action's terminal commit
+(`usedReactionSpend.ts`). The list holds every reaction spent before the action's own effects: a counter that failed
+or was itself countered, a reaction to being named a target, and a reaction to an attack aimed at another.
 
-Transitional: `MOVEMENT_REACTION` keeps its own host, offer and pin until QUALITY-9. The cast offer's `kind` is
-`COUNTER` or `TARGETED_SELF`; an attack aimed at another reuses `TARGETED_SELF` (an offer the action resumes from),
-and its pins name the real trigger.
+The offer's `kind` names what it holds: `COUNTER` for counters to a cast (`SPELL_CAST` pins), otherwise the trigger of
+its pins, `TARGETED_SELF` or `ATTACK_ON_OTHER`. The schema refuses an offer whose pins do not match its kind.
+
+Transitional: `MOVEMENT_REACTION` keeps its own host, offer and pin until QUALITY-9.
 
 #### `ATTACK_ON_OTHER` (current, SPELLS-31.T4k1b; D217)
 
@@ -1681,8 +1683,8 @@ the aimed stage when the action makes an attack roll at another creature on a Sc
 asks each other Character, in actor-id order, except the attacker and the attacked creature. It reads the Scene only
 for a Character that holds such a reaction and reads sight only when the rest of the trigger is met. The offer is the
 shared `REACTION_CHOICE` in the `CAST_REACTION` pause, so it has no pause kind of its own and the one timed decline
-covers it. A decline asks the next Character. A use is carried in `failedCounters`; each replay of the attack plans it
-again against the reactor as it stands (`planFailedCounters`), and `withEncounterRollInfluences` adds the roll mode to
+covers it; its offer kind is `ATTACK_ON_OTHER`. A decline asks the next Character. A use is carried in
+`usedReactions`; each replay of the attack plans it again against the reactor as it stands (`planUsedReactions`), and `withEncounterRollInfluences` adds the roll mode to
 the attack roll's contributors, keyed `reaction:<reactorActorId>` with the `reaction` rule source, after the attack's
 currentness checksum is taken. The attack's terminal commit spends the reactor's reaction, so one undo restores it.
 

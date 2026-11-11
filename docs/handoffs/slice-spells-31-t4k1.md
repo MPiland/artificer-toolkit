@@ -28,8 +28,8 @@ Split on 2026-11-10 after the design pass: T4k1 (predicates, trigger and outcome
   - The `CAST_MODIFIER` rule contributor is the precedent.
 - **Pause:** `ROLL_INFLUENCE_REACTION` in `packages/schema/src/shared/encounterPause.ts`, modelled on `createNativeCastPause` (`nativeEncounterCastPause.ts`).
   - It runs in `nativeEncounterRules.ts` after the gate and retarget steps, before `castPause.advance`, and is skipped once resumed.
-  - The ENCOUNTER_ACTION context records the influences used and the reactors already asked, like `passedIncomingGate` and `failedCounters`.
-  - The terminal commit spends each used reaction through the `applyFailedCounterSpends` and `windowReactions` route.
+  - The ENCOUNTER_ACTION context records the influences used and the reactors already asked, like `passedIncomingGate` and `usedReactions`.
+  - The terminal commit spends each used reaction through the `applyUsedReactionSpends` and `windowReactions` route.
 - **Touch points:**
   - Worker: `nativePauseHandlers.ts`, `nativePauseTypes.ts`
   - Persistence: `packages/encounter-persistence/src/actionPending.ts`, `actionPendingPersistence.ts`, `occurrenceOwner.ts`
@@ -49,7 +49,8 @@ and the `ATTACK_ON_OTHER` section after it.
 - **Offer:** `discoverNativeAimedReactions` (`apps/session-worker/src/nativeEncounterAimedReaction.ts`) raises
   `ATTACK_AIMED_AT_OTHER` and calls the shared `offerNativeReactions`. It is the third stage of
   `createNativeCastPause.advance`, in the existing `CAST_REACTION` pause, shown as the shared `REACTION_CHOICE`.
-- **Roll mode:** a used reaction is carried in `failedCounters` (`triggerLevel: null`); `nativeEncounterRules.ts` plans
+- **Roll mode:** a used reaction is carried in `usedReactions` (`triggerLevel: null`), under the offer kind
+  `ATTACK_ON_OTHER`; `nativeEncounterRules.ts` plans
   it on every replay and applies its authored roll mode with `withEncounterRollInfluences`.
 - **Range:** Protection keeps `RANGE_KIND.SIGHT`. A Sight range on a single target measures no distance and requires
   that the user see the target.
