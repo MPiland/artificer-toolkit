@@ -1,6 +1,6 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { evaluateEncounterActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import {
   EncounterValidationError,
@@ -19,7 +19,7 @@ import { createReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 
-type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+type Prepared = NativeEncounterActionMechanicsInput['prepared']
 
 /** A reaction its holder could use now, prepared against its reactor's own facts. */
 export type NativeReaction<Candidate, Spend = Prepared> = {

@@ -17,8 +17,7 @@ import {
 import {
   encounterActionCurrentnessChecksum,
   encounterActionSpentTurnUses,
-  prepareEncounterActionMechanics,
-  withEncounterRollInfluences
+  prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
@@ -96,6 +95,7 @@ import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/char
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import { nativeReactionRollModes } from './nativeEncounterCastReaction.js'
 import {
   discoverNativeRollReactions,
   nextNativeRollReactionDice,
@@ -830,20 +830,6 @@ export async function planNativeLiveEncounterAction(
     responseCommand && resolved && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
       ? { pending: restoreEncounterActionPending(snapshot), resolution: resolved }
       : null
-  const actionSource = {
-    runtime: executionOptions.runtime,
-    damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
-    random: executionOptions.random,
-    adapter: prepared.adapter,
-    plan: prepared.plan,
-    occurrenceId,
-    autoRoll: {
-      SOURCE: requireAutoRoll(prepared.actor.id),
-      TARGET: requireAutoRoll(prepared.target.id)
-    },
-    binding: prepared.binding,
-    afterTest: async () => undefined
-  }
   const discoverResistance = discoverNativeLegendaryResistance({ state, capture }, prepared)
   const targetStateChecksum = checksumRuleDocument(prepared.target)
   /** The creature's Legendary Resistance and pool as they are now; a decision or its record needs both. */
@@ -1010,10 +996,7 @@ export async function planNativeLiveEncounterAction(
     occurrenceId,
     occurredAt,
     userId: initial.expectedUserId,
-    aimedAttackPerception:
-      prepared.makesAttackRoll && prepared.actor.id !== prepared.target.id
-        ? attackSceneLoaders(movementTargets).loadAttackPerception
-        : null,
+    aimedAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,
@@ -1023,20 +1006,27 @@ export async function planNativeLiveEncounterAction(
         ? (snapshot.applicationContext.failedCounters ?? [])
         : []
   })
-  const cast = await castPause.advance({
-    actionEconomy,
-    ruleOverrides: ruleOverrides,
-    occurrenceVersion
-  })
+  const cast = await castPause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
   const failedCounters = cast.failedCounters
   const failedSpends = await castPause.planFailedCounters(failedCounters)
   // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217).
-  const rollInfluences = failedSpends.flatMap(({ found, receipt }) =>
-    found.rollMode ? [{ reaction: receipt.reaction, rollMode: found.rollMode }] : []
-  )
-  const reacted = withEncounterRollInfluences(prepared, rollInfluences)
-  const reactedSource = { ...actionSource, binding: reacted.binding }
+  const react = nativeReactionRollModes(failedSpends)
+  const reacted = react(prepared)
+  const actionSource = {
+    runtime: executionOptions.runtime,
+    damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
+    random: executionOptions.random,
+    adapter: prepared.adapter,
+    plan: prepared.plan,
+    occurrenceId,
+    autoRoll: {
+      SOURCE: requireAutoRoll(prepared.actor.id),
+      TARGET: requireAutoRoll(prepared.target.id)
+    },
+    binding: reacted.binding,
+    afterTest: async () => undefined
+  }
   const discoverReaction = discoverNativeAttackReaction({
     state,
     system,
@@ -1067,10 +1057,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     // The answered attack keeps the decoy it was rolled against.
     prepareAttack: async (reactedTargets: typeof movementTargets) =>
-      withEncounterRollInfluences(
-        await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions),
-        rollInfluences
-      ),
+      react(await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions)),
     loadTarget,
     targetStateChecksum,
     binding: reacted.binding
@@ -1093,7 +1080,7 @@ export async function planNativeLiveEncounterAction(
         })
       : []
   const settled = await settleNativePauseAnswer(pauseAnswer, {
-    actionSource: reactedSource,
+    actionSource,
     currentResistance,
     currentReaction,
     onHitNow
@@ -1115,7 +1102,7 @@ export async function planNativeLiveEncounterAction(
   const execution =
     settled?.execution ??
     (await advanceNativeActionGraphs({
-      ...reactedSource,
+      ...actionSource,
       // A paused OUTCOME resumes against the hit as the reaction it kept left it.
       ...(replayedReaction ? { binding: replayedReaction.adjustedBinding } : {}),
       attackSight: prepared.attackSight,
@@ -1143,7 +1130,7 @@ export async function planNativeLiveEncounterAction(
     settled?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
       ? await replayNativeActionLegendaryResistance({
-          ...reactedSource,
+          ...actionSource,
           outcome: retained,
           ...(await currentResistance())
         })
@@ -1156,7 +1143,7 @@ export async function planNativeLiveEncounterAction(
           ? {
               ...replayedReaction,
               audit: await replayNativeActionReaction({
-                ...reactedSource,
+                ...actionSource,
                 outcome: retainedReaction,
                 ...replayedReaction
               })

@@ -27,6 +27,7 @@ import {
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { withEncounterRollInfluences } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   planNativeEncounterAreaSourceSpend,
   type NativeEncounterActionMechanicsInput
@@ -686,6 +687,21 @@ export async function planNativeFailedCounters(input: {
     })
   }
   return planned
+}
+
+/**
+ * How the reactions spent before an attack's d20 change that attack: each imposes the roll mode it
+ * authors on the roll (D217). The attack is re-prepared as its pauses are answered, so the same
+ * reactions are applied to each preparation.
+ */
+export function nativeReactionRollModes(
+  planned: Awaited<ReturnType<typeof planNativeFailedCounters>>
+) {
+  const influences = planned.flatMap(({ found, receipt }) =>
+    found.rollMode ? [{ reaction: receipt.reaction, rollMode: found.rollMode }] : []
+  )
+  return <Attack extends Parameters<typeof withEncounterRollInfluences>[0]>(attack: Attack) =>
+    withEncounterRollInfluences(attack, influences)
 }
 
 /** The slots the failed counters of one actor spend, for the batch its own cast spends in. */

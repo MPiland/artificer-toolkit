@@ -62,8 +62,8 @@ export function createNativeCastPause(input: {
   /** The creatures the cast names as its targets, when it names them (a chosen list); null otherwise. */
   chosenActorIds: readonly string[] | null
   /**
-   * The Scene's sight when the action makes an attack roll at another creature, which the reactions to
-   * an attack aimed at another read (D217); null otherwise.
+   * The Scene's sight, which the reactions to an attack roll aimed at another creature read (D217);
+   * null when the action is never such an attack.
    */
   aimedAttackPerception: LoadAttackPerception | null
   occurrenceId: string
@@ -292,7 +292,11 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds
       },
       {
-        offered: input.aimedAttackPerception && input.readScene,
+        offered:
+          prepared.makesAttackRoll &&
+          prepared.actor.id !== prepared.target.id &&
+          input.aimedAttackPerception &&
+          input.readScene,
         discover: discoverAimed,
         answer: aimedAnswer,
         triggerLevel: null,

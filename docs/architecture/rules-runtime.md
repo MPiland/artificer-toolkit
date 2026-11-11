@@ -1651,13 +1651,13 @@ counter's check, a roll window's die, the roll mode a reaction imposes), holds i
 Scene and to the reactor's action economy, and returns the candidates. A reaction that is stale or that its own
 target requirements refuse is not offered. The four callers differ only in the moment they raise:
 
-| Moment                    | Caller                            | Pause                              |
-| ------------------------- | --------------------------------- | ---------------------------------- |
-| `HIT_BY_ATTACK`           | `nativeEncounterAttackReaction.ts` | the outcome phase's reaction pause |
-| `SPELL_CAST_BY_OTHER`     | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
-| `TARGETED_BY_CAST`        | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
-| `ATTACK_AIMED_AT_OTHER`   | `nativeEncounterAimedReaction.ts`  | `CAST_REACTION`                    |
-| `ATTACK_ROLLED_BY_OTHER`  | `nativeEncounterRollReaction.ts`   | the attack roll's d20 window       |
+| Moment                   | Caller                             | Pause                              |
+| ------------------------ | ---------------------------------- | ---------------------------------- |
+| `HIT_BY_ATTACK`          | `nativeEncounterAttackReaction.ts` | the outcome phase's reaction pause |
+| `SPELL_CAST_BY_OTHER`    | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
+| `TARGETED_BY_CAST`       | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
+| `ATTACK_AIMED_AT_OTHER`  | `nativeEncounterAimedReaction.ts`  | `CAST_REACTION`                    |
+| `ATTACK_ROLLED_BY_OTHER` | `nativeEncounterRollReaction.ts`   | the attack roll's d20 window       |
 
 Every sealed offer pins its reactions with one schema, `encounterReactionPinDtoSchema`
 (`packages/schema/src/shared/ruleExecutionReactionChoice.ts`): the reactor, the action, the preparation checksums and
