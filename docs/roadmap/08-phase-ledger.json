@@ -25532,7 +25532,7 @@
             },
             {
               "id": "QUALITY-8.T1a2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25542,7 +25542,8 @@
                 "after": ["QUALITY-8.T1a1"]
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1a at its fence trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Room flow: Protection as an immediate child; the parent resumes without a response and reads the roll mode from the child execution through the capability registry; reaction spent when chosen; undo and void of the parent cascade to the committed child; the facts-only roll-mode shortcut is deleted."
+              "text": "Room flow: Protection as an immediate child; the parent resumes without a response and reads the roll mode from the child execution through the capability registry; reaction spent when chosen; undo and void of the parent cascade to the committed child; the facts-only roll-mode shortcut is deleted.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1b",
