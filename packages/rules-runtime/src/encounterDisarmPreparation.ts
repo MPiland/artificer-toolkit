@@ -37,10 +37,10 @@ import {
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
   creatureActiveGrantCheckContributors,
-  mergedCanonicalContributors,
   mergedRollContributors
 } from './encounterActiveGrants.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
+import { mergeCanonicalD20Contributors } from './encounterRelationshipActionFacts.js'
 import {
   checkAbilityCode,
   encounterBasicActionCheckLabel
@@ -262,7 +262,7 @@ export function readEncounterDisarmSelection(input: {
             ? { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
             : null,
         // Its active attack grants (a Help) are read here: a Creature has no policy to fold them.
-        relationshipContributors: mergedCanonicalContributors(
+        relationshipContributors: mergeCanonicalD20Contributors(
           prepared.relationshipContributors,
           creatureActiveGrantAttackContributors(
             actor.id,

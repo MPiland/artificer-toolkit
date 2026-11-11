@@ -24,6 +24,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   freezeD20Context,
+  d20EvidenceMatchesPins,
   settleEncounterD20Answer,
   settleEncounterD20Test
 } from './encounterD20Settlement.js'
@@ -172,9 +173,7 @@ export function settledCheckD20MatchesFrozen(
   const dice = (list: readonly Pick<D20AddedDieDto, 'label' | 'count' | 'faces' | 'sign'>[] = []) =>
     list.map(({ label, count, faces, sign }) => ({ label, count, faces, sign }))
   return (
-    settled.modifier === frozen.modifier &&
-    settled.derivedRollMode === frozen.rollMode &&
-    settled.contributorChecksum === frozen.contributorChecksum &&
+    d20EvidenceMatchesPins(settled, frozen) &&
     checksumRuleDocument(dice(settled.addedDice)) ===
       checksumRuleDocument(dice([...(frozen.addedDice ?? []), ...windowDice])) &&
     checksumRuleDocument(settled.minimumRoll ?? null) ===

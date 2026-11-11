@@ -12,7 +12,7 @@ import {
 } from '@artificer-toolkit/shared/rules'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
@@ -509,15 +509,7 @@ export function immediateFollowUpSaveGraphDefinition(
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      {
-        id: 'nested-save-d20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
-      dnd5eAddedDiceNode('nested-save-d20'),
+      ...dnd5eD20TestNodes('nested-save-d20'),
       {
         id: 'nested-save-test',
         operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },

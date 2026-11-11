@@ -392,6 +392,22 @@ export function buildEncounterSaveD20Evidence(input: {
   })
 }
 
+/**
+ * Whether settled d20 evidence carries the pins its test froze: the rules-derived roll mode, the
+ * contributor checksum and the modifier. Every check of settled evidence against a frozen test
+ * reads the three here.
+ */
+export function d20EvidenceMatchesPins(
+  evidence: { derivedRollMode: string; contributorChecksum: string; modifier: number },
+  frozen: { rollMode: string; contributorChecksum: string; modifier: number }
+): boolean {
+  return (
+    evidence.derivedRollMode === frozen.rollMode &&
+    evidence.contributorChecksum === frozen.contributorChecksum &&
+    evidence.modifier === frozen.modifier
+  )
+}
+
 /** Rejects terminal receipts whose nested save evidence is detached from the OUTCOME trace. */
 export function requireEncounterSaveD20EvidenceTrace(input: {
   execution: ServerCompletedRuleExecutionDto
@@ -400,10 +416,8 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
 }): void {
   if (
     input.evidence.requestNodeId !== input.policy.requestNodeId ||
-    input.evidence.derivedRollMode !== input.policy.rollMode ||
-    input.evidence.contributorChecksum !== input.policy.contributorChecksum ||
+    !d20EvidenceMatchesPins(input.evidence, input.policy) ||
     checksumRuleDocument(input.evidence.contributors) !== input.policy.contributorChecksum ||
-    input.evidence.modifier !== input.policy.modifier ||
     input.evidence.defenseOrDc !== input.policy.dc ||
     checksumRuleDocument(autoFailConditions(input.evidence)) !==
       checksumRuleDocument(autoFailConditions(input.policy)) ||

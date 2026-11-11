@@ -8,6 +8,7 @@ import {
 
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { dnd5eD20Node } from './d20AddedDiceGraph.js'
 import type {
   ContestCheckCapabilityAdapter,
   OptionalCombatContestGraph
@@ -80,14 +81,7 @@ export function createDnd5eContestGraph(
     definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
     sourceEntryBindings: [{ sourceEntryId: definitionId, nodeId: 'initiator_d20' }],
     nodes: [
-      {
-        id: 'initiator_d20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
+      dnd5eD20Node('initiator_d20'),
       {
         id: 'initiator_total',
         operation: { key: 'number.add', contractVersion: 1 },
@@ -99,14 +93,7 @@ export function createDnd5eContestGraph(
           }
         }
       },
-      {
-        id: 'target_d20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
+      dnd5eD20Node('target_d20'),
       {
         id: 'target_total',
         operation: { key: 'number.add', contractVersion: 1 },

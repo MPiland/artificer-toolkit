@@ -2,7 +2,7 @@ import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
-import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -54,26 +54,10 @@ export function repeatFollowUpSavePublishedGraph(input: {
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      {
-        id: 'repeat-save-d20',
-        operation: {
-          key: gated ? 'evidence.optional-integer-range' : 'evidence.integer-range',
-          contractVersion: 1
-        },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 },
-          ...(gated
-            ? {
-                enabled: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY
-                }
-              }
-            : {})
-        }
-      },
-      dnd5eAddedDiceNode('repeat-save-d20'),
+      ...dnd5eD20TestNodes(
+        'repeat-save-d20',
+        gated ? DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY : undefined
+      ),
       {
         id: input.plan.frozenGraphNodeId,
         operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },

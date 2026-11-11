@@ -31,7 +31,7 @@ import {
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 import { testContractVersion } from './effectActionOperationRegistry.js'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -136,55 +136,42 @@ function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceOutcome, saves
   ]
 }
 
-export function compileTestDefinition(
-  action: Dnd5eCompiledEffectActionSource,
-  plan: TestPlan,
-  recurringPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null
-) {
-  const modifierFact =
-    plan.kind === 'ATTACK' ? DND5E_ATTACK_MODIFIER_FACT_KEY : DND5E_SAVE_MODIFIER_FACT_KEY
-  const thresholdFact =
-    plan.kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
-  const testOperation =
-    plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const conditions = [...(plan.conditions ?? [])]
-  const savesForHalf =
-    plan.kind === 'SAVE' && plan.branches.get('ON_SAVE_SUCCESS')?.kind === 'ENTRY_DICE_DAMAGE'
-  const proposalNodes: RuleGraphDefinition['nodes'] = [
-    ...[...plan.branches].flatMap(([pathCode, outcome]) =>
-      isEntryDiceOutcome(outcome)
-        ? entryDiceDamageNodes(pathCode, outcome, savesForHalf)
-        : [proposalNode(pathCode, outcome)]
-    ),
-    ...conditions.map(([pathCode, { outcome }]) =>
-      proposalNode(pathCode, outcome, CONDITION_PROPOSAL_SUFFIX)
-    )
-  ]
-  const definition: RuleGraphDefinition = {
+/**
+ * An attack or save test graph: the d20, its added dice and the `test` node, then the nodes that
+ * propose its outcomes. The TEST phase of an action and a held effect's test both build it here.
+ */
+export function attackOrSaveTestDefinition(
+  effectId: string,
+  kind: TestKind,
+  proposalNodes: RuleGraphDefinition['nodes'] = []
+): RuleGraphDefinition {
+  return {
     schemaVersion: 1,
-    id: action.effectId,
+    id: effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
-      dnd5eAddedDiceNode('d20'),
+      ...dnd5eD20TestNodes('d20'),
       {
         id: 'test',
-        operation: { key: testOperation, contractVersion: testContractVersion(plan.kind) },
+        operation: {
+          key: kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY,
+          contractVersion: testContractVersion(kind)
+        },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
           addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
-          modifier: { kind: 'FACT', factKey: modifierFact },
-          threshold: { kind: 'FACT', factKey: thresholdFact },
-          ...(plan.kind === 'ATTACK'
+          modifier: {
+            kind: 'FACT',
+            factKey:
+              kind === 'ATTACK' ? DND5E_ATTACK_MODIFIER_FACT_KEY : DND5E_SAVE_MODIFIER_FACT_KEY
+          },
+          threshold: {
+            kind: 'FACT',
+            factKey: kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
+          },
+          ...(kind === 'ATTACK'
             ? {
                 criticalThreshold: {
                   kind: 'FACT' as const,
@@ -215,7 +202,30 @@ export function compileTestDefinition(
         nodeId: 'test',
         port: 'contributorChecksum'
       }
-    },
+    }
+  }
+}
+
+export function compileTestDefinition(
+  action: Dnd5eCompiledEffectActionSource,
+  plan: TestPlan,
+  recurringPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null
+) {
+  const conditions = [...(plan.conditions ?? [])]
+  const savesForHalf =
+    plan.kind === 'SAVE' && plan.branches.get('ON_SAVE_SUCCESS')?.kind === 'ENTRY_DICE_DAMAGE'
+  const proposalNodes: RuleGraphDefinition['nodes'] = [
+    ...[...plan.branches].flatMap(([pathCode, outcome]) =>
+      isEntryDiceOutcome(outcome)
+        ? entryDiceDamageNodes(pathCode, outcome, savesForHalf)
+        : [proposalNode(pathCode, outcome)]
+    ),
+    ...conditions.map(([pathCode, { outcome }]) =>
+      proposalNode(pathCode, outcome, CONDITION_PROPOSAL_SUFFIX)
+    )
+  ]
+  const definition: RuleGraphDefinition = {
+    ...attackOrSaveTestDefinition(action.effectId, plan.kind, proposalNodes),
     ...(recurringPlan
       ? {
           sourceEntryBindings: [

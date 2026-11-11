@@ -25,7 +25,7 @@ import {
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
-import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
+import { dnd5eAddedDiceFacts, dnd5eD20TestNodes } from '../systems/dnd5e/d20AddedDiceGraph.js'
 
 /** No d20 reaches it, so a spatial save effect always fails its save. */
 const SPATIAL_SAVE_DC = 30
@@ -81,11 +81,6 @@ export async function buildSpatialDamageEffect(input: {
   const damageNodeId = input.save ? 'proposal-on_save_fail' : 'damage'
   if (input.condition && input.save)
     throw new Error('A spatial condition effect cannot also require a save.')
-  const d20Node = {
-    id: 'd20',
-    operation: { key: 'evidence.integer-range', contractVersion: 1 },
-    inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
-  } satisfies GraphNode
   const saveTestNode = {
     id: 'test',
     operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
@@ -153,7 +148,7 @@ export async function buildSpatialDamageEffect(input: {
     gameSystemId: SRD_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: input.save
-      ? [d20Node, dnd5eAddedDiceNode('d20'), saveTestNode, saveDamageNode]
+      ? [...dnd5eD20TestNodes('d20'), saveTestNode, saveDamageNode]
       : [input.condition ? conditionNode : damageNode],
     outputs: input.save ? saveOutputs : input.condition ? conditionOutputs : damageOutputs,
     sourceEntryBindings: [{ sourceEntryId: entryId, nodeId: damageNodeId }]

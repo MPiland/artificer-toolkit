@@ -4,10 +4,12 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  D20_ALLOWLIST,
   FENCE_ALLOWLIST,
   SIZE_BUDGET,
   SIZE_LIMIT,
   codeLines,
+  handSettledD20,
   ratchetProblems,
   systemsImports
 } from './sourceRatchets.mjs'
@@ -45,6 +47,12 @@ const NEW_ROOT = 'packages/rules-runtime/src/platformProbeVocabulary.ts'
 const CONSUMER = 'apps/session-worker/src/nativeProbe.ts'
 const PACKAGE_SYSTEM_IMPORT =
   "import { policy } from '@artificer-toolkit/rules-runtime/systems/dnd5e/policy'\n"
+const SETTLEMENT = 'packages/rules-runtime/src/encounterD20Settlement.ts'
+const HAND_SETTLED = 'packages/rules-runtime/src/encounterProbeExecution.ts'
+const d20Allowlist = (handSettled) => ({
+  settlement: { [SETTLEMENT]: 'The one d20 test settlement.' },
+  handSettled
+})
 const allowlist = (importers, compositionRoots = { [ROOT]: 'Installs the probe adapters.' }) => ({
   compositionRoots,
   importers
@@ -111,6 +119,9 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     write(CONSUMER, module(1))
     writeJson(SIZE_BUDGET, { [BIG]: SIZE_LIMIT + 100 })
     writeJson(FENCE_ALLOWLIST, allowlist([LEGACY]))
+    write(SETTLEMENT, "export const natural = rollModeKeptFace('FIRST', [7])\n")
+    write(HAND_SETTLED, 'export const natural = rollModeKeptFace(keep, faces)\n')
+    writeJson(D20_ALLOWLIST, d20Allowlist([HAND_SETTLED]))
     commitAll(root, 'phase')
     git(root, 'switch', '--quiet', '-c', 'slice')
   })
@@ -293,5 +304,86 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([
       `${FENCE_ALLOWLIST}: ${NEW_ROOT} is new; the allowlist only shrinks.`
     ])
+  })
+
+  it('fails a d20 settled by hand outside the settlement (QUALITY-10.1)', () => {
+    write(NEUTRAL, 'export const roll = (random) => random(20) + 1\n')
+    write(CONSUMER, 'export const natural = (keep, faces) => rollModeKeptFace(keep, faces)\n')
+    commitAll(root, 'hand-rolled d20s')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${CONSUMER}: keeps a d20 face outside the d20 settlement; settle it through settleEncounterD20Test.`,
+      `${NEUTRAL}: rolls a d20 outside the d20 settlement; settle it through settleEncounterD20Test.`
+    ])
+  })
+
+  it('does not fence a d20 in a test file or outside the rules hosts', () => {
+    write('packages/rules-runtime/src/__tests__/probe.test.ts', 'const roll = random(20) + 1\n')
+    write('apps/web/src/dice/roll.ts', 'export const roll = (random) => random(20) + 1\n')
+    commitAll(root, 'unfenced d20s')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+
+  it('fails a d20 allowlist entry added since the merge base', () => {
+    write(NEUTRAL, 'export const natural = rollModeKeptFace(keep, faces)\n')
+    writeJson(D20_ALLOWLIST, d20Allowlist([HAND_SETTLED, NEUTRAL]))
+    commitAll(root, 'allowlist the new hand-settled d20')
+    expect(ratchetProblems(root)).toEqual([])
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${D20_ALLOWLIST}: ${NEUTRAL} is new; the allowlist only shrinks.`
+    ])
+  })
+
+  it('asks to remove a d20 allowlist entry once the module settles through the settlement', () => {
+    write(HAND_SETTLED, 'export const natural = (roll) => roll.natural\n')
+    commitAll(root, 'route through the settlement')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${D20_ALLOWLIST}: ${HAND_SETTLED} no longer settles a d20 by hand; remove it.`
+    ])
+    writeJson(D20_ALLOWLIST, d20Allowlist([]))
+    commitAll(root, 'remove the entry')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+})
+
+describe('handSettledD20 (QUALITY-10.1)', () => {
+  const found = (source) => handSettledD20('packages/rules-runtime/src/probe.ts', source)
+
+  it('finds each step of a d20 settled by hand', () => {
+    expect(
+      found(
+        [
+          'const face = random(20) + 1',
+          "const node = { id: 'd20', inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } } }",
+          'const natural = rollModeKeptFace(keep, [face])',
+          'const answer = resolveEncounterD20Answer({ derived, answer, rollD20 })',
+          'const execution = await resumeEncounterD20({ continuation, natural })'
+        ].join('\n')
+      )
+    ).toEqual([
+      'builds a d20 evidence node',
+      'keeps a d20 face',
+      'resolves a d20 answer',
+      'resumes a d20 graph',
+      'rolls a d20'
+    ])
+  })
+
+  it('finds a d20 rolled with the one first', () => {
+    expect(found('const face = 1 + random(20)')).toEqual(['rolls a d20'])
+  })
+
+  it('does not count the injected rollD20 seam, another die or a settled roll', () => {
+    expect(
+      found(
+        [
+          'settle({ rollD20: () => random(20) + 1 })',
+          'const rollD20 = () => random(20) + 1',
+          'const d6 = random(6) + 1',
+          "const node = { inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 6 } } }",
+          'const settled = settleEncounterD20Answer({ rollD20 })',
+          'const execution = await settleEncounterD20Test({ continuation, roll: settled })'
+        ].join('\n')
+      )
+    ).toEqual([])
   })
 })
