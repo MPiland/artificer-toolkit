@@ -37,6 +37,7 @@ import {
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
   ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID,
+  ENCOUNTER_REACTION_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource
 } from './encounterRollModeReasons.js'
 import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
@@ -181,6 +182,64 @@ export function encounterActionCurrentnessChecksum(input: {
   })
 }
 
+/**
+ * The attack as the reactions bystanders used before its d20 leave it (D217): each reaction's roll mode
+ * joins the attack roll's contributors, keyed by its reactor. Applied after preparation, so the
+ * attack's currentness does not change as reactions are used. An action that makes no attack roll, or
+ * one no reaction answered, is returned as it is.
+ */
+export function withEncounterRollInfluences<
+  Prepared extends {
+    makesAttackRoll: boolean
+    relationshipContributors: readonly EncounterRelationshipD20Contributor[]
+    binding: {
+      sourceDerivedFacts: {
+        rollContributorEvidence: {
+          attacks: Record<string, readonly EncounterRelationshipD20Contributor[]>
+        }
+      }
+    }
+  }
+>(
+  prepared: Prepared,
+  influences: readonly { reaction: { reactorActorId: string }; rollMode: string }[]
+): Prepared {
+  if (!prepared.makesAttackRoll || influences.length === 0) return prepared
+  const contributors = influences.map(
+    ({ reaction, rollMode }): EncounterRelationshipD20Contributor => ({
+      sourceId: ENCOUNTER_REACTION_CONTRIBUTOR_SOURCE_ID,
+      grantId: null,
+      domainKey: `reaction:${reaction.reactorActorId}`,
+      influence: rollMode,
+      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.REACTION)
+    })
+  )
+  const { sourceDerivedFacts } = prepared.binding
+  return {
+    ...prepared,
+    relationshipContributors: mergeCanonicalD20Contributors(
+      prepared.relationshipContributors,
+      contributors
+    ),
+    binding: {
+      ...prepared.binding,
+      sourceDerivedFacts: {
+        ...sourceDerivedFacts,
+        rollContributorEvidence: {
+          ...sourceDerivedFacts.rollContributorEvidence,
+          attacks: Object.fromEntries(
+            Object.entries(sourceDerivedFacts.rollContributorEvidence.attacks).map(
+              ([attackKind, attackContributors]) => [
+                attackKind,
+                mergeCanonicalD20Contributors(attackContributors, contributors)
+              ]
+            )
+          )
+        }
+      }
+    }
+  }
+}
 /** A capability source that runs `compiledEffect`: the option its actor picked (D148). */
 function withCompiledEffect<Source extends { capability: { compiledEffect: CompiledEffectGroup } }>(
   source: Source,

@@ -49,6 +49,7 @@ import {
   dnd5ePathGatedTargetProposalOperations,
   dnd5eTestDamageProposalOperation
 } from '../systems/dnd5e/effectActionOperationRegistry.js'
+import { executionImposesRollModeOnTriggeringRoll } from '../systems/dnd5e/imposeRollModeOnTriggeringRoll.js'
 import { executionSubtractsFromTriggeringRoll } from '../systems/dnd5e/subtractFromTriggeringRoll.js'
 import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
 import {
@@ -549,6 +550,11 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       'SUBTRACT_FROM_TRIGGERING_ROLL',
       { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' },
       executionSubtractsFromTriggeringRoll
+    ],
+    [
+      'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL',
+      { kind: 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL' },
+      executionImposesRollModeOnTriggeringRoll
     ],
     [
       'TELEPORT_ALLOWANCE',

@@ -13,6 +13,8 @@ import { featureChargeUsed } from '../encounterActorState.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { EncounterValidationError } from '../encounterErrors.js'
 import { buildEncounterMovementReactionFacts } from '../encounterMovementReactionFacts.js'
+import { withEncounterRollInfluences } from '../encounterActionMechanicsPreparation.js'
+import { ENCOUNTER_REACTION_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
 import {
   QUILL_VOLLEY_CHARGE_ID,
   QUILL_VOLLEY_ID,
@@ -262,5 +264,48 @@ describe('encounter action mechanics preparation: held-only targeting (ATTACK-7.
     await expect(
       prepareCreatureAction({ actor, target, featureId: engulf.id, overridable: true })
     ).rejects.toThrow(EncounterValidationError)
+  })
+})
+
+describe('encounter action mechanics preparation: roll influences (SPELLS-31.T4k1b, D217)', () => {
+  const REACTOR_ID = '00000000-0000-4000-8000-0000000c0003'
+  const disadvantage = [{ reaction: { reactorActorId: REACTOR_ID }, rollMode: 'DISADVANTAGE' }]
+  const prepareQuills = (rangeFeet?: number) =>
+    prepareCreatureAction({
+      actor: creatureActor({
+        id: SOURCE_ID,
+        label: 'Quill Beast',
+        features: [quillVolley({ charges: 1, cost: 1, ...(rangeFeet ? { rangeFeet } : {}) })]
+      }),
+      target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true
+    })
+
+  it('rolls the attack with a bystander reaction’s disadvantage, keeping the lower of two d20s', async () => {
+    const prepared = await prepareQuills(30)
+    const influenced = withEncounterRollInfluences(prepared, disadvantage)
+
+    expect(influenced.relationshipContributors).toContainEqual(
+      expect.objectContaining({
+        sourceId: ENCOUNTER_REACTION_CONTRIBUTOR_SOURCE_ID,
+        domainKey: `reaction:${REACTOR_ID}`,
+        influence: 'DISADVANTAGE',
+        source: { kind: 'RULE', id: 'reaction', holderActorId: null }
+      })
+    )
+    const hit = await settleCreatureAction({ prepared, rolls: [14] })
+    const missed = await settleCreatureAction({ prepared, rolls: [0] })
+    // The same high face hits alone; beside a natural 1 under disadvantage the lower face misses.
+    const { mechanics } = await settleCreatureAction({ prepared: influenced, rolls: [14, 0] })
+    expect(hit.mechanics.targetPlan.updatedActor).toMatchObject({ currentHitPoints: 8 })
+    expect(mechanics.targetPlan).toEqual(missed.mechanics.targetPlan)
+  })
+
+  it('leaves an action unchanged with no influence, or when it makes no attack roll', async () => {
+    const attack = await prepareQuills(30)
+    expect(withEncounterRollInfluences(attack, [])).toBe(attack)
+    const volley = await prepareQuills()
+    expect(withEncounterRollInfluences(volley, disadvantage)).toBe(volley)
   })
 })

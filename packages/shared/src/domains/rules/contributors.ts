@@ -28,7 +28,9 @@ export const ROLL_MODE_RULE_SOURCE_IDS = {
   CLOSE_RANGE: 'close-range',
   UNSEEN_ATTACKER: 'unseen-attacker',
   UNSEEN_TARGET: 'unseen-target',
-  CAST_MODIFIER: 'cast-modifier'
+  CAST_MODIFIER: 'cast-modifier',
+  /** A bystander's reaction that set the roll's mode before it was rolled (D217). */
+  REACTION: 'reaction'
 } as const
 
 /** The roll-mode source of a Character mechanic source: its active effect, or the definition naming it. */

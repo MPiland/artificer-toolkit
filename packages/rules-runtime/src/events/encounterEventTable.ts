@@ -9,6 +9,7 @@ import type {
   SpatialTriggerMode,
   SpatialTurnTrigger
 } from '@artificer-toolkit/shared/vtt'
+import type { EncounterActionSceneContext } from '../encounterActionTargetPolicy.js'
 
 /**
  * The events an Encounter raises on the creature that holds effects or reactions (ADR 0039 decision
@@ -107,6 +108,31 @@ export type EncounterEvent =
   | { kind: 'SPELL_CAST_BY_OTHER' }
   /** Another creature rolls the d20 of an attack roll, before its result is shown. */
   | { kind: 'ATTACK_ROLLED_BY_OTHER' }
+  /**
+   * Another creature's attack, aimed at a creature other than the holder, is about to roll its d20:
+   * whether the holder sees the attacker, the attacker's size code, the Scene from the holder to the
+   * attack's target (null off a Scene), and the equipment categories the holder has equipped.
+   */
+  | {
+      kind: 'ATTACK_AIMED_AT_OTHER'
+      gameSystemId: string
+      attackerSeen: boolean
+      attackerSizeCode: string | null
+      targetScene: EncounterActionSceneContext | null
+      holderEquippedCategories: readonly string[]
+    }
+  /**
+   * An attack on the holder has hit or missed: whether the holder sees the attacker, the attacker's
+   * size code, and the Scene from the holder to the attacker (null off a Scene).
+   */
+  | {
+      kind: 'ATTACK_RESOLVED_ON_HOLDER'
+      gameSystemId: string
+      hit: boolean
+      attackerSeen: boolean
+      attackerSizeCode: string | null
+      attackerScene: EncounterActionSceneContext | null
+    }
   /** The holder is chosen as a target of a cast of `castOwnerId` (the spell cast). */
   | { kind: 'TARGETED_BY_CAST'; castOwnerId: string }
   /**
@@ -186,6 +212,8 @@ export type EncounterReactionHook =
     }
   | { event: 'SPELL_CAST_BY_OTHER'; trigger: 'SPELL_CAST' }
   | { event: 'ATTACK_ROLLED_BY_OTHER'; trigger: 'ATTACK_ROLL_BY_OTHER' }
+  | { event: 'ATTACK_AIMED_AT_OTHER'; trigger: 'ATTACK_ON_OTHER' }
+  | { event: 'ATTACK_RESOLVED_ON_HOLDER'; trigger: 'ATTACK_RESOLVED_ON_SELF' }
   | { event: 'TARGETED_BY_CAST'; trigger: 'TARGETED_SELF' }
 
 /**
