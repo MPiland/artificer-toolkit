@@ -25811,18 +25811,47 @@
           ],
           "tasks": [
             {
-              "id": "QUALITY-13.T1",
+              "id": "QUALITY-13.T1b",
               "status": "IN_PROGRESS",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-8.T1a2b", "QUALITY-10.T1"]
+              },
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
+              "text": "One per-target preparer in the Worker replacing prepareAttackAs and prepareCasterActionOnTarget; every chosen list passes its creatures to the cast window, so a save or ray list offers the being-chosen reaction; a chosen-list save window is proved by test."
+            },
+            {
+              "id": "QUALITY-13.T1a",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T1b"]
+              },
+              "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
+              "text": "advanceNativeActionGraphs rebuilt on prepareNativeActionTest and continueNativeActionAfterTest; its own roll, window and answer logic deleted; no golden row or area test moves."
+            },
+            {
+              "id": "QUALITY-13.T1c",
+              "status": "TODO",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
-                "after": ["QUALITY-8.T1a2b", "QUALITY-10.T1"]
+                "size": 5,
+                "after": ["QUALITY-13.T1a", "QUALITY-8.T1b"]
               },
-              "text": "One per-target driver for the three target shapes.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
+              "text": "A ray list (Scorching Ray, Eldritch Blast) resolves one ray at a time through the single-target driver under one root, so each ray gets hit reactions, Protection, roll reactions, on-hit riders and the incoming gate; the aggregate gains no reaction state."
             },
             {
               "id": "QUALITY-13.T2",
@@ -25833,7 +25862,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T1"]
+                "after": ["QUALITY-13.T1c"]
               },
               "text": "One commit skeleton for action, area, countered-cast and gated commits."
             }
