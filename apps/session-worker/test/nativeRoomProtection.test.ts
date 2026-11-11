@@ -68,7 +68,11 @@ const distract = ((): ClassFeature => {
     result: testUuid(0x7eb),
     outcome: testUuid(0x7ec)
   })
-  if (effect.invocation.kind !== 'ACTION') throw new Error('Protection is not an action.')
+  type ReactionInvocation = Extract<(typeof effect)['invocation'], { reactionTrigger: object }>
+  const isReaction = (
+    invocation: (typeof effect)['invocation']
+  ): invocation is ReactionInvocation => 'reactionTrigger' in invocation
+  if (!isReaction(effect.invocation)) throw new Error('Protection is not a reaction.')
   return {
     id: testUuid(0x7e7),
     label: 'Distract',
