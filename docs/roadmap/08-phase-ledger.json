@@ -2140,6 +2140,50 @@
             }
           ],
           "internalReason": "Authorization hardening: proved by the PLATFORM-27.1 coverage test and the PLATFORM-27.2 refusal tests; it adds no user flow."
+        },
+        {
+          "id": "PLATFORM-28",
+          "title": "Stories show real seeded data",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [
+            "User approval 2026-11-11 (D187 growth, D218): Storybook reads seeded data from the CI throwaway Convex backend instead of hand-typed DTO fixtures"
+          ],
+          "acs": [
+            {
+              "id": "PLATFORM-28.1",
+              "status": "TODO",
+              "origin": [
+                "User approval 2026-11-11 (D187 growth, D218): Storybook reads seeded data from the CI throwaway Convex backend instead of hand-typed DTO fixtures"
+              ],
+              "text": "Page and route stories read seeded data from a real Convex backend, locally and in CI, through createAppQueryClient(convex); writes are spied with fn() and never sent; state stories (loading, error, empty, after-write) are composed from their base story with one single-query override each and reuse its play steps; no hand-typed DTO fixture remains; and a Storybook run logs no \"No queryFn\" message."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 5,
+            "size": 8,
+            "after": ["QUALITY-16.T1"]
+          },
+          "tasks": [
+            {
+              "id": "PLATFORM-28.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-16.T1"]
+              },
+              "text": "Seam audit first (stories that query, write, need a test identity or a seed-impossible state; fixture modules; CI setup reuse with Browser journeys), then split: wire Storybook to the seeded backend and the CI stack, migrate story files by domain, delete the DTO fixtures.",
+              "note": "Re-split into domain tasks at the seam audit; re-score WSJF then."
+            }
+          ],
+          "internalReason": "Developer tooling: changes where Storybook stories get their data, not a product flow."
         }
       ]
     },
