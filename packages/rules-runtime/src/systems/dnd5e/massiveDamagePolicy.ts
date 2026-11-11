@@ -6,7 +6,7 @@ import type {
   OptionalCombatPolicyInput
 } from '../../optionalCombatPolicyCapability.js'
 import { dnd5eConcentrationHolderSaves, resolveDnd5eHolderSave } from './concentrationPolicy.js'
-import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
@@ -38,15 +38,7 @@ function massiveDamageSaveGraph(input: {
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     vocabularyBindings: [{ kind: 'ABILITY', definitionId: input.savingThrowAbilityDefinitionId }],
     nodes: [
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
-      dnd5eAddedDiceNode('d20'),
+      ...dnd5eD20TestNodes('d20'),
       {
         id: 'save',
         operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },

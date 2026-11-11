@@ -143,15 +143,19 @@ export function lockedRelationshipActionFacts(input: {
   return contributors
 }
 
+/**
+ * The one merge of a d20's contributors: every group's contributors in canonical order, each
+ * canonical identity once. A contributor two producers both name is one contributor, and the earliest
+ * group's copy is kept.
+ */
 export function mergeCanonicalD20Contributors(
   ...groups: readonly (readonly EncounterRelationshipD20Contributor[])[]
-): readonly EncounterRelationshipD20Contributor[] {
-  const merged = groups.flatMap((group) => group.map((contributor) => ({ ...contributor })))
-  merged.sort(compareCanonicalD20Contributors)
-  for (let index = 1; index < merged.length; index += 1) {
-    if (compareCanonicalD20Contributors(merged[index - 1]!, merged[index]!) === 0) {
-      throw new EncounterValidationError('Action roll contributors must be unique.')
-    }
-  }
-  return merged
+): EncounterRelationshipD20Contributor[] {
+  return groups
+    .flatMap((group) => group.map((contributor) => ({ ...contributor })))
+    .sort(compareCanonicalD20Contributors)
+    .filter(
+      (contributor, index, sorted) =>
+        index === 0 || compareCanonicalD20Contributors(sorted[index - 1]!, contributor) !== 0
+    )
 }

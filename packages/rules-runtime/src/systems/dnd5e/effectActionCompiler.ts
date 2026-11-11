@@ -96,7 +96,11 @@ import {
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
-import { compileTestDefinition, type TestPlan } from './effectActionTestPhase.js'
+import {
+  attackOrSaveTestDefinition,
+  compileTestDefinition,
+  type TestPlan
+} from './effectActionTestPhase.js'
 import {
   bindMovementInterruptionOutput,
   bindMovementInterruptionTestOutput
@@ -111,12 +115,7 @@ import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
-import {
-  dnd5eAddedDiceFacts,
-  dnd5eAddedDiceNode,
-  derivedAttackDice,
-  derivedSaveDice
-} from './d20AddedDiceGraph.js'
+import { dnd5eAddedDiceFacts, derivedAttackDice, derivedSaveDice } from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { foldD20Operands } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
@@ -127,10 +126,7 @@ import {
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
 import { rolledDamageDice } from './effectActionDamageDice.js'
-import {
-  DND5E_ATTACK_TEST_OPERATION_KEY,
-  DND5E_SAVE_TEST_OPERATION_KEY
-} from './dnd5eTestOperationKeys.js'
+import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
@@ -221,8 +217,7 @@ import {
   forcedMovementProposalNode,
   dnd5eResultGate,
   saveAudit,
-  saveOutcomeFact,
-  testContractVersion
+  saveOutcomeFact
 } from './effectActionOperationRegistry.js'
 import {
   testApplications,
@@ -2358,69 +2353,10 @@ function compileDnd5eEffectActionTestTemplate({
     return { phase: 'TEST', published, templateChecksum: published.checksum }
   }
   const kind = supportedTestPhaseKind(action)
-  const modifierFact =
-    kind === 'ATTACK' ? DND5E_ATTACK_MODIFIER_FACT_KEY : DND5E_SAVE_MODIFIER_FACT_KEY
-  const thresholdFact = kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
-  const testOperation =
-    kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
-      dnd5eAddedDiceNode('d20'),
-      {
-        id: 'test',
-        operation: { key: testOperation, contractVersion: testContractVersion(kind) },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
-          addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
-          modifier: { kind: 'FACT', factKey: modifierFact },
-          threshold: { kind: 'FACT', factKey: thresholdFact },
-          ...(kind === 'ATTACK'
-            ? {
-                criticalThreshold: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY
-                }
-              }
-            : {}),
-          contributorChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          },
-          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'test',
-        port: 'targetActorId'
-      },
-      naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'naturalD20' },
-      total: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'total' },
-      resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
-      contributorChecksum: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'test',
-        port: 'contributorChecksum'
-      }
-    }
-  }
   // A table that repeats rolls its die and rerolls here, so its OUTCOME holds only the rolled rows.
-  const base = publishedGraph(withRollTableTestGraph(action, definition))
+  const base = publishedGraph(
+    withRollTableTestGraph(action, attackOrSaveTestDefinition(action.effectId, kind))
+  )
   const published = bindMovementInterruptionTestOutput({ action, published: base, kind })
   return { phase: 'TEST', published, templateChecksum: published.checksum }
 }

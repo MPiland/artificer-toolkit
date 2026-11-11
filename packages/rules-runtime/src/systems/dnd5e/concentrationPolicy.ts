@@ -20,7 +20,7 @@ import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import type { MaintenanceLinkCapabilityAdapter } from '../../maintenanceLinkCapability.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
@@ -314,15 +314,7 @@ export function createDnd5eConcentrationCheckDefinition() {
           }
         }
       },
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
-      dnd5eAddedDiceNode('d20'),
+      ...dnd5eD20TestNodes('d20'),
       {
         id: 'save',
         operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },

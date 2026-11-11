@@ -1,7 +1,11 @@
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { savingThrowCapabilityRegistry } from './platformPolicyModules.js'
+import {
+  rollModeCapabilityRegistry,
+  savingThrowCapabilityRegistry
+} from './platformPolicyModules.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type { HeldDamageInterception } from './encounterDamageInterception.js'
+import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
 /**
@@ -19,7 +23,6 @@ export function withInterceptionSaveRolls<
   if (!target.damageInterceptions.some(({ save, saveRoll }) => save && !saveRoll)) return target
   const savingThrows = savingThrowCapabilityRegistry.require(gameSystemId)
   const rows = savingThrows.holderSaves(target)
-  const rollD20 = () => random(20) + 1
   return {
     ...target,
     damageInterceptions: target.damageInterceptions.map((interception) => {
@@ -27,14 +30,18 @@ export function withInterceptionSaveRolls<
       const abilityDefinitionId = savingThrows.abilityDefinitionId(interception.save.ability)
       const row = rows.find((entry) => entry.abilityDefinitionId === abilityDefinitionId)
       if (!row) throw new EncounterValidationError('A damage interception save has no ability.')
-      const first = rollD20()
-      const rawDie =
-        row.rollMode === 'NORMAL'
-          ? first
-          : row.rollMode === 'ADVANTAGE'
-            ? Math.max(first, rollD20())
-            : Math.min(first, rollD20())
-      return { ...interception, saveRoll: { rawDie, addedTotal: row.modifier } }
+      // No request stands behind this save: the server rolls it under the holder's derived mode.
+      const { natural } = settleEncounterD20Answer({
+        gameSystemId,
+        d20: {
+          rollMode: row.rollMode,
+          keep: rollModeCapabilityRegistry.rollModeKeep({ gameSystemId, rollMode: row.rollMode })
+        },
+        answer: { kind: 'AUTO_ROLL', requestId: interception.effectId },
+        rollD20: () => random(20) + 1,
+        random
+      })
+      return { ...interception, saveRoll: { rawDie: natural, addedTotal: row.modifier } }
     })
   }
 }

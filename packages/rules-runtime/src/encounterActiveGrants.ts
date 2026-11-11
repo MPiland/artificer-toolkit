@@ -21,10 +21,7 @@ import {
   type DamageDefenseBypassCode,
   type ValueDomainCode
 } from '@artificer-toolkit/shared/core'
-import {
-  compareCanonicalD20Contributors,
-  rollModeContributorSourceOfMechanicSource
-} from '@artificer-toolkit/shared/rules'
+import { rollModeContributorSourceOfMechanicSource } from '@artificer-toolkit/shared/rules'
 
 import {
   activeAttackRollDice,
@@ -40,7 +37,10 @@ import {
   isInEffectEventScope,
   type EffectEventScope
 } from './events/encounterEventHooks.js'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import {
+  mergeCanonicalD20Contributors,
+  type EncounterRelationshipD20Contributor
+} from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
   attackProfileCapabilityRegistry,
@@ -1169,26 +1169,13 @@ export function withSourceSaves(
       }
 }
 
-/** The canonical contributors of a d20 with `added` merged in. */
-export function mergedCanonicalContributors(
-  existing: readonly EncounterRelationshipD20Contributor[],
-  added: readonly EncounterRelationshipD20Contributor[]
-): EncounterRelationshipD20Contributor[] {
-  return [...existing, ...added]
-    .sort(compareCanonicalD20Contributors)
-    .filter(
-      (contributor, index, sorted) =>
-        index === 0 || compareCanonicalD20Contributors(sorted[index - 1]!, contributor) !== 0
-    )
-}
-
 /** The canonical contributors of a d20 with `added` merged in, and the roll mode the System resolves them to. */
 export function mergedRollContributors(
   gameSystemId: string,
   existing: readonly EncounterRelationshipD20Contributor[],
   added: readonly EncounterRelationshipD20Contributor[]
 ) {
-  const contributors = mergedCanonicalContributors(existing, added)
+  const contributors = mergeCanonicalD20Contributors(existing, added)
   return {
     contributors,
     rollMode: rollModeCapabilityRegistry.resolveRollMode({ gameSystemId, contributors }).rollMode

@@ -54,6 +54,36 @@ export function derivedSaveDice(
   }
 }
 
+/**
+ * A d20's evidence node: one natural face from 1 to 20. Every d20 graph builds it here (the d20
+ * source ratchet). `enabledFactKey` gates the request on a fact, for a test that may not be attempted.
+ */
+export function dnd5eD20Node(
+  id: string,
+  enabledFactKey?: string
+): RuleGraphDefinition['nodes'][number] {
+  return {
+    id,
+    operation: {
+      key: enabledFactKey ? 'evidence.optional-integer-range' : 'evidence.integer-range',
+      contractVersion: 1
+    },
+    inputs: {
+      min: { kind: 'LITERAL', value: 1 },
+      max: { kind: 'LITERAL', value: 20 },
+      ...(enabledFactKey ? { enabled: { kind: 'FACT' as const, factKey: enabledFactKey } } : {})
+    }
+  }
+}
+
+/** A d20 test's two evidence nodes: its d20, then the dice it adds. */
+export function dnd5eD20TestNodes(
+  d20NodeId: string,
+  enabledFactKey?: string
+): RuleGraphDefinition['nodes'] {
+  return [dnd5eD20Node(d20NodeId, enabledFactKey), dnd5eAddedDiceNode(d20NodeId)]
+}
+
 /** The added-dice node that follows a test's d20 node, whose total the test op adds. */
 export function dnd5eAddedDiceNode(d20NodeId: string): RuleGraphDefinition['nodes'][number] {
   return {

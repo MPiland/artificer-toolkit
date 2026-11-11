@@ -548,3 +548,28 @@ describe('reconcile rolled d20 faces to the applied mode', () => {
     ).toThrow()
   })
 })
+
+describe('the one d20 contributor merge (QUALITY-10.1)', () => {
+  const help = {
+    sourceId: 'test:help',
+    grantId: null,
+    domainKey: 'test:help',
+    influence: 'ADVANTAGE' as const,
+    source: { kind: 'AUTHORED' as const, id: 'test:help', holderActorId: ATTACKER_ID }
+  }
+
+  it('keeps a contributor two producers both name once, in canonical order', () => {
+    expect(mergeCanonicalD20Contributors([help, dodge], [dodge])).toEqual([dodge, help])
+  })
+
+  it('keeps the earliest group’s copy of a contributor named twice', () => {
+    const relayed = { ...dodge, source: { ...dodge.source, holderActorId: TARGET_ID } }
+    expect(mergeCanonicalD20Contributors([dodge], [relayed])).toEqual([dodge])
+  })
+
+  it('returns copies, so a caller cannot change a producer’s contributor', () => {
+    const [merged] = mergeCanonicalD20Contributors([dodge])
+    expect(merged).toEqual(dodge)
+    expect(merged).not.toBe(dodge)
+  })
+})

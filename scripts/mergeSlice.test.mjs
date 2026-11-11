@@ -661,7 +661,8 @@ describe('mergeSlice waiting on dispatched runs', () => {
           'apps/b.ts': module('b', 0, 1700),
           'other.txt': 'base\n',
           [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1700 }),
-          'scripts/systemsImportAllowlist.json': '{ "compositionRoots": {}, "importers": [] }\n'
+          'scripts/systemsImportAllowlist.json': '{ "compositionRoots": {}, "importers": [] }\n',
+          'scripts/d20SettlementAllowlist.json': '{ "settlement": {}, "handSettled": [] }\n'
         },
         'listed modules'
       )

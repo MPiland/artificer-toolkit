@@ -1,4 +1,4 @@
-// RULES-2.T1 (ADR 0039 decision 6): two shrink-only ratchets.
+// RULES-2.T1 (ADR 0039 decision 6) and QUALITY-10.T1: three shrink-only ratchets.
 //
 // File size: a non-test source module over SIZE_LIMIT code lines (non-blank lines outside comments) fails
 // unless `scripts/fileSizeBudget.json` lists it. Each entry's cap is the file's size when it was listed;
@@ -10,8 +10,13 @@
 // `scripts/systemsImportAllowlist.json` names the composition roots that install System adapters, each with
 // its reason, and lists the `importers` that still import `systems/` directly.
 //
-// With `--base <ref>` both lists are also compared with the ones at the merge base: a cap may not rise and
-// neither list may gain an entry, so a slice cannot buy itself room.
+// d20 settlement (QUALITY-10.1): in the rules runtime, Encounter persistence, Convex and the Session Worker
+// only the modules `scripts/d20SettlementAllowlist.json` names as the `settlement` build a d20 evidence
+// node, roll a d20, resolve its answer, keep its face or resume its graph. `handSettled` lists the modules
+// that still do one of these by hand.
+//
+// With `--base <ref>` the lists are also compared with the ones at the merge base: a cap may not rise and
+// no list may gain an entry, so a slice cannot buy itself room.
 //
 //   node scripts/sourceRatchets.mjs [--base <ref>]   (`yarn lint:ratchets`, part of `yarn lint`)
 import { execFileSync } from 'node:child_process'
@@ -24,6 +29,7 @@ import { isTestPath } from './redProof.mjs'
 export const SIZE_LIMIT = 1500
 export const SIZE_BUDGET = 'scripts/fileSizeBudget.json'
 export const FENCE_ALLOWLIST = 'scripts/systemsImportAllowlist.json'
+export const D20_ALLOWLIST = 'scripts/d20SettlementAllowlist.json'
 const PLATFORM_ROOT = /^packages\/rules-runtime\/src\/platform[^/]*\.ts$/
 
 const RULES_RUNTIME = 'packages/rules-runtime/src/'
@@ -85,6 +91,68 @@ export const systemsImports = (file, source) => {
     const target = path.posix.join(path.posix.dirname(file), specifier)
     return target === SYSTEMS || target.startsWith(`${SYSTEMS}/`)
   })
+}
+
+const D20_FENCED = [
+  RULES_RUNTIME,
+  'packages/encounter-persistence/src/',
+  'apps/apis/convex/',
+  'apps/session-worker/src/'
+]
+// A call that settles part of a d20 test, which only the settlement makes.
+const D20_SETTLEMENT_CALLS = {
+  resolveEncounterD20Answer: 'resolves a d20 answer',
+  rollModeKeptFace: 'keeps a d20 face',
+  resumeEncounterD20: 'resumes a d20 graph'
+}
+
+/**
+ * What a module does to a d20 by hand, each a step the one settlement owns: the calls of
+ * `D20_SETTLEMENT_CALLS`, a literal 1-to-20 evidence node, and a die rolled as `roll(20) + 1`. The
+ * die a host injects as `rollD20` is the seam the settlement draws from, so it is not counted.
+ */
+export const handSettledD20 = (file, source) => {
+  const found = new Set()
+  const literal = (node, value) => node?.type === 'Literal' && node.value === value
+  const property = (node, name) =>
+    node?.type === 'ObjectExpression'
+      ? node.properties.find((entry) => entry.type === 'Property' && entry.key?.name === name)
+          ?.value
+      : undefined
+  const visit = (node) => {
+    if (Array.isArray(node)) return node.forEach(visit)
+    if (!node || typeof node.type !== 'string') return
+    if (
+      (node.type === 'Property' && node.key?.name === 'rollD20') ||
+      (node.type === 'VariableDeclarator' && node.id?.name === 'rollD20')
+    )
+      return
+    if (node.type === 'CallExpression' && Object.hasOwn(D20_SETTLEMENT_CALLS, node.callee?.name))
+      found.add(D20_SETTLEMENT_CALLS[node.callee.name])
+    if (
+      literal(property(property(node, 'min'), 'value'), 1) &&
+      literal(property(property(node, 'max'), 'value'), 20)
+    )
+      found.add('builds a d20 evidence node')
+    if (
+      node.type === 'BinaryExpression' &&
+      node.operator === '+' &&
+      [
+        [node.left, node.right],
+        [node.right, node.left]
+      ].some(
+        ([roll, one]) =>
+          literal(one, 1) &&
+          roll.type === 'CallExpression' &&
+          roll.arguments.some((argument) => literal(argument, 20))
+      )
+    )
+      found.add('rolls a d20')
+    for (const [key, value] of Object.entries(node))
+      if (key !== 'parent' && value && typeof value === 'object') visit(value)
+  }
+  visit(parseSync(file, source).program)
+  return [...found].sort()
 }
 
 const readJson = (root, file) => JSON.parse(readFileSync(path.join(root, file), 'utf8'))
@@ -164,7 +232,31 @@ export const ratchetProblems = (root, { base } = {}) => {
     if (!importers.has(file))
       problems.push(`${FENCE_ALLOWLIST}: ${file} no longer imports systems/; remove it.`)
 
+  const { settlement, handSettled } = readJson(root, D20_ALLOWLIST)
+  const d20Entries = [...Object.keys(settlement), ...handSettled]
+  const d20ByHand = new Map(
+    files
+      .filter((file) => D20_FENCED.some((prefix) => file.startsWith(prefix)))
+      .map((file) => [file, handSettledD20(file, source(file))])
+      .filter(([, found]) => found.length > 0)
+  )
+  for (const [file, found] of d20ByHand)
+    if (!d20Entries.includes(file))
+      problems.push(
+        `${file}: ${found.join(', ')} outside the d20 settlement; settle it through settleEncounterD20Test.`
+      )
+  for (const file of d20Entries)
+    if (!d20ByHand.has(file))
+      problems.push(`${D20_ALLOWLIST}: ${file} no longer settles a d20 by hand; remove it.`)
+
   if (base) {
+    const baseD20 = baseJson(root, base, D20_ALLOWLIST)
+    if (baseD20) {
+      const baseEntries = [...Object.keys(baseD20.settlement), ...baseD20.handSettled]
+      for (const file of d20Entries)
+        if (!baseEntries.includes(file))
+          problems.push(`${D20_ALLOWLIST}: ${file} is new; the allowlist only shrinks.`)
+    }
     const baseBudget = baseJson(root, base, SIZE_BUDGET)
     if (baseBudget)
       for (const [file, cap] of Object.entries(budget)) {
