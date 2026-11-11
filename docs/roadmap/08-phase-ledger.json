@@ -25547,17 +25547,33 @@
           "tasks": [
             {
               "id": "QUALITY-10.T1",
+              "status": "DONE",
+              "closes": ["QUALITY-10.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-4.T1"]
+              },
+              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet.",
+              "mergedAt": "2026-11-11T17:03:38Z",
+              "proof": "m689 (6300420f3) from slice tip affd108ac: Tests 43051035138 (Storybook jobs rerun three times past a GitHub-runner DNS failure resolving Ubuntu mirrors), Live 43053942776, Browser journeys 43051035556 green. Increment of QUALITY-10.1: one contributor merge (duplicate sourceId/grantId/domainKey/influence contributors collapse to the earliest group copy instead of throwing), one evidence-pin check (d20EvidenceMatchesPins), one d20 evidence node builder (d20AddedDiceGraph), and the shrink-only d20 settlement ratchet in scripts/sourceRatchets.mjs with scripts/d20SettlementAllowlist.json. Red proof: encounterAttackBelief.test.ts RED (2 of 23), sourceRatchets.test.mjs RED (24 of 26). Remaining: the ten handSettled modules (QUALITY-10.T2)."
+            },
+            {
+              "id": "QUALITY-10.T2",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-10.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
-                "after": ["QUALITY-4.T1"]
+                "size": 3,
+                "after": ["QUALITY-10.T1"]
               },
-              "text": "Route the hand-settled d20 sites through the settlement; one graph builder, one pin verifier, one contributor merge; source ratchet.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Route the ten modules still on the d20SettlementAllowlist handSettled list through settleEncounterD20Test and remove each entry; the retained-evidence and Concentration-response pin checks read d20EvidenceMatchesPins; prove the interception save keeps advantage and its added dice (addedTotal currently takes only row.modifier).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Split at review 2026-11-11 from QUALITY-10.T1 within AC QUALITY-10.1 (no scope growth); WSJF size re-scored 5 -> 3 + 3."
             }
           ]
         },
