@@ -28,8 +28,8 @@ Split on 2026-11-10 after the design pass: T4k1 (predicates, trigger and outcome
   - The `CAST_MODIFIER` rule contributor is the precedent.
 - **Pause:** `ROLL_INFLUENCE_REACTION` in `packages/schema/src/shared/encounterPause.ts`, modelled on `createNativeCastPause` (`nativeEncounterCastPause.ts`).
   - It runs in `nativeEncounterRules.ts` after the gate and retarget steps, before `castPause.advance`, and is skipped once resumed.
-  - The ENCOUNTER_ACTION context records the influences used and the reactors already asked, like `passedIncomingGate` and `failedCounters`.
-  - The terminal commit spends each used reaction through the `applyFailedCounterSpends` and `windowReactions` route.
+  - The ENCOUNTER_ACTION context records the influences used and the reactors already asked, like `passedIncomingGate` and `usedReactions`.
+  - The terminal commit spends each used reaction through the `applyUsedReactionSpends` and `windowReactions` route.
 - **Touch points:**
   - Worker: `nativePauseHandlers.ts`, `nativePauseTypes.ts`
   - Persistence: `packages/encounter-persistence/src/actionPending.ts`, `actionPendingPersistence.ts`, `occurrenceOwner.ts`
@@ -38,6 +38,27 @@ Split on 2026-11-10 after the design pass: T4k1 (predicates, trigger and outcome
 - **Proofs:**
   - `nativeRoomCuttingWords.test.ts` is the room-journey pattern;
   - `actionPendingOffers.test.ts` covers the validators.
+
+## Protection as built (T4k1b with QUALITY-7.T1)
+
+The "Pause" and "Touch points" bullets above are superseded by the one-reaction-pipeline ruling: Protection has no
+pause kind, pin or offer of its own. The canonical description is
+[rules-runtime: One reaction offer and one pin](../architecture/rules-runtime.md#one-reaction-offer-and-one-pin-current-quality-7t1)
+and the `ATTACK_ON_OTHER` section after it.
+
+- **Offer:** `discoverNativeAimedReactions` (`apps/session-worker/src/nativeEncounterAimedReaction.ts`) raises
+  `ATTACK_AIMED_AT_OTHER` and calls the shared `offerNativeReactions`. It is the third stage of
+  `createNativeCastPause.advance`, in the existing `CAST_REACTION` pause, shown as the shared `REACTION_CHOICE`.
+- **Roll mode:** a used reaction is carried in `usedReactions` (`triggerLevel: null`), under the offer kind
+  `ATTACK_ON_OTHER`; `nativeEncounterRules.ts` plans
+  it on every replay and applies its authored roll mode with `withEncounterRollInfluences`.
+- **Range:** Protection keeps `RANGE_KIND.SIGHT`. A Sight range on a single target measures no distance and requires
+  that the user see the target.
+- **Closed-rule effects:** none remained to remove; T4k1 had removed them.
+- **Proof:** `apps/session-worker/test/nativeRoomProtection.test.ts` (offer, shared pause and pin, use with
+  disadvantage and undo, decline, timeout, no shield, too far, a homebrew reaction with no shield at 10 feet).
+- **Left for QUALITY-8:** the chosen reaction runs as a child action (its own graph), and `ATTACK_RESOLVED_ON_SELF`
+  (Giant Killer) is raised.
 
 ## Giant Killer (T4k1c)
 

@@ -38,9 +38,9 @@ import {
 import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecutionMechanics.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import {
-  encounterFailedCounterReceiptDtoSchema,
+  encounterUsedReactionReceiptDtoSchema,
   encounterWindowReactionReceiptDtoSchema,
-  type EncounterFailedCounterReceiptDto,
+  type EncounterUsedReactionReceiptDto,
   type EncounterWindowReactionReceiptDto
 } from '../shared/ruleExecutionReactionChoice.js'
 import {
@@ -112,17 +112,17 @@ export const liveSessionCharacterSpellConsumptionSchema = lazySchema(() =>
   })
 )
 
-/** A failed counter's settled receipt with the reactor slot request the commit spends (D127). */
-export type LiveSessionFailedCounter = {
-  receipt: EncounterFailedCounterReceiptDto
+/** The settled receipt of a reaction used before the action executed, with the reactor slot request the commit spends (D127). */
+export type LiveSessionUsedReaction = {
+  receipt: EncounterUsedReactionReceiptDto
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
 }
 
-const liveSessionFailedCountersSchema = lazySchema(() =>
+const liveSessionUsedReactionsSchema = lazySchema(() =>
   z
     .array(
       z.strictObject({
-        receipt: encounterFailedCounterReceiptDtoSchema,
+        receipt: encounterUsedReactionReceiptDtoSchema,
         spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema)
       })
     )
@@ -225,8 +225,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The spell slot the attacked Character's reaction spent, with the Character version it was planned at. */
   reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
-  /** The counters reactors attempted and failed against this cast, each spent with this commit (D127). */
-  failedCounters: LiveSessionFailedCounter[]
+  /** The reactions other creatures used before this action executed (a counter that failed, a reaction to its aim), each spent with this commit (D127). */
+  usedReactions: LiveSessionUsedReaction[]
   /** The reactions other creatures used against the attack roll, each spent with this commit (D207). */
   windowReactions: LiveSessionWindowReaction[]
   /** The planned action's display name; the stored command, the timeline and its roll cards carry it (D150). */
@@ -295,7 +295,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-      failedCounters: liveSessionFailedCountersSchema,
+      usedReactions: liveSessionUsedReactionsSchema,
       windowReactions: liveSessionWindowReactionsSchema,
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,
@@ -362,7 +362,7 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
     z.extend(lostActionCommitBase(), {
       ...lostActionCommitFields(),
       reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-      failedCounters: liveSessionFailedCountersSchema
+      usedReactions: liveSessionUsedReactionsSchema
     })
   )
 
@@ -373,7 +373,7 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
  */
 export type LiveSessionEncounterGatedActionCommitInput = Omit<
   LiveSessionEncounterCounteredCastCommitInput,
-  'reactionSpellConsumption' | 'failedCounters'
+  'reactionSpellConsumption' | 'usedReactions'
 > & {
   /** The facts the gated action was prepared against; its receipt names them, as no graph ran. */
   currentnessChecksum: string
@@ -515,7 +515,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-      failedCounters: liveSessionFailedCountersSchema,
+      usedReactions: liveSessionUsedReactionsSchema,
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       consumedGrants: z

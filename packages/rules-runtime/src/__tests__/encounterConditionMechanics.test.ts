@@ -811,6 +811,21 @@ describe('a single-target action’s target requirements (SPELLS-33.T4i4a)', () 
     ).rejects.toThrow('Target sight is unavailable.')
   })
 
+  it('a Sight range needs its user to see the target, as a sight requirement does (QUALITY-7.1)', async () => {
+    const UNSEEN = { attackerSeesTarget: 'UNSEEN', targetSeesAttacker: 'SEES' } as const
+    const sightRange = (loadSight?: () => Promise<typeof SEEN | typeof UNSEEN>) =>
+      refuseUnmetTargetRequirements({
+        requirements: undefined,
+        rangeKind: 'SIGHT',
+        actorId: SOURCE_ID,
+        target: holding([], []),
+        loadSight
+      })
+    await expect(sightRange(async () => SEEN)).resolves.toBeUndefined()
+    await expect(sightRange(async () => UNSEEN)).rejects.toThrow('out of the required sight')
+    await expect(sightRange()).rejects.toThrow('Target sight is unavailable.')
+  })
+
   it('reads no sight for an action without a sight requirement', async () => {
     let reads = 0
     await refusals(

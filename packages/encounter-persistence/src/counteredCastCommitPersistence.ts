@@ -13,9 +13,9 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { castCounteredCarriesFailedCounters } from './actionPending.js'
+import { castCounteredCarriesUsedReactions } from './actionPending.js'
 import { recordCounterCheckRollCards } from './actionRollCards.js'
-import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
+import { applyUsedReactionSpends, usedReactionSpends } from './usedReactionSpend.js'
 import {
   combineSpendMutations,
   settleActionSourceSpend,
@@ -101,11 +101,11 @@ export async function persistEncounterCounteredCastCommit(
           : response.resolution.kind !== 'OPTION' ||
             response.resolution.optionId !== counter.reaction.useOptionId) ||
         !offered.reactions.some((pin) => sameCounter(pin, counter.reaction))) ||
-    !castCounteredCarriesFailedCounters(
+    !castCounteredCarriesUsedReactions(
       resume.pending.context,
       response,
       counter.reaction.reactorActorId,
-      { failedCounters: input.failedCounters.map(({ receipt }) => receipt) }
+      { usedReactions: input.usedReactions.map(({ receipt }) => receipt) }
     ) ||
     input.ruleOverrides.some((warning) => !command.acknowledgedWarnings.includes(warning.code))
   )
@@ -163,16 +163,16 @@ export async function persistEncounterCounteredCastCommit(
       spellCastConsumption: counter.spellCastConsumption
     }
   })
-  const failedSpends = failedCounterSpends({
-    failedCounters: input.failedCounters,
+  const reactionSpends = usedReactionSpends({
+    usedReactions: input.usedReactions,
     actors,
     source
   })
-  if (failedSpends.some(({ reactor: failed }) => failed.id === reactor.id))
-    throw new Error('Live Session failed counter reactor countered the cast.')
+  if (reactionSpends.some(({ reactor: other }) => other.id === reactor.id))
+    throw new Error('Live Session used reaction reactor countered the cast.')
   // The caster's counter to a counter cast against its cast spends its slot in the caster's one
   // mechanics call, after the cast's, so the Character advances once.
-  const sourceFailed = failedSpends.find(({ reactor: failed }) => failed.id === source.id)
+  const sourceUsed = reactionSpends.find(({ reactor: other }) => other.id === source.id)
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -211,15 +211,14 @@ export async function persistEncounterCounteredCastCommit(
     spends || root.sourceApplications.length
       ? await spend(
           source,
-          combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {}),
+          combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {}),
           root.sourceApplications
         )
       : null
   if (
     (sourceMechanics?.characterStreamVersion ?? null) !== root.sourceCharacterStreamVersion ||
-    (sourceFailed &&
-      sourceFailed.failed.receipt.characterStreamVersion !==
-        sourceMechanics?.characterStreamVersion) ||
+    (sourceUsed &&
+      sourceUsed.used.receipt.characterStreamVersion !== sourceMechanics?.characterStreamVersion) ||
     checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(root.sourceApplications) ||
     checksumCanonicalJson(sourceMechanics?.itemUseStateTransition ?? null) !==
@@ -243,13 +242,13 @@ export async function persistEncounterCounteredCastCommit(
     spend: root,
     economyOverridden: overridesActionEconomy(input.ruleOverrides)
   })
-  const settledSource = sourceFailed
+  const settledSource = sourceUsed
     ? await settleActionSourceSpend(ctx, {
         encounterId: state.id,
         source: castSettledSource,
         spend: {
           featureResourceConsumption: null,
-          actionEconomyTransition: sourceFailed.failed.receipt.actionEconomyTransition,
+          actionEconomyTransition: sourceUsed.used.receipt.actionEconomyTransition,
           attackActionTransition: undefined
         },
         economyOverridden: false
@@ -265,12 +264,12 @@ export async function persistEncounterCounteredCastCommit(
     },
     economyOverridden: false
   })
-  const settledFailed = await applyFailedCounterSpends(ctx, {
+  const settledReactors = await applyUsedReactionSpends(ctx, {
     state,
     occurrenceId: root.occurrenceId,
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt,
-    spends: failedSpends,
+    spends: reactionSpends,
     exceptActorIds: [source.id],
     applyMechanics: callbacks.applyMechanics,
     currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
@@ -281,7 +280,7 @@ export async function persistEncounterCounteredCastCommit(
       ? settledSource
       : actor.id === reactor.id
         ? settledReactor
-        : (settledFailed.get(actor.id) ?? actor)
+        : (settledReactors.get(actor.id) ?? actor)
   )
   const nextState = encounterRunStateSchema.parse({
     ...state,
@@ -304,8 +303,8 @@ export async function persistEncounterCounteredCastCommit(
     gameSystemId: state.gameSystemId,
     occurrenceId: root.occurrenceId,
     checks: [
-      ...failedSpends.flatMap(({ check, reactor: failedReactor }) =>
-        check ? [{ reactor: failedReactor, check }] : []
+      ...reactionSpends.flatMap(({ check, reactor: checkedReactor }) =>
+        check ? [{ reactor: checkedReactor, check }] : []
       ),
       ...(counter.check ? [{ reactor, check: counter.check }] : [])
     ],
@@ -346,7 +345,7 @@ export async function persistEncounterCounteredCastCommit(
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
       turnUses: null,
-      failedCounters: input.failedCounters.map(({ receipt }) => receipt)
+      usedReactions: input.usedReactions.map(({ receipt }) => receipt)
     },
     occurredAt: input.occurredAt
   })

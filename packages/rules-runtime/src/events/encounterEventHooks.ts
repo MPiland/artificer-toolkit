@@ -4,8 +4,13 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { withLinkedDependents } from '../activeEffectLinks.js'
 import { listActiveEffectGrants } from '../character/activeEffectGrantTotals.js'
-import { encounterActorRelationship } from '../encounterActionTargetPolicy.js'
+import {
+  encounterActorRelationship,
+  measuredDistance,
+  type EncounterActionSceneContext
+} from '../encounterActionTargetPolicy.js'
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { sizeInRange } from '../systemSizes.js'
 import { effectHooks } from './effectHooks.js'
 import type {
   DamageInterceptionSubscription,
@@ -222,8 +227,9 @@ type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
  * the qualifiers it adds (a melee or ranged attack, a weapon attack, an attacker the holder sees, a damage type the hit deals, a
  * cast of a listed spell). The trigger registry names the event that announces each trigger's moment
  * and the outcome a reaction must carry to resume it (a cast reaction answers a cast only by
- * cancelling it). A trigger whose moment no event announces meets none here: the movement path
- * discovers a movement reaction from the reach it is moved through.
+ * cancelling it; a reaction to an attack aimed at another creature only by setting its roll's mode).
+ * Only a movement trigger meets no event here: the movement path discovers a movement reaction from
+ * the reach it is moved through.
  */
 function reactionHookMet(
   { mechanicFacts: { invocation, outcomes } }: ReactionCandidate,
@@ -270,12 +276,48 @@ function reactionHookMet(
         (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(event.castOwnerId))
         ? { event: event.kind, trigger: trigger.kind }
         : null
-    case 'MOVEMENT':
     case 'ATTACK_ON_OTHER':
+      return event.kind === 'ATTACK_AIMED_AT_OTHER' &&
+        attackerMet(trigger, event) &&
+        (trigger.holderEquippedCategory === undefined ||
+          event.holderEquippedCategories.includes(trigger.holderEquippedCategory)) &&
+        withinFeet(event.targetScene, trigger.targetWithinFeet)
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
     case 'ATTACK_RESOLVED_ON_SELF':
-      // The registry names no event for these yet, so no event reaches here.
+      return event.kind === 'ATTACK_RESOLVED_ON_HOLDER' &&
+        (trigger.outcome === 'ANY' || (trigger.outcome === 'HIT') === event.hit) &&
+        attackerMet(trigger, event) &&
+        (trigger.attackerWithinFeet === undefined ||
+          withinFeet(event.attackerScene, trigger.attackerWithinFeet))
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
+    case 'MOVEMENT':
+      // The registry names no event for a movement, so no event reaches here.
       return null
   }
+}
+
+/** Whether the attacker an attack event names meets a trigger's sight and size qualifiers. */
+function attackerMet(
+  trigger: {
+    requiresSight?: boolean | undefined
+    attackerSize?: { minimumSizeCode?: string; maximumSizeCode?: string } | undefined
+  },
+  event: { gameSystemId: string; attackerSeen: boolean; attackerSizeCode: string | null }
+) {
+  return (
+    (!trigger.requiresSight || event.attackerSeen) &&
+    (trigger.attackerSize === undefined ||
+      sizeInRange(event.gameSystemId, event.attackerSizeCode, trigger.attackerSize))
+  )
+}
+
+/** Whether the two tokens of a Scene stand within `feet` of each other; never off a Scene. */
+function withinFeet(scene: EncounterActionSceneContext | null, feet: number) {
+  if (!scene) return false
+  const distance = measuredDistance(scene, { amount: feet, unit: 'FEET' })
+  return distance.measured <= distance.maximum
 }
 
 /**

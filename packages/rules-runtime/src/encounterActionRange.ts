@@ -31,6 +31,9 @@ function enforcedRange(policy: CompiledActionTargetPolicy): EncounterActionRange
   if (measure.kind === 'SELF') return { kind: 'SELF' }
   const { range } = measure
   switch (range.rangeKind) {
+    // Sight is not a distance the client can preview.
+    case 'SIGHT':
+      return null
     case 'UNLIMITED':
       return { kind: 'UNLIMITED' }
     case 'TOUCH':

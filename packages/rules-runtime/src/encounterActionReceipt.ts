@@ -1,12 +1,11 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import {
-  encounterFailedCounterReceiptDtoSchema,
+  encounterUsedReactionReceiptDtoSchema,
   encounterWindowReactionReceiptDtoSchema,
-  type EncounterCastReactionPinDto,
-  type EncounterRollReactionPinDto,
+  type EncounterReactionPinDto,
   type EncounterCounterCheckEvidenceDto,
-  type EncounterFailedCounterDto,
+  type EncounterUsedReactionDto,
   type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
@@ -344,7 +343,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   counter: {
-    reaction: EncounterCastReactionPinDto
+    reaction: EncounterReactionPinDto
     choiceExecution: ServerCompletedRuleExecutionDto
     counterExecution: ServerCompletedRuleExecutionDto
     triggerLevel: number
@@ -444,16 +443,16 @@ export function buildEncounterGatedActionStoredExecution(input: {
   })
 }
 
-/** A failed counter with what its reactor spends for the attempt, as the cast's terminal commit applies it (D127). */
-export function buildEncounterFailedCounterReceipt(input: {
-  failed: EncounterFailedCounterDto
+/** A reaction used before the action executed with what its reactor spends for it, as the action's terminal commit applies it (D127). */
+export function buildEncounterUsedReactionReceipt(input: {
+  used: EncounterUsedReactionDto
   spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
   /** The reactor's Character version once its slot was spent; null when none was. */
   characterStreamVersion: number | null
   economy: EncounterActionEconomyConsumption
 }) {
-  return encounterFailedCounterReceiptDtoSchema.parse({
-    ...input.failed,
+  return encounterUsedReactionReceiptDtoSchema.parse({
+    ...input.used,
     spellCastConsumption: characterSpellConsumptionReceipt(input.spellConsumption),
     // A failed counter does not yet end its reactor's cast-ended effects (future-enhancements: Deferred edge cases).
     applications: [],
@@ -464,7 +463,7 @@ export function buildEncounterFailedCounterReceipt(input: {
 
 /** What a reactor spends for the die it rolled against the attack roll (D207): its reaction and the charge it costs. */
 export function buildEncounterWindowReactionReceipt(input: {
-  reaction: EncounterRollReactionPinDto
+  reaction: EncounterReactionPinDto
   spend: Pick<
     ReturnType<typeof planNativeEncounterAreaSourceSpend>,
     'resourceReceipt' | 'sourceCharacterStreamVersion'

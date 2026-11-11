@@ -143,7 +143,7 @@ export async function recordActionRoot(
           >,
           | 'issuerLines'
           | 'gmLines'
-          | 'failedCounters'
+          | 'usedReactions'
           | 'windowReactions'
           | 'idleTurnMarkChanges'
           | 'clearedDamageTypes'

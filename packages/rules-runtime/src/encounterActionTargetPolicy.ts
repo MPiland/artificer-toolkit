@@ -130,15 +130,19 @@ export function withoutCreatureTypeRestrictions(
 type PolicyRange = CompiledActionTargetPolicy['range']
 type MeasuredRange =
   | Extract<PolicyRange, { rangeKind: 'DISTANCE' }>
-  | { id: string; rangeKind: 'TOUCH' | 'UNLIMITED' }
+  | { id: string; rangeKind: 'TOUCH' | 'UNLIMITED' | 'SIGHT' }
 
 const isMeasuredRange = (range: PolicyRange): range is MeasuredRange =>
-  range.rangeKind === 'DISTANCE' || range.rangeKind === 'TOUCH' || range.rangeKind === 'UNLIMITED'
+  range.rangeKind === 'DISTANCE' ||
+  range.rangeKind === 'TOUCH' ||
+  range.rangeKind === 'UNLIMITED' ||
+  range.rangeKind === 'SIGHT'
 
 /**
  * What the single-target evaluator measures: its user for a Self range, otherwise a measurable
- * range with the disposition it checks. Null is a policy it refuses: a shaped or path-overridden
- * policy (an area or movement action), a range it cannot measure (sight, special), or targeting
+ * range with the disposition it checks. A Sight range measures no distance; that its user sees the
+ * target is a target requirement the preparation refuses. Null is a policy it refuses: a shaped or
+ * path-overridden policy (an area or movement action), a range it cannot measure (special), or targeting
  * that is not a single target or a list of chosen creatures (each measured on its own) with a
  * disposition and no creature type restriction.
  */
@@ -173,6 +177,8 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
     (targeting?.selectionKind !== 'SINGLE_TARGET' &&
       targeting?.selectionKind !== 'CHOSEN_CREATURES') ||
     targeting.dispositionKind === undefined ||
+    // Only a single target's requirements are held to sight.
+    (range.rangeKind === 'SIGHT' && targeting.selectionKind !== 'SINGLE_TARGET') ||
     targeting.allowedCreatureTypeIds?.length ||
     targeting.excludedCreatureTypeIds?.length
   )
@@ -249,7 +255,7 @@ export function evaluateEncounterActionTargetPolicy(input: {
       code: 'TARGET_FACING_ARC',
       message: `The target is in this creature's ${facingArcLabel(facingArc)} arc.`
     })
-  if (range.rangeKind === 'UNLIMITED') return warnings
+  if (range.rangeKind === 'UNLIMITED' || range.rangeKind === 'SIGHT') return warnings
   // A ranged weapon attack reaches its long range, at disadvantage beyond its normal range.
   const band = input.sceneContext
     ? sceneRangeBand(

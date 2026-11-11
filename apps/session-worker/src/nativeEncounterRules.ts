@@ -95,6 +95,7 @@ import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/char
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import { nativeReactionRollModes } from './nativeEncounterCastReaction.js'
 import {
   discoverNativeRollReactions,
   nextNativeRollReactionDice,
@@ -370,7 +371,7 @@ export async function planNativeLiveEncounterAction(
             answer: castAnswer,
             initiatorUserId: snapshot.applicationContext.initiatorUserId,
             currentnessChecksum: snapshot.applicationContext.currentnessChecksum,
-            failedCounters: snapshot.applicationContext.failedCounters ?? []
+            usedReactions: snapshot.applicationContext.usedReactions ?? []
           }
         : undefined
     const areaInput = {
@@ -829,20 +830,6 @@ export async function planNativeLiveEncounterAction(
     responseCommand && resolved && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
       ? { pending: restoreEncounterActionPending(snapshot), resolution: resolved }
       : null
-  const actionSource = {
-    runtime: executionOptions.runtime,
-    damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
-    random: executionOptions.random,
-    adapter: prepared.adapter,
-    plan: prepared.plan,
-    occurrenceId,
-    autoRoll: {
-      SOURCE: requireAutoRoll(prepared.actor.id),
-      TARGET: requireAutoRoll(prepared.target.id)
-    },
-    binding: prepared.binding,
-    afterTest: async () => undefined
-  }
   const discoverResistance = discoverNativeLegendaryResistance({ state, capture }, prepared)
   const targetStateChecksum = checksumRuleDocument(prepared.target)
   /** The creature's Legendary Resistance and pool as they are now; a decision or its record needs both. */
@@ -1009,28 +996,43 @@ export async function planNativeLiveEncounterAction(
     occurrenceId,
     occurredAt,
     userId: initial.expectedUserId,
+    aimedAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,
     // The counters that failed against this cast so far; its terminal commit spends them (D127).
-    failedCounters:
+    usedReactions:
       snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-        ? (snapshot.applicationContext.failedCounters ?? [])
+        ? (snapshot.applicationContext.usedReactions ?? [])
         : []
   })
-  const cast = await castPause.advance({
-    actionEconomy,
-    ruleOverrides: ruleOverrides,
-    occurrenceVersion
-  })
+  const cast = await castPause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
-  const failedCounters = cast.failedCounters
+  const usedReactions = cast.usedReactions
+  const reactionSpends = await castPause.planUsedReactions(usedReactions)
+  // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217).
+  const react = nativeReactionRollModes(reactionSpends)
+  const reacted = react(prepared)
+  const actionSource = {
+    runtime: executionOptions.runtime,
+    damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
+    random: executionOptions.random,
+    adapter: prepared.adapter,
+    plan: prepared.plan,
+    occurrenceId,
+    autoRoll: {
+      SOURCE: requireAutoRoll(prepared.actor.id),
+      TARGET: requireAutoRoll(prepared.target.id)
+    },
+    binding: reacted.binding,
+    afterTest: async () => undefined
+  }
   const discoverReaction = discoverNativeAttackReaction({
     state,
     system,
     spells: await readNativeLiveSpellPins(capture),
     attack: prepared,
-    reactionSpentActorIds: failedCounters.map(({ reaction }) => reaction.reactorActorId),
+    reactionSpentActorIds: usedReactions.map(({ reaction }) => reaction.reactorActorId),
     prepareReaction: (actionId) =>
       prepareEncounterActionMechanics({
         state,
@@ -1054,11 +1056,11 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     activeEffectsByActorId,
     // The answered attack keeps the decoy it was rolled against.
-    prepareAttack: (reactedTargets: typeof movementTargets) =>
-      prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions),
+    prepareAttack: async (reactedTargets: typeof movementTargets) =>
+      react(await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions)),
     loadTarget,
     targetStateChecksum,
-    binding: prepared.binding
+    binding: reacted.binding
   })
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
   // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
@@ -1114,7 +1116,7 @@ export async function planNativeLiveEncounterAction(
         async (answeredReactorActorIds) =>
           nextNativeRollReactionDice(rollReactions, [
             ...answeredReactorActorIds,
-            ...failedCounters.map(({ reaction }) => reaction.reactorActorId)
+            ...usedReactions.map(({ reaction }) => reaction.reactorActorId)
           ])
       ),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
@@ -1148,7 +1150,7 @@ export async function planNativeLiveEncounterAction(
             }
           : null))
   if (execution.kind === 'PENDING')
-    return { ...preflight(), kind: 'PENDING' as const, execution, failedCounters }
+    return { ...preflight(), kind: 'PENDING' as const, execution, usedReactions }
   // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   const chosenOnHit =
@@ -1157,14 +1159,14 @@ export async function planNativeLiveEncounterAction(
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
   // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
   const settledPrepared = settledCharacterActionSpend({
-    prepared,
+    prepared: reacted,
     chosenOnHit,
     damageReroll: resolved?.kind === 'DAMAGE_REROLL' ? resolved.option : null,
     maintenance,
     automationMode: state.automationMode
   })
   const preparedEffects = prepareNativeActionEffectsPlan({
-    prepared,
+    prepared: reacted,
     execution,
     occurrenceId,
     commandId: command.commandId,
@@ -1197,10 +1199,9 @@ export async function planNativeLiveEncounterAction(
     consumedGrants,
     dispositions
   )
-  const failedSpends = await castPause.planFailedCounters(failedCounters)
   // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
   // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
-  const failedTarget = failedSpends.find(
+  const targetUsed = reactionSpends.find(
     ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
   )
   // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207);
@@ -1217,9 +1218,9 @@ export async function planNativeLiveEncounterAction(
   const windowTarget = windowReactions.find(
     ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
   )
-  const spentTargetEconomy = failedTarget?.economy ?? windowTarget?.economy ?? null
+  const spentTargetEconomy = targetUsed?.economy ?? windowTarget?.economy ?? null
   const targetReactorSpend = Boolean(
-    failedTarget?.spellConsumption || windowTarget?.resourceConsumption
+    targetUsed?.spellConsumption || windowTarget?.resourceConsumption
   )
   const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
@@ -1256,7 +1257,7 @@ export async function planNativeLiveEncounterAction(
       ...preflight(),
       kind: 'PENDING' as const,
       execution: destination.held,
-      failedCounters
+      usedReactions
     }
   const forcedMovements = destination.movements
   // The temporary hit points the cast gives belong to the lasting effect that owns them (D156).
@@ -1588,7 +1589,7 @@ export async function planNativeLiveEncounterAction(
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: uses.spentUseGrants,
-    failedSpends,
+    reactionSpends,
     windowReactions,
     forcedMovements,
     revisions,

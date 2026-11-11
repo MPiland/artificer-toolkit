@@ -206,12 +206,12 @@ export async function planNativeLiveEncounterActorsAction(
 
   // A chosen creature that used a reaction to being chosen (Shield) holds its effect before the cast
   // resolves: its entries are prepared again against the creature as that effect leaves it.
-  const failedCounters = await window.pause.planFailedCounters(window.failedCounters)
+  const usedReactions = await window.pause.planUsedReactions(window.usedReactions)
   const reactionEffects = new Map<
     string,
     Awaited<ReturnType<typeof applyNativeReactionEffect>>['reactionEffect']
   >()
-  for (const { receipt, found } of failedCounters) {
+  for (const { receipt, found } of usedReactions) {
     if (receipt.reaction.trigger !== 'TARGETED_SELF') continue
     const reactorId = receipt.reaction.reactorActorId
     const reactor = chosen.find((actor) => actor.id === reactorId)
@@ -266,7 +266,7 @@ export async function planNativeLiveEncounterActorsAction(
     command,
     caster,
     occurredAt: window.occurredAt,
-    failedCounters,
+    usedReactions,
     reactionEffects,
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),

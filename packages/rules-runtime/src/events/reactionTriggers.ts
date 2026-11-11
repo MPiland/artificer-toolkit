@@ -21,7 +21,7 @@ type ReactionResume =
   | { kind: 'REBIND_TEST' | 'NOTHING' }
 
 type ReactionTriggerRow = {
-  /** The Encounter event that announces the trigger's moment; null while no pipeline raises one. */
+  /** The Encounter event that announces the trigger's moment; null for the movement host's own. */
   moment: EncounterEvent['kind'] | null
   resume: ReactionResume
 }
@@ -29,9 +29,9 @@ type ReactionTriggerRow = {
 /**
  * The one registry of reaction triggers (one reaction pipeline, user ruling 2026-11-10): a row per
  * authored `reactionTrigger` kind. A trigger with a row compiles; the event its row names offers it.
- * Transitional: `ATTACK_ON_OTHER` and `ATTACK_RESOLVED_ON_SELF` compile, and no event announces their
- * moment until the shared offer and the reaction child action land; `MOVEMENT` is still announced
- * and interrupted by the movement host, not by an Encounter event.
+ * Transitional: no pipeline raises `ATTACK_RESOLVED_ON_HOLDER` until the reaction child action lands
+ * (QUALITY-8), so an `ATTACK_RESOLVED_ON_SELF` reaction compiles and is not yet offered; `MOVEMENT`
+ * is still announced and interrupted by the movement host, not by an Encounter event (QUALITY-9).
  */
 export const REACTION_TRIGGERS = {
   ATTACKED_SELF: { moment: 'HIT_BY_ATTACK', resume: { kind: 'REBIND_TEST' } },
@@ -46,10 +46,10 @@ export const REACTION_TRIGGERS = {
     resume: { kind: 'ADJUST_ROLL', outcome: 'SUBTRACT_FROM_TRIGGERING_ROLL' }
   },
   ATTACK_ON_OTHER: {
-    moment: null,
+    moment: 'ATTACK_AIMED_AT_OTHER',
     resume: { kind: 'ADJUST_ROLL', outcome: 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL' }
   },
-  ATTACK_RESOLVED_ON_SELF: { moment: null, resume: { kind: 'NOTHING' } },
+  ATTACK_RESOLVED_ON_SELF: { moment: 'ATTACK_RESOLVED_ON_HOLDER', resume: { kind: 'NOTHING' } },
   MOVEMENT: { moment: null, resume: { kind: 'NOTHING' } }
 } as const satisfies Record<ReactionTriggerKind, ReactionTriggerRow>
 

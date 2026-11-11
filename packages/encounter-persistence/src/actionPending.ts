@@ -138,7 +138,7 @@ type CastPendingContext = {
         kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
         payload: unknown
       }
-  failedCounters?: readonly PendingCounter[]
+  usedReactions?: readonly PendingCounter[]
   /** The ward whose save the attacker already passed. */
   passedIncomingGate?: string
 }
@@ -155,8 +155,7 @@ const attackRetargetOf = ({ pause }: CastPendingContext) =>
 const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
   counters.map(({ reaction }) => reaction.reactorActorId)
 
-const failedReactorIds = ({ failedCounters }: CastPendingContext) =>
-  counterReactorIds(failedCounters)
+const usedReactorIds = ({ usedReactions }: CastPendingContext) => counterReactorIds(usedReactions)
 
 const chainReactorIds = (context: CastPendingContext) =>
   counterReactorIds(castReactionOf(context)?.chain?.counters)
@@ -208,14 +207,14 @@ export function castPendingContinues(
   const previousGate = incomingGateOf(previous)
   const nextCastReaction = castReactionOf(next)
   const nextRetarget = attackRetargetOf(next)
-  const failedPrevious = failedReactorIds(previous)
-  const failedNext = failedReactorIds(next)
+  const usedPrevious = usedReactorIds(previous)
+  const usedNext = usedReactorIds(next)
   // A ward the attacker failed offers a retarget: from the roll that failed it, or from a retargeted
   // action's own ward. Nothing else is carried.
   if (nextRetarget)
     return (
       next.passedIncomingGate === undefined &&
-      failedNext.length === 0 &&
+      usedNext.length === 0 &&
       (previousGate
         ? previousGate.effectId === nextRetarget.gate.effectId
         : attackRetargetOf(previous) != null && response?.resolution.kind === 'OPTION')
@@ -224,7 +223,7 @@ export function castPendingContinues(
   if (attackRetargetOf(previous))
     return (
       response?.resolution.kind === 'OPTION' &&
-      failedNext.length === 0 &&
+      usedNext.length === 0 &&
       chainReactorIds(next).length === 0 &&
       (nextCastReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
       !(incomingGateOf(next) && next.passedIncomingGate !== undefined)
@@ -235,7 +234,7 @@ export function castPendingContinues(
     next.passedIncomingGate !== (previousGate?.effectId ?? previous.passedIncomingGate)
   )
     return false
-  if (!castReaction) return sameMembers(failedNext, failedPrevious)
+  if (!castReaction) return sameMembers(usedNext, usedPrevious)
   const answer = castAnswer(previous, response)
   const roller = previous.rollerActorId
   if (!answer || roller === undefined) return false
@@ -248,7 +247,7 @@ export function castPendingContinues(
   if (spends && !castReaction.check && nextCastReaction?.check !== undefined)
     return (
       next.rollerActorId === roller &&
-      sameMembers(failedNext, failedPrevious) &&
+      sameMembers(usedNext, usedPrevious) &&
       sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
       sameIds(chainNext, chainPrevious) &&
       sameMembers(nextCastReaction.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
@@ -260,8 +259,8 @@ export function castPendingContinues(
   if (!pushed && !unchanged && !resolved) return false
   if (
     !sameMembers(
-      [...failedNext, ...chainNext],
-      [...failedPrevious, ...chainPrevious, ...(spends ? [roller] : [])]
+      [...usedNext, ...chainNext],
+      [...usedPrevious, ...chainPrevious, ...(spends ? [roller] : [])]
     )
   )
     return false
@@ -287,7 +286,7 @@ export function castPendingContinues(
  * counters standing with the answer's own use of one are the chain; the first of them counters the cast
  * (an odd chain leaves it standing) and every other counter used is spent with it.
  */
-export function castCounteredCarriesFailedCounters(
+export function castCounteredCarriesUsedReactions(
   previous: CastPendingContext,
   response: { resolution: { kind: string } } | null | undefined,
   counterReactorActorId: string,
@@ -301,14 +300,14 @@ export function castCounteredCarriesFailedCounters(
   const chainPrevious = chainReactorIds(previous)
   const chain =
     spends && chainPrevious.length % 2 === 0 ? [...chainPrevious, roller] : chainPrevious
-  const failedNext = failedReactorIds(next)
+  const usedNext = usedReactorIds(next)
   return (
     chain.length % 2 === 1 &&
     chain[0] === counterReactorActorId &&
-    !failedNext.includes(counterReactorActorId) &&
+    !usedNext.includes(counterReactorActorId) &&
     sameMembers(
-      [...failedNext, counterReactorActorId],
-      [...failedReactorIds(previous), ...chainPrevious, ...(spends ? [roller] : [])]
+      [...usedNext, counterReactorActorId],
+      [...usedReactorIds(previous), ...chainPrevious, ...(spends ? [roller] : [])]
     )
   )
 }

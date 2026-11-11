@@ -3,7 +3,7 @@ import { MAX_D20_ADDED_DICE, rolledDieShape } from './d20AddedDice.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { ruleCheckRollEvidenceDtoSchema } from './ruleExecutionEncounterApplications.js'
 import {
-  encounterRollReactionPinDtoSchema,
+  encounterReactionPinDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
 import {
@@ -29,7 +29,7 @@ export const d20HeldDieDtoSchema = lazySchema(() => z.strictObject(heldDieShape(
 export type D20HeldDieDto = z.infer<typeof d20HeldDieDtoSchema>
 
 const reactionDieShape = () => ({
-  reaction: encounterRollReactionPinDtoSchema,
+  reaction: encounterReactionPinDtoSchema,
   label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
   ...rolledDieShape()
 })

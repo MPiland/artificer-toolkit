@@ -109,6 +109,33 @@ describe('encounter action target disposition', () => {
   })
 })
 
+describe('a Sight range on one target (QUALITY-7.1)', () => {
+  const evaluate = (rangeKind: 'SIGHT' | 'TOUCH') =>
+    evaluateEncounterActionTargetPolicy({
+      actor: { id: 'source', disposition: 'FRIENDLY' },
+      target: { id: 'target', disposition: 'HOSTILE' },
+      targetPolicy: {
+        range: { id: 'range', rangeKind },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+        shape: null,
+        pathOverrides: []
+      },
+      sceneContext: null,
+      makesAttackRoll: false,
+      facing: null
+    })
+
+  it('measures no distance: whether its user sees the target is a target requirement', () => {
+    expect(evaluate('SIGHT')).toEqual([])
+    expect(evaluate('TOUCH')).toEqual([
+      {
+        code: 'TARGET_RANGE_UNCHECKED',
+        message: "Range can't be checked without both tokens on the map."
+      }
+    ])
+  })
+})
+
 /** SRD "Targeting Yourself" (D99): a creature may target itself unless the action says otherwise. */
 describe('encounter action self target', () => {
   function selfPolicy(input: {

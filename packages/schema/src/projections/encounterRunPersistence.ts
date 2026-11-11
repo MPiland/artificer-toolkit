@@ -17,7 +17,7 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import {} from '../shared/basicActions.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import {
-  encounterFailedCounterReceiptDtoSchema,
+  encounterUsedReactionReceiptDtoSchema,
   encounterWindowReactionReceiptDtoSchema
 } from '../shared/ruleExecutionReactionChoice.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
@@ -540,8 +540,8 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         null
       ),
       /** The counters reactors failed against this cast and the reactor spend each cost; its undo gives them back (D127). */
-      failedCounters: z._default(
-        z.array(encounterFailedCounterReceiptDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      usedReactions: z._default(
+        z.array(encounterUsedReactionReceiptDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       ),
       /** The reactions other creatures used against the attack roll and what each cost; its undo gives them back (D207). */

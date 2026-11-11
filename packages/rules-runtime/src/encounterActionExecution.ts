@@ -93,7 +93,7 @@ import { holdForOnHitChoice, type EncounterOnHitCandidate } from './encounterOnH
 import {
   encounterReactionPin,
   openEncounterReactionChoice,
-  type EncounterAttackReactionCandidate
+  type EncounterReactionCandidate
 } from './encounterReactionChoice.js'
 import {
   encounterLegendaryResistancePin,
@@ -966,7 +966,7 @@ export async function advanceNativeActionGraphs(input: {
    * critically). Any found candidate holds the action before its OUTCOME for the target's choice.
    */
   reaction?: {
-    discover(critical: boolean): Promise<readonly EncounterAttackReactionCandidate[]>
+    discover(critical: boolean): Promise<readonly EncounterReactionCandidate[]>
     targetStateChecksum: string
   }
   /**

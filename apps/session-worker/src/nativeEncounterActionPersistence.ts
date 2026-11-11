@@ -41,7 +41,7 @@ export function buildNativeLiveEncounterActionPendingInput(
             execution: plan.execution,
             sourceActorId: plan.prepared.actor.id,
             targetActorId: plan.prepared.target.id,
-            failedCounters: plan.failedCounters,
+            usedReactions: plan.usedReactions,
             passedIncomingGate: plan.passedIncomingGate
           })
         : buildEncounterHeldActionPendingSnapshot({
@@ -50,7 +50,7 @@ export function buildNativeLiveEncounterActionPendingInput(
             pause: plan.pause,
             rollerActorId: plan.rollerActorId,
             ...(plan.kind === 'CAST_PENDING'
-              ? { failedCounters: plan.failedCounters, passedIncomingGate: plan.passedIncomingGate }
+              ? { usedReactions: plan.usedReactions, passedIncomingGate: plan.passedIncomingGate }
               : {})
           })
   })
@@ -83,7 +83,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
     reactionSpellConsumption:
       plan.reactionUse?.prepared.characterActionState?.spellConsumption ?? null,
-    failedCounters: plan.failedSpends.map(({ receipt, spellConsumption }) => ({
+    usedReactions: plan.reactionSpends.map(({ receipt, spellConsumption }) => ({
       receipt,
       spellConsumption
     })),

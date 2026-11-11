@@ -807,7 +807,7 @@ export async function revertLastEncounterAction(
       })
     }
     if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
-    for (const failed of root.failedCounters) invertReactorSpend(failed)
+    for (const used of root.usedReactions) invertReactorSpend(used)
     for (const reacted of root.windowReactions)
       invertReactorSpend({ ...reacted, spellCastConsumption: null, applications: [] })
 

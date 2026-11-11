@@ -83,8 +83,8 @@ export async function settleAreaCommit(args: {
   removal: RemoveAreaTargetInputDto | null
   rollsPerTarget: boolean
   ruleOverrides: ReturnType<typeof reachRuleOverrides>
-  failedCounters: readonly Awaited<
-    ReturnType<ReachCastWindow['pause']['planFailedCounters']>
+  usedReactions: readonly Awaited<
+    ReturnType<ReachCastWindow['pause']['planUsedReactions']>
   >[number][]
   actionEconomy:
     | NonNullable<
@@ -122,7 +122,7 @@ export async function settleAreaCommit(args: {
     removal,
     rollsPerTarget,
     ruleOverrides,
-    failedCounters,
+    usedReactions,
     actionEconomy,
     attackAction,
     forcedMovements,
@@ -259,7 +259,7 @@ export async function settleAreaCommit(args: {
   }
   // A creature that failed to counter the cast has spent its reaction. A kept creature pays it in its
   // own outcome; the caster's and any other creature's are paid by persistence.
-  for (const { receipt, economy } of failedCounters) {
+  for (const { receipt, economy } of usedReactions) {
     const reactor = settledActors.get(receipt.reaction.reactorActorId)
     if (
       reactor &&
@@ -455,7 +455,7 @@ export async function settleAreaCommit(args: {
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
-    failedCounters,
+    usedReactions,
     consumedGrants: [...consumedGrants, ...damageEndedEffects.values()],
     label: sourceLabel,
     ruleOverrides,

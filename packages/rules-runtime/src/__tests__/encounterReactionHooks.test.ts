@@ -3,7 +3,9 @@ import { bandit } from '@artificer-toolkit/source-data/srd/creatures/bandit.js'
 import { erinyes } from '@artificer-toolkit/source-data/srd/creatures/erinyes.js'
 import { gladiator } from '@artificer-toolkit/source-data/srd/creatures/gladiator.js'
 import { knight } from '@artificer-toolkit/source-data/srd/creatures/knight.js'
+import { SIZE_CODE } from '@artificer-toolkit/source-data/srd/sizes.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import { describe, expect, it } from 'vitest'
 
 import type { EncounterEvent } from '../events/encounterEventTable.js'
@@ -15,6 +17,7 @@ import {
 } from '../encounterReactors.js'
 import { summonBody } from '../encounterActorBody.js'
 import { srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 /**
  * SPELLS-33.T4k1: a Creature's authored `ATTACKED_SELF` reaction (Parry) is discovered from its own
@@ -303,6 +306,92 @@ describe('attack-roll reaction discovery', () => {
         rolled
       )
     ).toEqual([])
+  })
+})
+
+/**
+ * SPELLS-31.T4k1b (D217): an ATTACK_ON_OTHER reaction that imposes a roll mode is offered before
+ * another creature's attack d20 only when each of its authored predicates holds.
+ */
+describe('attack-on-other reaction discovery', () => {
+  /** 100px cells of 5 feet; a one-cell token stands at (column, 0). */
+  const grid: SceneGrid = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  }
+  const token = (column: number) => ({
+    position: { x: column * 100 + 50, y: 50 },
+    width: 100,
+    height: 100,
+    rotationDegrees: 0
+  })
+  const trigger = {
+    kind: 'ATTACK_ON_OTHER',
+    requiresSight: true,
+    targetWithinFeet: 5,
+    holderEquippedCategory: 'SHIELD',
+    attackerSize: { maximumSizeCode: SIZE_CODE.LARGE }
+  }
+  const impose = (effectKind = 'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL') =>
+    candidate('class:protection', 'REACTION', trigger, effectKind)
+  /** The reactor stands in column 0; the attack's target stands `targetColumn` squares away. */
+  const aimed = (
+    overrides: Partial<Extract<EncounterEvent, { kind: 'ATTACK_AIMED_AT_OTHER' }>> & {
+      targetColumn?: number
+    } = {}
+  ) => {
+    const { targetColumn = 1, ...event } = overrides
+    return {
+      kind: 'ATTACK_AIMED_AT_OTHER',
+      gameSystemId: DND5E_SYSTEM_ID,
+      attackerSeen: true,
+      attackerSizeCode: SIZE_CODE.MEDIUM,
+      targetScene: { grid, sourceToken: token(0), targetToken: token(targetColumn) },
+      holderEquippedCategories: ['SHIELD'],
+      ...event
+    } as const
+  }
+  const offered = (event: ReturnType<typeof aimed>, effectKind?: string) => {
+    nextSequence = 0
+    return heldReactionsTo([impose(effectKind)], event).map(
+      ({ reaction, trigger: met }) => [reaction.actionId, met] as const
+    )
+  }
+
+  it('offers it when a seen attacker in its size range aims at a creature within reach of a shield holder', () => {
+    expect(offered(aimed())).toEqual([['class:protection', 'ATTACK_ON_OTHER']])
+  })
+
+  it('measures the attack’s target from the reactor’s token against the authored feet', () => {
+    expect(offered(aimed({ targetColumn: 2 }))).toEqual([])
+    expect(offered(aimed({ targetScene: null }))).toEqual([])
+  })
+
+  it('needs sight of the attacker only when the trigger asks for it', () => {
+    expect(offered(aimed({ attackerSeen: false }))).toEqual([])
+  })
+
+  it('needs the authored equipment category among the holder’s equipped items', () => {
+    expect(offered(aimed({ holderEquippedCategories: [] }))).toEqual([])
+    expect(offered(aimed({ holderEquippedCategories: ['WEAPON'] }))).toEqual([])
+  })
+
+  it('needs the attacker’s size inside the authored range', () => {
+    expect(offered(aimed({ attackerSizeCode: SIZE_CODE.LARGE }))).toEqual([
+      ['class:protection', 'ATTACK_ON_OTHER']
+    ])
+    expect(offered(aimed({ attackerSizeCode: SIZE_CODE.HUGE }))).toEqual([])
+    expect(offered(aimed({ attackerSizeCode: null }))).toEqual([])
+  })
+
+  it('skips an attack-on-other reaction that does not impose a roll mode, and any other event', () => {
+    expect(offered(aimed(), 'OTHER_EFFECT')).toEqual([])
+    nextSequence = 0
+    expect(heldReactionsTo([impose()], { kind: 'ATTACK_ROLLED_BY_OTHER' })).toEqual([])
   })
 })
 

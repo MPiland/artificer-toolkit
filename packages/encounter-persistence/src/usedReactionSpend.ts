@@ -1,5 +1,5 @@
 import type {
-  LiveSessionFailedCounter,
+  LiveSessionUsedReaction,
   LiveSessionWindowReaction
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
@@ -13,14 +13,15 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterWriteContext } from './store.js'
 
 /**
- * Checks each reaction another creature spends with the action: a counter that failed against a cast,
- * or a reaction rolled against the attack roll (D207). Its reactor is a Character of the run, named
+ * Checks each reaction another creature spends with the action: one used before the action executed
+ * (a counter that failed against a cast, a reaction to being named a target or to an attack aimed at
+ * another), or a reaction rolled against the attack roll (D207). Its reactor is a Character of the run, named
  * once, and the slot or charge it spends is the one its receipt recorded. The cast's own source may
  * counter a counter cast against it, never its own cast, and never reacts to its own attack roll.
  * Returns what each reactor's mechanics apply.
  */
-export function failedCounterSpends(input: {
-  failedCounters?: readonly LiveSessionFailedCounter[]
+export function usedReactionSpends(input: {
+  usedReactions?: readonly LiveSessionUsedReaction[]
   windowReactions?: readonly LiveSessionWindowReaction[]
   actors: readonly EncounterRunActorState[]
   source: EncounterRunActorState
@@ -37,7 +38,7 @@ export function failedCounterSpends(input: {
       reactor.sourceId !== reaction.characterId ||
       seen.has(reactor.id)
     )
-      throw new Error('Live Session failed counter scope mismatch.')
+      throw new Error('Live Session used reaction scope mismatch.')
     seen.add(reactor.id)
     return reactor
   }
@@ -52,40 +53,40 @@ export function failedCounterSpends(input: {
       ...request
     })
   return [
-    ...(input.failedCounters ?? []).map((failed) => {
-      const { reaction } = failed.receipt
+    ...(input.usedReactions ?? []).map((used) => {
+      const { reaction } = used.receipt
       const reactor = reactorOf(
         reaction,
         reaction.reactorActorId === input.source.id &&
-          failed.receipt.againstActorId === input.source.id
+          used.receipt.againstActorId === input.source.id
       )
       return {
-        failed,
+        used,
         reactor,
-        check: failed.receipt.check,
+        check: used.receipt.check,
         ...spend(reactor, {
           resource: null,
-          spell: failed.spellConsumption,
+          spell: used.spellConsumption,
           receipts: {
             resourceConsumption: null,
             sourceItemConsumption: null,
-            spellCastConsumption: failed.receipt.spellCastConsumption
+            spellCastConsumption: used.receipt.spellCastConsumption
           }
         })
       }
     }),
-    ...(input.windowReactions ?? []).map((failed) => {
-      const { reaction } = failed.receipt
+    ...(input.windowReactions ?? []).map((used) => {
+      const { reaction } = used.receipt
       const reactor = reactorOf(reaction, reaction.reactorActorId === input.source.id)
       return {
-        failed,
+        used,
         reactor,
         check: null,
         ...spend(reactor, {
-          resource: failed.resourceConsumption,
+          resource: used.resourceConsumption,
           spell: null,
           receipts: {
-            resourceConsumption: failed.receipt.resourceConsumption,
+            resourceConsumption: used.receipt.resourceConsumption,
             sourceItemConsumption: null,
             spellCastConsumption: null
           }
@@ -95,34 +96,34 @@ export function failedCounterSpends(input: {
   ]
 }
 
-export type FailedCounterSpend = ReturnType<typeof failedCounterSpends>[number]
+export type UsedReactionSpend = ReturnType<typeof usedReactionSpends>[number]
 
 /**
  * Throws unless a reactor's Character version after its mechanics is the one its receipt recorded:
  * none when its reaction spends no slot or charge, since nothing was planned against its Character.
  */
-export function requireFailedCounterReceipt(
-  reaction: { spends: boolean; failed: { receipt: { characterStreamVersion: number | null } } },
+export function requireUsedReactionReceipt(
+  reaction: { spends: boolean; used: { receipt: { characterStreamVersion: number | null } } },
   mechanics: { characterStreamVersion: number | null } | null
 ) {
   const expected = reaction.spends ? (mechanics?.characterStreamVersion ?? null) : null
-  if (reaction.failed.receipt.characterStreamVersion !== expected)
-    throw new Error('Live Session failed counter Character receipt mismatch.')
+  if (reaction.used.receipt.characterStreamVersion !== expected)
+    throw new Error('Live Session used reaction Character receipt mismatch.')
 }
 
 /**
- * Spends each failed reactor's slot and reaction with the cast's terminal commit (D127) and returns the
- * reactors as settled. The reactors named by `exceptActorIds` are the cast's source and target: their
- * spend rides in their own mechanics beside the cast's, and the caller settles them there.
+ * Spends each reactor's slot and reaction with the action's terminal commit (D127) and returns the
+ * reactors as settled. The reactors named by `exceptActorIds` are the action's source and target: their
+ * spend rides in their own mechanics beside the action's, and the caller settles them there.
  */
-export async function applyFailedCounterSpends(
+export async function applyUsedReactionSpends(
   ctx: EncounterWriteContext,
   input: {
     state: EncounterRunState
     occurrenceId: string
     sourceCommandId: string
     occurredAt: string
-    spends: readonly FailedCounterSpend[]
+    spends: readonly UsedReactionSpend[]
     exceptActorIds: readonly string[]
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
@@ -132,7 +133,7 @@ export async function applyFailedCounterSpends(
 ) {
   const settled = new Map<string, EncounterRunActorState>()
   for (const reaction of input.spends) {
-    const { failed, reactor, spends, mutation } = reaction
+    const { used, reactor, spends, mutation } = reaction
     if (input.exceptActorIds.includes(reactor.id)) continue
     const mechanics = spends
       ? await input.applyMechanics({
@@ -158,7 +159,7 @@ export async function applyFailedCounterSpends(
           ...mutation
         })
       : null
-    requireFailedCounterReceipt(reaction, mechanics)
+    requireUsedReactionReceipt(reaction, mechanics)
     settled.set(
       reactor.id,
       await settleActionSourceSpend(ctx, {
@@ -166,7 +167,7 @@ export async function applyFailedCounterSpends(
         source: mechanics?.updatedActor ?? reactor,
         spend: {
           featureResourceConsumption: null,
-          actionEconomyTransition: failed.receipt.actionEconomyTransition,
+          actionEconomyTransition: used.receipt.actionEconomyTransition,
           attackActionTransition: undefined
         },
         economyOverridden: false

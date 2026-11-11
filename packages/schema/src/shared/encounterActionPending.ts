@@ -12,7 +12,7 @@ import { d20WindowReactorActorId, isD20RolledCheck } from './ruleExecutionD20Win
 import { isDamageRollWindow } from './ruleExecutionDamageRollWindow.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
-  encounterFailedCounterDtoSchema,
+  encounterUsedReactionDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
 import {
@@ -85,8 +85,8 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * The counters reactors attempted and failed against this cast, carried by every pending of the
        * cast to its terminal commit, which spends them with the cast (D127).
        */
-      failedCounters: z.optional(
-        z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      usedReactions: z.optional(
+        z.array(encounterUsedReactionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       )
     })
     .check(
@@ -179,7 +179,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 holdsActionD20 ||
                 value.twoPhase !== null ||
                 value.passedIncomingGate !== undefined ||
-                value.failedCounters !== undefined ||
+                value.usedReactions !== undefined ||
                 pause.payload.gate.holderActorId === value.rollerActorId ||
                 pause.payload.options.some(
                   ({ targetActorId }) => targetActorId === value.rollerActorId
@@ -234,7 +234,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
         }
         const castReaction = pause?.kind === 'CAST_REACTION' ? pause.payload : undefined
         const chain = castReaction?.chain?.counters ?? []
-        const failedReactors = (value.failedCounters ?? []).map(
+        const failedReactors = (value.usedReactions ?? []).map(
           ({ reaction }) => reaction.reactorActorId
         )
         const chainReactors = chain.map(({ reaction }) => reaction.reactorActorId)
@@ -248,7 +248,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
         )
           context.addIssue({
             code: 'custom',
-            path: ['failedCounters'],
+            path: ['usedReactions'],
             message:
               'Each reactor uses one counter in a cast, is not offered it again, and each standing counter answers the one before it.'
           })
