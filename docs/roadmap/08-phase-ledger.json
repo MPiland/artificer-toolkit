@@ -17482,7 +17482,7 @@
             },
             {
               "id": "SPELLS-31.T4k1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -17492,7 +17492,8 @@
                 "after": ["SPELLS-31.T4k1", "QUALITY-6.T1"]
               },
               "text": "Protection end to end (D217) as the first consumer of the shared reaction offer (QUALITY-7, same slice): the ATTACK_ON_OTHER pre-roll offer with its disadvantage on the triggering roll, the drawer offer, a room journey and docs; no pause kind of its own; remove the three Protection closed-rule effects.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-11T17:22:11Z",
+              "proof": "m690 (fc368ab4d, batch ci/merge-m690 Tests 43067539854) from slice tip b20d4db2a: Tests 43061776022, Live 43065679951, Browser journeys 43061775844 green. Protection is offered before the attack roll on an attack against another creature within reach while the reactor wields a shield (SIGHT range kept), imposes disadvantage on the triggering roll, spends the reaction and undoes in one step; a homebrew reaction with no shield and 10 ft reach is offered the same way. Proof: apps/session-worker/test/nativeRoomProtection.test.ts RED (6 of 8). Its own effect graph runs as a child action in QUALITY-8.T1."
             },
             {
               "id": "SPELLS-31.T4k1c",
@@ -17505,7 +17506,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4k1", "QUALITY-7.T1"]
               },
-              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
+              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25445,7 +25447,7 @@
         {
           "id": "QUALITY-7",
           "title": "One reaction offer driven by the event table",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -25457,16 +25459,21 @@
           "acs": [
             {
               "id": "QUALITY-7.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R3.",
-              "text": "Every attack, cast and roll-window reaction is offered by one offer function fed by the event table; Shield, Counterspell and Cutting Words pass through it; Protection is offered through it before the attack roll; no authored trigger except MOVEMENT (QUALITY-9) returns null from the event hooks; the three trigger-literal pin schemas collapse to one."
+              "text": "Every attack, cast and roll-window reaction is offered by one offer function fed by the event table; Shield, Counterspell and Cutting Words pass through it; Protection is offered through it before the attack roll; no authored trigger except MOVEMENT (QUALITY-9) returns null from the event hooks; the three trigger-literal pin schemas collapse to one.",
+              "proof": [
+                "nativeRoomProtection.test.ts",
+                "actionPendingOffers.test.ts",
+                "reaction-cast-contracts.test.ts"
+              ]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-7.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-7.1"],
               "wsjf": {
                 "bv": 8,
@@ -25476,14 +25483,20 @@
                 "after": ["QUALITY-4.T1", "QUALITY-6.T1"]
               },
               "text": "One reaction offer from the event table, one pin schema, one timeout decline; ships in one slice with SPELLS-31.T4k1b (Protection, first consumer).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-11T17:22:11Z",
+              "proof": "m690 (fc368ab4d, batch ci/merge-m690 Tests 43067539854) from slice tip b20d4db2a: Tests 43061776022, Live 43065679951, Browser journeys 43061775844 green. One offer function (offerNativeReactions) for aimed, attack, cast and roll reactions; one reaction pin schema (encounterReactionPinDtoSchema); offer kind named by trigger (COUNTER, TARGETED_SELF, ATTACK_ON_OTHER); failedCounters renamed usedReactions across contracts, receipts and docs. Red proof: nativeRoomProtection.test.ts RED (6 of 8), actionPendingOffers.test.ts RED (12 of 27), reaction-cast-contracts.test.ts RED, five rules-runtime files RED, usedReactionReceipt.test.ts RED-IMPORT. Persisted shape changed (usedReactions, offer kind): local data needs a reset when next used (D196). Follow-up for QUALITY-8.T1: executionImposesRollModeOnTriggeringRoll has only a test caller; the reaction child action uses it or it is deleted."
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomProtection.test.ts",
+            "packages/encounter-persistence/src/__tests__/actionPendingOffers.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-8",
           "title": "A reaction runs as a child action",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -25495,7 +25508,7 @@
           "acs": [
             {
               "id": "QUALITY-8.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4.",
               "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); replaying the parent raises the child once; Giant Killer's weapon attack runs this way, and its SRD compile golden row leaves REFUSED."
@@ -25504,7 +25517,7 @@
           "tasks": [
             {
               "id": "QUALITY-8.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 8,
@@ -25513,7 +25526,8 @@
                 "size": 8,
                 "after": ["QUALITY-7.T1"]
               },
-              "text": "Reaction child actions through encounterSystemTrigger; occurrence owner recorded at creation; parent plus one child pending; ships in one slice with SPELLS-31.T4k1c (Giant Killer, first consumer)."
+              "text": "Reaction child actions through encounterSystemTrigger; occurrence owner recorded at creation; parent plus one child pending; ships in one slice with SPELLS-31.T4k1c (Giant Killer, first consumer).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
