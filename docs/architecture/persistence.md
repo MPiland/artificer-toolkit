@@ -273,8 +273,7 @@ current version; the general expected-version check still applies. A later playe
 window, so a stale failed save never raises. A RULE root reverts with the action that raised it, as the
 defeat arm does; two rule roots raised from one action refuse the undo (adjust manually).
 
-Reaction arm (persistence seam current, QUALITY-8.T1a1, D219; the room flow that raises it is target,
-QUALITY-8.T1a2). A reaction its holder chose against a pending action is the holder's own action
+Reaction arm (current, QUALITY-8.T1a1 and T1a2, D219). A reaction its holder chose against a pending action is the holder's own action
 (`systemTrigger.trigger: REACTION`, built by `systemTriggerReactionCommand`): an `ACTOR` root whose id is
 `systemTriggerCommandId(parent, holder, actionId)`. Its parent is the pending action's root command, which is
 not committed, so the proof is the pending action's own record instead: `reactionChildren` in the
@@ -291,6 +290,23 @@ advances the Run one version and re-pins the pending occurrence to it in the sam
 - A replay of the parent root expects its commit at the root's version plus its committed REACTION children
   plus one. The children are counted from `encounterRunCommands` (`countCommittedReactionChildren`); no
   counter is stored.
+
+The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
+paused on the answered offer and records the child's command id; the child's commit is the one spend of the
+reaction (its own economy charge; the parent records no used reaction for it); the room's `RESUME_ACTION`
+(`ACTION_RESUME` admission, room-internal) then reads the committed child and records what it imposes on the
+triggering roll as `reactionChildren[].rollMode`, resolved by the System adapter
+(`imposesRollModeOnTriggeringRoll`). A child without `rollMode` is unresolved (`awaitsReactionChild`), and
+until it resolves the parent takes no other answer.
+
+Undo and void of a reacted action. One undo rule: a receipt belongs to the occurrence that recorded it, so
+`REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one
+step, attributing each receipt by occurrence instead of by a version range (`actionRevert.ts`). A void of
+the pending parent (`prepareRuleOccurrenceVoid`) stages nothing of the parent's own; its committed
+reactions are what the cancel takes back, so it runs `REVERT_LAST_ACTION` for them in the same transaction
+(command id derived from the void's) and then records the void, two timeline rows. The reaction is
+refunded with the child's other changes. When the children are not the Run's latest commands, or their
+undo is unavailable, the void is refused whole (`REVERT_UNAVAILABLE`).
 
 ### Encounter record shapes (ADR 0035 Amendment 12)
 

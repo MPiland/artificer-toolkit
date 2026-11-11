@@ -24,12 +24,14 @@ export function buildNativeLiveEncounterActionPendingInput(
     commandJson: JSON.stringify(plan.command),
     commandFingerprint: plan.fingerprint,
     initiatorUserId: plan.initiatorUserId,
-    currentnessChecksum: plan.currentnessChecksum
+    currentnessChecksum: plan.currentnessChecksum,
+    reactionChildren: plan.reactionChildren
   }
   return liveSessionEncounterActionPendingInputSchema.parse({
     ...scope,
     command: plan.command,
     response: plan.response,
+    resume: plan.resume ?? undefined,
     revisions: plan.revisions,
     maintenanceOwners: plan.dependencies.flatMap(({ request }) =>
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
@@ -72,6 +74,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     ...scope,
     command: plan.command,
     response: plan.response,
+    resume: plan.resume ?? undefined,
     revisions: plan.revisions,
     maintenanceOwners: [...owners.values()],
     occurredAt: plan.occurredAt,

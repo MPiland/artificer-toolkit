@@ -95,7 +95,6 @@ import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/char
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
-import { nativeReactionRollModes } from './nativeEncounterCastReaction.js'
 import {
   discoverNativeRollReactions,
   nextNativeRollReactionDice,
@@ -126,7 +125,11 @@ import {
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { prepareAttackTargetGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterAttackAppliedEffects'
-import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  restoreEncounterActionPending,
+  type PendingReactionChildren
+} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
@@ -189,7 +192,9 @@ export async function planNativeLiveEncounterAction(
   commandInput:
     | ResolveEncounterActionInputDto
     | ResolveRuleOccurrenceInputDto
-    | RemoveAreaTargetInputDto,
+    | RemoveAreaTargetInputDto
+    // The room's own resume of a pending action from the reaction child it just committed (D219).
+    | LiveSessionEncounterActionResume,
   executionOptions: {
     runtime: RulesRuntimeService
     random(maximum: number): number
@@ -203,11 +208,15 @@ export async function planNativeLiveEncounterAction(
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
   const removalCommand = commandInput.type === 'REMOVE_AREA_TARGET' ? commandInput : null
-  const request = removalCommand
-    ? { kind: 'AREA_REMOVAL' as const, removal: removalCommand }
-    : responseCommand
-      ? { kind: 'ACTION_RESPONSE' as const, response: responseCommand }
-      : { kind: 'ACTION_COMMAND' as const, command: commandInput }
+  const resumeCommand = commandInput.type === 'RESUME_ACTION' ? commandInput : null
+  const request =
+    commandInput.type === 'REMOVE_AREA_TARGET'
+      ? { kind: 'AREA_REMOVAL' as const, removal: commandInput }
+      : commandInput.type === 'RESOLVE_RULE_OCCURRENCE'
+        ? { kind: 'ACTION_RESPONSE' as const, response: commandInput }
+        : commandInput.type === 'RESUME_ACTION'
+          ? { kind: 'ACTION_RESUME' as const, resume: commandInput }
+          : { kind: 'ACTION_COMMAND' as const, command: commandInput }
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
     // A player's admitted action scope lets its follow-up captures read the rules inputs. Only the
@@ -239,14 +248,42 @@ export async function planNativeLiveEncounterAction(
   if (
     admission.kind !== 'ACTION_COMMAND' &&
     admission.kind !== 'ACTION_RESPONSE' &&
+    admission.kind !== 'ACTION_RESUME' &&
     admission.kind !== 'AREA_REMOVAL'
   )
     throw new Error('Encounter command is unavailable.')
-  if (admission.kind !== 'AREA_REMOVAL' && admission.result)
+  if (
+    (admission.kind === 'ACTION_COMMAND' || admission.kind === 'ACTION_RESPONSE') &&
+    admission.result
+  )
     return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
-  const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
-  const areaSnapshot = admission.kind === 'ACTION_COMMAND' ? null : admission.areaSnapshot
+  const snapshot =
+    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'ACTION_RESUME'
+      ? admission.snapshot
+      : null
+  const areaSnapshot =
+    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'AREA_REMOVAL'
+      ? admission.areaSnapshot
+      : null
+  /** The committed child action of each reaction chosen against this action, if it is pending (D219). */
+  const committedReactionChildren =
+    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'ACTION_RESUME'
+      ? admission.reactionChildren
+      : []
+  if (resumeCommand) {
+    const context = snapshot?.applicationContext
+    if (
+      context?.kind !== 'ENCOUNTER_ACTION' ||
+      snapshot?.occurrenceId !== resumeCommand.occurrenceId ||
+      context.commandFingerprint !== admission.fingerprint ||
+      context.pause?.kind !== 'CAST_REACTION' ||
+      admission.command.target.kind !== 'ACTOR' ||
+      context.contest ||
+      snapshot.deferredCleaving
+    )
+      throw new Error('The pending action evidence is invalid.')
+  }
   let areaDecision: Extract<
     ResolveRuleOccurrenceInputDto['resolution'],
     { kind: 'AREA_LEGENDARY_RESISTANCE' }
@@ -569,8 +606,9 @@ export async function planNativeLiveEncounterAction(
       }),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
-  const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
-  const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
+  const continued = responseCommand ?? resumeCommand
+  const occurrenceId = continued ? continued.occurrenceId : crypto.randomUUID()
+  const occurrenceVersion = continued ? continued.expectedOccurrenceVersion + 1 : 0
   // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
   const unwindowed = await prepareAttackBehindDecoys({
     occurrenceId,
@@ -895,9 +933,16 @@ export async function planNativeLiveEncounterAction(
         : undefined
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
+  /** The child of each reaction chosen against this action so far, set once its offers are heard. */
+  let reactionChildren: PendingReactionChildren =
+    snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+      ? (snapshot.applicationContext.reactionChildren ?? [])
+      : []
   const preflight = () => ({
     command,
     response: responseCommand,
+    resume: resumeCommand,
+    reactionChildren,
     // A response continues the original initiator's action; the responder is authorized in Convex.
     initiatorUserId:
       snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
@@ -997,6 +1042,20 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     userId: initial.expectedUserId,
     aimedAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
+    reactionChildren: {
+      recorded: reactionChildren,
+      committed: committedReactionChildren,
+      resumedOffer:
+        resumeCommand &&
+        snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+        snapshot.applicationContext.pause?.kind === 'CAST_REACTION'
+          ? {
+              reactorActorId: snapshot.applicationContext.rollerActorId,
+              declinedReactorActorIds:
+                snapshot.applicationContext.pause.payload.declinedReactorActorIds
+            }
+          : null
+    },
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,
@@ -1008,10 +1067,11 @@ export async function planNativeLiveEncounterAction(
   })
   const cast = await castPause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
+  reactionChildren = cast.reactionChildren
   const usedReactions = cast.usedReactions
   const reactionSpends = await castPause.planUsedReactions(usedReactions)
   // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217).
-  const react = nativeReactionRollModes(reactionSpends)
+  const react = castPause.imposeChildRollModes(reactionChildren)
   const reacted = react(prepared)
   const actionSource = {
     runtime: executionOptions.runtime,

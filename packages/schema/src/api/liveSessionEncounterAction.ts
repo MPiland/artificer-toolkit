@@ -26,6 +26,7 @@ import {
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterMaintenanceOwnerRequestSchema
 } from './liveSessionEncounterRules.js'
+import { liveSessionEncounterActionResumeSchema } from './liveSessionCommandScopes.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { ruleExecutionChecksumSchema } from '../shared/ruleExecutionPrimitives.js'
@@ -78,6 +79,8 @@ export const liveSessionEncounterActionPendingInputSchema = lazySchema(() =>
       expectedRole: z.enum(['OWNER', 'PLAYER']),
       command: resolveEncounterActionInputDtoSchema,
       response: z.optional(z.nullable(resolveRuleOccurrenceInputDtoSchema)),
+      /** The room's resume of the pending action after a reaction's child action committed (D219). */
+      resume: z.optional(liveSessionEncounterActionResumeSchema),
       revisions: liveSessionRulesRevisionsSchema,
       maintenanceOwners: z
         .array(liveSessionEncounterMaintenanceOwnerRequestSchema)

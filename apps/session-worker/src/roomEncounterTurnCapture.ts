@@ -47,7 +47,10 @@ import {
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
 import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
-import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
+import {
+  readNativeEncounterActionResponseAdmission,
+  readNativeEncounterActionResumeAdmission
+} from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { readLiveEncounterActionScope } from '@artificer-toolkit/encounter-persistence/liveActionAdmission'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { readContestAdmission } from '@artificer-toolkit/encounter-persistence/contestAdmission'
@@ -104,6 +107,7 @@ export async function readRoomEncounterTurnCapture(
       'CONTEST',
       'ACTION_COMMAND',
       'ACTION_RESPONSE',
+      'ACTION_RESUME',
       'AREA_REMOVAL',
       'CLEAVING_RESPONSE',
       'BASIC_ACTION',
@@ -228,6 +232,56 @@ export async function readRoomEncounterTurnCapture(
       revisions: observed
     })
   }
+  if (input.request.kind === 'ACTION_RESUME') {
+    if (
+      input.expectedRole !== 'OWNER' &&
+      checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
+    )
+      throw new Error('Live Session action scope mismatch.')
+    if (input.turnCommand || input.concentrationResponse)
+      throw new Error('Room action capture cannot use another command scope.')
+    const { userId } = await ctx.ports.requireIdentity()
+    const { resume } = input.request
+    if (
+      userId !== input.expectedUserId ||
+      resume.encounterId.toLowerCase() !== input.encounterId ||
+      resume.expectedVersion !== input.expectedVersion
+    )
+      throw new Error('Live Session Encounter command scope mismatch.')
+    await ctx.ports.requireActiveLiveAuthority({
+      campaignId: input.campaignId,
+      epoch: input.authorityEpoch
+    })
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (query) => query.eq('id', input.encounterId))
+      .unique()
+    if (!run) throw new Error('Encounter Run was not found.')
+    const { admission, pending, reactionChildren } = await readNativeEncounterActionResumeAdmission(
+      ctx,
+      resume,
+      run,
+      userId
+    )
+    if (
+      admission.state.campaignId !== input.campaignId ||
+      admission.membership.role !== input.expectedRole
+    )
+      throw new Error('Live Session Encounter scope or version mismatch.')
+    return liveSessionEncounterRulesResponseSchema.parse({
+      kind: 'ACTION_RESUME',
+      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+        campaign: admission.campaign,
+        initiatorUserId: admission.initiatorUserId,
+        actors: await readRunActors(ctx, admission.state)
+      }),
+      command: admission.input,
+      fingerprint: admission.fingerprint,
+      snapshot: pending.snapshot,
+      reactionChildren,
+      revisions: observed
+    })
+  }
   if (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE') {
     if (
       input.expectedRole !== 'OWNER' &&
@@ -287,7 +341,8 @@ export async function readRoomEncounterTurnCapture(
             kind: 'ACTION_RESPONSE' as const,
             snapshot: resumed.kind === 'READY' ? resumed.pending.snapshot : null,
             areaSnapshot: resumed.kind === 'READY' ? (resumed.area?.snapshot ?? null) : null,
-            appRoll: resumed.kind === 'READY' ? resumed.appRoll : null
+            appRoll: resumed.kind === 'READY' ? resumed.appRoll : null,
+            reactionChildren: resumed.kind === 'READY' ? resumed.reactionChildren : []
           }
         : { kind: 'ACTION_COMMAND' as const }),
       autoRollByActorId:

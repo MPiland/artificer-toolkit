@@ -24,7 +24,13 @@ import { insertRunCommand } from './timelineEntries.js'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
-import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
+import type {
+  EncounterCharacterWriteTransaction,
+  EncounterPersistenceTransaction,
+  EncounterWritePorts
+} from './ports.js'
+import { revertLastEncounterAction } from './actionRevert.js'
+import { countCommittedReactionChildren } from './reactionChildren.js'
 
 type VoidChatTransaction = EncounterPersistenceTransaction & {
   readonly ports: EncounterPersistenceTransaction['ports'] &
@@ -315,14 +321,31 @@ export async function readRuleOccurrenceVoidDecline(
  * a GM answer takes. A void whose decline already committed only records its timeline entry.
  */
 export async function prepareRuleOccurrenceVoid(
-  ctx: EncounterPersistenceTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   args: unknown
 ): Promise<Exclude<RuleOccurrenceVoidPlan, { kind: 'CANCEL' }>> {
   const plan = await planRuleOccurrenceVoid(ctx, args)
   if (plan.kind !== 'CANCEL') return plan
   const { admission } = plan
-  const { occurrence } = admission
-  // Paused actions stage nothing on the Run, so cancelling only closes the occurrence.
+  const { occurrence, run, input } = admission
+  // A paused action stages nothing on the Run itself. The reactions chosen against it committed as
+  // their own actions (D219), so they are the one thing its cancel takes back.
+  const context = (await readPendingSnapshot(ctx, occurrence))?.applicationContext
+  const reactionChildren =
+    (context?.kind === 'ENCOUNTER_ACTION' ? context.reactionChildren?.length : 0) ?? 0
+  if (
+    reactionChildren > 0 &&
+    (await countCommittedReactionChildren(ctx, {
+      encounterId: run.id,
+      rootCommandId: occurrence.rootCommandId,
+      afterVersion: run.version - reactionChildren,
+      beforeVersion: run.version + 1
+    })) !== reactionChildren
+  )
+    rejectDomain(
+      'REVERT_UNAVAILABLE',
+      'The Encounter changed after a reaction to this action; answer it, then adjust manually.'
+    )
   const updatedAt = new Date().toISOString()
   const { _id, _creationTime, ...stored } = occurrence
   const voided = encounterStoredRuleOccurrenceSchema.parse({
@@ -334,11 +357,29 @@ export async function prepareRuleOccurrenceVoid(
     updatedAt
   })
   await ctx.db.patch(_id, changedFields(occurrence, voided))
+  // With the action closed its reactions are the Run's last actions, and they go back as one undo
+  // in this transaction, so a void that can't restore them is refused whole.
+  if (reactionChildren > 0)
+    await revertLastEncounterAction(
+      ctx,
+      {
+        type: 'REVERT_LAST_ACTION',
+        encounterId: run.id,
+        commandId: uuidV5(`${input.commandId}:reactions`, voidNamespace),
+        expectedVersion: run.version
+      },
+      admission.userId
+    )
+  const current = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', run.id))
+    .unique()
+  if (!current) throw new Error('Encounter is unavailable.')
   return {
     kind: 'COMPLETE',
     result: await recordVoid(
       ctx,
-      { ...admission, occurrence: { ...occurrence, ...voided } },
+      { ...admission, run: current, occurrence: { ...occurrence, ...voided } },
       'VOIDED'
     )
   }

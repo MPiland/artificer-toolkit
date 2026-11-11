@@ -299,7 +299,7 @@ export function areaActionTargetOrigin(
   }
 }
 
-const encounterActionIdSchema = lazySchema(() =>
+export const encounterActionIdSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
 )
 

@@ -21,12 +21,22 @@ import { offerNativeReactions } from './nativeEncounterReactionCandidate.js'
 type OfferInput = Parameters<typeof offerNativeReactions>[0]
 
 /**
+ * The roll mode a reaction authors to impose on the roll it answers, if it authors one. The roll takes
+ * it once the reaction's own action committed that outcome (D219).
+ */
+export const authoredImposedRollMode = ({ mechanicFacts }: OfferInput['held'][number]) =>
+  mechanicFacts.outcomes.flatMap((outcome) =>
+    'imposedRollMode' in outcome && outcome.imposedRollMode ? [outcome.imposedRollMode] : []
+  )[0]
+
+/**
  * The first Character, by actor id, beside an attack aimed at another creature that holds a reaction to
  * it (Protection, D217), with its menu, before the attack's d20 is rolled. The event table decides
  * whether the attack meets a reaction's trigger: its holder sees the attacker, the attack's target is
  * within the trigger's distance of the holder, the holder has the equipment it names equipped. The
  * reaction is prepared against the attacker, which its own range and target requirements are held to,
- * and is offered when it authors a roll mode to impose on the attack's roll. The attacker, the attack's
+ * and is offered when it authors a roll mode to impose on the attack's roll; the roll takes that mode
+ * only from the reaction's own committed action (D219). The attacker, the attack's
  * target, a defeated Character (D63) and one with no token on the Scene offer nothing. The Scene is
  * read only for a holder of such a reaction, and sight only when the attack would otherwise meet it.
  */
@@ -106,16 +116,12 @@ export function discoverNativeAimedReactions(input: {
           answering: filter.answering?.actionId,
           prepare: (actionId) => input.prepareReaction(reactor, reactorTarget, actionId),
           // A reaction's receipt carries no pool spend, so one paid from a pool would never use it up.
-          admit: ({ source, characterActionState }) => {
-            if (source.kind !== 'CHARACTER_ACTION' || characterActionState?.resourceConsumption)
-              return null
-            const [rollMode] = source.candidate.mechanicFacts.outcomes.flatMap((outcome) =>
-              'imposedRollMode' in outcome && outcome.imposedRollMode
-                ? [outcome.imposedRollMode]
-                : []
-            )
-            return rollMode ? { rollMode } : null
-          },
+          admit: ({ source, characterActionState }) =>
+            source.kind === 'CHARACTER_ACTION' &&
+            !characterActionState?.resourceConsumption &&
+            authoredImposedRollMode(source.candidate)
+              ? {}
+              : null,
           range: { grid, sourceToken: reactorToken, targetToken: scene.sourceToken },
           targetIds: [attacker.id],
           capture: input.capture

@@ -1,4 +1,5 @@
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import {
@@ -18,6 +19,7 @@ import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { expireReactionOffer } from './reactionTimeoutClock.js'
 import {
+  parseReceiptExecution,
   readActorHitPoints,
   readPendingActionContext,
   readPendingActionDecision,
@@ -208,6 +210,66 @@ describe('Protection against an attack on another creature in the room (SPELLS-3
     expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
   })
 
+  it('runs the chosen reaction as its own action before the Bite is rolled, which spends it and records its mode (D219)', async () => {
+    const room = await protectorRoom()
+    const { decision, pending } = await offered(room)
+    const version = await room.version()
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0]!.optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    // The reaction is spent at the choice, by the child action alone: the Bite carries no spend.
+    expect(await reactionUsed(room)).toBe(1)
+    expect(await room.version()).toBe(version + 1)
+    const history = await readRoomHistory(room.room.base.stub)
+    const children = history.commands.flatMap((row) => {
+      if (row.commandType !== 'RESOLVE_ACTION') return []
+      const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
+      return command.systemTrigger?.trigger === 'REACTION' ? [command] : []
+    })
+    expect(children).toHaveLength(1)
+    const [child] = children
+    expect(child).toMatchObject({ actorId: REACTOR_ACTOR_ID, sceneContext: null })
+    const receipt = history.receipts.find(({ commandId }) => commandId === child!.commandId)
+    if (!receipt) throw new Error('The reaction left no receipt.')
+    expect(parseReceiptExecution(receipt).status).toBe('COMPLETE')
+
+    await attackPrompt(room)
+    const context = await readPendingActionContext(room.room.base.stub)
+    expect(context.reactionChildren).toEqual([
+      { commandId: child!.commandId, rollMode: 'DISADVANTAGE' }
+    ])
+    expect(context.usedReactions ?? []).toEqual([])
+  })
+
+  it('gives the reaction back when the GM voids the Bite it was used against (D219)', async () => {
+    const room = await protectorRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    const { decision, pending } = await offered(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0]!.optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await reactionUsed(room)).toBe(1)
+
+    const { attack } = await attackPrompt(room)
+    const voided = await room.send({
+      type: 'VOID_RULE_OCCURRENCE',
+      commandId: crypto.randomUUID(),
+      encounterId: room.room.encounterId,
+      expectedVersion: attack.encounterVersion,
+      occurrenceId: attack.occurrence.id,
+      expectedOccurrenceVersion: attack.occurrence.version
+    })
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactionUsed(room)).toBe(0)
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  })
+
   it('rolls the Bite as it was when the Character declines, spending nothing', async () => {
     const room = await protectorRoom()
     const hitPoints = await targetHitPoints(room)
@@ -263,6 +325,6 @@ describe('Protection against an attack on another creature in the room (SPELLS-3
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     const { request } = await attackPrompt(room)
     expect(request.rollMode).toBe('DISADVANTAGE')
-    expect(await reactionUsed(room)).toBe(0)
+    expect(await reactionUsed(room)).toBe(1)
   })
 })

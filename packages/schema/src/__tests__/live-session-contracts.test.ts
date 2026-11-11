@@ -19,7 +19,10 @@ import {
   encounterActionTargetModifiersDtoSchema,
   getEncounterActionTargetModifiersInputDtoSchema
 } from '../api/encounterActionTargetModifiers.js'
-import { liveSessionEncounterBasicActionCommandSchema } from '../api/liveSessionCommandScopes.js'
+import {
+  liveSessionEncounterActionResumeSchema,
+  liveSessionEncounterBasicActionCommandSchema
+} from '../api/liveSessionCommandScopes.js'
 import {
   resolveEncounterActionInputDtoSchema,
   revertLastEncounterActionInputDtoSchema
@@ -809,5 +812,26 @@ describe('Encounter rule overrides and undo', () => {
     expect(
       revertLastEncounterActionInputDtoSchema.parse({ ...base, type: 'REVERT_LAST_ACTION' })
     ).toEqual({ ...base, type: 'REVERT_LAST_ACTION' })
+  })
+
+  it('carries no resume of a pending action from a client: only the room raises one (D219)', () => {
+    const resume = {
+      type: 'RESUME_ACTION',
+      encounterId: ids.encounter,
+      expectedVersion: 3,
+      occurrenceId: ids.token,
+      expectedOccurrenceVersion: 1
+    }
+    expect(liveSessionEncounterActionResumeSchema.safeParse(resume).success).toBe(true)
+    const frame = (command: Record<string, unknown>) => ({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: { scope: 'ENCOUNTER', command }
+    })
+    expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(frame(action)).success).toBe(true)
+    for (const command of [resume, { ...resume, commandId: ids.command }])
+      expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(frame(command)).success).toBe(
+        false
+      )
   })
 })

@@ -10,6 +10,7 @@ import {
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 /**
  * A CHECK action, an Escape, the end of a held grant, the move of a held effect, a facing change
@@ -31,6 +32,24 @@ export type LiveSessionEncounterBasicActionCommand = z.infer<
 >
 
 /**
+ * The room's own resume of a pending action once the child action of a reaction chosen against it
+ * committed (D219). It is never a client command: no Encounter command carries it, and its admission
+ * takes it only for an action that waits on such a child.
+ */
+export const liveSessionEncounterActionResumeSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('RESUME_ACTION'),
+    encounterId: postgresUuidSchema,
+    expectedVersion: z.number().check(z.int()).check(z.nonnegative()),
+    occurrenceId: postgresUuidSchema,
+    expectedOccurrenceVersion: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+export type LiveSessionEncounterActionResume = z.infer<
+  typeof liveSessionEncounterActionResumeSchema
+>
+
+/**
  * A player's admitted Encounter action or action response (ADR 0034 decision 1). Every capture that
  * carries it re-admits the command, so later rules reads run for that player.
  */
@@ -43,6 +62,11 @@ export const liveSessionActionCaptureScopeSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTION_RESPONSE'),
       response: resolveRuleOccurrenceInputDtoSchema
+    }),
+    /** The resume the room raised in the turn of a player's reaction choice. */
+    z.strictObject({
+      kind: z.literal('ACTION_RESUME'),
+      resume: liveSessionEncounterActionResumeSchema
     }),
     /** The source actor's controller choosing or declining the next Cleaving target. */
     z.strictObject({

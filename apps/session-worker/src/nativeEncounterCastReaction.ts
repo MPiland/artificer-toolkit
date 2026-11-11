@@ -27,7 +27,6 @@ import {
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
-import { withEncounterRollInfluences } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   planNativeEncounterAreaSourceSpend,
   type NativeEncounterActionMechanicsInput
@@ -92,12 +91,9 @@ export type CastScene = Extract<
 
 /**
  * A reaction its holder could use before the action being resolved does anything, prepared as it
- * stands now. One that answers an attack aimed at another creature carries the roll mode it imposes on
- * that attack's roll (D217).
+ * stands now.
  */
-export type NativeCastResponse = NativeReaction<EncounterReactionCandidate, Prepared> & {
-  rollMode?: string
-}
+export type NativeCastResponse = NativeReaction<EncounterReactionCandidate, Prepared>
 
 /** A reaction its holder could use to counter the cast being resolved, prepared as it stands now. */
 export type NativeCastReaction = NativeCastResponse & {
@@ -549,7 +545,9 @@ export async function advanceNativeCastReactions(input: {
  * in (the creatures a cast names as targets, the creatures beside an attack aimed at another): the
  * reaction a creature used (kept with the action's other spent reactions, to be spent and applied at
  * its terminal commit), the next creature to ask, or nobody left. A decline and a use both hand the
- * action to the next creature in turn; the creature heard from is not asked again.
+ * action to the next creature in turn; the creature heard from is not asked again. A moment whose
+ * reactions run as their own actions (D219) instead names the child action of the reaction chosen and
+ * keeps its offer: the action resumes past that creature once the child has committed.
  */
 export async function advanceNativeTargetedReactions(input: {
   runtime: RulesRuntimeService
@@ -566,6 +564,8 @@ export async function advanceNativeTargetedReactions(input: {
   usedReactions: readonly EncounterUsedReactionDto[]
   /** The creatures the counter offers already heard from, which the first targeted offer carries on. */
   declinedReactorActorIds: readonly string[]
+  /** Whether a reaction chosen at this moment runs as its holder's own action (D219). */
+  runsAsChild: boolean
 }) {
   const { runtime, occurrenceId, answer } = input
   const usedReactions = [...input.usedReactions]
@@ -587,6 +587,19 @@ export async function advanceNativeTargetedReactions(input: {
         candidate: found.candidate,
         optionId: answer.selection.optionId
       })
+      if (input.runsAsChild)
+        return {
+          kind: 'CHILD' as const,
+          child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
+          // The offer stays as it was answered until the action resumes from the child.
+          continuation: await openEncounterReactionChoice({
+            runtime,
+            occurrenceId,
+            candidate: found.candidate
+          }),
+          offer: answer.offer,
+          usedReactions
+        }
       usedReactions.push({
         reaction,
         choiceExecution: choice,
@@ -688,21 +701,6 @@ export async function planNativeUsedReactions(input: {
     })
   }
   return planned
-}
-
-/**
- * How the reactions spent before an attack's d20 change that attack: each imposes the roll mode it
- * authors on the roll (D217). The attack is re-prepared as its pauses are answered, so the same
- * reactions are applied to each preparation.
- */
-export function nativeReactionRollModes(
-  planned: Awaited<ReturnType<typeof planNativeUsedReactions>>
-) {
-  const influences = planned.flatMap(({ found, receipt }) =>
-    found.rollMode ? [{ reaction: receipt.reaction, rollMode: found.rollMode }] : []
-  )
-  return <Attack extends Parameters<typeof withEncounterRollInfluences>[0]>(attack: Attack) =>
-    withEncounterRollInfluences(attack, influences)
 }
 
 /** The slots the failed counters of one actor spend, for the batch its own cast spends in. */

@@ -1,5 +1,8 @@
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -46,6 +49,86 @@ export async function repinReactionChildParent(
   const parent = await readReactionChildParent(ctx, input)
   if (!parent) throw new Error('The reaction’s pending action is gone.')
   await ctx.db.patch(parent._id, { expectedEncounterVersion: input.version })
+}
+
+/**
+ * Whether a pending action records a reaction child it has not resumed from: the child's mode is
+ * written only by the resume that follows its commit.
+ */
+export const awaitsReactionChild = (context: RecordedReactionChildren) =>
+  context.reactionChildren?.some(({ rollMode }) => rollMode === undefined) ?? false
+
+type RecordedReactionChildren = {
+  reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
+}
+
+/**
+ * Whether a pending action's next context keeps the reaction children its previous one recorded:
+ * the same commands in order, each resolved and a resolved mode never rewritten, with at most one
+ * new, unresolved child after them.
+ */
+export function reactionChildrenKept(
+  previous: RecordedReactionChildren,
+  next: RecordedReactionChildren
+): boolean {
+  const recorded = previous.reactionChildren ?? []
+  const kept = next.reactionChildren ?? []
+  return (
+    kept.length - recorded.length <= 1 &&
+    recorded.every(({ commandId, rollMode }, index) => {
+      const child = kept[index]
+      return (
+        child?.commandId === commandId &&
+        child.rollMode !== undefined &&
+        (rollMode === undefined || child.rollMode === rollMode)
+      )
+    }) &&
+    kept.slice(recorded.length).every(({ rollMode }) => rollMode === undefined)
+  )
+}
+
+/**
+ * The committed child actions among those a pending action records, in recorded order: who reacted
+ * with what, and whether the System reads a roll mode imposed on the action's roll from the child's
+ * stored execution. A recorded child that has not committed is left out.
+ */
+export async function readCommittedReactionChildren(
+  ctx: EncounterReadContext,
+  input: {
+    campaignId: string
+    gameSystemId: string
+    recorded: readonly { commandId: string }[]
+  }
+): Promise<LiveSessionReactionChild[]> {
+  const outcomes = executionOutcomeCapabilityRegistry.require(input.gameSystemId)
+  const children: LiveSessionReactionChild[] = []
+  for (const { commandId } of input.recorded) {
+    const command = await ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_campaignId_commandId', (query) =>
+        query.eq('campaignId', input.campaignId).eq('commandId', commandId)
+      )
+      .unique()
+    const receipt = await ctx.db
+      .query('encounterRuleReceipts')
+      .withIndex('by_campaignId_commandId', (query) =>
+        query.eq('campaignId', input.campaignId).eq('commandId', commandId)
+      )
+      .unique()
+    if (!command || !receipt) continue
+    const { actorId, actionId } = resolveEncounterActionInputDtoSchema.parse(
+      JSON.parse(command.commandJson)
+    )
+    const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+    children.push({
+      commandId,
+      reactorActorId: actorId,
+      actionId,
+      imposesRollMode:
+        execution.status === 'COMPLETE' && outcomes.imposesRollModeOnTriggeringRoll(execution)
+    })
+  }
+  return children
 }
 
 /**
