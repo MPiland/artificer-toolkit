@@ -25618,7 +25618,7 @@
             {
               "id": "QUALITY-9.T1",
               "status": "TODO",
-              "closes": ["QUALITY-9.1", "QUALITY-8.1"],
+              "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
