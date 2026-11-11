@@ -85,6 +85,7 @@ export async function readNativeEncounterActionAdmission(
     .unique()
   if (replay) {
     presentTimelineEntry(replay)
+    if (replay.commandType !== 'RESOLVE_ACTION') rejectDomain('COMMAND_ID_REUSED')
     // The root committed one Run version after each reaction child that committed while it was pending (D219).
     const committedVersion =
       input.expectedVersion +
@@ -95,7 +96,6 @@ export async function readNativeEncounterActionAdmission(
         beforeVersion: replay.version
       }))
     if (
-      replay.commandType !== 'RESOLVE_ACTION' ||
       replay.encounterId !== run.id ||
       replay.actorUserId !== initiatorUserId ||
       replay.version !== committedVersion + 1 ||
