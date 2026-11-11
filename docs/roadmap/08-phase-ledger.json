@@ -25509,7 +25509,7 @@
               "id": "QUALITY-8.1",
               "status": "IN_PROGRESS",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4. Amended 2026-11-11 (user, D219): Giant Killer's golden row stays REFUSED like Volley and Whirlwind Attack (its bare Feature weapon attack takes its outcomes from the wielded weapon at play time; a room test proves it); a reaction is spent when chosen and undo or void of the parent cascades to the child.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4. Amended 2026-11-11 (user, D219): Giant Killer's golden row stays REFUSED like Volley and Whirlwind Attack (its bare Feature weapon attack takes its outcomes from the wielded weapon at play time; a room test proves it); a reaction is spent when chosen and undo or void of the parent cascades to the child. CANCEL and REBIND_TEST resume proofs land with QUALITY-9.T1 (D219), so this AC closes with it.",
               "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, spending its reaction when chosen, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); undoing or voiding the parent undoes its child; replaying the parent raises the child once; Giant Killer's weapon attack runs this way with the wielded weapon, and no SRD compile golden row changes."
             }
           ],
@@ -25573,8 +25573,8 @@
                 "size": 3,
                 "after": ["QUALITY-8.T1a2b"]
               },
-              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Persisted SUSPENDED occurrence state for a parent with one pending child; occurrence owner recorded at creation; a homebrew reaction whose outcome sits behind a save proves the four resume modes.",
+              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth). Rescoped 2026-11-11 (D219): owner-at-creation dropped; CANCEL and REBIND_TEST proofs move to QUALITY-9.T1.",
+              "text": "Persisted SUSPENDED occurrence state, set when a reaction child pauses (one PENDING occurrence per Run kept); the child final commit returns the parent to PENDING and the room resumes it; void of a pending child cancels it and returns its reaction; a homebrew reaction behind its own save proves ADJUST_ROLL and NOTHING.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -25618,7 +25618,7 @@
             {
               "id": "QUALITY-9.T1",
               "status": "TODO",
-              "closes": ["QUALITY-9.1"],
+              "closes": ["QUALITY-9.1", "QUALITY-8.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
@@ -25626,7 +25626,7 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1b"]
               },
-              "text": "Fold cast and roll-window reactions (R5); delete their pause kinds."
+              "text": "Fold cast and roll-window reactions (R5); delete their pause kinds. Proves the CANCEL and REBIND_TEST resume modes behind the reaction child own roll or save (QUALITY-8.1, D219)."
             },
             {
               "id": "QUALITY-9.T2",
