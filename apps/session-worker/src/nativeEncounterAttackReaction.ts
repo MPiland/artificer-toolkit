@@ -60,7 +60,7 @@ export function discoverNativeAttackReaction(input: {
   system: SystemAuthoredDto
   /** The Run's pinned Spells (D163). */
   spells: ReadonlyMap<string, CompiledSpell>
-  prepareReaction(actionId: string): Promise<Prepared>
+  prepareReaction: Parameters<typeof offerNativeReactions>[0]['prepare']
   /** Creatures whose reaction this action already spent (a failed counter), though the run still shows it unspent. */
   reactionSpentActorIds: readonly string[]
   capture: (
