@@ -2147,3 +2147,5 @@ QUALITY-8's seam audit found the reaction paths settle their effects inline (Pro
   - **Fences:** a pending occurrence's version replaces the root's at the resume fences; the root replay fence counts the root's committed REACTION children.
   - **Void:** a void of the parent inverts its committed child in the same transaction (the user's cascade ruling).
   - **Tracking:** T1a split into T1a1 (seam, admission, fences) and T1a2 (room flow, Protection, undo and void cascade).
+
+  - **Resume (T1a2 trace):** resume was response-only, so the room resumes the parent through a new room-internal `ACTION_RESUME` request kind on the Worker-to-Convex contract, never submittable by a client (precedent: `AREA_REMOVAL`). Until T1b adds SUSPENDED, the parent keeps its answered reaction-choice request between the choice and the resume; a crash there leaves an answered offer the GM can void. T1a2 split into T1a2a (resume kind, room flow, spend at choice) and T1a2b (undo and void cascade).

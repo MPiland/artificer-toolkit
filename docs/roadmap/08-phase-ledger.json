@@ -25531,7 +25531,7 @@
               "proof": "m692 (2d96fddd5, fast path) from slice tip 4bf446cad: Tests 43080224989 (red proof job green), Live 43080224858, Browser journeys 43080224834 green. REACTION system trigger (schema enum, systemTriggerReactionCommand); the pending context records reactionChildren and only a recorded child is admitted while its parent is pending (reactionChildren.ts); the child commit re-pins the parent occurrence version; resume fences read the occurrence version; the root replay fence counts committed REACTION children from the Run commands. Proof: packages/encounter-persistence/src/__tests__/reactionChildren.test.ts. Persisted pending context gained an optional field (no reset needed)."
             },
             {
-              "id": "QUALITY-8.T1a2",
+              "id": "QUALITY-8.T1a2a",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
@@ -25541,9 +25541,23 @@
                 "size": 3,
                 "after": ["QUALITY-8.T1a1"]
               },
-              "note": "Split 2026-11-11 from QUALITY-8.T1a at its fence trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Room flow: Protection as an immediate child; the parent resumes without a response and reads the roll mode from the child execution through the capability registry; reaction spent when chosen; undo and void of the parent cascade to the committed child; the facts-only roll-mode shortcut is deleted.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Split 2026-11-11 from QUALITY-8.T1a2 at its seam trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
+              "text": "Room-internal ACTION_RESUME request kind and admission; imposesRollModeOnTriggeringRoll on the capability registry; the REACTION window admits a reaction child; room flow choice, child commit, resume; reaction spent at choice with the resolved mode recorded; the facts-only roll-mode shortcut is deleted."
+            },
+            {
+              "id": "QUALITY-8.T1a2b",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-8.T1a2a"]
+              },
+              "note": "Split 2026-11-11 from QUALITY-8.T1a2 at its seam trace (D219 amendment), within AC QUALITY-8.1 (no scope growth).",
+              "text": "Undo and void of the parent cascade to its committed reaction child: one undo rule (a receipt belongs to the occurrence that recorded it) and the occurrenceVoid premise; docs."
             },
             {
               "id": "QUALITY-8.T1b",
@@ -25554,7 +25568,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-8.T1a2"]
+                "after": ["QUALITY-8.T1a2b"]
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
               "text": "Persisted SUSPENDED occurrence state for a parent with one pending child; occurrence owner recorded at creation; a homebrew reaction whose outcome sits behind a save proves the four resume modes."
@@ -25780,7 +25794,7 @@
             "tc": 3,
             "rr": 5,
             "size": 13,
-            "after": ["QUALITY-8.T1a2", "QUALITY-10.T1"]
+            "after": ["QUALITY-8.T1a2b", "QUALITY-10.T1"]
           },
           "acs": [
             {
@@ -25801,7 +25815,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-8.T1a2", "QUALITY-10.T1"]
+                "after": ["QUALITY-8.T1a2b", "QUALITY-10.T1"]
               },
               "text": "One per-target driver for the three target shapes."
             },
