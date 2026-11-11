@@ -17497,17 +17497,16 @@
             },
             {
               "id": "SPELLS-31.T4k1c",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4k1", "QUALITY-7.T1"]
+                "after": ["QUALITY-8.T1b"]
               },
-              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25510,24 +25509,53 @@
               "id": "QUALITY-8.1",
               "status": "IN_PROGRESS",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4.",
-              "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); replaying the parent raises the child once; Giant Killer's weapon attack runs this way, and its SRD compile golden row leaves REFUSED."
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4. Amended 2026-11-11 (user, D219): Giant Killer's golden row stays REFUSED like Volley and Whirlwind Attack (its bare Feature weapon attack takes its outcomes from the wielded weapon at play time; a room test proves it); a reaction is spent when chosen and undo or void of the parent cascades to the child.",
+              "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, spending its reaction when chosen, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); undoing or voiding the parent undoes its child; replaying the parent raises the child once; Giant Killer's weapon attack runs this way with the wielded weapon, and no SRD compile golden row changes."
             }
           ],
           "tasks": [
             {
-              "id": "QUALITY-8.T1",
+              "id": "QUALITY-8.T1a",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
-                "bv": 8,
-                "tc": 5,
+                "bv": 3,
+                "tc": 3,
                 "rr": 8,
-                "size": 8,
+                "size": 5,
                 "after": ["QUALITY-7.T1"]
               },
-              "text": "Reaction child actions through encounterSystemTrigger; occurrence owner recorded at creation; parent plus one child pending; ships in one slice with SPELLS-31.T4k1c (Giant Killer, first consumer).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
+              "text": "REACTION system-trigger seam (replay raises the child once); Protection as an immediate child resuming ADJUST_ROLL from the child execution; reaction spent when chosen; undo and void of the parent cascade to the child, undo grouped by occurrence; the facts-only roll-mode shortcut is deleted."
+            },
+            {
+              "id": "QUALITY-8.T1b",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-8.T1a"]
+              },
+              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
+              "text": "Persisted SUSPENDED occurrence state for a parent with one pending child; occurrence owner recorded at creation; a homebrew reaction whose outcome sits behind a save proves the four resume modes."
+            },
+            {
+              "id": "QUALITY-8.T1c",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-8.T1b"]
+              },
+              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
+              "text": "Giant Killer as a post-commit child (resume NOTHING) raised after the attack commits; a reaction-activated Feature weapon attack pairs with the wielded weapon action attack; a reactor dropped to 0 gets no offer; one offer with one option per wielded weapon. Ships with SPELLS-31.T4k1c."
             }
           ]
         },
@@ -25541,7 +25569,7 @@
             "tc": 3,
             "rr": 5,
             "size": 13,
-            "after": ["QUALITY-8.T1"]
+            "after": ["QUALITY-8.T1b"]
           },
           "acs": [
             {
@@ -25562,7 +25590,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-8.T1"]
+                "after": ["QUALITY-8.T1b"]
               },
               "text": "Fold cast and roll-window reactions (R5); delete their pause kinds."
             },
@@ -25575,7 +25603,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-8.T1"]
+                "after": ["QUALITY-8.T1b"]
               },
               "text": "Fold movement reactions (R6); delete MOVEMENT_REACTION and the nested workflow modules."
             }
@@ -25584,7 +25612,7 @@
         {
           "id": "QUALITY-10",
           "title": "One d20 settlement",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 2,
@@ -25596,10 +25624,15 @@
           "acs": [
             {
               "id": "QUALITY-10.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R7.",
-              "text": "Every d20 test settles through settleEncounterD20Test with one d20 graph builder and one evidence-pin verifier, and the two contributor merges become one; a source ratchet fails on a hand-rolled d20 outside the settlement; the golden changes only where duplicate definitions merged."
+              "text": "Every d20 test settles through settleEncounterD20Test with one d20 graph builder and one evidence-pin verifier, and the two contributor merges become one; a source ratchet fails on a hand-rolled d20 outside the settlement; the golden changes only where duplicate definitions merged.",
+              "proof": [
+                "encounterAttackBelief.test.ts",
+                "sourceRatchets.test.mjs",
+                "creatureFeatureDamageInterception.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -25620,7 +25653,7 @@
             },
             {
               "id": "QUALITY-10.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-10.1"],
               "wsjf": {
                 "bv": 2,
@@ -25630,10 +25663,16 @@
                 "after": ["QUALITY-10.T1"]
               },
               "text": "Route the ten modules still on the d20SettlementAllowlist handSettled list through settleEncounterD20Test and remove each entry; the retained-evidence and Concentration-response pin checks read d20EvidenceMatchesPins; prove the interception save keeps advantage and its added dice (addedTotal currently takes only row.modifier).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Split at review 2026-11-11 from QUALITY-10.T1 within AC QUALITY-10.1 (no scope growth); WSJF size re-scored 5 -> 3 + 3."
+              "note": "Split at review 2026-11-11 from QUALITY-10.T1 within AC QUALITY-10.1 (no scope growth); WSJF size re-scored 5 -> 3 + 3.",
+              "mergedAt": "2026-11-11T17:49:51Z",
+              "proof": "m691 (71914fb02, batch ci/merge-m691) from slice tip a9bab16a7: Tests 43067638241, Live 43067638219, Browser journeys 43067638220 green. Every d20 resumes through settleEncounterD20Test (now the only caller of resumeEncounterD20) and reads its natural through recordedD20Natural; the Sheet death-save hosts roll through settleEncounterD20Answer; concentrationResponsePersistence reads d20EvidenceMatchesPins; d20SettlementAllowlist handSettled is empty. Bug fixed: an interception save now adds the holder's saving-throw dice (addedTotal was the bare modifier). Red proof: creatureFeatureDamageInterception.test.ts RED (1 of 11). Retained test evidence pins only its roll mode (the persisted contract carries no checksum or modifier), so it compares that one pin directly. No golden moved."
             }
-          ]
+          ],
+          "journeyTests": [
+            "packages/rules-runtime/src/__tests__/encounterAttackBelief.test.ts",
+            "packages/rules-runtime/src/__tests__/creatureFeatureDamageInterception.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-11",
@@ -25645,7 +25684,7 @@
             "tc": 3,
             "rr": 5,
             "size": 5,
-            "after": ["QUALITY-8.T1"]
+            "after": ["QUALITY-8.T1c"]
           },
           "acs": [
             {
@@ -25666,7 +25705,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-8.T1"]
+                "after": ["QUALITY-8.T1c"]
               },
               "text": "One after-commit subscriber step in the room; DAMAGED raised once; single settle of mirrors and rewards."
             }
@@ -25725,7 +25764,7 @@
             "tc": 3,
             "rr": 5,
             "size": 13,
-            "after": ["QUALITY-8.T1", "QUALITY-10.T1"]
+            "after": ["QUALITY-8.T1a", "QUALITY-10.T1"]
           },
           "acs": [
             {
@@ -25746,7 +25785,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-8.T1", "QUALITY-10.T1"]
+                "after": ["QUALITY-8.T1a", "QUALITY-10.T1"]
               },
               "text": "One per-target driver for the three target shapes."
             },

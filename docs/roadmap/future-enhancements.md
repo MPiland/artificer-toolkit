@@ -115,6 +115,7 @@ Candidate, not yet registered. From the first real users on, every stored-shape 
 
 ### Deferred edge cases (watch for in real use)
 
+- **Sheet death saves add no granted dice (QUALITY-10.T2 review, 2026-11-11):** a death save rolled from the Sheet does not add dice that an effect grants to saving throws (for example Bless), while Encounter saves now do. Pre-existing and rare (a dying Character under such an effect); the player can add the die by hand. Fix: build Sheet death saves from the same d20 added-dice graph as Encounter saves.
 - **Class publish scans that still grow with Homebrew (PERF-5.T1):** a Class publish reads only the roots its draft names, except in two option reads whose predicates name no root. Each reads one root and one facts document per visible root of its kind:
   - Equipment narrowed by property (`equipment_properties`) reads every visible Equipment root. Properties are arrays, so no index narrows it.
   - The RESOURCE facet selects `class_resources` ids, which are not root keys, so it reads every visible Class root.
