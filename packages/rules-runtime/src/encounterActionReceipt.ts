@@ -3,8 +3,7 @@ import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/sche
 import {
   encounterFailedCounterReceiptDtoSchema,
   encounterWindowReactionReceiptDtoSchema,
-  type EncounterCastReactionPinDto,
-  type EncounterRollReactionPinDto,
+  type EncounterReactionPinDto,
   type EncounterCounterCheckEvidenceDto,
   type EncounterFailedCounterDto,
   type EncounterGatedActionApplicationOutputDto
@@ -344,7 +343,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   counter: {
-    reaction: EncounterCastReactionPinDto
+    reaction: EncounterReactionPinDto
     choiceExecution: ServerCompletedRuleExecutionDto
     counterExecution: ServerCompletedRuleExecutionDto
     triggerLevel: number
@@ -464,7 +463,7 @@ export function buildEncounterFailedCounterReceipt(input: {
 
 /** What a reactor spends for the die it rolled against the attack roll (D207): its reaction and the charge it costs. */
 export function buildEncounterWindowReactionReceipt(input: {
-  reaction: EncounterRollReactionPinDto
+  reaction: EncounterReactionPinDto
   spend: Pick<
     ReturnType<typeof planNativeEncounterAreaSourceSpend>,
     'resourceReceipt' | 'sourceCharacterStreamVersion'

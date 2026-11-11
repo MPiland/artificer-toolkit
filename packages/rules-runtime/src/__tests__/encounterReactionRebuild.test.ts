@@ -4,7 +4,7 @@ import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '../encounterMovementReac
 import {
   encounterReactionEffectId,
   encounterReactionPin,
-  type EncounterAttackReactionCandidate
+  type EncounterReactionCandidate
 } from '../encounterReactionChoice.js'
 import { createReactionChoiceDefinition } from '../reactionChoiceDefinition.js'
 import { ACTION_EFFECT_ID } from '../testing/characterActionDescriptor.js'
@@ -24,7 +24,7 @@ const OCCURRENCE_ID = testUuid(0x7c3)
 const planReaction = plannedAbsorbElements
 
 /** The reaction the reactor holds, discovered afresh each time. */
-const candidate = (): EncounterAttackReactionCandidate => ({
+const candidate = (): EncounterReactionCandidate => ({
   trigger: 'DAMAGE_TAKEN',
   reactorActorId: REACTOR_ID,
   characterId: testUuid(0x7c4),

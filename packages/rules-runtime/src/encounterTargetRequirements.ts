@@ -19,17 +19,26 @@ const UNMET_MESSAGE = {
 
 /**
  * Refuses a target that fails a single-target action's `targetRequirements`, naming the first it
- * fails. `loadSight` is read only for a `SIGHT` requirement; a flow that cannot read perception
- * refuses one rather than skip it.
+ * fails. A Sight range is such a requirement: it measures no distance and reaches any target its user
+ * sees. `loadSight` is read only for a sight requirement; a flow that cannot read perception refuses
+ * one rather than skip it.
  */
 export async function refuseUnmetTargetRequirements(input: {
   requirements: readonly TargetRequirementDto[] | undefined
+  /** The kind of the action's range. */
+  rangeKind?: string
   actorId: string
   target: MovementTarget
   loadSight?: () => Promise<TargetSight>
 }): Promise<void> {
   const { actorId, target, loadSight } = input
-  for (const requirement of input.requirements ?? []) {
+  const requirements: readonly TargetRequirementDto[] = [
+    ...(input.rangeKind === 'SIGHT'
+      ? [{ kind: 'SIGHT' as const, direction: 'ACTOR_SEES_TARGET' as const }]
+      : []),
+    ...(input.requirements ?? [])
+  ]
+  for (const requirement of requirements) {
     let met: boolean
     switch (requirement.kind) {
       case 'HAS_CONDITION': {

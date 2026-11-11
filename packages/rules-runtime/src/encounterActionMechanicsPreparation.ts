@@ -661,6 +661,7 @@ export async function prepareEncounterActionMechanics<
   if (targeting?.selectionKind === 'SINGLE_TARGET')
     await refuseUnmetTargetRequirements({
       requirements: targeting.targetRequirements,
+      rangeKind: targetPolicy.range.rangeKind,
       actorId: actor.id,
       target: currentTargetFacts,
       loadSight: input.loadAttackPerception

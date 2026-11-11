@@ -11,7 +11,7 @@ import {
   encounterReactionAudit,
   sameEncounterReactionCandidate,
   settleEncounterReactionChoice,
-  type EncounterAttackReactionCandidate
+  type EncounterReactionCandidate
 } from './encounterReactionChoice.js'
 
 type ActionSource = Omit<
@@ -24,7 +24,7 @@ type RetainedOutcome = Pick<
   'reaction' | 'testExecution' | 'testRollEvidence'
 >
 type CurrentReaction = {
-  candidate: EncounterAttackReactionCandidate
+  candidate: EncounterReactionCandidate
   targetStateChecksum: string
   /** The attack's binding once the reaction's effect applies; read only when the reaction was used. */
   adjustedBinding: ActionSource['binding']

@@ -17,7 +17,8 @@ import {
 import {
   encounterActionCurrentnessChecksum,
   encounterActionSpentTurnUses,
-  prepareEncounterActionMechanics
+  prepareEncounterActionMechanics,
+  withEncounterRollInfluences
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
@@ -1009,6 +1010,10 @@ export async function planNativeLiveEncounterAction(
     occurrenceId,
     occurredAt,
     userId: initial.expectedUserId,
+    aimedAttackPerception:
+      prepared.makesAttackRoll && prepared.actor.id !== prepared.target.id
+        ? attackSceneLoaders(movementTargets).loadAttackPerception
+        : null,
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,
@@ -1025,6 +1030,13 @@ export async function planNativeLiveEncounterAction(
   })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
   const failedCounters = cast.failedCounters
+  const failedSpends = await castPause.planFailedCounters(failedCounters)
+  // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217).
+  const rollInfluences = failedSpends.flatMap(({ found, receipt }) =>
+    found.rollMode ? [{ reaction: receipt.reaction, rollMode: found.rollMode }] : []
+  )
+  const reacted = withEncounterRollInfluences(prepared, rollInfluences)
+  const reactedSource = { ...actionSource, binding: reacted.binding }
   const discoverReaction = discoverNativeAttackReaction({
     state,
     system,
@@ -1054,11 +1066,14 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     activeEffectsByActorId,
     // The answered attack keeps the decoy it was rolled against.
-    prepareAttack: (reactedTargets: typeof movementTargets) =>
-      prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions),
+    prepareAttack: async (reactedTargets: typeof movementTargets) =>
+      withEncounterRollInfluences(
+        await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions),
+        rollInfluences
+      ),
     loadTarget,
     targetStateChecksum,
-    binding: prepared.binding
+    binding: reacted.binding
   })
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
   // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
@@ -1078,7 +1093,7 @@ export async function planNativeLiveEncounterAction(
         })
       : []
   const settled = await settleNativePauseAnswer(pauseAnswer, {
-    actionSource,
+    actionSource: reactedSource,
     currentResistance,
     currentReaction,
     onHitNow
@@ -1100,7 +1115,7 @@ export async function planNativeLiveEncounterAction(
   const execution =
     settled?.execution ??
     (await advanceNativeActionGraphs({
-      ...actionSource,
+      ...reactedSource,
       // A paused OUTCOME resumes against the hit as the reaction it kept left it.
       ...(replayedReaction ? { binding: replayedReaction.adjustedBinding } : {}),
       attackSight: prepared.attackSight,
@@ -1128,7 +1143,7 @@ export async function planNativeLiveEncounterAction(
     settled?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
       ? await replayNativeActionLegendaryResistance({
-          ...actionSource,
+          ...reactedSource,
           outcome: retained,
           ...(await currentResistance())
         })
@@ -1141,7 +1156,7 @@ export async function planNativeLiveEncounterAction(
           ? {
               ...replayedReaction,
               audit: await replayNativeActionReaction({
-                ...actionSource,
+                ...reactedSource,
                 outcome: retainedReaction,
                 ...replayedReaction
               })
@@ -1157,14 +1172,14 @@ export async function planNativeLiveEncounterAction(
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
   // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
   const settledPrepared = settledCharacterActionSpend({
-    prepared,
+    prepared: reacted,
     chosenOnHit,
     damageReroll: resolved?.kind === 'DAMAGE_REROLL' ? resolved.option : null,
     maintenance,
     automationMode: state.automationMode
   })
   const preparedEffects = prepareNativeActionEffectsPlan({
-    prepared,
+    prepared: reacted,
     execution,
     occurrenceId,
     commandId: command.commandId,
@@ -1197,7 +1212,6 @@ export async function planNativeLiveEncounterAction(
     consumedGrants,
     dispositions
   )
-  const failedSpends = await castPause.planFailedCounters(failedCounters)
   // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
   // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
   const failedTarget = failedSpends.find(

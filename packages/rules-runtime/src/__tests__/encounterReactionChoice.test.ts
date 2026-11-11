@@ -8,8 +8,7 @@ import {
   openEncounterReactionChoice,
   settleEncounterCastReactionUse,
   settleEncounterReactionChoice,
-  type EncounterAttackReactionCandidate,
-  type EncounterCastReactionCandidate
+  type EncounterReactionCandidate
 } from '../encounterReactionChoice.js'
 import { createReactionChoiceDefinition } from '../reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
@@ -21,7 +20,7 @@ const choiceGraph = createReactionChoiceDefinition({
 })
 
 /** A reaction the Character holds, as discovery would hand it to the pin. */
-const candidate = (seed: number): EncounterAttackReactionCandidate => ({
+const candidate = (seed: number): EncounterReactionCandidate => ({
   trigger: 'ATTACKED_SELF',
   reactorActorId: testUuid(0x7e0),
   characterId: testUuid(0x7e1),
@@ -152,7 +151,7 @@ describe('settling a used reaction to a cast (REACTION-4.3)', () => {
     runtime = createSrdRulesRuntime()
   })
 
-  const counter = (seed: number): EncounterCastReactionCandidate => ({
+  const counter = (seed: number): EncounterReactionCandidate => ({
     ...candidate(seed),
     trigger: 'SPELL_CAST'
   })

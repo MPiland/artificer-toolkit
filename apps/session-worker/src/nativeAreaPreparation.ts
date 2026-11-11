@@ -758,6 +758,8 @@ export function reachCastPause(
     // Range is read from the Scene, so a cast aimed at none offers no reaction.
     readScene: scene ? async () => scene : null,
     chosenActorIds: cast.chosenActorIds,
+    // An attack at one creature is the single-target path's; a multi-creature action offers none.
+    aimedAttackPerception: null,
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,

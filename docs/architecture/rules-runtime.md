@@ -1421,10 +1421,12 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   resumes its parent (`CANCEL`, `REBIND_TEST`, `ADJUST_ROLL` or `NOTHING`; a cancel or roll adjustment names the
   reaction-only outcome that carries it). Discovery reads a trigger's moment and required outcome from its row, and
   the 5e compiler accepts a `REACTION` activation whose trigger has a row and a reaction-only outcome only on the
-  trigger whose row names it, so neither keeps a per-trigger list. Transitional: `ATTACK_ON_OTHER`,
-  `ATTACK_RESOLVED_ON_SELF` and `MOVEMENT` have a null moment. Reactions to the first two compile but no event offers
-  them until the shared offer (QUALITY-7) and the child action (QUALITY-8) land, and the movement path still discovers
-  a `MOVEMENT` reaction itself (QUALITY-9). Target: every row names a moment and one shared offer serves them all.
+  trigger whose row names it, so neither keeps a per-trigger list. `ATTACK_ON_OTHER` answers `ATTACK_AIMED_AT_OTHER` (the holder sees the attacker
+  when the trigger requires sight, the attack's target is within `targetWithinFeet` of the holder, the holder has
+  `holderEquippedCategory` equipped) and `ATTACK_RESOLVED_ON_SELF` answers `ATTACK_RESOLVED_ON_HOLDER`
+  (QUALITY-7.T1). Transitional: no caller raises `ATTACK_RESOLVED_ON_HOLDER` until the child action lands
+  (QUALITY-8), and `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
+  (QUALITY-9). Target: every row names a moment and the one shared offer serves them all.
   Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
   persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,
   `EXIT` or `CROSS`) meets a zone with that trigger mode, `ZONE_TURN` (`START_OF_TURN`, `END_OF_TURN`,
@@ -1639,10 +1641,61 @@ bonus is consumed by the first attack roll (`ON_ATTACK_ROLL`). Limits: only the 
 (save-based and area damage do not offer it), and the follow-up is spent by any attack roll of its holder, not
 only a melee hit (see future enhancements).
 
+#### One reaction offer and one pin (current, QUALITY-7.T1)
+
+Every reaction the event table offers is built by one function, `offerNativeReactions`
+(`apps/session-worker/src/nativeEncounterReactionCandidate.ts`). A caller names the reactor, the reactions it holds
+and the events of the moment. The function asks `discoverEncounterEventHooks` which reactions those events meet,
+prepares each as the ordinary action it is, lets the caller's `admit` refuse one or add what the moment needs (a
+counter's check, a roll window's die, the roll mode a reaction imposes), holds it to its own invocation range on the
+Scene and to the reactor's action economy, and returns the candidates. A reaction that is stale or that its own
+target requirements refuse is not offered. The four callers differ only in the moment they raise:
+
+| Moment                    | Caller                            | Pause                              |
+| ------------------------- | --------------------------------- | ---------------------------------- |
+| `HIT_BY_ATTACK`           | `nativeEncounterAttackReaction.ts` | the outcome phase's reaction pause |
+| `SPELL_CAST_BY_OTHER`     | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
+| `TARGETED_BY_CAST`        | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
+| `ATTACK_AIMED_AT_OTHER`   | `nativeEncounterAimedReaction.ts`  | `CAST_REACTION`                    |
+| `ATTACK_ROLLED_BY_OTHER`  | `nativeEncounterRollReaction.ts`   | the attack roll's d20 window       |
+
+Every sealed offer pins its reactions with one schema, `encounterReactionPinDtoSchema`
+(`packages/schema/src/shared/ruleExecutionReactionChoice.ts`): the reactor, the action, the preparation checksums and
+the `trigger`, which is any `reactionTrigger` kind. The former per-trigger pin schemas (hit, cast and roll window) are
+removed. A reaction used before its action did anything is carried on the pending context in `failedCounters`
+(`triggerLevel` is null when the action is not a spell cast) and is spent by the action's terminal commit. The name is
+historical: the list holds every reaction spent before the action's own effects, not only a counter that failed.
+
+Transitional: `MOVEMENT_REACTION` keeps its own host, offer and pin until QUALITY-9. The cast offer's `kind` is
+`COUNTER` or `TARGETED_SELF`; an attack aimed at another reuses `TARGETED_SELF` (an offer the action resumes from),
+and its pins name the real trigger.
+
+#### `ATTACK_ON_OTHER` (current, SPELLS-31.T4k1b; D217)
+
+`reactionTrigger: { kind: 'ATTACK_ON_OTHER', requiresSight, targetWithinFeet, holderEquippedCategory }` binds a
+reaction to another creature's attack on a third creature (the Protection fighting style). The reaction targets the
+attacker, and its `IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL` outcome authors the roll mode.
+
+After a single-target attack's gates and before its d20, `createNativeCastPause` (`nativeEncounterCastPause.ts`) runs
+the aimed stage when the action makes an attack roll at another creature on a Scene. `discoverNativeAimedReactions`
+asks each other Character, in actor-id order, except the attacker and the attacked creature. It reads the Scene only
+for a Character that holds such a reaction and reads sight only when the rest of the trigger is met. The offer is the
+shared `REACTION_CHOICE` in the `CAST_REACTION` pause, so it has no pause kind of its own and the one timed decline
+covers it. A decline asks the next Character. A use is carried in `failedCounters`; each replay of the attack plans it
+again against the reactor as it stands (`planFailedCounters`), and `withEncounterRollInfluences` adds the roll mode to
+the attack roll's contributors, keyed `reaction:<reactorActorId>` with the `reaction` rule source, after the attack's
+currentness checksum is taken. The attack's terminal commit spends the reactor's reaction, so one undo restores it.
+
+A `SIGHT` invocation range on a single-target action has no distance: the user must see the target
+(`refuseUnmetTargetRequirements` adds an actor-sees-target requirement), and the client gets no range preview. Limits:
+the stage runs on the single-target attack path only (a Character's or a Creature's attack with a Scene), the
+reaction's own graph is not run (its roll mode is read from its authored facts; the child action of QUALITY-8 runs
+it), and only armor and shield categories count as equipped. Proof: `nativeRoomProtection.test.ts`.
+
 #### Timed reaction offers (current, SPELLS-31.T4r, D207)
 
 Every reaction offer declines itself when its time runs out: `REACTION_CHOICE` (a hit, `SPELL_CAST`,
-`DAMAGE_TAKEN`), `MOVEMENT_REACTION` and a reactor's `ROLL_WINDOW` (a roller's own window waits). The Campaign's
+`DAMAGE_TAKEN`, `ATTACK_ON_OTHER`), `MOVEMENT_REACTION` and a reactor's `ROLL_WINDOW` (a roller's own window waits). The Campaign's
 `reactionSeconds` (default 5, 3 to 15, set by the GM in the table settings) is frozen into the Run's policy snapshot at
 Run start with the other play settings. `readPendingRunDecision` (`encounter-persistence/pendingReads.ts`) is the one
 home of the deadline: `answerBy = occurrence.updatedAt + reactionSeconds`, or `updatedAt` itself when the offer's reactor

@@ -3,7 +3,6 @@ import {
   encounterReactionSelectionIdentity,
   encounterReactionUseOptionId,
   type EncounterCastReactionOfferDto,
-  type EncounterCastReactionPinDto,
   type EncounterReactionOfferDto,
   type EncounterReactionPinDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -24,8 +23,9 @@ import {
 } from './encounterSealedChoice.js'
 
 /** The reaction a creature could be offered for what is happening to it or near it, as it stands now. */
-export interface EncounterReactionCandidate<Trigger extends string> {
-  trigger: Trigger
+export interface EncounterReactionCandidate {
+  /** The authored trigger it answers, as the event hook that offered it named it. */
+  trigger: EncounterReactionPinDto['trigger']
   reactorActorId: string
   /** The reacting Character; null for a creature reacting with its own authored action. */
   characterId: string | null
@@ -36,20 +36,10 @@ export interface EncounterReactionCandidate<Trigger extends string> {
   choiceGraph: ServerPublishedRuleDefinitionDto
 }
 
-/** A hit attack's reaction candidate. */
-export type EncounterAttackReactionCandidate = EncounterReactionCandidate<
-  EncounterReactionPinDto['trigger']
->
-
-/** A reaction to a cast. */
-export type EncounterCastReactionCandidate = EncounterReactionCandidate<
-  EncounterCastReactionPinDto['trigger']
->
-
 /** The exact reaction, allowance and choice identity offered for one trigger. */
-export function encounterReactionPin<Trigger extends string>(
-  candidate: EncounterReactionCandidate<Trigger>
-) {
+export function encounterReactionPin(
+  candidate: EncounterReactionCandidate
+): EncounterReactionPinDto {
   const identity = {
     trigger: candidate.trigger,
     reactorActorId: candidate.reactorActorId,
@@ -77,7 +67,7 @@ export function sameEncounterReactionCandidate(
     EncounterReactionPinDto,
     'selectionChecksum' | 'useOptionId' | 'allowanceBeforeUsed' | 'allowanceMaximum'
   >,
-  candidate: EncounterReactionCandidate<string>
+  candidate: EncounterReactionCandidate
 ) {
   const current = encounterReactionPin(candidate)
   return (
@@ -135,7 +125,7 @@ export function encounterReactionAudit(input: {
 export async function openEncounterReactionChoice(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
-  candidate: EncounterReactionCandidate<string>
+  candidate: EncounterReactionCandidate
 }): Promise<ServerRuleExecutionContinuationDto> {
   return openEncounterSealedChoice({
     runtime: input.runtime,
@@ -180,7 +170,7 @@ export async function settleEncounterReactionChoice(input: {
     EncounterReactionOfferDto,
     'reactions' | 'targetStateChecksum' | 'originalExecutionChecksum' | 'd20'
   >
-  candidate: EncounterAttackReactionCandidate
+  candidate: EncounterReactionCandidate
   targetStateChecksum: string
   selection: EncounterSealedChoiceSelection
 }) {
@@ -208,7 +198,7 @@ export async function settleEncounterReactionChoice(input: {
 async function settleSealedReactionChoice(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
-  candidate: EncounterReactionCandidate<string>
+  candidate: EncounterReactionCandidate
   reaction: Pick<EncounterReactionPinDto, 'choiceDefinitionId' | 'choiceDefinitionChecksum'>
   use: boolean
 }) {
@@ -231,7 +221,7 @@ export async function settleEncounterCastReactionUse(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
   offer: Pick<EncounterCastReactionOfferDto, 'reactions'>
-  candidate: EncounterCastReactionCandidate
+  candidate: EncounterReactionCandidate
   optionId: string
 }) {
   const reaction = chosenEncounterReaction(input.offer, {

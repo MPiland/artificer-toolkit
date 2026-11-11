@@ -13,14 +13,12 @@ import {
   attackHitDamageTypeIds,
   encounterReactorCandidates
 } from '@artificer-toolkit/rules-runtime/encounterReactors'
-import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import {
   encounterReactionEffectId,
-  type EncounterAttackReactionCandidate
+  type EncounterReactionCandidate
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import {
   isInstalledMeleeAttackTrigger,
@@ -30,11 +28,10 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
-import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { nativeEffectOwner } from './nativeEncounterSettlement.js'
 import {
-  nativeReactionCandidate,
+  offerNativeReactions,
   unsupportedReaction,
   type NativeReaction
 } from './nativeEncounterReactionCandidate.js'
@@ -44,7 +41,7 @@ type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 type MovementTargets = Prepared['movementTargets']
 
 /** A reaction its holder could use against the attack being resolved, prepared as it stands now. */
-export type NativeAttackReaction = NativeReaction<EncounterAttackReactionCandidate> & {
+export type NativeAttackReaction = NativeReaction<EncounterReactionCandidate> & {
   /** The damage types that triggered it, which its effect may bind (none for an attack reaction). */
   triggerDamageTypeIds: readonly string[]
 }
@@ -88,9 +85,11 @@ export function discoverNativeAttackReaction(input: {
       source.kind === 'CHARACTER_ACTION'
         ? source.candidate.mechanicFacts
         : source.capability.mechanicFacts
-    const reactions: NativeAttackReaction[] = []
-    const { reactions: hooks } = discoverEncounterEventHooks({
-      reactions: encounterReactorCandidates({
+    return offerNativeReactions({
+      state: input.state,
+      reactorActorId: target.id,
+      reactorTarget: reactor,
+      held: encounterReactorCandidates({
         actor: target,
         target: reactor,
         system: input.system,
@@ -110,54 +109,20 @@ export function discoverNativeAttackReaction(input: {
           ),
           attackerSeen: attackSight?.actual.targetSeesAttacker !== 'UNSEEN'
         }
-      ]
-    })
-    for (const {
-      reaction: { actionId },
-      trigger,
-      triggerDamageTypeIds
-    } of hooks) {
-      if (hit.answering !== undefined && actionId !== hit.answering) continue
-      const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
-        // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
-        if (error instanceof StaleCharacterActionError) return null
-        throw error
-      })
-      if (
-        !prepared ||
-        (prepared.source.kind !== 'CHARACTER_ACTION' && prepared.source.kind !== 'CREATURE')
-      )
-        continue
+      ],
+      answering: hit.answering,
+      prepare: input.prepareReaction,
       // A reaction's receipt carries no pool or charge spend, so one paid from either would never use it up.
-      if (
+      admit: (prepared, hook) =>
+        hook.event !== 'HIT_BY_ATTACK' ||
         prepared.characterActionState?.resourceConsumption ||
         (prepared.source.kind === 'CREATURE' && prepared.source.capability.featureResourceUse)
-      )
-        continue
-      const { economy, suppressed } = await evaluateNativeLiveActionEconomy({
-        prepared,
-        state: input.state,
-        actionId,
-        sourceTarget: reactor,
-        targetIds: [target.id],
-        capture: input.capture
-      })
-      if (!economy?.available || suppressed) continue
-      reactions.push({
-        prepared,
-        economy,
-        triggerDamageTypeIds,
-        candidate: nativeReactionCandidate({
-          trigger,
-          reactorActorId: target.id,
-          source: prepared.source,
-          actionId,
-          consumption: economy.consumption,
-          gameSystemId: input.state.gameSystemId
-        })
-      })
-    }
-    return reactions
+          ? null
+          : { triggerDamageTypeIds: hook.triggerDamageTypeIds },
+      range: null,
+      targetIds: [target.id],
+      capture: input.capture
+    })
   }
 }
 
