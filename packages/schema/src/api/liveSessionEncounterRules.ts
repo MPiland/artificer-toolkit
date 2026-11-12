@@ -123,6 +123,14 @@ const liveSessionReactionChildrenSchema = lazySchema(() =>
 )
 export type LiveSessionReactionChild = z.infer<typeof liveSessionReactionChildrenSchema>[number]
 
+/**
+ * For a reaction child's command, the level of the cast it answers, as the held action it was
+ * chosen against recorded it (D219); null for any other command, and when that action casts no spell.
+ */
+const liveSessionTriggerCastLevelSchema = lazySchema(() =>
+  z.nullable(z.number().check(z.int()).check(z.nonnegative()))
+)
+
 /** Private, authorized stored records for DO rules; no evaluated facts or write instructions. */
 export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -520,7 +528,8 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       command: resolveEncounterActionInputDtoSchema,
       fingerprint: projectionChecksumSchema,
-      result: z.nullable(encounterCommandResultDtoSchema)
+      result: z.nullable(encounterCommandResultDtoSchema),
+      triggerCastLevel: liveSessionTriggerCastLevelSchema
     }),
     z.strictObject({
       kind: z.literal('ACTION_RESPONSE'),
@@ -534,7 +543,8 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
       /** Set only when the answer belongs to a point-area action: the whole pending area. */
       areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema),
-      reactionChildren: liveSessionReactionChildrenSchema
+      reactionChildren: liveSessionReactionChildrenSchema,
+      triggerCastLevel: liveSessionTriggerCastLevelSchema
     }),
     z.strictObject({
       kind: z.literal('ACTION_RESUME'),

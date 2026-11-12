@@ -1,6 +1,9 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
-import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterSettledIncomingGateDto,
+  EncounterUsedReactionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -19,6 +22,21 @@ export type PendingReactionChildren = NonNullable<
     { kind: 'ENCOUNTER_ACTION' }
   >['reactionChildren']
 >
+
+/**
+ * The reaction children a pending action records, with the level it casts its spell at beside them:
+ * a child reads the cast it answers from its held action's context (D219).
+ */
+const recordedReactionChildren = (input: {
+  reactionChildren?: PendingReactionChildren
+  castLevel?: number | null
+}) =>
+  input.reactionChildren?.length
+    ? {
+        reactionChildren: [...input.reactionChildren],
+        ...(typeof input.castLevel === 'number' && { castLevel: input.castLevel })
+      }
+    : {}
 
 /** The kernel request a sealed snapshot waits on, without the application's wrapping. */
 export function pendingSnapshotContinuation(
@@ -78,8 +96,10 @@ export function buildEncounterActionPendingSnapshot(input: {
   targetActorId: string
   currentnessChecksum: string
   usedReactions?: readonly EncounterUsedReactionDto[]
-  passedIncomingGate?: string
+  passedIncomingGate?: EncounterSettledIncomingGateDto
   reactionChildren?: PendingReactionChildren
+  /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
+  castLevel?: number | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   const { execution } = input
   return {
@@ -106,7 +126,7 @@ export function buildEncounterActionPendingSnapshot(input: {
       ...(execution.pause ? { pause: execution.pause } : {}),
       ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
-      ...(input.reactionChildren?.length ? { reactionChildren: [...input.reactionChildren] } : {})
+      ...recordedReactionChildren(input)
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }
@@ -114,7 +134,7 @@ export function buildEncounterActionPendingSnapshot(input: {
 
 /**
  * The sealed pending snapshot of an action held before it executes: a cast waiting on a creature's
- * chance to counter it, an attacker owing the save against a warded target's gate, or an action a ward
+ * chance to counter it, a source owing the roll of its incoming gate, or an action a ward
  * stopped waiting on its attacker's choice to turn it on another creature. The continuation is the
  * pause; the action itself is not held, it replays from the command once the pause is answered.
  */
@@ -131,8 +151,10 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
   initiatorUserId: string
   currentnessChecksum: string
   usedReactions?: readonly EncounterUsedReactionDto[]
-  passedIncomingGate?: string
+  passedIncomingGate?: EncounterSettledIncomingGateDto
   reactionChildren?: PendingReactionChildren
+  /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
+  castLevel?: number | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
@@ -151,7 +173,7 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
       pause: input.pause,
       ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
-      ...(input.reactionChildren?.length ? { reactionChildren: [...input.reactionChildren] } : {})
+      ...recordedReactionChildren(input)
     }
   }
 }

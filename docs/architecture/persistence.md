@@ -322,9 +322,35 @@ triggering roll as `reactionChildren[].rollMode`, resolved by the System adapter
 until it resolves the parent takes no other answer. The child command names the Scene tokens the reaction
 was offered on (the holder's and the acting creature's), so its range is judged there like any action's.
 
+The cast a child answers (current, QUALITY-9.T1b1, D219). A pending action that casts a spell records the
+level it is cast at as `castLevel` in the same pending context, beside `reactionChildren`: present only while
+a child is recorded, never rewritten while one is (`reactionChildrenKept`), and dropped with the last child a
+GM void releases. A child reads the cast it answers from there, not from its own command: the action capture
+returns it as `triggerCastLevel` on the child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions
+(`readReactionChildCastLevel`), null for any other command and for a parent that casts no spell.
+This is a persisted pending-context shape change; refresh local data when next used (D196).
+
+The check a child owes (current, QUALITY-9.T1b2, D219 "Trigger-check gate"). A child whose authored
+`reactionTrigger` asks a check against a higher-level cast owes it as its incoming gate, read against
+`triggerCastLevel` (`owedNativeTriggerCheck`, `advanceNativeIncomingGate`). A gate carries a discriminated
+`origin`: `WARD` (`effectId`, `holderActorId`) or `TRIGGER` (`triggerLevel`). The `INCOMING_GATE` pause payload,
+the `ATTACK_RETARGET` pause's `gate` (always a ward's), the pending context's `passedIncomingGate` (the settled
+gate: origin, check, DC and d20, no longer a ward id) and `ENCOUNTER_GATED_ACTION.gate` all carry it, and the
+pending fences compare gates by origin (`sameGate`, `passedGateAfter` in `actionPending.ts`). A `TRIGGER` gate is
+admitted only on a command whose `systemTrigger` is `REACTION`. A pass lets the child go on: its mechanics batch
+records the settled check as `passedGate` (TRIGGER origin only; a passed ward's record stays its immunity
+grant), checked against the pending gate at the commit (`persistEncounterActionCommit`). A fail commits the
+child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and reaction; the parent's resume reads a
+gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
+reactor's `Counter` check on the child's occurrence (`recordCounterCheckRollCards`), and the cancelled cast
+commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Transitional (until
+QUALITY-9.T1b3): a counter another creature could itself counter, and the area and chosen-list hosts, still roll
+the check inline on the parent (`CAST_REACTION.check`). These are persisted pending-context and receipt shape
+changes; refresh local data when next used (D196).
+
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).
-A cast held at a `COUNTER` offer with no check and no chain whose unresolved child cancelled it commits through
+A cast held at a `COUNTER` offer with no chain whose unresolved child cancelled it commits through
 `persistEncounterCounteredCastCommit` from the resume, with no response: the root's
 `ENCOUNTER_COUNTERED_CAST.counter` is null, no reactor is spent, no evidence receipt is written, and the failed
 counters the pending context held are spent unchanged (`castCancelledByChildCarriesUsedReactions`). A non-null

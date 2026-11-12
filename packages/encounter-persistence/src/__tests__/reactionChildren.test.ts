@@ -25,6 +25,7 @@ import {
   countCommittedReactionChildren,
   countRunVoids,
   reactionChildrenKept,
+  readReactionChildCastLevel,
   readReactionChildParent,
   releaseReactionChildParent,
   repinReactionChildParent,
@@ -93,6 +94,8 @@ const link = {
 async function pausedAttack(
   input: {
     reactionChildren?: { commandId: string; rollMode?: 'DISADVANTAGE' }[]
+    /** The level the paused action casts its spell at, when it casts one. */
+    castLevel?: number
     protectorDefeated?: boolean
   } = {}
 ) {
@@ -186,7 +189,8 @@ async function pausedAttack(
         dc: 10
       },
       twoPhase: null,
-      ...(input.reactionChildren && { reactionChildren: input.reactionChildren })
+      ...(input.reactionChildren && { reactionChildren: input.reactionChildren }),
+      ...(input.castLevel !== undefined && { castLevel: input.castLevel })
     }
   })
   await memory.store.insert(
@@ -287,6 +291,48 @@ describe('the pending action a reaction child answers (D219)', () => {
       )
     })
     expect(await readReactionChildParent(ctx, link)).toBeNull()
+  })
+})
+
+describe('the cast a reaction child answers (QUALITY-9.T1b1, D219)', () => {
+  it('is read at the level the pending action recorded beside the child', async () => {
+    const { ctx } = await pausedAttack({ ...recorded, castLevel: 4 })
+    expect(await readReactionChildCastLevel(ctx, link)).toBe(4)
+    const cantrip = await pausedAttack({ ...recorded, castLevel: 0 })
+    expect(await readReactionChildCastLevel(cantrip.ctx, link)).toBe(0)
+  })
+
+  it('still reads while the action is suspended for the child’s own evidence', async () => {
+    const { ctx } = await pausedAttack({ ...recorded, castLevel: 4 })
+    await suspendReactionChildParent(ctx, link)
+    expect(await readReactionChildCastLevel(ctx, link)).toBe(4)
+  })
+
+  it('is none for an action that casts no spell, and for a child the action does not record', async () => {
+    const attack = await pausedAttack(recorded)
+    expect(await readReactionChildCastLevel(attack.ctx, link)).toBeNull()
+    const other = await pausedAttack({
+      reactionChildren: [{ commandId: testUuid(0x8a0b) }],
+      castLevel: 4
+    })
+    expect(await readReactionChildCastLevel(other.ctx, link)).toBeNull()
+  })
+
+  it('refuses a cast level on a pending action that records no reaction child', async () => {
+    await expect(pausedAttack({ castLevel: 4 })).rejects.toThrow(
+      'Only an action that records a reaction child records its cast level.'
+    )
+  })
+
+  it('never rewrites the level from one context to the next', () => {
+    const child = { commandId: testUuid(0x8a10) }
+    const waiting = { reactionChildren: [child], castLevel: 4 }
+    const resumed = { reactionChildren: [{ ...child, rollMode: null }] }
+    expect(reactionChildrenKept(waiting, { ...resumed, castLevel: 4 })).toBe(true)
+    expect(reactionChildrenKept(waiting, { ...resumed, castLevel: 5 })).toBe(false)
+    expect(reactionChildrenKept(waiting, resumed)).toBe(false)
+    // The first child is recorded with the level; nothing was recorded before it.
+    expect(reactionChildrenKept({}, waiting)).toBe(true)
   })
 })
 
@@ -541,6 +587,31 @@ describe('suspending the pending action while its reaction child is the pending 
     expect(pending.command).toEqual(parentCommand)
     expect(pending.context.reactionChildren).toBeUndefined()
     expect(await readReactionChildParent(ctx, link)).toBeNull()
+  })
+
+  it('drops the cast level with the last recorded child, and keeps it while one remains', async () => {
+    const only = await pausedAttack({ ...recorded, castLevel: 4 })
+    await suspendReactionChildParent(only.ctx, link)
+    await insertVoid(only.memory, ROOT_VERSION + 1)
+    await releaseReactionChildParent(only.ctx, { ...link, version: ROOT_VERSION + 1 })
+    const reopened = await readNativeActionPending(only.ctx, only.occurrence())
+    expect(reopened.context.reactionChildren).toBeUndefined()
+    expect(reopened.context.castLevel).toBeUndefined()
+
+    const earlier = { commandId: testUuid(0x8a13), rollMode: 'DISADVANTAGE' as const }
+    const later = await pausedAttack({
+      reactionChildren: [earlier, ...recorded.reactionChildren],
+      castLevel: 4
+    })
+    await later.memory.store.patch(later.occurrence()._id, {
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    await suspendReactionChildParent(later.ctx, link)
+    await insertVoid(later.memory, ROOT_VERSION + 2)
+    await releaseReactionChildParent(later.ctx, { ...link, version: ROOT_VERSION + 2 })
+    const kept = await readNativeActionPending(later.ctx, later.occurrence())
+    expect(kept.context.reactionChildren).toEqual([earlier])
+    expect(kept.context.castLevel).toBe(4)
   })
 
   it('keeps the children the action already resumed from when a later one is voided', async () => {
