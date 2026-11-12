@@ -25593,6 +25593,20 @@
               "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
               "text": "Giant Killer as a post-commit child (resume NOTHING) raised after the attack commits; a reaction-activated Feature weapon attack pairs with the wielded weapon action attack; a reactor dropped to 0 gets no offer; one offer with one option per wielded weapon. Ships with SPELLS-31.T4k1c.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-8.T1d",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c"]
+              },
+              "note": "Registered 2026-11-12 at the QUALITY-9.T1 seam trace (D219): AC QUALITY-8.1 requires every chosen reaction to run as a child; no new scope.",
+              "text": "On-hit reactions (the REACTION pause: Shield, Absorb Elements) run as reaction children resuming by REBIND_TEST; the inline on-hit reaction path is deleted and REACTION merges into the one reaction offer."
             }
           ]
         },
@@ -25619,18 +25633,75 @@
           ],
           "tasks": [
             {
-              "id": "QUALITY-9.T1",
+              "id": "QUALITY-9.T1a",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 3,
                 "after": ["QUALITY-8.T1b"]
               },
-              "text": "Fold cast and roll-window reactions (R5); delete their pause kinds. Proves the CANCEL and REBIND_TEST resume modes behind the reaction child own roll or save (QUALITY-8.1, D219).",
+              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
+              "text": "An unconditional counter runs as a reaction child spent at choice; the countered cast resumes by CANCEL and commits as lost with no inline counter receipt (room proof).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-9.T1b",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-9.T1a"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
+              "text": "The higher-level counter check becomes the child's own test, with the DC from the triggering cast level read from the parent's pending context; CANCEL proved behind the child's check; EncounterCastReactionCheckDto, the CHECK answer and the inline check path are deleted."
+            },
+            {
+              "id": "QUALITY-9.T1c",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1b"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
+              "text": "A countered counter runs as a nested child: the pending fence and suspend/re-pin cover every descendant; the inline counter chain is deleted."
+            },
+            {
+              "id": "QUALITY-9.T1d",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1c"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
+              "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children and prove REBIND_TEST; usedReactions is deleted end to end; CAST_REACTION is the one pre-roll offer whose options all run as children."
+            },
+            {
+              "id": "QUALITY-9.T1e",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1a"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
+              "text": "The roll-window reaction die (Cutting Words) runs as a child resuming ADJUST_ROLL; the reaction-die option, spentReaction, windowReactions and the window receipt are deleted; ROLL_WINDOW stays for held dice and damage rerolls; the movement host is coordinated with QUALITY-9.T2."
             },
             {
               "id": "QUALITY-9.T2",
