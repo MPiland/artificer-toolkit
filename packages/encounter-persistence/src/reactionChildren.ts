@@ -1,5 +1,8 @@
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type {
+  LiveSessionReactionAncestor,
+  LiveSessionReactionChild
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { reactionOfferOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
@@ -40,6 +43,30 @@ async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChi
   return { parent, snapshot, context: snapshot.applicationContext }
 }
 
+type RecordingParent = NonNullable<Awaited<ReturnType<typeof readRecordingParent>>>
+
+/**
+ * The creature taking a held action, and the link from that action to the one it answers when it is
+ * itself a reaction's child. Null for a contested escape, whose root is the escape itself (D152).
+ */
+function heldAction(held: RecordingParent) {
+  if (held.context.contest) return null
+  const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(held.context.commandJson))
+  return {
+    actorId: command.actorId,
+    answers:
+      command.systemTrigger?.trigger === 'REACTION'
+        ? {
+            campaignId: held.parent.campaignId,
+            encounterId: held.parent.encounterId,
+            parentCommandId: command.systemTrigger.parentCommandId.toLowerCase(),
+            childCommandId: held.parent.rootCommandId,
+            reactorActorId: command.actorId.toLowerCase()
+          }
+        : null
+  }
+}
+
 /**
  * Moves every suspended action above a held action to one Run version. A held reaction child's own
  * reactions move the Run while the action it answers, and each action above that one, waits
@@ -47,26 +74,13 @@ async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChi
  */
 async function repinSuspendedAncestors(
   ctx: EncounterWriteContext,
-  held: NonNullable<Awaited<ReturnType<typeof readRecordingParent>>>,
+  held: RecordingParent,
   version: number
 ) {
   for (let current = held; ;) {
-    // A contested escape's root is the escape itself (D152): no reaction child.
-    const command = current.context.contest
-      ? undefined
-      : resolveEncounterActionInputDtoSchema.parse(JSON.parse(current.context.commandJson))
-    if (command?.systemTrigger?.trigger !== 'REACTION') return
-    const link = {
-      campaignId: current.parent.campaignId,
-      encounterId: current.parent.encounterId,
-      parentCommandId: command.systemTrigger.parentCommandId.toLowerCase(),
-      childCommandId: current.parent.rootCommandId
-    }
+    const link = heldAction(current)?.answers
     // A child an offer's answer records answers a committed action: nothing above it is held.
-    if (
-      await readReactionOfferChild(ctx, { ...link, reactorActorId: command.actorId.toLowerCase() })
-    )
-      return
+    if (!link || (await readReactionOfferChild(ctx, link))) return
     const above = await readRecordingParent(ctx, link)
     if (above?.parent.state !== 'SUSPENDED')
       throw new Error('The reaction’s pending action is gone.')
@@ -75,11 +89,18 @@ async function repinSuspendedAncestors(
   }
 }
 
-/** The command a stored reaction child was chosen against, or null for any other command. */
-function reactedCommandId(row: EncounterDocument<'encounterRunCommands'>) {
+/**
+ * The command a stored reaction child was chosen against and the creature that reacted, or null for
+ * any other command.
+ */
+function storedReaction(row: EncounterDocument<'encounterRunCommands'>) {
   if (row.commandType !== 'RESOLVE_ACTION') return null
-  const { systemTrigger } = resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
-  return systemTrigger?.trigger === 'REACTION' ? systemTrigger.parentCommandId.toLowerCase() : null
+  const { systemTrigger, actorId } = resolveEncounterActionInputDtoSchema.parse(
+    JSON.parse(row.commandJson)
+  )
+  return systemTrigger?.trigger === 'REACTION'
+    ? { parentCommandId: systemTrigger.parentCommandId.toLowerCase(), reactorActorId: actorId }
+    : null
 }
 
 /**
@@ -101,6 +122,32 @@ export async function readReactionChildCastLevel(
   input: ReactionChildLink
 ) {
   return (await readRecordingParent(ctx, input))?.context.castLevel ?? null
+}
+
+/**
+ * The held actions above a reaction child, nearest first (D219): the action that records it, the
+ * action that one answers, and so on up to the action nothing holds. Each names its creature, whether
+ * it is itself a reaction (its holder's reaction is spent on it, though nothing of it has committed),
+ * and the spell slot its own cast spends when it commits. A child an offer's answer records answers a
+ * committed action, so nothing is above it.
+ */
+export async function readReactionChildAncestors(
+  ctx: EncounterReadContext,
+  input: ReactionChildLink & { reactorActorId: string }
+) {
+  const ancestors: LiveSessionReactionAncestor[] = []
+  for (let link: typeof input | null = input; link && !(await readReactionOfferChild(ctx, link));) {
+    const held = await readRecordingParent(ctx, link)
+    const action = held ? heldAction(held) : null
+    if (!held || !action) break
+    ancestors.push({
+      actorId: action.actorId,
+      reaction: action.answers !== null,
+      castSlotKey: held.context.castSlotKey ?? null
+    })
+    link = action.answers
+  }
+  return ancestors
 }
 
 /**
@@ -188,8 +235,8 @@ export async function releaseReactionChildParent(
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')
   const { parent, snapshot } = recording
-  // The cast level is recorded with the children, so it goes when the last of them does.
-  const { reactionChildren = [], castLevel, ...context } = recording.context
+  // The cast is recorded with the children, so it goes when the last of them does.
+  const { reactionChildren = [], castLevel, castSlotKey, ...context } = recording.context
   const kept = reactionChildren.filter(({ commandId }) => commandId !== input.childCommandId)
   await ctx.db.patch(parent._id, {
     state: 'PENDING',
@@ -201,7 +248,8 @@ export async function releaseReactionChildParent(
         ...context,
         ...(kept.length > 0 && {
           reactionChildren: kept,
-          ...(castLevel !== undefined && { castLevel })
+          ...(castLevel !== undefined && { castLevel }),
+          ...(castSlotKey !== undefined && { castSlotKey })
         })
       }
     }),
@@ -245,12 +293,13 @@ export const awaitsReactionChild = (context: RecordedReactionChildren) =>
 type RecordedReactionChildren = {
   reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
   castLevel?: number
+  castSlotKey?: string
 }
 
 /**
  * Whether a pending action's next context keeps the reaction children its previous one recorded:
  * the same commands in order, each resolved and a resolved mode never rewritten, with at most one
- * new, unresolved child after them, and the cast level recorded with them unchanged.
+ * new, unresolved child after them, and the cast recorded with them unchanged.
  */
 export function reactionChildrenKept(
   previous: RecordedReactionChildren,
@@ -260,7 +309,8 @@ export function reactionChildrenKept(
   const kept = next.reactionChildren ?? []
   return (
     kept.length - recorded.length <= 1 &&
-    (recorded.length === 0 || previous.castLevel === next.castLevel) &&
+    (recorded.length === 0 ||
+      (previous.castLevel === next.castLevel && previous.castSlotKey === next.castSlotKey)) &&
     recorded.every(({ commandId, rollMode }, index) => {
       const child = kept[index]
       return (
@@ -302,17 +352,27 @@ export async function readCommittedReactionChildren(
       )
       .unique()
     if (command?.commandType !== 'RESOLVE_ACTION' || !receipt) continue
-    const { actorId, actionId } = resolveEncounterActionInputDtoSchema.parse(
+    const { actorId, actionId, expectedVersion } = resolveEncounterActionInputDtoSchema.parse(
       JSON.parse(command.commandJson)
     )
     const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
     const completed = execution.status === 'COMPLETE' ? execution : null
+    // The child's own reactions committed between the Run version it was raised at and its commit.
+    const descendants = await readCommittedReactionDescendants(ctx, {
+      encounterId: command.encounterId,
+      rootCommandId: commandId,
+      afterVersion: expectedVersion,
+      beforeVersion: command.version
+    })
     children.push({
       commandId,
       reactorActorId: actorId,
       actionId,
       imposesRollMode: completed !== null && outcomes.imposesRollModeOnTriggeringRoll(completed),
-      cancelsTriggeringEvent: completed !== null && outcomes.cancelsTriggeringEvent(completed)
+      cancelsTriggeringEvent: completed !== null && outcomes.cancelsTriggeringEvent(completed),
+      descendantReactorActorIds: [
+        ...new Set(descendants.map(({ reactorActorId }) => reactorActorId))
+      ]
     })
   }
   return children
@@ -321,10 +381,10 @@ export async function readCommittedReactionChildren(
 /**
  * The reactions of one root command's tree that committed between two Run versions, both exclusive,
  * in Run order: its reaction children, the reactions chosen against those, and so on down, each with
- * the command it was chosen against. A held child the GM voided has no command, so the reactions
- * that committed under it are found through the void. A root's commit follows its own expected
- * version by one version for each of them, and a replay of the root counts them from the Run's
- * commands instead of keeping a counter.
+ * the command it was chosen against and the creature that reacted. A held child the GM voided has
+ * no command, so the reactions that committed under it are found through the void. A root's commit
+ * follows its own expected version by one version for each of them, and a replay of the root counts
+ * them from the Run's commands instead of keeping a counter.
  */
 export async function readCommittedReactionDescendants(
   ctx: EncounterReadContext,
@@ -340,7 +400,7 @@ export async function readCommittedReactionDescendants(
     )
     .take(MAX_ENCOUNTER_ACTORS + 1)
   const tree = new Set([input.rootCommandId])
-  const reactions: { commandId: string; parentCommandId: string }[] = []
+  const reactions: { commandId: string; parentCommandId: string; reactorActorId: string }[] = []
   for (const row of commands) {
     if (row.commandType === 'VOID_RULE_OCCURRENCE') {
       const voided = await ctx.db
@@ -350,8 +410,8 @@ export async function readCommittedReactionDescendants(
       if (voided) tree.add(voided.rootCommandId)
       continue
     }
-    const parentCommandId = reactedCommandId(row)
-    if (parentCommandId) reactions.push({ commandId: row.commandId, parentCommandId })
+    const reaction = storedReaction(row)
+    if (reaction) reactions.push({ commandId: row.commandId, ...reaction })
   }
   // A reaction commits before the action it answers, so the tree closes from the root down, not in
   // Run order.
@@ -381,7 +441,7 @@ export async function readTrailingReactionDescendants(
   for (const row of recent) {
     // An answer that settled one of them is part of its action.
     if (row.commandType === 'RESOLVE_RULE_OCCURRENCE') continue
-    const parentCommandId = reactedCommandId(row)
+    const parentCommandId = storedReaction(row)?.parentCommandId
     if (
       parentCommandId !== input.rootCommandId &&
       !(parentCommandId && trailing.has(parentCommandId))

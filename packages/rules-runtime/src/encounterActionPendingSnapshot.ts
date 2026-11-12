@@ -24,19 +24,28 @@ export type PendingReactionChildren = NonNullable<
 >
 
 /**
- * The reaction children a pending action records, with the level it casts its spell at beside them:
- * a child reads the cast it answers from its held action's context (D219).
+ * The reaction children a pending action records, with the level it casts its spell at and the slot
+ * that cast spends beside them: a child reads the cast it answers from its held action's context
+ * (D219).
  */
-const recordedReactionChildren = (input: {
-  reactionChildren?: PendingReactionChildren
-  castLevel?: number | null
-}) =>
+const recordedReactionChildren = (
+  input: PendingCast & { reactionChildren?: PendingReactionChildren }
+) =>
   input.reactionChildren?.length
     ? {
         reactionChildren: [...input.reactionChildren],
-        ...(typeof input.castLevel === 'number' && { castLevel: input.castLevel })
+        ...(typeof input.castLevel === 'number' && { castLevel: input.castLevel }),
+        ...(typeof input.castSlotKey === 'string' && { castSlotKey: input.castSlotKey })
       }
     : {}
+
+/** The cast of an action that records reaction children. */
+type PendingCast = {
+  /** The level the action casts its spell at; null when it casts none. */
+  castLevel?: number | null
+  /** The spell slot that cast spends when the action commits; null when it spends none. */
+  castSlotKey?: string | null
+}
 
 /** The kernel request a sealed snapshot waits on, without the application's wrapping. */
 export function pendingSnapshotContinuation(
@@ -86,21 +95,21 @@ export function restoreEncounterActionPending(
  * The sealed pending snapshot of one paused action request: the kernel continuation with the
  * application context that lets its roller's answer resume it.
  */
-export function buildEncounterActionPendingSnapshot(input: {
-  execution: PendingNativeActionGraphs
-  optionalCombatSnapshotChecksum: string | null | undefined
-  commandJson: string
-  commandFingerprint: string
-  initiatorUserId: string
-  sourceActorId: string
-  targetActorId: string
-  currentnessChecksum: string
-  usedReactions?: readonly EncounterUsedReactionDto[]
-  passedIncomingGate?: EncounterSettledIncomingGateDto
-  reactionChildren?: PendingReactionChildren
-  /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
-  castLevel?: number | null
-}): ServerKernelRuleExecutionPendingSnapshotDto {
+export function buildEncounterActionPendingSnapshot(
+  input: PendingCast & {
+    execution: PendingNativeActionGraphs
+    optionalCombatSnapshotChecksum: string | null | undefined
+    commandJson: string
+    commandFingerprint: string
+    initiatorUserId: string
+    sourceActorId: string
+    targetActorId: string
+    currentnessChecksum: string
+    usedReactions?: readonly EncounterUsedReactionDto[]
+    passedIncomingGate?: EncounterSettledIncomingGateDto
+    reactionChildren?: PendingReactionChildren
+  }
+): ServerKernelRuleExecutionPendingSnapshotDto {
   const { execution } = input
   return {
     ...execution.continuation,
@@ -138,24 +147,24 @@ export function buildEncounterActionPendingSnapshot(input: {
  * stopped waiting on its attacker's choice to turn it on another creature. The continuation is the
  * pause; the action itself is not held, it replays from the command once the pause is answered.
  */
-export function buildEncounterHeldActionPendingSnapshot(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  pause: Extract<
-    EncounterActionPauseDto,
-    { kind: 'CAST_REACTION' | 'INCOMING_GATE' | 'ATTACK_RETARGET' }
-  >
-  rollerActorId: string
-  optionalCombatSnapshotChecksum: string | null | undefined
-  commandJson: string
-  commandFingerprint: string
-  initiatorUserId: string
-  currentnessChecksum: string
-  usedReactions?: readonly EncounterUsedReactionDto[]
-  passedIncomingGate?: EncounterSettledIncomingGateDto
-  reactionChildren?: PendingReactionChildren
-  /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
-  castLevel?: number | null
-}): ServerKernelRuleExecutionPendingSnapshotDto {
+export function buildEncounterHeldActionPendingSnapshot(
+  input: PendingCast & {
+    continuation: ServerRuleExecutionContinuationDto
+    pause: Extract<
+      EncounterActionPauseDto,
+      { kind: 'CAST_REACTION' | 'INCOMING_GATE' | 'ATTACK_RETARGET' }
+    >
+    rollerActorId: string
+    optionalCombatSnapshotChecksum: string | null | undefined
+    commandJson: string
+    commandFingerprint: string
+    initiatorUserId: string
+    currentnessChecksum: string
+    usedReactions?: readonly EncounterUsedReactionDto[]
+    passedIncomingGate?: EncounterSettledIncomingGateDto
+    reactionChildren?: PendingReactionChildren
+  }
+): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
     snapshotKind: 'KERNEL_EVIDENCE',

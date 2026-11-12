@@ -317,10 +317,11 @@ export type NativeCastReactionAnswer =
  * an even one is spent without effect and the cast is offered again at its own level. Every counter in
  * the chain but the one that stands is kept for the terminal commit to spend.
  *
- * A counter to the cast itself that nobody can counter instead runs as its holder's own action
- * (D219): this names that child and keeps the answered offer, and the cast resumes once the child has
- * committed, lost if the child cancelled it. A check that counter owes is the child's own incoming
- * gate, so only a counter another creature can counter still rolls its check here.
+ * On a host that resumes the cast from a reaction's child, a counter instead runs as its holder's own
+ * action (D219): this names that child and keeps the answered offer, and the cast resumes once the
+ * child has committed, lost if the child cancelled it. The child is itself a cast, which offers its
+ * own counters and owes the counter's check as its own incoming gate, so no chain forms and no check
+ * is rolled here.
  */
 export async function advanceNativeCastReactions(input: {
   runtime: RulesRuntimeService
@@ -340,10 +341,7 @@ export async function advanceNativeCastReactions(input: {
    * declined, and the one whose counter ran as its own action without cancelling the cast.
    */
   declinedReactorActorIds: readonly string[]
-  /**
-   * Whether a counter to the cast itself that nobody can counter runs as its holder's own action
-   * (D219). A counter that joins a chain still resolves here.
-   */
+  /** Whether a counter runs as its holder's own action (D219), not as a link of a chain here. */
   runsAsChild: boolean
   /** Whether a reactor's player has the app roll their dice, so its check settles without a pause. */
   autoRoll: (actorId: string) => boolean
@@ -430,14 +428,7 @@ export async function advanceNativeCastReactions(input: {
         candidate: found.candidate,
         optionId: answer.selection.optionId
       })
-      if (
-        input.runsAsChild &&
-        chain.length === 0 &&
-        !(await input.discover({
-          declinedReactorActorIds: [...usedReactions.map(reactorOf), chosen.reactorActorId],
-          against: { actorId: chosen.reactorActorId, level: found.level }
-        }))
-      )
+      if (input.runsAsChild)
         return {
           kind: 'CHILD' as const,
           child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },

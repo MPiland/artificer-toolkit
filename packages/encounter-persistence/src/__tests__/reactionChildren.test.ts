@@ -28,6 +28,7 @@ import {
   reactionChildrenKept,
   readCommittedReactionChildren,
   readCommittedReactionDescendants,
+  readReactionChildAncestors,
   readReactionChildCastLevel,
   readReactionChildParent,
   readTrailingReactionDescendants,
@@ -101,6 +102,8 @@ async function pausedAttack(
     reactionChildren?: { commandId: string; rollMode?: 'DISADVANTAGE' }[]
     /** The level the paused action casts its spell at, when it casts one. */
     castLevel?: number
+    /** The spell slot that cast spends, when it spends one. */
+    castSlotKey?: string
     protectorDefeated?: boolean
   } = {}
 ) {
@@ -195,7 +198,8 @@ async function pausedAttack(
       },
       twoPhase: null,
       ...(input.reactionChildren && { reactionChildren: input.reactionChildren }),
-      ...(input.castLevel !== undefined && { castLevel: input.castLevel })
+      ...(input.castLevel !== undefined && { castLevel: input.castLevel }),
+      ...(input.castSlotKey !== undefined && { castSlotKey: input.castSlotKey })
     }
   })
   await memory.store.insert(
@@ -275,6 +279,7 @@ async function holdReactionChild(
   const {
     reactionChildren: _recorded,
     castLevel: _castLevel,
+    castSlotKey: _castSlotKey,
     ...context
   } = snapshot.applicationContext
   await memory.store.insert(
@@ -801,8 +806,16 @@ describe('counting a root’s committed reaction children from the Run’s comma
         beforeVersion: ROOT_VERSION + 3
       })
     ).toEqual([
-      { commandId: nestedChild().commandId, parentCommandId: reactionChild().commandId },
-      { commandId: reactionChild().commandId, parentCommandId: PARENT_COMMAND_ID }
+      {
+        commandId: nestedChild().commandId,
+        parentCommandId: reactionChild().commandId,
+        reactorActorId: ATTACKER_ID
+      },
+      {
+        commandId: reactionChild().commandId,
+        parentCommandId: PARENT_COMMAND_ID,
+        reactorActorId: PROTECTOR_ID
+      }
     ])
   })
 
@@ -824,7 +837,13 @@ describe('counting a root’s committed reaction children from the Run’s comma
         afterVersion: ROOT_VERSION,
         beforeVersion: ROOT_VERSION + 4
       })
-    ).toEqual([{ commandId: nestedChild().commandId, parentCommandId: reactionChild().commandId }])
+    ).toEqual([
+      {
+        commandId: nestedChild().commandId,
+        parentCommandId: reactionChild().commandId,
+        reactorActorId: ATTACKER_ID
+      }
+    ])
     expect(
       await countRunVoidVersions(ctx, {
         encounterId: ENCOUNTER_ID,
@@ -1064,8 +1083,92 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
         reactorActorId: PROTECTOR_ID,
         actionId: REACTION_ACTION_ID,
         imposesRollMode: false,
-        cancelsTriggeringEvent: false
+        cancelsTriggeringEvent: false,
+        // The reaction that countered it committed under it, so its creature reacted in the child's tree.
+        descendantReactorActorIds: [ATTACKER_ID]
       }
     ])
+  })
+})
+
+describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () => {
+  const SLOT_KEY = 'STANDARD:3'
+  const ancestors = (
+    ctx: Awaited<ReturnType<typeof pausedAttack>>['ctx'],
+    child: typeof link = link
+  ) => readReactionChildAncestors(ctx, child)
+
+  it('is the action that records the child: its creature, not a reaction, with the slot its cast spends', async () => {
+    const { ctx } = await pausedAttack({ ...recorded, castLevel: 3, castSlotKey: SLOT_KEY })
+    expect(await ancestors(ctx)).toEqual([
+      { actorId: ATTACKER_ID, reaction: false, castSlotKey: SLOT_KEY }
+    ])
+    // A held action whose cast spends no slot, or that casts nothing, names none.
+    const attack = await pausedAttack(recorded)
+    expect(await ancestors(attack.ctx)).toEqual([
+      { actorId: ATTACKER_ID, reaction: false, castSlotKey: null }
+    ])
+  })
+
+  it('reads every held action above a nested child, nearest first, a held reaction marked as one', async () => {
+    const paused = await pausedAttack({ ...recorded, castLevel: 3, castSlotKey: SLOT_KEY })
+    await holdReactionChild(paused, nested.reactionChildren)
+    expect(await ancestors(paused.ctx, nestedLink)).toEqual([
+      { actorId: PROTECTOR_ID, reaction: true, castSlotKey: null },
+      { actorId: ATTACKER_ID, reaction: false, castSlotKey: SLOT_KEY }
+    ])
+    // The suspended attack is still read from its own child.
+    expect(await ancestors(paused.ctx)).toEqual([
+      { actorId: ATTACKER_ID, reaction: false, castSlotKey: SLOT_KEY }
+    ])
+  })
+
+  it('is none for a child no held action records', async () => {
+    const open = await pausedAttack()
+    expect(await ancestors(open.ctx)).toEqual([])
+    const held = await pausedAttack(recorded)
+    await holdReactionChild(held)
+    expect(await ancestors(held.ctx, nestedLink)).toEqual([])
+  })
+
+  it('records the slot only beside a reaction child, and never rewrites it', async () => {
+    await expect(pausedAttack({ castSlotKey: SLOT_KEY })).rejects.toThrow(
+      'Only an action that records a reaction child records its cast slot.'
+    )
+    const child = { commandId: testUuid(0x8a10) }
+    const waiting = { reactionChildren: [child], castLevel: 3, castSlotKey: SLOT_KEY }
+    const resumed = { reactionChildren: [{ ...child, rollMode: null }], castLevel: 3 }
+    expect(reactionChildrenKept(waiting, { ...resumed, castSlotKey: SLOT_KEY })).toBe(true)
+    expect(reactionChildrenKept(waiting, { ...resumed, castSlotKey: 'STANDARD:4' })).toBe(false)
+    expect(reactionChildrenKept(waiting, resumed)).toBe(false)
+    expect(reactionChildrenKept({}, waiting)).toBe(true)
+  })
+
+  it('drops the slot with the last recorded child, and keeps it while one remains', async () => {
+    const only = await pausedAttack({ ...recorded, castLevel: 3, castSlotKey: SLOT_KEY })
+    await suspendReactionChildParent(only.ctx, link)
+    await insertVoid(only.memory, ROOT_VERSION + 1)
+    await releaseReactionChildParent(only.ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect(
+      (await readNativeActionPending(only.ctx, only.occurrence())).context.castSlotKey
+    ).toBeUndefined()
+
+    const later = await pausedAttack({
+      reactionChildren: [
+        { commandId: testUuid(0x8a13), rollMode: 'DISADVANTAGE' },
+        ...recorded.reactionChildren
+      ],
+      castLevel: 3,
+      castSlotKey: SLOT_KEY
+    })
+    await later.memory.store.patch(later.occurrence()._id, {
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    await suspendReactionChildParent(later.ctx, link)
+    await insertVoid(later.memory, ROOT_VERSION + 2)
+    await releaseReactionChildParent(later.ctx, { ...link, version: ROOT_VERSION + 2 })
+    expect((await readNativeActionPending(later.ctx, later.occurrence())).context.castSlotKey).toBe(
+      SLOT_KEY
+    )
   })
 })

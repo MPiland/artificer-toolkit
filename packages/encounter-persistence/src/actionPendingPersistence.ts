@@ -25,11 +25,7 @@ import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { castPendingContinues } from './actionPending.js'
-import {
-  awaitsReactionChild,
-  reactionChildrenKept,
-  suspendReactionChildParent
-} from './reactionChildren.js'
+import { reactionChildrenKept, suspendReactionChildParent } from './reactionChildren.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -234,11 +230,18 @@ export async function persistEncounterActionPending(
           (snapshot.applicationContext.currentnessChecksum !==
             resume.pending.context.currentnessChecksum &&
             resume.pending.context.pause?.kind !== 'ATTACK_RETARGET' &&
-            // A target whose own reaction child the action resumes from stands as that child left it
-            // (D219): only the child moved the Run while this action awaited it.
-            !(
-              awaitsReactionChild(resume.pending.context) &&
-              resume.pending.context.rollerActorId === target.actorId
+            // A source or target that reacted under the reaction child the action resumes from stands
+            // as that child's tree left it (D219): only that tree moved the Run while this action
+            // awaited it.
+            !resume.reactionChildren.some(
+              (child) =>
+                resume.pending.context.reactionChildren?.some(
+                  ({ commandId, rollMode }) =>
+                    commandId === child.commandId && rollMode === undefined
+                ) &&
+                [child.reactorActorId, ...child.descendantReactorActorIds].some(
+                  (actorId) => actorId === admission.input.actorId || actorId === target.actorId
+                )
             )) ||
           !castPendingContinues(
             resume.pending.context,
