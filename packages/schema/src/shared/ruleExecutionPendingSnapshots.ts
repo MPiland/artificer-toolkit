@@ -27,6 +27,10 @@ import {
   type EncounterUsedReactionDto
 } from './ruleExecutionReactionChoice.js'
 import {
+  encounterReactionOfferPendingContextDtoSchema,
+  type EncounterReactionOfferPendingContextDto
+} from './ruleExecutionReactionOffer.js'
+import {
   movementReactionPendingContextDtoSchema,
   spatialPendingContextDtoSchema
 } from './ruleExecutionSpatialPendingContexts.js'
@@ -884,6 +888,7 @@ export type ServerAggregateChoicePendingSnapshotDto = {
     | OptionalCombatCleavingChoicePendingContextDto
     | OptionalCombatPassageChoicePendingContextDto
     | EncounterAreaActionPendingContextDto
+    | EncounterReactionOfferPendingContextDto
 }
 
 const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
@@ -897,7 +902,8 @@ const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
       initiativeDeclarationAggregateChoicePendingContextDtoSchema,
       optionalCombatCleavingChoicePendingContextDtoSchema,
       optionalCombatPassageChoicePendingContextDtoSchema,
-      encounterAreaActionPendingContextDtoSchema
+      encounterAreaActionPendingContextDtoSchema,
+      encounterReactionOfferPendingContextDtoSchema
     ])
   })
 )

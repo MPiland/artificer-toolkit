@@ -14,6 +14,20 @@ export function systemTriggerCommandId(
 }
 
 /**
+ * The reaction offer a committed attack raises for one reactor (D219): one per attack command and
+ * reactor, so a replayed attack never offers twice, and a reaction's own attack raises an offer of
+ * its own, which is how a chain of reactions ends.
+ */
+export function reactionOfferOccurrenceId(parentCommandId: string, reactorActorId: string) {
+  return uuidv5(`${parentCommandId}:${reactorActorId}:reaction-offer`, NAMESPACE)
+}
+
+/** The root command a reaction offer is stored under: the rules raise it, so no client names it. */
+export function reactionOfferCommandId(occurrenceId: string) {
+  return uuidv5(`${occurrenceId}:reaction-offer-command`, NAMESPACE)
+}
+
+/**
  * The ADVANCE_TURN that finishes a turn end split around a delegated Legendary Action: the remaining
  * windows and the next turn's start, once the delegated action has resolved.
  */
@@ -94,9 +108,10 @@ export function systemTriggerSelfCommand(input: {
 }
 
 /**
- * The root command for the action of a reaction its holder chose against a pending action (D219):
- * the holder's own action at the creature the reaction names, raised by that pending action's root
- * command. Admission proves it against the pending action's record of this command id. It names the
+ * The root command for the action of a reaction its holder chose (D219): the holder's own action at
+ * the creature the reaction names, raised by the root command of the action it answers. Admission
+ * proves it against a record of this command id: the pending action's, for a reaction chosen while
+ * the action was held, or the answer of the offer a committed attack raised. It names the
  * tokens of the Scene the reaction was offered on, so its range is judged there like any action's.
  */
 export function systemTriggerReactionCommand(input: {

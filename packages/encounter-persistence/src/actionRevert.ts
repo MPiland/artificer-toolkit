@@ -900,7 +900,7 @@ type RevertGroup = RevertGroupRoot & {
  * belongs to the occurrence that recorded it, so the receipts of the other roots and of their
  * children are theirs to read, whatever Run version they were committed at.
  */
-function planRevertRoot({
+export function planRevertRoot({
   root,
   ruleOccurrenceId,
   laterEntries,
@@ -972,6 +972,15 @@ function planRevertRoot({
       // only it held, which the receipt keeps as ids and which undo does not give back.
       childOccurrenceIds.add(receipt.occurrenceId)
       if (outputs.outcome === 'SUCCESS') unsupported.add('an effect a dispel ended')
+      continue
+    }
+    if (
+      outputs?.kind === 'REACTION_OFFER_ANSWER' &&
+      outputs.parentOccurrenceId === ruleOccurrenceId
+    ) {
+      // The offer the action raised once it committed: its answer changed nothing, and the reaction
+      // it chose is an action of its own in the group.
+      childOccurrenceIds.add(receipt.occurrenceId)
       continue
     }
     if (

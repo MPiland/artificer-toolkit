@@ -2,6 +2,7 @@ import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/
 import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { reactionOfferOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -61,14 +62,51 @@ export async function readReactionChildCastLevel(
 }
 
 /**
+ * The answer that records a reaction child chosen from the offer its action raised once it had
+ * committed (D219), or null when no settled offer of this Run records that child. The receipt is the
+ * proof, and the child's only tie to the action: nothing is held, so the child suspends, re-pins
+ * and releases nothing. A declined offer, the GM's void among them, records no child.
+ */
+export async function readReactionOfferChild(
+  ctx: EncounterReadContext,
+  input: ReactionChildLink & { reactorActorId: string }
+) {
+  const offer = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (query) =>
+      query.eq('id', reactionOfferOccurrenceId(input.parentCommandId, input.reactorActorId))
+    )
+    .unique()
+  if (
+    offer?.campaignId !== input.campaignId ||
+    offer.encounterId !== input.encounterId ||
+    offer.state !== 'COMPLETED'
+  )
+    return null
+  const answer = await ctx.db
+    .query('encounterRuleReceipts')
+    .withIndex('by_occurrenceId', (query) => query.eq('occurrenceId', offer.id))
+    .unique()
+  if (!answer) return null
+  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(answer.resultJson))
+  const output = result.status === 'AGGREGATE_CHOICE_COMPLETE' ? result.applicationOutputs : null
+  return output?.kind === 'REACTION_OFFER_ANSWER' &&
+    output.child?.commandId === input.childCommandId
+    ? { answer, output }
+    : null
+}
+
+/**
  * Suspends the pending action a reaction child answers when that child pauses on evidence of its
  * own, in the transaction that stores the child's pending decision, so the Run keeps one pending
- * decision: the child's.
+ * decision: the child's. Like the re-pin and the release below, it does nothing for a child an
+ * offer's answer records, whose action committed before it.
  */
 export async function suspendReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink
+  input: ReactionChildLink & { reactorActorId: string }
 ) {
+  if (await readReactionOfferChild(ctx, input)) return
   const parent = await readReactionChildParent(ctx, input)
   if (parent?.state !== 'PENDING') throw new Error('The reaction’s pending action is gone.')
   await ctx.db.patch(parent._id, { state: 'SUSPENDED' })
@@ -81,8 +119,9 @@ export async function suspendReactionChildParent(
  */
 export async function repinReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink & { version: number }
+  input: ReactionChildLink & { reactorActorId: string; version: number }
 ) {
+  if (await readReactionOfferChild(ctx, input)) return
   const parent = await readReactionChildParent(ctx, input)
   if (!parent) throw new Error('The reaction’s pending action is gone.')
   await ctx.db.patch(parent._id, { state: 'PENDING', expectedEncounterVersion: input.version })
@@ -95,8 +134,9 @@ export async function repinReactionChildParent(
  */
 export async function releaseReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink & { version: number }
+  input: ReactionChildLink & { reactorActorId: string; version: number }
 ) {
+  if (await readReactionOfferChild(ctx, input)) return
   const recording = await readRecordingParent(ctx, input)
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')

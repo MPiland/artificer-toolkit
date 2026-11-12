@@ -59,6 +59,7 @@ describe('GM void decision table', () => {
     expect(classifyRuleOccurrenceVoid({ kind: 'ENCOUNTER_ACTION' })).toEqual({ kind: 'CANCEL' })
     for (const kind of [
       'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING',
+      'ENCOUNTER_REACTION_OFFER',
       'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE'
     ] as const)
       expect(classifyRuleOccurrenceVoid({ kind })).toEqual({

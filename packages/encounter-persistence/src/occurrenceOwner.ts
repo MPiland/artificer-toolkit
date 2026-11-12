@@ -2,6 +2,7 @@ import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/s
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import { reactionOfferCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
@@ -15,6 +16,7 @@ type NativeEncounterOccurrenceOwner =
   | 'CONTEST'
   | 'CONCENTRATION'
   | 'CLEAVING'
+  | 'REACTION_OFFER'
   | 'BASIC_ACTION'
   | 'ESCAPE'
   | 'ACTION'
@@ -111,6 +113,11 @@ export function classifyNativeEncounterOccurrence({
     occurrence.rootCommandId === cleavingChildCommandIdentity(occurrence.id)
   )
     return 'CLEAVING'
+  if (
+    context?.kind === 'ENCOUNTER_REACTION_OFFER' ||
+    occurrence.rootCommandId === reactionOfferCommandId(occurrence.id)
+  )
+    return 'REACTION_OFFER'
   // A d20 window belongs to the check whose d20 opened it.
   const check =
     context?.kind === 'ENCOUNTER_D20_WINDOW' && 'source' in context
