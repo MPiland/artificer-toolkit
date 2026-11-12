@@ -1627,6 +1627,18 @@ that occurrence; the area commit input carries `usedReactions` and spends them l
 A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
+**Counter as the holder's own action (current, QUALITY-9.T1a; D219 amendment).** A counter chosen against a
+single-target cast runs as a reaction child (see persistence.md, "Reaction arm") when it owes no check, the
+offer holds no chain and nobody could counter it (`advanceNativeCastReactions` returns `CHILD`). The child is
+the holder's own cast at the caster: its commit spends the holder's slot and reaction at the choice. The room
+then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by the System adapter from the
+child's stored execution) makes the resume commit the cast as lost with `counter: null`
+(`ENCOUNTER_COUNTERED_CAST`), spending only the caster and the failed counters already recorded. A child that
+did not cancel leaves its holder heard, like a decline, and the offers continue. A reaction child's own cast
+offers no counter. Transitional: a counter that owes a check (QUALITY-9.T1b), a counter that others could
+counter and every chain (T1c), and area or chosen-list casts still resolve inline as described here, with a
+non-null `counter` receipt.
+
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
 (`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC

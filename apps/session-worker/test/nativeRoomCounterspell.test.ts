@@ -1,6 +1,9 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { characterActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
@@ -235,6 +238,72 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     // The reaction is back: the same cast offers it again.
     await cast(room)
     await offered(room)
+  })
+
+  it('runs a counter that owes no check as the holder’s own action, spent at the choice, and commits the cast it cancelled as lost with no counter receipt (D219)', async () => {
+    const room = await counterspellRoom()
+    await cast(room)
+    const { decision, pending } = await offered(room)
+    const version = await room.version()
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const actions = history.commands.flatMap((row) =>
+      row.commandType === 'RESOLVE_ACTION'
+        ? [
+            {
+              version: row.version,
+              command: resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
+            }
+          ]
+        : []
+    )
+    const children = actions.filter(({ command }) => command.systemTrigger?.trigger === 'REACTION')
+    const casts = actions.filter(({ command }) => !command.systemTrigger)
+    expect(children).toHaveLength(1)
+    expect(casts).toHaveLength(1)
+    const [child] = children
+    const [countered] = casts
+    // The Counterspell is the holder's own cast at the caster, raised by the cast it answers.
+    const casterScene = room.sceneContext(0)
+    expect(child!.command).toMatchObject({
+      actorId: REACTOR_ACTOR_ID,
+      target: { kind: 'ACTOR', actorId: CASTER_ACTOR_ID },
+      systemTrigger: { parentCommandId: countered!.command.commandId, trigger: 'REACTION' },
+      sceneContext: { sceneId: casterScene.sceneId, targetTokenId: casterScene.sourceTokenId }
+    })
+    // It commits first, on the Run version the choice was made at; the cast it cancelled follows.
+    expect(child!.version).toBe(version + 1)
+    expect(countered!.version).toBe(version + 2)
+    const executionOf = (commandId: string) => {
+      const receipt = history.receipts.find((candidate) => candidate.commandId === commandId)
+      if (!receipt) throw new Error('The action left no receipt.')
+      return parseReceiptExecution(receipt)
+    }
+    expect(executionOf(child!.command.commandId).status).toBe('COMPLETE')
+
+    // The child alone spent the holder's slot and reaction: the lost cast records only the caster's.
+    const lost = executionOf(countered!.command.commandId)
+    if (
+      lost.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+      lost.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
+    )
+      throw new Error(`Expected a countered cast, got ${lost.status}.`)
+    expect(lost.applicationOutputs.counter).toBeNull()
+    expect(lost.applicationOutputs.spellCastConsumption).not.toBeNull()
+    const reactor = history.actors.find(({ id }) => id === REACTOR_ACTOR_ID)
+    if (!reactor) throw new Error('The room holds no reactor.')
+    expect(
+      encounterRuleUsageUsed(readStoredRunActor(reactor), DND5E_REACTION_ALLOWANCE_DEFINITION_ID)
+    ).toBe(1)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(1))
+    expect(await hitPointsOf(room)).toBe(1)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
   it('uses up the caster’s grant that ends on a cast, and releases its condition, even when the cast is countered, and one undo gives both back (SPELLS-27.1)', async () => {

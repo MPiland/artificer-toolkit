@@ -324,7 +324,8 @@ export function buildEncounterAreaStoredExecution(input: {
 
 /**
  * Builds the stored root of a countered cast. The caster still spends its slot and action; nothing the
- * spell would have done is applied. The counter records what the reactor spent.
+ * spell would have done is applied. The counter records what the reactor spent with this commit; it is
+ * null when the counter ran as its holder's own action, which spent it (D219).
  */
 export function buildEncounterCounteredCastStoredExecution(input: {
   occurrenceId: string
@@ -355,7 +356,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
     characterStreamVersion: number | null
     economy: EncounterActionEconomyConsumption
-  }
+  } | null
 }) {
   const { spend, counter } = input
   return storedRuleExecutionResultDtoSchema.parse({
@@ -377,7 +378,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
       spellCastConsumption: spend.spellConsumptionReceipt,
       sourceApplications: spend.sourceApplications,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
-      counter: {
+      counter: counter && {
         reaction: counter.reaction,
         choiceExecution: counter.choiceExecution,
         counterExecution: counter.counterExecution,

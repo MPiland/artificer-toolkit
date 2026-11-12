@@ -979,6 +979,7 @@ export async function planNativeLiveEncounterAction(
       committed: committedReactionChildren,
       resumedOffer
     },
+    resumesFromChildren: true,
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,
