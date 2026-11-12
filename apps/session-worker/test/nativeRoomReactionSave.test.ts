@@ -113,16 +113,19 @@ const unnerve: ClassFeature = {
   ]
 }
 
-/** A Wolf whose Bite (+4) attacks a Wolf (AC 13), with the Character 5 feet beyond the bitten Wolf. */
-function reactorRoom() {
+/**
+ * A Wolf whose Bite (+4) attacks a Wolf (AC 13), with the Character 5 feet beyond the bitten Wolf.
+ * `bite` replaces the plain Bite, for one the Wolf casts as a spell.
+ */
+function reactorRoom(bite = attackBite) {
   return actionRoom({
     actors: [
-      srdCreatureActor({ id: ATTACKER_ID, creature: attackBite }),
+      srdCreatureActor({ id: ATTACKER_ID, creature: bite }),
       srdCreatureActor({ id: TARGET_ID, creature: plainWolf }),
       characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
     ],
     positions: { [REACTOR_ACTOR_ID]: { x: 350, y: 150 } },
-    ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+    ownerFeatureId: creatureFeature(bite, 'Bite').id,
     characterClassFeatures: [unnerve],
     characterEquipment: []
   })
@@ -246,6 +249,24 @@ describe('a reaction that needs its own save, chosen against an attack on anothe
       { commandId: await childCommandId(room), rollMode: null }
     ])
     expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('records the level a Bite is cast at beside its reaction child, and none for a Bite that casts no spell (QUALITY-9.T1b1)', async () => {
+    const cast = await reactorRoom(biteWolf('ATTACK', { spellCast: { castLevel: 4 } }))
+    await chosen(cast)
+    await save(cast, 20)
+    await d20Prompt(cast)
+    const context = await readPendingActionContext(cast.room.base.stub)
+    expect(context.reactionChildren).toEqual([
+      { commandId: await childCommandId(cast), rollMode: null }
+    ])
+    expect(context.castLevel).toBe(4)
+
+    const plain = await reactorRoom()
+    await chosen(plain)
+    await save(plain, 20)
+    await d20Prompt(plain)
+    expect((await readPendingActionContext(plain.room.base.stub)).castLevel).toBeUndefined()
   })
 
   it('refuses to void the suspended Bite while the save waits', async () => {

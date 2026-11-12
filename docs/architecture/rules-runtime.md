@@ -1647,7 +1647,9 @@ then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by t
 child's stored execution) makes the resume commit the cast as lost with `counter: null`
 (`ENCOUNTER_COUNTERED_CAST`), spending only the caster and the failed counters already recorded. A child that
 did not cancel leaves its holder heard, like a decline, and the offers continue. A reaction child's own cast
-offers no counter. Transitional: a counter that owes a check (QUALITY-9.T1b), a counter that others could
+offers no counter. The cast records its level beside the child (`castLevel`, see persistence.md, "The cast a
+child answers"; QUALITY-9.T1b1), which is where the child will read the DC of its check from.
+Transitional: a counter that owes a check (QUALITY-9.T1b2), a counter that others could
 counter and every chain (T1c), and area or chosen-list casts still resolve inline as described here, with a
 non-null `counter` receipt.
 

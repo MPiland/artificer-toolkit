@@ -20,6 +20,21 @@ export type PendingReactionChildren = NonNullable<
   >['reactionChildren']
 >
 
+/**
+ * The reaction children a pending action records, with the level it casts its spell at beside them:
+ * a child reads the cast it answers from its held action's context (D219).
+ */
+const recordedReactionChildren = (input: {
+  reactionChildren?: PendingReactionChildren
+  castLevel?: number | null
+}) =>
+  input.reactionChildren?.length
+    ? {
+        reactionChildren: [...input.reactionChildren],
+        ...(typeof input.castLevel === 'number' && { castLevel: input.castLevel })
+      }
+    : {}
+
 /** The kernel request a sealed snapshot waits on, without the application's wrapping. */
 export function pendingSnapshotContinuation(
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
@@ -80,6 +95,8 @@ export function buildEncounterActionPendingSnapshot(input: {
   usedReactions?: readonly EncounterUsedReactionDto[]
   passedIncomingGate?: string
   reactionChildren?: PendingReactionChildren
+  /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
+  castLevel?: number | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   const { execution } = input
   return {
@@ -106,7 +123,7 @@ export function buildEncounterActionPendingSnapshot(input: {
       ...(execution.pause ? { pause: execution.pause } : {}),
       ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
-      ...(input.reactionChildren?.length ? { reactionChildren: [...input.reactionChildren] } : {})
+      ...recordedReactionChildren(input)
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }
@@ -133,6 +150,8 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
   usedReactions?: readonly EncounterUsedReactionDto[]
   passedIncomingGate?: string
   reactionChildren?: PendingReactionChildren
+  /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
+  castLevel?: number | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
@@ -151,7 +170,7 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
       pause: input.pause,
       ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
-      ...(input.reactionChildren?.length ? { reactionChildren: [...input.reactionChildren] } : {})
+      ...recordedReactionChildren(input)
     }
   }
 }

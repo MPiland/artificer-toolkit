@@ -17,6 +17,7 @@ import {
 } from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionChecksumSchema,
+  ruleExecutionNonNegativeIntegerSchema,
   ruleExecutionReceiptD20FaceSchema,
   ruleExecutionUuidSchema
 } from './ruleExecutionPrimitives.js'
@@ -105,11 +106,23 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      )
+      ),
+      /**
+       * The level this action casts its spell at, recorded with its reaction children: a child reads
+       * the cast it answers from here, not from its own command (D219). Absent for an action that
+       * casts no spell.
+       */
+      castLevel: z.optional(ruleExecutionNonNegativeIntegerSchema)
     })
     .check(
       z.superRefine((value, context) => {
         const { pause } = value
+        if (value.castLevel !== undefined && !value.reactionChildren?.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['castLevel'],
+            message: 'Only an action that records a reaction child records its cast level.'
+          })
         if (!value.contest !== !value.contestPhase)
           context.addIssue({
             code: 'custom',

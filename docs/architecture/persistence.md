@@ -301,6 +301,15 @@ triggering roll as `reactionChildren[].rollMode`, resolved by the System adapter
 until it resolves the parent takes no other answer. The child command names the Scene tokens the reaction
 was offered on (the holder's and the acting creature's), so its range is judged there like any action's.
 
+The cast a child answers (current, QUALITY-9.T1b1, D219). A pending action that casts a spell records the
+level it is cast at as `castLevel` in the same pending context, beside `reactionChildren`: present only while
+a child is recorded, never rewritten while one is (`reactionChildrenKept`), and dropped with the last child a
+GM void releases. A child reads the cast it answers from there, not from its own command: the action capture
+returns it as `triggerCastLevel` on the child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions
+(`readReactionChildCastLevel`), null for any other command and for a parent that casts no spell.
+Transitional: no planner reads `triggerCastLevel` until the counter's check becomes the child's gate
+(QUALITY-9.T1b2). This is a persisted pending-context shape change; refresh local data when next used (D196).
+
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).
 A cast held at a `COUNTER` offer with no check and no chain whose unresolved child cancelled it commits through
