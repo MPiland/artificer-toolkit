@@ -670,11 +670,15 @@ function appendActions(params: {
       // One action per weapon attack of the effect's trigger and activation (an Attack action
       // feature never takes a weapon's bonus-action off-hand attack) that a weapon with every
       // required property makes; it is offered while both the Feature and that weapon are (D156).
+      // No weapon attack is itself a reaction, so a Feature attack made as a reaction is made with
+      // the weapon's action attack (D219).
       const { requiredPropertyCodes = [] } = authoredEffect.weaponAttack
+      const activation = activationCode(authoredEffect)
+      const weaponActivation = activation === 'REACTION' ? 'ACTION' : activation
       for (const weapon of params.wieldedWeaponAttacks?.weapons ?? []) {
         if (
           weapon.effect.invocation.triggerCode !== authoredEffect.invocation.triggerCode ||
-          activationCode(weapon.effect) !== activationCode(authoredEffect) ||
+          activationCode(weapon.effect) !== weaponActivation ||
           !requiredPropertyCodes.every((code) => weapon.equipment.properties?.includes(code))
         )
           continue
