@@ -61,7 +61,14 @@ const insertCommand = (
 /** A Run on its holder's turn, begun by an ADVANCE_TURN at `PARENT_VERSION`, now at `version`. */
 async function runAfterTurnStart(version: number) {
   const memory = createMemoryEncounterStore()
-  const ctx = { db: memory.store, ports: {} }
+  const ctx = {
+    db: memory.store,
+    ports: {
+      readCharacterPlay: (): never => {
+        throw new Error('No Character is in this Run.')
+      }
+    }
+  }
   const actors = [creatureActor({ id: HOLDER_ID, snapshot: {} })]
   const state = srdEncounterState({ actors, currentActorId: HOLDER_ID, version })
   await memory.store.insert('encounterRuns', {
