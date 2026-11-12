@@ -6,6 +6,7 @@ import { systemTriggerSelfCommand } from '@artificer-toolkit/rules-runtime/encou
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { raiseRoomChild } from './roomEncounterChildRaise.js'
 
 /**
  * Raises the passive effects the creature whose turn just began carries for the start of its turn,
@@ -20,12 +21,10 @@ export async function raiseRoomStartOfTurnEffects(input: {
   execute(command: ResolveEncounterActionInputDto): Promise<unknown>
 }) {
   const { ctx, encounterId } = input
-  const readRun = () =>
-    ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', encounterId))
-      .unique()
-  const first = await readRun()
+  const first = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (query) => query.eq('id', encounterId))
+    .unique()
   if (!first || first.status !== 'ACTIVE') return false
   const firstState = readRunState(first)
   const holder = (await readRunActors(ctx, firstState)).find(
@@ -48,25 +47,21 @@ export async function raiseRoomStartOfTurnEffects(input: {
   })
   let committed = false
   for (const { capability } of passiveStartOfTurnEffects) {
-    const run = await readRun()
-    const waiting = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (query) =>
-        query.eq('encounterId', encounterId).eq('state', 'PENDING')
-      )
-      .first()
-    if (!run || waiting) continue
-    await input.execute(
-      systemTriggerSelfCommand({
-        encounterId,
-        expectedVersion: run.version,
-        parentCommandId: input.parentCommandId,
-        holderActorId: holder.id,
-        actionId: capability.actionId,
-        trigger: 'START_OF_TURN'
-      })
-    )
-    committed = true
+    const outcome = await raiseRoomChild({
+      ctx,
+      encounterId,
+      execute: input.execute,
+      command: async (run) =>
+        systemTriggerSelfCommand({
+          encounterId,
+          expectedVersion: run.version,
+          parentCommandId: input.parentCommandId,
+          holderActorId: holder.id,
+          actionId: capability.actionId,
+          trigger: 'START_OF_TURN'
+        })
+    })
+    if (outcome === 'RAISED') committed = true
   }
   return committed
 }

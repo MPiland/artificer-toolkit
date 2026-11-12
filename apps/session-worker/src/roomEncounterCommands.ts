@@ -25,7 +25,6 @@ import { prepareRoomLiveCharacterSheet, readRoomOwnerCharacterRules } from './ro
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { raiseQueuedReactionOffer } from '@artificer-toolkit/encounter-persistence/reactionOffer'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { executeRoomEncounterTurn } from './roomEncounterTurns.js'
 import { recordRoomEncounterReplay, removeRoomFinishedRunRows } from './roomEncounterReplayIndex.js'
@@ -41,18 +40,9 @@ import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcen
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { executeRoomReactionOfferAnswer } from './roomEncounterReactionOffers.js'
-import { settleDamageMirrors } from './roomDamageMirror.js'
-import { settleDefeatRewards } from './roomDefeatReward.js'
 import { recordRoomZoneSightings } from './roomZoneSightings.js'
-import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
-import {
-  actorIdsOutOfPlayByEffect,
-  flagRoomReturnsOntoOccupiedSpace
-} from './roomEncounterReturnsToPlay.js'
-import { raiseRoomDelegatedLegendaryAction } from './roomEncounterDelegatedLegendaryAction.js'
-import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
-import { raiseRoomRuleEffects } from './roomEncounterRuleTriggers.js'
-import { advanceRoomPastEndedSummon } from './roomEncounterSummonEndAdvance.js'
+import { settleRoomEncounterAfterCommit } from './roomEncounterAfterCommit.js'
+import { actorIdsOutOfPlayByEffect } from './roomEncounterReturnsToPlay.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
@@ -82,7 +72,7 @@ import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-
 import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
-import { endRoomOrphanedSummons, removeRoomSummonTokens } from './roomActionSummonTokens.js'
+import { removeRoomSummonTokens } from './roomActionSummonTokens.js'
 import { restoreRoomActorFacing } from './roomActionFacing.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
@@ -376,132 +366,26 @@ export async function executeRoomEncounterCommand(input: {
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
     (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
-  const settleFollowUps = async () => {
-    const settlement = {
-      ctx: context,
-      store,
-      transaction,
-      inputs,
-      campaignId,
-      epoch,
-      userId,
-      observed,
-      encounterId: currentRun.id,
-      random: input.random
-    }
-    const mirrored = await settleDamageMirrors(settlement)
-    return (await settleDefeatRewards(settlement)) || mirrored
-  }
-  const mirroredDamage = await settleFollowUps()
-  const raisedHpZeroEffects =
-    currentRun.status === 'ACTIVE' && input.turnExecution
-      ? await raiseRoomHpZeroEffects({
-          ctx: context,
-          transaction,
-          encounterId: currentRun.id,
-          parentCommandId: command.commandId.toLowerCase(),
-          defeatedBefore,
-          execute: executeAction
-        })
-      : false
-  const delegatedLegendaryAction =
-    currentRun.status === 'ACTIVE' && input.turnExecution
-      ? await raiseRoomDelegatedLegendaryAction({
-          ctx: context,
-          transaction,
-          encounterId: currentRun.id,
-          turnRootCommandId: answeredRootCommandId ?? command.commandId,
-          execute: executeAction,
-          executeTurn
-        })
-      : { committed: false, continuationCommandId: null }
-  // A continuation that finished a split turn end began the next turn, under its own id.
-  const raisedStartOfTurnEffects =
-    currentRun.status === 'ACTIVE' &&
-    input.turnExecution &&
-    (delegatedLegendaryAction.continuationCommandId !== null ||
-      command.type === 'START' ||
-      command.type === 'ADVANCE_TURN' ||
-      command.type === 'RESOLVE_RULE_OCCURRENCE')
-      ? await raiseRoomStartOfTurnEffects({
-          ctx: context,
-          encounterId: currentRun.id,
-          parentCommandId: (
-            delegatedLegendaryAction.continuationCommandId ??
-            answeredRootCommandId ??
-            command.commandId
-          ).toLowerCase(),
-          execute: executeAction
-        })
-      : false
-  const raisedRuleEffects =
-    currentRun.status === 'ACTIVE' && input.turnExecution
-      ? await raiseRoomRuleEffects({
-          ctx: context,
-          encounterId: currentRun.id,
-          execute: executeAction
-        })
-      : false
-  const flaggedReturn =
-    currentRun.status === 'ACTIVE' &&
-    (await flagRoomReturnsOntoOccupiedSpace({
-      ctx: context,
-      transaction,
-      encounterId: currentRun.id,
-      userId,
-      occurredAt: new Date().toISOString(),
-      outOfPlayBefore
-    }))
-  // What the raised roots dealt to a mirror's holder reaches its source too.
-  const mirroredRaisedDamage = await settleFollowUps()
-  // After every effect the command and its raised roots ended, so a carrier that ended takes its creature.
-  const sweepSummons = () =>
-    endRoomOrphanedSummons({
-      ctx: context,
-      transaction,
-      userId,
-      encounterId: currentRun.id,
-      occurredAt: new Date().toISOString()
-    })
-  const summonSweep =
-    currentRun.status === 'ACTIVE'
-      ? await sweepSummons()
-      : { ended: false, currentActorOrphaned: false }
-  // A creature whose carrier ended on its own turn stands until that turn ends (D200).
-  const advancedPastSummon = summonSweep.currentActorOrphaned
-    ? await advanceRoomPastEndedSummon({
-        ctx: context,
-        encounterId: currentRun.id,
-        parentCommandId: (answeredRootCommandId ?? command.commandId).toLowerCase(),
-        sweep: sweepSummons,
-        // The system advance runs as the GM: the player whose command ended the carrier may not control the creature.
-        executeTurn: async (turn) =>
-          executeTurn(
-            turn,
-            (await context.ports.requireCampaignAuthority(campaignId, userId)).campaign.ownerUserId
-          ),
-        settleTurnStart: async (parentCommandId) =>
-          (await raiseRoomStartOfTurnEffects({
-            ctx: context,
-            encounterId: currentRun.id,
-            parentCommandId,
-            execute: executeAction
-          })) ||
-          (await raiseRoomRuleEffects({
-            ctx: context,
-            encounterId: currentRun.id,
-            execute: executeAction
-          }))
-      })
-    : false
-  const endedSummons = summonSweep.ended || advancedPastSummon
-  // Last, once the command and every root it raised have settled: the next reaction offer a
-  // committed attack queued (D219) becomes the Run's decision when it waits on nothing else.
-  const raisedReactionOffer = await raiseQueuedReactionOffer(
-    context,
-    currentRun.id,
-    new Date().toISOString()
-  )
+  const changedRun = await settleRoomEncounterAfterCommit({
+    ctx: context,
+    store,
+    transaction,
+    inputs,
+    campaignId,
+    epoch,
+    userId,
+    observed,
+    encounterId: currentRun.id,
+    random: input.random,
+    command,
+    turnRootCommandId: answeredRootCommandId ?? command.commandId,
+    active: currentRun.status === 'ACTIVE',
+    raisesRoots: input.turnExecution !== undefined,
+    defeatedBefore,
+    outOfPlayBefore,
+    executeAction,
+    executeTurn
+  })
   // Commands that can put a concealed zone in a Character's sight without a move (MOVE-3.5). The
   // sightings are GM bookkeeping that leaves the Run and its projection unchanged.
   if (
@@ -524,16 +408,6 @@ export async function executeRoomEncounterCommand(input: {
       encounterId: currentRun.id,
       random: input.random
     })
-  const changedRun =
-    mirroredDamage ||
-    mirroredRaisedDamage ||
-    raisedHpZeroEffects ||
-    delegatedLegendaryAction.committed ||
-    raisedStartOfTurnEffects ||
-    raisedRuleEffects ||
-    flaggedReturn ||
-    endedSummons ||
-    raisedReactionOffer
   const raisedRun = changedRun
     ? await context.db
         .query('encounterRuns')

@@ -6,6 +6,7 @@ import {
   systemTriggerAreaCommand
 } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { readRoomRaisableRun } from './roomEncounterChildRaise.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
 
@@ -36,20 +37,11 @@ export async function raiseRoomDelegatedLegendaryAction(input: {
   let raisedFor: string | null = null
   let continuationCommandId: string | null = null
   for (;;) {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', encounterId))
-      .unique()
+    const run = await readRoomRaisableRun(ctx, encounterId)
     if (!run || run.status !== 'ACTIVE') break
     const state = readRunState(run)
     const delegation = state.delegatedLegendaryAction
-    const waiting = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (query) =>
-        query.eq('encounterId', encounterId).eq('state', 'PENDING')
-      )
-      .first()
-    if (!delegation || waiting) break
+    if (!delegation) break
     const binding = await ctx.db
       .query('encounterActorTokenBindings')
       .withIndex('by_encounterId_actorId', (query) =>

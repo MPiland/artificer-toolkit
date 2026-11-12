@@ -833,7 +833,7 @@ An authored Effect with invocation `{ kind: PASSIVE, triggerCode: HP_ZERO }` and
 trait that fires when the holder is defeated (Balor Death Throes). Discovery normalizes it to a
 `SAVING_THROW` area action but lists it in `passiveHpZeroEffects`, never in `available`, so it is not an
 ordinary action. After a command commits, `raiseRoomHpZeroEffects` (`roomEncounterHpZeroTriggers.ts`, called
-once at the room's `executeRoomEncounterCommand` funnel, not per root) diffs the newly defeated creatures and
+once per command by the room's after-commit step `settleRoomEncounterAfterCommit`, not per root) diffs the newly defeated creatures and
 raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admission described in
 [persistence](persistence.md). Auto-roll victims settle in the commit that raised it; a manual roller gets an
 `AREA_PENDING` in that commit. The burst is centred on the defeated token's footprint and catches every
@@ -1526,8 +1526,9 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `damageMirrorMechanicsBatch` builds the source's DAMAGE batch (derived command id, phase `DAMAGE_MIRROR`, each
   application marked `mirrored`, so it is never mirrored again; the source's own defenses apply as ordinary damage). The
   room collects a holder's pending mirrors when it persists the holder's batch and settles them as one post-settlement
-  step (`settleDamageMirrors`) in the same transaction, from the two commit seams: `executeRoomEncounterCommand` (before
-  and after its follow-up raises) and the voluntary Scene movement callbacks. The source is read fresh, so no upstream
+  step (`settleDamageMirrors`) in the same transaction, from the two commit seams: the room's after-commit step
+  (`settleRoomEncounterAfterCommit`, before and after the roots it raises; see
+  [live sessions](live-sessions.md#encounter-commands)) and the voluntary Scene movement callbacks. The source is read fresh, so no upstream
   copy of it is stale; `RoomEncounterStore.transact` fails a command that collected a mirror it never settled. A source
   absent from the Run, or a Run no longer ACTIVE, takes nothing. A mirror that landed marks the root `damageMirrored`,
   and undo of that root is a typed refusal (it can't give the source its damage back). Distance and source-at-0-hp are
@@ -2275,7 +2276,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   application that keeps the higher pool (phase `DEFEAT_REWARD`). No Convex function executes Encounter commands, so the room is the single
   settlement path and covers spell and weapon damage alike: `applyRoomEncounterMechanicsBatch` takes the root action's `damagerActorId` (the
   action's actor, or a Cleaving response's source), `collectDefeatReward` records a hostile defeat, and `settleDefeatRewards` gives the killer
-  its reward fresh, as a post-settlement step beside `settleDamageMirrors` (`settleFollowUps` in `roomEncounterCommands.ts`);
+  its reward fresh, as a post-settlement step beside `settleDamageMirrors` (the ledger stage of `settleRoomEncounterAfterCommit` in `roomEncounterAfterCommit.ts`);
   `RoomEncounterStore.transact` fails a command that collected a reward it never settled. A reward that landed marks the root `damageMirrored`,
   so undo of it is a typed refusal. Turn and zone damage have no damager and reward nothing.
 

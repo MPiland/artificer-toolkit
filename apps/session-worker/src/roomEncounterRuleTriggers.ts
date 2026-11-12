@@ -11,6 +11,7 @@ import {
   systemTriggerSelfCommand
 } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { raiseRoomChild } from './roomEncounterChildRaise.js'
 
 // The rule receipts one command and its answers can record before the Run moves on.
 const RULE_RECEIPT_SCAN_LIMIT = 256
@@ -29,12 +30,10 @@ export async function raiseRoomRuleEffects(input: {
   execute(command: ResolveEncounterActionInputDto): Promise<unknown>
 }) {
   const { ctx, encounterId } = input
-  const readRun = () =>
-    ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', encounterId))
-      .unique()
-  const first = await readRun()
+  const first = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (query) => query.eq('id', encounterId))
+    .unique()
   if (!first || first.status !== 'ACTIVE') return false
   const windowStart = await ruleTriggerWindowStart(ctx, encounterId)
   if (windowStart === null) return false
@@ -59,33 +58,34 @@ export async function raiseRoomRuleEffects(input: {
       failedSave.holderActorId,
       actionId
     )
-    const run = await readRun()
-    const waiting = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (query) =>
-        query.eq('encounterId', encounterId).eq('state', 'PENDING')
-      )
-      .first()
-    if (!run || run.status !== 'ACTIVE' || waiting) return committed
-    const raised = await ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_campaignId_commandId', (query) =>
-        query.eq('campaignId', run.campaignId).eq('commandId', raisedCommandId)
-      )
-      .unique()
-    const holder = await readRunActor(ctx, readRunState(run), failedSave.holderActorId)
-    if (raised || (await readEncounterActorDefeated(ctx, holder))) continue
-    await input.execute(
-      systemTriggerSelfCommand({
-        encounterId,
-        expectedVersion: run.version,
-        parentCommandId: receipt.commandId,
-        holderActorId: failedSave.holderActorId,
-        actionId,
-        trigger: 'RULE'
-      })
-    )
-    committed = true
+    const outcome = await raiseRoomChild({
+      ctx,
+      encounterId,
+      execute: input.execute,
+      command: async (run) => {
+        if (run.status !== 'ACTIVE') return null
+        const raised = await ctx.db
+          .query('encounterRunCommands')
+          .withIndex('by_campaignId_commandId', (query) =>
+            query.eq('campaignId', run.campaignId).eq('commandId', raisedCommandId)
+          )
+          .unique()
+        const holder = await readRunActor(ctx, readRunState(run), failedSave.holderActorId)
+        return raised || (await readEncounterActorDefeated(ctx, holder))
+          ? null
+          : systemTriggerSelfCommand({
+              encounterId,
+              expectedVersion: run.version,
+              parentCommandId: receipt.commandId,
+              holderActorId: failedSave.holderActorId,
+              actionId,
+              trigger: 'RULE'
+            })
+      }
+    })
+    // Unlike the hit-point and turn-start effects, a Run that waits on a decision stops the scan.
+    if (outcome === 'WAITING') return committed
+    if (outcome === 'RAISED') committed = true
   }
   return committed
 }
