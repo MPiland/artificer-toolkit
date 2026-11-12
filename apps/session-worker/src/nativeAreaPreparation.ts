@@ -794,9 +794,8 @@ export function reachCastPause(
     chosenActorIds: cast.chosenActorIds,
     // An attack at one creature is the single-target path's; a multi-creature action offers none.
     aimedAttackPerception: null,
-    reactionChildren: { recorded: [], committed: [], resumedOffer: null },
     // An area or a list is not resumed from a child action, so a counter to it resolves in its window.
-    resumesFromChildren: false,
+    reactionChildren: null,
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,

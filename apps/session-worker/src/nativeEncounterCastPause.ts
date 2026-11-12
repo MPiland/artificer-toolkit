@@ -87,7 +87,10 @@ export function createNativeCastPause(input: {
   /** Whether this replays a pending occurrence rather than opening one. */
   resumed: boolean
   usedReactions: readonly EncounterUsedReactionDto[]
-  /** The reactions chosen against this action that run as their holders' own child actions (D219). */
+  /**
+   * The reactions chosen against this action that run as their holders' own child actions (D219);
+   * null when the host never resumes the action from one, so a counter to it resolves in its window.
+   */
   reactionChildren: {
     /** The child the pending action records for each, with the roll mode it resumed with. */
     recorded: PendingReactionChildren
@@ -99,14 +102,13 @@ export function createNativeCastPause(input: {
       reactorActorId: string
       declinedReactorActorIds: readonly string[]
     } | null
-  }
-  /** Whether the host resumes this action from a child action, so a counter to it may run as one. */
-  resumesFromChildren: boolean
+  } | null
 }) {
   const { prepared, state, command } = input
-  const { resumedOffer } = input.reactionChildren
+  const children = input.reactionChildren ?? { recorded: [], committed: [], resumedOffer: null }
+  const { resumedOffer } = children
   const committedChild = (commandId: string) => {
-    const child = input.reactionChildren.committed.find((child) => child.commandId === commandId)
+    const child = children.committed.find((child) => child.commandId === commandId)
     if (!child) throw new Error('Reaction evidence is stale.')
     return child
   }
@@ -116,7 +118,7 @@ export function createNativeCastPause(input: {
    */
   const resolveReactionChildren = () =>
     Promise.all(
-      input.reactionChildren.recorded.map(async (recorded) => {
+      children.recorded.map(async (recorded) => {
         if (recorded.rollMode !== undefined) return recorded
         const { reactorActorId, actionId, imposesRollMode } = committedChild(recorded.commandId)
         if (!imposesRollMode) return { ...recorded, rollMode: null }
@@ -286,7 +288,7 @@ export function createNativeCastPause(input: {
       return {
         kind: 'NONE' as const,
         usedReactions: input.usedReactions,
-        reactionChildren: input.reactionChildren.recorded
+        reactionChildren: children.recorded
       }
     const counterResume = resumedOffer?.kind === 'COUNTER' ? resumedOffer : null
     const counteredCast = async (
@@ -314,15 +316,13 @@ export function createNativeCastPause(input: {
     // action cancelled the cast, the cast is lost with no counter of its own to spend (D219).
     if (
       counterResume &&
-      input.reactionChildren.recorded.some(
+      children.recorded.some(
         ({ commandId, rollMode }) =>
           rollMode === undefined && committedChild(commandId).cancelsTriggeringEvent
       )
     )
       return counteredCast(null, input.usedReactions)
-    const reactionChildren = resumedOffer
-      ? await resolveReactionChildren()
-      : input.reactionChildren.recorded
+    const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
     /** The action held at the offer just answered until the room has committed the child it names. */
     const awaitChild = async (
       advanced: Extract<Awaited<ReturnType<typeof advanceNativeCastReactions>>, { kind: 'CHILD' }>
@@ -396,7 +396,7 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds: counterResume
           ? [...counterResume.declinedReactorActorIds, counterResume.reactorActorId]
           : [],
-        runsAsChild: input.resumesFromChildren,
+        runsAsChild: input.reactionChildren !== null,
         autoRoll: input.requireAutoRoll,
         rollD20: () => (input.random ?? nextRollInt)(20) + 1,
         discover: await discoverCast(triggerLevel)
