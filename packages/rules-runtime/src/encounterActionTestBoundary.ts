@@ -75,6 +75,21 @@ export function nativeTestIdentity(input: NativeActionBaseInput) {
   }
 }
 
+/**
+ * The dice a sealed TEST rolled after its d20 (a roll table's die and its repeats). A later rebuild
+ * of the TEST reads them back by request instead of rolling.
+ */
+export function sealedTestDice(sealed: {
+  execution: ServerCompletedRuleExecutionDto
+  d20: { requestId: string }
+}) {
+  return sealed.execution.evidence.trace.flatMap(({ evidence }) =>
+    evidence && evidence.requestId !== sealed.d20.requestId
+      ? [{ requestId: evidence.requestId, value: evidence.value }]
+      : []
+  )
+}
+
 export async function requireNativeTestBoundary(input: {
   source: NativeActionBaseInput
   boundary: NativeActionTestBoundary

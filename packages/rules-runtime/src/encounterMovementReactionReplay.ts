@@ -1,5 +1,5 @@
+import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import {
-  advanceNativeActionGraphs,
   continueNativeActionAfterTest,
   type PendingNativeActionGraphs
 } from './encounterActionExecution.js'

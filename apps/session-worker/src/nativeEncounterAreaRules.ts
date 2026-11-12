@@ -34,10 +34,10 @@ import {
 import {
   absentEncounterActorIds,
   catchEncounterAreaActorIds,
-  encounterAreaTestDice,
   prepareEncounterAreaTests,
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import { sealedTestDice } from '@artificer-toolkit/rules-runtime/encounterActionTestBoundary'
 import { collisionDamageDiceConfig } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
@@ -557,7 +557,7 @@ async function recordAreaRoll(
       test: result,
       targetStateChecksum: checksumRuleDocument(entry.prepared.target)
     }),
-    encounterAreaTestDice(result.boundary)
+    sealedTestDice(result.boundary)
   )
 }
 

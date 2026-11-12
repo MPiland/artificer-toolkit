@@ -7,7 +7,7 @@ import {
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
-import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import { encounterAttackActionAttacks } from './encounterAttackAction.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
