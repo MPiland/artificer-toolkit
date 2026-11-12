@@ -5,6 +5,7 @@ import {
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterReadTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import {
   readRunActor,
@@ -46,7 +47,10 @@ import {
 } from './roomActionSceneInputs.js'
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
-import { readReactionChildCastLevel } from '@artificer-toolkit/encounter-persistence/reactionChildren'
+import {
+  readReactionChildAncestors,
+  readReactionChildCastLevel
+} from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
   readNativeEncounterActionResponseAdmission,
@@ -65,6 +69,30 @@ type SemanticResponse = {
     'revisions'
   >
 }[LiveSessionEncounterRulesResponse['kind']]
+
+/**
+ * What a reaction child's command reads from the held actions above it (D219): the level of the
+ * cast it answers, and those actions themselves. Nothing for any other command.
+ */
+async function readReactionChildHeldActions(
+  ctx: EncounterReadTransaction,
+  scope: { campaignId: string; encounterId: string },
+  command: Pick<ResolveEncounterActionInputDto, 'commandId' | 'actorId' | 'systemTrigger'>
+) {
+  if (command.systemTrigger?.trigger !== 'REACTION')
+    return { triggerCastLevel: null, reactionAncestors: [] }
+  const link = {
+    campaignId: scope.campaignId,
+    encounterId: scope.encounterId,
+    parentCommandId: command.systemTrigger.parentCommandId.toLowerCase(),
+    childCommandId: command.commandId.toLowerCase(),
+    reactorActorId: command.actorId.toLowerCase()
+  }
+  return {
+    triggerCastLevel: await readReactionChildCastLevel(ctx, link),
+    reactionAncestors: await readReactionChildAncestors(ctx, link)
+  }
+}
 
 /** Implemented room planners read the caller's admitted transaction and current room inputs. */
 export async function readRoomEncounterTurnCapture(
@@ -280,6 +308,7 @@ export async function readRoomEncounterTurnCapture(
       fingerprint: admission.fingerprint,
       snapshot: pending.snapshot,
       reactionChildren,
+      ...(await readReactionChildHeldActions(ctx, input, admission.input)),
       revisions: observed
     })
   }
@@ -336,17 +365,8 @@ export async function readRoomEncounterTurnCapture(
         : admission.kind === 'REPLAY'
           ? admission.result
           : null
-    const { systemTrigger } = admission.input
     const response = {
-      triggerCastLevel:
-        systemTrigger?.trigger === 'REACTION'
-          ? await readReactionChildCastLevel(ctx, {
-              campaignId: input.campaignId,
-              encounterId: input.encounterId,
-              parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
-              childCommandId: admission.input.commandId.toLowerCase()
-            })
-          : null,
+      ...(await readReactionChildHeldActions(ctx, input, admission.input)),
       ...(resumed
         ? {
             kind: 'ACTION_RESPONSE' as const,

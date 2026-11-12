@@ -106,7 +106,9 @@ export const liveSessionEncounterTurnCommandSchema = lazySchema(() =>
 /**
  * The committed child actions of the reactions chosen against a pending action (D219), in the order
  * the action records them: who reacted with what, and whether the child's committed execution
- * imposes a roll mode on the action's roll or cancels the action itself.
+ * imposes a roll mode on the action's roll or cancels the action itself. `descendantReactorActorIds`
+ * are the creatures whose own reactions committed under the child, down its tree: with the child's
+ * reactor, the creatures the Run changed while the action waited on that child.
  */
 const liveSessionReactionChildrenSchema = lazySchema(() =>
   z
@@ -116,12 +118,35 @@ const liveSessionReactionChildrenSchema = lazySchema(() =>
         reactorActorId: postgresUuidSchema,
         actionId: encounterActionIdSchema,
         imposesRollMode: z.boolean(),
-        cancelsTriggeringEvent: z.boolean()
+        cancelsTriggeringEvent: z.boolean(),
+        descendantReactorActorIds: z
+          .array(postgresUuidSchema)
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       })
     )
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 )
 export type LiveSessionReactionChild = z.infer<typeof liveSessionReactionChildrenSchema>[number]
+
+/**
+ * For a reaction child's command, the held actions above it, nearest first (D219): the action it was
+ * chosen against, the action that one answers, and so on up; empty for any other command. `reaction`
+ * marks an action that is itself a reaction, whose holder has spent its reaction on it though nothing
+ * of it has committed; `castSlotKey` is the spell slot the action's own cast spends when it commits,
+ * null when it spends none.
+ */
+const liveSessionReactionAncestorsSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        actorId: postgresUuidSchema,
+        reaction: z.boolean(),
+        castSlotKey: z.nullable(z.string())
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+export type LiveSessionReactionAncestor = z.infer<typeof liveSessionReactionAncestorsSchema>[number]
 
 /**
  * For a reaction child's command, the level of the cast it answers, as the held action it was
@@ -529,7 +554,8 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       command: resolveEncounterActionInputDtoSchema,
       fingerprint: projectionChecksumSchema,
       result: z.nullable(encounterCommandResultDtoSchema),
-      triggerCastLevel: liveSessionTriggerCastLevelSchema
+      triggerCastLevel: liveSessionTriggerCastLevelSchema,
+      reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
       kind: z.literal('ACTION_RESPONSE'),
@@ -544,7 +570,8 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       /** Set only when the answer belongs to a point-area action: the whole pending area. */
       areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema),
       reactionChildren: liveSessionReactionChildrenSchema,
-      triggerCastLevel: liveSessionTriggerCastLevelSchema
+      triggerCastLevel: liveSessionTriggerCastLevelSchema,
+      reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
       kind: z.literal('ACTION_RESUME'),
@@ -554,7 +581,9 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       fingerprint: projectionChecksumSchema,
       /** The pending action as its reaction choice left it. */
       snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema,
-      reactionChildren: liveSessionReactionChildrenSchema
+      reactionChildren: liveSessionReactionChildrenSchema,
+      triggerCastLevel: liveSessionTriggerCastLevelSchema,
+      reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
       kind: z.literal('AREA_REMOVAL'),

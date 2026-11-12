@@ -25824,7 +25824,7 @@
             },
             {
               "id": "QUALITY-9.T1c2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25835,7 +25835,8 @@
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
               "text": "Worker nesting on single-target casts: a reaction child offers its own cast to counters; ancestor holders are excluded; the ancestor's slot spend is projected into the child's capture; the source-changed currentness allowance in both layers; room tests for odd and even chains, a chain with a check, and undo and void of a nested chain.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T19:41:01Z",
+              "proof": "m713 (815256b13) from slice tip cf0cc2254: Tests 43288783349, Live 43288783038, Browser journeys 43288783314 green; red proof (Tests 43278596332 at 57c976765): nativeRoomCounterspell.test.ts RED, reactionChildren.test.ts RED. Every counter on a single-target cast runs as a REACTION child, and a child's own cast pause offers its cast to counters; ancestors that are reactions are excluded from their own offers (readReactionChildAncestors, reactionAncestors on capture); a held ancestor's castSlotKey is projected as spent for its caster; the currentness fences skip the checksum when a resumed child's reactor or descendant reactor is the action's source or target. Regression test: a counter whose stored-slot payment would differ from its projected one is not offered (it would spend the slot the held cast owes and wedge the resume). D196: ENCOUNTER_ACTION pending context gains optional castSlotKey. Area and chosen-list hosts keep the inline chain until QUALITY-9.T1b3."
             },
             {
               "id": "QUALITY-9.T1c3",
@@ -25867,7 +25868,7 @@
             },
             {
               "id": "QUALITY-9.T1e1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25877,7 +25878,8 @@
                 "after": ["QUALITY-9.T1c2"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
-              "text": "Reaction-die child contracts and persistence (inert): the post-roll offer shape that keeps the rolled d20; child recording and resume fences from that pending; the resolved-child record carries the rolled die so a replay does not roll again; subtractsFromTriggeringRoll on the committed-child read; reactor authority and summary for the decision."
+              "text": "Reaction-die child contracts and persistence (inert): the post-roll offer shape that keeps the rolled d20; child recording and resume fences from that pending; the resolved-child record carries the rolled die so a replay does not roll again; subtractsFromTriggeringRoll on the committed-child read; reactor authority and summary for the decision.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1e2",

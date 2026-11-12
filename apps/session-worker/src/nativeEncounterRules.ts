@@ -796,9 +796,21 @@ export async function planNativeLiveEncounterAction(
     snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
     // The retargeted action's facts are the new creature's, not the ones the offer was made against.
     !retargetOption &&
-    // A target whose own reaction child the action resumes from stands as that child left it (D219):
-    // the Run moved only by the child, which held both creatures to its own currentness until it committed.
-    resumedOffer?.reactorActorId !== prepared.target.id
+    // A source or target that reacted under the child the action resumes from stands as that child's
+    // tree left it (D219): the Run moved only by those actions, each of which held its own creatures to
+    // its own currentness until it committed.
+    !(
+      resumedOffer &&
+      pendingAdmission?.reactionChildren.some(
+        (child) =>
+          pendingContext?.reactionChildren?.some(
+            ({ commandId, rollMode }) => commandId === child.commandId && rollMode === undefined
+          ) &&
+          [child.reactorActorId, ...child.descendantReactorActorIds].some(
+            (actorId) => actorId === prepared.actor.id || actorId === prepared.target.id
+          )
+      )
+    )
   )
     throw new Error('The pending action source or target changed.')
   const resume =
@@ -948,7 +960,8 @@ export async function planNativeLiveEncounterAction(
       recorded: reactionChildren,
       // The committed child action of each reaction chosen against this action, if it is pending.
       committed: pendingAdmission?.reactionChildren ?? [],
-      resumedOffer
+      resumedOffer,
+      ancestors: 'reactionAncestors' in admission ? admission.reactionAncestors : []
     },
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
