@@ -7,27 +7,21 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import { settleEncounterAreaAction } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { encounterAreaTargetCommandId } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
-import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import {
   prepareNativeActionEffectsPlan,
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
-import { isMeleeAttackSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { effectsAfterEnding } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
-import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import {
   buildEncounterJoinedMaintenanceTransition,
   buildEncounterMaintenanceTransition
 } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
-import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
-import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import type { createNativeActiveEffect } from './nativeEncounterSettlement.js'
+import { planNativeActionTargetOutcome } from './nativeActionTargetOutcome.js'
+import type { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
-import {
-  actionEndedEffects,
-  targetEndedEffects
-} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import type { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
@@ -193,131 +187,10 @@ export async function planAreaOutcomes(args: {
         : heldEffects),
       ...earlierEffects
     ]
-    const effectInput = {
-      owner: nativeEffectOwner(prepared.target, state.id),
-      currentEffects: targetEffects,
-      occurredAt
-    }
     const applications = [...complete.applications, ...effects.relationshipConditionApplications]
     // A die the creature's d20 window spent on its save is used up with the action.
     for (const spent of windowSpentEffects(complete, input.activeEffectsByActorId, [actor]))
       damageEndedEffects.set(spent.id, spent)
-    const damageEnded = targetEndedEffects({
-      holderActorId: actor.id,
-      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
-        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
-      ),
-      attack: prepared.makesAttackRoll
-        ? { melee: isMeleeAttackSource(state.gameSystemId, prepared.source) }
-        : null,
-      testEvidence: [complete.d20, complete.nestedD20],
-      turnActorId: prepared.state.currentActorId,
-      applications,
-      damagerActorId: caster.id,
-      dispositions,
-      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
-        encounter: state,
-        holder: prepared.target,
-        held: prepared.targetFacts.activeEffects,
-        occurrenceId,
-        commandId,
-        ordinal: index,
-        activeEffectsByActorId: input.activeEffectsByActorId
-      })
-    })
-    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
-    const stateEffect =
-      effects.stateEffect && createNativeActiveEffect(effects.stateEffect, effectInput)
-    const recurringEffect =
-      effects.recurringEffect &&
-      createNativeActiveEffect(effects.recurringEffect, {
-        ...effectInput,
-        maintainedEffectStateId: joined?.id
-      })
-    const riderEffects = createLinkedRiders(
-      effects.riderEffects,
-      recurringEffect,
-      (plan) =>
-        plan &&
-        createNativeActiveEffect(plan, {
-          ...effectInput,
-          maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
-        })
-    )
-    const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
-    // The effect of a reaction the creature used on being chosen lands with its first outcome.
-    const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
-    const reactionRecord =
-      reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
-    // The target's own passive damage triggers make timed grants on it after its other effects.
-    const grantRecords = damageEnded.grants.map(({ id, effect }) =>
-      createNativeActiveEffect(effect, { ...effectInput, id })
-    )
-    const created = [
-      stateEffect,
-      recurringEffect,
-      ...riderEffects,
-      reactionRecord,
-      ...grantRecords
-    ].flatMap((effect) => (effect ? [effect] : []))
-    const effectTransitions = projectNativeActionEffectTransitions({
-      state: stateEffect,
-      recurring: recurringEffect,
-      riders: riderEffects,
-      targetActorId: actor.id
-    })
-    const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(
-      (effect) => effect.activeEffectId
-    )
-    const maintenanceTransition =
-      joined && maintenance
-        ? maintenanceCarried
-          ? buildEncounterJoinedMaintenanceTransition({
-              createdState: joined,
-              createdDependentEffectIds
-            })
-          : buildEncounterMaintenanceTransition({
-              maintenance,
-              createdState: joined,
-              createdDependentEffectIds
-            })
-        : null
-    if (joined) maintenanceCarried = true
-    createdEffects.set(actor.id, [...earlierEffects, ...created])
-    // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
-    const carriesSpend =
-      caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
-    const carriesUsedReactionSpend =
-      actor.id !== caster.id && usedReactorSlots.has(actor.id) && firstEntry
-    const enterForm =
-      recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
-    const mechanics = planNativeEncounterActionMechanics(
-      {
-        // The caster's own outcome pays what the cast settled, a damage reroll included (D208).
-        prepared: carriesSpend
-          ? { ...prepared, characterActionState: lead.characterActionState }
-          : prepared,
-        encounterId: state.id,
-        expectedEncounterVersion: state.version,
-        occurrenceId,
-        sourceCommandId: command.commandId,
-        commandId,
-        occurredAt,
-        applications,
-        damageReleases: damageEnded.releases,
-        grantedMaximumHitPoints: effects.hitPointMaximumRaise,
-        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
-        forceTargetVersionAdvance:
-          prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesUsedReactionSpend),
-        ...(carriesSpend
-          ? { sourceReleases, counterSpellConsumptions: casterCounterConsumptions }
-          : {}),
-        ...(enterForm ? { enterForm } : {})
-      },
-      userId
-    )
-    if (kept.some((later, laterIndex) => laterIndex > index && later.actor.id === actor.id))
-      advanced.set(actor.id, advanceAreaPrepared(prepared, mechanics.targetPlan, occurredAt))
     // Only the cast's own entries and the creatures its movers struck made the saves a Legendary
     // Resistance audit answers.
     const isStruck = index >= struckStart
@@ -347,6 +220,78 @@ export async function planAreaOutcomes(args: {
         currentFeatureResource: resource
       })
     }
+    const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
+    // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
+    const carriesSpend =
+      caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
+    const carriesUsedReactionSpend =
+      actor.id !== caster.id && usedReactorSlots.has(actor.id) && firstEntry
+    const outcome = planNativeActionTargetOutcome({
+      // The caster's own outcome pays what the cast settled, a damage reroll included (D208).
+      prepared: carriesSpend
+        ? { ...prepared, characterActionState: lead.characterActionState }
+        : prepared,
+      testEvidence: [complete.d20, complete.nestedD20],
+      occurrenceId,
+      commandId,
+      sourceCommandId: command.commandId,
+      occurredAt,
+      userId,
+      effects,
+      applications,
+      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
+        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
+      ),
+      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+        encounter: state,
+        holder: prepared.target,
+        held: prepared.targetFacts.activeEffects,
+        occurrenceId,
+        commandId,
+        ordinal: index,
+        activeEffectsByActorId: input.activeEffectsByActorId
+      }),
+      damagerActorId: caster.id,
+      dispositions,
+      currentEffects: targetEffects,
+      maintainedState: joined,
+      // The effect of a reaction the creature used on being chosen lands with its first outcome.
+      reactionEffect: (firstEntry ? reactionEffects?.get(actor.id) : undefined) ?? null,
+      grants: [],
+      formCreature: formCreature ?? null,
+      targetSpends: carriesUsedReactionSpend,
+      charge: resistance?.charge ?? null,
+      reactionEconomy: null,
+      mechanics: carriesSpend
+        ? {
+            sourceSpend: 'WITH_OUTCOME',
+            sourceReleases,
+            counterSpellConsumptions: casterCounterConsumptions
+          }
+        : { sourceSpend: 'NONE' }
+    })
+    const { mechanics, createdEffects: created, effectTransitions } = outcome
+    for (const ended of outcome.damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
+    const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(
+      (effect) => effect.activeEffectId
+    )
+    const maintenanceTransition =
+      joined && maintenance
+        ? maintenanceCarried
+          ? buildEncounterJoinedMaintenanceTransition({
+              createdState: joined,
+              createdDependentEffectIds
+            })
+          : buildEncounterMaintenanceTransition({
+              maintenance,
+              createdState: joined,
+              createdDependentEffectIds
+            })
+        : null
+    if (joined) maintenanceCarried = true
+    createdEffects.set(actor.id, [...earlierEffects, ...created])
+    if (kept.some((later, laterIndex) => laterIndex > index && later.actor.id === actor.id))
+      advanced.set(actor.id, advanceAreaPrepared(prepared, mechanics.targetPlan, occurredAt))
     children.push({
       actorId: actor.id,
       occurrenceId,
@@ -369,19 +314,8 @@ export async function planAreaOutcomes(args: {
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
         targetReactorSpend: carriesUsedReactionSpend,
-        reactionEffectTransitions: projectNativeActionEffectTransitions({
-          state: null,
-          recurring: reactionRecord ?? null,
-          targetActorId: actor.id
-        }).activeEffectTransitions,
-        grantEffectTransitions: grantRecords.flatMap(
-          (grant) =>
-            projectNativeActionEffectTransitions({
-              state: null,
-              recurring: grant,
-              targetActorId: actor.id
-            }).activeEffectTransitions
-        )
+        reactionEffectTransitions: outcome.reactionEffectTransitions,
+        grantEffectTransitions: outcome.grantEffectTransitions
       })
     })
   }
