@@ -25,7 +25,7 @@ import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { castPendingContinues } from './actionPending.js'
-import { reactionChildrenKept } from './reactionChildren.js'
+import { reactionChildrenKept, suspendReactionChildParent } from './reactionChildren.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -273,6 +273,16 @@ export async function persistEncounterActionPending(
     .unique()
   if (collision && collision._id !== resume?.occurrence._id)
     throw new Error('Encounter rule occurrence ID was already used.')
+  // A reaction's own action that pauses becomes the Run's one pending decision, so the action it
+  // was chosen against waits suspended until this one commits or the GM voids it (D219).
+  const { systemTrigger } = admission.input
+  if (!resume && systemTrigger?.trigger === 'REACTION')
+    await suspendReactionChildParent(ctx, {
+      campaignId: campaign.id,
+      encounterId: run.id,
+      parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
+      childCommandId: admission.input.commandId
+    })
   const updatedAt = new Date().toISOString()
   const value = encounterStoredRuleOccurrenceSchema.parse({
     id: snapshot.occurrenceId,

@@ -96,7 +96,8 @@ export function systemTriggerSelfCommand(input: {
 /**
  * The root command for the action of a reaction its holder chose against a pending action (D219):
  * the holder's own action at the creature the reaction names, raised by that pending action's root
- * command. Admission proves it against the pending action's record of this command id.
+ * command. Admission proves it against the pending action's record of this command id. It names the
+ * tokens of the Scene the reaction was offered on, so its range is judged there like any action's.
  */
 export function systemTriggerReactionCommand(input: {
   encounterId: string
@@ -105,6 +106,7 @@ export function systemTriggerReactionCommand(input: {
   holderActorId: string
   actionId: string
   targetActorId: string
+  sceneContext: ResolveEncounterActionInputDto['sceneContext']
 }): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
@@ -116,7 +118,7 @@ export function systemTriggerReactionCommand(input: {
     target: { kind: 'ACTOR', actorId: input.targetActorId },
     acceptedWieldConflict: null,
     acknowledgedWarnings: [],
-    sceneContext: null,
+    sceneContext: input.sceneContext,
     systemTrigger: { parentCommandId: input.parentCommandId, trigger: 'REACTION' }
   }
 }

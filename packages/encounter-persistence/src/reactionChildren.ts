@@ -3,7 +3,7 @@ import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liv
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
-import { readPendingSnapshot } from './pendingSnapshots.js'
+import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
 type ReactionChildLink = {
@@ -14,33 +14,59 @@ type ReactionChildLink = {
   childCommandId: string
 }
 
-/**
- * The pending action a reaction's child action answers (D219), or null when no pending action of
- * this Run records that child. The record is the proof: the pending action's own context names the
- * child command of each reaction chosen against it, so an open offer alone admits nothing.
- */
-export async function readReactionChildParent(ctx: EncounterReadContext, input: ReactionChildLink) {
+/** The held action that records a reaction child, with the sealed snapshot that records it. */
+async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChildLink) {
   const parent = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_campaignId_rootCommandId', (query) =>
       query.eq('campaignId', input.campaignId).eq('rootCommandId', input.parentCommandId)
     )
     .unique()
-  if (parent?.encounterId !== input.encounterId || parent.state !== 'PENDING') return null
+  if (
+    parent?.encounterId !== input.encounterId ||
+    (parent.state !== 'PENDING' && parent.state !== 'SUSPENDED')
+  )
+    return null
   const snapshot = await readPendingSnapshot(ctx, parent)
-  const recorded =
-    snapshot?.snapshotKind === 'KERNEL_EVIDENCE' &&
-    snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-    snapshot.applicationContext.reactionChildren?.some(
+  if (
+    snapshot?.snapshotKind !== 'KERNEL_EVIDENCE' ||
+    snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+    !snapshot.applicationContext.reactionChildren?.some(
       ({ commandId }) => commandId === input.childCommandId
     )
-  return recorded ? parent : null
+  )
+    return null
+  return { parent, snapshot, context: snapshot.applicationContext }
 }
 
 /**
- * Moves the pending action a committed reaction child answers to the Run version the child
- * produced. A pending action is pinned to one Run version, so its later answers and its own commit
- * are fenced on the Run as the child left it.
+ * The held action a reaction's child action answers (D219), or null when no held action of this Run
+ * records that child. The record is the proof: the action's own context names the child command of
+ * each reaction chosen against it, so an open offer alone admits nothing. The action is pending, or
+ * suspended while that child is the Run's pending decision.
+ */
+export async function readReactionChildParent(ctx: EncounterReadContext, input: ReactionChildLink) {
+  return (await readRecordingParent(ctx, input))?.parent ?? null
+}
+
+/**
+ * Suspends the pending action a reaction child answers when that child pauses on evidence of its
+ * own, in the transaction that stores the child's pending decision, so the Run keeps one pending
+ * decision: the child's.
+ */
+export async function suspendReactionChildParent(
+  ctx: EncounterWriteContext,
+  input: ReactionChildLink
+) {
+  const parent = await readReactionChildParent(ctx, input)
+  if (parent?.state !== 'PENDING') throw new Error('The reaction’s pending action is gone.')
+  await ctx.db.patch(parent._id, { state: 'SUSPENDED' })
+}
+
+/**
+ * Moves the held action a committed reaction child answers to the Run version the child produced,
+ * and returns it to pending if the child had paused. A pending action is pinned to one Run version,
+ * so its later answers and its own commit are fenced on the Run as the child left it.
  */
 export async function repinReactionChildParent(
   ctx: EncounterWriteContext,
@@ -48,7 +74,54 @@ export async function repinReactionChildParent(
 ) {
   const parent = await readReactionChildParent(ctx, input)
   if (!parent) throw new Error('The reaction’s pending action is gone.')
-  await ctx.db.patch(parent._id, { expectedEncounterVersion: input.version })
+  await ctx.db.patch(parent._id, { state: 'PENDING', expectedEncounterVersion: input.version })
+}
+
+/**
+ * Returns the suspended action to pending when the GM voids the paused child it waited on: the
+ * child is dropped from its record, so its answered offer stands open again, pinned to the Run
+ * version the void produced.
+ */
+export async function releaseReactionChildParent(
+  ctx: EncounterWriteContext,
+  input: ReactionChildLink & { version: number }
+) {
+  const recording = await readRecordingParent(ctx, input)
+  if (recording?.parent.state !== 'SUSPENDED')
+    throw new Error('The reaction’s pending action is gone.')
+  const { parent, snapshot } = recording
+  const { reactionChildren = [], ...context } = recording.context
+  const kept = reactionChildren.filter(({ commandId }) => commandId !== input.childCommandId)
+  await ctx.db.patch(parent._id, {
+    state: 'PENDING',
+    version: parent.version + 1,
+    expectedEncounterVersion: input.version,
+    pendingSnapshotChecksum: await writePendingSnapshot(ctx, parent, {
+      ...snapshot,
+      applicationContext: { ...context, ...(kept.length > 0 && { reactionChildren: kept }) }
+    }),
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/**
+ * How many GM voids the Run recorded after one version, up to and including another. While an action
+ * is held, the Run moves only by its reaction children: each commit, and each void of a paused one.
+ */
+export async function countRunVoids(
+  ctx: EncounterReadContext,
+  input: { encounterId: string; afterVersion: number; throughVersion: number }
+) {
+  const commands = await ctx.db
+    .query('encounterRunCommands')
+    .withIndex('by_encounterId_version', (query) =>
+      query
+        .eq('encounterId', input.encounterId)
+        .gt('version', input.afterVersion)
+        .lte('version', input.throughVersion)
+    )
+    .take(MAX_ENCOUNTER_ACTORS + 1)
+  return commands.filter(({ commandType }) => commandType === 'VOID_RULE_OCCURRENCE').length
 }
 
 /**

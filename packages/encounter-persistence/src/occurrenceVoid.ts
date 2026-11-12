@@ -6,6 +6,7 @@ import {
   type ResolveRuleOccurrenceInputDto,
   type VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterStoredDecisionSkipSchema,
@@ -30,7 +31,7 @@ import type {
   EncounterWritePorts
 } from './ports.js'
 import { revertLastEncounterAction } from './actionRevert.js'
-import { countCommittedReactionChildren } from './reactionChildren.js'
+import { countCommittedReactionChildren, releaseReactionChildParent } from './reactionChildren.js'
 
 type VoidChatTransaction = EncounterPersistenceTransaction & {
   readonly ports: EncounterPersistenceTransaction['ports'] &
@@ -375,6 +376,20 @@ export async function prepareRuleOccurrenceVoid(
     .withIndex('by_publicId', (q) => q.eq('id', run.id))
     .unique()
   if (!current) throw new Error('Encounter is unavailable.')
+  // A paused reaction child spent nothing yet, so its cancel only reopens the offer it answered: the
+  // action it was chosen against leaves its suspension on the Run version this void produces (D219).
+  const reaction =
+    context?.kind === 'ENCOUNTER_ACTION' && !context.contest
+      ? resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson)).systemTrigger
+      : undefined
+  if (reaction?.trigger === 'REACTION')
+    await releaseReactionChildParent(ctx, {
+      campaignId: run.campaignId,
+      encounterId: run.id,
+      parentCommandId: reaction.parentCommandId.toLowerCase(),
+      childCommandId: occurrence.rootCommandId,
+      version: current.version + 1
+    })
   return {
     kind: 'COMPLETE',
     result: await recordVoid(

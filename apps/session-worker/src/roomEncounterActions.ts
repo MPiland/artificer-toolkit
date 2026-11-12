@@ -12,6 +12,7 @@ import { persistEncounterActionChildren } from '@artificer-toolkit/encounter-per
 import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
+import { readReactionChildParent } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import type {
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
@@ -194,59 +195,76 @@ export async function executeRoomEncounterAction(input: {
       },
       callbacks
     )
-  if (plan.kind === 'AREA_COMMIT')
-    return persistEncounterAreaCommit(
-      ctx,
-      { ...buildNativeLiveEncounterAreaCommitInput(scope, plan), revisions },
-      {
-        ...callbacks,
-        applySummonTokens: (summon) =>
-          applyRoomSummonTokens({ ctx, transaction, userId: scope.expectedUserId, summon }),
-        bindConcentrationApplications: (state, applications) =>
-          bindEncounterConcentrationApplications(ctx, state, applications),
-        persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
-      }
-    )
-  if (plan.kind === 'COUNTERED')
-    return persistEncounterCounteredCastCommit(
-      ctx,
-      { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
-      callbacks
-    )
-  if (plan.kind === 'GATED')
-    return persistEncounterGatedActionCommit(
-      ctx,
-      { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
-      callbacks
-    )
-  if (plan.kind === 'PLANNED')
-    return persistEncounterActionCommit(
+  if (
+    plan.kind === 'PENDING' ||
+    plan.kind === 'CAST_PENDING' ||
+    plan.kind === 'GATE_PENDING' ||
+    plan.kind === 'RETARGET_PENDING'
+  ) {
+    const pending = await persistEncounterActionPending(
       ctx,
       {
-        ...buildNativeLiveEncounterActionCommitInput(scope, plan),
+        ...buildNativeLiveEncounterActionPendingInput(scope, plan),
         revisions
       },
       callbacks
     )
-  const pending = await persistEncounterActionPending(
-    ctx,
-    {
-      ...buildNativeLiveEncounterActionPendingInput(scope, plan),
-      revisions
-    },
-    callbacks
-  )
-  if (plan.kind !== 'CAST_PENDING' || !plan.reactionChild) return pending
-  // A chosen reaction runs as its own action, and the room then resumes the held action in the same turn (D219).
-  await executeRoomEncounterAction({
-    ...input,
-    command: systemTriggerReactionCommand({
-      encounterId: scope.encounterId,
-      expectedVersion: scope.expectedVersion,
-      parentCommandId: plan.command.commandId,
-      ...plan.reactionChild
+    if (plan.kind !== 'CAST_PENDING' || !plan.reactionChild) return pending
+    // A chosen reaction runs as its own action in the same turn (D219). It commits and the room
+    // resumes the held action below, or it pauses on evidence of its own and suspends that action.
+    return executeRoomEncounterAction({
+      ...input,
+      command: systemTriggerReactionCommand({
+        encounterId: scope.encounterId,
+        expectedVersion: scope.expectedVersion,
+        parentCommandId: plan.command.commandId,
+        ...plan.reactionChild
+      })
     })
+  }
+  const committed =
+    plan.kind === 'AREA_COMMIT'
+      ? await persistEncounterAreaCommit(
+          ctx,
+          { ...buildNativeLiveEncounterAreaCommitInput(scope, plan), revisions },
+          {
+            ...callbacks,
+            applySummonTokens: (summon) =>
+              applyRoomSummonTokens({ ctx, transaction, userId: scope.expectedUserId, summon }),
+            bindConcentrationApplications: (state, applications) =>
+              bindEncounterConcentrationApplications(ctx, state, applications),
+            persistConcentrationChildren: (children) =>
+              persistRoomConcentrationChildren(ctx, children)
+          }
+        )
+      : plan.kind === 'COUNTERED'
+        ? await persistEncounterCounteredCastCommit(
+            ctx,
+            { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
+            callbacks
+          )
+        : plan.kind === 'GATED'
+          ? await persistEncounterGatedActionCommit(
+              ctx,
+              { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
+              callbacks
+            )
+          : await persistEncounterActionCommit(
+              ctx,
+              { ...buildNativeLiveEncounterActionCommitInput(scope, plan), revisions },
+              callbacks
+            )
+  const { systemTrigger } = captured.command
+  if (systemTrigger?.trigger !== 'REACTION') return committed
+  // A committed reaction child returns the room to the action it answered, in the same turn: at
+  // once when it never paused, or from the answer that completed it (D219).
+  const parent = await readReactionChildParent(ctx, {
+    campaignId: scope.campaignId,
+    encounterId: scope.encounterId,
+    parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
+    childCommandId: captured.command.commandId.toLowerCase()
   })
+  if (!parent) throw new Error('The reaction’s pending action is gone.')
   const expectedVersion = scope.expectedVersion + 1
   return executeRoomEncounterAction({
     ...input,
@@ -255,8 +273,8 @@ export async function executeRoomEncounterAction(input: {
       type: 'RESUME_ACTION',
       encounterId: scope.encounterId,
       expectedVersion,
-      occurrenceId: plan.occurrenceId,
-      expectedOccurrenceVersion: plan.occurrenceVersion
+      occurrenceId: parent.id,
+      expectedOccurrenceVersion: parent.version
     }
   })
 }

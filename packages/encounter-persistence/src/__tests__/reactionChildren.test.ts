@@ -23,9 +23,12 @@ import { writePendingSnapshot } from '../pendingSnapshots.js'
 import {
   awaitsReactionChild,
   countCommittedReactionChildren,
+  countRunVoids,
   reactionChildrenKept,
   readReactionChildParent,
-  repinReactionChildParent
+  releaseReactionChildParent,
+  repinReactionChildParent,
+  suspendReactionChildParent
 } from '../reactionChildren.js'
 import { readNativeEncounterActionResumeAdmission } from '../actionResumeAdmission.js'
 import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
@@ -72,7 +75,8 @@ const reactionChild = (expectedVersion = ROOT_VERSION, parentCommandId = PARENT_
     parentCommandId,
     holderActorId: PROTECTOR_ID,
     actionId: REACTION_ACTION_ID,
-    targetActorId: ATTACKER_ID
+    targetActorId: ATTACKER_ID,
+    sceneContext: null
   })
 
 const link = {
@@ -465,6 +469,118 @@ describe('admitting the room’s resume of a pending action (D219)', () => {
     await expect(resumeOf(paused, { expectedVersion: ROOT_VERSION + 1 })).rejects.toThrow(
       'VERSION_STALE'
     )
+  })
+})
+
+describe('suspending the pending action while its reaction child is the pending decision (D219)', () => {
+  /** The GM's void of a paused child, recorded on the Run at `version`. */
+  const insertVoid = (memory: ReturnType<typeof createMemoryEncounterStore>, version: number) =>
+    memory.store.insert(
+      'encounterRunCommands',
+      encounterStoredRunCommandSchema.parse({
+        id: crypto.randomUUID(),
+        campaignId: CAMPAIGN_ID,
+        encounterId: ENCOUNTER_ID,
+        commandId: crypto.randomUUID(),
+        commandType: 'VOID_RULE_OCCURRENCE',
+        ruleOccurrenceId: crypto.randomUUID(),
+        commandFingerprint: checksum('f'),
+        actorUserId: USER_ID,
+        version,
+        commandJson: '{}',
+        replayReceiptJson: '{}',
+        replayReceiptChecksum: checksum('e'),
+        createdAt: TIMESTAMP
+      })
+    )
+
+  it('suspends the action that records the child, which still reads as the child’s parent', async () => {
+    const { ctx, occurrence } = await pausedAttack(recorded)
+    await suspendReactionChildParent(ctx, link)
+    expect(occurrence().state).toBe('SUSPENDED')
+    expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION)
+    expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
+  })
+
+  it('refuses to suspend an action that does not record the child, or is already suspended', async () => {
+    const open = await pausedAttack()
+    await expect(suspendReactionChildParent(open.ctx, link)).rejects.toThrow(
+      'The reaction’s pending action is gone.'
+    )
+    expect(open.occurrence().state).toBe('PENDING')
+    const { ctx } = await pausedAttack(recorded)
+    await suspendReactionChildParent(ctx, link)
+    await expect(suspendReactionChildParent(ctx, link)).rejects.toThrow(
+      'The reaction’s pending action is gone.'
+    )
+  })
+
+  it('returns the suspended action to pending when the child commits and re-pins it', async () => {
+    const { ctx, occurrence } = await pausedAttack(recorded)
+    await suspendReactionChildParent(ctx, link)
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect(occurrence().state).toBe('PENDING')
+    expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION + 1)
+    expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual(
+      recorded.reactionChildren
+    )
+  })
+
+  it('releases the suspended action when its paused child is voided: pending, the child dropped', async () => {
+    const { ctx, memory, occurrence } = await pausedAttack(recorded)
+    await suspendReactionChildParent(ctx, link)
+    const suspended = occurrence()
+    await insertVoid(memory, ROOT_VERSION + 1)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect(occurrence().state).toBe('PENDING')
+    expect(occurrence().version).toBe(suspended.version + 1)
+    expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION + 1)
+    expect(occurrence().pendingSnapshotChecksum).not.toBe(suspended.pendingSnapshotChecksum)
+    // The Run version the void produced is accounted for by the void itself, not a recorded child.
+    const pending = await readNativeActionPending(ctx, occurrence())
+    expect(pending.command).toEqual(parentCommand)
+    expect(pending.context.reactionChildren).toBeUndefined()
+    expect(await readReactionChildParent(ctx, link)).toBeNull()
+  })
+
+  it('keeps the children the action already resumed from when a later one is voided', async () => {
+    const earlier = testUuid(0x8a13)
+    const { ctx, memory, occurrence } = await pausedAttack({
+      reactionChildren: [
+        { commandId: earlier, rollMode: 'DISADVANTAGE' },
+        ...recorded.reactionChildren
+      ]
+    })
+    await memory.store.patch(occurrence()._id, { expectedEncounterVersion: ROOT_VERSION + 1 })
+    await suspendReactionChildParent(ctx, link)
+    await insertVoid(memory, ROOT_VERSION + 2)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 2 })
+    expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual([
+      { commandId: earlier, rollMode: 'DISADVANTAGE' }
+    ])
+  })
+
+  it('refuses to release an action that is not suspended', async () => {
+    const { ctx, occurrence } = await pausedAttack(recorded)
+    await expect(
+      releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    ).rejects.toThrow('The reaction’s pending action is gone.')
+    expect(occurrence().state).toBe('PENDING')
+    expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION)
+  })
+
+  it('counts the Run’s voids after one version, through another', async () => {
+    const { ctx, memory, state } = await pausedAttack(recorded)
+    await insertVoid(memory, ROOT_VERSION + 1)
+    await insertCommittedAction(memory, state, reactionChild(ROOT_VERSION + 1), ROOT_VERSION + 2)
+    await insertVoid(memory, ROOT_VERSION + 3)
+    const count = (afterVersion: number, throughVersion: number) =>
+      countRunVoids(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
+    expect(await count(ROOT_VERSION, ROOT_VERSION + 3)).toBe(2)
+    // The lower bound is exclusive and the upper inclusive.
+    expect(await count(ROOT_VERSION + 1, ROOT_VERSION + 3)).toBe(1)
+    expect(await count(ROOT_VERSION, ROOT_VERSION + 2)).toBe(1)
+    expect(await count(ROOT_VERSION + 3, ROOT_VERSION + 4)).toBe(0)
   })
 })
 

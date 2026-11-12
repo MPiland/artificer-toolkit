@@ -231,7 +231,17 @@ describe('Protection against an attack on another creature in the room (SPELLS-3
     })
     expect(children).toHaveLength(1)
     const [child] = children
-    expect(child).toMatchObject({ actorId: REACTOR_ACTOR_ID, sceneContext: null })
+    // The child is judged on the Scene the reaction was offered on: the reactor's token at the
+    // attacker's.
+    const reactorScene = room.sceneContext(2)
+    expect(child).toMatchObject({
+      actorId: REACTOR_ACTOR_ID,
+      sceneContext: {
+        ...reactorScene,
+        sourceTokenId: reactorScene.targetTokenId,
+        targetTokenId: reactorScene.sourceTokenId
+      }
+    })
     const receipt = history.receipts.find(({ commandId }) => commandId === child!.commandId)
     if (!receipt) throw new Error('The reaction left no receipt.')
     expect(parseReceiptExecution(receipt).status).toBe('COMPLETE')

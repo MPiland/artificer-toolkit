@@ -26,7 +26,8 @@ export function projectEncounterSpatialOccurrenceSummary(
   occurrence: {
     id: string
     version: number
-    state: 'PENDING' | 'COMPLETED' | 'VOIDED'
+    /** The stored state; only an action is ever `SUSPENDED`, which holds its snapshot as `PENDING` does. */
+    state: 'PENDING' | 'SUSPENDED' | 'COMPLETED' | 'VOIDED'
     pendingSnapshot: ServerRuleExecutionPendingSnapshotDto | null
   },
   encounterVersion: number,
@@ -35,7 +36,7 @@ export function projectEncounterSpatialOccurrenceSummary(
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): EncounterRuleOccurrenceSummaryDto {
   const controls = (actorId: string) => viewer.controlledActorIds.has(actorId)
-  if (occurrence.state !== 'PENDING') {
+  if (occurrence.state === 'COMPLETED' || occurrence.state === 'VOIDED') {
     return {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,

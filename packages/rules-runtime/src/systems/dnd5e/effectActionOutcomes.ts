@@ -399,6 +399,20 @@ export function dnd5eReactionOnlyOutcomeRefusal(effectKind: string, invocation: 
 }
 
 /**
+ * The outcome a result path of a reaction's own test proposes to resume the event or roll the
+ * reaction answered (D219): the one its reaction trigger resumes by. Null for any other outcome.
+ */
+export function dnd5eTestPathResumeOutcome(
+  outcome: Dnd5eAuthoredOutcome,
+  invocation: object | null
+) {
+  const resume = reactionTriggerRow(invocation)?.resume
+  return resume && 'outcome' in resume && outcome.effectKind === resume.outcome
+    ? { kind: resume.outcome }
+    : null
+}
+
+/**
  * The target-only outcome a test's result path proposes (RULES-2.T6c2). Refuses an outcome a test
  * cannot carry for its own reason; null for any other outcome, which the caller reads on.
  */

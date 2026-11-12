@@ -825,7 +825,11 @@ export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
       campaignId: postgresUuidSchema,
       encounterId: postgresUuidSchema,
       rootCommandId: postgresUuidSchema,
-      state: z.enum(['PENDING', 'COMPLETED', 'VOIDED']),
+      /**
+       * `SUSPENDED` is a pending action waiting on the paused child action of a reaction chosen
+       * against it (D219): it keeps its snapshot, and the child is the Run's one `PENDING` decision.
+       */
+      state: z.enum(['PENDING', 'SUSPENDED', 'COMPLETED', 'VOIDED']),
       version: z.number().check(z.int()).check(z.nonnegative()),
       expectedEncounterVersion: z.number().check(z.int()).check(z.nonnegative()),
       /** The pending snapshot's checksum; its content is in `encounterPendingSnapshotParts`. */
@@ -837,7 +841,7 @@ export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
     .check(
       z.superRefine((occurrence, context) => {
         if (
-          occurrence.state !== 'PENDING'
+          occurrence.state === 'COMPLETED' || occurrence.state === 'VOIDED'
             ? occurrence.pendingSnapshotChecksum !== null || occurrence.completedAt === null
             : occurrence.pendingSnapshotChecksum === null || occurrence.completedAt !== null
         )

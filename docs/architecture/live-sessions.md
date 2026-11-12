@@ -213,6 +213,10 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   (`readNativeEncounterActionResumeAdmission`). The client frame schema has no such command, and admission
   refuses it unless the pending action records a committed child it has not resumed from. It names the
   occurrence, carries no command id and writes no receipt; the parent's own commit is the next Run version.
+  When the child pauses on evidence of its own the parent waits suspended (QUALITY-8.T1b), and the room
+  raises the resume from whichever command commits the child, such as the answer to the child's save. That
+  answer may come from another creature's controller, so the resume is admitted for the room, not for the
+  parent's roller.
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").
