@@ -1,6 +1,12 @@
 import type { z } from 'zod'
-import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  encounterCommandResultDtoSchema,
+  type EncounterCommandResultDto
+} from '@artificer-toolkit/schema/api/encounterData'
+import type {
+  ResolveEncounterActionInputDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
   LiveSessionForcedMovement,
   LiveSessionSummonedToken
@@ -20,10 +26,15 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { changedFields } from './documents.js'
+import type { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
+import type { projectNativeGm } from './nativeProjection.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { repinReactionChildParent } from './reactionChildren.js'
+import type { EncounterReadTransaction } from './ports.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
+import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 
@@ -106,26 +117,36 @@ export type ApplyEncounterSummonTokens = (input: {
 }) => Promise<{ sceneId: string; sceneCommandId: string; tokenId: string; actorId: string }[]>
 
 /**
- * Records a committed action: advances the Run, stores the root's one receipt and inserts the one
- * RESOLVE_ACTION command a replay and an undo find it by. A reaction's own action also moves the
- * pending action it answers to the Run version it produced (D219).
+ * The tail every terminal action commit ends with (single-target, area, countered cast and gated
+ * action), once its occurrence is completed and its actors are written: the command result, the
+ * root's record, the evidence receipt of the answer that resumed it, and the result as its member
+ * may see it.
+ *
+ * The record advances the Run, stores the root's one receipt and inserts the one RESOLVE_ACTION
+ * command a replay and an undo find it by. A reaction's own action also moves the pending action it
+ * answers to the Run version it produced (D219).
  */
-export async function recordActionRoot(
-  ctx: EncounterWriteContext,
+export async function recordActionCommit(
+  ctx: EncounterReadTransaction & EncounterWriteContext,
   input: {
-    run: EncounterDocument<'encounterRuns'>
-    state: EncounterRunState
-    nextState: EncounterRunState
+    admission: Pick<
+      Exclude<Awaited<ReturnType<typeof readLiveEncounterActionAdmission>>, { kind: 'REPLAY' }>,
+      'run' | 'state' | 'fingerprint' | 'campaign' | 'membership' | 'initiatorUserId' | 'resume'
+    >
     command: ResolveEncounterActionInputDto
-    fingerprint: string
-    initiatorUserId: string
+    nextState: EncounterRunState
+    projection: Awaited<ReturnType<typeof projectNativeGm>>
+    /** The root occurrence, as `completeActionOccurrence` settled it. */
+    completedOccurrence: Awaited<ReturnType<typeof completeActionOccurrence>>
     execution: StoredRuleExecutionResultDto
     definitionId: string
     /** Validated by the receipt metadata schema; a single-target result may not carry one. */
     factsChecksum: string | undefined
-    result: EncounterCommandResultDto
     /** The spell cast's own pending ability-check occurrence (D182), when it pended one. */
-    checkOccurrenceId?: string
+    pendingCheck?: { occurrenceId: string; pending: unknown }
+    /** The answer this commit settled; the room's own resume answers no request. */
+    response: ResolveRuleOccurrenceInputDto | null | undefined
+    userId: string
     commandFields: Pick<
       Extract<z.infer<typeof encounterStoredRunCommandSchema>, { commandType: 'RESOLVE_ACTION' }>,
       | 'label'
@@ -158,10 +179,28 @@ export async function recordActionRoot(
       >
     occurredAt: string
   }
-) {
-  const { state, nextState, command, execution } = input
+): Promise<EncounterCommandResultDto> {
+  const { nextState, command, execution, completedOccurrence, pendingCheck, response } = input
+  const { run, state, fingerprint, campaign, membership, initiatorUserId, resume } = input.admission
+  const result = encounterCommandResultDtoSchema.parse({
+    projection: input.projection,
+    roll: null,
+    occurrence: pendingCheck
+      ? {
+          occurrenceId: pendingCheck.occurrenceId,
+          occurrenceVersion: 0,
+          status: 'PENDING',
+          pending: pendingCheck.pending
+        }
+      : {
+          occurrenceId: completedOccurrence.id,
+          occurrenceVersion: completedOccurrence.version,
+          status: 'COMPLETE',
+          pending: null
+        }
+  })
   const ruleResultChecksum = checksumRuleDocument(execution)
-  await ctx.db.patch(input.run._id, {
+  await ctx.db.patch(run._id, {
     version: nextState.version,
     stateJson: JSON.stringify(nextState),
     stateChecksum: checksumCanonicalJson(nextState),
@@ -185,7 +224,7 @@ export async function recordActionRoot(
       occurrenceId: execution.occurrenceId,
       commandId: command.commandId,
       commandType: 'RESOLVE_ACTION',
-      commandFingerprint: input.fingerprint,
+      commandFingerprint: fingerprint,
       encounterVersion: nextState.version,
       commandMetadataJson: JSON.stringify(
         serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
@@ -199,7 +238,7 @@ export async function recordActionRoot(
       ),
       resultJson: JSON.stringify(execution),
       resultChecksum: ruleResultChecksum,
-      actorUserId: input.initiatorUserId,
+      actorUserId: initiatorUserId,
       correlationId: null,
       createdAt: input.occurredAt
     })
@@ -217,15 +256,27 @@ export async function recordActionRoot(
         ruleOccurrenceId: execution.occurrenceId,
         ruleResultChecksum,
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
-        ...(input.checkOccurrenceId ? { checkOccurrenceId: input.checkOccurrenceId } : {})
+        ...(pendingCheck ? { checkOccurrenceId: pendingCheck.occurrenceId } : {})
       },
       ...input.commandFields,
-      commandFingerprint: input.fingerprint,
-      actorUserId: input.initiatorUserId,
+      commandFingerprint: fingerprint,
+      actorUserId: initiatorUserId,
       version: nextState.version,
       commandJson: JSON.stringify(command),
-      ...encounterReplayReceipt(input.result),
+      ...encounterReplayReceipt(result),
       createdAt: input.occurredAt
     })
   )
+  if (resume && response)
+    await insertActionEvidenceReceipt(ctx, {
+      occurrence: { ...resume.occurrence, ...completedOccurrence },
+      response,
+      rootCommand: command,
+      rootFingerprint: fingerprint,
+      userId: input.userId,
+      rootInitiatorUserId: initiatorUserId,
+      answeredRequestId: resume.pending.snapshot.request.requestId,
+      result: execution
+    })
+  return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }

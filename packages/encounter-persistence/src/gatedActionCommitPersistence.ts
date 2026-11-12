@@ -1,25 +1,28 @@
 import type { LiveSessionEncounterGatedActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
-import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
+import {
+  admitActionCommit,
+  requireActionCommitFence,
+  requireRuleOutputScope
+} from './actionCommitFences.js'
+import { completeActionOccurrence, recordActionCommit } from './actionCommitRecords.js'
+import {
+  applyActionSpendMechanics,
+  requireSourceSpendReceipt,
+  settleActionSourceSpend,
+  sourceSpendMutation
+} from './actionSourceSpend.js'
 import { endEffects } from './consumedGrantPersistence.js'
 import { readRunActors } from './documents.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
 import { sameGate } from './actionPending.js'
 import { recordCounterCheckRollCards } from './actionRollCards.js'
 
@@ -45,17 +48,9 @@ export async function persistEncounterGatedActionCommit(
     currentCharacterMaximumHitPoints(state: EncounterRunState, characterId: string): Promise<number>
   }
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readLiveEncounterActionAdmission(ctx, input)
-  const { state, run, fingerprint, campaign, membership } = admission
-  if (state.campaignId !== input.campaignId)
-    throw new Error('Live Session Encounter scope mismatch.')
-  if (admission.kind === 'REPLAY')
-    return presentEncounterResultForMember(ctx, {
-      campaign,
-      membership,
-      result: admission.result
-    })
-  const { resume, initiatorUserId } = admission
+  const admission = await admitActionCommit(ctx, input)
+  if (admission.kind === 'REPLAY') return admission.result
+  const { state, campaign, resume, initiatorUserId } = admission
   const command = admission.input
   const rootExecution = input.execution
   const { response } = input
@@ -105,24 +100,15 @@ export async function persistEncounterGatedActionCommit(
       : command.systemTrigger?.trigger !== 'REACTION')
   )
     throw new Error('Live Session gated action actor scope mismatch.')
-  const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
-  if (
-    input.rules.actors.length !== ruleActors.length ||
-    new Set(input.rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
-    input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
-  )
-    throw new Error('Live Session gated action output scope mismatch.')
-  await callbacks.validateReadFence(
+  requireRuleOutputScope(actors, input.rules, 'gated action')
+  await requireActionCommitFence(ctx, {
     state,
-    actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
-    input.revisions
-  )
-  const collision = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_publicId', (q) => q.eq('id', root.occurrenceId))
-    .unique()
-  if (collision && collision._id !== resume?.occurrence._id)
-    throw new Error('Encounter rule occurrence ID was already used.')
+    characterIds: actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
+    revisions: input.revisions,
+    occurrenceIds: [root.occurrenceId],
+    pendingOccurrence: resume?.occurrence ?? null,
+    validateReadFence: callbacks.validateReadFence
+  })
 
   const { spends, mutation } = sourceSpendMutation({
     source,
@@ -134,40 +120,19 @@ export async function persistEncounterGatedActionCommit(
   })
   const sourceMechanics =
     source.kind === 'CHARACTER' && (spends || root.sourceApplications.length)
-      ? await callbacks.applyMechanics({
-          encounterId: state.id,
-          expectedEncounterVersion: state.version,
+      ? await applyActionSpendMechanics(ctx, {
+          state,
           occurrenceId: root.occurrenceId,
           sourceCommandId: command.commandId,
           occurredAt: input.occurredAt,
-          forceVersionAdvance: false,
-          applications: root.sourceApplications.map((application) => ({
-            ...application,
-            targetActorId: source.id
-          })),
-          targetActorId: source.id,
-          commandId: deriveEncounterCharacterMechanicsEventCommandId({
-            occurrenceId: root.occurrenceId,
-            sourceCommandId: command.commandId,
-            phase: 'DIRECT_ACTION_RESOURCE',
-            ordinal: 0,
-            targetCharacterId: source.sourceId
-          }),
-          effectiveMaximumHitPoints: await callbacks.currentCharacterMaximumHitPoints(
-            state,
-            source.sourceId
-          ),
-          ...mutation
+          actor: source,
+          applications: root.sourceApplications,
+          mutation,
+          applyMechanics: callbacks.applyMechanics,
+          currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
         })
       : null
-  if (
-    (sourceMechanics?.characterStreamVersion ?? null) !== root.sourceCharacterStreamVersion ||
-    checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
-      checksumCanonicalJson(root.sourceApplications) ||
-    checksumCanonicalJson(sourceMechanics?.itemUseStateTransition ?? null) !==
-      checksumCanonicalJson(root.sourceItemUseStateTransition)
-  )
-    throw new Error('Live Session source Character receipt mismatch.')
+  requireSourceSpendReceipt(sourceMechanics, root)
 
   const settledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
@@ -192,52 +157,6 @@ export async function persistEncounterGatedActionCommit(
     occurredAt: input.occurredAt
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    occurrence: {
-      occurrenceId: root.occurrenceId,
-      occurrenceVersion: rootExecution.occurrenceVersion,
-      status: 'COMPLETE',
-      pending: null
-    }
-  })
-  await recordActionRoot(ctx, {
-    run,
-    state,
-    nextState,
-    command,
-    fingerprint,
-    initiatorUserId,
-    execution: rootExecution,
-    definitionId: input.initialDefinitionId,
-    // No graph ran: the receipt names the facts the held action was prepared against.
-    factsChecksum: input.currentnessChecksum,
-    result,
-    commandFields: {
-      label: input.label,
-      ruleOverrides: input.ruleOverrides,
-      consumedGrants: input.consumedGrants,
-      endedMaintainedStates,
-      addedConcentrationCasterId: null,
-      speedBonusTurn: null,
-      teleportAllowanceTurn: null,
-      turnUses: null,
-      usedReactions: []
-    },
-    occurredAt: input.occurredAt
-  })
-  if (resume && response)
-    await insertActionEvidenceReceipt(ctx, {
-      occurrence: { ...resume.occurrence, ...completedOccurrence },
-      response,
-      rootCommand: command,
-      rootFingerprint: fingerprint,
-      userId: input.expectedUserId,
-      rootInitiatorUserId: initiatorUserId,
-      answeredRequestId: resume.pending.snapshot.request.requestId,
-      result: rootExecution
-    })
   // A failed trigger check is carded as the reactor's counter check, as a passed one is.
   if (origin.kind === 'TRIGGER')
     await recordCounterCheckRollCards(ctx, {
@@ -252,5 +171,29 @@ export async function persistEncounterGatedActionCommit(
       visibility: command.visibility,
       createdAt: input.occurredAt
     })
-  return presentEncounterResultForMember(ctx, { campaign, membership, result })
+  return recordActionCommit(ctx, {
+    admission,
+    command,
+    nextState,
+    projection,
+    completedOccurrence,
+    execution: rootExecution,
+    definitionId: input.initialDefinitionId,
+    // No graph ran: the receipt names the facts the held action was prepared against.
+    factsChecksum: input.currentnessChecksum,
+    response,
+    userId: input.expectedUserId,
+    commandFields: {
+      label: input.label,
+      ruleOverrides: input.ruleOverrides,
+      consumedGrants: input.consumedGrants,
+      endedMaintainedStates,
+      addedConcentrationCasterId: null,
+      speedBonusTurn: null,
+      teleportAllowanceTurn: null,
+      turnUses: null,
+      usedReactions: []
+    },
+    occurredAt: input.occurredAt
+  })
 }
