@@ -1,4 +1,3 @@
-import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   revertLastEncounterActionInputDtoSchema,
   type EncounterCommandResultDto,
@@ -65,6 +64,7 @@ import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
 import { settleCharacterConditionMaximum } from './conditionMaximumSettlement.js'
+import { revertGroupRoots, type RevertGroupRoot } from './actionRevertGroups.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
 import { revertZoneDcs, revertZoneDisarm, revertZoneSightingDismissal } from './zoneRevert.js'
 import { removeConjuredActors } from './summonRemoval.js'
@@ -165,12 +165,6 @@ const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
   DEFEATED: 'lost Concentration to defeat',
   SPELLCASTING_LOCKED: 'lost Concentration to a spellcasting lock',
   CHOSEN: 'lost Concentration because its holder ended it'
-}
-
-/** What raised a rule-raised action, or null for an action a player took. */
-function storedSystemTrigger(root: { commandJson: string }) {
-  const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(root.commandJson))
-  return command.systemTrigger ?? null
 }
 
 /**
@@ -309,53 +303,7 @@ export async function revertLastEncounterAction(
     requireCheckAnswerScan(root.root.checkReceipt.checkOccurrenceId)
     return revertCheckAction(ctx, { ...scope, root, checkReceipt: root.root.checkReceipt })
   }
-  const { ruleOccurrenceId } = root.root
-  const rootTrigger = storedSystemTrigger(root)
-  // A reaction's action commits before the action it was chosen against (D219), so one that is the
-  // Run's last action answered an action the GM voided: it goes back with that action's other reactions.
-  const reactedCommandId =
-    rootTrigger?.trigger === 'REACTION' ? rootTrigger.parentCommandId.toLowerCase() : root.commandId
-  // Any other rule-raised action (a defeat trigger) goes back with the action that raised it, system first.
-  const parentCommandId =
-    rootTrigger && rootTrigger.trigger !== 'REACTION'
-      ? rootTrigger.parentCommandId.toLowerCase()
-      : null
-  const groupRoots: Pick<RevertGroup, 'root' | 'ruleOccurrenceId' | 'laterEntries'>[] = [
-    { root, ruleOccurrenceId, laterEntries: recent.slice(0, rootIndex) }
-  ]
-  // The reactions chosen against an action committed as its children before it did: each goes back
-  // with it, the latest first.
-  let answersFrom = rootIndex + 1
-  for (let index = answersFrom; index < recent.length; index += 1) {
-    const entry = recent[index]!
-    if (entry.commandType === 'RESOLVE_RULE_OCCURRENCE') continue
-    if (entry.commandType !== 'RESOLVE_ACTION' || entry.root.kind !== 'RULE_OCCURRENCE') break
-    const trigger = storedSystemTrigger(entry)
-    if (
-      trigger?.trigger !== 'REACTION' ||
-      trigger.parentCommandId.toLowerCase() !== reactedCommandId
-    )
-      break
-    groupRoots.push({
-      root: entry,
-      ruleOccurrenceId: entry.root.ruleOccurrenceId,
-      laterEntries: recent.slice(answersFrom, index)
-    })
-    answersFrom = index + 1
-  }
-  if (parentCommandId) {
-    const parentIndex = recent.findIndex(
-      (entry, index) => index >= answersFrom && entry.commandType !== 'RESOLVE_RULE_OCCURRENCE'
-    )
-    const parent = recent[parentIndex]
-    if (parent?.commandType !== 'RESOLVE_ACTION' || parent.root.kind !== 'RULE_OCCURRENCE')
-      revertUnavailable('The action that raised this one changed after it; adjust manually.')
-    groupRoots.push({
-      root: parent,
-      ruleOccurrenceId: parent.root.ruleOccurrenceId,
-      laterEntries: recent.slice(answersFrom, parentIndex)
-    })
-  }
+  const { groupRoots, raisedByCommandId } = revertGroupRoots(recent, rootIndex)
 
   // Every receipt committed since the earliest action belongs to one of the groups.
   const receipts = await ctx.db
@@ -367,11 +315,10 @@ export async function revertLastEncounterAction(
   if (receipts.length === RECEIPT_SCAN_LIMIT)
     revertUnavailable('This action has too many follow-up results to undo; adjust manually.')
   // The raising command is the parent's own, or an answer that settled it (one receipt, no Run row).
-  const raisingRoot = parentCommandId ? groupRoots.at(-1)!.root : null
   if (
-    raisingRoot &&
-    raisingRoot.commandId !== parentCommandId &&
-    !receipts.some((receipt) => receipt.commandId === parentCommandId)
+    raisedByCommandId &&
+    groupRoots.at(-1)!.root.commandId !== raisedByCommandId &&
+    !receipts.some((receipt) => receipt.commandId === raisedByCommandId)
   )
     revertUnavailable('The action that raised this one changed after it; adjust manually.')
   const plans = groupRoots.map((group) =>
@@ -941,11 +888,7 @@ export async function revertLastEncounterAction(
   })
 }
 
-type RevertGroup = {
-  root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }>
-  ruleOccurrenceId: string
-  /** The answers committed after the root; each must settle one of the root's own children. */
-  laterEntries: readonly StoredCommand[]
+type RevertGroup = RevertGroupRoot & {
   /** Every receipt committed since the earliest root of the undo. */
   receipts: readonly EncounterDocument<'encounterRuleReceipts'>[]
   /** The occurrences of the other roots undone with this one. */

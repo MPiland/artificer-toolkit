@@ -324,7 +324,12 @@ the child's commit and the resume is the GM's void.
 
 Undo and void of a reacted action. One undo rule: a receipt belongs to the occurrence that recorded it, so
 `REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one
-step, attributing each receipt by occurrence instead of by a version range (`actionRevert.ts`). A void of
+step, attributing each receipt by occurrence instead of by a version range (`actionRevert.ts`). The group
+(`revertGroupRoots` in `actionRevertGroups.ts`) is the run of commands, back from the Run's last action,
+that are one action and its REACTION children, whichever of them is last: a child chosen while the action
+was held committed before it, and a child chosen from a post-commit offer (D219, QUALITY-8.T1c1; no
+pipeline raises one until QUALITY-8.T1c2) follows it and goes back child-then-parent. A last REACTION
+child whose parent has no command answered a voided parent and goes back with its siblings alone. A void of
 the pending parent (`prepareRuleOccurrenceVoid`) stages nothing of the parent's own; its committed
 reactions are what the cancel takes back, so it runs `REVERT_LAST_ACTION` for them in the same transaction
 (command id derived from the void's) and then records the void, two timeline rows. The reaction is
