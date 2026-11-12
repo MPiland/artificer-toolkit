@@ -57,7 +57,7 @@ import type {
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { castPendingContinues } from './actionPending.js'
+import { castPendingContinues, passedGateAfter, sameGate } from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import {
@@ -128,8 +128,8 @@ export async function persistEncounterActionCommit(
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
         usedReactions: input.usedReactions.map(({ receipt }) => receipt),
-        // A ward passed earlier stays passed through the terminal commit; only the planner passes it.
-        passedIncomingGate: resume.pending.context.passedIncomingGate
+        // A gate passed earlier, or by the roll this commit answers, stays passed through the commit.
+        passedIncomingGate: passedGateAfter(resume.pending.context)
       })) ||
     command.optionalCombatIntent != null ||
     command.target.kind !== 'ACTOR'
@@ -156,6 +156,16 @@ export async function persistEncounterActionCommit(
     batch.occurrenceId !== execution.occurrenceId
   )
     throw new Error('Live Session action result scope mismatch.')
+  // A reaction child that passed its trigger's check records it, and it is the check its pending asked.
+  const gateBehind = resume ? passedGateAfter(resume.pending.context) : undefined
+  if (
+    batch.passedGate
+      ? batch.passedGate.origin.kind !== 'TRIGGER' ||
+        command.systemTrigger?.trigger !== 'REACTION' ||
+        (resume && !sameGate(batch.passedGate, gateBehind))
+      : gateBehind?.origin.kind === 'TRIGGER'
+  )
+    throw new Error('Live Session action trigger check mismatch.')
   // Each reaction rolled against the attack roll is the one a die of its settled d20 names (D207).
   const spentReactions = windowSpentReactions(batch)
   if (
@@ -579,7 +589,10 @@ export async function persistEncounterActionCommit(
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: reactionSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : [])),
+    checks: [
+      ...(batch.passedGate ? [{ reactor: source, check: batch.passedGate }] : []),
+      ...reactionSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : []))
+    ],
     response: input.response,
     responderUserId: userId,
     initiatorUserId,

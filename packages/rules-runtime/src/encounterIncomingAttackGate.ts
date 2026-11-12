@@ -137,8 +137,7 @@ export function incomingGateOffer(input: {
     savingThrow.abilityDefinitionId
   )
   return {
-    effectId: input.held.wardId,
-    holderActorId: input.holderActorId,
+    origin: { kind: 'WARD', effectId: input.held.wardId, holderActorId: input.holderActorId },
     checkDefinitionId: savingThrow.abilityDefinitionId,
     dc,
     d20: freezeD20Context({

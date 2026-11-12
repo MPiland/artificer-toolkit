@@ -5,6 +5,7 @@ import {
   encounterWindowReactionReceiptDtoSchema,
   type EncounterReactionPinDto,
   type EncounterCounterCheckEvidenceDto,
+  type EncounterSettledIncomingGateDto,
   type EncounterUsedReactionDto,
   type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -89,6 +90,8 @@ export function buildEncounterActionStoredExecution(input: {
   grantEffectTransitions?: ReturnType<
     typeof projectNativeActionEffectTransitions
   >['activeEffectTransitions']
+  /** The check the source's reaction trigger asked and it passed before the action ran (D219). */
+  passedGate?: EncounterSettledIncomingGateDto | null
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -200,7 +203,8 @@ export function buildEncounterActionStoredExecution(input: {
             applications: mechanics.receiptApplications,
             sourceApplications: settled.sourceApplications,
             ...addedDice,
-            ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {})
+            ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {}),
+            ...(input.passedGate ? { passedGate: input.passedGate } : {})
           }
         : {
             kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -247,7 +251,8 @@ export function buildEncounterActionStoredExecution(input: {
             applications: mechanics.receiptApplications,
             sourceApplications: settled.sourceApplications,
             ...addedDice,
-            ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {})
+            ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {}),
+            ...(input.passedGate ? { passedGate: input.passedGate } : {})
           }
   })
 }
@@ -394,9 +399,9 @@ export function buildEncounterCounteredCastStoredExecution(input: {
 }
 
 /**
- * Builds the stored root of an action a warded creature's gate stopped. The source still spends its slot,
+ * Builds the stored root of an action its incoming gate stopped. The source still spends its slot,
  * resource, item and action; nothing the attack or spell would have done is applied. The gate records the
- * failed save.
+ * failed roll.
  */
 export function buildEncounterGatedActionStoredExecution(input: {
   occurrenceId: string

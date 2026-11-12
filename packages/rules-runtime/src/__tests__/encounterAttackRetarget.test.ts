@@ -2,7 +2,7 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import {
   encounterAttackRetargetOfferDtoSchema,
   encounterAttackRetargetUseOptionId,
-  type EncounterFailedIncomingGateDto
+  type EncounterFailedWardGateDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { describe, expect, it } from 'vitest'
 
@@ -19,8 +19,7 @@ const FIRST_TOKEN = '00000000-0000-4000-8000-0000000000a2'
 const SECOND_TOKEN = '00000000-0000-4000-8000-0000000000a3'
 
 const gate = {
-  effectId: '00000000-0000-4000-8000-0000000000e1',
-  holderActorId: HOLDER,
+  origin: { kind: 'WARD', effectId: '00000000-0000-4000-8000-0000000000e1', holderActorId: HOLDER },
   checkDefinitionId: '00000000-0000-4000-8000-0000000000c1',
   dc: 14,
   d20: {
@@ -36,7 +35,7 @@ const gate = {
     contributors: [],
     contributorChecksum: 'a'.repeat(64)
   }
-} satisfies EncounterFailedIncomingGateDto
+} satisfies EncounterFailedWardGateDto
 
 const offer = encounterAttackRetargetOffer(gate, [
   { actorId: FIRST, tokenId: FIRST_TOKEN },
@@ -46,15 +45,27 @@ const offer = encounterAttackRetargetOffer(gate, [
 describe('encounterAttackRetargetOffer', () => {
   it('names one issued option per candidate, derived from the ward and the creature', () => {
     expect(offer.options.map((option) => option.useOptionId)).toEqual([
-      encounterAttackRetargetUseOptionId({ gateEffectId: gate.effectId, targetActorId: FIRST }),
-      encounterAttackRetargetUseOptionId({ gateEffectId: gate.effectId, targetActorId: SECOND })
+      encounterAttackRetargetUseOptionId({
+        gateEffectId: gate.origin.effectId,
+        targetActorId: FIRST
+      }),
+      encounterAttackRetargetUseOptionId({
+        gateEffectId: gate.origin.effectId,
+        targetActorId: SECOND
+      })
     ])
   })
 
   it('derives a different option for another ward or another creature', () => {
     const ids = new Set([
-      encounterAttackRetargetUseOptionId({ gateEffectId: gate.effectId, targetActorId: FIRST }),
-      encounterAttackRetargetUseOptionId({ gateEffectId: gate.effectId, targetActorId: SECOND }),
+      encounterAttackRetargetUseOptionId({
+        gateEffectId: gate.origin.effectId,
+        targetActorId: FIRST
+      }),
+      encounterAttackRetargetUseOptionId({
+        gateEffectId: gate.origin.effectId,
+        targetActorId: SECOND
+      }),
       encounterAttackRetargetUseOptionId({ gateEffectId: FIRST, targetActorId: FIRST })
     ])
     expect(ids.size).toBe(3)

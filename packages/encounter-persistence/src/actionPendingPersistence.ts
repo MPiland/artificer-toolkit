@@ -205,9 +205,12 @@ export async function persistEncounterActionPending(
         (windowReactorActorId === null ||
           windowReactorActorId !== snapshot.applicationContext.rollerActorId ||
           !actors.some(({ id }) => id === windowReactorActorId))) ||
-      // The save a ward owes is asked of the one who attacks it.
+      // A gate's roll is asked of the action's source; a ward's is the save of the creature it attacks.
       (pause?.kind === 'INCOMING_GATE' &&
-        (pause.payload.holderActorId !== target.actorId ||
+        // Only a reaction's child owes the check of its trigger.
+        ((pause.payload.origin.kind === 'WARD'
+          ? pause.payload.origin.holderActorId !== target.actorId
+          : admission.input.systemTrigger?.trigger !== 'REACTION') ||
           snapshot.applicationContext.rollerActorId !== admission.input.actorId)) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
@@ -305,7 +308,7 @@ export async function persistEncounterActionPending(
   if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
   const occurrence = await ctx.db.get(id)
   if (!occurrence) throw new Error('The pending action was not stored.')
-  // A counter's check pause rolls the reactor's own d20, and a ward's the attacker's save: neither is the
+  // A counter's check pause rolls the reactor's own d20, and a gate's the source's roll: neither is the
   // action's own policy.
   const d20Policy =
     evidence?.d20Policy ??

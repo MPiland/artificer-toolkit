@@ -160,7 +160,7 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     expect(after.wards).toBe(1)
     const [gated] = after.gated
     expect(gated?.lost).toBe('ATTACK')
-    expect(gated?.gate.holderActorId).toBe(WARDED_ID)
+    expect(gated?.gate.origin).toMatchObject({ kind: 'WARD', holderActorId: WARDED_ID })
     expect(gated?.actionEconomyTransition?.afterUsed).toBeGreaterThan(
       gated?.actionEconomyTransition?.beforeUsed ?? Infinity
     )
@@ -380,7 +380,7 @@ describe('A retargeted action meets the new creature’s ward afresh (SPELLS-4.T
 
     const { gated } = await standing(room)
     expect(gated).toHaveLength(1)
-    expect(gated[0]?.gate.holderActorId).toBe(BYSTANDER_ID)
+    expect(gated[0]?.gate.origin).toMatchObject({ kind: 'WARD', holderActorId: BYSTANDER_ID })
   })
 })
 

@@ -158,7 +158,7 @@ describe("room Nature's Sanctuary (SPELLS-31.T4k2b)", () => {
     expect(after.druidHitPoints).toBe(before.druidHitPoints)
     const [gated] = after.gated
     expect(gated?.lost).toBe('ATTACK')
-    expect(gated?.gate.holderActorId).toBe(CHARACTER_ACTOR_ID)
+    expect(gated?.gate.origin).toMatchObject({ kind: 'WARD', holderActorId: CHARACTER_ACTOR_ID })
   })
 
   it('turns a failed beast on the creature it chooses', async () => {

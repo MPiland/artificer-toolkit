@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   castCounteredCarriesUsedReactions,
   castPendingContinues,
-  offeredDecisionOptionIds
+  offeredDecisionOptionIds,
+  passedGateAfter
 } from '../actionPending.js'
+
+/** A gate a ward raised, as a pending context names it. */
+const ward = (effectId: string) => ({ origin: { kind: 'WARD', effectId } })
 
 describe('offeredDecisionOptionIds', () => {
   it('offers every reaction the pause carries as a menu', () => {
@@ -102,11 +106,11 @@ describe('castPendingContinues', () => {
   describe('a failed ward save offering a new target', () => {
     const gateHeld = {
       rollerActorId: 'attacker',
-      pause: { kind: 'INCOMING_GATE' as const, payload: { effectId: 'ward' } }
+      pause: { kind: 'INCOMING_GATE' as const, payload: ward('ward') }
     }
     const offered = {
       rollerActorId: 'attacker',
-      pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: { effectId: 'ward' } } }
+      pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: ward('ward') } }
     }
 
     it('follows the roll that failed that ward, and no other ward', () => {
@@ -114,16 +118,16 @@ describe('castPendingContinues', () => {
       expect(
         castPendingContinues(gateHeld, dice, {
           ...offered,
-          pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: { effectId: 'other' } } }
+          pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: ward('other') } }
         })
       ).toBe(false)
       expect(castPendingContinues({ rollerActorId: 'attacker' }, dice, offered)).toBe(false)
     })
 
     it('carries no passed ward and no counters', () => {
-      expect(castPendingContinues(gateHeld, dice, { ...offered, passedIncomingGate: 'ward' })).toBe(
-        false
-      )
+      expect(
+        castPendingContinues(gateHeld, dice, { ...offered, passedIncomingGate: ward('ward') })
+      ).toBe(false)
       expect(
         castPendingContinues(gateHeld, dice, { ...offered, usedReactions: [failedBy('first')] })
       ).toBe(false)
@@ -136,8 +140,8 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues(offered, null, {})).toBe(false)
       expect(
         castPendingContinues(offered, option, {
-          pause: { kind: 'INCOMING_GATE' as const, payload: { effectId: 'second-ward' } },
-          passedIncomingGate: 'ward'
+          pause: { kind: 'INCOMING_GATE' as const, payload: ward('second-ward') },
+          passedIncomingGate: ward('ward')
         })
       ).toBe(false)
       expect(castPendingContinues(offered, option, { usedReactions: [failedBy('first')] })).toBe(
@@ -148,10 +152,56 @@ describe('castPendingContinues', () => {
     it('may offer again from the chosen creature’s own ward, and only after a choice', () => {
       const again = {
         ...offered,
-        pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: { effectId: 'second-ward' } } }
+        pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: ward('second-ward') } }
       }
       expect(castPendingContinues(offered, option, again)).toBe(true)
       expect(castPendingContinues(offered, decline, again)).toBe(false)
+    })
+  })
+
+  describe('a gate the action’s source passed', () => {
+    const trigger = { origin: { kind: 'TRIGGER', triggerLevel: 4 } }
+    const gateHeld = {
+      rollerActorId: 'source',
+      pause: { kind: 'INCOMING_GATE' as const, payload: trigger }
+    }
+
+    it('is passed by the roll its pause waited on, and stays passed in every later pause', () => {
+      expect(castPendingContinues(gateHeld, dice, { passedIncomingGate: trigger })).toBe(true)
+      expect(
+        castPendingContinues({ passedIncomingGate: trigger }, dice, { passedIncomingGate: trigger })
+      ).toBe(true)
+      expect(castPendingContinues(gateHeld, dice, {})).toBe(false)
+      expect(castPendingContinues({ passedIncomingGate: trigger }, dice, {})).toBe(false)
+    })
+
+    it('is the gate that was asked: a ward and a trigger’s check never stand for each other', () => {
+      expect(castPendingContinues(gateHeld, dice, { passedIncomingGate: ward('ward') })).toBe(false)
+      expect(
+        castPendingContinues(
+          { rollerActorId: 'source', pause: { kind: 'INCOMING_GATE', payload: ward('ward') } },
+          dice,
+          { passedIncomingGate: trigger }
+        )
+      ).toBe(false)
+      expect(
+        castPendingContinues(gateHeld, dice, {
+          passedIncomingGate: { origin: { kind: 'TRIGGER', triggerLevel: 5 } }
+        })
+      ).toBe(false)
+    })
+
+    it('is carried by the action that passed it, so a commit straight after its roll continues', () => {
+      expect(passedGateAfter(gateHeld)).toEqual(trigger)
+      expect(
+        castPendingContinues(gateHeld, dice, { passedIncomingGate: passedGateAfter(gateHeld) })
+      ).toBe(true)
+      expect(passedGateAfter({ passedIncomingGate: ward('ward') })).toEqual(ward('ward'))
+      expect(passedGateAfter({})).toBeUndefined()
+    })
+
+    it('is never asked again by a later pause of the same action', () => {
+      expect(castPendingContinues({ passedIncomingGate: trigger }, dice, gateHeld)).toBe(false)
     })
   })
 

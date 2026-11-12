@@ -102,15 +102,17 @@ import {
   readNativeResumedReactionOffer
 } from './nativePendingActionAnswer.js'
 import { createNativeCurrentReaction } from './nativePauseReaction.js'
-import { advanceNativeIncomingGate, planNativeGatedAction } from './nativeEncounterIncomingGate.js'
+import {
+  advanceNativeIncomingGate,
+  offerNativeAttackRetarget,
+  owedNativeTriggerCheck,
+  planNativeGatedAction
+} from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
   chosenEncounterAttackRetarget,
-  encounterAttackRetargetOffer,
-  openEncounterAttackRetargetChoice,
   retargetEncounterAction,
-  settleEncounterAttackRetarget,
-  type EncounterAttackRetargetCandidate
+  settleEncounterAttackRetarget
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -832,8 +834,14 @@ export async function planNativeLiveEncounterAction(
   }
   // An attack, or a harmful spell cast at an enemy, aimed at a warded creature (Sanctuary) is lost unless
   // its attacker passes the ward's save first. An area that merely catches the creature is not aimed at it.
+  // A reaction's child whose trigger asks a check against the cast it answers owes that check instead (D219).
+  const triggerCheck = owedNativeTriggerCheck(
+    prepared,
+    'triggerCastLevel' in admission ? admission.triggerCastLevel : null
+  )
   const gateOwed =
-    prepared.actor.id !== prepared.target.id && (makesAttackRoll || (castsSpell && againstEnemy))
+    triggerCheck !== null ||
+    (prepared.actor.id !== prepared.target.id && (makesAttackRoll || (castsSpell && againstEnemy)))
   if (gateAnswer && !gateOwed) throw new Error('The incoming gate is no longer owed.')
   if (retargetAnswer)
     await settleEncounterAttackRetarget({
@@ -852,24 +860,29 @@ export async function planNativeLiveEncounterAction(
           random: executionOptions.random,
           gameSystemId: state.gameSystemId,
           occurrenceId,
-          holderActorId: prepared.target.id,
-          holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
-          holderGrantFold:
-            movementTargets.get(prepared.target.id)?.effectiveRulePolicyOutput?.grantFold ?? null,
+          owed: triggerCheck
+            ? { kind: 'TRIGGER', system, ...triggerCheck }
+            : {
+                kind: 'WARD',
+                holderActorId: prepared.target.id,
+                holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+                holderGrantFold:
+                  movementTargets.get(prepared.target.id)?.effectiveRulePolicyOutput?.grantFold ??
+                  null,
+                attackerCreatureTypeId: snapshotCreatureTypeId(prepared.actor),
+                owner: async (ownerActorId) => {
+                  const owner = actors.find((actor) => actor.id === ownerActorId)
+                  return owner ? (movementTargets.get(owner.id) ?? (await loadTarget(owner))) : null
+                }
+              },
           attacker: actorTarget,
-          attackerCreatureTypeId: snapshotCreatureTypeId(prepared.actor),
-          owner: async (ownerActorId) => {
-            const owner = actors.find((actor) => actor.id === ownerActorId)
-            return owner ? (movementTargets.get(owner.id) ?? (await loadTarget(owner))) : null
-          },
           autoRoll: requireAutoRoll(prepared.actor.id),
-          passedEffectId: pendingContext?.passedIncomingGate,
+          passed: pendingContext?.passedIncomingGate,
           answer: gateAnswer
         })
       : { kind: 'NONE' as const, passed: null }
-  /** The ward whose save the attacker has passed, carried by every later pause of this action. */
-  const passedIncomingGate =
-    gate.kind === 'PASSED' ? gate.effectId : pendingContext?.passedIncomingGate
+  /** The gate the source has passed, carried by every later pause of this action. */
+  const passedIncomingGate = gate.kind === 'PASSED' ? gate.gate : pendingContext?.passedIncomingGate
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
   /** The child of each reaction chosen against this action so far, set once its offers are heard. */
@@ -899,39 +912,21 @@ export async function planNativeLiveEncounterAction(
     revisions
   })
   if (gate.kind === 'PENDING') return { ...preflight(), ...gate, kind: 'GATE_PENDING' as const }
-  if (gate.kind === 'FAILED' && !declinedRetarget && command.target.kind === 'ACTOR') {
-    // The attacker may turn the lost action on another creature before it is lost.
-    const bindings = command.sceneContext ? await capture({ kind: 'ACTOR_TOKEN_BINDINGS' }) : null
-    if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
-      throw new Error('Retarget bindings are unavailable.')
-    // Only creatures the attacker's own list shows are offered: a hidden creature's id never leaves.
-    const seen = await capture({ kind: 'SEEN_ACTORS' })
-    if (seen.kind !== 'SEEN_ACTORS') throw new Error('Retarget sight is unavailable.')
-    const seenIds = new Set(seen.actorIds)
-    const candidates = actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
-      if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
-      if (!seenIds.has(actor.id)) return []
-      if (!bindings) return [{ actorId: actor.id, tokenId: null }]
-      const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
-      return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []
-    })
-    if (candidates.length)
-      return {
-        ...preflight(),
-        kind: 'RETARGET_PENDING' as const,
-        continuation: await openEncounterAttackRetargetChoice({
+  // The attacker may turn the action a ward stopped on another creature before it is lost.
+  const retarget =
+    gate.kind === 'FAILED' && !declinedRetarget
+      ? await offerNativeAttackRetarget({
           runtime: executionOptions.runtime,
           occurrenceId,
           gameSystemId: state.gameSystemId,
-          optionCount: candidates.length
-        }),
-        rollerActorId: prepared.actor.id,
-        pause: {
-          kind: 'ATTACK_RETARGET' as const,
-          payload: encounterAttackRetargetOffer(gate.gate, candidates)
-        }
-      }
-  }
+          gate: gate.gate,
+          command,
+          actors,
+          prepared,
+          capture
+        })
+      : null
+  if (retarget) return { ...preflight(), ...retarget, kind: 'RETARGET_PENDING' as const }
   if (gate.kind === 'FAILED')
     return {
       ...preflight(),
@@ -1515,7 +1510,9 @@ export async function planNativeLiveEncounterAction(
     },
     targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
-    grantEffectTransitions: settlement.grantEffectTransitions
+    grantEffectTransitions: settlement.grantEffectTransitions,
+    // A passed ward's record is its immunity among the grant effects; a trigger check has only this.
+    passedGate: passedIncomingGate?.origin.kind === 'TRIGGER' ? passedIncomingGate : null
   })
   const cleaving =
     storedExecution.status === 'COMPLETE' && actionRange.success && sceneContext

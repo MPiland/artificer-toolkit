@@ -200,7 +200,10 @@ describe('room Tranquility (SPELLS-31.1)', () => {
         : []
     })
     expect(gated).toMatchObject([
-      { lost: 'ATTACK', gate: { holderActorId: MONK_ACTOR_ID, effectId: ward.id } }
+      {
+        lost: 'ATTACK',
+        gate: { origin: { kind: 'WARD', holderActorId: MONK_ACTOR_ID, effectId: ward.id } }
+      }
     ])
     expect(history.characterEffects.map(({ id }) => id)).toEqual([ward.id])
   })

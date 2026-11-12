@@ -1,6 +1,9 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
-import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterSettledIncomingGateDto,
+  EncounterUsedReactionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -93,7 +96,7 @@ export function buildEncounterActionPendingSnapshot(input: {
   targetActorId: string
   currentnessChecksum: string
   usedReactions?: readonly EncounterUsedReactionDto[]
-  passedIncomingGate?: string
+  passedIncomingGate?: EncounterSettledIncomingGateDto
   reactionChildren?: PendingReactionChildren
   /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
   castLevel?: number | null
@@ -131,7 +134,7 @@ export function buildEncounterActionPendingSnapshot(input: {
 
 /**
  * The sealed pending snapshot of an action held before it executes: a cast waiting on a creature's
- * chance to counter it, an attacker owing the save against a warded target's gate, or an action a ward
+ * chance to counter it, a source owing the roll of its incoming gate, or an action a ward
  * stopped waiting on its attacker's choice to turn it on another creature. The continuation is the
  * pause; the action itself is not held, it replays from the command once the pause is answered.
  */
@@ -148,7 +151,7 @@ export function buildEncounterHeldActionPendingSnapshot(input: {
   initiatorUserId: string
   currentnessChecksum: string
   usedReactions?: readonly EncounterUsedReactionDto[]
-  passedIncomingGate?: string
+  passedIncomingGate?: EncounterSettledIncomingGateDto
   reactionChildren?: PendingReactionChildren
   /** The level the action casts its spell at, when it records reaction children; null when it casts none. */
   castLevel?: number | null
