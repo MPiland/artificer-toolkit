@@ -26052,8 +26052,7 @@
             },
             {
               "id": "QUALITY-13.T2c",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -26063,11 +26062,13 @@
                 "after": ["QUALITY-13.T1c1"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
-              "text": "One Worker per-target outcome planner, extracted from the single-target planner in nativeEncounterRules.ts and called by planAreaOutcomes per kept entry; area tests unchanged."
+              "text": "One Worker per-target outcome planner, extracted from the single-target planner in nativeEncounterRules.ts and called by planAreaOutcomes per kept entry; area tests unchanged.",
+              "mergedAt": "2026-11-12T10:20:23Z",
+              "proof": "m701 (f63a0d8b4, fast path) from slice tip 74bc0a443: Tests 43197058607, Live 43197058500, Browser journeys 43197058540 green; backstop ci/merge-m701 Tests 43199488666, Live 43199493718, Browser journeys 43199498164. planNativeActionTargetOutcome (nativeActionTargetOutcome.ts) plans one target's ended effects, created effect records, form entry, mechanics batch, Legendary Resistance charge, spent reaction and transitions; the single-target commit and planAreaOutcomes both call it; planNativeLiveEncounterSettlement keeps reconciliation and maintenance only. Red proof: linkedBandConditions.test.ts RED (root list names the new planner). No golden moved."
             },
             {
               "id": "QUALITY-13.T2a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -26077,7 +26078,8 @@
                 "after": ["QUALITY-13.T2c", "QUALITY-9.T1a"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
-              "text": "One persistence commit skeleton (head: admission, scope, read fence, occurrence collision; source spend with receipt check; tail: complete, root, evidence, present) for action, area, countered-cast and gated commits; each caller keeps its error literal by label. Pure refactor."
+              "text": "One persistence commit skeleton (head: admission, scope, read fence, occurrence collision; source spend with receipt check; tail: complete, root, evidence, present) for action, area, countered-cast and gated commits; each caller keeps its error literal by label. Pure refactor.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T2b",
