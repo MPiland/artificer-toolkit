@@ -72,6 +72,7 @@ import {
   sourceSpendMutation
 } from './actionSourceSpend.js'
 import { castPendingContinues } from './actionPending.js'
+import { settleActionTargetOutcome } from './actionTargetOutcomeSettlement.js'
 import { applyUsedReactionSpends, usedReactionSpends } from './usedReactionSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import {
@@ -616,37 +617,28 @@ export async function persistEncounterAreaCommit(
       formEffect && creatureId !== null
         ? actorFormEntry(formEffect, await formCreatures.get(creatureId)!)
         : undefined
-    const mechanics = await callbacks.applyMechanics({
-      encounterId: state.id,
-      expectedEncounterVersion: state.version,
+    const { mechanics, target: settled } = await settleActionTargetOutcome(ctx, {
+      state,
+      target: actor,
+      batch,
+      label: 'area',
       occurrenceId,
       sourceCommandId: command.commandId,
-      occurredAt: input.occurredAt,
-      targetActorId: actor.id,
       commandId: encounterAreaTargetCommandId(occurrenceId),
-      applications: batch.applications.map((application) => ({
-        ...application,
-        targetActorId: actor.id
-      })),
-      effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
-      grantedMaximumHitPoints: batch.targetTransition.grantedMaximumHitPoints,
-      effectiveScalarValues: batch.targetTransition.before.scalarValues,
+      occurredAt: input.occurredAt,
       forceVersionAdvance: false,
-      ...(enterForm ? { enterForm } : {}),
-      ...(merged ? casterMutation : (childUsed?.mutation ?? {}))
+      reactionSpell: null,
+      used: childUsed,
+      sourceMutation: merged ? casterMutation : {},
+      extra: enterForm ? { enterForm } : {},
+      applyMechanics: callbacks.applyMechanics
     })
     if (
-      checksumCanonicalJson(mechanics.receiptApplications) !==
-        checksumCanonicalJson(batch.applications) ||
-      checksumCanonicalJson(mechanics.targetTransition) !==
-        checksumCanonicalJson(batch.targetTransition) ||
-      (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
-        batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion) ||
-      (merged &&
-        casterSpends &&
-        (root.sourceCharacterStreamVersion !== mechanics.characterStreamVersion ||
-          checksumCanonicalJson(mechanics.itemUseStateTransition ?? null) !==
-            checksumCanonicalJson(root.sourceItemUseStateTransition)))
+      merged &&
+      casterSpends &&
+      (root.sourceCharacterStreamVersion !== mechanics.characterStreamVersion ||
+        checksumCanonicalJson(mechanics.itemUseStateTransition ?? null) !==
+          checksumCanonicalJson(root.sourceItemUseStateTransition))
     )
       throw new Error('Live Session mechanics receipt mismatch.')
     if (
@@ -657,30 +649,8 @@ export async function persistEncounterAreaCommit(
         childUsed.used.receipt.characterStreamVersion !== mechanics.characterStreamVersion)
     )
       throw new Error('Live Session used reaction Character receipt mismatch.')
-    current.set(actor.id, mechanics.updatedActor)
+    current.set(actor.id, settled)
     healEndedGrants.push(...mechanics.endedGrants)
-    // A Legendary Resistance the creature used spends one of its own charges.
-    const charge =
-      batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-        ? batch.targetFeatureResourceConsumption
-        : null
-    if (charge && charge.ownerActorId !== actor.id)
-      throw new Error('Live Session area charge scope mismatch.')
-    const reactionEconomy = childUsed?.used.receipt.actionEconomyTransition ?? null
-    if (charge || reactionEconomy)
-      current.set(
-        actor.id,
-        await settleActionSourceSpend(ctx, {
-          encounterId: state.id,
-          source: mechanics.updatedActor,
-          spend: {
-            featureResourceConsumption: charge,
-            actionEconomyTransition: reactionEconomy,
-            attackActionTransition: undefined
-          },
-          economyOverridden: false
-        })
-      )
   }
   // The grants the cast used up (Invisibility) end with it; an undo gives them back.
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)

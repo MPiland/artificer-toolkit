@@ -139,7 +139,7 @@ function handMoveMutation(draw: NonNullable<SourceSpendReceipts['sourceItemDraw'
   return draw.movement === 'THROW' ? { throwHeldItem: heldItem } : { drawHeldItem: heldItem }
 }
 
-type SpendMutation = ReturnType<typeof sourceSpendMutation>['mutation']
+export type SpendMutation = ReturnType<typeof sourceSpendMutation>['mutation']
 
 /**
  * One Character's spends in a terminal commit as a single mutation: its casts' slots apply in the order
