@@ -2829,6 +2829,15 @@ from these core options; nothing in code names it.
 - The action's `resourceUse` is spent once for the whole use, so one undo restores every share and the
   charge. Creature-type exclusions are the target filter's `excludedCreatureTypeIds`.
 
+## Which slot a spell-slot cast candidate may spend (current, SPELLS-8.T17)
+
+`evaluateDnd5e2014CharacterActions` decides each spell cast candidate's availability from the slots it may
+spend. A spell whose effects read the level it is cast at (`readsCastLevel`, the same fact `getSpellCastLevels`
+uses to offer one candidate per owned higher slot level, D126) spends a slot of exactly the candidate's level: once
+those slots are spent its base candidate is `SPELL_SLOT_EXHAUSTED`, never a higher slot, because the cast resolves
+at the candidate's level. Any other spell's base candidate may still fall back to the lowest higher slot with a use
+left. Nothing is decided by spell name.
+
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
 A `SPELL_SLOT_EXCHANGE` outcome on a Character self action recovers or converts spell slots. It
