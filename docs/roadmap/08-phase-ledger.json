@@ -25670,13 +25670,13 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1c2a"]
               },
-              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
+              "note": "Green at f6342a530 (Tests 43260543413, Live 43263888038, Browser journeys 43260543370; red proof reactionOffer.test.ts RED 33/33, nativeRoomResolvedReactionOffer.test.ts RED 3/7). Held to merge in one batch with T1c2b2: alone it raises a PENDING offer in a live room with no answer or void route (hunter.ts authors the trigger). T1c2b2 also owes the incapacitated-reactor liveness check, the admit/pool-spend exclusion decision, and the departed-Character and end-to-end undo tests.",
               "text": "Commit-time offer discovery in the attack planner: trigger check, one option per action attack with a persisted label (versatile attacks told apart), none off-Scene; the attack commit inserts each reactor's ENCOUNTER_REACTION_OFFER as QUEUED (derived id per attack and reactor); a raise mutation voids queued offers whose reactor fails liveness and raises the next in actor-id order when nothing is pending; room raiser; QUEUED handled by undo, actor removal, Run finish and the void cascade; chain test; sight projection fix.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1c2b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25686,7 +25686,8 @@
                 "after": ["QUALITY-8.T1c2b1"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
-              "text": "Room answer flow: REACTION_OFFER response route; OPTION and DECLINE through persistReactionOfferAnswer; the child raised in the same room turn; a REACTION child commits without a pending parent; GM void as DECLINE; crash-between test; end-to-end undo (child, answer, attack); drop the test-only planRevertRoot export."
+              "text": "Room answer flow: REACTION_OFFER response route; OPTION and DECLINE through persistReactionOfferAnswer; the child raised in the same room turn; a REACTION child commits without a pending parent; GM void as DECLINE; crash-between test; end-to-end undo (child, answer, attack); drop the test-only planRevertRoot export.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1c2b3",
@@ -25804,8 +25805,7 @@
             },
             {
               "id": "QUALITY-9.T1c1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25815,11 +25815,13 @@
                 "after": ["QUALITY-9.T1b2"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
-              "text": "Persistence for nested reaction children (inert): descendant-aware stored-root and root replay fences, re-pin of every suspended ancestor, void cascade and undo grouping over descendants; a countered child reads as not cancelling, so an even chain offers the cast again."
+              "text": "Persistence for nested reaction children (inert): descendant-aware stored-root and root replay fences, re-pin of every suspended ancestor, void cascade and undo grouping over descendants; a countered child reads as not cancelling, so an even chain offers the cast again.",
+              "mergedAt": "2026-11-12T17:06:49Z",
+              "proof": "m710 (091ff6ca9) from slice tip 501a3e7e5: Tests 43256146471, Live 43261389105, Browser journeys 43256146730 green; red proof (Tests 43252343965 on the same content at 49d9ffbb6): reactionChildren.test.ts RED 10/44, actionRevertGroups.test.ts RED 2/9. readCommittedReactionDescendants replaces the child count; countRunVoidVersions counts the void's undo; the stored-root and replay fences, the void check and undo grouping cover the whole reaction tree; re-pin and release move every suspended ancestor's pin (stopping at an offer-answer child). A countered child already reads as not cancelling (AGGREGATE_CHOICE_COMPLETE). Inert until T1c2; no persisted shape changed."
             },
             {
               "id": "QUALITY-9.T1c2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25829,7 +25831,8 @@
                 "after": ["QUALITY-9.T1c1"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
-              "text": "Worker nesting on single-target casts: a reaction child offers its own cast to counters; ancestor holders are excluded; the ancestor's slot spend is projected into the child's capture; the source-changed currentness allowance in both layers; room tests for odd and even chains, a chain with a check, and undo and void of a nested chain."
+              "text": "Worker nesting on single-target casts: a reaction child offers its own cast to counters; ancestor holders are excluded; the ancestor's slot spend is projected into the child's capture; the source-changed currentness allowance in both layers; room tests for odd and even chains, a chain with a check, and undo and void of a nested chain.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1c3",
@@ -25860,7 +25863,22 @@
               "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children and prove REBIND_TEST; usedReactions is deleted end to end; CAST_REACTION is the one pre-roll offer whose options all run as children."
             },
             {
-              "id": "QUALITY-9.T1e",
+              "id": "QUALITY-9.T1e1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1c1"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
+              "text": "Reaction-die child contracts and persistence (inert): the post-roll offer shape that keeps the rolled d20; child recording and resume fences from that pending; the resolved-child record carries the rolled die so a replay does not roll again; subtractsFromTriggeringRoll on the committed-child read; reactor authority and summary for the decision."
+            },
+            {
+              "id": "QUALITY-9.T1e2",
               "status": "TODO",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
@@ -25868,10 +25886,24 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1a"]
+                "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
-              "text": "The roll-window reaction die (Cutting Words) runs as a child resuming ADJUST_ROLL; the reaction-die option, spentReaction, windowReactions and the window receipt are deleted; ROLL_WINDOW stays for held dice and damage rerolls; the movement host is coordinated with QUALITY-9.T2."
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
+              "text": "Reaction die on the action host: the Worker offers it after the roller's own window, launches the child (which pauses for its die, manual entry kept), resumes the parent applying the die to the held d20, rebinds a reactor-is-target child through the QUALITY-8.T1d mechanism; the drawer; the room tests restated on the child path, including undo and void of the child."
+            },
+            {
+              "id": "QUALITY-9.T1e3",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-9.T1e2", "QUALITY-9.T2"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
+              "text": "Delete the window reaction die: spentReaction, windowReactions, EncounterWindowReactionReceiptDto, the reaction-die option, planNativeWindowReactions and the movement step field; ROLL_WINDOW stays for held dice and damage rerolls; docs."
             },
             {
               "id": "QUALITY-9.T2",
@@ -26121,8 +26153,7 @@
             },
             {
               "id": "QUALITY-13.T1c2a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26132,7 +26163,9 @@
                 "after": ["QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
-              "text": "Extract the single-target between-phase reaction orchestration (discover, settle the pause answer, replay retained reaction, Legendary Resistance and audit; reaction use, effect and spends fed to the outcome planner) into one per-target function the single-target planner calls. Pure refactor."
+              "text": "Extract the single-target between-phase reaction orchestration (discover, settle the pause answer, replay retained reaction, Legendary Resistance and audit; reaction use, effect and spends fed to the outcome planner) into one per-target function the single-target planner calls. Pure refactor.",
+              "mergedAt": "2026-11-12T16:39:12Z",
+              "proof": "m709 (b26c58c7c) from slice tip 18f06f3b9: Tests 43257641428, Live 43257640941, Browser journeys 43257640947 green; merge-slice run 43260832425. advanceNativeActionTarget (apps/session-worker/src/nativeActionTargetAdvance.ts) owns one target's Legendary Resistance and hit-reaction discovery, the pause-answer settle, the kept-decision replay and the graphs advance; the single-target planner calls it. reactionCastEnded stays in the planner (commit planning). Pure refactor: red proof skipped, no golden moved."
             },
             {
               "id": "QUALITY-13.T1c2b",
@@ -26157,7 +26190,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-13.T1c2b"]
+                "after": ["QUALITY-13.T1c2b", "QUALITY-9.T1e2"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
               "text": "Protection, bystander reaction children and roll reactions per ray, with their spends in the commit."
