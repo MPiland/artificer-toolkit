@@ -14437,16 +14437,17 @@
         {
           "id": "SPELLS-8",
           "title": "Cast spells in an Encounter",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/web/tests/live-backend/encounterPlayer.ts"],
           "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Spell action choices, slot spend and undo, upcasting, rituals, concentration start, multi-effect spells and components work in an Encounter.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
-                "Closed by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7 (m422), SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14 (m352); see each task's proof."
+                "Closed by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7 (m422), SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14 (m352); see each task's proof.",
+                "Reopened 2026-11-12 for the slot-fallback bug and re-closed by SPELLS-8.T17 (m716)."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain. Closed 2026-10-24 by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7, SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14.",
@@ -14745,7 +14746,7 @@
             },
             {
               "id": "SPELLS-8.T17",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 8,
@@ -14755,7 +14756,9 @@
                 "after": []
               },
               "note": "User approved 2026-11-12 (D187 growth, new bug task, size 2). Found at the QUALITY-9.T1c2 review and confirmed by trace: characterActions.ts:142-231 lets the base cast candidate fall back to a higher slot when its own-level slots are exhausted, while the cast resolves at the candidate level (characterSpellCastActions.ts:388), so a 3rd-level Counterspell paid with a 4th-level slot still owes the check against a 4th-level spell and level-scaled damage or healing under-scales. D126: each slot level is its own option.",
-              "text": "A spell that reads its cast level offers no base-level option once that level's slots are spent (no fallback to a higher slot); the upcast option for each owned higher slot stays. Level-independent spells keep the fallback. Regression tests (rules-runtime candidate and an Encounter Counterspell) fail before the fix."
+              "text": "A spell that reads its cast level offers no base-level option once that level's slots are spent (no fallback to a higher slot); the upcast option for each owned higher slot stays. Level-independent spells keep the fallback. Regression tests (rules-runtime candidate and an Encounter Counterspell) fail before the fix.",
+              "mergedAt": "2026-11-12T21:48:09Z",
+              "proof": "m716 (25d465998) from slice tip ad305ec92: Tests 43308580739, Live 43308580922, Browser journeys 43308580924 green; red proof characterSpellCastActions.test.ts. evaluateDnd5e2014CharacterActions lets a base cast candidate take a higher slot only when its spell does not read its cast level (spellReferenceMechanics readsCastLevel, the fact getSpellCastLevels uses); a level-reading spell with its base-level slots spent reports SPELL_SLOT_EXHAUSTED at that level and keeps its upcast options. Sheet and Builder read the same decisions."
             }
           ]
         },
@@ -25708,7 +25711,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c2b3"]
+                "after": ["QUALITY-9.T1d1", "QUALITY-8.T1c2b3"]
               },
               "note": "Registered 2026-11-12 at the QUALITY-9.T1 seam trace (D219): AC QUALITY-8.1 requires every chosen reaction to run as a child; no new scope.",
               "text": "On-hit reactions (the REACTION pause: Shield, Absorb Elements) run as reaction children resuming by REBIND_TEST; the inline on-hit reaction path is deleted and REACTION merges into the one reaction offer."
@@ -25724,7 +25727,7 @@
             "bv": 3,
             "tc": 3,
             "rr": 5,
-            "size": 13,
+            "size": 20,
             "after": ["QUALITY-8.T1b"]
           },
           "acs": [
@@ -25786,8 +25789,9 @@
               "proof": "m704 (845d3d882, fast path) from slice tip ed06c54ba: Tests 43213709143, Live 43216803537, Browser journeys 43213709116 green; backstop ci/merge-m704 Tests 43227681463, Live 43227685768, Browser journeys 43227690081. One incoming gate with a WARD or TRIGGER origin (pause, pending fences, passed-gate memory, GATED receipt, roll card); a counter child owes its trigger check as its gate, DC from the parent's recorded cast level; pass cancels the cast (ENCOUNTER_COUNTERED_CAST counter null, check on the child receipt as passedGate), fail commits the child GATED (lost SPELL) and the cast goes on; the cast-to-child-to-check link proved in nativeRoomCounterspell.test.ts. Red proof: nativeRoomCounterspell RED (3 of 45), CounterspellCreatureCast RED (1 of 3), Sanctuary RED (2 of 12), NaturesSanctuary RED (1 of 8), Tranquility RED (1 of 2), actionPendingOffers RED (3 of 33), encounterAttackRetarget RED-IMPORT. Persisted shape: gate origin on pause, pending, GATED action; optional passedGate on mechanics batches; EncounterFailedWardGateDto. No golden moved."
             },
             {
-              "id": "QUALITY-9.T1b3",
-              "status": "TODO",
+              "id": "QUALITY-9.T1b3a",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25796,8 +25800,36 @@
                 "size": 5,
                 "after": ["QUALITY-9.T1c2", "QUALITY-13.T2b"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
-              "text": "Area and chosen-list cast windows resume from reaction children; the inline check path, the CHECK answer and EncounterCastReactionCheckDto are deleted."
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
+              "text": "Area and chosen-list cast windows run a chosen counter as a child and resume from it into the aggregate, the area commit or the countered commit: Worker resume paths (nativeAreaPreparation, openReachCastWindow, castResume, readNativeResumedReactionOffer for non-ACTOR targets, TARGETED_SELF stage after a non-cancelling child); one cast-window insert fence for every host; the aggregate admits answers after children (descendants-plus-voids allowance shared with readNativeActionPending); MultiTarget room tests restated; resume currentness, replay and Shield-after-counter proofs. Merges in one batch with T1b3b."
+            },
+            {
+              "id": "QUALITY-9.T1b3b",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-9.T1b3a"]
+              },
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
+              "text": "Void and undo over an area root with reaction children: the void cascade of a held aggregate reads the tree from the run commands; undo of an area commit and of a countered area cast with children; GM removal of the last creature; a room proof each."
+            },
+            {
+              "id": "QUALITY-9.T1b3c",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["QUALITY-9.T1b3a"]
+              },
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
+              "text": "Delete the inline counter check path, the CHECK answer and EncounterCastReactionCheckDto across schema, Worker and persistence (encounterCastReactionCheck stays for the trigger gate); update rules-runtime.md and persistence.md."
             },
             {
               "id": "QUALITY-9.T1c1",
@@ -25840,28 +25872,42 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-9.T1b3"]
+                "after": ["QUALITY-9.T1b3a"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
               "text": "Delete the inline counter chain from advanceNativeCastReactions and the chain field from the offer DTO; restate the chain tests as nested children; docs."
             },
             {
-              "id": "QUALITY-9.T1d",
+              "id": "QUALITY-9.T1d1",
               "status": "TODO",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
-                "after": ["QUALITY-9.T1c2"]
+                "size": 3,
+                "after": ["QUALITY-9.T1b3a"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
-              "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children and prove REBIND_TEST; usedReactions is deleted end to end; CAST_REACTION is the one pre-roll offer whose options all run as children."
+              "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between).",
+              "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children on the chosen-list host: child target and Scene tokens from the stage; the list resume rebinds the reactor's entries (REBIND_TEST room proof, undo and void of the child); delete holdChosenReactions' effect derivation, the prepareSealedReach hold and the TARGETED_SELF reactionEffects path; Shield tests restated on the child path."
+            },
+            {
+              "id": "QUALITY-9.T1d2",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["QUALITY-9.T1d1", "QUALITY-9.T1c3"]
+              },
+              "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between).",
+              "text": "Delete usedReactions end to end (pending contexts, commit inputs, stored receipt, fences, undo, the usedReactionSpend arm; usedReactionSpend stays for window reactions until T1e3) and update docs; CAST_REACTION is then the one pre-roll offer whose options all run as children."
             },
             {
               "id": "QUALITY-9.T1e1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25872,7 +25918,8 @@
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
               "text": "Reaction-die child contracts and persistence (inert): the post-roll offer shape that keeps the rolled d20; child recording and resume fences from that pending; the resolved-child record carries the rolled die so a replay does not roll again; subtractsFromTriggeringRoll on the committed-child read; reactor authority and summary for the decision.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T21:19:41Z",
+              "proof": "m715 (db31784f6) from slice tip 60a69f2f7 (live-backend auto-fix on a2fe2f0a1): Tests 43297974397, Live 43297978852, Browser journeys 43304126567 green; red proof actionPendingOffers.test.ts RED 3/36, reactionChildren.test.ts RED 12/61, reaction-cast-contracts.test.ts RED 1/9. Inert contracts: CAST_REACTION offer kind ATTACK_ROLL_BY_OTHER with rolled{test (D20RolledSaveDto), appRollId}; reactionChildren[].rolledDie on a resolved child; castPendingContinues fences (the next offer holds the same roll; a spend from a rolled offer records a child); readCommittedReactionChildren returns subtractsFromTriggeringRoll (System adapter); REACTION_CHOICE.attackRoll on the summary. D196: additive optional persisted fields, nothing writes them until T1e2."
             },
             {
               "id": "QUALITY-9.T1e2",
@@ -25991,7 +26038,7 @@
             "bv": 2,
             "tc": 3,
             "rr": 5,
-            "size": 5,
+            "size": 8,
             "after": ["QUALITY-8.T1c2b3"]
           },
           "acs": [
@@ -26000,12 +26047,27 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R8.",
-              "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; DAMAGED is raised once per command and damage mirrors and defeat rewards settle once; a multi-trigger command raises children in today's order."
+              "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; damage mirrors and defeat rewards settle as one stage of that step; a multi-trigger command raises children in today's order."
             }
           ],
           "tasks": [
             {
-              "id": "QUALITY-11.T1",
+              "id": "QUALITY-11.T1a",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-11.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-8.T1c2b3"]
+              },
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
+              "text": "One after-commit step module in the room owns the ordered subscriber list (HP-zero, delegated Legendary Action, start of turn, rule, return flag, summon advance, queued offer) and one raise primitive; mirror and reward settlement is a stage of the step drained at today's two points; pin test of child order for a multi-trigger command including a mirror kill."
+            },
+            {
+              "id": "QUALITY-11.T1b",
               "status": "TODO",
               "closes": ["QUALITY-11.1"],
               "wsjf": {
@@ -26013,9 +26075,10 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-8.T1c2b3"]
+                "after": ["QUALITY-11.T1a"]
               },
-              "text": "One after-commit subscriber step in the room; DAMAGED raised once; single settle of mirrors and rewards."
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
+              "text": "Turn-start and failed-save become event-table events (DEFEATED reused) with a raise-action hook and a System vocabulary binding; the after-commit step and action admission discover the HP-zero, start-of-turn and rule triggers from the table; the delegated Legendary Action stays a run-state subscriber."
             }
           ]
         },
@@ -26173,7 +26236,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 2,
-                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d", "QUALITY-9.T1b3"]
+                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d", "QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
               "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start."
@@ -26265,8 +26328,8 @@
             "bv": 3,
             "tc": 3,
             "rr": 5,
-            "size": 13,
-            "after": ["QUALITY-11.T1", "QUALITY-13.T2b", "QUALITY-13.T2c"]
+            "size": 20,
+            "after": ["QUALITY-11.T1b", "QUALITY-13.T2b", "QUALITY-13.T2c"]
           },
           "acs": [
             {
@@ -26274,7 +26337,7 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R11.",
-              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner."
+              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner. DAMAGED is raised once per command and holder."
             }
           ],
           "tasks": [
@@ -26287,7 +26350,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-11.T1", "QUALITY-13.T2b", "QUALITY-13.T2c"]
+                "after": ["QUALITY-11.T1b", "QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
               "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table."
             },
@@ -26299,10 +26362,11 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["QUALITY-14.T1"]
               },
-              "text": "One concentration planner for action and movement damage."
+              "text": "One concentration planner for action and movement damage; DAMAGED(AFTER) is raised once per command and holder and feeds effect ends, repeat saves and maintenance saves across every damage root.",
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\"."
             }
           ]
         },

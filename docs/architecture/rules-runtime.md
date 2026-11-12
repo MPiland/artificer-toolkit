@@ -1794,10 +1794,11 @@ the aimed stage when the action makes an attack roll at another creature on a Sc
 asks each other Character, in actor-id order, except the attacker and the attacked creature. It reads the Scene only
 for a Character that holds such a reaction and reads sight only when the rest of the trigger is met. The offer is the
 shared `REACTION_CHOICE` in the `CAST_REACTION` pause, so it has no pause kind of its own and the one timed decline
-covers it; its offer kind is `ATTACK_ON_OTHER`. A decline asks the next Character. A use is carried in
-`usedReactions`; each replay of the attack plans it again against the reactor as it stands (`planUsedReactions`), and `withEncounterRollInfluences` adds the roll mode to
-the attack roll's contributors, keyed `reaction:<reactorActorId>` with the `reaction` rule source, after the attack's
-currentness checksum is taken. The attack's terminal commit spends the reactor's reaction, so one undo restores it.
+covers it; its offer kind is `ATTACK_ON_OTHER`. A decline asks the next Character. A use runs as a reaction child
+(D219): the child's own commit spends the reactor's reaction, and the attack resumes from it with the child's roll mode
+imposed (`imposeChildRollModes`) on the attack roll's contributors, keyed `reaction:<reactorActorId>` with the
+`reaction` rule source, after the attack's currentness checksum is taken. Undo and void of the child follow the D219
+reaction-child rules.
 
 A `SIGHT` invocation range on a single-target action has no distance: the user must see the target
 (`refuseUnmetTargetRequirements` adds an actor-sees-target requirement), and the client gets no range preview. Limits:
