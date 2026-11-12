@@ -25790,8 +25790,7 @@
             },
             {
               "id": "QUALITY-9.T1b3a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25801,11 +25800,13 @@
                 "after": ["QUALITY-9.T1c2", "QUALITY-13.T2b"]
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
-              "text": "Area and chosen-list cast windows run a chosen counter as a child and resume from it into the aggregate, the area commit or the countered commit: Worker resume paths (nativeAreaPreparation, openReachCastWindow, castResume, readNativeResumedReactionOffer for non-ACTOR targets, TARGETED_SELF stage after a non-cancelling child); one cast-window insert fence for every host; the aggregate admits answers after children (descendants-plus-voids allowance shared with readNativeActionPending); MultiTarget room tests restated; resume currentness, replay and Shield-after-counter proofs. Merges in one batch with T1b3b."
+              "text": "Area and chosen-list cast windows run a chosen counter as a child and resume from it into the aggregate, the area commit or the countered commit: Worker resume paths (nativeAreaPreparation, openReachCastWindow, castResume, readNativeResumedReactionOffer for non-ACTOR targets, TARGETED_SELF stage after a non-cancelling child); one cast-window insert fence for every host; the aggregate admits answers after children (descendants-plus-voids allowance shared with readNativeActionPending); MultiTarget room tests restated; resume currentness, replay and Shield-after-counter proofs. Merges in one batch with T1b3b.",
+              "mergedAt": "2026-11-12T23:51:03Z",
+              "proof": "m718 (7a01b35c8, merged with T1b3b) from slice tip ee2f8c35c: Tests 43329224898, Live 43329224887, Browser journeys 43329224857 green; T1b3a's own tip bb88e3851 was green too (Tests 43323358103, Live 43323358105, Browser journeys 43323358045). Red proof nativeRoomCounterspellMultiTarget.test.ts RED 3/17 at T1b3a. Area and chosen-list cast windows run a chosen counter as a child and resume from it into the aggregate, area commit or countered commit. One currentness allowance (reactedUnderAwaitedChild), one cast-window fence (heldActionContinues) and one descendants-plus-voids version rule (heldRootVersionAccounted). The area failing-check test is restated: the slot is spent at the child's own commit (D219). No persisted-shape change."
             },
             {
               "id": "QUALITY-9.T1b3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25815,11 +25816,13 @@
                 "after": ["QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
-              "text": "Void and undo over an area root with reaction children: the void cascade of a held aggregate reads the tree from the run commands; undo of an area commit and of a countered area cast with children; GM removal of the last creature; a room proof each."
+              "text": "Void and undo over an area root with reaction children: the void cascade of a held aggregate reads the tree from the run commands; undo of an area commit and of a countered area cast with children; GM removal of the last creature; a room proof each.",
+              "mergedAt": "2026-11-12T23:51:03Z",
+              "proof": "m718 (7a01b35c8) from slice tip ee2f8c35c: Tests 43329224898, Live 43329224887, Browser journeys 43329224857 green; red proof nativeRoomCounterspellMultiTarget.test.ts RED 5/21 and actionPendingOffers.test.ts RED 4/40 against the merge-base (a and b together). The void of a held area aggregate reads the root's committed children from the Run commands and takes them back. Fixed: a void after an answered save was refused (revertLastEncounterAction skips the voided occurrence's answers and receipts), and the GM removal of the last creature after a child was rejected (liveActionAdmission fences the removal's own version). Undo proofs come from T1b3a. Stale-bystander refusal is proved at the fence by unit tests. No persisted-shape change."
             },
             {
               "id": "QUALITY-9.T1b3c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25829,7 +25832,8 @@
                 "after": ["QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
-              "text": "Delete the inline counter check path, the CHECK answer and EncounterCastReactionCheckDto across schema, Worker and persistence (encounterCastReactionCheck stays for the trigger gate); update rules-runtime.md and persistence.md."
+              "text": "Delete the inline counter check path, the CHECK answer and EncounterCastReactionCheckDto across schema, Worker and persistence (encounterCastReactionCheck stays for the trigger gate); update rules-runtime.md and persistence.md.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1c1",
@@ -26506,7 +26510,7 @@
         {
           "id": "QUALITY-18",
           "title": "Movement reactions run as reaction children",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -26518,7 +26522,7 @@
           "acs": [
             {
               "id": "QUALITY-18.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Opportunity attacks and other movement reactions are offered as REACTION_CHOICE and run as D219 children of the Scene move, which resumes from them (a reaction that stops movement ends the move at the contact point); void and undo follow the child rules (an opportunity-attack child is not undone on its own); MOVEMENT_REACTION, the movement reaction phases and the nested movement-reaction workflow modules are deleted; nativeMovementDecisionReplay and the movement journey pass."
@@ -26527,7 +26531,7 @@
           "tasks": [
             {
               "id": "QUALITY-18.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26537,7 +26541,8 @@
                 "after": ["QUALITY-9.T1b3b"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "A Scene move parent records children: reactionChildren on the movement CHOICE context; recording parent, ancestors, suspend, re-pin and release accept a move parent; child admission; a room-internal move resume; descendants and voids allowance on the movement fences. Inert until T2."
+              "text": "A Scene move parent records children: reactionChildren on the movement CHOICE context; recording parent, ancestors, suspend, re-pin and release accept a move parent; child admission; a room-internal move resume; descendants and voids allowance on the movement fences. Inert until T2.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T2",
