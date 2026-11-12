@@ -1274,6 +1274,18 @@ the rows it holds, one effect per lasting row (the area commit's per-target `cre
   or violet) traced a row gate and no proposal; `interpretDirect` now settles that as owing nothing, as it does a
   direct relationship.
 
+**One TEST seal for every driver (QUALITY-13.T1a1, current).** `advanceNativeActionGraphs`, the single-target driver,
+no longer runs a two-phase action's TEST itself. Until the action is in its OUTCOME it calls `prepareNativeActionTest`,
+offers what the sealed roll allows between the phases (Legendary Resistance, the target's reactions, the attacker's
+on-hit rider, none of the last two when a decoy absorbed the attack) and starts the OUTCOME with
+`continueNativeActionAfterTest`. So a table die a TEST rolls after its sealed d20 is the System's on a single target
+too, as it is on an area: the roller is asked for the d20 and never for the die after it. Dice a roller owns (the d20,
+the dice added to it, single-graph and OUTCOME damage dice) are still asked of a roller who does not auto-roll.
+`continueNativeActionAfterTest` takes the driver's `saveWindow`, so an auto-rolled nested OUTCOME save whose target
+holds a die still pauses in a `ROLL_WINDOW` (D168). The driver's own loop now serves only a single graph (the
+sight-held die, the damage hold) and the answer to an OUTCOME request; moving that answer onto
+`continueNativeActionAfterTest` is QUALITY-13.T1a2.
+
 Authoring parity (`packages/authoring/src/nodeRuntime/prismaticSprayAuthoringParity.test.ts`): the spell authored from
 the core options publishes the source's result, and the table, repeat and merged-row options are generic.
 

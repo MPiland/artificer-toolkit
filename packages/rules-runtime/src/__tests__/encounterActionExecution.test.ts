@@ -526,6 +526,52 @@ describe('native phased action execution', () => {
     expect(assisted.applications).toEqual(nested.applications)
   })
 
+  it('shows an auto-rolled nested save to a target that holds a die for after it (D168)', async () => {
+    const held = await advanceNativeActionGraphs({
+      runtime: runtime(),
+      adapter: dnd5eCharacterRuleActionSystemAdapter,
+      plan: plan(nestedSaveAction()),
+      occurrenceId: OCCURRENCE_ID,
+      binding: binding({
+        attack: true,
+        outcomes: [
+          {
+            kind: 'DAMAGE',
+            outcomeId: '00000000-0000-4000-8000-000000000022',
+            pathCode: 'ON_HIT',
+            expression: '1d6',
+            damageTypeId: DAMAGE_TYPE_ID,
+            scaling: []
+          }
+        ]
+      }),
+      afterTest: async () => undefined,
+      autoRoll: { SOURCE: true, TARGET: true },
+      saveWindow: {
+        heldDice: ({ savingThrowAbilityDefinitionId }) =>
+          savingThrowAbilityDefinitionId
+            ? [
+                {
+                  effectId: '00000000-0000-4000-8000-000000000031',
+                  grantId: 'held-die',
+                  label: 'Held die',
+                  count: 1,
+                  faces: 4,
+                  sign: 'ADD'
+                }
+              ]
+            : []
+      },
+      // The attack hits on a natural 15; every die after it, the nested save's d20 among them, rolls a 1.
+      random: deterministic([14, 0, 0, 0])
+    })
+    if (held.kind !== 'PENDING') throw new Error('Expected the nested save window.')
+    expect(held.pause?.kind).toBe('ROLL_WINDOW')
+    expect(held.twoPhase?.phase).toBe('OUTCOME')
+    expect(held.roller).toBe('TARGET')
+    expect(held.phaseReceipts?.map((receipt) => receipt.phase)).toEqual(['TEST'])
+  })
+
   it('does not execute an OUTCOME when the interstitial test policy refuses it', async () => {
     const random = deterministic([14])
     await expect(
