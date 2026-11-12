@@ -404,6 +404,22 @@ describe('the answer to a reaction offer (QUALITY-8.T1c2b2)', () => {
     expect(await offerAnswers(room)).toEqual([])
   })
 
+  it('lets the GM answer for a Character the player has left idle, running the pick as the Character’s attack', async () => {
+    const room = await attackedRoom()
+    const before = await hitPoints(room)
+    const attack = await bite(room, 19)
+    const reaction = await daggerReaction(room, attack.commandId)
+    const answered = await room.send(await answerCommand(room, reaction.resolution))
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+
+    expect(await offerAnswers(room)).toMatchObject([
+      { reactorActorId: REACTOR_ACTOR_ID, child: { commandId: reaction.commandId } }
+    ])
+    await rollReactionAttack(room, reaction.commandId)
+    expect(await pendingOccurrences(room)).toEqual([])
+    expect((await hitPoints(room)).wolf).toBeLessThan(before.wolf)
+  })
+
   it('settles an offer the GM voids as declined', async () => {
     const room = await attackedRoom()
     const attack = await bite(room, 19)

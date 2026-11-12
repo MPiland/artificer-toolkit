@@ -409,6 +409,35 @@ export function CampaignTabletopDecisionDrawer({
                 Decline
               </Button>
             </Stack>
+          ) : pending.kind === 'REACTION_OFFER' ? (
+            <Stack gap='xs'>
+              <Text size='sm'>
+                {encounter.actors.find((actor) => actor.id === pending.attackerActorId)?.label ??
+                  'A hidden combatant'}{' '}
+                attacked{' '}
+                {encounter.actors.find((actor) => actor.id === pending.reactorActorId)?.label ??
+                  'a hidden combatant'}
+                . Use a reaction?
+              </Text>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  size='lg'
+                  onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
+                >
+                  Use {option.label}
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                size='lg'
+                variant='default'
+                onClick={() => void resolve({ kind: 'DECLINE' })}
+              >
+                Decline
+              </Button>
+            </Stack>
           ) : pending.kind === 'ON_HIT_CHOICE' ? (
             <Stack gap='xs'>
               {pending.options.map((option) => (

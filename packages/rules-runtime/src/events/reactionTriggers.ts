@@ -29,9 +29,9 @@ type ReactionTriggerRow = {
 /**
  * The one registry of reaction triggers (one reaction pipeline, user ruling 2026-11-10): a row per
  * authored `reactionTrigger` kind. A trigger with a row compiles; the event its row names offers it.
- * Transitional: the attack planner checks `ATTACK_RESOLVED_ON_HOLDER` and queues the offer, but the
- * room does not yet take its answer or run the chosen reaction (QUALITY-8.T1c2b2); `MOVEMENT` is
- * still announced and interrupted by the movement host, not by an Encounter event (QUALITY-9).
+ * The attack planner checks `ATTACK_RESOLVED_ON_HOLDER` and queues the offer; the room raises it,
+ * takes its answer and runs the chosen reaction (QUALITY-8). Transitional: `MOVEMENT` is still
+ * announced and interrupted by the movement host, not by an Encounter event (QUALITY-9).
  */
 export const REACTION_TRIGGERS = {
   ATTACKED_SELF: { moment: 'HIT_BY_ATTACK', resume: { kind: 'REBIND_TEST' } },

@@ -435,7 +435,13 @@ result and runs no second child. The option's action is an ordinary action of th
 reaction through its own commit, and no pool-spend exclusion applies to it. For undo, the answer's receipt
 names the attack's occurrence, so `planRevertRoot` reads it as the attack's own and the group goes back
 child, then attack with the answer, in one `REVERT_LAST_ACTION`; an attack whose offer was declined goes
-back with its answer the same way.
+back with its answer the same way. The web drawer (`CampaignTabletopDecisionDrawer`) shows the projected
+`REACTION_OFFER` to whoever it is projected to (the reactor's controllers, the GM among them): the attacker and
+the reactor by name, one "Use <option label>" button per reaction and "Decline", answered through the ordinary
+`RESOLVE_RULE_OCCURRENCE` command with an `OPTION` or `DECLINE` resolution. It shows no timer and answers no
+key press, since the offer waits. The SRD Hunter's Giant Killer (SPELLS-31.T4k1c, D217) is the first consumer:
+its `ATTACK_RESOLVED_ON_SELF` trigger is authored data, the offer has one option per wielded weapon, and it
+adds no pending record, timer or rule of its own.
 
 Undo and void of a reacted action. One undo rule: a receipt belongs to the occurrence that recorded it, so
 `REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one

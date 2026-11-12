@@ -65,6 +65,10 @@ describe('decisionTitle', () => {
   it('titles a pending area as its saves', () => {
     expect(decisionTitle('AREA_SAVES')).toBe('Area saves')
   })
+
+  it('titles a committed attack’s reaction offer as a reaction', () => {
+    expect(decisionTitle('REACTION_OFFER')).toBe('Reaction available')
+  })
 })
 
 describe('on-hit choice text', () => {
