@@ -25791,14 +25791,15 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1c", "QUALITY-13.T2b"]
+                "after": ["QUALITY-9.T1c2", "QUALITY-13.T2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
               "text": "Area and chosen-list cast windows resume from reaction children; the inline check path, the CHECK answer and EncounterCastReactionCheckDto are deleted."
             },
             {
-              "id": "QUALITY-9.T1c",
-              "status": "TODO",
+              "id": "QUALITY-9.T1c1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25807,8 +25808,36 @@
                 "size": 5,
                 "after": ["QUALITY-9.T1b2"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
-              "text": "A countered counter runs as a nested child: the pending fence and suspend/re-pin cover every descendant; the inline counter chain is deleted."
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
+              "text": "Persistence for nested reaction children (inert): descendant-aware stored-root and root replay fences, re-pin of every suspended ancestor, void cascade and undo grouping over descendants; a countered child reads as not cancelling, so an even chain offers the cast again."
+            },
+            {
+              "id": "QUALITY-9.T1c2",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1c1"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
+              "text": "Worker nesting on single-target casts: a reaction child offers its own cast to counters; ancestor holders are excluded; the ancestor's slot spend is projected into the child's capture; the source-changed currentness allowance in both layers; room tests for odd and even chains, a chain with a check, and undo and void of a nested chain."
+            },
+            {
+              "id": "QUALITY-9.T1c3",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-9.T1b3"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
+              "text": "Delete the inline counter chain from advanceNativeCastReactions and the chain field from the offer DTO; restate the chain tests as nested children; docs."
             },
             {
               "id": "QUALITY-9.T1d",
@@ -25819,7 +25848,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1c"]
+                "after": ["QUALITY-9.T1c2"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
               "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children and prove REBIND_TEST; usedReactions is deleted end to end; CAST_REACTION is the one pre-roll offer whose options all run as children."
