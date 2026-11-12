@@ -296133,6 +296133,16 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                attackerActorId: string;
+                encounterVersion: number;
+                kind: "REACTION_OFFER";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ actionId: string; optionId: string }>;
+                reactorActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
                 encounterVersion: number;
                 kind: "MOVEMENT_PASSAGE_CHOICE";
                 occurrenceId: string;
@@ -297129,6 +297139,16 @@ export declare const api: {
                   occurrenceVersion: number;
                   options: Array<{ optionId: string; targetActorId: string }>;
                   sourceActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  attackerActorId: string;
+                  encounterVersion: number;
+                  kind: "REACTION_OFFER";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ actionId: string; optionId: string }>;
+                  reactorActorId: string;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -298715,6 +298735,16 @@ export declare const api: {
             occurrenceVersion: number;
             options: Array<{ optionId: string; targetActorId: string }>;
             sourceActorId: string;
+          }
+        | {
+            allowedResponses: Array<"DECLINE" | "OPTION">;
+            attackerActorId: string;
+            encounterVersion: number;
+            kind: "REACTION_OFFER";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{ actionId: string; optionId: string }>;
+            reactorActorId: string;
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -300479,6 +300509,16 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<{ optionId: string; targetActorId: string }>;
                 sourceActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                attackerActorId: string;
+                encounterVersion: number;
+                kind: "REACTION_OFFER";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ actionId: string; optionId: string }>;
+                reactorActorId: string;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
