@@ -33,6 +33,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import {
   absentEncounterActorIds,
+  advanceEncounterListAttacks,
   catchEncounterAreaActorIds,
   prepareEncounterAreaTests,
   settleEncounterAreaAction
@@ -114,7 +115,8 @@ import {
   replayAreaTargetSave,
   revalidateAreaTarget,
   revalidateStruckTarget,
-  rollAreaTargetSave
+  rollAreaTargetSave,
+  sealedListAttack
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
@@ -340,7 +342,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
 /**
  * Seals the save of every creature a multi-creature action reaches, one pending request each, then
  * either settles the action (every roller auto-rolled) or leaves it pending on its rollers. None is
- * rolled until its roller answers, except for a roller who auto-rolls.
+ * rolled until its roller answers, except for a roller who auto-rolls. The rays of a list are sealed
+ * together and answered one at a time, in order (`encounterAreaSaveAwaiting`).
  */
 export async function sealReachSaves(
   input: ReachPlanInput,
@@ -512,6 +515,10 @@ async function autoRollAreaSave(
  * failure offers; one whose creature holds dice for after its d20 keeps the roll as the dice it
  * rolled, to open its window with (D168), and replays it without rolling again. A rolled die is
  * never rolled twice: an auto-roll is kept as its faces, and a settled window as its d20.
+ *
+ * A ray is answered in its turn and runs to its outcome here, through the single-target driver, on
+ * the hit points the earlier rays at its creature left it. Every die it rolled is kept with its
+ * answer as a roll tape, which the later rays and the commit replay.
  */
 async function recordAreaRoll(
   input: ReachPlanInput,
@@ -521,6 +528,32 @@ async function recordAreaRoll(
   resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
 ) {
   const requestId = entry.sealed.snapshot.request.requestId
+  if (entry.prepared.makesAttackRoll) {
+    const context = snapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_AREA_ACTION' || resolution.kind === 'ROLL_WINDOW')
+      throw new Error('The pending action evidence is invalid.')
+    const index = context.targets.findIndex(
+      (target) => target.snapshot.request.requestId === requestId
+    )
+    const settled = await advanceEncounterListAttacks({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: entry.prepared.adapter,
+      plan: entry.prepared.plan,
+      occurrenceId: areaOccurrenceId,
+      attacks: [
+        ...context.targets
+          .slice(0, index)
+          .filter((target) => target.actorId === entry.sealed.actorId)
+          .map((earlier) => sealedListAttack(earlier, entry.prepared)),
+        sealedListAttack(entry.sealed, entry.prepared, resolution)
+      ]
+    })
+    return markEncounterAreaSaveTested(snapshot, requestId, {
+      testedJson: JSON.stringify(resolution),
+      rolls: settled.at(-1)?.rolls
+    })
+  }
   const result = await rollAreaTargetSave(
     input,
     { actor: entry.actor, target: entry },
@@ -549,16 +582,15 @@ async function recordAreaRoll(
           rollMode: result.boundary.d20.rollMode
         }
       : resolution
-  return markEncounterAreaSaveTested(
-    snapshot,
-    requestId,
-    JSON.stringify(kept),
-    offerEncounterAreaLegendaryResistance({
-      test: result,
-      targetStateChecksum: checksumRuleDocument(entry.prepared.target)
-    }),
-    sealedTestDice(result.boundary)
-  )
+  return markEncounterAreaSaveTested(snapshot, requestId, {
+    testedJson: JSON.stringify(kept),
+    legendaryResistance:
+      offerEncounterAreaLegendaryResistance({
+        test: result,
+        targetStateChecksum: checksumRuleDocument(entry.prepared.target)
+      }) ?? undefined,
+    testDice: sealedTestDice(result.boundary)
+  })
 }
 
 /**
@@ -660,7 +692,7 @@ export async function planNativeLiveEncounterAreaAnswer(
   const caught = context.targets.filter(({ collision }) => !collision)
   if (
     !answered ||
-    encounterAreaSaveAwaiting(answered) !==
+    encounterAreaSaveAwaiting(context, answered) !==
       (resolution.kind === 'ROLL_WINDOW' ? 'WINDOW' : 'ROLL') ||
     answered.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     areaSnapshot.occurrenceId !== input.response.occurrenceId ||
@@ -968,7 +1000,8 @@ type AreaPendingPlan = {
 /**
  * Plans the commit of a settled area: every kept creature's save is replayed from the answer kept
  * with it, damage is rolled once and frozen across them, and each creature's outcome becomes its
- * own receipt under one root that holds the caster's single spend.
+ * own receipt under one root that holds the caster's single spend. A list of rays replays each ray
+ * in order from the roll tape kept with its answer, so the commit rolls nothing for it.
  */
 export async function planNativeLiveEncounterAreaCommit(
   input: ReachPlanInput & {
@@ -1050,7 +1083,7 @@ export async function planNativeLiveEncounterAreaCommit(
     }
     return replayed
   }
-  const tests = await replaySealedTests(kept)
+  const tests = rollsPerTarget ? [] : await replaySealedTests(kept)
   const legendaryResistanceAudits = (entries: readonly { sealed: AreaTargetRecord }[]) =>
     encounterAreaLegendaryResistanceAudits(
       new Map(
@@ -1062,25 +1095,32 @@ export async function planNativeLiveEncounterAreaCommit(
   const audits = legendaryResistanceAudits(kept)
   // A point area rolls its damage on one tape; once its window opened, every replan settles on it.
   const sharedRolls = context.damageRoll?.rolls.map((roll) => ({ ...roll })) ?? []
-  const settled = await settleEncounterAreaAction({
+  const source = {
     runtime: input.runtime,
     random: input.random,
     adapter: lead.adapter,
     plan: lead.plan,
-    occurrenceId: areaOccurrenceId,
-    targets: kept.map(({ target, sealed }) => ({
-      actorId: target.prepared.target.id,
-      occurrenceId: sealed.snapshot.occurrenceId,
-      binding: target.prepared.binding,
-      attackSight: target.prepared.attackSight,
-      autoRoll: { SOURCE: false, TARGET: false },
-      discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
-    })),
-    tests,
-    legendaryResistance: audits,
-    rollsPerTarget,
-    sharedRolls
-  })
+    occurrenceId: areaOccurrenceId
+  }
+  const settled = rollsPerTarget
+    ? await advanceEncounterListAttacks({
+        ...source,
+        attacks: kept.map(({ sealed, target }) => sealedListAttack(sealed, target.prepared))
+      })
+    : await settleEncounterAreaAction({
+        ...source,
+        targets: kept.map(({ target, sealed }) => ({
+          actorId: target.prepared.target.id,
+          occurrenceId: sealed.snapshot.occurrenceId,
+          binding: target.prepared.binding,
+          attackSight: target.prepared.attackSight,
+          autoRoll: { SOURCE: false, TARGET: false },
+          discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
+        })),
+        tests,
+        legendaryResistance: audits,
+        sharedRolls
+      })
   // A caster who can pay to reroll damage dice answers the area's one shared roll before any of it
   // lands (D208). Each ray of an attack list is its own roll, and a GM removal settles without one.
   const damageWindow =

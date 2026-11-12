@@ -94,9 +94,10 @@ export function encounterAreaCaughtChecksum(input: {
 }
 
 /**
- * The GM takes one creature out of a pending area, with every ray aimed at it. Only a creature whose
- * rolls are all unanswered can go; the checksum is sealed again over those still caught. A creature
- * only a forced mover struck (D159) was not caught, and its save stays.
+ * The GM takes one creature out of a pending area, with every unanswered roll aimed at it. A ray
+ * already answered keeps its roll and settles with the area; a creature with no unanswered roll
+ * cannot go. The checksum is sealed again over those still caught. A creature only a forced mover
+ * struck (D159) was not caught, and its save stays.
  */
 export function removeEncounterAreaTarget<
   Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token' | 'collision'> & {
@@ -116,12 +117,15 @@ export function removeEncounterAreaTarget<
       removedActorIds: string[]
       caughtChecksum: string
     } {
-  const isRemoved = (target: Target) => target.actorId === actorId && target.collision === undefined
-  const removed = context.targets.filter(isRemoved)
-  if (removed.length === 0) return { kind: 'NOT_CAUGHT' }
-  if (removed.some((target) => target.testedJson !== undefined || target.rolledJson !== undefined))
-    return { kind: 'ANSWERED' }
-  const targets = context.targets.filter((target) => !isRemoved(target))
+  const caught = context.targets.filter(
+    (target) => target.actorId === actorId && target.collision === undefined
+  )
+  if (caught.length === 0) return { kind: 'NOT_CAUGHT' }
+  const removed = caught.filter(
+    (target) => target.testedJson === undefined && target.rolledJson === undefined
+  )
+  if (removed.length === 0) return { kind: 'ANSWERED' }
+  const targets = context.targets.filter((target) => !removed.includes(target))
   return {
     kind: 'REMOVED',
     targets,
@@ -196,12 +200,35 @@ const windowOpen = (target: SaveProgress) =>
 const awaitingRoll = (target: SaveProgress) =>
   target.rolledJson === undefined && target.testedJson === undefined
 
+type SaveList = Pick<AreaContext, 'casterActorId'> & { targets: readonly SaveProgress[] }
+
+/** Whether the area's caster makes the entry's roll, as for an attack roll at a creature. */
+const casterRolls = (area: SaveList, target: SaveProgress) =>
+  target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+  target.snapshot.applicationContext.rollerActorId === area.casterActorId
+
 /**
- * What a creature's save waits on from its roller: its roll, the choice at its open d20 window, or
- * nothing (settled, or rolled and waiting its turn at the window).
+ * Whether an entry waits its turn: a caster makes the rolls of a list one at a time, in the order
+ * the creatures were named, so a ray is rolled only once every ray before it is answered.
  */
-export const encounterAreaSaveAwaiting = (target: SaveProgress) =>
-  awaitingRoll(target) ? 'ROLL' : windowOpen(target) ? 'WINDOW' : null
+const awaitingTurn = (area: SaveList, target: SaveProgress) =>
+  casterRolls(area, target) &&
+  area.targets
+    .slice(0, area.targets.indexOf(target))
+    .some((earlier) => casterRolls(area, earlier) && earlier.testedJson === undefined)
+
+/**
+ * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, or
+ * nothing (settled, rolled and waiting its turn at the window, or a ray behind an unanswered one).
+ */
+export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) =>
+  awaitingTurn(area, target)
+    ? null
+    : awaitingRoll(target)
+      ? 'ROLL'
+      : windowOpen(target)
+        ? 'WINDOW'
+        : null
 
 /**
  * The save whose d20 window opens next, or null: windows open one at a time, once every save is
@@ -240,7 +267,8 @@ export function markEncounterAreaSaveRolled(
   const rolled = applicationContext.targets.find(
     (target) => target.snapshot.request.requestId === requestId
   )
-  if (!rolled || !awaitingRoll(rolled)) throw new Error('This area save is not awaiting a roll.')
+  if (!rolled || encounterAreaSaveAwaiting(applicationContext, rolled) !== 'ROLL')
+    throw new Error('This area save is not awaiting a roll.')
   return serverAggregateChoicePendingSnapshotDtoSchema.parse({
     ...snapshot,
     applicationContext: {
@@ -285,22 +313,26 @@ export function openEncounterAreaSaveWindow(
 }
 
 /**
- * Records that the roller of the save with `requestId` answered it, keeping the answer and the dice
- * its TEST rolled after the d20 to settle the area with, and the Legendary Resistance offered if the
- * save failed. The other saves, the caught set and its checksum stay exactly as sealed.
+ * Records that the roller of the roll with `requestId` answered it, keeping what settles the area
+ * without rolling again: the answer, the dice a save's TEST rolled after the d20 or a ray's whole
+ * roll tape, and the Legendary Resistance offered if the save failed. The other rolls, the caught
+ * set and its checksum stay exactly as sealed.
  */
 export function markEncounterAreaSaveTested(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
   requestId: string,
-  testedJson: string,
-  legendaryResistance: AreaTarget['legendaryResistance'] | null = null,
-  testDice: AreaTarget['testDice'] = undefined
+  {
+    testedJson,
+    legendaryResistance,
+    testDice,
+    rolls
+  }: { testedJson: string } & Pick<AreaTarget, 'legendaryResistance' | 'testDice' | 'rolls'>
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
   const answered = applicationContext.targets.find(
     (target) => target.snapshot.request.requestId === requestId
   )
-  if (!answered || answered.testedJson !== undefined)
+  if (!answered || answered.testedJson !== undefined || awaitingTurn(applicationContext, answered))
     throw new Error('This area save is not awaiting an answer.')
   return serverAggregateChoicePendingSnapshotDtoSchema.parse({
     ...snapshot,
@@ -312,6 +344,7 @@ export function markEncounterAreaSaveTested(
               ...target,
               testedJson,
               ...(testDice?.length ? { testDice } : {}),
+              ...(rolls?.length ? { rolls } : {}),
               ...(legendaryResistance ? { legendaryResistance } : {})
             }
           : target

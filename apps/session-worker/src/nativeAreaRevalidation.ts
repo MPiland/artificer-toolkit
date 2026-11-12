@@ -300,6 +300,30 @@ export async function rollAreaTargetSave(
   return tested
 }
 
+/**
+ * One attack roll of a list its caster rolls one at a time (a ray), as `advanceEncounterListAttacks`
+ * resolves it: its sealed roll with `answer`, or with the answer and the roll tape kept with it.
+ */
+export function sealedListAttack(
+  sealed: AreaTargetRecord,
+  prepared: AreaPrepared,
+  answer?: EncounterEvidenceAnswer
+) {
+  const kept: EncounterEvidenceAnswer | null =
+    sealed.testedJson === undefined ? null : JSON.parse(sealed.testedJson)
+  const resolution = answer ?? kept
+  if (!resolution) throw new Error('The area roll is unanswered.')
+  return {
+    actorId: sealed.actorId,
+    occurrenceId: sealed.snapshot.occurrenceId,
+    binding: prepared.binding,
+    attackSight: prepared.attackSight,
+    pending: { ...restoreEncounterActionPending(sealed.snapshot), roller: 'TARGET' as const },
+    resolution,
+    rolls: answer ? null : (sealed.rolls ?? [])
+  }
+}
+
 /** Replays one entry's roll that must have settled: its answer, or the d20 its window settled. */
 export async function replayAreaTargetSave(...args: Parameters<typeof rollAreaTargetSave>) {
   const tested = await rollAreaTargetSave(...args)
