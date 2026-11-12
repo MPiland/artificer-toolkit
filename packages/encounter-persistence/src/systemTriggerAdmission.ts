@@ -246,6 +246,7 @@ export async function requireSystemTriggerAdmission(
     return
   }
   const parentVersion = 'encounterVersion' in parent! ? parent.encounterVersion : parent!.version
+  if (parentVersion === undefined) rejectDomain('VERSION_STALE')
   // Each committed sibling child moved the Run one version past its parent (D219 allowance).
   const siblings = await countCommittedSystemSiblings(ctx, {
     encounterId: run.id,
