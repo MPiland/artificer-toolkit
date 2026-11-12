@@ -25864,15 +25864,14 @@
             },
             {
               "id": "QUALITY-9.T1e1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "TODO",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1c1"]
+                "after": ["QUALITY-9.T1c2"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
               "text": "Reaction-die child contracts and persistence (inert): the post-roll offer shape that keeps the rolled d20; child recording and resume fences from that pending; the resolved-child record carries the rolled die so a replay does not roll again; subtractsFromTriggeringRoll on the committed-child read; reactor authority and summary for the decision."
