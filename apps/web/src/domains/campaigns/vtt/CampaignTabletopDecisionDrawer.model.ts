@@ -146,6 +146,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'MOVEMENT_PASSAGE_CHOICE') return 'Passage choice'
   if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
   if (kind === 'REACTION_CHOICE') return 'Reaction available'
+  if (kind === 'REACTION_OFFER') return 'Reaction available'
   if (kind === 'ON_HIT_CHOICE') return 'Add an on-hit effect'
   if (kind === 'ATTACK_RETARGET_CHOICE') return 'Choose a new target'
   if (kind === 'FORCED_MOVEMENT_DESTINATION') return 'Forced movement'

@@ -44,7 +44,8 @@ export async function readRoomEncounterResponseRoute(
     owner === 'ESCAPE' ||
     owner === 'ACTION' ||
     owner === 'CONTEST' ||
-    owner === 'MOVEMENT'
+    owner === 'MOVEMENT' ||
+    owner === 'REACTION_OFFER'
   )
     return owner
   const receipt = await store.store
@@ -140,5 +141,5 @@ export async function roomOwnsEncounterVoid(
     if (!decline || decline.encounterId !== run.id) return false
   }
   const route = await readRoomEncounterResponseRoute(store, command)
-  return route === 'TURN' || route === 'CLEAVING'
+  return route === 'TURN' || route === 'CLEAVING' || route === 'REACTION_OFFER'
 }

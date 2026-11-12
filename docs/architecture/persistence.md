@@ -411,15 +411,30 @@ result path of that test, the outcome its reaction trigger resumes by (`dnd5eTes
 to the path, so a failed save imposes it and a passed one imposes nothing. Recovery after a crash between
 the child's commit and the resume is the GM's void.
 
-Post-commit reaction offer (current in persistence, QUALITY-8.T1c2a, D219; inert: nothing raises one until
-the room does in QUALITY-8.T1c2b). A reaction that answers an attack's outcome is offered after the attack
-has committed, as a rule occurrence of its own (`insertReactionOffer`, `reactionOffer.ts`): an
-`AGGREGATE_CHOICE` snapshot whose context kind is `ENCOUNTER_REACTION_OFFER`, naming the committed attack
-command and its occurrence, the reactor, the attacker and the reactor's options. Its id is derived from the
-attack command and the reactor (`reactionOfferOccurrenceId`), so an attack offers a reactor once and a chain
-of reactions ends. It is raised only while the Run has no pending decision, so several reactors are offered
-one at a time. It is shown to the reactor's controller and the GM (`projectReactionOfferPending`). It has no
-timer: an offer whose reactor does not answer waits until the GM voids it, and the void settles it as a
+Post-commit reaction offer (D219; current: planned, queued and raised since QUALITY-8.T1c2b1, answered and
+run by the room since QUALITY-8.T1c2b2). A reaction that answers an attack's
+outcome is planned with the attack and raised after it has committed. The trigger is checked at plan time:
+the attack's planner (`planNativeResolvedAttackOffers`, Session Worker) asks the event table whether the
+resolved attack meets a reaction the attacked Character holds, and prepares each such reaction against the
+attacker; an attack made off a Scene plans none. The plan carries one offer per reactor
+(`reactionOffers` on the commit input), and the attack's own commit stores each as a rule occurrence in
+state `QUEUED` (`queueReactionOffer`, `reactionOffer.ts`): an `AGGREGATE_CHOICE` snapshot whose context kind
+is `ENCOUNTER_REACTION_OFFER`, naming the committed attack command and its occurrence, the reactor, the
+attacker, the reactor's reaction allowance as planned, and the reactor's options with their labels. Its id
+is derived from the attack command and the reactor (`reactionOfferOccurrenceId`), so an attack offers a
+reactor once and a chain of reactions ends. A `QUEUED` occurrence is no pending decision: nothing shows it
+or answers it. Liveness is checked at raise: after each room command, `raiseQueuedReactionOffer` raises the
+next queued offer (earliest attack first, reactors in actor-id order) as `PENDING`, pinned to the Run as it
+stands, only while the Run has no pending decision, so several reactors are offered one at a time. It reads
+committed state alone and voids an offer whose reactor or attacker has left the Run, whose reactor has
+departed or is at 0 hit points, whose reactor has used its reaction since the attack, or whose reactor
+cannot take a reaction now (the one action-economy rule, `evaluateEncounterActionEconomy`, asked for one
+reaction; it judges nothing in a MANUAL Run); staleness between the commit and the raise beyond that is
+refused by the chosen reaction's own prepare. Undo voids the queued
+offers of the attacks it takes back (`voidQueuedReactionOffers`), and a finished Run deletes them with its
+other occurrences. A raised offer is shown to the reactor's controllers, the GM among them
+(`projectReactionOfferPending`), whatever they see of the attacker: only the authored trigger hides an
+offer. It has no timer: an offer whose reactor does not answer waits until the GM voids it, and the void settles it as a
 decline (`classifyRuleOccurrenceVoid`). The answer (`persistReactionOfferAnswer`, `reactionOfferAnswer.ts`)
 closes the offer first: one command completes the occurrence, moves the Run on one version, changes no
 creature, and stores a receipt (transition `REACTION_OFFER`, output `REACTION_OFFER_ANSWER`) that records
@@ -428,9 +443,27 @@ then runs as its own `REACTION` root. No parent is pending, so `requireSystemTri
 that receipt (`readReactionOfferChild`): the offer must be `COMPLETED`, the receipt must record this child
 id, and the child must target the recorded attacker; anything else is `COMMAND_ID_REUSED`. A fresh child
 runs only on the Run version the answer produced, so the record admits one run and none once the Run has
-moved (`VERSION_STALE`). Its commit suspends, re-pins and releases no parent. For undo, the answer's receipt
+moved (`VERSION_STALE`). Its commit suspends, re-pins and releases no parent. The room runs both in one
+command (`executeRoomReactionOfferAnswer`, `roomEncounterReactionOffers.ts`, response route
+`REACTION_OFFER`): it stores the answer and, for a chosen option, sends the child as the reactor's own
+action against the attacker, judged on the Scene where both tokens stand now (an offer is raised only on a
+Scene, so tokens that no longer share one refuse it). The command is one transaction, so there is no state
+between the answer and the child to recover from: a child that is refused (a Sheet edit left the reactor
+unable to react while the offer waited) takes the answer back with it and the offer stays `PENDING`, to be
+declined or voided. A child that needs evidence of its own (its attack roll, its damage dice) commits
+paused in that same command and settles from that evidence's answer on the action route; with no pending
+parent to resume, its commit ends there (`readReactionOfferChild`). A retried answer replays its stored
+result and runs no second child. The option's action is an ordinary action of the reactor: it spends the
+reaction through its own commit, and no pool-spend exclusion applies to it. For undo, the answer's receipt
 names the attack's occurrence, so `planRevertRoot` reads it as the attack's own and the group goes back
-child, then attack with the answer.
+child, then attack with the answer, in one `REVERT_LAST_ACTION`; an attack whose offer was declined goes
+back with its answer the same way. The web drawer (`CampaignTabletopDecisionDrawer`) shows the projected
+`REACTION_OFFER` to whoever it is projected to (the reactor's controllers, the GM among them): the attacker and
+the reactor by name, one "Use <option label>" button per reaction and "Decline", answered through the ordinary
+`RESOLVE_RULE_OCCURRENCE` command with an `OPTION` or `DECLINE` resolution. It shows no timer and answers no
+key press, since the offer waits. The SRD Hunter's Giant Killer (SPELLS-31.T4k1c, D217) is the first consumer:
+its `ATTACK_RESOLVED_ON_SELF` trigger is authored data, the offer has one option per wielded weapon, and it
+adds no pending record, timer or rule of its own.
 
 Undo and void of a reacted action. One undo rule: a receipt belongs to the occurrence that recorded it, so
 `REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one
@@ -438,8 +471,8 @@ step, attributing each receipt by occurrence instead of by a version range (`act
 (`revertGroupRoots` in `actionRevertGroups.ts`) is the run of commands, back from the Run's last action,
 that are one action and the REACTION children of its tree (its own, and those chosen against them in
 turn), whichever of them is last: a child chosen while the action
-was held committed before it, and a child chosen from a post-commit offer (D219, QUALITY-8.T1c1; no
-pipeline raises one until QUALITY-8.T1c2b) follows it and goes back child-then-parent. A last REACTION
+was held committed before it, and a child chosen from a post-commit offer (D219, QUALITY-8.T1c1; raised
+and run by the room since QUALITY-8.T1c2b2) follows it and goes back child-then-parent. A last REACTION
 child whose parent has no command answered a voided parent and goes back with its siblings alone. A void of
 the pending parent (`prepareRuleOccurrenceVoid`) stages nothing of the parent's own; its committed
 reactions are what the cancel takes back, so it runs `REVERT_LAST_ACTION` for them in the same transaction

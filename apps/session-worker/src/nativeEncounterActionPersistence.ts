@@ -110,6 +110,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
     spentUseGrants: plan.spentUseGrants,
     turnUses: plan.turnUses,
-    forcedMovements: plan.forcedMovements
+    forcedMovements: plan.forcedMovements,
+    reactionOffers: plan.reactionOffers
   })
 }

@@ -251,11 +251,7 @@ async function projectPendingRunDecision(
       visibleActorIds: new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))
     })
   if (context.kind === 'ENCOUNTER_REACTION_OFFER')
-    return projectReactionOfferPending(occurrence, pendingSnapshot, {
-      isOwner: membership.role === 'OWNER',
-      controlledActorIds,
-      visibleActorIds: new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))
-    })
+    return projectReactionOfferPending(occurrence, pendingSnapshot, controlledActorIds)
   if (
     context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
     context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||

@@ -258,6 +258,43 @@ export const MovementReaction: Story = {
   }
 }
 
+// A committed attack's reaction offer (D219): untimed, one button per reaction the reactor may take.
+export const ReactionOffer: Story = {
+  args: {
+    pending: validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      kind: 'REACTION_OFFER',
+      occurrenceId,
+      occurrenceVersion: 2,
+      encounterVersion: tabletopGmEncounter.version,
+      reactorActorId: tabletopGmEncounter.actors[0]!.id,
+      attackerActorId: tabletopGmEncounter.actors[1]!.id,
+      options: [
+        { optionId: 'a'.repeat(64), actionId: 'giant-killer-club', label: 'Giant Killer (Club)' },
+        {
+          optionId: 'b'.repeat(64),
+          actionId: 'giant-killer-dagger',
+          label: 'Giant Killer (Dagger)'
+        }
+      ],
+      allowedResponses: ['DECLINE', 'OPTION']
+    })
+  },
+  play: async ({ canvasElement }) => {
+    resolveDecision.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    const drawer = await openDecision(page)
+    await expect(drawer.getByText('Reaction available')).toBeVisible()
+    await expect(drawer.queryByRole('timer')).toBeNull()
+    await userEvent.click(drawer.getByRole('button', { name: 'Use Giant Killer (Dagger)' }))
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
+    await expect(resolveDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'OPTION', optionId: 'b'.repeat(64) }
+      })
+    )
+  }
+}
+
 export const PassageChoice: Story = {
   args: { pending: passagePending },
   play: async ({ canvasElement }) => {

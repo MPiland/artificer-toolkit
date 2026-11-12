@@ -17,6 +17,7 @@ const NOT_A_WRITER_OF_HELD_CONDITIONS: Record<string, string> = {
     'a new actor starts with no conditions, so it keeps its whole maximum',
   'characterStates.ts':
     'builds the frozen Character snapshot an Encounter reads, never a stored Sheet',
+  'reactionOffer.ts': 'passes condition ids to a rules check and stores none',
   'targetMechanicsInverse.ts':
     'pure: returns the restored actor and Sheet state, settled by revertedRunActors.ts and actionRevert.ts',
   'turnMovement.ts': 'passes condition ids to a rules check and stores none'

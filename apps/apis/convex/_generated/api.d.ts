@@ -296138,7 +296138,11 @@ export declare const api: {
                 kind: "REACTION_OFFER";
                 occurrenceId: string;
                 occurrenceVersion: number;
-                options: Array<{ actionId: string; optionId: string }>;
+                options: Array<{
+                  actionId: string;
+                  label: string;
+                  optionId: string;
+                }>;
                 reactorActorId: string;
               }
             | {
@@ -297147,7 +297151,11 @@ export declare const api: {
                   kind: "REACTION_OFFER";
                   occurrenceId: string;
                   occurrenceVersion: number;
-                  options: Array<{ actionId: string; optionId: string }>;
+                  options: Array<{
+                    actionId: string;
+                    label: string;
+                    optionId: string;
+                  }>;
                   reactorActorId: string;
                 }
               | {
@@ -298743,7 +298751,11 @@ export declare const api: {
             kind: "REACTION_OFFER";
             occurrenceId: string;
             occurrenceVersion: number;
-            options: Array<{ actionId: string; optionId: string }>;
+            options: Array<{
+              actionId: string;
+              label: string;
+              optionId: string;
+            }>;
             reactorActorId: string;
           }
         | {
@@ -300517,7 +300529,11 @@ export declare const api: {
                 kind: "REACTION_OFFER";
                 occurrenceId: string;
                 occurrenceVersion: number;
-                options: Array<{ actionId: string; optionId: string }>;
+                options: Array<{
+                  actionId: string;
+                  label: string;
+                  optionId: string;
+                }>;
                 reactorActorId: string;
               }
             | {

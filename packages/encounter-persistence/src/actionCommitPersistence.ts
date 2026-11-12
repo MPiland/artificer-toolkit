@@ -42,6 +42,7 @@ import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGr
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
+import { queueReactionOffer } from './reactionOffer.js'
 import { insertSpellCastCheck } from './spellCastCheckPersistence.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import {
@@ -444,6 +445,20 @@ export async function persistEncounterActionCommit(
         sourceActorId: source.id
       })
     : null
+  // The reactions this attack offers once it has resolved (D219) wait queued behind its own
+  // decisions; each is this command's own, against its source, for another actor of the Run.
+  for (const offer of input.reactionOffers) {
+    const context = offer.applicationContext
+    if (
+      context.kind !== 'ENCOUNTER_REACTION_OFFER' ||
+      context.parentCommandId !== command.commandId ||
+      context.parentOccurrenceId !== execution.occurrenceId ||
+      context.attackerActorId !== source.id ||
+      !nextActors.some((actor) => actor.id === context.reactorActorId)
+    )
+      throw new Error('Reaction offer scope mismatch.')
+    await queueReactionOffer(ctx, nextState, offer, input.occurredAt)
+  }
   nextActors = await callbacks.persistActionChildren({
     input,
     state: nextState,

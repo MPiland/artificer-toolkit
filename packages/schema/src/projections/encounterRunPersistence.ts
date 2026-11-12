@@ -828,8 +828,10 @@ export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
       /**
        * `SUSPENDED` is a pending action waiting on the paused child action of a reaction chosen
        * against it (D219): it keeps its snapshot, and the child is the Run's one `PENDING` decision.
+       * `QUEUED` is a reaction offer its attack's commit stored (D219), with its snapshot, that waits
+       * to be raised as the `PENDING` decision once the Run waits on nothing else.
        */
-      state: z.enum(['PENDING', 'SUSPENDED', 'COMPLETED', 'VOIDED']),
+      state: z.enum(['PENDING', 'SUSPENDED', 'QUEUED', 'COMPLETED', 'VOIDED']),
       version: z.number().check(z.int()).check(z.nonnegative()),
       expectedEncounterVersion: z.number().check(z.int()).check(z.nonnegative()),
       /** The pending snapshot's checksum; its content is in `encounterPendingSnapshotParts`. */

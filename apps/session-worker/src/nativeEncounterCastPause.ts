@@ -42,6 +42,7 @@ import {
   type NativeCastReactionAnswer,
   type NativeCastResponse
 } from './nativeEncounterCastReaction.js'
+import { planNativeResolvedAttackOffers } from './nativeEncounterResolvedReaction.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
 type Prepared = NativeEncounterActionMechanicsInput['prepared']
@@ -81,8 +82,8 @@ export function createNativeCastPause(input: {
   /** The creatures the cast names as its targets, when it names them (a chosen list); null otherwise. */
   chosenActorIds: readonly string[] | null
   /**
-   * The Scene's sight, which the reactions to an attack roll aimed at another creature read (D217);
-   * null when the action is never such an attack.
+   * The Scene's sight, which the reactions to an attack roll read: those to its aim at another
+   * creature (D217) and those to its hit or miss (D219); null when the action is never an attack.
    */
   aimedAttackPerception: LoadAttackPerception | null
   occurrenceId: string
@@ -294,6 +295,31 @@ export function createNativeCastPause(input: {
         capture: input.capture
       })
     )
+  }
+  /**
+   * The reaction offers the attack leaves for its commit to queue once it has hit or missed (D219).
+   * Range and sight are read from the Scene, so an attack made without one offers none.
+   */
+  const planResolvedOffers = async (hit: boolean) => {
+    const loadAttackPerception = input.aimedAttackPerception
+    const attackerTarget = input.movementTargets.get(prepared.actor.id)
+    if (!input.readScene || !loadAttackPerception || !attackerTarget) return []
+    return planNativeResolvedAttackOffers({
+      state,
+      attacker: prepared.actor,
+      attackerTarget,
+      attacked: prepared.target,
+      hit,
+      parentCommandId: command.commandId,
+      parentOccurrenceId: input.occurrenceId,
+      loadScene: readScene,
+      loadTarget: async (actor) =>
+        input.movementTargets.get(actor.id) ?? (await input.loadTarget(actor)),
+      loadAttackPerception,
+      prepareReaction: (reactor, reactorTarget, actionId) =>
+        prepareReaction(reactor, reactorTarget, actionId, prepared.actor, loadAttackPerception),
+      capture: input.capture
+    })
   }
   /** The chosen creatures that may answer being chosen; needs no Scene, only the spell and its targets. */
   const discoverTargeted = () => {
@@ -557,7 +583,7 @@ export function createNativeCastPause(input: {
     }
     return { kind: 'NONE' as const, usedReactions, reactionChildren }
   }
-  return { advance, planUsedReactions, imposeChildRollModes }
+  return { advance, planUsedReactions, imposeChildRollModes, planResolvedOffers }
 }
 
 export type NativeCastPause = ReturnType<typeof createNativeCastPause>

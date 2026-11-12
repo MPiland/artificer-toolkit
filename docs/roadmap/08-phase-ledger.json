@@ -17497,7 +17497,7 @@
             },
             {
               "id": "SPELLS-31.T4k1c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -17507,7 +17507,8 @@
                 "after": ["QUALITY-8.T1c2b2"]
               },
               "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
-              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\"). Moves golden row srdEffectCompile.golden.txt:80 (Giant Killer REFUSED); the no-golden-move rule covers QUALITY-8 tasks only."
+              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with QUALITY-8.T1c2b3): split from QUALITY-8.T1c2b at the seam trace. Re-traced 2026-11-12: Giant Killer is already authored (hunter.ts) and a Hunter attacks through each wielded weapon (characterActionRuleFacts.ts), so the bare-Feature golden row srdEffectCompile.golden.txt:80 stays REFUSED (decisions line on bare weapon-attack Features); no closed-rule effect remained to remove. The drawer shipped with QUALITY-8.T1c2b3; this task carries the live-stack Giant Killer browser journey.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25661,7 +25662,7 @@
             },
             {
               "id": "QUALITY-8.T1c2b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25670,13 +25671,13 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1c2a"]
               },
-              "note": "Green at f6342a530 (Tests 43260543413, Live 43263888038, Browser journeys 43260543370; red proof reactionOffer.test.ts RED 33/33, nativeRoomResolvedReactionOffer.test.ts RED 3/7). Held to merge in one batch with T1c2b2: alone it raises a PENDING offer in a live room with no answer or void route (hunter.ts authors the trigger). T1c2b2 also owes the incapacitated-reactor liveness check, the admit/pool-spend exclusion decision, and the departed-Character and end-to-end undo tests.",
               "text": "Commit-time offer discovery in the attack planner: trigger check, one option per action attack with a persisted label (versatile attacks told apart), none off-Scene; the attack commit inserts each reactor's ENCOUNTER_REACTION_OFFER as QUEUED (derived id per attack and reactor); a raise mutation voids queued offers whose reactor fails liveness and raises the next in actor-id order when nothing is pending; room raiser; QUEUED handled by undo, actor removal, Run finish and the void cascade; chain test; sight projection fix.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T18:32:28Z",
+              "proof": "m711 (6c1932ce2), merged in one batch with T1c2b2 from slice tip d16c8ac93 (contains f6342a530): b1 tip Tests 43260543413, Live 43263888038, Browser journeys 43260543370 green; red proof reactionOffer.test.ts RED 33/33, nativeRoomResolvedReactionOffer.test.ts RED 3/7. The attack's planner checks each reactor's post-commit trigger at plan time (planNativeResolvedAttackOffers) and its commit queues one QUEUED offer per reactor with the planned reaction allowance; the room raises the next queued offer after a liveness check from committed state."
             },
             {
               "id": "QUALITY-8.T1c2b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25685,13 +25686,13 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1c2b1"]
               },
-              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
               "text": "Room answer flow: REACTION_OFFER response route; OPTION and DECLINE through persistReactionOfferAnswer; the child raised in the same room turn; a REACTION child commits without a pending parent; GM void as DECLINE; crash-between test; end-to-end undo (child, answer, attack); drop the test-only planRevertRoot export.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T18:32:28Z",
+              "proof": "m711 (6c1932ce2) from slice tip d16c8ac93: Tests 43276483047, Live 43276483084, Browser journeys 43276483029 green; red proof nativeRoomResolvedReactionOffer.test.ts RED 11/15, reactionOffer.test.ts RED 35/35, conditionMaximumWriters.test.ts RED 1/8. executeRoomReactionOfferAnswer (roomEncounterReactionOffers.ts, route REACTION_OFFER) stores the answer and runs the chosen reaction child in one command and transaction on the Scene both tokens share; a refused child takes the answer back and the offer stays PENDING. Raise also voids an offer whose reactor cannot react now (evaluateEncounterActionEconomy); no pool-spend exclusion. Departed-Character and end-to-end undo tests added."
             },
             {
               "id": "QUALITY-8.T1c2b3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25701,7 +25702,9 @@
                 "after": ["QUALITY-8.T1c2b2"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
-              "text": "Drawer offer in CampaignTabletopDecisionDrawer and the player-controller answer path; room and browser journey; docs (live-sessions, persistence, rules-runtime, the reactionTriggers transitional note). Ships with SPELLS-31.T4k1c."
+              "text": "Drawer offer in CampaignTabletopDecisionDrawer and the player-controller answer path; room and browser journey; docs (live-sessions, persistence, rules-runtime, the reactionTriggers transitional note). Ships with SPELLS-31.T4k1c.",
+              "mergedAt": "2026-11-12T19:00:48Z",
+              "proof": "m712 (f8bb63044) from slice tip 5802ca872: Tests 43282180285, Live 43282180095, Browser journeys 43282180040 green. CampaignTabletopDecisionDrawer shows REACTION_OFFER (\"Reaction available\", \"<attacker> attacked <reactor>. Use a reaction?\", one \"Use <option>\" per option plus Decline, untimed), answered through RESOLVE_RULE_OCCURRENCE by the reactor's controller or the GM; drawer unit and model tests, a ReactionOffer Storybook play story, and a GM-answer room test. Docs: live-sessions, persistence, rules-runtime and the reactionTriggers note. The live-stack browser journey moved to SPELLS-31.T4k1c (no size change)."
             },
             {
               "id": "QUALITY-8.T1d",

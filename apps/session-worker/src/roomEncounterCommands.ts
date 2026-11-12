@@ -25,6 +25,7 @@ import { prepareRoomLiveCharacterSheet, readRoomOwnerCharacterRules } from './ro
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { raiseQueuedReactionOffer } from '@artificer-toolkit/encounter-persistence/reactionOffer'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { executeRoomEncounterTurn } from './roomEncounterTurns.js'
 import { recordRoomEncounterReplay, removeRoomFinishedRunRows } from './roomEncounterReplayIndex.js'
@@ -39,6 +40,7 @@ import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
+import { executeRoomReactionOfferAnswer } from './roomEncounterReactionOffers.js'
 import { settleDamageMirrors } from './roomDamageMirror.js'
 import { settleDefeatRewards } from './roomDefeatReward.js'
 import { recordRoomZoneSightings } from './roomZoneSightings.js'
@@ -493,6 +495,13 @@ export async function executeRoomEncounterCommand(input: {
       })
     : false
   const endedSummons = summonSweep.ended || advancedPastSummon
+  // Last, once the command and every root it raised have settled: the next reaction offer a
+  // committed attack queued (D219) becomes the Run's decision when it waits on nothing else.
+  const raisedReactionOffer = await raiseQueuedReactionOffer(
+    context,
+    currentRun.id,
+    new Date().toISOString()
+  )
   // Commands that can put a concealed zone in a Character's sight without a move (MOVE-3.5). The
   // sightings are GM bookkeeping that leaves the Run and its projection unchanged.
   if (
@@ -523,7 +532,8 @@ export async function executeRoomEncounterCommand(input: {
     raisedStartOfTurnEffects ||
     raisedRuleEffects ||
     flaggedReturn ||
-    endedSummons
+    endedSummons ||
+    raisedReactionOffer
   const raisedRun = changedRun
     ? await context.db
         .query('encounterRuns')
@@ -757,6 +767,8 @@ export async function executeRoomEncounterCommand(input: {
     if (route === 'TURN') return executeTurn(command)
     if (route === 'ACTION') return executeAction(command)
     if (route === 'CONTEST') return executeContest(command)
+    if (route === 'REACTION_OFFER')
+      return executeRoomReactionOfferAnswer({ ctx: context, transaction, command, executeAction })
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
       route === 'CLEAVING'

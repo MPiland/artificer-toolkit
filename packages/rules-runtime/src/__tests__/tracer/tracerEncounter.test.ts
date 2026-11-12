@@ -167,7 +167,7 @@ describe('a second installed System, action economy', () => {
     const state = tracerEncounterState({ actors: [actor], sides: SIDES })
     const target: NonNullable<ActionEconomyInput['target']> = {
       actor,
-      state: { current: 3, temporary: 0, conditions: [], deathSaves: null },
+      state: { conditions: [] },
       innateConditionIds: [],
       activeEffects: [],
       effectiveRulePolicyOutput: null

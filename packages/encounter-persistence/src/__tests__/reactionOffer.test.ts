@@ -9,7 +9,10 @@ import {
   CAMPAIGN_ID,
   ENCOUNTER_ID,
   TIMESTAMP,
+  characterActor,
   creatureActor,
+  srdCondition,
+  srdDefinitions,
   srdEncounterState,
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
@@ -30,9 +33,10 @@ import { serverAggregateChoicePendingSnapshotDtoSchema } from '@artificer-toolki
 import { reactionOfferOptionId } from '@artificer-toolkit/schema/shared/ruleExecutionReactionOffer'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { planRevertRoot } from '../actionRevert.js'
+import { revertLastEncounterAction } from '../actionRevert.js'
 import { revertGroupRoots } from '../actionRevertGroups.js'
-import { insertRunActor, readRunState } from '../documents.js'
+import { deleteRunActor, insertRunActor, readRunState, writeRunActor } from '../documents.js'
+import { removeFinishedRunRowsPage } from '../finishedRunRows.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import { readNativeEncounterOccurrenceOwner } from '../occurrenceOwner.js'
 import { classifyRuleOccurrenceVoid } from '../occurrenceVoid.js'
@@ -43,8 +47,14 @@ import {
   repinReactionChildParent,
   suspendReactionChildParent
 } from '../reactionChildren.js'
-import { insertReactionOffer, projectReactionOfferPending } from '../reactionOffer.js'
+import {
+  projectReactionOfferPending,
+  queueReactionOffer,
+  raiseQueuedReactionOffer,
+  voidQueuedReactionOffers
+} from '../reactionOffer.js'
 import { persistReactionOfferAnswer } from '../reactionOfferAnswer.js'
+import type { EncounterDocument } from '../store.js'
 import { requireSystemTriggerAdmission } from '../systemTriggerAdmission.js'
 
 const ATTACKER_ID = testUuid(0x8e01)
@@ -58,7 +68,13 @@ const ANSWER_COMMAND_ID = testUuid(0x8e08)
 const UNCOMMITTED_COMMAND_ID = testUuid(0x8e09)
 const CHOSEN_ACTION_ID = 'feature:giant-killer:longsword'
 const OTHER_ACTION_ID = 'feature:giant-killer:handaxe'
+const REACTION_DEFINITION_ID = testUuid(0x8e0e)
+const LATER_ATTACK_COMMAND_ID = testUuid(0x8e0f)
+const LATER_ATTACK_OCCURRENCE_ID = testUuid(0x8e10)
+const LATER_TIMESTAMP = new Date(Date.parse(TIMESTAMP) + 1000).toISOString()
 const OFFER_ID = reactionOfferOccurrenceId(ATTACK_COMMAND_ID, REACTOR_ID)
+const TARGET_OFFER_ID = reactionOfferOccurrenceId(ATTACK_COMMAND_ID, TARGET_ID)
+const actionLabel = (actionId: string) => `Label of ${actionId}`
 /** The Run version the attack produced, which the offer is raised on. */
 const ATTACK_VERSION = 4
 /** The Run version the offer's answer produces, the only one its chosen reaction runs on. */
@@ -78,9 +94,15 @@ const attack = {
   sceneContext: null
 } satisfies ResolveEncounterActionInputDto
 
-/** The offer a committed attack raises for one reactor: that reactor's own actions against the attacker. */
+/** The offer a committed attack plans for one reactor: that reactor's own actions against the attacker. */
 const offer = (
-  input: { parentCommandId?: string; reactorActorId?: string; actionIds?: string[] } = {}
+  input: {
+    parentCommandId?: string
+    parentOccurrenceId?: string
+    reactorActorId?: string
+    attackerActorId?: string
+    actionIds?: string[]
+  } = {}
 ) => {
   const parentCommandId = input.parentCommandId ?? ATTACK_COMMAND_ID
   const reactorActorId = input.reactorActorId ?? REACTOR_ID
@@ -92,12 +114,14 @@ const offer = (
       kind: 'ENCOUNTER_REACTION_OFFER',
       schemaVersion: 1,
       parentCommandId,
-      parentOccurrenceId: ATTACK_OCCURRENCE_ID,
+      parentOccurrenceId: input.parentOccurrenceId ?? ATTACK_OCCURRENCE_ID,
       reactorActorId,
-      attackerActorId: ATTACKER_ID,
+      attackerActorId: input.attackerActorId ?? ATTACKER_ID,
+      reactionAllowance: { definitionId: REACTION_DEFINITION_ID, beforeUsed: 0 },
       options: (input.actionIds ?? [CHOSEN_ACTION_ID, OTHER_ACTION_ID]).map((actionId) => ({
         optionId: reactionOfferOptionId({ parentCommandId, reactorActorId, actionId }),
-        actionId
+        actionId,
+        label: actionLabel(actionId)
       }))
     }
   })
@@ -154,19 +178,27 @@ const link = {
   reactorActorId: REACTOR_ID
 }
 
-/** A Run whose attack on the target has committed at `ATTACK_VERSION`; nothing is pending. */
-async function settledAttack() {
+/**
+ * A Run whose attack on the target has committed at `ATTACK_VERSION`; nothing is pending. It is a
+ * Manual Run, which tracks no action allowance, unless `automationMode` says otherwise.
+ */
+async function settledAttack(
+  input: {
+    reactor?: ReturnType<typeof creatureActor>
+    automationMode?: 'ASSISTED' | 'MANUAL'
+  } = {}
+) {
   const memory = createMemoryEncounterStore()
   const actors = [
     creatureActor({ id: ATTACKER_ID, snapshot: {} }),
     creatureActor({ id: TARGET_ID, snapshot: {}, disposition: 'FRIENDLY' }),
-    creatureActor({ id: REACTOR_ID, snapshot: {}, disposition: 'FRIENDLY' })
+    input.reactor ?? creatureActor({ id: REACTOR_ID, snapshot: {}, disposition: 'FRIENDLY' })
   ]
   const state = srdEncounterState({
     actors,
     currentActorId: ATTACKER_ID,
     version: ATTACK_VERSION,
-    automationMode: 'MANUAL'
+    automationMode: input.automationMode ?? 'MANUAL'
   })
   const campaign = {
     id: CAMPAIGN_ID,
@@ -198,9 +230,19 @@ async function settledAttack() {
           status: 'ACTIVE'
         }
       }),
-      readAssignedCharacter: async () => null
+      readAssignedCharacter: async () => null,
+      readCurrentDefinition: (definitionId: string) => srdDefinitions.requireCurrent(definitionId)
     }
-  } as unknown as Parameters<typeof persistReactionOfferAnswer>[0]
+  } as unknown as Parameters<typeof persistReactionOfferAnswer>[0] &
+    Parameters<typeof raiseQueuedReactionOffer>[0] &
+    Parameters<typeof revertLastEncounterAction>[0]
+  memory.load(
+    'campaigns',
+    [
+      { _id: 'campaign', _creationTime: 1, ...campaign }
+    ] as unknown as EncounterDocument<'campaigns'>[],
+    { validate: false }
+  )
   await memory.store.insert('encounterRuns', {
     id: state.id,
     campaignId: state.campaignId,
@@ -252,26 +294,28 @@ async function settledAttack() {
         updatedAt: TIMESTAMP
       })
     )
-  await memory.store.insert(
-    'encounterRuleOccurrences',
-    encounterStoredRuleOccurrenceSchema.parse({
-      id: ATTACK_OCCURRENCE_ID,
-      campaignId: CAMPAIGN_ID,
-      encounterId: ENCOUNTER_ID,
-      rootCommandId: ATTACK_COMMAND_ID,
-      state: 'COMPLETED',
-      version: 1,
-      expectedEncounterVersion: ATTACK_VERSION,
-      pendingSnapshotChecksum: await writePendingSnapshot(
-        ctx,
-        { id: ATTACK_OCCURRENCE_ID, encounterId: ENCOUNTER_ID },
-        null
-      ),
-      completedAt: TIMESTAMP,
-      createdAt: TIMESTAMP,
-      updatedAt: TIMESTAMP
-    })
-  )
+  const insertSettledOccurrence = async (id: string, rootCommandId: string) =>
+    memory.store.insert(
+      'encounterRuleOccurrences',
+      encounterStoredRuleOccurrenceSchema.parse({
+        id,
+        campaignId: CAMPAIGN_ID,
+        encounterId: ENCOUNTER_ID,
+        rootCommandId,
+        state: 'COMPLETED',
+        version: 1,
+        expectedEncounterVersion: ATTACK_VERSION,
+        pendingSnapshotChecksum: await writePendingSnapshot(
+          ctx,
+          { id, encounterId: ENCOUNTER_ID },
+          null
+        ),
+        completedAt: TIMESTAMP,
+        createdAt: TIMESTAMP,
+        updatedAt: TIMESTAMP
+      })
+    )
+  await insertSettledOccurrence(ATTACK_OCCURRENCE_ID, ATTACK_COMMAND_ID)
   const insertCommittedAction = (
     command: ResolveEncounterActionInputDto,
     version: number,
@@ -310,14 +354,47 @@ async function settledAttack() {
   const run = () => memory.documents('encounterRuns')[0]!
   const occurrence = (id = OFFER_ID) =>
     memory.documents('encounterRuleOccurrences').find((row) => row.id === id)!
+  const queue = (snapshot = offer(), now = TIMESTAMP) =>
+    queueReactionOffer(ctx, readRunState(run()), snapshot, now)
+  const raiseNext = () => raiseQueuedReactionOffer(ctx, ENCOUNTER_ID, TIMESTAMP)
+  const actorRow = (actorId: string) =>
+    memory.documents('encounterRunActors').find((row) => row.id === actorId)!
   return {
     memory,
     ctx,
     run,
     occurrence,
     insertCommittedAction,
-    raise: (snapshot = offer()) =>
-      insertReactionOffer(ctx, readRunState(run()), snapshot, TIMESTAMP),
+    insertSettledOccurrence,
+    /** The attack's commit stores the offer it planned. */
+    queue,
+    /** The room raises the Run's next queued offer once the Run waits on nothing. */
+    raiseNext,
+    /** An attack's offer, queued by its commit and then raised by the room. */
+    raise: async (snapshot = offer()) => {
+      await queue(snapshot)
+      await raiseNext()
+    },
+    /** A later command changes one actor's committed state. */
+    changeActor: (
+      actorId: string,
+      change: (actor: (typeof actors)[number]) => (typeof actors)[number]
+    ) =>
+      writeRunActor(
+        ctx,
+        actorRow(actorId)._id,
+        change(actors.find((actor) => actor.id === actorId)!)
+      ),
+    /** A later command removes one actor from the Run. */
+    removeActor: async (actorId: string) => {
+      await deleteRunActor(ctx, actorRow(actorId))
+      const state = readRunState(run())
+      const next = { ...state, actorIds: state.actorIds.filter((id) => id !== actorId) }
+      await memory.store.patch(run()._id, {
+        stateJson: JSON.stringify(next),
+        stateChecksum: checksumCanonicalJson(next)
+      })
+    },
     respond: (response: ResolveRuleOccurrenceInputDto, as = GM_ID) => {
       userId = as
       return persistReactionOfferAnswer(ctx, { response, occurredAt: TIMESTAMP })
@@ -342,6 +419,18 @@ async function settledAttack() {
         .withIndex('by_encounterId_version', (q) => q.eq('encounterId', ENCOUNTER_ID))
         .order('desc')
         .take(8),
+    /** The GM undoes the Run's last action. */
+    undo: () =>
+      revertLastEncounterAction(
+        ctx,
+        {
+          type: 'REVERT_LAST_ACTION',
+          encounterId: ENCOUNTER_ID,
+          commandId: testUuid(0x8e13),
+          expectedVersion: run().version
+        },
+        GM_ID
+      ),
     /** Another command moves the Run on by one version. */
     moveRun: async () => {
       const next = { ...readRunState(run()), version: run().version + 1 }
@@ -388,12 +477,12 @@ describe('raising the reaction offer of a committed attack (D219)', () => {
   })
 
   it('offers one reactor at a time: nothing is raised while the Run waits on a decision', async () => {
-    const { raise, occurrence } = await settledAttack()
+    const { raise, queue, raiseNext, occurrence } = await settledAttack()
     await raise()
-    await expect(raise(offer({ reactorActorId: TARGET_ID }))).rejects.toThrow(
-      'The Encounter already has a pending decision.'
-    )
-    expect(occurrence(reactionOfferOccurrenceId(ATTACK_COMMAND_ID, TARGET_ID))).toBeUndefined()
+    await queue(offer({ reactorActorId: TARGET_ID }))
+    expect(await raiseNext()).toBe(false)
+    expect(occurrence(TARGET_OFFER_ID).state).toBe('QUEUED')
+    expect(occurrence().state).toBe('PENDING')
   })
 
   it('is voided by the GM as a decline', async () => {
@@ -404,21 +493,239 @@ describe('raising the reaction offer of a committed attack (D219)', () => {
   })
 })
 
+describe('queueing the reaction offers of a committed attack (D219)', () => {
+  it('stores the offer as queued: it is no pending decision until the room raises it', async () => {
+    const { ctx, queue, run, occurrence, memory } = await settledAttack()
+    await queue()
+    expect(occurrence()).toMatchObject({
+      id: OFFER_ID,
+      rootCommandId: reactionOfferCommandId(OFFER_ID),
+      state: 'QUEUED',
+      version: 0,
+      expectedEncounterVersion: ATTACK_VERSION,
+      completedAt: null
+    })
+    expect((await readPendingSnapshot(ctx, occurrence()))?.applicationContext).toEqual(
+      offer().applicationContext
+    )
+    expect(
+      await memory.store
+        .query('encounterRuleOccurrences')
+        .withIndex('by_encounterId_state', (q) =>
+          q.eq('encounterId', ENCOUNTER_ID).eq('state', 'PENDING')
+        )
+        .first()
+    ).toBeNull()
+    // A queued offer is shown to no one and takes no answer.
+    expect(
+      projectReactionOfferPending(
+        occurrence(),
+        (await readPendingSnapshot(ctx, occurrence()))!,
+        new Set([REACTOR_ID])
+      )
+    ).toBeNull()
+    expect(run().version).toBe(ATTACK_VERSION)
+  })
+
+  it('raises the earliest attack’s offers first, its reactors in actor order, one at a time', async () => {
+    const { queue, raiseNext, respond, occurrence, insertSettledOccurrence } = await settledAttack()
+    await insertSettledOccurrence(LATER_ATTACK_OCCURRENCE_ID, LATER_ATTACK_COMMAND_ID)
+    const later = offer({
+      parentCommandId: LATER_ATTACK_COMMAND_ID,
+      parentOccurrenceId: LATER_ATTACK_OCCURRENCE_ID,
+      reactorActorId: TARGET_ID
+    })
+    await queue(later, LATER_TIMESTAMP)
+    await queue()
+    await queue(offer({ reactorActorId: TARGET_ID }))
+    const states = () =>
+      [TARGET_OFFER_ID, OFFER_ID, later.occurrenceId].map((id) => occurrence(id).state)
+
+    expect(await raiseNext()).toBe(true)
+    expect(states()).toEqual(['PENDING', 'QUEUED', 'QUEUED'])
+    expect(await raiseNext()).toBe(false)
+
+    await respond(answer({ kind: 'DECLINE' }, { occurrenceId: TARGET_OFFER_ID }))
+    expect(await raiseNext()).toBe(true)
+    expect(states()).toEqual(['COMPLETED', 'PENDING', 'QUEUED'])
+    // The next offer is pinned to the Run the first answer left.
+    expect(occurrence()).toMatchObject({ version: 0, expectedEncounterVersion: ANSWER_VERSION })
+
+    await respond(
+      answer({ kind: 'DECLINE' }, { commandId: testUuid(0x8e11), expectedVersion: ANSWER_VERSION })
+    )
+    expect(await raiseNext()).toBe(true)
+    expect(states()).toEqual(['COMPLETED', 'COMPLETED', 'PENDING'])
+    expect(await raiseNext()).toBe(false)
+  })
+
+  it('raises nothing in a Run with no queued offer, or one that is not active', async () => {
+    const { queue, raiseNext, run, occurrence, memory } = await settledAttack()
+    expect(await raiseNext()).toBe(false)
+    await queue()
+    await memory.store.patch(run()._id, { status: 'COMPLETED' })
+    expect(await raiseNext()).toBe(false)
+    expect(occurrence().state).toBe('QUEUED')
+  })
+
+  it('voids the offer of a reactor that has used its reaction since the attack', async () => {
+    const { queue, raiseNext, changeActor, occurrence, ctx } = await settledAttack()
+    await queue()
+    await changeActor(REACTOR_ID, (actor) => ({
+      ...actor,
+      resources: { ruleUsage: { [REACTION_DEFINITION_ID]: 1 } }
+    }))
+    expect(await raiseNext()).toBe(false)
+    expect(occurrence()).toMatchObject({ state: 'VOIDED', version: 1, completedAt: TIMESTAMP })
+    expect(await readPendingSnapshot(ctx, occurrence())).toBeNull()
+  })
+
+  it('voids the offer of a reactor at 0 hit points', async () => {
+    const { queue, raiseNext, changeActor, occurrence } = await settledAttack()
+    await queue()
+    await changeActor(REACTOR_ID, (actor) => ({ ...actor, currentHitPoints: 0 }))
+    expect(await raiseNext()).toBe(false)
+    expect(occurrence().state).toBe('VOIDED')
+  })
+
+  it('voids the offer of a Character that has left the Campaign', async () => {
+    // The Character's Run actor remains, with no Campaign assignment behind it.
+    const { queue, raiseNext, occurrence } = await settledAttack({
+      reactor: characterActor({ id: REACTOR_ID, characterId: testUuid(0x8e12) })
+    })
+    await queue()
+    expect(await raiseNext()).toBe(false)
+    expect(occurrence()).toMatchObject({ state: 'VOIDED', version: 1, completedAt: TIMESTAMP })
+  })
+
+  it('voids the offer of a reactor whose condition leaves it no reaction to take', async () => {
+    const incapacitated = await settledAttack({
+      automationMode: 'ASSISTED',
+      reactor: creatureActor({
+        id: REACTOR_ID,
+        snapshot: {},
+        disposition: 'FRIENDLY',
+        conditions: [srdCondition('Incapacitated')]
+      })
+    })
+    await incapacitated.queue()
+    expect(await incapacitated.raiseNext()).toBe(false)
+    expect(incapacitated.occurrence()).toMatchObject({ state: 'VOIDED', version: 1 })
+
+    // The same Run raises the offer of a reactor that holds no such condition.
+    const able = await settledAttack({ automationMode: 'ASSISTED' })
+    await able.queue()
+    expect(await able.raiseNext()).toBe(true)
+    expect(able.occurrence().state).toBe('PENDING')
+  })
+
+  it('actor removal: voids the offer whose reactor or attacker has left the Run', async () => {
+    const reactorGone = await settledAttack()
+    await reactorGone.queue()
+    await reactorGone.removeActor(REACTOR_ID)
+    expect(await reactorGone.raiseNext()).toBe(false)
+    expect(reactorGone.occurrence().state).toBe('VOIDED')
+
+    const attackerGone = await settledAttack()
+    await attackerGone.queue()
+    await attackerGone.removeActor(ATTACKER_ID)
+    expect(await attackerGone.raiseNext()).toBe(false)
+    expect(attackerGone.occurrence().state).toBe('VOIDED')
+  })
+
+  it('passes over a voided offer to raise the next live one in the same step', async () => {
+    const { queue, raiseNext, changeActor, occurrence } = await settledAttack()
+    await queue()
+    await queue(offer({ reactorActorId: TARGET_ID }))
+    await changeActor(TARGET_ID, (actor) => ({ ...actor, currentHitPoints: 0 }))
+    expect(await raiseNext()).toBe(true)
+    expect(occurrence(TARGET_OFFER_ID).state).toBe('VOIDED')
+    expect(occurrence().state).toBe('PENDING')
+  })
+
+  it('undo: voids the queued offers of the attacks it takes back, and no other attack’s', async () => {
+    const { ctx, queue, raiseNext, occurrence, insertSettledOccurrence } = await settledAttack()
+    await insertSettledOccurrence(LATER_ATTACK_OCCURRENCE_ID, LATER_ATTACK_COMMAND_ID)
+    const later = offer({
+      parentCommandId: LATER_ATTACK_COMMAND_ID,
+      parentOccurrenceId: LATER_ATTACK_OCCURRENCE_ID
+    })
+    await queue()
+    await queue(later, LATER_TIMESTAMP)
+    await voidQueuedReactionOffers(
+      ctx,
+      ENCOUNTER_ID,
+      new Set([LATER_ATTACK_COMMAND_ID]),
+      LATER_TIMESTAMP
+    )
+    expect(occurrence(later.occurrenceId)).toMatchObject({
+      state: 'VOIDED',
+      version: 1,
+      completedAt: LATER_TIMESTAMP
+    })
+    expect(occurrence().state).toBe('QUEUED')
+    expect(await raiseNext()).toBe(true)
+    expect(occurrence().state).toBe('PENDING')
+  })
+
+  it('void cascade: a queued or voided offer admits no reaction', async () => {
+    const { ctx, queue, admit } = await settledAttack()
+    await queue()
+    await expect(admit(reactionChild({ expectedVersion: ATTACK_VERSION }))).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
+    await voidQueuedReactionOffers(ctx, ENCOUNTER_ID, new Set([ATTACK_COMMAND_ID]), TIMESTAMP)
+    await expect(admit(reactionChild({ expectedVersion: ATTACK_VERSION }))).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
+    await expect(admit(reactionChild({ expectedVersion: ATTACK_VERSION }), false)).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
+  })
+
+  it('Run finish: a finished Run keeps no queued offer or its snapshot', async () => {
+    const { ctx, queue, memory } = await settledAttack()
+    await queue()
+    await queue(offer({ reactorActorId: TARGET_ID }))
+    let removed = false
+    while (!removed) removed = await removeFinishedRunRowsPage(ctx, ENCOUNTER_ID, 16)
+    expect(memory.documents('encounterRuleOccurrences')).toEqual([])
+    expect(memory.documents('encounterPendingSnapshotParts')).toEqual([])
+  })
+
+  it('chain: a reaction’s own attack offers its target under an id of its own', async () => {
+    const { queue, raiseNext, respond, occurrence, insertSettledOccurrence } = await settledAttack()
+    await queue()
+    await raiseNext()
+    await respond(option)
+    // The chosen reaction is an attack on the first attacker, who holds a reaction to it.
+    const child = reactionChild()
+    await insertSettledOccurrence(LATER_ATTACK_OCCURRENCE_ID, child.commandId)
+    const chained = offer({
+      parentCommandId: child.commandId,
+      parentOccurrenceId: LATER_ATTACK_OCCURRENCE_ID,
+      reactorActorId: ATTACKER_ID,
+      attackerActorId: REACTOR_ID
+    })
+    expect(chained.occurrenceId).not.toBe(OFFER_ID)
+    await queue(chained)
+    await expect(queue(chained)).rejects.toThrow('The attack already offered this reaction.')
+    expect(await raiseNext()).toBe(true)
+    expect(occurrence(chained.occurrenceId).state).toBe('PENDING')
+    expect(occurrence().state).toBe('COMPLETED')
+  })
+})
+
 describe('showing a reaction offer (D219)', () => {
-  const project = async (viewer: Parameters<typeof projectReactionOfferPending>[2]) => {
+  const project = async (controlledActorIds: ReadonlySet<string>) => {
     const { ctx, raise, occurrence } = await settledAttack()
     await raise()
     const snapshot = await readPendingSnapshot(ctx, occurrence())
-    return projectReactionOfferPending(occurrence(), snapshot!, viewer)
+    return projectReactionOfferPending(occurrence(), snapshot!, controlledActorIds)
   }
-  const everyone = new Set([ATTACKER_ID, TARGET_ID, REACTOR_ID])
 
   it('shows the reactor’s controller the options, with no time to answer by', async () => {
-    const summary = await project({
-      isOwner: false,
-      controlledActorIds: new Set([REACTOR_ID]),
-      visibleActorIds: everyone
-    })
+    const summary = await project(new Set([REACTOR_ID]))
     expect(summary).toEqual({
       kind: 'REACTION_OFFER',
       occurrenceId: OFFER_ID,
@@ -432,31 +739,25 @@ describe('showing a reaction offer (D219)', () => {
           reactorActorId: REACTOR_ID,
           actionId
         }),
-        actionId
+        actionId,
+        label: actionLabel(actionId)
       })),
       allowedResponses: ['DECLINE', 'OPTION']
     })
     expect(summary).not.toHaveProperty('answerBy')
   })
 
-  it('shows it to no one else, and to a player only against an attacker they can see', async () => {
-    expect(
-      await project({
-        isOwner: false,
-        controlledActorIds: new Set([TARGET_ID]),
-        visibleActorIds: everyone
-      })
-    ).toBeNull()
-    expect(
-      await project({
-        isOwner: false,
-        controlledActorIds: new Set([REACTOR_ID]),
-        visibleActorIds: new Set([TARGET_ID, REACTOR_ID])
-      })
-    ).toBeNull()
-    expect(
-      await project({ isOwner: true, controlledActorIds: everyone, visibleActorIds: new Set() })
-    ).toMatchObject({ kind: 'REACTION_OFFER', reactorActorId: REACTOR_ID })
+  it('shows it to no one else, and to the reactor’s controller whatever they see of the attacker', async () => {
+    expect(await project(new Set([TARGET_ID]))).toBeNull()
+    // What the viewer sees of the attacker is no input: the authored trigger alone hides an offer.
+    expect(await project(new Set([REACTOR_ID]))).toMatchObject({
+      kind: 'REACTION_OFFER',
+      reactorActorId: REACTOR_ID
+    })
+    expect(await project(new Set([ATTACKER_ID, TARGET_ID, REACTOR_ID]))).toMatchObject({
+      kind: 'REACTION_OFFER',
+      reactorActorId: REACTOR_ID
+    })
   })
 })
 
@@ -654,10 +955,12 @@ describe('committing the reaction chosen from a settled offer (D219)', () => {
 
 describe('undoing an attack with the reaction chosen from its offer (D219)', () => {
   it('groups the reaction, then the attack with the offer’s answer as its own', async () => {
-    const { raise, respond, insertCommittedAction, recentCommands, memory } = await settledAttack()
+    const { raise, respond, insertCommittedAction, recentCommands, moveRun, undo } =
+      await settledAttack()
     await raise()
     await respond(option)
     await insertCommittedAction(reactionChild(), ANSWER_VERSION + 1, testUuid(0x8e0c))
+    await moveRun()
     const recent = await recentCommands()
     const { groupRoots } = revertGroupRoots(recent, 0)
     expect(groupRoots.map(({ root }) => root.commandId)).toEqual([
@@ -668,47 +971,44 @@ describe('undoing an attack with the reaction chosen from its offer (D219)', () 
     expect(child!.laterEntries).toEqual([])
     expect(parent!.laterEntries.map(({ commandId }) => commandId)).toEqual([ANSWER_COMMAND_ID])
 
-    // This fixture keeps no receipt of the attack's own outcome, so the plan ends there: past the
-    // answer, which it reads as the attack's own child and not as another decision.
-    expect(() =>
-      planRevertRoot({
-        ...parent!,
-        receipts: memory.documents('encounterRuleReceipts'),
-        otherRootOccurrenceIds: new Set([child!.ruleOccurrenceId])
-      })
-    ).toThrow('Stored Encounter action receipt is missing.')
+    // This fixture keeps no receipt of either action's own outcome, so the undo ends there: past
+    // the answer, which it reads as the attack's own child and not as another decision. The room
+    // proves the whole undo with real receipts (nativeRoomResolvedReactionOffer.test.ts).
+    await expect(undo()).rejects.toThrow('Stored Encounter action receipt is missing.')
   })
 
   it('reads a declined offer’s answer as the attack’s own too', async () => {
-    const { raise, respond, recentCommands, memory } = await settledAttack()
+    const { raise, respond, recentCommands, undo } = await settledAttack()
     await raise()
     await respond(decline)
     const recent = await recentCommands()
     const { groupRoots } = revertGroupRoots(recent, 1)
     expect(groupRoots).toHaveLength(1)
-    expect(() =>
-      planRevertRoot({
-        ...groupRoots[0]!,
-        receipts: memory.documents('encounterRuleReceipts'),
-        otherRootOccurrenceIds: new Set()
-      })
-    ).toThrow('Stored Encounter action receipt is missing.')
+    await expect(undo()).rejects.toThrow('Stored Encounter action receipt is missing.')
   })
 
   it('still refuses an attack followed by a decision that is not its own', async () => {
-    const { raise, respond, recentCommands, memory } = await settledAttack()
-    await raise()
-    await respond(decline)
-    const recent = await recentCommands()
-    const [group] = revertGroupRoots(recent, 1).groupRoots
-    expect(() =>
-      planRevertRoot({
-        ...group!,
-        // The answer names another action's occurrence as the one that raised its offer.
-        ruleOccurrenceId: testUuid(0x8e0d),
-        receipts: memory.documents('encounterRuleReceipts'),
-        otherRootOccurrenceIds: new Set()
-      })
-    ).toThrow('Another decision changed the Encounter after this action')
+    const {
+      queue,
+      raiseNext,
+      respond,
+      insertSettledOccurrence,
+      insertCommittedAction,
+      moveRun,
+      undo
+    } = await settledAttack()
+    await queue()
+    // Another action commits before the first attack's offer is raised and answered.
+    await insertSettledOccurrence(LATER_ATTACK_OCCURRENCE_ID, LATER_ATTACK_COMMAND_ID)
+    await insertCommittedAction(
+      { ...attack, commandId: LATER_ATTACK_COMMAND_ID, expectedVersion: ATTACK_VERSION },
+      ATTACK_VERSION + 1,
+      LATER_ATTACK_OCCURRENCE_ID
+    )
+    await moveRun()
+    expect(await raiseNext()).toBe(true)
+    await respond(answer({ kind: 'DECLINE' }, { expectedVersion: ATTACK_VERSION + 1 }))
+    // The answer settles the first attack's offer, so it is no child of the last action.
+    await expect(undo()).rejects.toThrow('Another decision changed the Encounter after this action')
   })
 })

@@ -12,7 +12,10 @@ import { persistEncounterActionChildren } from '@artificer-toolkit/encounter-per
 import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
-import { readReactionChildParent } from '@artificer-toolkit/encounter-persistence/reactionChildren'
+import {
+  readReactionChildParent,
+  readReactionOfferChild
+} from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import type {
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
@@ -258,13 +261,20 @@ export async function executeRoomEncounterAction(input: {
   if (systemTrigger?.trigger !== 'REACTION') return committed
   // A committed reaction child returns the room to the action it answered, in the same turn: at
   // once when it never paused, or from the answer that completed it (D219).
-  const parent = await readReactionChildParent(ctx, {
+  const link = {
     campaignId: scope.campaignId,
     encounterId: scope.encounterId,
     parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
     childCommandId: captured.command.commandId.toLowerCase()
-  })
-  if (!parent) throw new Error('The reaction’s pending action is gone.')
+  }
+  const parent = await readReactionChildParent(ctx, link)
+  if (!parent) {
+    // A reaction chosen from a settled offer answers an attack that already committed: no action
+    // is held, so the room has nothing to resume.
+    const reactorActorId = captured.command.actorId.toLowerCase()
+    if (await readReactionOfferChild(ctx, { ...link, reactorActorId })) return committed
+    throw new Error('The reaction’s pending action is gone.')
+  }
   const expectedVersion = scope.expectedVersion + 1
   return executeRoomEncounterAction({
     ...input,

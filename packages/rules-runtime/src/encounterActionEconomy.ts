@@ -23,10 +23,11 @@ import {
 
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 
+/** An allowance reads only the conditions of the actor's state, so committed state alone can supply it. */
 type ActionEconomyTarget = Pick<
   MovementTarget,
-  'actor' | 'state' | 'innateConditionIds' | 'activeEffects' | 'effectiveRulePolicyOutput'
->
+  'actor' | 'innateConditionIds' | 'activeEffects' | 'effectiveRulePolicyOutput'
+> & { state: Pick<MovementTarget['state'], 'conditions'> }
 
 /** The capabilities an actor's active relationship effects and grants (D99) suppress. */
 export function activeEffectCapabilitySuppressions(
