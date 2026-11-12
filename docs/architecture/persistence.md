@@ -242,6 +242,27 @@ port checks a Character's assignment from its head and verifies its play record 
 Builder-owned collections or draft, so a session read does not grow with a Character's inventory or
 spells (RELIABILITY-21.T4, `encounters/activeReadBudget.test.ts`).
 
+### Terminal action commit skeleton (current, QUALITY-13.T2a)
+
+The four terminal action commits (`persistEncounterActionCommit`, `persistEncounterAreaCommit`,
+`persistEncounterCounteredCastCommit`, `persistEncounterGatedActionCommit`) share one skeleton; each keeps
+only the checks and writes that are its own between the steps.
+
+- Head (`actionCommitFences.ts`): `admitActionCommit` admits the command and returns a lost response's
+  stored result already presented for its member; `requireRuleOutputScope` checks the room's rule output
+  covers exactly the Run's non-Character actors and names the commit in its error by label;
+  `requireActionCommitFence` runs the read fence and refuses an occurrence id already used by any
+  occurrence other than the pending one the commit resumes.
+- Source spend (`actionSourceSpend.ts`): `applyActionSpendMechanics` makes the one
+  `DIRECT_ACTION_RESOURCE` mechanics batch an actor's own spend needs (the source's, a countering reactor's,
+  and each used reaction's through `applyUsedReactionSpends`); `requireSourceSpendReceipt` compares it with
+  the receipt the room planned. The single-target commit checks its source inside its own mechanics
+  receipt check, because a source that targets itself spends in the target's batch.
+- Tail (`actionCommitRecords.ts`): `completeActionOccurrence` settles the root occurrence, and
+  `recordActionCommit` builds the command result, advances the Run, stores the root's receipt and its one
+  `RESOLVE_ACTION` command, writes the evidence receipt of the answer that resumed it, and presents the
+  result for the member.
+
 ### Rule-raised (SYSTEM) action admission (current, SPELLS-33.T6e1, D161 candidate)
 
 A rule, not a player, can raise an action: a defeated creature's passive `HP_ZERO` area (Balor Death Throes).
@@ -280,7 +301,7 @@ not committed, so the proof is the pending action's own record instead: `reactio
 `ENCOUNTER_ACTION` pending context lists the command id of each reaction chosen against it
 (`readReactionChildParent`, `reactionChildren.ts`). An open offer alone admits nothing. A fresh child runs on
 the Run version the pending occurrence is pinned to (`expectedEncounterVersion`), for a holder that still
-stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionRoot`)
+stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionCommit`)
 advances the Run one version and re-pins the pending occurrence to it in the same transaction
 (`repinReactionChildParent`), so the fences read as follows:
 

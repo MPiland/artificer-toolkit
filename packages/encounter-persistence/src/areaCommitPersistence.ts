@@ -2,10 +2,7 @@ import type { ActionAreaSceneRequestDto } from '@artificer-toolkit/schema/api/en
 import type { LiveSessionEncounterAreaCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterRunStateSchema,
   type EncounterRunActorState,
@@ -30,16 +27,18 @@ import {
   takesInitiativeTurns
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
-import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
+import {
+  admitActionCommit,
+  requireActionCommitFence,
+  requireRuleOutputScope
+} from './actionCommitFences.js'
 import {
   actorFormEntry,
   createdFormCreatureId,
   readActorFormCreature
 } from './actorFormPersistence.js'
-import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import {
   requireAreaActionAnswer,
   requireAreaActionForcedMovement,
@@ -61,12 +60,14 @@ import {
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import {
   completeActionOccurrence,
-  recordActionRoot,
+  recordActionCommit,
   type ApplyEncounterForcedMovements,
   type ApplyEncounterSummonTokens
 } from './actionCommitRecords.js'
 import {
+  applyActionSpendMechanics,
   combineSpendMutations,
+  requireSourceSpendReceipt,
   settleActionSourceSpend,
   sourceSpendMutation
 } from './actionSourceSpend.js'
@@ -95,7 +96,6 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
 
 type Outputs = ServerRuleExecutionApplicationOutputsDto
 type AreaRoot = Extract<Outputs, { kind: 'ENCOUNTER_AREA_ACTION' }>
@@ -211,18 +211,10 @@ export async function persistEncounterAreaCommit(
     applySummonTokens: ApplyEncounterSummonTokens
   }
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readLiveEncounterActionAdmission(ctx, input)
+  const admission = await admitActionCommit(ctx, input)
+  if (admission.kind === 'REPLAY') return admission.result
   const userId = input.expectedUserId
-  const { state, run, fingerprint, campaign, membership } = admission
-  if (state.campaignId !== input.campaignId)
-    throw new Error('Live Session Encounter scope mismatch.')
-  if (admission.kind === 'REPLAY')
-    return presentEncounterResultForMember(ctx, {
-      campaign,
-      membership,
-      result: admission.result
-    })
-  const { resume, removal, initiatorUserId } = admission
+  const { state, fingerprint, campaign, resume, removal, initiatorUserId } = admission
   const command = admission.input
   // The pending area this commit settles: a creature's answer resumes it, and so does the GM's
   // removal of the last creature it waited on.
@@ -430,15 +422,11 @@ export async function persistEncounterAreaCommit(
   if (!source || root.sourceCharacterId !== (source.kind === 'CHARACTER' ? source.sourceId : null))
     throw new Error('Live Session area actor scope mismatch.')
   // The plan's rule output also covers the creatures this cast conjures, which are not stored yet.
-  const ruleActors = [...actors, ...input.summonedTokens.map(({ actor }) => actor)].filter(
-    (actor) => actor.kind !== 'CHARACTER'
+  requireRuleOutputScope(
+    [...actors, ...input.summonedTokens.map(({ actor }) => actor)],
+    input.rules,
+    'area'
   )
-  if (
-    input.rules.actors.length !== ruleActors.length ||
-    new Set(input.rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
-    input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
-  )
-    throw new Error('Live Session area output scope mismatch.')
   const children = input.targets.map(({ actorId, execution, createdEffects }, index) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const batch = execution.status === 'COMPLETE' ? execution.applicationOutputs : null
@@ -501,15 +489,14 @@ export async function persistEncounterAreaCommit(
     characterIds,
     read: (request) => callbacks.readMaintenanceCapture(state, request)
   })
-  await callbacks.validateReadFence(state, [...characterIds], input.revisions)
-  for (const occurrenceId of [areaOccurrenceId, ...children.map((child) => child.occurrenceId)]) {
-    const collision = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
-      .unique()
-    if (collision && collision._id !== pendingOccurrence?._id)
-      throw new Error('Encounter rule occurrence ID was already used.')
-  }
+  await requireActionCommitFence(ctx, {
+    state,
+    characterIds: [...characterIds],
+    revisions: input.revisions,
+    occurrenceIds: [areaOccurrenceId, ...children.map((child) => child.occurrenceId)],
+    pendingOccurrence,
+    validateReadFence: callbacks.validateReadFence
+  })
   // The first creature whose outcome a Concentration holds replaces the caster's earlier one and
   // creates the state; the rest depend on it. This reads before any mechanics advance a Character.
   const maintained = children.filter(({ batch }) => batch.maintenanceTransition != null)
@@ -582,45 +569,21 @@ export async function persistEncounterAreaCommit(
   // that batch), any other Character caster makes it alone.
   const sourceMechanics =
     (casterSpends || root.sourceApplications.length) && casterIsCharacter && !mergedSpend
-      ? await callbacks.applyMechanics({
-          encounterId: state.id,
-          expectedEncounterVersion: state.version,
+      ? await applyActionSpendMechanics(ctx, {
+          state,
           occurrenceId: areaOccurrenceId,
           sourceCommandId: command.commandId,
           occurredAt: input.occurredAt,
-          targetActorId: source.id,
-          commandId: deriveEncounterCharacterMechanicsEventCommandId({
-            occurrenceId: areaOccurrenceId,
-            sourceCommandId: command.commandId,
-            phase: 'DIRECT_ACTION_RESOURCE',
-            ordinal: 0,
-            targetCharacterId: source.sourceId
-          }),
-          applications: root.sourceApplications.map((application) => ({
-            ...application,
-            targetActorId: source.id
-          })),
-          effectiveMaximumHitPoints: await callbacks.currentCharacterMaximumHitPoints(
-            state,
-            source.sourceId
-          ),
-          forceVersionAdvance: false,
-          ...casterMutation
+          actor: source,
+          applications: root.sourceApplications,
+          mutation: casterMutation,
+          applyMechanics: callbacks.applyMechanics,
+          currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
         })
       : null
   if (sourceMechanics) {
     current.set(source.id, sourceMechanics.updatedActor)
-    if (
-      root.sourceCharacterStreamVersion !== sourceMechanics.characterStreamVersion ||
-      (casterUsed &&
-        casterUsed.used.receipt.characterStreamVersion !==
-          sourceMechanics.characterStreamVersion) ||
-      checksumCanonicalJson(sourceMechanics.receiptApplications) !==
-        checksumCanonicalJson(root.sourceApplications) ||
-      checksumCanonicalJson(sourceMechanics.itemUseStateTransition ?? null) !==
-        checksumCanonicalJson(root.sourceItemUseStateTransition)
-    )
-      throw new Error('Live Session source Character receipt mismatch.')
+    requireSourceSpendReceipt(sourceMechanics, root, casterUsed)
   } else if (
     (!(mergedSpend && casterSpends) && root.sourceCharacterStreamVersion !== null) ||
     root.sourceApplications.length
@@ -1033,27 +996,17 @@ export async function persistEncounterAreaCommit(
     visibility: command.visibility,
     createdAt: input.occurredAt
   })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    occurrence: {
-      occurrenceId: areaOccurrenceId,
-      occurrenceVersion,
-      status: 'COMPLETE',
-      pending: null
-    }
-  })
-  await recordActionRoot(ctx, {
-    run,
-    state,
-    nextState,
+  return recordActionCommit(ctx, {
+    admission,
     command,
-    fingerprint,
-    initiatorUserId,
+    nextState,
+    projection,
+    completedOccurrence,
     execution: rootExecution,
     definitionId: input.initialDefinitionId,
     factsChecksum: root.caughtChecksum,
-    result,
+    response: input.response,
+    userId,
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
@@ -1099,16 +1052,4 @@ export async function persistEncounterAreaCommit(
     },
     occurredAt: input.occurredAt
   })
-  if (resume && input.response)
-    await insertActionEvidenceReceipt(ctx, {
-      occurrence: { ...resume.occurrence, ...completedOccurrence },
-      response: input.response,
-      rootCommand: command,
-      rootFingerprint: fingerprint,
-      userId,
-      rootInitiatorUserId: initiatorUserId,
-      answeredRequestId: resume.pending.snapshot.request.requestId,
-      result: rootExecution
-    })
-  return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }

@@ -1,18 +1,17 @@
 import type { LiveSessionEncounterCounteredCastCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
-import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
+import {
+  admitActionCommit,
+  requireActionCommitFence,
+  requireRuleOutputScope
+} from './actionCommitFences.js'
+import { completeActionOccurrence, recordActionCommit } from './actionCommitRecords.js'
 import {
   castCancelledByChildCarriesUsedReactions,
   castCounteredCarriesUsedReactions
@@ -20,7 +19,9 @@ import {
 import { recordCounterCheckRollCards } from './actionRollCards.js'
 import { applyUsedReactionSpends, usedReactionSpends } from './usedReactionSpend.js'
 import {
+  applyActionSpendMechanics,
   combineSpendMutations,
+  requireSourceSpendReceipt,
   settleActionSourceSpend,
   sourceSpendMutation
 } from './actionSourceSpend.js'
@@ -29,7 +30,6 @@ import { readRunActors } from './documents.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
 
 /**
  * Commits a cast that another creature countered, in the transaction of the answer that used the
@@ -56,18 +56,10 @@ export async function persistEncounterCounteredCastCommit(
     currentCharacterMaximumHitPoints(state: EncounterRunState, characterId: string): Promise<number>
   }
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readLiveEncounterActionAdmission(ctx, input)
+  const admission = await admitActionCommit(ctx, input)
+  if (admission.kind === 'REPLAY') return admission.result
   const userId = input.expectedUserId
-  const { state, run, fingerprint, campaign, membership } = admission
-  if (state.campaignId !== input.campaignId)
-    throw new Error('Live Session Encounter scope mismatch.')
-  if (admission.kind === 'REPLAY')
-    return presentEncounterResultForMember(ctx, {
-      campaign,
-      membership,
-      result: admission.result
-    })
-  const { resume, initiatorUserId } = admission
+  const { state, campaign, resume, initiatorUserId } = admission
   const command = admission.input
   const rootExecution = input.execution
   const { response } = input
@@ -150,24 +142,15 @@ export async function persistEncounterCounteredCastCommit(
   /** The counter this commit spends with its reactor; none when the counter ran as its own action. */
   const countering =
     counter && counterReactor?.kind === 'CHARACTER' ? { counter, reactor: counterReactor } : null
-  const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
-  if (
-    input.rules.actors.length !== ruleActors.length ||
-    new Set(input.rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
-    input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
-  )
-    throw new Error('Live Session countered cast output scope mismatch.')
-  await callbacks.validateReadFence(
+  requireRuleOutputScope(actors, input.rules, 'countered cast')
+  await requireActionCommitFence(ctx, {
     state,
-    actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
-    input.revisions
-  )
-  const collision = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_publicId', (q) => q.eq('id', root.occurrenceId))
-    .unique()
-  if (collision && collision._id !== resume.occurrence._id)
-    throw new Error('Encounter rule occurrence ID was already used.')
+    characterIds: actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
+    revisions: input.revisions,
+    occurrenceIds: [root.occurrenceId],
+    pendingOccurrence: resume.occurrence,
+    validateReadFence: callbacks.validateReadFence
+  })
 
   const { spends, mutation: sourceMutation } = sourceSpendMutation({
     source,
@@ -201,61 +184,33 @@ export async function persistEncounterCounteredCastCommit(
   // The caster's counter to a counter cast against its cast spends its slot in the caster's one
   // mechanics call, after the cast's, so the Character advances once.
   const sourceUsed = reactionSpends.find(({ reactor: other }) => other.id === source.id)
-  const common = {
-    encounterId: state.id,
-    expectedEncounterVersion: state.version,
+  // Each batch also carries the conditions its Character's cast ended effects released.
+  const spend = {
+    state,
     occurrenceId: root.occurrenceId,
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt,
-    forceVersionAdvance: false
+    applyMechanics: callbacks.applyMechanics,
+    currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
   }
-  // Each batch also carries the conditions its Character's cast ended effects released.
-  const spend = async (
-    character: typeof source,
-    mutation: typeof sourceMutation,
-    releases: typeof root.sourceApplications
-  ) =>
-    callbacks.applyMechanics({
-      ...common,
-      applications: releases.map((application) => ({
-        ...application,
-        targetActorId: character.id
-      })),
-      targetActorId: character.id,
-      commandId: deriveEncounterCharacterMechanicsEventCommandId({
-        occurrenceId: root.occurrenceId,
-        sourceCommandId: command.commandId,
-        phase: 'DIRECT_ACTION_RESOURCE',
-        ordinal: 0,
-        targetCharacterId: character.sourceId
-      }),
-      effectiveMaximumHitPoints: await callbacks.currentCharacterMaximumHitPoints(
-        state,
-        character.sourceId
-      ),
-      ...mutation
-    })
   const sourceMechanics =
     spends || root.sourceApplications.length
-      ? await spend(
-          source,
-          combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {}),
-          root.sourceApplications
-        )
+      ? await applyActionSpendMechanics(ctx, {
+          ...spend,
+          actor: source,
+          applications: root.sourceApplications,
+          mutation: combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {})
+        })
       : null
-  if (
-    (sourceMechanics?.characterStreamVersion ?? null) !== root.sourceCharacterStreamVersion ||
-    (sourceUsed &&
-      sourceUsed.used.receipt.characterStreamVersion !== sourceMechanics?.characterStreamVersion) ||
-    checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
-      checksumCanonicalJson(root.sourceApplications) ||
-    checksumCanonicalJson(sourceMechanics?.itemUseStateTransition ?? null) !==
-      checksumCanonicalJson(root.sourceItemUseStateTransition)
-  )
-    throw new Error('Live Session source Character receipt mismatch.')
+  requireSourceSpendReceipt(sourceMechanics, root, sourceUsed)
   const reactorMechanics =
     countering && reactorSpend && (reactorSpend.spends || countering.counter.applications.length)
-      ? await spend(countering.reactor, reactorSpend.mutation, countering.counter.applications)
+      ? await applyActionSpendMechanics(ctx, {
+          ...spend,
+          actor: countering.reactor,
+          applications: countering.counter.applications,
+          mutation: reactorSpend.mutation
+        })
       : null
   if (
     countering &&
@@ -349,28 +304,19 @@ export async function persistEncounterCounteredCastCommit(
     visibility: command.visibility,
     createdAt: input.occurredAt
   })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    occurrence: {
-      occurrenceId: root.occurrenceId,
-      occurrenceVersion: rootExecution.occurrenceVersion,
-      status: 'COMPLETE',
-      pending: null
-    }
-  })
-  await recordActionRoot(ctx, {
-    run,
-    state,
-    nextState,
+  return recordActionCommit(ctx, {
+    admission,
     command,
-    fingerprint,
-    initiatorUserId,
+    nextState,
+    projection,
+    completedOccurrence,
     execution: rootExecution,
     definitionId: input.initialDefinitionId,
     // No graph ran: the receipt names the facts the held cast was prepared against.
     factsChecksum: resume.pending.context.currentnessChecksum,
-    result,
+    // The room's resume from a reaction child answers no request, so it leaves no evidence receipt.
+    response,
+    userId,
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
@@ -384,17 +330,4 @@ export async function persistEncounterCounteredCastCommit(
     },
     occurredAt: input.occurredAt
   })
-  // The room's resume from a reaction child answers no request, so it leaves no evidence receipt.
-  if (response)
-    await insertActionEvidenceReceipt(ctx, {
-      occurrence: { ...resume.occurrence, ...completedOccurrence },
-      response,
-      rootCommand: command,
-      rootFingerprint: fingerprint,
-      userId,
-      rootInitiatorUserId: initiatorUserId,
-      answeredRequestId: resume.pending.snapshot.request.requestId,
-      result: rootExecution
-    })
-  return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }
