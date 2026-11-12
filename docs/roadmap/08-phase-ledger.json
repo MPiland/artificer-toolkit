@@ -25663,7 +25663,7 @@
           "tasks": [
             {
               "id": "QUALITY-9.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25674,11 +25674,13 @@
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
               "text": "An unconditional counter runs as a reaction child spent at choice; the countered cast resumes by CANCEL and commits as lost with no inline counter receipt (room proof).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T06:45:05Z",
+              "proof": "m700 (b3b427496) from slice tip fbcfecdee: Tests 43166366653, Live 43166366561, Browser journeys 43166366549 green; ci/merge-m700 Tests 43170372395, Live 43170375898, Browser journeys 43170378402 green. A counter that owes no check runs as the holder's REACTION child, spent at the choice; the parent resumes and commits COUNTERED with counter null when the child cancelsTriggeringEvent; a cast resumes past the reaction child of its own target (currentness skipped for that one resume, Run version pinned); one CHILD path in nativeEncounterCastPause. Red proof: nativeRoomCounterspell.test.ts RED (2 of 43). Persisted shape: ENCOUNTER_COUNTERED_CAST.counter nullable; reaction child item cancelsTriggeringEvent."
             },
             {
-              "id": "QUALITY-9.T1b",
-              "status": "TODO",
+              "id": "QUALITY-9.T1b1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25687,8 +25689,36 @@
                 "size": 3,
                 "after": ["QUALITY-9.T1a"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
-              "text": "The higher-level counter check becomes the child's own test, with the DC from the triggering cast level read from the parent's pending context; CANCEL proved behind the child's check; EncounterCastReactionCheckDto, the CHECK answer and the inline check path are deleted."
+              "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
+              "text": "The parent cast's pending context records the triggering cast level; a reaction child's rules input reads its recording parent's level."
+            },
+            {
+              "id": "QUALITY-9.T1b2",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1b1"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
+              "text": "Counterspell's check runs as the child's own gate: the incoming gate generalised with a WARD or TRIGGER origin (pause, pending fences, GATED receipt, roll card); DC from the parent's level; pass cancels the cast, fail spends slot and reaction and the cast goes on; the cast's roll card links the countering child and its check."
+            },
+            {
+              "id": "QUALITY-9.T1b3",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1c", "QUALITY-13.T2b"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
+              "text": "Area and chosen-list cast windows resume from reaction children; the inline check path, the CHECK answer and EncounterCastReactionCheckDto are deleted."
             },
             {
               "id": "QUALITY-9.T1c",
@@ -25699,7 +25729,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1b"]
+                "after": ["QUALITY-9.T1b2"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
               "text": "A countered counter runs as a nested child: the pending fence and suspend/re-pin cover every descendant; the inline counter chain is deleted."
@@ -25964,8 +25994,7 @@
             },
             {
               "id": "QUALITY-13.T1c1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -25975,7 +26004,9 @@
                 "after": ["QUALITY-13.T1a2", "QUALITY-8.T1b"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
-              "text": "A ray list seals only its next ray; each answer runs advanceNativeActionGraphs against the binding the earlier rays left, and kept answers replay at Commit. Legendary Resistance and the D168 window unchanged; the pending summary shows one ray at a time; the aggregate gains no reaction state."
+              "text": "A ray list seals only its next ray; each answer runs advanceNativeActionGraphs against the binding the earlier rays left, and kept answers replay at Commit. Legendary Resistance and the D168 window unchanged; the pending summary shows one ray at a time; the aggregate gains no reaction state.",
+              "mergedAt": "2026-11-12T06:19:52Z",
+              "proof": "m699 (83eef6ccd) from slice tip 735ef2928: Tests 43164605056, Live 43164605003, Browser journeys 43164605051 green; ci/merge-m699 Tests 43167416190, Live 43167419664, Browser journeys 43167423185 green. A ray list is answered strictly in order (encounterAreaSaveAwaiting shows only the next ray; out-of-turn answers refused in Worker, Convex admission and markEncounterAreaSaveTested); each answer runs advanceNativeActionGraphs via advanceEncounterListAttacks on the hit points earlier rays left, and keeps a roll tape replayed at Commit; GM removal takes only unanswered rays. Spec-dictated literals: pending rays [first] (was [first, first, second]); a dice script reordered per ray. Red proof: nativeRoomChosenActorsSpell.test.ts RED (4 of 39); encounterAreaPending.test.ts RED (1 of 13). Persisted shape: optional rolls on an area target record."
             },
             {
               "id": "QUALITY-13.T1c2",
@@ -25986,7 +26017,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T2"]
+                "after": ["QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
               "text": "Hit reactions per ray: the between-phase orchestration becomes one per-target function used by single-target and ray paths; a ray's pause lives in its own inner snapshot; a reaction's effect holds for later rays; its cost and D219 child commit under the root."
@@ -26020,7 +26051,22 @@
               "text": "On-hit riders and the incoming gate per ray: the gate is passed per attack TEST; a ray lost at the gate offers ATTACK_RETARGET for that ray only (re-seals its own entry); a slot or pool spent on one ray is not offered on the next."
             },
             {
-              "id": "QUALITY-13.T2",
+              "id": "QUALITY-13.T2c",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-13.T1c1"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
+              "text": "One Worker per-target outcome planner, extracted from the single-target planner in nativeEncounterRules.ts and called by planAreaOutcomes per kept entry; area tests unchanged."
+            },
+            {
+              "id": "QUALITY-13.T2a",
               "status": "TODO",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
@@ -26028,9 +26074,24 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T1c1"]
+                "after": ["QUALITY-13.T2c", "QUALITY-9.T1a"]
               },
-              "text": "One commit skeleton for action, area, countered-cast and gated commits."
+              "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
+              "text": "One persistence commit skeleton (head: admission, scope, read fence, occurrence collision; source spend with receipt check; tail: complete, root, evidence, present) for action, area, countered-cast and gated commits; each caller keeps its error literal by label. Pure refactor."
+            },
+            {
+              "id": "QUALITY-13.T2b",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T2a"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
+              "text": "One per-target outcome settlement in persistence, called by the single-target commit and the area child loop: target mechanics, reaction spend, window reactions, charge and reaction economy, on-hit use spends and D219 children; area tests unchanged."
             }
           ]
         },
@@ -26044,7 +26105,7 @@
             "tc": 3,
             "rr": 5,
             "size": 13,
-            "after": ["QUALITY-11.T1", "QUALITY-13.T2"]
+            "after": ["QUALITY-11.T1", "QUALITY-13.T2b", "QUALITY-13.T2c"]
           },
           "acs": [
             {
@@ -26065,7 +26126,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-11.T1", "QUALITY-13.T2"]
+                "after": ["QUALITY-11.T1", "QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
               "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table."
             },
