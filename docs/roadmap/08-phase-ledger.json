@@ -17504,10 +17504,9 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-8.T1b"]
+                "after": ["QUALITY-8.T1c1"]
               },
-              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25580,19 +25579,33 @@
               "proof": "m696 (247b62f0f, batch ci/merge-m696: Tests 43143922760, Live 43143925491, Browser journeys 43143928674 green; an earlier m695 attempt failed on a vtt-browser door-menu flake that passed on rerun) from slice tip 93e65eb40: Tests 43133908043, Live 43133907997, Browser journeys 43133908113. The child's first pending insert suspends the parent; its commit re-pins the parent to PENDING and the room resumes it (RESUME_ACTION, room-internal); voiding the paused child releases the parent and reopens the offer; voiding a suspended parent is refused. A homebrew ATTACK_ON_OTHER reaction behind a Wisdom save proves ADJUST_ROLL and NOTHING. Every reaction child carries its offer Scene ref; voids count toward the pin and replay fence. Red proof: nativeRoomReactionSave.test.ts RED (6 of 6), reactionChildren.test.ts RED (7 of 27), reactionTriggerCompile.test.ts RED (1 of 20), nativeRoomProtection.test.ts RED (1 of 10, child commandJson now carries the Scene ref). Persisted shape: occurrence state gains SUSPENDED (D196 reset when next used). Follow-ups: re-choosing a reaction after its child was voided is refused (COMMAND_ID_REUSED); no room test for two-reactor void/undo; a system-raised child warning still rejects the OPTION answer."
             },
             {
-              "id": "QUALITY-8.T1c",
+              "id": "QUALITY-8.T1c1",
               "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["QUALITY-8.T1b"]
               },
-              "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Giant Killer as a post-commit child (resume NOTHING) raised after the attack commits; a reaction-activated Feature weapon attack pairs with the wielded weapon action attack; a reactor dropped to 0 gets no offer; one offer with one option per wielded weapon. Ships with SPELLS-31.T4k1c.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split 2026-11-12 from QUALITY-8.T1c at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1.",
+              "text": "A reaction-activated Feature weapon attack pairs with each wielded weapon's action attack (one reaction action per weapon; non-reaction pairing unchanged; Giant Killer golden row stays REFUSED); undo groups a last-root REACTION child of a committed parent child-then-parent, keeping the voided-parent case."
+            },
+            {
+              "id": "QUALITY-8.T1c2",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-8.T1c1"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-8.T1c at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1.",
+              "text": "ATTACK_RESOLVED_ON_HOLDER is raised after the attack commits into a generic post-commit reaction-offer occurrence (no timer, GM voidable, raised only when no other decision is pending); one option per wielded weapon, none for a reactor at 0; an OPTION runs the weapon attack as a REACTION root proved by the occurrence; commit without re-pin; replay-fence and void-cascade checks; drawer offer; room journey; Giant Killer closed-rule effect removed; docs. Ships with SPELLS-31.T4k1c."
             },
             {
               "id": "QUALITY-8.T1d",
@@ -25603,7 +25616,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c"]
+                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c2"]
               },
               "note": "Registered 2026-11-12 at the QUALITY-9.T1 seam trace (D219): AC QUALITY-8.1 requires every chosen reaction to run as a child; no new scope.",
               "text": "On-hit reactions (the REACTION pause: Shield, Absorb Elements) run as reaction children resuming by REBIND_TEST; the inline on-hit reaction path is deleted and REACTION merges into the one reaction offer."
@@ -25793,7 +25806,7 @@
             "tc": 3,
             "rr": 5,
             "size": 5,
-            "after": ["QUALITY-8.T1c"]
+            "after": ["QUALITY-8.T1c2"]
           },
           "acs": [
             {
@@ -25814,7 +25827,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-8.T1c"]
+                "after": ["QUALITY-8.T1c2"]
               },
               "text": "One after-commit subscriber step in the room; DAMAGED raised once; single settle of mirrors and rewards."
             }
