@@ -228,8 +228,7 @@ export function createNativeCastPause(input: {
     against: EncounterRunActorState,
     loadAttackPerception?: LoadAttackPerception
   ) => {
-    const againstTarget =
-      input.movementTargets.get(against.id) ?? (await input.loadTarget(against))
+    const againstTarget = input.movementTargets.get(against.id) ?? (await input.loadTarget(against))
     const prepareWith = (target: MovementTargets) =>
       prepareEncounterActionMechanics({
         state,
