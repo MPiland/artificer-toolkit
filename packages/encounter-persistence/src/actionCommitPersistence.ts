@@ -2,10 +2,7 @@ import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/s
 import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunStateSchema,
@@ -13,17 +10,19 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { clearHolderDamageTypes } from './damageTypesClearing.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
-import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
+import {
+  admitActionCommit,
+  requireActionCommitFence,
+  requireRuleOutputScope
+} from './actionCommitFences.js'
 import { readRunActors } from './documents.js'
 import {
+  applyActionSpendMechanics,
   combineSpendMutations,
   sourceSpendMutation,
   settleActionSourceSpend
@@ -35,17 +34,15 @@ import {
 } from './usedReactionSpend.js'
 import {
   completeActionOccurrence,
-  recordActionRoot,
+  recordActionCommit,
   type ApplyEncounterForcedMovements
 } from './actionCommitRecords.js'
 import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
-import { listActiveRuleEffects } from './effectReads.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
 import { insertSpellCastCheck } from './spellCastCheckPersistence.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
 import {
   readMaintenanceOwnerRequests,
   type readEncounterMaintenanceCapture
@@ -103,19 +100,10 @@ export async function persistEncounterActionCommit(
     applyForcedMovements: ApplyEncounterForcedMovements
   }
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readLiveEncounterActionAdmission(ctx, input)
+  const admission = await admitActionCommit(ctx, input)
+  if (admission.kind === 'REPLAY') return admission.result
   const userId = input.expectedUserId
-  const { state, run, fingerprint, campaign, membership } = admission
-  if (state.campaignId !== input.campaignId)
-    throw new Error('Live Session Encounter scope mismatch.')
-  // A lost response replays before checking revisions consumed by the successful transaction.
-  if (admission.kind === 'REPLAY')
-    return presentEncounterResultForMember(ctx, {
-      campaign,
-      membership,
-      result: admission.result
-    })
-  const { resume, initiatorUserId } = admission
+  const { state, fingerprint, campaign, membership, resume, initiatorUserId } = admission
   const occurrenceVersion = resume ? resume.occurrence.version + 1 : 0
   const command = admission.input
   const execution = input.execution
@@ -186,17 +174,13 @@ export async function persistEncounterActionCommit(
     (target.kind === 'CHARACTER') !== (batch.kind === 'CHARACTER_MECHANICS_BATCH')
   )
     throw new Error('Live Session action actor scope mismatch.')
-  const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
   if (
     ('sourceCharacterId' in batch &&
       batch.sourceCharacterId !== (source.kind === 'CHARACTER' ? source.sourceId : null)) ||
-    (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
-      batch.targetFeatureResourceConsumption !== null) ||
-    input.rules.actors.length !== ruleActors.length ||
-    new Set(input.rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
-    input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
+    (batch.kind === 'CHARACTER_MECHANICS_BATCH' && batch.targetFeatureResourceConsumption !== null)
   )
     throw new Error('Live Session action output scope mismatch.')
+  requireRuleOutputScope(actors, input.rules, 'action')
   const characterIds = new Set(
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
@@ -216,13 +200,14 @@ export async function persistEncounterActionCommit(
     },
     membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
   )
-  await callbacks.validateReadFence(state, [...characterIds], input.revisions)
-  const collision = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_publicId', (q) => q.eq('id', execution.occurrenceId))
-    .unique()
-  if (collision && collision._id !== resume?.occurrence._id)
-    throw new Error('Encounter rule occurrence ID was already used.')
+  await requireActionCommitFence(ctx, {
+    state,
+    characterIds: [...characterIds],
+    revisions: input.revisions,
+    occurrenceIds: [execution.occurrenceId],
+    pendingOccurrence: resume?.occurrence ?? null,
+    validateReadFence: callbacks.validateReadFence
+  })
   const effectInput = {
     state,
     command,
@@ -291,34 +276,16 @@ export async function persistEncounterActionCommit(
   // The source's own batch carries its spend and the conditions its ended effects released.
   const sourceMechanics =
     (spends || batch.sourceApplications.length) && source.id !== target.id
-      ? await callbacks.applyMechanics({
-          ...common,
-          targetActorId: source.id,
-          commandId: deriveEncounterCharacterMechanicsEventCommandId({
-            occurrenceId: execution.occurrenceId,
-            sourceCommandId: command.commandId,
-            phase: 'DIRECT_ACTION_RESOURCE',
-            ordinal: 0,
-            targetCharacterId: source.kind === 'CHARACTER' ? source.sourceId : source.id
-          }),
-          applications: batch.sourceApplications.map((application) => ({
-            ...application,
-            targetActorId: source.id
-          })),
-          effectiveMaximumHitPoints:
-            source.kind === 'CHARACTER'
-              ? await callbacks.currentCharacterMaximumHitPoints(state, source.sourceId)
-              : effectiveHitPointMaximum(
-                  source.maxHitPoints,
-                  await listActiveRuleEffects(
-                    ctx,
-                    { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: source.id },
-                    { ownerVerified: true }
-                  ),
-                  source.maximumFraction
-                ),
-          forceVersionAdvance: false,
-          ...combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {})
+      ? await applyActionSpendMechanics(ctx, {
+          state,
+          occurrenceId: execution.occurrenceId,
+          sourceCommandId: command.commandId,
+          occurredAt: input.occurredAt,
+          actor: source,
+          applications: batch.sourceApplications,
+          mutation: combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {}),
+          applyMechanics: callbacks.applyMechanics,
+          currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
         })
       : null
   // The item the outcome made the target drop (Heat Metal), applied again from the room's receipt.
@@ -599,23 +566,6 @@ export async function persistEncounterActionCommit(
     visibility: command.visibility,
     createdAt: input.occurredAt
   })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    occurrence: spellCheck
-      ? {
-          occurrenceId: spellCheck.occurrence.id,
-          occurrenceVersion: 0,
-          status: 'PENDING',
-          pending: projectNativeBasicActionCheckPending(spellCheck.occurrence, spellCheck.snapshot)
-        }
-      : {
-          occurrenceId: execution.occurrenceId,
-          occurrenceVersion,
-          status: 'COMPLETE',
-          pending: null
-        }
-  })
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const outcomes = executionOutcomeCapabilityRegistry.require(state.gameSystemId)
   const addsSpeed = outcomes.addsSpeedToMovement(execution)
@@ -637,18 +587,23 @@ export async function persistEncounterActionCommit(
     command.systemTrigger?.trigger === 'START_OF_TURN'
       ? await clearHolderDamageTypes(ctx, { state, actorId: source.id })
       : null
-  await recordActionRoot(ctx, {
-    run,
-    state,
-    nextState,
+  return recordActionCommit(ctx, {
+    admission,
     command,
-    fingerprint,
-    initiatorUserId,
+    nextState,
+    projection,
+    completedOccurrence,
     execution,
     definitionId: input.initialDefinitionId,
     factsChecksum: execution.initialFactsChecksum,
-    result,
-    checkOccurrenceId: spellCheck?.occurrence.id,
+    pendingCheck: spellCheck
+      ? {
+          occurrenceId: spellCheck.occurrence.id,
+          pending: projectNativeBasicActionCheckPending(spellCheck.occurrence, spellCheck.snapshot)
+        }
+      : undefined,
+    response: input.response,
+    userId,
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
@@ -669,21 +624,5 @@ export async function persistEncounterActionCommit(
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },
     occurredAt: input.occurredAt
-  })
-  if (resume && input.response)
-    await insertActionEvidenceReceipt(ctx, {
-      occurrence: { ...resume.occurrence, ...completedOccurrence },
-      response: input.response,
-      rootCommand: command,
-      rootFingerprint: fingerprint,
-      userId,
-      rootInitiatorUserId: initiatorUserId,
-      answeredRequestId: resume.pending.snapshot.request.requestId,
-      result: execution
-    })
-  return presentEncounterResultForMember(ctx, {
-    campaign,
-    membership,
-    result
   })
 }
