@@ -91,6 +91,7 @@ import {
   type AreaPlanInput,
   type AreaPrepared,
   type AreaReach,
+  type ChosenReactionsHold,
   type MovementTargets,
   type ReachCastWindow,
   type ReachCommand,
@@ -101,7 +102,6 @@ import {
   openReachCastWindow,
   prepareAreaScene,
   prepareAreaTarget,
-  prepareReach,
   reachCastPause,
   reachRuleOverrides
 } from './nativeAreaPreparation.js'
@@ -109,6 +109,7 @@ import {
   type AreaContext,
   type AreaTargetRecord,
   discoverNativeLegendaryResistance,
+  prepareSealedReach,
   prepareStruckTarget,
   replayAreaTargetSave,
   revalidateAreaTarget,
@@ -347,6 +348,8 @@ export async function sealReachSaves(
     reach: AreaReach
     lead: AreaPrepared
     targets: readonly ReachTarget[]
+    /** What a list's chosen creatures did on being chosen (D137); a point area chooses no creature. */
+    held?: ChosenReactionsHold
     /**
      * The caught creatures the action has no effect on, which take no save: immune to this source's
      * use of it (D156), or of a creature type it excludes.
@@ -362,11 +365,18 @@ export async function sealReachSaves(
     reach,
     lead,
     targets: reached,
+    held,
     unaffectedActorIds,
     evaluation,
     ruleOverrides,
     window
   } = sealed
+  // A creature's roll is made against it as a reaction it used on being chosen leaves it. Its sealed
+  // currentness stays that of the creature as the room holds it, so it does not move as the pending
+  // cast is read again.
+  const rolled = []
+  for (const target of reached)
+    rolled.push({ ...target, ...(await held?.prepareReactor(target.actor, target.token)) })
   const { economy, attackAction } = evaluation
   const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
@@ -389,7 +399,7 @@ export async function sealReachSaves(
     adapter: lead.adapter,
     plan: lead.plan,
     occurrenceId,
-    targets: reached.map(({ prepared }, index) => ({
+    targets: rolled.map(({ prepared }, index) => ({
       actorId: prepared.target.id,
       occurrenceId: entries[index]!.occurrenceId,
       binding: prepared.binding,
@@ -451,8 +461,8 @@ export async function sealReachSaves(
   })
   for (const [index, target] of targets.entries())
     snapshot = await autoRollAreaSave(input, snapshot, occurrenceId, {
-      actor: reached[index]!.actor,
-      prepared: reached[index]!.prepared,
+      actor: rolled[index]!.actor,
+      prepared: rolled[index]!.prepared,
       sealed: target
     })
   snapshot = await openNextAreaSaveWindow(input, snapshot)
@@ -578,7 +588,7 @@ async function openNextAreaSaveWindow(
   const rolled: EncounterEvidenceAnswer = JSON.parse(sealed.rolledJson)
   const opened = await rollAreaTargetSave(
     input,
-    await revalidateAreaTarget(input, context, sealed),
+    await revalidateAreaTarget(input, context, sealed, await prepareSealedReach(input, snapshot)),
     sealed,
     snapshot.occurrenceId,
     rolled
@@ -669,9 +679,10 @@ export async function planNativeLiveEncounterAreaAnswer(
     command.optionalCombatIntent != null
   )
     throw new Error('The pending action evidence is invalid.')
+  const reach = await prepareSealedReach(input, areaSnapshot)
   const revalidated = answered.collision
-    ? await revalidateStruckTarget(input, context, answered, answered.collision)
-    : await revalidateAreaTarget(input, context, answered)
+    ? await revalidateStruckTarget(input, context, answered, answered.collision, reach.base)
+    : await revalidateAreaTarget(input, context, answered, reach)
   const snapshot = await openNextAreaSaveWindow(
     input,
     await recordAreaRoll(
@@ -739,9 +750,10 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
     command.optionalCombatIntent != null
   )
     throw new Error('The pending Legendary Resistance evidence is invalid.')
+  const reach = await prepareSealedReach(input, areaSnapshot)
   const revalidated = decided.collision
-    ? await revalidateStruckTarget(input, context, decided, decided.collision)
-    : await revalidateAreaTarget(input, context, decided)
+    ? await revalidateStruckTarget(input, context, decided, decided.collision, reach.base)
+    : await revalidateAreaTarget(input, context, decided, reach)
   const resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer = JSON.parse(
     decided.testedJson
   )
@@ -971,7 +983,8 @@ export async function planNativeLiveEncounterAreaCommit(
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
   const areaOccurrenceId = areaSnapshot.occurrenceId
-  const base = await prepareReach(input)
+  const reach = await prepareSealedReach(input, areaSnapshot)
+  const { base } = reach
   const { caster } = base
   const kept = []
   const struck = []
@@ -984,7 +997,7 @@ export async function planNativeLiveEncounterAreaCommit(
     else
       kept.push({
         sealed,
-        ...(await revalidateAreaTarget(input, context, sealed, base))
+        ...(await revalidateAreaTarget(input, context, sealed, reach))
       })
   }
   // An area that keeps no creature (it caught nobody, or the GM removed everyone it caught) commits
@@ -1121,12 +1134,13 @@ export async function planNativeLiveEncounterAreaCommit(
     usedReactions: await reachCastPause(input, {
       reach: base,
       lead,
-      chosenActorIds: null,
+      chosenActorIds: command.target.kind === 'ACTORS' ? command.target.actorIds : null,
       occurrenceId: areaOccurrenceId,
       occurredAt,
       answer: null,
       usedReactions: sealedUsedReactions
     }).planUsedReactions(sealedUsedReactions),
+    reactionEffects: reach.held?.reactionEffects,
     movementTargets: base.movementTargets,
     kept,
     lead,

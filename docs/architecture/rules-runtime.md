@@ -812,6 +812,20 @@ the caught set to equal the sealed one). An immediate list (heals, projectiles) 
 room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
 
+**One preparer and one cast window (current, QUALITY-13.T1b):** an attack at one creature, a point area and a
+list all prepare the caster's action on a creature through `prepareCasterActionOnTarget`
+(`nativeAreaPreparation.ts`); the single-target path passes what only it reads (its Scene, state and source
+loaders) as the `attack` option. Every list, immediate or sealed, passes its creatures to the cast window
+(`openReachCastWindow` with `chosenActorIds`), so a chosen creature may answer being chosen (D137) before its
+save or the ray at it is rolled. `holdChosenReactions` then plans each used reaction's cost, builds its effect
+and prepares the reactor's entries again against the creature as the effect leaves it. An immediate list uses
+that hold once. A sealed list seals its saves from it and adds no pending state: the Answer, Legendary
+Resistance, d20 window and Commit planners rebuild the hold from the aggregate's own `usedReactions`
+(`prepareSealedReach`, `nativeAreaRevalidation.ts`). A sealed creature's currentness checksum is taken on its
+preparation without the reaction's effect, at seal and at every recheck, so using a reaction does not make the
+pending cast stale; the adjusted preparation is what the roll resolves against. The effect and the reactor's
+cost land at Commit, the effect with the reactor's first outcome.
+
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 
 An authored Effect with invocation `{ kind: PASSIVE, triggerCode: HP_ZERO }` and a saving throw is a creature

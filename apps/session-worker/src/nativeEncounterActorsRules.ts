@@ -12,20 +12,16 @@ import {
   absentEncounterActorIds,
   catchEncounterAreaActorIds
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
-import {
-  encounterAreaTargetCommandId,
-  encounterAreaTargetOccurrenceId,
-  encounterChosenActorsChecksum
-} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { encounterChosenActorsChecksum } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
-import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import { readChosenFormCreature, sealReachSaves } from './nativeEncounterAreaRules.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
 import {
+  holdChosenReactions,
   openReachCastWindow,
   prepareAreaTarget,
   prepareCasterSource,
@@ -52,7 +48,8 @@ const refusal = (message: string) =>
  * action's outcome runs on each from dice rolled once, and the caster spends once. Nothing waits
  * for anyone, so the root and every creature's child commit together (D118). An action that asks
  * each creature for a save (Acid Splash, Chain Lightning) instead seals one save per creature and
- * pends on its rollers like a point area.
+ * pends on its rollers like a point area. Either way a chosen creature may first answer being chosen
+ * (D137), and the cast resolves against it as its reaction leaves it.
  */
 export async function planNativeLiveEncounterActorsAction(
   input: AreaPlanBase & { command: ActorsCommand }
@@ -183,72 +180,36 @@ export async function planNativeLiveEncounterActorsAction(
   const opened = await openReachCastWindow(input, {
     reach,
     lead,
-    // A cast that asks each creature for a save settles on its own rollers; only a one-graph cast
-    // lets a chosen creature answer being chosen.
-    chosenActorIds: lead.plan.kind === 'SINGLE_GRAPH' ? actorIds : null,
+    // Every list names its creatures, so each may answer being chosen before the cast resolves.
+    chosenActorIds: actorIds,
     evaluation,
     ruleOverrides
   })
   if (opened.kind === 'PLAN') return opened.plan
   const { window } = opened
+  const held = await holdChosenReactions(input, {
+    reach,
+    pause: window.pause,
+    occurrenceId: window.occurrenceId,
+    occurredAt: window.occurredAt,
+    usedReactions: window.usedReactions
+  })
   // An action that asks each creature for a save waits for the rollers it names.
   if (lead.plan.kind !== 'SINGLE_GRAPH')
     return sealReachSaves(input, {
       reach,
       lead,
       targets: prepared,
+      held,
       unaffectedActorIds: [],
       evaluation,
       ruleOverrides,
       window
     })
   const { economy, attackAction } = evaluation
-
-  // A chosen creature that used a reaction to being chosen (Shield) holds its effect before the cast
-  // resolves: its entries are prepared again against the creature as that effect leaves it.
-  const usedReactions = await window.pause.planUsedReactions(window.usedReactions)
-  const reactionEffects = new Map<
-    string,
-    Awaited<ReturnType<typeof applyNativeReactionEffect>>['reactionEffect']
-  >()
-  for (const { receipt, found } of usedReactions) {
-    if (receipt.reaction.trigger !== 'TARGETED_SELF') continue
-    const reactorId = receipt.reaction.reactorActorId
-    const reactor = chosen.find((actor) => actor.id === reactorId)
-    const reactorOccurrenceId = encounterAreaTargetOccurrenceId(window.occurrenceId, reactorId)
-    if (!reactor) throw new Error('Reaction evidence is stale.')
-    const prepareReactor = (reactorTarget: Awaited<ReturnType<typeof input.loadTarget>>) =>
-      prepareAreaTarget({
-        ...input,
-        base: {
-          ...reach,
-          movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget)
-        },
-        actor: reactor,
-        token: reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
-      })
-    const adjusted: { target?: Parameters<typeof prepareReactor>[0] } = {}
-    const applied = await applyNativeReactionEffect({
-      reaction: { prepared: found.prepared, triggerDamageTypeIds: [] },
-      runtime: input.runtime,
-      // The effect lands with the reactor's first outcome, so it is that outcome's own.
-      occurrenceId: reactorOccurrenceId,
-      commandId: encounterAreaTargetCommandId(reactorOccurrenceId),
-      reactorActorId: reactorId,
-      occurredAt: window.occurredAt,
-      activeEffectsByActorId: input.activeEffectsByActorId,
-      loadTarget: input.loadTarget,
-      prepareAttack: async (_reactedTargets, adjustedTarget) => {
-        adjusted.target = adjustedTarget
-        return (await prepareReactor(adjustedTarget)).prepared
-      }
-    })
-    if (!adjusted.target) throw new Error('Reaction evidence is stale.')
-    reactionEffects.set(reactorId, applied.reactionEffect)
-    for (const [index, entry] of prepared.entries())
-      if (entry.actor.id === reactorId)
-        prepared[index] = { ...entry, ...(await prepareReactor(adjusted.target)) }
-  }
+  const { usedReactions, reactionEffects } = held
+  for (const [index, entry] of prepared.entries())
+    prepared[index] = { ...entry, ...(await held.prepareReactor(entry.actor, entry.token)) }
   const settled = await executeEncounterActorsAction({
     runtime: input.runtime,
     random: input.random,
