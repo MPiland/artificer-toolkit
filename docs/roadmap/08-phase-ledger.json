@@ -17497,7 +17497,7 @@
             },
             {
               "id": "SPELLS-31.T4k1c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -17507,7 +17507,8 @@
                 "after": ["QUALITY-8.T1c2b2"]
               },
               "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
-              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\"). Moves golden row srdEffectCompile.golden.txt:80 (Giant Killer REFUSED); the no-golden-move rule covers QUALITY-8 tasks only."
+              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with QUALITY-8.T1c2b3): split from QUALITY-8.T1c2b at the seam trace. Re-traced 2026-11-12: Giant Killer is already authored (hunter.ts) and a Hunter attacks through each wielded weapon (characterActionRuleFacts.ts), so the bare-Feature golden row srdEffectCompile.golden.txt:80 stays REFUSED (decisions line on bare weapon-attack Features); no closed-rule effect remained to remove. The drawer shipped with QUALITY-8.T1c2b3; this task carries the live-stack Giant Killer browser journey.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25691,7 +25692,7 @@
             },
             {
               "id": "QUALITY-8.T1c2b3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25701,7 +25702,9 @@
                 "after": ["QUALITY-8.T1c2b2"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
-              "text": "Drawer offer in CampaignTabletopDecisionDrawer and the player-controller answer path; room and browser journey; docs (live-sessions, persistence, rules-runtime, the reactionTriggers transitional note). Ships with SPELLS-31.T4k1c."
+              "text": "Drawer offer in CampaignTabletopDecisionDrawer and the player-controller answer path; room and browser journey; docs (live-sessions, persistence, rules-runtime, the reactionTriggers transitional note). Ships with SPELLS-31.T4k1c.",
+              "mergedAt": "2026-11-12T19:00:48Z",
+              "proof": "m712 (f8bb63044) from slice tip 5802ca872: Tests 43282180285, Live 43282180095, Browser journeys 43282180040 green. CampaignTabletopDecisionDrawer shows REACTION_OFFER (\"Reaction available\", \"<attacker> attacked <reactor>. Use a reaction?\", one \"Use <option>\" per option plus Decline, untimed), answered through RESOLVE_RULE_OCCURRENCE by the reactor's controller or the GM; drawer unit and model tests, a ReactionOffer Storybook play story, and a GM-answer room test. Docs: live-sessions, persistence, rules-runtime and the reactionTriggers note. The live-stack browser journey moved to SPELLS-31.T4k1c (no size change)."
             },
             {
               "id": "QUALITY-8.T1d",
