@@ -123,6 +123,19 @@ describe('cast reaction offers', () => {
     expect(parses(offer('TARGETED_SELF'))).toBe(false)
   })
 
+  it('holds an ATTACK_ROLL_BY_OTHER offer of its own pins only with the rolled d20 it follows (QUALITY-9.T1e1)', () => {
+    // The offer that keeps a rolled d20 is proved against a stored pending action in encounter-persistence.
+    const offer = (trigger: EncounterReactionPinDto['trigger']) => ({
+      kind: 'ATTACK_ROLL_BY_OTHER' as const,
+      reactions: [castPin(1, trigger)],
+      declinedReactorActorIds: []
+    })
+    const issuePaths = (value: unknown) =>
+      encounterCastReactionOfferDtoSchema.safeParse(value).error?.issues.map(({ path }) => path)
+    expect(issuePaths(offer('ATTACK_ROLL_BY_OTHER'))).toEqual([['rolled']])
+    expect(issuePaths(offer('ATTACK_ON_OTHER'))).toEqual([['reactions'], ['rolled']])
+  })
+
   it('holds a chain only with a counter standing, and the declines it outranks', () => {
     const withChain = (chain: unknown) =>
       encounterCastReactionOfferDtoSchema.safeParse({

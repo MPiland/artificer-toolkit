@@ -20,6 +20,8 @@ export interface ExecutionOutcomeCapabilityAdapter {
   cancelsTriggeringEvent(execution: CommittedExecutionTrace): boolean
   /** Whether a reaction resolved the roll-mode outcome (Protection), so the roll it answered takes that mode. */
   imposesRollModeOnTriggeringRoll(execution: CommittedExecutionTrace): boolean
+  /** Whether a reaction resolved the subtract outcome (Cutting Words), so the roll it answered loses its die. */
+  subtractsFromTriggeringRoll(execution: CommittedExecutionTrace): boolean
   /** Whether an action resolved the Dash outcome, so its commit adds the actor's speed to the turn. */
   addsSpeedToMovement(execution: CommittedExecutionTrace): boolean
   /** Whether an action resolved the end-effects outcome (Lesser Restoration), so its commit ends the effects. */

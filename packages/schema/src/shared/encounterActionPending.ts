@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { d20RolledAddedDieDtoSchema } from './d20AddedDice.js'
 import { encounterActionPauseDtoSchema } from './encounterPause.js'
 import {
   directActionTwoPhaseDtoSchema,
@@ -96,14 +97,17 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * (D219). Only a child recorded here is admitted while the action is pending, and each one that
        * commits moves the action's occurrence one Run version past its root command. `rollMode` is
        * the mode the committed child imposes on the action's roll, null when it imposes none; it is
-       * absent until the room resumes the action after the child.
+       * absent until the room resumes the action after the child. `rolledDie` is the die the committed
+       * child rolled against the action's roll, with its faces, recorded by that same resume: a replay
+       * of the action reads the die from here and does not roll it again.
        */
       reactionChildren: z.optional(
         z
           .array(
             z.strictObject({
               commandId: ruleExecutionUuidSchema,
-              rollMode: z.optional(z.nullable(systemCoreCodeSchema))
+              rollMode: z.optional(z.nullable(systemCoreCodeSchema)),
+              rolledDie: z.optional(d20RolledAddedDieDtoSchema)
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -135,6 +139,19 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: [path],
               message: `Only an action that records a reaction child records its cast ${name}.`
+            })
+        for (const [index, child] of (value.reactionChildren ?? []).entries())
+          if (
+            child.rolledDie &&
+            (child.rollMode === undefined ||
+              child.rolledDie.spentEffectId !== undefined ||
+              child.rolledDie.spentReaction !== undefined)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['reactionChildren', index, 'rolledDie'],
+              message:
+                'Only a child the action resumed from records its die, which the child itself spent.'
             })
         if (!value.contest !== !value.contestPhase)
           context.addIssue({
@@ -200,14 +217,17 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 ])
               if (
                 holdsActionD20 ||
-                value.twoPhase !== null ||
+                // An offer made after the attack roll holds that roll's TEST; every other is held before any.
+                (pause.payload.rolled ? !test : value.twoPhase !== null) ||
                 pause.payload.reactions.some(
                   ({ reactorActorId }) => reactorActorId !== value.rollerActorId
                 ) ||
                 pause.payload.declinedReactorActorIds.includes(value.rollerActorId) ||
                 (pause.payload.check !== undefined && pause.payload.reactions.length !== 1)
               )
-                issue('A cast reaction offer belongs to a cast held before it executes.')
+                issue(
+                  'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'
+                )
               break
             case 'INCOMING_GATE':
               if (

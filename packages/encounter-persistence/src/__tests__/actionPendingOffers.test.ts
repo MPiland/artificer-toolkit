@@ -263,6 +263,72 @@ describe('castPendingContinues', () => {
     })
   })
 
+  describe('an offer made after the attack roll, which keeps the rolled d20 (QUALITY-9.T1e1, D219)', () => {
+    const rolled = { test: { d20: { selectedNatural: 14, total: 19 } }, appRollId: null }
+    const offer = (declinedReactorActorIds: string[], kept: object | null = rolled) => ({
+      kind: 'CAST_REACTION' as const,
+      payload: { declinedReactorActorIds, ...(kept && { rolled: kept }) }
+    })
+    const rolledHeld = { rollerActorId: 'second', pause: offer(['first']) }
+    const child = { commandId: 'child' }
+    const raised = { ...rolledHeld, reactionChildren: [child] }
+
+    it('is left by a decline, to the roll’s settlement or to the next reactor’s offer of the same roll', () => {
+      expect(castPendingContinues(rolledHeld, decline, {})).toBe(true)
+      expect(castPendingContinues(rolledHeld, decline, { pause: offer(['first', 'second']) })).toBe(
+        true
+      )
+      // The next offer never drops the roll, and never holds another.
+      expect(
+        castPendingContinues(rolledHeld, decline, { pause: offer(['first', 'second'], null) })
+      ).toBe(false)
+      expect(
+        castPendingContinues(rolledHeld, decline, {
+          pause: offer(['first', 'second'], {
+            test: { d20: { selectedNatural: 15, total: 20 } },
+            appRollId: null
+          })
+        })
+      ).toBe(false)
+      expect(castPendingContinues(rolledHeld, decline, { pause: offer(['first']) })).toBe(false)
+    })
+
+    it('runs a chosen reaction only as its holder’s own action, on the same offer and roll', () => {
+      expect(castPendingContinues(rolledHeld, option, raised)).toBe(true)
+      // Never spent with the action's own commit, as a pre-roll counter that owes a check is.
+      expect(castPendingContinues(rolledHeld, option, {})).toBe(false)
+      expect(
+        castPendingContinues(rolledHeld, option, {
+          rollerActorId: 'second',
+          pause: {
+            kind: 'CAST_REACTION' as const,
+            payload: { declinedReactorActorIds: ['first'], rolled, check: {} }
+          },
+          usedReactions: []
+        })
+      ).toBe(false)
+      expect(
+        castPendingContinues(rolledHeld, option, { ...raised, pause: offer(['first'], null) })
+      ).toBe(false)
+      expect(castPendingContinues(rolledHeld, decline, raised)).toBe(false)
+    })
+
+    it('moves on from the child by the room’s resume, to the settlement or the next offer of the roll', () => {
+      const resumed = { reactionChildren: [{ ...child, rollMode: null }] }
+      expect(castPendingContinues(raised, null, resumed)).toBe(true)
+      expect(
+        castPendingContinues(raised, null, { ...resumed, pause: offer(['first', 'second']) })
+      ).toBe(true)
+      expect(
+        castPendingContinues(raised, null, {
+          ...resumed,
+          pause: offer(['first', 'second'], null)
+        })
+      ).toBe(false)
+      expect(castPendingContinues(raised, option, resumed)).toBe(false)
+    })
+  })
+
   it('holds the cast for the same reactor on its check when the counter owes one', () => {
     const toCheck = (overrides: Partial<typeof checking>) => ({ ...checking, ...overrides })
     expect(castPendingContinues(held, option, toCheck({ usedReactions: [] }))).toBe(true)

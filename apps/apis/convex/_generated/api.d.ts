@@ -295511,6 +295511,11 @@ export declare const api: {
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
                 answerBy?: string;
+                attackRoll?: {
+                  attackerActorId: string;
+                  selectedNatural: number;
+                  total: number;
+                };
                 encounterVersion: number;
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
@@ -296520,6 +296525,11 @@ export declare const api: {
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
                   answerBy?: string;
+                  attackRoll?: {
+                    attackerActorId: string;
+                    selectedNatural: number;
+                    total: number;
+                  };
                   encounterVersion: number;
                   kind: "REACTION_CHOICE";
                   occurrenceId: string;
@@ -298204,6 +298214,11 @@ export declare const api: {
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
             answerBy?: string;
+            attackRoll?: {
+              attackerActorId: string;
+              selectedNatural: number;
+              total: number;
+            };
             encounterVersion: number;
             kind: "REACTION_CHOICE";
             occurrenceId: string;
@@ -299902,6 +299917,11 @@ export declare const api: {
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
                 answerBy?: string;
+                attackRoll?: {
+                  attackerActorId: string;
+                  selectedNatural: number;
+                  total: number;
+                };
                 encounterVersion: number;
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;

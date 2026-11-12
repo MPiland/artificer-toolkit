@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildEncounterCounteredCastStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { systemTriggerReactionCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/subtractFromTriggeringRoll'
 import {
   CAMPAIGN_ID,
   ENCOUNTER_ID,
@@ -16,9 +17,19 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  encounterReactionSelectionIdentity,
+  encounterReactionUseOptionId,
+  type EncounterReactionPinDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import {
+  storedRuleExecutionResultDtoSchema,
+  type StoredRuleExecutionResultDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { readNativeActionPending } from '../actionPending.js'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { projectNativeActionPending, readNativeActionPending } from '../actionPending.js'
 import { insertRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import { readPendingSnapshot, writePendingSnapshot } from '../pendingSnapshots.js'
@@ -52,6 +63,31 @@ const REACTION_ACTION_ID = 'feature:protection'
 /** The Run version the attack was submitted on and paused at. */
 const ROOT_VERSION = 4
 const checksum = (letter: string) => letter.repeat(64)
+/** The attack d20 an offer made after the roll keeps. */
+const ROLLED_D20 = { selectedNatural: 14, total: 19 }
+
+/** The protector's reaction as an offer of `trigger` pins it. */
+const reactionPin = (trigger: EncounterReactionPinDto['trigger']) => {
+  const identity = {
+    trigger,
+    reactorActorId: PROTECTOR_ID,
+    characterId: null,
+    actionId: REACTION_ACTION_ID,
+    effectId: testUuid(0x8a30),
+    allowanceDefinitionId: testUuid(0x8a31),
+    choiceDefinitionId: testUuid(0x8a32),
+    choiceDefinitionChecksum: checksum('f')
+  }
+  const selectionChecksum = checksumRuleDocument(encounterReactionSelectionIdentity(identity))
+  return {
+    ...identity,
+    characterStreamVersion: null,
+    allowanceBeforeUsed: 0,
+    allowanceMaximum: 1,
+    selectionChecksum,
+    useOptionId: encounterReactionUseOptionId(selectionChecksum)
+  } satisfies EncounterReactionPinDto
+}
 
 const action = (
   input: Pick<ResolveEncounterActionInputDto, 'commandId' | 'actorId' | 'expectedVersion'>
@@ -99,12 +135,21 @@ const link = {
  */
 async function pausedAttack(
   input: {
-    reactionChildren?: { commandId: string; rollMode?: 'DISADVANTAGE' }[]
+    reactionChildren?: {
+      commandId: string
+      rollMode?: 'DISADVANTAGE' | null
+      rolledDie?: object
+    }[]
     /** The level the paused action casts its spell at, when it casts one. */
     castLevel?: number
     /** The spell slot that cast spends, when it spends one. */
     castSlotKey?: string
     protectorDefeated?: boolean
+    /**
+     * Holds the attack on an offer of the protector's reactions instead of on its own d20: before the
+     * roll, or after it (`rolled`), where the offer keeps the frozen TEST and `twoPhase` names it.
+     */
+    offer?: { kind: 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'; rolled?: boolean; test?: boolean }
   } = {}
 ) {
   const memory = createMemoryEncounterStore()
@@ -142,8 +187,8 @@ async function pausedAttack(
     updatedAt: TIMESTAMP
   })
   for (const actor of actors) await insertRunActor(ctx, actor)
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse({
-    snapshotKind: 'KERNEL_EVIDENCE',
+  const { offer } = input
+  const continuation = {
     schemaVersion: 1,
     occurrenceId: OCCURRENCE_ID,
     graph: {
@@ -178,25 +223,68 @@ async function pausedAttack(
       max: 20
     },
     authority: 'APPLICATION_SERVICE',
-    redaction: 'SERVER_ONLY',
+    redaction: 'SERVER_ONLY'
+  }
+  const d20Policy = {
+    requestNodeId: 'd20',
+    rollMode: 'NORMAL',
+    keep: 'FIRST',
+    contributors: [],
+    contributorChecksum: checksumRuleDocument([]),
+    modifier: 0,
+    dc: 10
+  }
+  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse({
+    snapshotKind: 'KERNEL_EVIDENCE',
+    ...continuation,
     applicationContext: {
       kind: 'ENCOUNTER_ACTION',
       schemaVersion: 1,
       commandJson: JSON.stringify(parentCommand),
       commandFingerprint: checksumCanonicalJson(parentCommand),
       initiatorUserId: USER_ID,
-      rollerActorId: ATTACKER_ID,
+      rollerActorId: offer ? PROTECTOR_ID : ATTACKER_ID,
       currentnessChecksum: checksum('c'),
-      d20Policy: {
-        requestNodeId: 'd20',
-        rollMode: 'NORMAL',
-        keep: 'FIRST',
-        contributors: [],
-        contributorChecksum: checksumRuleDocument([]),
-        modifier: 0,
-        dc: 10
-      },
-      twoPhase: null,
+      d20Policy: offer ? null : d20Policy,
+      twoPhase: offer?.test
+        ? {
+            phase: 'TEST',
+            compilerSourceChecksum: checksum('1'),
+            testTemplateChecksum: checksum('2'),
+            boundFactsChecksum: checksum('3')
+          }
+        : null,
+      ...(offer && {
+        pause: {
+          kind: 'CAST_REACTION',
+          payload: {
+            kind: offer.kind,
+            reactions: [reactionPin(offer.kind)],
+            declinedReactorActorIds: [],
+            ...(offer.rolled && {
+              rolled: {
+                test: {
+                  continuation,
+                  initialFactsChecksum: checksumRuleDocument(continuation.facts),
+                  d20: {
+                    requestId: 'd20',
+                    rollMode: 'NORMAL',
+                    keep: 'FIRST',
+                    derivedRollMode: 'NORMAL',
+                    rawFaces: [ROLLED_D20.selectedNatural],
+                    selectedNatural: ROLLED_D20.selectedNatural,
+                    modifier: ROLLED_D20.total - ROLLED_D20.selectedNatural,
+                    total: ROLLED_D20.total,
+                    contributors: [],
+                    contributorChecksum: checksumRuleDocument([])
+                  }
+                },
+                appRollId: null
+              }
+            })
+          }
+        }
+      }),
       ...(input.reactionChildren && { reactionChildren: input.reactionChildren }),
       ...(input.castLevel !== undefined && { castLevel: input.castLevel }),
       ...(input.castSlotKey !== undefined && { castSlotKey: input.castSlotKey })
@@ -234,6 +322,15 @@ async function pausedAttack(
 }
 
 const recorded = { reactionChildren: [{ commandId: reactionChild().commandId }] }
+
+/** The die a committed child rolled against the action's roll, as the action's resume records it. */
+const ROLLED_DIE = {
+  label: 'Cutting Words',
+  count: 1,
+  faces: 8,
+  sign: 'SUBTRACT',
+  rolledFaces: [5]
+}
 
 const CHILD_OCCURRENCE_ID = testUuid(0x8a14)
 
@@ -386,6 +483,33 @@ async function insertCommittedAction(
     })
   )
 }
+
+/** The receipt the Run stored for the reaction child's own committed action. */
+const insertChildReceipt = (
+  memory: ReturnType<typeof createMemoryEncounterStore>,
+  command: ResolveEncounterActionInputDto,
+  execution: StoredRuleExecutionResultDto,
+  encounterVersion: number
+) =>
+  memory.store.insert(
+    'encounterRuleReceipts',
+    encounterStoredRuleReceiptSchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: CAMPAIGN_ID,
+      encounterId: ENCOUNTER_ID,
+      occurrenceId: CHILD_OCCURRENCE_ID,
+      commandId: command.commandId,
+      commandType: 'RESOLVE_ACTION',
+      commandFingerprint: checksumCanonicalJson(command),
+      encounterVersion,
+      commandMetadataJson: '{}',
+      resultJson: JSON.stringify(execution),
+      resultChecksum: checksumRuleDocument(execution),
+      actorUserId: USER_ID,
+      correlationId: null,
+      createdAt: TIMESTAMP
+    })
+  )
 
 describe('the pending action a reaction child answers (D219)', () => {
   it('is the pending action whose context records the child command', async () => {
@@ -595,6 +719,172 @@ describe('the reaction children a pending action keeps from one context to the n
       })
     ).toBe(false)
   })
+
+  it('records a child’s rolled die only with its resolved mode, and never rewrites it (QUALITY-9.T1e1)', () => {
+    const rolled = (child: { commandId: string }, rolledDie: object = ROLLED_DIE) => ({
+      ...resolved(child, null),
+      rolledDie
+    })
+    const waiting = { reactionChildren: [first] }
+    expect(reactionChildrenKept(waiting, { reactionChildren: [rolled(first)] })).toBe(true)
+    expect(reactionChildrenKept(waiting, { reactionChildren: [rolled(first), second] })).toBe(true)
+    // A child is recorded unresolved, so without a die.
+    expect(
+      reactionChildrenKept({}, { reactionChildren: [{ ...first, rolledDie: ROLLED_DIE }] })
+    ).toBe(false)
+    expect(
+      reactionChildrenKept(waiting, {
+        reactionChildren: [rolled(first), { ...second, rolledDie: ROLLED_DIE }]
+      })
+    ).toBe(false)
+
+    // A replay reads the die the resume recorded: it is kept as it was, never dropped, rerolled or added.
+    const settled = { reactionChildren: [rolled(first), resolved(second, null)] }
+    expect(reactionChildrenKept(settled, settled)).toBe(true)
+    expect(
+      reactionChildrenKept(settled, {
+        reactionChildren: [resolved(first, null), resolved(second, null)]
+      })
+    ).toBe(false)
+    expect(
+      reactionChildrenKept(settled, {
+        reactionChildren: [
+          rolled(first, { ...ROLLED_DIE, rolledFaces: [8] }),
+          resolved(second, null)
+        ]
+      })
+    ).toBe(false)
+    expect(
+      reactionChildrenKept(settled, { reactionChildren: [rolled(first), rolled(second)] })
+    ).toBe(false)
+  })
+})
+
+describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219)', () => {
+  const summary = async (paused: Awaited<ReturnType<typeof pausedAttack>>) => {
+    const occurrence = paused.occurrence()
+    return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(
+      projectNativeActionPending(
+        occurrence,
+        await readNativeActionPending(paused.ctx, occurrence),
+        false
+      )
+    )
+  }
+  const refusal =
+    'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'
+
+  it('is held on the attack’s TEST with the rolled d20, for the reactor to decide on the roll as it stands', async () => {
+    const paused = await pausedAttack({
+      offer: { kind: 'ATTACK_ROLL_BY_OTHER', rolled: true, test: true }
+    })
+    const { context } = await readNativeActionPending(paused.ctx, paused.occurrence())
+    expect(context.pause).toMatchObject({
+      kind: 'CAST_REACTION',
+      payload: { kind: 'ATTACK_ROLL_BY_OTHER', rolled: { test: { d20: ROLLED_D20 } } }
+    })
+    expect(await summary(paused)).toEqual({
+      kind: 'REACTION_CHOICE',
+      occurrenceId: OCCURRENCE_ID,
+      occurrenceVersion: 1,
+      encounterVersion: ROOT_VERSION,
+      targetActorId: PROTECTOR_ID,
+      options: [
+        {
+          optionId: reactionPin('ATTACK_ROLL_BY_OTHER').useOptionId,
+          actionId: REACTION_ACTION_ID
+        }
+      ],
+      attackRoll: { attackerActorId: ATTACKER_ID, ...ROLLED_D20 },
+      allowedResponses: ['DECLINE', 'OPTION']
+    })
+  })
+
+  it('names no attack roll for an offer made before the roll', async () => {
+    const paused = await pausedAttack({ offer: { kind: 'ATTACK_ON_OTHER' } })
+    expect(await summary(paused)).not.toHaveProperty('attackRoll')
+  })
+
+  it('is refused off the TEST its roll belongs to, as an offer before the roll is refused on one', async () => {
+    await expect(
+      pausedAttack({ offer: { kind: 'ATTACK_ROLL_BY_OTHER', rolled: true } })
+    ).rejects.toThrow(refusal)
+    await expect(pausedAttack({ offer: { kind: 'ATTACK_ON_OTHER', test: true } })).rejects.toThrow(
+      refusal
+    )
+  })
+
+  it('keeps the rolled d20 exactly when it is the offer after the roll', async () => {
+    const unkept =
+      'Only an offer made after the attack roll keeps the rolled d20, and its reaction owes no check and stands in no chain.'
+    await expect(
+      pausedAttack({ offer: { kind: 'ATTACK_ROLL_BY_OTHER', test: true } })
+    ).rejects.toThrow(unkept)
+    await expect(
+      pausedAttack({ offer: { kind: 'ATTACK_ON_OTHER', rolled: true } })
+    ).rejects.toThrow(unkept)
+  })
+
+  it('records the chosen reaction as a child of the held attack, and its die once the attack resumes', async () => {
+    const child = reactionChild().commandId
+    const offer = { kind: 'ATTACK_ROLL_BY_OTHER', rolled: true, test: true } as const
+    const raised = await pausedAttack({ offer, reactionChildren: [{ commandId: child }] })
+    expect(await readReactionChildParent(raised.ctx, link)).toEqual(raised.occurrence())
+    const resumed = await pausedAttack({
+      offer,
+      reactionChildren: [{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }]
+    })
+    expect(
+      (await readNativeActionPending(resumed.ctx, resumed.occurrence())).context.reactionChildren
+    ).toEqual([{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }])
+  })
+})
+
+describe('the die a pending action records for a child it resumed from (QUALITY-9.T1e1, D219)', () => {
+  const child = reactionChild().commandId
+
+  it('is stored with the child’s resolved mode and read back as recorded', async () => {
+    const reactionChildren = [{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }]
+    const { ctx, occurrence } = await pausedAttack({ reactionChildren })
+    expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual(
+      reactionChildren
+    )
+  })
+
+  it('is refused on a child the action has not resumed from', async () => {
+    await expect(
+      pausedAttack({ reactionChildren: [{ commandId: child, rolledDie: ROLLED_DIE }] })
+    ).rejects.toThrow(
+      'Only a child the action resumed from records its die, which the child itself spent.'
+    )
+  })
+
+  it('is the child’s own: never a die the action spends from a held effect or a window reaction', async () => {
+    for (const spent of [
+      { spentEffectId: testUuid(0x8a20) },
+      { spentReaction: { reactorActorId: PROTECTOR_ID, selectionChecksum: checksum('d') } }
+    ])
+      await expect(
+        pausedAttack({
+          reactionChildren: [
+            { commandId: child, rollMode: null, rolledDie: { ...ROLLED_DIE, ...spent } }
+          ]
+        })
+      ).rejects.toThrow(
+        'Only a child the action resumed from records its die, which the child itself spent.'
+      )
+  })
+
+  it('records one face per die, each within its size', async () => {
+    for (const rolledFaces of [[5, 2], [9]])
+      await expect(
+        pausedAttack({
+          reactionChildren: [
+            { commandId: child, rollMode: null, rolledDie: { ...ROLLED_DIE, rolledFaces } }
+          ]
+        })
+      ).rejects.toThrow('An added die records one face per die, each within its size.')
+  })
 })
 
 describe('admitting the room’s resume of a pending action (D219)', () => {
@@ -731,6 +1021,20 @@ describe('suspending the pending action while its reaction child is the pending 
     await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 2 })
     expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual([
       { commandId: earlier, rollMode: 'DISADVANTAGE' }
+    ])
+  })
+
+  it('keeps the die an earlier child rolled when a later one is voided (QUALITY-9.T1e1)', async () => {
+    const earlier = { commandId: testUuid(0x8a13), rollMode: null, rolledDie: ROLLED_DIE }
+    const { ctx, memory, occurrence } = await pausedAttack({
+      reactionChildren: [earlier, ...recorded.reactionChildren]
+    })
+    await memory.store.patch(occurrence()._id, { expectedEncounterVersion: ROOT_VERSION + 1 })
+    await suspendReactionChildParent(ctx, link)
+    await insertVoid(memory, ROOT_VERSION + 2)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 2 })
+    expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual([
+      earlier
     ])
   })
 
@@ -1052,25 +1356,7 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
       actionEconomy: null,
       counter: null
     })
-    await memory.store.insert(
-      'encounterRuleReceipts',
-      encounterStoredRuleReceiptSchema.parse({
-        id: crypto.randomUUID(),
-        campaignId: CAMPAIGN_ID,
-        encounterId: ENCOUNTER_ID,
-        occurrenceId: CHILD_OCCURRENCE_ID,
-        commandId: command.commandId,
-        commandType: 'RESOLVE_ACTION',
-        commandFingerprint: checksumCanonicalJson(command),
-        encounterVersion: ROOT_VERSION + 2,
-        commandMetadataJson: '{}',
-        resultJson: JSON.stringify(execution),
-        resultChecksum: checksumRuleDocument(execution),
-        actorUserId: USER_ID,
-        correlationId: null,
-        createdAt: TIMESTAMP
-      })
-    )
+    await insertChildReceipt(memory, command, execution, ROOT_VERSION + 2)
     expect(
       await readCommittedReactionChildren(ctx, {
         campaignId: CAMPAIGN_ID,
@@ -1083,9 +1369,64 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
         reactorActorId: PROTECTOR_ID,
         actionId: REACTION_ACTION_ID,
         imposesRollMode: false,
+        subtractsFromTriggeringRoll: false,
         cancelsTriggeringEvent: false,
         // The reaction that countered it committed under it, so its creature reacted in the child's tree.
         descendantReactorActorIds: [ATTACKER_ID]
+      }
+    ])
+  })
+})
+
+describe('a committed child that takes a die from the roll it answered (QUALITY-9.T1e1, D219)', () => {
+  it('reads as subtracting from the triggering roll, by its System’s own outcome operation', async () => {
+    const { ctx, memory, state } = await pausedAttack(recorded)
+    const command = reactionChild()
+    await insertCommittedAction(memory, state, command, ROOT_VERSION + 1)
+    const execution = storedRuleExecutionResultDtoSchema.parse({
+      status: 'COMPLETE',
+      occurrenceId: CHILD_OCCURRENCE_ID,
+      occurrenceVersion: 1,
+      outputs: {},
+      evidence: {
+        source: {
+          definitionId: testUuid(0x8a21),
+          gameSystemId: state.gameSystemId,
+          definitionFamilyKey: 'effect.action',
+          checksum: checksum('e')
+        },
+        capabilityContractVersion: 1,
+        facts: {},
+        trace: [
+          {
+            nodeId: 'subtract',
+            operation: {
+              key: DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+              contractVersion: 1
+            },
+            inputs: {},
+            outputs: {}
+          }
+        ],
+        outputs: {}
+      }
+    })
+    await insertChildReceipt(memory, command, execution, ROOT_VERSION + 1)
+    expect(
+      await readCommittedReactionChildren(ctx, {
+        campaignId: CAMPAIGN_ID,
+        gameSystemId: state.gameSystemId,
+        recorded: recorded.reactionChildren
+      })
+    ).toEqual([
+      {
+        commandId: command.commandId,
+        reactorActorId: PROTECTOR_ID,
+        actionId: REACTION_ACTION_ID,
+        imposesRollMode: false,
+        subtractsFromTriggeringRoll: true,
+        cancelsTriggeringEvent: false,
+        descendantReactorActorIds: []
       }
     ])
   })

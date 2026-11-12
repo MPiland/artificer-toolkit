@@ -150,6 +150,8 @@ type CastPendingContext = {
         kind: 'CAST_REACTION'
         payload: {
           declinedReactorActorIds: readonly string[]
+          /** The attack d20 an offer made after the roll keeps (D219). */
+          rolled?: object
           check?: unknown
           chain?: {
             counters: readonly PendingCounter[]
@@ -241,6 +243,10 @@ function castAnswer(
  * outer level's declines), or, when its check failed, recorded as failed and declined at its level. A
  * chain with nobody left to ask resolves: an even chain is spent and the cast is offered again at its
  * own level with that level's declines restored; an odd chain counters the cast, which commits instead.
+ *
+ * An offer made after the action's attack roll (D219) keeps the rolled d20: it is left by a decline, to
+ * the next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction,
+ * which is recorded as a child action and never carried as a used reaction.
  */
 export function castPendingContinues(
   previous: CastPendingContext,
@@ -290,8 +296,20 @@ export function castPendingContinues(
   const castDeclinedPrevious = castReaction.chain?.castDeclinedReactorActorIds ?? []
   const chainPrevious = chainReactorIds(previous)
   const chainNext = chainReactorIds(next)
+  // Once an offer holds the action's rolled d20, every offer that follows it holds the same roll.
+  if (
+    castReaction.rolled &&
+    nextCastReaction &&
+    checksumCanonicalJson(nextCastReaction.rolled ?? null) !==
+      checksumCanonicalJson(castReaction.rolled)
+  )
+    return false
+  const recordsChild =
+    (next.reactionChildren?.length ?? 0) > (previous.reactionChildren?.length ?? 0)
+  // A reaction chosen after the roll always runs as its holder's own action (D219).
+  if (castReaction.rolled && spends && !recordsChild) return false
   // The chosen reaction runs as a child action: the same offer stays held until the room resumes it.
-  if ((next.reactionChildren?.length ?? 0) > (previous.reactionChildren?.length ?? 0))
+  if (recordsChild)
     return (
       spends &&
       !castReaction.check &&
@@ -461,6 +479,15 @@ export function projectNativeActionPending(
           optionId: useOptionId,
           actionId
         })),
+        // A reactor asked after the attack roll decides on the roll as it stands.
+        ...(pause.kind === 'CAST_REACTION' &&
+          pause.payload.rolled && {
+            attackRoll: {
+              attackerActorId: command.actorId,
+              selectedNatural: pause.payload.rolled.test.d20.selectedNatural,
+              total: pause.payload.rolled.test.d20.total
+            }
+          }),
         allowedResponses: ['DECLINE', 'OPTION']
       }
     case 'ON_HIT':
