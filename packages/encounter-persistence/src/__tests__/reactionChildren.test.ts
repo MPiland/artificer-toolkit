@@ -83,7 +83,8 @@ const link = {
   campaignId: CAMPAIGN_ID,
   encounterId: ENCOUNTER_ID,
   parentCommandId: PARENT_COMMAND_ID,
-  childCommandId: reactionChild().commandId
+  childCommandId: reactionChild().commandId,
+  reactorActorId: PROTECTOR_ID
 }
 
 /**

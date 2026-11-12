@@ -173,6 +173,7 @@ export async function recordActionRoot(
       encounterId: state.id,
       parentCommandId: command.systemTrigger.parentCommandId.toLowerCase(),
       childCommandId: command.commandId.toLowerCase(),
+      reactorActorId: command.actorId.toLowerCase(),
       version: nextState.version
     })
   await ctx.db.insert(

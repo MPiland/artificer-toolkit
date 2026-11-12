@@ -18,6 +18,7 @@ import {
   turnPendingActorId
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending.js'
+import { projectReactionOfferPending } from './reactionOffer.js'
 import { encounterD20WindowRollerActorId } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import {
   projectNativeBasicActionCheckPending,
@@ -74,17 +75,19 @@ export async function readEncounterWaitingOn(
         ? decision.actorId
         : decision.kind === 'MOVEMENT_REACTION'
           ? decision.choice.reactorActorId
-          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
-              decision.kind === 'FORCED_MOVEMENT_DESTINATION'
-            ? decision.sourceActorId
-            : decision.kind === 'LEGENDARY_ACTION_CHOICE'
-              ? decision.ownerActorId
-              : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
-                  decision.kind === 'REACTION_CHOICE'
-                ? decision.targetActorId
-                : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
-                  ? decision.attackerActorId
-                  : null
+          : decision.kind === 'REACTION_OFFER'
+            ? decision.reactorActorId
+            : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
+                decision.kind === 'FORCED_MOVEMENT_DESTINATION'
+              ? decision.sourceActorId
+              : decision.kind === 'LEGENDARY_ACTION_CHOICE'
+                ? decision.ownerActorId
+                : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
+                    decision.kind === 'REACTION_CHOICE'
+                  ? decision.targetActorId
+                  : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
+                    ? decision.attackerActorId
+                    : null
   if (!actorId) return 'GM'
   const actor = await readRunActor(ctx, readRunState(row), actorId)
   return (await readEncounterActorPrimaryController(ctx, campaign, actor)) === campaign.ownerUserId
@@ -243,6 +246,12 @@ async function projectPendingRunDecision(
   }
   if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING')
     return projectNativeCleavingPending(occurrence, pendingSnapshot, {
+      isOwner: membership.role === 'OWNER',
+      controlledActorIds,
+      visibleActorIds: new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))
+    })
+  if (context.kind === 'ENCOUNTER_REACTION_OFFER')
+    return projectReactionOfferPending(occurrence, pendingSnapshot, {
       isOwner: membership.role === 'OWNER',
       controlledActorIds,
       visibleActorIds: new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))

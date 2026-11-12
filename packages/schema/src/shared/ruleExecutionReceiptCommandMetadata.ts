@@ -92,6 +92,17 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = lazySchema(() 
       }),
       z.strictObject({
         schemaVersion: z.literal(1),
+        transition: z.literal('REACTION_OFFER'),
+        commandType: z.literal('RESOLVE_RULE_OCCURRENCE'),
+        expectedAggregateVersion: aggregateVersionSchema,
+        expectedOccurrenceVersion: aggregateVersionSchema,
+        response: z.discriminatedUnion('kind', [
+          z.strictObject({ kind: z.literal('DECLINE') }),
+          z.strictObject({ kind: z.literal('OPTION'), optionId: checksumSchema })
+        ])
+      }),
+      z.strictObject({
+        schemaVersion: z.literal(1),
         transition: z.literal('TURN_EFFECTS'),
         commandType: z.enum(['START', 'ADVANCE_TURN']),
         expectedAggregateVersion: aggregateVersionSchema,

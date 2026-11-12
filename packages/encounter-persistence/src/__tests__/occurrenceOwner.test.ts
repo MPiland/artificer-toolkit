@@ -49,6 +49,7 @@ describe('classifyNativeEncounterOccurrence', () => {
         'CONTEST'
       ],
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
+      [facts({ kind: 'ENCOUNTER_REACTION_OFFER' }), 'REACTION_OFFER'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_ESCAPE_CHECK' }), 'ESCAPE'],
       // A d20 window belongs to the check whose d20 opened it.

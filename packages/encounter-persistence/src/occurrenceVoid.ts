@@ -79,6 +79,7 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
     case 'ENCOUNTER_AREA_ACTION':
       return { kind: 'CANCEL' }
     case 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING':
+    case 'ENCOUNTER_REACTION_OFFER':
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE':
       return { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
     case 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE':
@@ -378,16 +379,18 @@ export async function prepareRuleOccurrenceVoid(
   if (!current) throw new Error('Encounter is unavailable.')
   // A paused reaction child spent nothing yet, so its cancel only reopens the offer it answered: the
   // action it was chosen against leaves its suspension on the Run version this void produces (D219).
-  const reaction =
+  // One chosen from a committed attack's offer held nothing, and its offer stays settled.
+  const child =
     context?.kind === 'ENCOUNTER_ACTION' && !context.contest
-      ? resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson)).systemTrigger
+      ? resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
       : undefined
-  if (reaction?.trigger === 'REACTION')
+  if (child?.systemTrigger?.trigger === 'REACTION')
     await releaseReactionChildParent(ctx, {
       campaignId: run.campaignId,
       encounterId: run.id,
-      parentCommandId: reaction.parentCommandId.toLowerCase(),
+      parentCommandId: child.systemTrigger.parentCommandId.toLowerCase(),
       childCommandId: occurrence.rootCommandId,
+      reactorActorId: child.actorId.toLowerCase(),
       version: current.version + 1
     })
   return {
