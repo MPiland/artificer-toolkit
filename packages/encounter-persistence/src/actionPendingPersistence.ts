@@ -25,7 +25,11 @@ import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { castPendingContinues } from './actionPending.js'
-import { reactionChildrenKept, suspendReactionChildParent } from './reactionChildren.js'
+import {
+  awaitsReactionChild,
+  reactionChildrenKept,
+  suspendReactionChildParent
+} from './reactionChildren.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -229,7 +233,13 @@ export async function persistEncounterActionPending(
           // A retarget answer turns the action on another creature, so its facts are the new creature's.
           (snapshot.applicationContext.currentnessChecksum !==
             resume.pending.context.currentnessChecksum &&
-            resume.pending.context.pause?.kind !== 'ATTACK_RETARGET') ||
+            resume.pending.context.pause?.kind !== 'ATTACK_RETARGET' &&
+            // A target whose own reaction child the action resumes from stands as that child left it
+            // (D219): only the child moved the Run while this action awaited it.
+            !(
+              awaitsReactionChild(resume.pending.context) &&
+              resume.pending.context.rollerActorId === target.actorId
+            )) ||
           !castPendingContinues(
             resume.pending.context,
             input.response,
