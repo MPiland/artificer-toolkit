@@ -195,8 +195,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
   escape end path. The spatial receipt is unchanged.
 - Pending decisions are routed by `roomEncounterResponseRouting.ts` from the Run's retained occurrence:
-  TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, CONTEST or MOVEMENT. The selected planner repeats canonical
-  admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
+  TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, CONTEST, MOVEMENT or REACTION_OFFER (the
+  answer to a post-commit reaction offer, which also runs the chosen reaction in the same command; see
+  [persistence](persistence.md)). The selected planner repeats canonical admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
   pending occurrence and the caller may answer it.
 - `REMOVE_AREA_TARGET` (GM-only) takes one creature out of a pending area action (point or directed)
   (`areaTargetRemoval.ts`, routed with `AREA_REMOVAL` admission). It is not a Run command, and while the area

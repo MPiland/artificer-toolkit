@@ -30,7 +30,13 @@ export type EncounterReactionOfferPendingContextDto = {
   parentOccurrenceId: string
   reactorActorId: string
   attackerActorId: string
-  options: { optionId: string; actionId: string }[]
+  /**
+   * The reactor's reaction allowance as the attack's planner read it. The offer is raised only while
+   * the reactor has used no more of it since.
+   */
+  reactionAllowance: { definitionId: string; beforeUsed: number }
+  /** Each option's label tells the reactor's actions apart: a versatile weapon's attacks share a weapon. */
+  options: { optionId: string; actionId: string; label: string }[]
 }
 
 export const encounterReactionOfferPendingContextDtoSchema = lazySchema(() =>
@@ -42,8 +48,18 @@ export const encounterReactionOfferPendingContextDtoSchema = lazySchema(() =>
       parentOccurrenceId: uuidSchema,
       reactorActorId: uuidSchema,
       attackerActorId: uuidSchema,
+      reactionAllowance: z.strictObject({
+        definitionId: uuidSchema,
+        beforeUsed: z.number().check(z.int()).check(z.nonnegative())
+      }),
       options: z
-        .array(z.strictObject({ optionId: checksumSchema, actionId: identifierSchema }))
+        .array(
+          z.strictObject({
+            optionId: checksumSchema,
+            actionId: identifierSchema,
+            label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+          })
+        )
         .check(z.minLength(1))
         .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS))
     })

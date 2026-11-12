@@ -1444,6 +1444,11 @@ export async function planNativeLiveEncounterAction(
         : [],
     cleaving,
     spellCheck,
+    // What the attacked creature may react with now the attack has hit or missed (D219).
+    reactionOffers:
+      storedExecution.status === 'COMPLETE' && hit !== null
+        ? await castPause.planResolvedOffers(hit)
+        : [],
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: uses.spentUseGrants,

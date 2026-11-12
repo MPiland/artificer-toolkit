@@ -26,8 +26,11 @@ export function projectEncounterSpatialOccurrenceSummary(
   occurrence: {
     id: string
     version: number
-    /** The stored state; only an action is ever `SUSPENDED`, which holds its snapshot as `PENDING` does. */
-    state: 'PENDING' | 'SUSPENDED' | 'COMPLETED' | 'VOIDED'
+    /**
+     * The stored state; only an action is ever `SUSPENDED`, which holds its snapshot as `PENDING`
+     * does, and only a reaction offer is ever `QUEUED`, which is no movement occurrence.
+     */
+    state: 'PENDING' | 'SUSPENDED' | 'QUEUED' | 'COMPLETED' | 'VOIDED'
     pendingSnapshot: ServerRuleExecutionPendingSnapshotDto | null
   },
   encounterVersion: number,

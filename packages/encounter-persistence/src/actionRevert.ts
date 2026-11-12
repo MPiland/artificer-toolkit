@@ -65,6 +65,7 @@ import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
 import { settleCharacterConditionMaximum } from './conditionMaximumSettlement.js'
 import { revertGroupRoots, type RevertGroupRoot } from './actionRevertGroups.js'
+import { voidQueuedReactionOffers } from './reactionOffer.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
 import { revertZoneDcs, revertZoneDisarm, revertZoneSightingDismissal } from './zoneRevert.js'
 import { removeConjuredActors } from './summonRemoval.js'
@@ -872,6 +873,13 @@ export async function revertLastEncounterAction(
     )
   }
 
+  // An undone attack offers no reaction: the offers its commit queued (D219) go with it.
+  await voidQueuedReactionOffers(
+    ctx,
+    run.id,
+    new Set(groupRoots.map((group) => group.root.commandId)),
+    updatedAt
+  )
   const kept = actors.filter(({ id }) => !conjuredActorIds.includes(id))
   return commitRevert(ctx, {
     run,
@@ -900,7 +908,7 @@ type RevertGroup = RevertGroupRoot & {
  * belongs to the occurrence that recorded it, so the receipts of the other roots and of their
  * children are theirs to read, whatever Run version they were committed at.
  */
-export function planRevertRoot({
+function planRevertRoot({
   root,
   ruleOccurrenceId,
   laterEntries,
