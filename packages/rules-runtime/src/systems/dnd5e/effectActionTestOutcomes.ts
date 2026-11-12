@@ -9,10 +9,7 @@ import {
   damageMultiplier,
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
-import {
-  dnd5eTestPathResumeOutcome,
-  type Dnd5eAuthoredOutcome
-} from './effectActionOutcomes.js'
+import { dnd5eTestPathResumeOutcome, type Dnd5eAuthoredOutcome } from './effectActionOutcomes.js'
 import {
   parseBoundedDiceConfiguration,
   type Dnd5eEffectScalingFacts
@@ -76,6 +73,8 @@ export function damageSourceOutcomeId(outcome: TestPhaseOutcome) {
   return outcome.kind === 'DAMAGE_DERIVED_HEAL' ? outcome.damageOutcomeId : undefined
 }
 
+type TestOutcomeAction = { compiledEffect: { invocation: object | null } }
+
 /**
  * TEST/OUTCOME actions select exactly one authored result group.  The TEST
  * phase must therefore reject every reachable result that the bounded
@@ -84,23 +83,26 @@ export function damageSourceOutcomeId(outcome: TestPhaseOutcome) {
  */
 export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number],
-  /** The action's invocation, whose reaction trigger pairs the outcome that resumes what it answered. */
-  invocation: object | null,
+  /**
+   * The action the entry is a result of, whose reaction trigger pairs the outcome that resumes what
+   * it answered; null where only an ordinary outcome can stand.
+   */
+  action: TestOutcomeAction | null,
   /** The source's bound facts, which only the outcome phase has. */
   facts: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
 ): SpecializedOutcome
 export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number],
-  invocation: object | null
+  action: TestOutcomeAction | null
 ): TestPhaseOutcome
 export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number],
-  invocation: object | null,
+  action: TestOutcomeAction | null,
   facts?: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
 ): TestPhaseOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
-  const resume = dnd5eTestPathResumeOutcome(outcome, invocation)
+  const resume = dnd5eTestPathResumeOutcome(outcome, action?.compiledEffect.invocation ?? null)
   if (resume) return resume
   if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED' && outcome.bonuses?.length) {
     // "Damage equal to your Charisma modifier": the bonuses read the source, so the amount waits

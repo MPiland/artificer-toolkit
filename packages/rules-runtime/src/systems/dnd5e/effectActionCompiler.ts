@@ -2199,7 +2199,7 @@ function supported(
   const settlesOnCheck =
     outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED'
   if (contestAction || (checkAction && !settlesOnCheck)) {
-    const won = specializedTestOutcome(entry, invocation)
+    const won = specializedTestOutcome(entry, action)
     if (
       won.kind === 'CONDITION_APPLY' &&
       !(action.conditionDefinitionIds ?? []).includes(won.conditionId)
@@ -2280,7 +2280,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
       unsupported('D&D test action paths must be unique direct outcomes.')
     }
     paths.add(entry.pathCode)
-    const outcome = specializedTestOutcome(entry, invocation)
+    const outcome = specializedTestOutcome(entry, action)
     if (outcome.kind === 'CONDITION_APPLY') {
       if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
         unsupported('D&D test action condition is not in the pinned System vocabulary.')
@@ -2643,7 +2643,6 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   facts: Dnd5eEffectScalingFacts
 }): Dnd5eEffectActionTemplate | null {
   if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
-  const { invocation } = input.action.compiledEffect
   assertKnownTestResultPath(input.action, input.selectedPath)
   const table = rollTableOutcomeTemplate(input.action, input.selectedPath, input.facts)
   if (table) return table
@@ -2660,7 +2659,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const saveOwed = owed(immediate.saveEntry)
     if (owedPrimaryEntries.length === 0 && !saveOwed) return null
     const primaryDefinitions = owedPrimaryEntries.map((primaryDamageEntry, index) => {
-      const primaryDamage = specializedTestOutcome(primaryDamageEntry, invocation, input.facts)
+      const primaryDamage = specializedTestOutcome(primaryDamageEntry, input.action, input.facts)
       const nodePrefix =
         owedPrimaryEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
       // A fixed amount ("1 piercing damage") has no dice to double on a critical hit, and a GM
@@ -2714,7 +2713,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       const outcome: SpecializedOutcome =
         'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
           ? { kind: 'MODIFIER_GRANT' }
-          : specializedTestOutcome(entry, invocation, input.facts)
+          : specializedTestOutcome(entry, input.action, input.facts)
       if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
         unsupported('D&D direct repeated save outcome is unavailable.')
       return fixedOutcomeGraphDefinition({
@@ -2759,7 +2758,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
-    const outcome = specializedTestOutcome(entry, invocation, input.facts)
+    const outcome = specializedTestOutcome(entry, input.action, input.facts)
     const gate = 'gate' in entry ? entry.gate : undefined
     // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
     testPathGates(entry, outcome.kind)
@@ -3347,9 +3346,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     // Validate every reachable outcome at source compilation time. The
     // specialized graph itself is intentionally deferred until locked
     // runtime scaling facts are available.
-    if (!followUpSave)
-      for (const entry of groups.flat())
-        specializedTestOutcome(entry, action.compiledEffect.invocation)
+    if (!followUpSave) for (const entry of groups.flat()) specializedTestOutcome(entry, action)
     const authored = followUpSave ? action.compiledEffect.entries : groups
     outcomes.push({
       pathCode,

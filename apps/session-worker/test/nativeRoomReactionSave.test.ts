@@ -284,9 +284,7 @@ describe('a reaction that needs its own save, chosen against an attack on anothe
 
     const offer = await room.pendingDecision()
     expect(offer.pending.kind).toBe('REACTION_CHOICE')
-    expect(
-      (await readPendingActionContext(room.room.base.stub)).reactionChildren
-    ).toBeUndefined()
+    expect((await readPendingActionContext(room.room.base.stub)).reactionChildren).toBeUndefined()
     const declined = await room.resolve(offer, { kind: 'DECLINE' })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
 
