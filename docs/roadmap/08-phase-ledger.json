@@ -16954,7 +16954,7 @@
         {
           "id": "SPELLS-31",
           "title": "Class feature closed rules become core authoring options",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -25951,7 +25951,7 @@
             },
             {
               "id": "QUALITY-9.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 3,
@@ -25960,7 +25960,8 @@
                 "size": 8,
                 "after": ["QUALITY-8.T1b"]
               },
-              "text": "Fold movement reactions (R6); delete MOVEMENT_REACTION and the nested workflow modules."
+              "text": "Fold movement reactions (R6); delete MOVEMENT_REACTION and the nested workflow modules.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
