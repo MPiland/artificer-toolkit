@@ -80,10 +80,8 @@ import {
   prepareNativeLiveMaintainedState,
   settledCharacterActionSpend
 } from './nativeEncounterMaintenance.js'
-import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
-import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
-import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
+import { advanceNativeActionTarget } from './nativeActionTargetAdvance.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
 import {
@@ -92,12 +90,10 @@ import {
   planNativeWindowReactions,
   type NativeRollReaction
 } from './nativeEncounterRollReaction.js'
-import { settleNativePauseAnswer } from './nativePauseHandlers.js'
 import {
   readNativePendingActionAnswer,
   readNativeResumedReactionOffer
 } from './nativePendingActionAnswer.js'
-import { createNativeCurrentReaction } from './nativePauseReaction.js'
 import {
   advanceNativeIncomingGate,
   offerNativeAttackRetarget,
@@ -112,8 +108,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
-import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   encounterActorEffectiveSize,
@@ -138,7 +132,6 @@ import {
   planNativeLiveEncounterAreaLegendaryResistance,
   planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
-import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
 import { prepareCasterActionOnTarget, type ForcedMovementPick } from './nativeAreaPreparation.js'
 import { planForcedMovementDestination } from './nativeForcedMovementDestination.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -812,22 +805,7 @@ export async function planNativeLiveEncounterAction(
     responseCommand && resolved && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
       ? { pending: restoreEncounterActionPending(snapshot), resolution: resolved }
       : null
-  const discoverResistance = discoverNativeLegendaryResistance({ state, capture }, prepared)
   const targetStateChecksum = checksumRuleDocument(prepared.target)
-  /** The creature's Legendary Resistance and pool as they are now; a decision or its record needs both. */
-  const currentResistance = async () => {
-    const candidate = await discoverResistance()
-    const currentFeatureResource =
-      candidate &&
-      findEncounterFeatureResource(
-        prepared.actorRules,
-        candidate.targetActorId,
-        candidate.ownerFeatureId
-      )
-    if (!candidate || !currentFeatureResource)
-      throw new Error('Legendary Resistance evidence is stale.')
-    return { candidate, currentFeatureResource, targetStateChecksum }
-  }
   // An attack, or a harmful spell cast at an enemy, aimed at a warded creature (Sanctuary) is lost unless
   // its attacker passes the ward's save first. An area that merely catches the creature is not aimed at it.
   // A reaction's child whose trigger asks a check against the cast it answers owes that check instead (D219).
@@ -1013,41 +991,6 @@ export async function planNativeLiveEncounterAction(
         ])
     )
   }
-  const discoverReaction = discoverNativeAttackReaction({
-    state,
-    system,
-    spells: await readNativeLiveSpellPins(capture),
-    attack: prepared,
-    reactionSpentActorIds: usedReactions.map(({ reaction }) => reaction.reactorActorId),
-    prepareReaction: (actionId) =>
-      prepareEncounterActionMechanics({
-        state,
-        actor: prepared.target,
-        target: prepared.target,
-        actors,
-        actionId,
-        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-        overridable: false,
-        movementTargets,
-        sceneContext: null,
-        ...actionSources
-      }),
-    capture
-  })
-  const currentReaction = createNativeCurrentReaction({
-    discoverReaction,
-    runtime: executionOptions.runtime,
-    occurrenceId,
-    commandId: command.commandId,
-    occurredAt,
-    activeEffectsByActorId,
-    // The answered attack keeps the decoy it was rolled against.
-    prepareAttack: async (reactedTargets: typeof movementTargets) =>
-      react(await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions)),
-    loadTarget,
-    targetStateChecksum,
-    binding: reacted.binding
-  })
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
   // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
   // pool offers no pool rider.
@@ -1065,72 +1008,43 @@ export async function planNativeLiveEncounterAction(
           resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
-  const settled = await settleNativePauseAnswer(pauseAnswer, {
-    actionSource,
-    currentResistance,
-    currentReaction,
-    onHitNow
-  })
-  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
-  const heldReaction = settled?.heldReaction ?? null
-  const retainedReaction = settled?.reaction
-    ? null
-    : (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
-  const replayedReaction =
-    settled?.heldReactionNow ??
-    (retainedReaction
-      ? await currentReaction(
-          retainedReaction.reaction!.selection === 'USE',
-          retainedReaction.reaction!.reaction.actionId,
-          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
-        )
-      : null)
-  const execution =
-    settled?.execution ??
-    (await advanceNativeActionGraphs({
-      ...actionSource,
-      // A paused OUTCOME resumes against the hit as the reaction it kept left it.
-      ...(replayedReaction ? { binding: replayedReaction.adjustedBinding } : {}),
-      attackSight: prepared.attackSight,
-      onHitCandidates: onHitNow,
-      ...(resume ? { resume } : {}),
-      legendaryResistance: { discover: discoverResistance, targetStateChecksum },
-      reaction: {
-        discover: async (critical) =>
-          (await discoverReaction({ critical })).map(({ candidate }) => candidate),
-        targetStateChecksum
-      }
-    }))
-  const resistance =
-    settled?.resistance ??
-    (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
-      ? await replayNativeActionLegendaryResistance({
-          ...actionSource,
-          outcome: retained,
-          ...(await currentResistance())
-        })
-      : null)
-  const reaction =
-    execution.kind === 'PENDING'
-      ? null
-      : (settled?.reaction ??
-        (retainedReaction && replayedReaction
-          ? {
-              ...replayedReaction,
-              audit: await replayNativeActionReaction({
-                ...actionSource,
-                outcome: retainedReaction,
-                ...replayedReaction
-              })
-            }
-          : null))
+  const { execution, resistance, reaction, reactionUse, chosenOnHit } =
+    await advanceNativeActionTarget({
+      state,
+      system,
+      capture,
+      attack: prepared,
+      actionSource,
+      targetStateChecksum,
+      prepareReaction: (actionId) =>
+        prepareEncounterActionMechanics({
+          state,
+          actor: prepared.target,
+          target: prepared.target,
+          actors,
+          actionId,
+          wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+          overridable: false,
+          movementTargets,
+          sceneContext: null,
+          ...actionSources
+        }),
+      reactionSpentActorIds: usedReactions.map(({ reaction }) => reaction.reactorActorId),
+      // The answered attack keeps the decoy it was rolled against.
+      prepareReactedAttack: async (reactedTargets: typeof movementTargets) =>
+        react(await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions)),
+      loadTarget,
+      activeEffectsByActorId,
+      commandId: command.commandId,
+      occurredAt,
+      onHitNow,
+      pauseAnswer,
+      resume
+    })
   if (execution.kind === 'PENDING')
     return { ...preflight(), kind: 'PENDING' as const, execution, usedReactions }
   // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
-  const chosenOnHit =
-    settled?.onHit?.audit.option ??
-    (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
   // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
   const settledPrepared = settledCharacterActionSpend({
@@ -1158,14 +1072,6 @@ export async function planNativeLiveEncounterAction(
           }).passiveWeaponHits
         : []
   })
-  const reactionUse =
-    reaction?.audit.selection === 'USE' && reaction.applied
-      ? {
-          applied: reaction.applied,
-          prepared: reaction.found.prepared,
-          economy: reaction.found.economy.consumption
-        }
-      : null
   // A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
   // reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
   const reactionEnded = reactionCastEnded(

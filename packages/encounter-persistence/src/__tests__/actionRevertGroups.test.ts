@@ -129,6 +129,35 @@ describe('the actions one undo takes back (D219)', () => {
     ])
   })
 
+  it('takes an action back with the reactions chosen against its reactions (QUALITY-9.T1c1)', () => {
+    const held = reaction('feature:protection')
+    // A reaction to a held reaction commits before the reaction it answers.
+    const nested = reaction('feature:other', held.commandId)
+    expect(grouped([parent(5), committed(held, 4), committed(nested, 3), earlier])).toEqual([
+      ATTACK_COMMAND_ID,
+      held.commandId,
+      nested.commandId
+    ])
+  })
+
+  it('takes the reactions under every reaction to a voided action back together (QUALITY-9.T1c1)', () => {
+    const first = reaction('feature:protection')
+    const second = reaction('feature:other')
+    const nested = reaction('feature:giant-killer', first.commandId)
+    expect(
+      grouped([committed(second, 5), committed(first, 4), committed(nested, 3), earlier])
+    ).toEqual([second.commandId, first.commandId, nested.commandId])
+  })
+
+  it('takes the reactions to a voided reaction back alone, leaving that reaction’s siblings (QUALITY-9.T1c1)', () => {
+    const sibling = reaction('feature:protection')
+    const voided = reaction('feature:other')
+    const nested = reaction('feature:giant-killer', voided.commandId)
+    expect(grouped([committed(nested, 4), committed(sibling, 3), earlier])).toEqual([
+      nested.commandId
+    ])
+  })
+
   it('leaves out a reaction chosen against another action', () => {
     const other = reaction('feature:protection', EARLIER_COMMAND_ID)
     expect(grouped([parent(4), committed(other, 3), earlier])).toEqual([ATTACK_COMMAND_ID])

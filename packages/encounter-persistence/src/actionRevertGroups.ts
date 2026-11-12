@@ -20,11 +20,12 @@ function storedSystemTrigger(root: { commandJson: string }) {
  * The committed actions one undo takes back as a group (D219: undo groups by occurrence), latest
  * first, from the Run's commands read latest first. `rootIndex` is the Run's last action.
  *
- * An action goes back with the reactions chosen against it, each its own action. A reaction chosen
- * while the action was held committed before it; one chosen from an offer raised once the action
- * had committed follows it. So the group is the run of commands, back from the last action, that are
- * that action and its reactions, whichever of them is last. A reaction whose action has no command
- * answered an action the GM voided, and goes back with that action's other reactions alone.
+ * An action goes back with the reactions chosen against it, each its own action, and with the
+ * reactions chosen against those in turn. A reaction chosen while the action was held committed
+ * before it; one chosen from an offer raised once the action had committed follows it. So the group
+ * is the run of commands, back from the last action, that are that action and the reactions of its
+ * tree, whichever of them is last. A reaction whose action has no command answered an action the GM
+ * voided, and goes back with that action's other reactions alone.
  *
  * Any other rule-raised action (a defeat trigger) goes back with the action that raised it, system
  * first: `raisedByCommandId` names the command that raised it, which is the last group's own or an
@@ -39,29 +40,29 @@ export function revertGroupRoots(
     throw new Error('Stored Encounter command scan is invalid.')
   const rootTrigger = storedSystemTrigger(root)
   const rootIsReaction = rootTrigger?.trigger === 'REACTION'
-  const reactedCommandId = rootIsReaction
-    ? rootTrigger.parentCommandId.toLowerCase()
-    : root.commandId
+  // The commands of the group's tree: the last action, the action it reacted to, and each reaction
+  // that joins.
+  const tree = new Set([
+    root.commandId,
+    ...(rootIsReaction ? [rootTrigger.parentCommandId.toLowerCase()] : [])
+  ])
   const raisedByCommandId =
     rootTrigger && !rootIsReaction ? rootTrigger.parentCommandId.toLowerCase() : null
   const groupRoots: RevertGroupRoot[] = [
     { root, ruleOccurrenceId: root.root.ruleOccurrenceId, laterEntries: recent.slice(0, rootIndex) }
   ]
-  let reactedInGroup = !rootIsReaction
   let answersFrom = rootIndex + 1
   for (let index = answersFrom; index < recent.length; index += 1) {
     const entry = recent[index]!
     if (entry.commandType === 'RESOLVE_RULE_OCCURRENCE') continue
     if (entry.commandType !== 'RESOLVE_ACTION' || entry.root.kind !== 'RULE_OCCURRENCE') break
     const trigger = storedSystemTrigger(entry)
-    const reacted = !reactedInGroup && entry.commandId === reactedCommandId
     if (
-      !reacted &&
-      (trigger?.trigger !== 'REACTION' ||
-        trigger.parentCommandId.toLowerCase() !== reactedCommandId)
+      !tree.has(entry.commandId) &&
+      (trigger?.trigger !== 'REACTION' || !tree.has(trigger.parentCommandId.toLowerCase()))
     )
       break
-    reactedInGroup ||= reacted
+    tree.add(entry.commandId)
     groupRoots.push({
       root: entry,
       ruleOccurrenceId: entry.root.ruleOccurrenceId,

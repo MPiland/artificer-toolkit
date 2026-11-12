@@ -1646,6 +1646,14 @@ effect transitions the stored execution records. Callers pass only what differs 
 source spend and releases, the maintained state and the item changes. A new per-target step is added in this
 planner, never in a caller. It is not the won-check planner `planNativeTargetOutcome` described below.
 
+**One Worker per-target advance between TEST and OUTCOME (QUALITY-13.T1c2a, current).** `advanceNativeActionTarget`
+(`apps/session-worker/src/nativeActionTargetAdvance.ts`) runs one target's graphs and what sits between its two
+phases: the target's Legendary Resistance, its reaction to a hit and the attacker's on-hit rider. It settles the
+answer a response carries, replays and proves a decision an earlier answer kept, and returns the execution, the
+resistance and reaction records, the used reaction's effect and cost, and the chosen on-hit rider. Today only the
+single-target planner calls it. Target (QUALITY-13.T1c2b, after QUALITY-8.T1d and QUALITY-9.T1b3): each ray of a
+chosen list calls it too; until then a ray offers no hit reaction (`advanceEncounterListAttacks`).
+
 A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
