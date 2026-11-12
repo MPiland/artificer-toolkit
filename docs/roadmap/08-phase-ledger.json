@@ -23856,7 +23856,7 @@
           "tasks": [
             {
               "id": "RELIABILITY-23.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-23.1"],
               "wsjf": {
                 "bv": 2,
@@ -23865,7 +23865,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Root-cause the managedRemoteVtt.spec.ts:678 flake (waiting for v7 after a door toggle while the door menu re-mounts); fix product or test as the cause dictates, with a regression proof that fails before the fix."
+              "text": "Root-cause the managedRemoteVtt.spec.ts:678 flake (waiting for v7 after a door toggle while the door menu re-mounts); fix product or test as the cause dictates, with a regression proof that fails before the fix.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "internalReason": "A CI test-stability fix; no user-visible behavior changes."
@@ -25640,8 +25641,7 @@
             },
             {
               "id": "QUALITY-8.T1c2a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25651,7 +25651,9 @@
                 "after": ["QUALITY-8.T1c1"]
               },
               "note": "Split 2026-11-12 from QUALITY-8.T1c2 at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1 (no scope growth).",
-              "text": "The generic post-commit reaction-offer occurrence in schema and persistence (nothing raises it yet): context kind and insert; DECLINE, and OPTION that closes the offer and records the chosen child command; GM void, owner and projection to the reactor's controller, no timer; REACTION admission proved by the completed offer's receipt and child commit without re-pin; undo groups child, offer answers and attack, child first; replay-fence and void-cascade refusals."
+              "text": "The generic post-commit reaction-offer occurrence in schema and persistence (nothing raises it yet): context kind and insert; DECLINE, and OPTION that closes the offer and records the chosen child command; GM void, owner and projection to the reactor's controller, no timer; REACTION admission proved by the completed offer's receipt and child commit without re-pin; undo groups child, offer answers and attack, child first; replay-fence and void-cascade refusals.",
+              "mergedAt": "2026-11-12T13:53:25Z",
+              "proof": "m706 (dc215ea04) from slice tip 301818a79: Tests 43227970604, Live 43227970441, Browser journeys 43227970262 green; ci/merge-m706 Tests 43231678474, Live 43231682860, Browser journeys 43231687273 green (m702 refused on a movement-journey flake that passed on rerun; then re-synced past QUALITY-9.T1b2). The inert ENCOUNTER_REACTION_OFFER occurrence: persistReactionOfferAnswer (DECLINE, OPTION closing the offer and recording the child), GM void, projection to the reactor's controller, REACTION admission proved by the offer's receipt with no re-pin, undo grouping child first, replay-fence and void-cascade refusals. Persisted kinds: ENCOUNTER_REACTION_OFFER, REACTION_OFFER_ANSWER, receipt transition REACTION_OFFER."
             },
             {
               "id": "QUALITY-8.T1c2b1",
@@ -26173,7 +26175,7 @@
             },
             {
               "id": "QUALITY-13.T2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -26184,11 +26186,12 @@
               },
               "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
               "text": "One persistence commit skeleton (head: admission, scope, read fence, occurrence collision; source spend with receipt check; tail: complete, root, evidence, present) for action, area, countered-cast and gated commits; each caller keeps its error literal by label. Pure refactor.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T13:52:14Z",
+              "proof": "m705 (6ebbc0708) from slice tip ac7c0b029: Tests 43227970432, Live 43227970445, Browser journeys 43227970719 green; ci/merge-m705 Tests 43231446744, Live 43231452094, Browser journeys 43231456842 green. One commit skeleton in packages/encounter-persistence: head (admitActionCommit, requireRuleOutputScope with a per-caller label, requireActionCommitFence), source spend (applyActionSpendMechanics, requireSourceSpendReceipt) and tail (recordActionCommit) shared by the action, area, countered-cast and gated commits; error literals unchanged. Pure refactor: red proof skipped (no test file changed), no golden moved."
             },
             {
               "id": "QUALITY-13.T2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -26198,7 +26201,8 @@
                 "after": ["QUALITY-13.T2a"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
-              "text": "One per-target outcome settlement in persistence, called by the single-target commit and the area child loop: target mechanics, reaction spend, window reactions, charge and reaction economy, on-hit use spends and D219 children; area tests unchanged."
+              "text": "One per-target outcome settlement in persistence, called by the single-target commit and the area child loop: target mechanics, reaction spend, window reactions, charge and reaction economy, on-hit use spends and D219 children; area tests unchanged.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
