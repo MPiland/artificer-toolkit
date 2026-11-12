@@ -142,19 +142,35 @@ type CastPendingContext = {
           }
         }
       }
-    /** The ward whose save the attacker owes; the pause is held on that roll. */
-    | { kind: 'INCOMING_GATE'; payload: { effectId: string } }
+    /** The gate whose roll the action's source owes; the pause is held on that roll. */
+    | { kind: 'INCOMING_GATE'; payload: PendingGate }
     /** The failed ward save whose attacker is offered another creature to turn the action on. */
-    | { kind: 'ATTACK_RETARGET'; payload: { gate: { effectId: string } } }
+    | { kind: 'ATTACK_RETARGET'; payload: { gate: PendingGate } }
     | {
         kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
         payload: unknown
       }
   usedReactions?: readonly PendingCounter[]
   reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
-  /** The ward whose save the attacker already passed. */
-  passedIncomingGate?: string
+  /** The gate the action's source already passed. */
+  passedIncomingGate?: PendingGate
 }
+
+/** A gate as a pending context names it: a ward's save or a reaction trigger's check, by its origin. */
+type PendingGate = { origin: { kind: string } }
+
+/** Whether two gates are the same one, or both absent. */
+export const sameGate = (
+  left: PendingGate | null | undefined,
+  right: PendingGate | null | undefined
+) => checksumCanonicalJson(left?.origin ?? null) === checksumCanonicalJson(right?.origin ?? null)
+
+/**
+ * The gate an action has passed once its pending is answered and it goes on: the one that pause
+ * waited on, whose roll the answer is, or the one an earlier pause passed.
+ */
+export const passedGateAfter = (context: CastPendingContext) =>
+  incomingGateOf(context) ?? context.passedIncomingGate
 
 const castReactionOf = ({ pause }: CastPendingContext) =>
   pause?.kind === 'CAST_REACTION' ? pause.payload : null
@@ -229,7 +245,7 @@ export function castPendingContinues(
       next.passedIncomingGate === undefined &&
       usedNext.length === 0 &&
       (previousGate
-        ? previousGate.effectId === nextRetarget.gate.effectId
+        ? sameGate(previousGate, nextRetarget.gate)
         : attackRetargetOf(previous) != null && response?.resolution.kind === 'OPTION')
     )
   // A retargeted action begins afresh against its new creature: only the answer that chose it may follow.
@@ -241,11 +257,8 @@ export function castPendingContinues(
       (nextCastReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
       !(incomingGateOf(next) && next.passedIncomingGate !== undefined)
     )
-  // A passed ward stays passed for the rest of the action, and only the gate's own answer passes it.
-  if (
-    incomingGateOf(next) ||
-    next.passedIncomingGate !== (previousGate?.effectId ?? previous.passedIncomingGate)
-  )
+  // A passed gate stays passed for the rest of the action, and only the gate's own answer passes it.
+  if (incomingGateOf(next) || !sameGate(next.passedIncomingGate, passedGateAfter(previous)))
     return false
   if (!castReaction) return sameMembers(usedNext, usedPrevious)
   // An action whose chosen reaction ran as a child takes no answer: the room's resume moves it on as

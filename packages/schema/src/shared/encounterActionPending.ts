@@ -12,6 +12,7 @@ import { d20WindowReactorActorId, isD20RolledCheck } from './ruleExecutionD20Win
 import { isDamageRollWindow } from './ruleExecutionDamageRollWindow.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
+  encounterSettledIncomingGateDtoSchema,
   encounterUsedReactionDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -79,10 +80,10 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        */
       pause: z.optional(encounterActionPauseDtoSchema),
       /**
-       * The ward effect whose save the attacker already passed, carried by every later pause of the action
-       * so its replay does not ask for the save again.
+       * The gate the action's source already passed (a ward's save, or its reaction trigger's check),
+       * carried by every later pause of the action so its replay does not ask for the roll again.
        */
-      passedIncomingGate: z.optional(ruleExecutionUuidSchema),
+      passedIncomingGate: z.optional(encounterSettledIncomingGateDtoSchema),
       /**
        * The counters reactors attempted and failed against this cast, carried by every pending of the
        * cast to its terminal commit, which spends them with the cast (D127).
@@ -201,9 +202,10 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 holdsActionD20 ||
                 value.twoPhase !== null ||
                 value.passedIncomingGate !== undefined ||
-                pause.payload.holderActorId === value.rollerActorId
+                (pause.payload.origin.kind === 'WARD' &&
+                  pause.payload.origin.holderActorId === value.rollerActorId)
               )
-                issue('An incoming gate save belongs to an action held before it executes.')
+                issue('An incoming gate roll belongs to an action held before it executes.')
               break
             case 'ATTACK_RETARGET':
               if (
@@ -211,7 +213,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 value.twoPhase !== null ||
                 value.passedIncomingGate !== undefined ||
                 value.usedReactions !== undefined ||
-                pause.payload.gate.holderActorId === value.rollerActorId ||
+                pause.payload.gate.origin.holderActorId === value.rollerActorId ||
                 pause.payload.options.some(
                   ({ targetActorId }) => targetActorId === value.rollerActorId
                 )
