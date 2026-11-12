@@ -139,13 +139,17 @@ export function evaluateDnd5e2014CharacterActions(
       })
     )
   }))
+  const castLevelReaderSpellIds = new Set(
+    spellReferenceMechanics.filter((spell) => spell.readsCastLevel).map((spell) => spell.spellId)
+  )
   const spellCastDecisions = input.spellCandidates.map((candidate) => {
+    // A spell whose effects read its cast level offers each owned slot level as its own option
+    // (D126), so its base option never spends a higher slot; any other spell may.
+    const mayUseHigherSlot = candidate.baseEntry && !castLevelReaderSpellIds.has(candidate.spellId)
     const eligibleSlots = input.spellSlots.filter(
       (slot) =>
         slot.max > 0 &&
-        (candidate.baseEntry
-          ? slot.level >= candidate.castLevel
-          : slot.level === candidate.castLevel)
+        (mayUseHigherSlot ? slot.level >= candidate.castLevel : slot.level === candidate.castLevel)
     )
     const availableSlots = eligibleSlots.filter((slot) => slot.remaining > 0)
     const selectedSlot = (availableSlots.length > 0 ? availableSlots : eligibleSlots).reduce<
