@@ -7,7 +7,7 @@ import type {
   EncounterEvidenceAnswer,
   withEncounterAppRoll
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import type { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import type { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
 import type { resolveNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
 import type { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
 import type { resolveNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'

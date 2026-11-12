@@ -8,10 +8,8 @@ import { describe, expect, it } from 'vitest'
 
 import { resolutionForRetainedEvidence } from '../encounterActionRetainedEvidence.js'
 import { actionD20RollRecord } from '../encounterRuleCheckRolls.js'
-import {
-  advanceNativeActionGraphs,
-  type PendingNativeActionGraphs
-} from '../encounterActionExecution.js'
+import { advanceNativeActionGraphs } from '../encounterActionAdvance.js'
+import type { PendingNativeActionGraphs } from '../encounterActionExecution.js'
 import type { EncounterEvidenceAnswer } from '../encounterEvidenceAnswer.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { SRD_SYSTEM_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'

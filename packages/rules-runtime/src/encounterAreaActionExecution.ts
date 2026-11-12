@@ -194,18 +194,6 @@ export async function answerEncounterAreaTest(
   return input.tests.map((test) => (test === current ? answered : test))
 }
 
-/**
- * The dice an answered roll's TEST rolled after its d20 (a roll table's die and its repeats), which
- * the area keeps with the answer: a later replay of the roll reads them back instead of rolling.
- */
-export function encounterAreaTestDice(boundary: TestBoundary) {
-  return boundary.execution.evidence.trace.flatMap(({ evidence }) =>
-    evidence && evidence.requestId !== boundary.d20.requestId
-      ? [{ requestId: evidence.requestId, value: evidence.value }]
-      : []
-  )
-}
-
 /** One roll on a frozen tape: the width it was rolled over and the zero-based roll. */
 export type EncounterFrozenRoll = { maximum: number; value: number }
 
