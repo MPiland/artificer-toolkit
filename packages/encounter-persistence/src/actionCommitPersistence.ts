@@ -20,6 +20,7 @@ import {
   requireActionCommitFence,
   requireRuleOutputScope
 } from './actionCommitFences.js'
+import { settleActionTargetOutcome } from './actionTargetOutcomeSettlement.js'
 import { readRunActors } from './documents.js'
 import {
   applyActionSpendMechanics,
@@ -226,28 +227,6 @@ export async function persistEncounterActionCommit(
     spell: input.spellConsumption,
     receipts: batch
   })
-  // A reaction the target used spends its own slot and allowance with the outcome it answered.
-  const reaction = batch.reaction
-  if (
-    reaction &&
-    (reaction.reaction.reactorActorId !== target.id ||
-      reaction.reaction.characterId !== (target.kind === 'CHARACTER' ? target.sourceId : null))
-  )
-    throw new Error('Live Session reaction scope mismatch.')
-  if (!reaction && input.reactionSpellConsumption)
-    throw new Error('Live Session reaction spell slot has no reaction.')
-  const reactionSpend = sourceSpendMutation({
-    source: target,
-    command: { acceptedWieldConflict: null },
-    resource: null,
-    item: null,
-    spell: input.reactionSpellConsumption,
-    receipts: {
-      resourceConsumption: null,
-      sourceItemConsumption: null,
-      spellCastConsumption: reaction?.spellCastConsumption ?? null
-    }
-  })
   // Every counter that failed against this cast spends its reactor's slot and reaction with the cast
   // (D127), and every reaction rolled against the attack roll its reaction and charge (D207).
   const reactionSpends = usedReactionSpends({
@@ -256,24 +235,14 @@ export async function persistEncounterActionCommit(
     actors,
     source
   })
-  // The cast's target pays its own failed counter in its single mechanics call; a Shield-like reaction
-  // would be a second spend of the same reaction.
+  // The cast's target pays its own failed counter in its single mechanics call.
   const targetUsed = reactionSpends.find(({ reactor }) => reactor.id === target.id)
-  if (targetUsed && reaction)
-    throw new Error('Live Session used reaction and reaction spend the same reaction.')
   // The source's counter to a Counterspell against its cast spends its slot in the source's one
   // mechanics call, after the cast's, so the Character advances once.
   const sourceUsed =
     source.id === target.id
       ? undefined
       : reactionSpends.find(({ reactor }) => reactor.id === source.id)
-  const common = {
-    encounterId: state.id,
-    expectedEncounterVersion: state.version,
-    occurrenceId: execution.occurrenceId,
-    sourceCommandId: command.commandId,
-    occurredAt: input.occurredAt
-  }
   // The source's own batch carries its spend and the conditions its ended effects released.
   const sourceMechanics =
     (spends || batch.sourceApplications.length) && source.id !== target.id
@@ -293,43 +262,42 @@ export async function persistEncounterActionCommit(
   const targetRelease = batch.targetItemUseStateTransition
   const targetDegradation =
     batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.targetItemDegradation : null
-  const mechanics = await callbacks.applyMechanics({
-    ...common,
-    targetActorId: target.id,
+  const { mechanics, target: settledTarget } = await settleActionTargetOutcome(ctx, {
+    state,
+    target,
+    batch,
+    label: 'action',
+    occurrenceId: execution.occurrenceId,
+    sourceCommandId: command.commandId,
     commandId: command.commandId,
-    ...(targetRelease
-      ? {
-          releaseHeldItemInstanceId:
-            targetRelease.kind === 'CHARACTER_ITEM_USE_STATE'
-              ? targetRelease.itemInstanceId
-              : targetRelease.loadoutEntryId
-        }
-      : {}),
-    ...(targetDegradation
-      ? {
-          degradeItem: {
-            itemInstanceId: targetDegradation.itemInstanceId,
-            afterPenalty: targetDegradation.afterPenalty,
-            destroyed: targetDegradation.afterUsed > targetDegradation.beforeUsed
-          }
-        }
-      : {}),
-    applications: batch.applications.map((application) => ({
-      ...application,
-      targetActorId: target.id
-    })),
-    effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
-    grantedMaximumHitPoints: batch.targetTransition.grantedMaximumHitPoints,
-    effectiveScalarValues: batch.targetTransition.before.scalarValues,
+    occurredAt: input.occurredAt,
     // A used reaction versions its Character even when it leaves no effect behind (Uncanny Dodge).
     forceVersionAdvance:
       target.kind === 'CHARACTER' &&
-      (input.createdEffects.length > 0 || reaction?.selection === 'USE'),
-    ...combineSpendMutations(
-      source.id === target.id ? sourceMutation : {},
-      reactionSpend.mutation,
-      targetUsed?.mutation ?? {}
-    )
+      (input.createdEffects.length > 0 || batch.reaction?.selection === 'USE'),
+    reactionSpell: input.reactionSpellConsumption,
+    used: targetUsed,
+    sourceMutation: source.id === target.id ? sourceMutation : {},
+    extra: {
+      ...(targetRelease
+        ? {
+            releaseHeldItemInstanceId:
+              targetRelease.kind === 'CHARACTER_ITEM_USE_STATE'
+                ? targetRelease.itemInstanceId
+                : targetRelease.loadoutEntryId
+          }
+        : {}),
+      ...(targetDegradation
+        ? {
+            degradeItem: {
+              itemInstanceId: targetDegradation.itemInstanceId,
+              afterPenalty: targetDegradation.afterPenalty,
+              destroyed: targetDegradation.afterUsed > targetDegradation.beforeUsed
+            }
+          }
+        : {})
+    },
+    applyMechanics: callbacks.applyMechanics
   })
   if (
     sourceUsed &&
@@ -338,18 +306,12 @@ export async function persistEncounterActionCommit(
     throw new Error('Live Session used reaction Character receipt mismatch.')
   if (targetUsed) requireUsedReactionReceipt(targetUsed, mechanics)
   if (
-    checksumCanonicalJson(mechanics.receiptApplications) !==
-      checksumCanonicalJson(batch.applications) ||
-    checksumCanonicalJson(mechanics.targetTransition) !==
-      checksumCanonicalJson(batch.targetTransition) ||
     checksumCanonicalJson(mechanics.itemReleaseTransition) !==
       checksumCanonicalJson(targetRelease) ||
     checksumCanonicalJson(mechanics.itemDegradationTransition) !==
       checksumCanonicalJson(targetDegradation) ||
     checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(batch.sourceApplications) ||
-    (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
-      batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion) ||
     // The accepted stow must be exactly the one the room planned and this commit applied.
     checksumCanonicalJson(
       (source.id === target.id ? mechanics : sourceMechanics)?.itemUseStateTransition ?? null
@@ -364,26 +326,6 @@ export async function persistEncounterActionCommit(
     ) !== checksumCanonicalJson(batch.sourceItemDegradation)
   )
     throw new Error('Live Session mechanics receipt mismatch.')
-  // A Legendary Resistance the target used spends one of its own charges with the outcome.
-  const targetCharge =
-    batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? batch.targetFeatureResourceConsumption : null
-  if (targetCharge && targetCharge.ownerActorId !== target.id)
-    throw new Error('Live Session action charge scope mismatch.')
-  const targetReactionEconomy =
-    reaction?.actionEconomyTransition ?? targetUsed?.used.receipt.actionEconomyTransition ?? null
-  const settledTarget =
-    targetCharge || targetReactionEconomy
-      ? await settleActionSourceSpend(ctx, {
-          encounterId: state.id,
-          source: mechanics.updatedActor,
-          spend: {
-            featureResourceConsumption: targetCharge,
-            actionEconomyTransition: targetReactionEconomy,
-            attackActionTransition: undefined
-          },
-          economyOverridden: false
-        })
-      : mechanics.updatedActor
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
   const castSettledSource = await settleActionSourceSpend(ctx, {

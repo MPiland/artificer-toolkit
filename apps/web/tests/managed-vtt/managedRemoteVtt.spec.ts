@@ -1199,7 +1199,7 @@ async function expectPrivateSnapshot(
 ): Promise<void> {
   await gm.page.getByRole('button', { name: 'Scene controls' }).click()
   await expect(gm.page.getByRole('menuitem', { name: `Focus ${gmOnlyTokenLabel}` })).toBeVisible()
-  await gm.page.keyboard.press('Escape')
+  await closeSceneControls(gm.page)
   for (const player of players) {
     await player.page.getByRole('button', { name: 'Scene controls' }).click()
     await expect(
@@ -1208,8 +1208,19 @@ async function expectPrivateSnapshot(
     await expect(
       player.page.getByRole('menuitem', { name: new RegExp(`^Door ${doorIndex}:`) })
     ).toHaveCount(0)
-    await player.page.keyboard.press('Escape')
+    await closeSceneControls(player.page)
   }
+}
+
+/**
+ * Closes the Scene controls menu and waits until it has left the DOM. The menu handles Escape only
+ * on its dropdown, and focus moves there a tick after it opens, so a page-level Escape sent first is
+ * dropped and the next trigger click closes the menu instead of opening it.
+ */
+async function closeSceneControls(page: Page): Promise<void> {
+  const menu = page.getByRole('menu', { name: 'Scene controls' })
+  await menu.press('Escape')
+  await expect(menu).toHaveCount(0)
 }
 async function expectExactVttMapDelivery(client: ManagedClient): Promise<void> {
   await expect.poll(() => client.assetResponses.some((response) => response.ok())).toBe(true)
@@ -1269,7 +1280,7 @@ async function readDoorAction(page: Page, index: number): Promise<string> {
   const item = page.getByRole('menuitem', { name: new RegExp(`^Door ${index}: (?:Open|Close)$`) })
   await expect(item).toBeVisible()
   const label = (await item.textContent())?.trim()
-  await page.keyboard.press('Escape')
+  await closeSceneControls(page)
   if (!label) throw new Error(`Door ${index} is missing from the managed smoke scene.`)
   return label
 }
@@ -1290,7 +1301,7 @@ async function expectDoorAction(client: ManagedClient, action: string): Promise<
       { cause: error }
     )
   } finally {
-    await client.page.keyboard.press('Escape')
+    await closeSceneControls(client.page)
   }
 }
 
@@ -1301,7 +1312,7 @@ async function expectDoorHidden(client: ManagedClient): Promise<void> {
       client.page.getByRole('menuitem', { name: new RegExp(`^Door ${doorIndex}:`) })
     ).toHaveCount(0)
   } finally {
-    await client.page.keyboard.press('Escape')
+    await closeSceneControls(client.page)
   }
 }
 

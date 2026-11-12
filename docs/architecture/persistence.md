@@ -258,6 +258,15 @@ only the checks and writes that are its own between the steps.
   and each used reaction's through `applyUsedReactionSpends`); `requireSourceSpendReceipt` compares it with
   the receipt the room planned. The single-target commit checks its source inside its own mechanics
   receipt check, because a source that targets itself spends in the target's batch.
+- Target outcome (`actionTargetOutcomeSettlement.ts`, QUALITY-13.T2b): `settleActionTargetOutcome` settles
+  one target's outcome for the single-target commit and for each child of the area commit. It makes the
+  target's one mechanics batch (the planned applications, the source's spend when the source is the target,
+  the slot of a reaction the target used against the outcome, and the reaction the target spent before
+  it), checks it against the room's receipt, and then spends the target's Legendary Resistance charge and
+  reaction allowance. Each caller still checks the receipts of what only it plans on that batch. On-hit
+  use spends (`spendEffectUses`) and the D219 children (`persistActionChildren`) stay in the
+  single-target commit: they run after the action's effects and its settled occurrence, and the area
+  commit settles Concentration once across all its children.
 - Tail (`actionCommitRecords.ts`): `completeActionOccurrence` settles the root occurrence, and
   `recordActionCommit` builds the command result, advances the Run, stores the root's receipt and its one
   `RESOLVE_ACTION` command, writes the evidence receipt of the answer that resumed it, and presents the
