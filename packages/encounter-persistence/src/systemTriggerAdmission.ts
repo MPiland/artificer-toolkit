@@ -1,5 +1,6 @@
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import {
@@ -66,6 +67,39 @@ export function ruleFailedSaveAction(
     definitionId: rule.pin.definitionId,
     effectId: rule.failedSaveEffectId
   }
+}
+
+/**
+ * How many commands the Run recorded after `parentVersion` up to `throughVersion` when every one is
+ * a system-trigger child of `parentCommandId`: the siblings a later child follows, since each child
+ * moves the Run. Null when any other command moved the Run, so that child is stale.
+ */
+export async function countCommittedSystemSiblings(
+  ctx: EncounterReadContext,
+  input: {
+    encounterId: string
+    parentCommandId: string
+    parentVersion: number
+    throughVersion: number
+  }
+) {
+  const rows = await ctx.db
+    .query('encounterRunCommands')
+    .withIndex('by_encounterId_version', (query) =>
+      query
+        .eq('encounterId', input.encounterId)
+        .gt('version', input.parentVersion)
+        .lt('version', input.throughVersion + 1)
+    )
+    .take(MAX_ENCOUNTER_ACTORS + 1)
+  const allSiblings = rows.every(
+    (row) =>
+      row.commandType === 'RESOLVE_ACTION' &&
+      resolveEncounterActionInputDtoSchema
+        .parse(JSON.parse(row.commandJson))
+        .systemTrigger?.parentCommandId.toLowerCase() === input.parentCommandId
+  )
+  return allSiblings ? rows.length : null
 }
 
 /**
@@ -212,7 +246,18 @@ export async function requireSystemTriggerAdmission(
     return
   }
   const parentVersion = 'encounterVersion' in parent! ? parent.encounterVersion : parent!.version
-  if (parentVersion !== state.version || command.expectedVersion !== parentVersion)
+  // Each committed sibling child moved the Run one version past its parent (D219 allowance).
+  const siblings = await countCommittedSystemSiblings(ctx, {
+    encounterId: run.id,
+    parentCommandId,
+    parentVersion,
+    throughVersion: state.version
+  })
+  if (
+    siblings === null ||
+    parentVersion + siblings !== state.version ||
+    command.expectedVersion !== state.version
+  )
     rejectDomain('VERSION_STALE')
   if (trigger === 'START_OF_TURN') {
     if (state.currentActorId !== holderActorId) rejectDomain('NOT_CURRENT_ACTOR')

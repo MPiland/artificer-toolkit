@@ -840,6 +840,13 @@ raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admis
 actor in range, allies included, except the holder. It never recurses: the burst's own defeats raise nothing
 (deferred edge case in the SPELLS-33 workbook).
 
+Several system-trigger children of one command (QUALITY-11.T2): each child moves the Run, so the SYSTEM
+admission of an HP-zero or START_OF_TURN child accepts the Run at its parent's version plus the committed
+sibling children before it (`countCommittedSystemSiblings`, the same descendants allowance pending answers use for
+reaction children). It still rejects `VERSION_STALE` when any command that is not a sibling child of that parent
+moved the Run, or when the child names another version. A rule-raised child is proved by its failed-save window and
+a Legendary Action continuation by its delegation, so neither is affected.
+
 ### Passive effect at the start of the holder's turn (current, SPELLS-33.T4i1a)
 
 An authored Effect with invocation `{ kind: PASSIVE, triggerCode: START_OF_TURN }` is a creature trait that
