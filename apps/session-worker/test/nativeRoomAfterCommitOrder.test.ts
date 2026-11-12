@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { wardingBond } from '@artificer-toolkit/source-data/srd/spells/warding-bond.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -197,6 +198,8 @@ describe('several system-trigger children of one command (QUALITY-11.T2)', () =>
           currentHitPoints: WOUNDED
         })
       ],
+      characterSpellcasting: { spells: [spiritGuardians], prepared: [spiritGuardians.id] },
+      characterAction: (action) => action.label === 'Spirit Guardians (3rd level)',
       autoRoll: 'EVERYONE',
       fallbackRoll: 1
     })
