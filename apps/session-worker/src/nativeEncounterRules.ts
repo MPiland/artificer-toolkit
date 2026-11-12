@@ -39,15 +39,11 @@ import {
   actionEndedEffects,
   actsAgainstEnemy,
   attackHitEndedEffects,
-  targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
-import {
-  snapshotCreatureTypeId,
-  withFeatureChargeUsed
-} from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   prepareNativeLiveMovementTarget,
@@ -81,10 +77,10 @@ import {
 import {
   payableCharacterDamageRerolls,
   prepareNativeLiveActionMaintenance,
+  prepareNativeLiveMaintainedState,
   settledCharacterActionSpend
 } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
-import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
@@ -129,10 +125,11 @@ import {
   type PendingReactionChildren
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
-import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { effectsAfterEnding } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
 import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
+import { planNativeActionTargetOutcome } from './nativeActionTargetOutcome.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
 import {
   planNativeLiveEncounterAreaAction,
@@ -162,7 +159,6 @@ import {
   nativeConcentrationDamageSourceLabels
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import {
-  encounterRunActorStateSchema,
   encounterRunStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -1267,23 +1263,13 @@ export async function planNativeLiveEncounterAction(
     ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
   )
   const meleeAttack = isMeleeAttackSource(state.gameSystemId, prepared.source)
-  const damageEnded = targetEndedEffects({
-    holderActorId: prepared.target.id,
-    held: targetHeld,
-    attack: prepared.makesAttackRoll ? { melee: meleeAttack } : null,
-    testEvidence: [execution.d20, execution.nestedD20],
-    turnActorId: prepared.state.currentActorId,
-    applications,
-    damagerActorId: prepared.actor.id,
-    dispositions,
-    grantTriggers: prepareAttackTargetGrantTriggers({
-      encounter: settledPrepared.state,
-      attacker: settledPrepared.actor,
-      target: settledPrepared.targetFacts,
-      occurrenceId,
-      commandId: command.commandId,
-      activeEffectsByActorId
-    })
+  const grantTriggers = prepareAttackTargetGrantTriggers({
+    encounter: settledPrepared.state,
+    attacker: settledPrepared.actor,
+    target: settledPrepared.targetFacts,
+    occurrenceId,
+    commandId: command.commandId,
+    activeEffectsByActorId
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
   const actionEnded = endedByAction(endPlan, command, execution.execution, targetHeld, prepared)
@@ -1311,82 +1297,41 @@ export async function planNativeLiveEncounterAction(
     targetLabel: prepared.target.label,
     targetLifetimeScope: settledPrepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
   })
-  const planned = planNativeEncounterActionMechanics(
-    {
-      prepared: settledPrepared,
-      encounterId: state.id,
-      expectedEncounterVersion: state.version,
-      occurrenceId,
-      sourceCommandId: command.commandId,
-      commandId: command.commandId,
-      occurredAt,
-      applications,
-      sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
-      targetReleases: reactionEnded?.sourceReleases,
-      damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
-      grantedMaximumHitPoints: preparedEffects.hitPointMaximumRaise,
-      releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
-      degradeTargetItem: preparedEffects.degradedItem,
-      degradeSourceItem: preparedEffects.sourceDegradedItem,
-      forceTargetVersionAdvance:
-        prepared.target.kind === 'CHARACTER' &&
-        (preparedEffects.stateEffect !== null ||
-          preparedEffects.recurringEffect !== null ||
-          preparedEffects.riderEffects.some(Boolean) ||
-          reactionUse !== null ||
-          targetReactorSpend ||
-          damageEnded.grants.length > 0 ||
-          gateImmunityGrant !== null)
-    },
-    initial.expectedUserId
-  )
-  // A Legendary Resistance the target used spends its own charge, and a reaction its allowance,
-  // with the outcome.
-  const charge = resistance?.charge
-  const chargedTarget = (actor: EncounterRunActorState) => {
-    const charged = charge
-      ? encounterRunActorStateSchema.parse({
-          ...actor,
-          resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.afterUsed)
-        })
-      : actor
-    const spentReaction = reactionUse?.economy ?? spentTargetEconomy
-    return spentReaction
-      ? consumeEncounterActionEconomy({
-          actor: charged,
-          consumption: spentReaction,
-          overridden: false
-        })
-      : charged
-  }
-  const mechanics = {
-    ...planned,
-    mechanics: {
-      ...planned.mechanics,
-      updatedActor: chargedTarget(planned.mechanics.updatedActor)
-    },
-    settledSource:
-      planned.settledSource.id === prepared.target.id
-        ? chargedTarget(planned.settledSource)
-        : planned.settledSource
-  }
-  // The attack's outcome is known now: a later slot's "earlier attacks hit" predicate reads it.
-  const hit = prepared.makesAttackRoll
-    ? execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT'
+  // The maintained state the action's effects depend on replaces what its source maintained.
+  const outcomeMaintenance = preparedEffects.maintenance ? maintenance : null
+  const maintainedState = preparedEffects.maintenance
+    ? prepareNativeLiveMaintainedState({
+        completedPolicy: preparedEffects.maintenance,
+        maintenance,
+        encounterId: state.id,
+        ownerActorId: prepared.actor.id,
+        actionId: command.actionId,
+        sourceOccurrenceId: occurrenceId,
+        occurredAt
+      })
     : null
-  const settledAttackAction = attackAction && settleEncounterAttackActionHit(attackAction, hit)
-  const settledDelegation = delegation && {
-    ...delegation,
-    attackAction: settleEncounterAttackActionHit(delegation.attackAction, hit)
-  }
-  const settlement = planNativeLiveEncounterSettlement({
-    command,
-    occurrenceId,
-    occurredAt,
+  const targetEffects = effectsAfterEnding(
+    settledPrepared.targetFacts.activeEffects,
+    outcomeMaintenance?.removed ?? [],
+    occurredAt
+  )
+  const outcome = planNativeActionTargetOutcome({
     prepared: settledPrepared,
-    mechanics,
+    testEvidence: [execution.d20, execution.nestedD20],
+    occurrenceId,
+    commandId: command.commandId,
+    sourceCommandId: command.commandId,
+    occurredAt,
+    userId: initial.expectedUserId,
     effects: preparedEffects,
+    applications,
+    held: targetHeld,
+    grantTriggers,
+    damagerActorId: prepared.actor.id,
+    dispositions,
+    currentEffects: targetEffects,
     recurringEffectId,
+    maintainedState,
     // A reaction effect the answered attack uses up (`ON_ATTACKED`: a bonus against that one attack)
     // applied to its roll alone, so it is never kept.
     reactionEffect:
@@ -1397,15 +1342,41 @@ export async function planNativeLiveEncounterAction(
       )
         ? reactionUse.applied.reactionEffect
         : null,
-    damageGrants: [
-      ...damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
-      ...(gateImmunityGrant ? [gateImmunityGrant] : [])
-    ],
+    grants: gateImmunityGrant ? [gateImmunityGrant] : [],
+    formCreature: null,
+    targetSpends: reactionUse !== null || targetReactorSpend,
+    charge: resistance?.charge ?? null,
+    reactionEconomy: reactionUse?.economy ?? spentTargetEconomy,
+    mechanics: {
+      sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
+      targetReleases: reactionEnded?.sourceReleases,
+      damageReleases: actionEnded?.releases,
+      releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
+      degradeTargetItem: preparedEffects.degradedItem,
+      degradeSourceItem: preparedEffects.sourceDegradedItem
+    }
+  })
+  const { mechanics, damageEnded } = outcome
+  // The attack's outcome is known now: a later slot's "earlier attacks hit" predicate reads it.
+  const hit = prepared.makesAttackRoll
+    ? execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT'
+    : null
+  const settledAttackAction = attackAction && settleEncounterAttackActionHit(attackAction, hit)
+  const settledDelegation = delegation && {
+    ...delegation,
+    attackAction: settleEncounterAttackActionHit(delegation.attackAction, hit)
+  }
+  const settlement = planNativeLiveEncounterSettlement({
+    occurredAt,
+    prepared: settledPrepared,
+    outcome,
+    targetEffects,
+    maintainedState,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleOverrides),
     attackAction: settledAttackAction,
     delegation: settledDelegation,
-    maintenance,
+    maintenance: outcomeMaintenance,
     activeEffectsByActorId
   })
   const actionRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
@@ -1493,8 +1464,8 @@ export async function planNativeLiveEncounterAction(
     occurrenceId,
     occurrenceVersion,
     settled: mechanics,
-    effects: settlement,
-    maintainedState: settlement.maintainedState,
+    effects: outcome.effectTransitions,
+    maintainedState,
     maintenanceTransition: settlement.maintenanceTransition,
     actionEconomy,
     attackAction: settledAttackAction,
@@ -1505,12 +1476,12 @@ export async function planNativeLiveEncounterAction(
       spent: reactionUse && {
         spellConsumption: reactionUse.prepared.characterActionState?.spellConsumption,
         economy: reactionUse.economy,
-        activeEffectTransitions: settlement.reactionActiveEffectTransitions
+        activeEffectTransitions: outcome.reactionEffectTransitions
       }
     },
     targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
-    grantEffectTransitions: settlement.grantEffectTransitions,
+    grantEffectTransitions: outcome.grantEffectTransitions,
     // A passed ward's record is its immunity among the grant effects; a trigger check has only this.
     passedGate: passedIncomingGate?.origin.kind === 'TRIGGER' ? passedIncomingGate : null
   })
