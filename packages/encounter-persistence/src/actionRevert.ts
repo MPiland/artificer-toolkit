@@ -330,9 +330,11 @@ export async function revertLastEncounterAction(
   const plans = groupRoots.map((group) =>
     planRevertRoot({
       ...group,
-      laterEntries: voidedOccurrenceId
-        ? group.laterEntries.filter((entry) => entry.ruleOccurrenceId !== voidedOccurrenceId)
-        : group.laterEntries,
+      laterEntries: group.laterEntries.filter(
+        (entry) =>
+          entry.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
+          entry.ruleOccurrenceId !== voidedOccurrenceId
+      ),
       receipts: receipts.filter(({ occurrenceId }) => occurrenceId !== voidedOccurrenceId),
       otherRootOccurrenceIds: new Set(
         groupRoots.flatMap((other) => (other === group ? [] : [other.ruleOccurrenceId]))
