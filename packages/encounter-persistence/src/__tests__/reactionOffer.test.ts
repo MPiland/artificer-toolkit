@@ -9,7 +9,10 @@ import {
   CAMPAIGN_ID,
   ENCOUNTER_ID,
   TIMESTAMP,
+  characterActor,
   creatureActor,
+  srdCondition,
+  srdDefinitions,
   srdEncounterState,
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
@@ -30,7 +33,7 @@ import { serverAggregateChoicePendingSnapshotDtoSchema } from '@artificer-toolki
 import { reactionOfferOptionId } from '@artificer-toolkit/schema/shared/ruleExecutionReactionOffer'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { planRevertRoot } from '../actionRevert.js'
+import { revertLastEncounterAction } from '../actionRevert.js'
 import { revertGroupRoots } from '../actionRevertGroups.js'
 import { deleteRunActor, insertRunActor, readRunState, writeRunActor } from '../documents.js'
 import { removeFinishedRunRowsPage } from '../finishedRunRows.js'
@@ -51,6 +54,7 @@ import {
   voidQueuedReactionOffers
 } from '../reactionOffer.js'
 import { persistReactionOfferAnswer } from '../reactionOfferAnswer.js'
+import type { EncounterDocument } from '../store.js'
 import { requireSystemTriggerAdmission } from '../systemTriggerAdmission.js'
 
 const ATTACKER_ID = testUuid(0x8e01)
@@ -174,19 +178,27 @@ const link = {
   reactorActorId: REACTOR_ID
 }
 
-/** A Run whose attack on the target has committed at `ATTACK_VERSION`; nothing is pending. */
-async function settledAttack() {
+/**
+ * A Run whose attack on the target has committed at `ATTACK_VERSION`; nothing is pending. It is a
+ * Manual Run, which tracks no action allowance, unless `automationMode` says otherwise.
+ */
+async function settledAttack(
+  input: {
+    reactor?: ReturnType<typeof creatureActor>
+    automationMode?: 'ASSISTED' | 'MANUAL'
+  } = {}
+) {
   const memory = createMemoryEncounterStore()
   const actors = [
     creatureActor({ id: ATTACKER_ID, snapshot: {} }),
     creatureActor({ id: TARGET_ID, snapshot: {}, disposition: 'FRIENDLY' }),
-    creatureActor({ id: REACTOR_ID, snapshot: {}, disposition: 'FRIENDLY' })
+    input.reactor ?? creatureActor({ id: REACTOR_ID, snapshot: {}, disposition: 'FRIENDLY' })
   ]
   const state = srdEncounterState({
     actors,
     currentActorId: ATTACKER_ID,
     version: ATTACK_VERSION,
-    automationMode: 'MANUAL'
+    automationMode: input.automationMode ?? 'MANUAL'
   })
   const campaign = {
     id: CAMPAIGN_ID,
@@ -218,10 +230,19 @@ async function settledAttack() {
           status: 'ACTIVE'
         }
       }),
-      readAssignedCharacter: async () => null
+      readAssignedCharacter: async () => null,
+      readCurrentDefinition: (definitionId: string) => srdDefinitions.requireCurrent(definitionId)
     }
   } as unknown as Parameters<typeof persistReactionOfferAnswer>[0] &
-    Parameters<typeof raiseQueuedReactionOffer>[0]
+    Parameters<typeof raiseQueuedReactionOffer>[0] &
+    Parameters<typeof revertLastEncounterAction>[0]
+  memory.load(
+    'campaigns',
+    [
+      { _id: 'campaign', _creationTime: 1, ...campaign }
+    ] as unknown as EncounterDocument<'campaigns'>[],
+    { validate: false }
+  )
   await memory.store.insert('encounterRuns', {
     id: state.id,
     campaignId: state.campaignId,
@@ -398,6 +419,18 @@ async function settledAttack() {
         .withIndex('by_encounterId_version', (q) => q.eq('encounterId', ENCOUNTER_ID))
         .order('desc')
         .take(8),
+    /** The GM undoes the Run's last action. */
+    undo: () =>
+      revertLastEncounterAction(
+        ctx,
+        {
+          type: 'REVERT_LAST_ACTION',
+          encounterId: ENCOUNTER_ID,
+          commandId: testUuid(0x8e13),
+          expectedVersion: run().version
+        },
+        GM_ID
+      ),
     /** Another command moves the Run on by one version. */
     moveRun: async () => {
       const next = { ...readRunState(run()), version: run().version + 1 }
@@ -553,6 +586,37 @@ describe('queueing the reaction offers of a committed attack (D219)', () => {
     await changeActor(REACTOR_ID, (actor) => ({ ...actor, currentHitPoints: 0 }))
     expect(await raiseNext()).toBe(false)
     expect(occurrence().state).toBe('VOIDED')
+  })
+
+  it('voids the offer of a Character that has left the Campaign', async () => {
+    // The Character's Run actor remains, with no Campaign assignment behind it.
+    const { queue, raiseNext, occurrence } = await settledAttack({
+      reactor: characterActor({ id: REACTOR_ID, characterId: testUuid(0x8e12) })
+    })
+    await queue()
+    expect(await raiseNext()).toBe(false)
+    expect(occurrence()).toMatchObject({ state: 'VOIDED', version: 1, completedAt: TIMESTAMP })
+  })
+
+  it('voids the offer of a reactor whose condition leaves it no reaction to take', async () => {
+    const incapacitated = await settledAttack({
+      automationMode: 'ASSISTED',
+      reactor: creatureActor({
+        id: REACTOR_ID,
+        snapshot: {},
+        disposition: 'FRIENDLY',
+        conditions: [srdCondition('Incapacitated')]
+      })
+    })
+    await incapacitated.queue()
+    expect(await incapacitated.raiseNext()).toBe(false)
+    expect(incapacitated.occurrence()).toMatchObject({ state: 'VOIDED', version: 1 })
+
+    // The same Run raises the offer of a reactor that holds no such condition.
+    const able = await settledAttack({ automationMode: 'ASSISTED' })
+    await able.queue()
+    expect(await able.raiseNext()).toBe(true)
+    expect(able.occurrence().state).toBe('PENDING')
   })
 
   it('actor removal: voids the offer whose reactor or attacker has left the Run', async () => {
@@ -891,10 +955,12 @@ describe('committing the reaction chosen from a settled offer (D219)', () => {
 
 describe('undoing an attack with the reaction chosen from its offer (D219)', () => {
   it('groups the reaction, then the attack with the offer’s answer as its own', async () => {
-    const { raise, respond, insertCommittedAction, recentCommands, memory } = await settledAttack()
+    const { raise, respond, insertCommittedAction, recentCommands, moveRun, undo } =
+      await settledAttack()
     await raise()
     await respond(option)
     await insertCommittedAction(reactionChild(), ANSWER_VERSION + 1, testUuid(0x8e0c))
+    await moveRun()
     const recent = await recentCommands()
     const { groupRoots } = revertGroupRoots(recent, 0)
     expect(groupRoots.map(({ root }) => root.commandId)).toEqual([
@@ -905,47 +971,44 @@ describe('undoing an attack with the reaction chosen from its offer (D219)', () 
     expect(child!.laterEntries).toEqual([])
     expect(parent!.laterEntries.map(({ commandId }) => commandId)).toEqual([ANSWER_COMMAND_ID])
 
-    // This fixture keeps no receipt of the attack's own outcome, so the plan ends there: past the
-    // answer, which it reads as the attack's own child and not as another decision.
-    expect(() =>
-      planRevertRoot({
-        ...parent!,
-        receipts: memory.documents('encounterRuleReceipts'),
-        otherRootOccurrenceIds: new Set([child!.ruleOccurrenceId])
-      })
-    ).toThrow('Stored Encounter action receipt is missing.')
+    // This fixture keeps no receipt of either action's own outcome, so the undo ends there: past
+    // the answer, which it reads as the attack's own child and not as another decision. The room
+    // proves the whole undo with real receipts (nativeRoomResolvedReactionOffer.test.ts).
+    await expect(undo()).rejects.toThrow('Stored Encounter action receipt is missing.')
   })
 
   it('reads a declined offer’s answer as the attack’s own too', async () => {
-    const { raise, respond, recentCommands, memory } = await settledAttack()
+    const { raise, respond, recentCommands, undo } = await settledAttack()
     await raise()
     await respond(decline)
     const recent = await recentCommands()
     const { groupRoots } = revertGroupRoots(recent, 1)
     expect(groupRoots).toHaveLength(1)
-    expect(() =>
-      planRevertRoot({
-        ...groupRoots[0]!,
-        receipts: memory.documents('encounterRuleReceipts'),
-        otherRootOccurrenceIds: new Set()
-      })
-    ).toThrow('Stored Encounter action receipt is missing.')
+    await expect(undo()).rejects.toThrow('Stored Encounter action receipt is missing.')
   })
 
   it('still refuses an attack followed by a decision that is not its own', async () => {
-    const { raise, respond, recentCommands, memory } = await settledAttack()
-    await raise()
-    await respond(decline)
-    const recent = await recentCommands()
-    const [group] = revertGroupRoots(recent, 1).groupRoots
-    expect(() =>
-      planRevertRoot({
-        ...group!,
-        // The answer names another action's occurrence as the one that raised its offer.
-        ruleOccurrenceId: testUuid(0x8e0d),
-        receipts: memory.documents('encounterRuleReceipts'),
-        otherRootOccurrenceIds: new Set()
-      })
-    ).toThrow('Another decision changed the Encounter after this action')
+    const {
+      queue,
+      raiseNext,
+      respond,
+      insertSettledOccurrence,
+      insertCommittedAction,
+      moveRun,
+      undo
+    } = await settledAttack()
+    await queue()
+    // Another action commits before the first attack's offer is raised and answered.
+    await insertSettledOccurrence(LATER_ATTACK_OCCURRENCE_ID, LATER_ATTACK_COMMAND_ID)
+    await insertCommittedAction(
+      { ...attack, commandId: LATER_ATTACK_COMMAND_ID, expectedVersion: ATTACK_VERSION },
+      ATTACK_VERSION + 1,
+      LATER_ATTACK_OCCURRENCE_ID
+    )
+    await moveRun()
+    expect(await raiseNext()).toBe(true)
+    await respond(answer({ kind: 'DECLINE' }, { expectedVersion: ATTACK_VERSION + 1 }))
+    // The answer settles the first attack's offer, so it is no child of the last action.
+    await expect(undo()).rejects.toThrow('Another decision changed the Encounter after this action')
   })
 })

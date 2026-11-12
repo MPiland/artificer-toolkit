@@ -908,7 +908,7 @@ type RevertGroup = RevertGroupRoot & {
  * belongs to the occurrence that recorded it, so the receipts of the other roots and of their
  * children are theirs to read, whatever Run version they were committed at.
  */
-export function planRevertRoot({
+function planRevertRoot({
   root,
   ruleOccurrenceId,
   laterEntries,

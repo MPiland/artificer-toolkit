@@ -1,16 +1,24 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { evaluateEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   reactionOfferCommandId,
   reactionOfferOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { isDepartedCharacterActor, readZeroHitPointActorIds } from './characterStates.js'
+import { readActorConditionIds } from './concentrationEnd.js'
 import { changedFields, readRunActors, readRunState } from './documents.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
+import type { EncounterPersistenceTransaction } from './ports.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /** `snapshot` is the occurrence's `readPendingSnapshot`. */
@@ -161,15 +169,65 @@ async function settleQueuedReactionOffer(
 }
 
 /**
+ * Whether the reactor has a reaction to take as the Run stands: the allowance every action's economy
+ * reads, over the conditions and effects the reactor holds now. A Manual Run tracks no allowance.
+ */
+async function reactionAvailable(
+  ctx: EncounterPersistenceTransaction,
+  state: EncounterRunState,
+  reactor: EncounterRunActorState
+) {
+  const readCampaign = async () => {
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', state.campaignId))
+      .unique()
+    if (!campaign) throw new Error('Campaign is unavailable.')
+    return campaign
+  }
+  const economy = await evaluateEncounterActionEconomy({
+    actor: reactor,
+    state,
+    activation: { code: 'REACTION', amount: 1 },
+    loadTarget: async () => ({
+      actor: reactor,
+      state: {
+        conditions: await readActorConditionIds(ctx, {
+          state,
+          actor: reactor,
+          campaign: await readCampaign()
+        })
+      },
+      innateConditionIds: [],
+      activeEffects: await listActiveRuleEffects(ctx, turnEffectOwner(reactor, state.id), {
+        ownerVerified: true
+      }),
+      effectiveRulePolicyOutput: null
+    }),
+    definitions: {
+      requireCurrent: async (definitionId) => {
+        const current = await ctx.ports.readCurrentDefinition(
+          definitionId,
+          (await readCampaign()).ownerUserId
+        )
+        if (!current) throw new Error('Reaction capability definition is unavailable.')
+        return current
+      }
+    }
+  })
+  return economy === null || economy.available
+}
+
+/**
  * Raises the Run's next queued reaction offer (D219) as its pending decision, pinned to the Run as it
  * stands, and reports whether one was raised. Nothing is raised while the Run waits on a decision.
  * The attack's planner already checked the trigger; here only committed state is read, and an offer
  * is voided when its reactor or attacker has left the Run, the reactor has departed or is at 0 hit
- * points, or the reactor has used its reaction since the attack. Anything staler is refused by the
- * chosen reaction's own prepare.
+ * points, or the reactor has used its reaction since the attack or can take none now (a condition or
+ * an effect suppresses it). Anything staler is refused by the chosen reaction's own prepare.
  */
 export async function raiseQueuedReactionOffer(
-  ctx: EncounterWriteContext & Parameters<typeof readZeroHitPointActorIds>[0],
+  ctx: EncounterPersistenceTransaction,
   encounterId: string,
   now: string
 ): Promise<boolean> {
@@ -198,7 +256,8 @@ export async function raiseQueuedReactionOffer(
       !(
         reactor.kind === 'CHARACTER' &&
         (await isDepartedCharacterActor(ctx, state.campaignId, reactor))
-      )
+      ) &&
+      (await reactionAvailable(ctx, state, reactor))
     await settleQueuedReactionOffer(
       ctx,
       occurrence,

@@ -40,6 +40,7 @@ import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
+import { executeRoomReactionOfferAnswer } from './roomEncounterReactionOffers.js'
 import { settleDamageMirrors } from './roomDamageMirror.js'
 import { settleDefeatRewards } from './roomDefeatReward.js'
 import { recordRoomZoneSightings } from './roomZoneSightings.js'
@@ -766,6 +767,8 @@ export async function executeRoomEncounterCommand(input: {
     if (route === 'TURN') return executeTurn(command)
     if (route === 'ACTION') return executeAction(command)
     if (route === 'CONTEST') return executeContest(command)
+    if (route === 'REACTION_OFFER')
+      return executeRoomReactionOfferAnswer({ ctx: context, transaction, command, executeAction })
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
       route === 'CLEAVING'

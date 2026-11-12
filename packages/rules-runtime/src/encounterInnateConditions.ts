@@ -37,7 +37,9 @@ export function innateConditionIds(
  * ending a condition, restoring one) reads `state.conditions` alone.
  */
 export function heldConditionIds(
-  target: Pick<MovementTarget, 'state' | 'innateConditionIds'>
+  target: Pick<MovementTarget, 'innateConditionIds'> & {
+    state: Pick<MovementTarget['state'], 'conditions'>
+  }
 ): readonly string[] {
   return target.innateConditionIds.length
     ? [...new Set([...target.state.conditions, ...target.innateConditionIds])]
