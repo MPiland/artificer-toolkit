@@ -13,7 +13,10 @@ import {
 
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
-import { executeNativeActionGraphs } from '../encounterActionExecution.js'
+import {
+  advanceNativeActionGraphs,
+  executeNativeActionGraphs
+} from '../encounterActionExecution.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
@@ -889,6 +892,60 @@ describe('a target struck by two rows that last (SPELLS-4.T2ps-d2)', () => {
   it('holds the one effect of a die that lands on a row, rolling no rays', async () => {
     const effects = await ray([0, 3])
     expect(heldConditions(effects)).toEqual([DEAFENED])
+  })
+
+  it('asks the target for its save d20 and rolls the table die itself (QUALITY-13.T1a1)', async () => {
+    const prepared = await prepareCreatureAction({
+      actor: srdCreatureActor({
+        id: SOURCE_ID,
+        creature: tableOgre(tableSpell({ rows: ROWS }), { baseDc: UNSAVEABLE_DC })
+      }),
+      target: srdCreatureActor({ id: HOLDER_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
+      featureId: FEATURE_ID,
+      overridable: true
+    })
+    const systemDice: number[] = []
+    const action = {
+      runtime: createPlatformRulesRuntime({
+        definitions: {
+          async requireCurrent() {
+            throw new Error('Definitions are not used by sealed graphs.')
+          }
+        }
+      }),
+      adapter: prepared.adapter,
+      plan: prepared.plan,
+      occurrenceId: testUuid(0xa1a6),
+      binding: prepared.binding,
+      // Nobody auto-rolls: every die a roller owns is asked of them.
+      autoRoll: { SOURCE: false, TARGET: false },
+      afterTest: async () => undefined,
+      random: (maxExclusive: number) => {
+        systemDice.push(maxExclusive)
+        return 3
+      }
+    }
+    const save = await advanceNativeActionGraphs(action)
+    if (save.kind !== 'PENDING') throw new Error('Expected the save d20 request.')
+    expect(save.roller).toBe('TARGET')
+    expect(save.d20Policy).not.toBeNull()
+    expect(systemDice).toEqual([])
+
+    // The target enters a natural 1; the table die after it lands on 4 (deafened), with no rays.
+    const settled = await advanceNativeActionGraphs({
+      ...action,
+      resume: {
+        pending: save,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: save.continuation.request.requestId,
+          rollMode: 'NORMAL',
+          rawFaces: [1]
+        }
+      }
+    })
+    expect(settled.kind).toBe('COMPLETE')
+    expect(systemDice).toHaveLength(1)
   })
 
   describe('on Prismatic Spray', () => {

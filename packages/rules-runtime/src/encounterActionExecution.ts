@@ -652,6 +652,12 @@ export async function continueNativeActionAfterTest(
     testBinding?: NativeActionBaseInput['binding']
     /** The costs the caster could pay to reroll the OUTCOME's damage dice (D208). */
     damageRerolls?: readonly DamageRerollCostDto[]
+    /**
+     * The dice the nested save's target holds for after its d20 (D168). An auto-rolled nested save
+     * whose target holds one is shown in a window before it resolves; `advanceNativeActionGraphs`
+     * resumes the window.
+     */
+    saveWindow?: EncounterActionSaveWindow
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
@@ -876,6 +882,32 @@ export async function continueNativeActionAfterTest(
       resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
+    const held = policy
+      ? await nextActionWindowDice({ saveWindow: input.saveWindow, policy, previous: null })
+      : null
+    const window =
+      policy && held && held.dice.length > 0
+        ? await openActionSaveWindow({
+            runtime: input.runtime,
+            occurrenceId: input.occurrenceId,
+            gameSystemId: published.gameSystemId,
+            dice: held.dice,
+            answeredReactorActorIds: held.answeredReactorActorIds,
+            continuation: result.continuation,
+            policy,
+            response,
+            appRollId: null
+          })
+        : null
+    if (window)
+      return {
+        kind: 'PENDING',
+        ...window,
+        d20Policy: null,
+        twoPhase,
+        roller,
+        phaseReceipts: input.boundary.phaseReceipts
+      }
     if (policy && response.faces && response.rollMode && response.keep) {
       if (nestedD20)
         throw new Error('The native action OUTCOME requested more than one nested save.')
@@ -892,6 +924,7 @@ export async function continueNativeActionAfterTest(
     result = await settleEncounterD20Test({
       continuation: result.continuation,
       roll: { natural: response.value, addedDice: response.addedDice },
+      mayAddDice: (held?.dice.length ?? 0) > 0,
       resume: (step) => input.runtime.resume(step)
     })
   }
@@ -997,29 +1030,127 @@ export async function advanceNativeActionGraphs(input: {
   attackSight?: EncounterPreparedAttackSight | null
   random?: (maximum: number) => number
 }): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
+  // A two-phase action not yet in its OUTCOME: the TEST seals, the target and the attacker are
+  // offered what the sealed roll allows, and the OUTCOME starts.
+  if (input.plan.kind === 'TEST_OUTCOME' && input.resume?.pending.twoPhase?.phase !== 'OUTCOME') {
+    const {
+      legendaryResistance,
+      reaction,
+      onHitCandidates,
+      saveWindow,
+      damageRerolls,
+      resume,
+      attackSight: testSight,
+      ...action
+    } = input
+    const resolution = resume?.resolution
+    if (resolution?.kind === 'DAMAGE_REROLL')
+      throw new Error('The damage roll window evidence is stale.')
+    const test = await prepareNativeActionTest({
+      ...action,
+      attackSight: testSight,
+      saveWindow,
+      ...(resume && resolution ? { resume: { pending: resume.pending, resolution } } : {})
+    })
+    if (test.kind === 'PENDING') return test
+    /** What a choice about the sealed roll pins of it. */
+    const sealedRoll = () => ({
+      originalExecution: test.execution,
+      originalD20: test.d20,
+      d20: test.d20Policy,
+      originalExecutionChecksum: checksumRuleDocument(test.execution)
+    })
+    const candidate =
+      legendaryResistance && test.d20.resultPath === 'ON_SAVE_FAIL'
+        ? await legendaryResistance.discover()
+        : null
+    if (legendaryResistance && candidate) {
+      const choice = await openEncounterLegendaryResistanceChoice({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        candidate
+      })
+      return {
+        kind: 'PENDING',
+        continuation: choice.continuation,
+        d20Policy: null,
+        twoPhase: test.twoPhase,
+        roller: 'TARGET',
+        pause: {
+          kind: 'LEGENDARY_RESISTANCE',
+          payload: {
+            ...sealedRoll(),
+            targetStateChecksum: legendaryResistance.targetStateChecksum,
+            resistance: encounterLegendaryResistancePin(candidate)
+          }
+        }
+      }
+    }
+    // An attack a decoy absorbed reaches nobody: its target is offered no reaction and its attacker no rider.
+    const struck = !input.binding.absorbedByDecoy && isHitPath(test.d20.resultPath)
+    // A creature that spent its reaction in the roll's window has none left for the hit.
+    const windowReactors = windowSpentReactions({ d20: test.d20, nestedD20: null }).map(
+      ({ reactorActorId }) => reactorActorId
+    )
+    const reactionCandidates =
+      reaction && struck
+        ? (await reaction.discover(test.d20.resultPath === 'ON_CRIT')).filter(
+            ({ reactorActorId }) => !windowReactors.includes(reactorActorId)
+          )
+        : []
+    const [firstReaction] = reactionCandidates
+    if (reaction && firstReaction)
+      return {
+        kind: 'PENDING',
+        continuation: await openEncounterReactionChoice({
+          runtime: input.runtime,
+          occurrenceId: input.occurrenceId,
+          candidate: firstReaction
+        }),
+        d20Policy: null,
+        twoPhase: test.twoPhase,
+        roller: 'TARGET',
+        pause: {
+          kind: 'REACTION',
+          payload: {
+            ...sealedRoll(),
+            targetStateChecksum: reaction.targetStateChecksum,
+            reactions: reactionCandidates.map(encounterReactionPin)
+          }
+        }
+      }
+    // The rider is offered before the OUTCOME is selected, since the choice can change which one runs.
+    if (onHitCandidates?.length && struck)
+      return holdForOnHitChoice({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        candidates: onHitCandidates,
+        twoPhase: test.twoPhase,
+        execution: test.execution,
+        testD20: test.d20,
+        d20: test.d20Policy,
+        gameSystemId: test.published.gameSystemId,
+        reaction: null
+      })
+    return continueNativeActionAfterTest({ ...action, boundary: test, saveWindow, damageRerolls })
+  }
+
+  // A single graph, or the answer to a two-phase action's OUTCOME request.
   const random = input.random ?? nextRollInt
   const attackSight = input.attackSight ?? null
   const initialPublished =
     input.plan.kind === 'SINGLE_GRAPH' ? input.plan.published : input.plan.test.published
   const initialBound = input.adapter.bindFacts({ ...input.binding, published: initialPublished })
   const initialFactsChecksum = checksumRuleDocument(initialBound.facts)
-  let phase: 'SINGLE' | 'TEST' | 'OUTCOME' = input.plan.kind === 'SINGLE_GRAPH' ? 'SINGLE' : 'TEST'
+  let phase: 'SINGLE' | 'OUTCOME' = 'SINGLE'
   let published = initialPublished
   let bound = initialBound
   let phaseReceipts: NativePhaseReceipts = []
   let outcomeTemplate: NativePhaseReceipts[number]['template'] | null = null
-  let twoPhase: NativeTwoPhase | null =
-    input.plan.kind === 'TEST_OUTCOME'
-      ? {
-          phase: 'TEST',
-          compilerSourceChecksum: input.plan.compilerSource.compilerSourceChecksum,
-          testTemplateChecksum: input.plan.test.template.checksum,
-          boundFactsChecksum: initialFactsChecksum
-        }
-      : null
+  let twoPhase: Extract<NativeTwoPhase, { phase: 'OUTCOME' }> | null = null
   let testD20: ServerRuleExecutionD20EvidenceDto | null = null
   let nestedD20: ServerRuleExecutionNestedD20EvidenceDto | null = null
-  /** The TEST or single-stage d20 answered during this call; set by `answer`. */
+  /** The single-stage d20 answered during this call; set by `answer`. */
   const stage: {
     d20: {
       continuation: ServerRuleExecutionContinuationDto
@@ -1035,7 +1166,7 @@ export async function advanceNativeActionGraphs(input: {
   /** Set once a damage window's answer replayed the phase; that phase is never held again. */
   let damageRerolled = false
 
-  /** Whether this paused request is the TEST or single-stage d20 rather than the OUTCOME save. */
+  /** Whether this paused request is the single-stage d20 rather than the OUTCOME save. */
   const isStageD20 = (policy: ServerRuleExecutionD20PolicyDto | null) =>
     policy !== null && phase !== 'OUTCOME'
 
@@ -1128,7 +1259,7 @@ export async function advanceNativeActionGraphs(input: {
       resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode && response.keep) {
-      if (phase === 'OUTCOME' && twoPhase?.phase === 'OUTCOME') {
+      if (twoPhase) {
         if (nestedD20) throw new Error('The action OUTCOME requested more than one nested save.')
         nestedD20 = buildEncounterSaveD20Evidence({
           policy,
@@ -1199,22 +1330,12 @@ export async function advanceNativeActionGraphs(input: {
     })
   } else {
     const pending = input.resume.pending
-    phase = pending.twoPhase?.phase ?? 'SINGLE'
-    if (phase === 'SINGLE' && input.plan.kind !== 'SINGLE_GRAPH')
-      throw new Error('The action phase identity is stale.')
-    if (phase === 'TEST') {
-      if (
-        input.plan.kind !== 'TEST_OUTCOME' ||
-        pending.twoPhase?.compilerSourceChecksum !==
-          input.plan.compilerSource.compilerSourceChecksum ||
-        pending.twoPhase.testTemplateChecksum !== input.plan.test.template.checksum ||
-        pending.twoPhase.boundFactsChecksum !== initialFactsChecksum ||
-        pending.phaseReceipts !== undefined
-      )
-        throw new Error('The action TEST evidence is stale.')
-    } else if (phase === 'OUTCOME') {
-      if (input.plan.kind !== 'TEST_OUTCOME' || pending.twoPhase?.phase !== 'OUTCOME')
+    // A two-phase plan reaches here only in its OUTCOME, so a TEST request is a single graph's stale one.
+    if (pending.twoPhase?.phase === 'TEST') throw new Error('The action phase identity is stale.')
+    if (pending.twoPhase) {
+      if (input.plan.kind !== 'TEST_OUTCOME')
         throw new Error('The action OUTCOME evidence is stale.')
+      phase = 'OUTCOME'
       const receipt = pending.phaseReceipts?.[0]
       if (
         pending.phaseReceipts?.length !== 1 ||
@@ -1383,181 +1504,7 @@ export async function advanceNativeActionGraphs(input: {
     })
   }
 
-  if (phase === 'TEST') {
-    if (!stage.d20 || input.plan.kind !== 'TEST_OUTCOME')
-      throw new Error('The action TEST requires exactly one sealed d20 response.')
-    testD20 = buildEncounterActionD20Evidence({
-      execution: result,
-      policy: deriveEncounterActionD20Policy({
-        continuation: stage.d20.continuation,
-        bound: initialBound
-      }),
-      requestId: stage.d20.continuation.request.requestId,
-      faces: stage.d20.faces,
-      rollMode: stage.d20.rollMode,
-      keep: stage.d20.keep,
-      modeAdjustment: stage.d20.modeAdjustment,
-      addedDice: stage.d20.addedDice
-    })
-    phaseReceipts = [
-      {
-        phase: 'TEST',
-        template: input.plan.test.template,
-        boundFactsChecksum: initialFactsChecksum,
-        specializedChecksum: initialPublished.checksum,
-        execution: result
-      }
-    ]
-    await input.afterTest(result)
-    const resistance = input.legendaryResistance
-    const candidate =
-      resistance && testD20.resultPath === 'ON_SAVE_FAIL' ? await resistance.discover() : null
-    if (resistance && candidate && twoPhase?.phase === 'TEST') {
-      const choice = await openEncounterLegendaryResistanceChoice({
-        runtime: input.runtime,
-        occurrenceId: input.occurrenceId,
-        candidate
-      })
-      return {
-        kind: 'PENDING',
-        continuation: choice.continuation,
-        d20Policy: null,
-        twoPhase,
-        roller: 'TARGET',
-        pause: {
-          kind: 'LEGENDARY_RESISTANCE',
-          payload: {
-            originalExecution: result,
-            originalD20: testD20,
-            d20: stage.d20.policy,
-            originalExecutionChecksum: checksumRuleDocument(result),
-            targetStateChecksum: resistance.targetStateChecksum,
-            resistance: encounterLegendaryResistancePin(candidate)
-          }
-        }
-      }
-    }
-    const reaction = input.reaction
-    // A creature that spent its reaction in the roll's window has none left for the hit.
-    const windowReactors = windowSpentReactions({ d20: testD20, nestedD20: null }).map(
-      ({ reactorActorId }) => reactorActorId
-    )
-    const reactionCandidates =
-      reaction &&
-      !input.binding.absorbedByDecoy &&
-      (testD20.resultPath === 'ON_HIT' || testD20.resultPath === 'ON_CRIT')
-        ? (await reaction.discover(testD20.resultPath === 'ON_CRIT')).filter(
-            ({ reactorActorId }) => !windowReactors.includes(reactorActorId)
-          )
-        : []
-    const [firstReaction] = reactionCandidates
-    if (reaction && firstReaction && twoPhase?.phase === 'TEST') {
-      return {
-        kind: 'PENDING',
-        continuation: await openEncounterReactionChoice({
-          runtime: input.runtime,
-          occurrenceId: input.occurrenceId,
-          candidate: firstReaction
-        }),
-        d20Policy: null,
-        twoPhase,
-        roller: 'TARGET',
-        pause: {
-          kind: 'REACTION',
-          payload: {
-            originalExecution: result,
-            originalD20: testD20,
-            d20: stage.d20.policy,
-            originalExecutionChecksum: checksumRuleDocument(result),
-            targetStateChecksum: reaction.targetStateChecksum,
-            reactions: reactionCandidates.map(encounterReactionPin)
-          }
-        }
-      }
-    }
-    if (
-      input.onHitCandidates?.length &&
-      !input.binding.absorbedByDecoy &&
-      isHitPath(testD20.resultPath) &&
-      twoPhase?.phase === 'TEST'
-    )
-      return holdForOnHitChoice({
-        runtime: input.runtime,
-        occurrenceId: input.occurrenceId,
-        candidates: input.onHitCandidates,
-        twoPhase,
-        execution: result,
-        testD20,
-        d20: stage.d20.policy,
-        gameSystemId: initialPublished.gameSystemId,
-        reaction: null
-      })
-    const outcome = resolveEncounterActionPhaseExecution({
-      plan: input.plan,
-      phase: 'TEST',
-      execution: result,
-      adapter: input.adapter,
-      facts: initialBound.facts,
-      testRollMode: requireTestRollMode(testD20),
-      absorbedByDecoy: input.binding.absorbedByDecoy
-    })
-    if (outcome.kind === 'TEST_ONLY')
-      return actionComplete({
-        adapter: input.adapter,
-        binding: input.binding,
-        occurrenceId: input.occurrenceId,
-        execution: result,
-        published,
-        initialPublished,
-        initialFactsChecksum,
-        phaseReceipts,
-        d20: testD20,
-        nestedD20: null
-      })
-    if (outcome.kind !== 'OUTCOME')
-      throw new Error('The action TEST did not select one terminal outcome.')
-    phase = 'OUTCOME'
-    published = outcome.outcome.published
-    outcomeTemplate = outcome.template
-    bound = input.adapter.bindFacts({ ...input.binding, published })
-    const nestedPolicy = nestedOutcomeD20Policy({
-      published,
-      bound
-    })
-    twoPhase = {
-      phase: 'OUTCOME',
-      compilerSourceChecksum: input.plan.compilerSource.compilerSourceChecksum,
-      testTemplateChecksum: input.plan.test.template.checksum,
-      outcomeTemplateChecksum: outcome.template.checksum,
-      boundFactsChecksum: initialFactsChecksum,
-      testExecution: result,
-      testExecutionChecksum: checksumRuleDocument(result),
-      nestedOutcomeD20: nestedPolicy,
-      nestedOutcomeD20Evidence: null,
-      legendaryResistance: null,
-      reaction: null,
-      onHit: null,
-      testRollEvidence: {
-        requestId: testD20.requestId,
-        rollMode: testD20.rollMode,
-        keep: testD20.keep,
-        derivedRollMode: testD20.derivedRollMode,
-        rawFaces: testD20.rawFaces,
-        selectedNatural: testD20.selectedNatural,
-        ...(testD20.modeAdjustment ? { modeAdjustment: testD20.modeAdjustment } : {}),
-        ...(testD20.addedDice ? { addedDice: testD20.addedDice } : {})
-      }
-    }
-    result = await input.runtime.executeResolved({
-      command: { definitionId: published.id, occurrenceId: input.occurrenceId, facts: bound.facts },
-      published
-    })
-    const outcomePrompt = await rollUntilPrompt()
-    if (outcomePrompt) return outcomePrompt
-  }
-
-  if (result.status !== 'COMPLETE') throw new Error('The action outcome did not settle.')
-  if (nestedD20 && twoPhase?.phase === 'OUTCOME' && twoPhase.nestedOutcomeD20)
+  if (nestedD20 && twoPhase?.nestedOutcomeD20)
     requireEncounterSaveD20EvidenceTrace({
       execution: result,
       policy: twoPhase.nestedOutcomeD20,
@@ -1593,6 +1540,6 @@ export async function advanceNativeActionGraphs(input: {
     phaseReceipts,
     d20: testD20,
     nestedD20,
-    outcomePhase: twoPhase?.phase === 'OUTCOME' ? twoPhase : null
+    outcomePhase: twoPhase
   })
 }
