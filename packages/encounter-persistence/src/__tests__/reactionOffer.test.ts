@@ -335,6 +335,13 @@ async function settledAttack() {
         command: { ...command, systemTrigger: command.systemTrigger! },
         fresh
       }),
+    /** The Run's commands, latest first, as undo reads them. */
+    recentCommands: () =>
+      memory.store
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId_version', (q) => q.eq('encounterId', ENCOUNTER_ID))
+        .order('desc')
+        .take(8),
     /** Another command moves the Run on by one version. */
     moveRun: async () => {
       const next = { ...readRunState(run()), version: run().version + 1 }
@@ -419,7 +426,14 @@ describe('showing a reaction offer (D219)', () => {
       encounterVersion: ATTACK_VERSION,
       reactorActorId: REACTOR_ID,
       attackerActorId: ATTACKER_ID,
-      options: offer().applicationContext.options,
+      options: [CHOSEN_ACTION_ID, OTHER_ACTION_ID].map((actionId) => ({
+        optionId: reactionOfferOptionId({
+          parentCommandId: ATTACK_COMMAND_ID,
+          reactorActorId: REACTOR_ID,
+          actionId
+        }),
+        actionId
+      })),
       allowedResponses: ['DECLINE', 'OPTION']
     })
     expect(summary).not.toHaveProperty('answerBy')
@@ -640,13 +654,11 @@ describe('committing the reaction chosen from a settled offer (D219)', () => {
 
 describe('undoing an attack with the reaction chosen from its offer (D219)', () => {
   it('groups the reaction, then the attack with the offer’s answer as its own', async () => {
-    const { raise, respond, insertCommittedAction, memory } = await settledAttack()
+    const { raise, respond, insertCommittedAction, recentCommands, memory } = await settledAttack()
     await raise()
     await respond(option)
     await insertCommittedAction(reactionChild(), ANSWER_VERSION + 1, testUuid(0x8e0c))
-    const recent = memory
-      .documents('encounterRunCommands')
-      .toSorted((left, right) => right.version - left.version)
+    const recent = await recentCommands()
     const { groupRoots } = revertGroupRoots(recent, 0)
     expect(groupRoots.map(({ root }) => root.commandId)).toEqual([
       reactionChild().commandId,
@@ -668,12 +680,10 @@ describe('undoing an attack with the reaction chosen from its offer (D219)', () 
   })
 
   it('reads a declined offer’s answer as the attack’s own too', async () => {
-    const { raise, respond, memory } = await settledAttack()
+    const { raise, respond, recentCommands, memory } = await settledAttack()
     await raise()
     await respond(decline)
-    const recent = memory
-      .documents('encounterRunCommands')
-      .toSorted((left, right) => right.version - left.version)
+    const recent = await recentCommands()
     const { groupRoots } = revertGroupRoots(recent, 1)
     expect(groupRoots).toHaveLength(1)
     expect(() =>
@@ -686,12 +696,10 @@ describe('undoing an attack with the reaction chosen from its offer (D219)', () 
   })
 
   it('still refuses an attack followed by a decision that is not its own', async () => {
-    const { raise, respond, memory } = await settledAttack()
+    const { raise, respond, recentCommands, memory } = await settledAttack()
     await raise()
     await respond(decline)
-    const recent = memory
-      .documents('encounterRunCommands')
-      .toSorted((left, right) => right.version - left.version)
+    const recent = await recentCommands()
     const [group] = revertGroupRoots(recent, 1).groupRoots
     expect(() =>
       planRevertRoot({
