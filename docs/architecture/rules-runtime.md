@@ -1268,7 +1268,7 @@ the rows it holds, one effect per lasting row (the area commit's per-target `cre
 - `prepareNativeActionTest` (`encounterActionExecution.ts`) paused for a die after a resumed save's d20 as if it were the
   d20 still unsealed; only a TEST with no sealed d20 pauses there now, and the table dice after it are the System's.
 - An area settles by replaying each creature's kept answer, which rolled its TEST's table dice a second time. The area
-  target record keeps them beside the answer (`testDice`, written from `encounterAreaTestDice` when the save is
+  target record keeps them beside the answer (`testDice`, written from `sealedTestDice` when the save is
   answered), and the replay enters each by its request id; a die the answer did not roll is refused, never rolled.
 - A repeat table's OUTCOME holds only the landed rows, so a creature that saved onto a row that does nothing (indigo
   or violet) traced a row gate and no proposal; `interpretDirect` now settles that as owing nothing, as it does a
@@ -1282,9 +1282,21 @@ on-hit rider, none of the last two when a decoy absorbed the attack) and starts 
 too, as it is on an area: the roller is asked for the d20 and never for the die after it. Dice a roller owns (the d20,
 the dice added to it, single-graph and OUTCOME damage dice) are still asked of a roller who does not auto-roll.
 `continueNativeActionAfterTest` takes the driver's `saveWindow`, so an auto-rolled nested OUTCOME save whose target
-holds a die still pauses in a `ROLL_WINDOW` (D168). The driver's own loop now serves only a single graph (the
-sight-held die, the damage hold) and the answer to an OUTCOME request; moving that answer onto
-`continueNativeActionAfterTest` is QUALITY-13.T1a2.
+holds a die still pauses in a `ROLL_WINDOW` (D168).
+
+**One OUTCOME for every answer (QUALITY-13.T1a2, current).** The driver lives in `encounterActionAdvance.ts`, which
+imports the phase functions and is imported by none of them. An answer to a pending OUTCOME (a die, a nested save's
+d20, its `ROLL_WINDOW`, a `DAMAGE_REROLL`) no longer has its own loop in the driver: the driver rebuilds the TEST
+boundary with `reconstructNativeActionTest` from what the OUTCOME retained (`testExecution`, `testRollEvidence`) and
+passes the answer to `continueNativeActionAfterTest` as `resume`, with the retained Legendary Resistance, reaction and
+on-hit audits. Nothing of the TEST rolls again: the d20 faces and the dice added beside them are entered from
+`testRollEvidence`, a window's dice are replayed as `windowDice`, and the table dice the TEST rolled after its d20 are
+read back from the retained execution (`sealedTestDice`). The rebuilt execution must equal the retained one, and
+`continueNativeActionAfterTest` proves each retained audit against it before it resumes, so a pending OUTCOME whose
+TEST or decisions were changed is refused as stale. The caller passes the binding the OUTCOME was sealed with (the
+reaction-adjusted one after a used reaction). The driver's own loop serves only a single graph (the sight-held die,
+the damage hold). The room passes one `saveWindow` with the action source, so the OUTCOME a Legendary Resistance,
+reaction or on-hit answer starts holds an auto-rolled nested save for its target's die as the driver does.
 
 Authoring parity (`packages/authoring/src/nodeRuntime/prismaticSprayAuthoringParity.test.ts`): the spell authored from
 the core options publishes the source's result, and the table, repeat and merged-row options are generic.

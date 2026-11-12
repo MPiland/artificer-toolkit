@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { advanceNativeActionGraphs } from '../encounterActionExecution.js'
+import { advanceNativeActionGraphs } from '../encounterActionAdvance.js'
 import { resolveNativeActionOnHit } from '../encounterActionOnHit.js'
 import type { EncounterOnHitCandidate } from '../encounterOnHitChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'

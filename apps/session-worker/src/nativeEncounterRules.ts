@@ -83,7 +83,7 @@ import {
   prepareNativeLiveActionMaintenance,
   settledCharacterActionSpend
 } from './nativeEncounterMaintenance.js'
-import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
@@ -1005,7 +1005,20 @@ export async function planNativeLiveEncounterAction(
       TARGET: requireAutoRoll(prepared.target.id)
     },
     binding: reacted.binding,
-    afterTest: async () => undefined
+    afterTest: async () => undefined,
+    // The target's held dice and the reactors' dice a save d20 is shown to (D168, D207), whichever
+    // answer starts the OUTCOME. A creature that already spent its reaction on a counter to this
+    // cast has none left to roll.
+    saveWindow: targetSaveWindow(
+      state.gameSystemId,
+      heldOnTarget,
+      prepared.attackWindowDice,
+      async (answeredReactorActorIds: readonly string[]) =>
+        nextNativeRollReactionDice(rollReactions, [
+          ...answeredReactorActorIds,
+          ...usedReactions.map(({ reaction }) => reaction.reactorActorId)
+        ])
+    )
   }
   const discoverReaction = discoverNativeAttackReaction({
     state,
@@ -1088,17 +1101,6 @@ export async function planNativeLiveEncounterAction(
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
-      // A creature that already spent its reaction on a counter to this cast has none left to roll.
-      saveWindow: targetSaveWindow(
-        state.gameSystemId,
-        heldOnTarget,
-        prepared.attackWindowDice,
-        async (answeredReactorActorIds) =>
-          nextNativeRollReactionDice(rollReactions, [
-            ...answeredReactorActorIds,
-            ...usedReactions.map(({ reaction }) => reaction.reactorActorId)
-          ])
-      ),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) =>

@@ -1,9 +1,11 @@
 import {
+  characterActor,
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -18,6 +20,7 @@ import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.j
 const SOURCE_ID = testUuid(0x7e0)
 const TARGET_ID = testUuid(0x7e1)
 const HELD_DIE_ID = testUuid(0x7e2)
+const CHARACTER_ID = testUuid(0x7e8)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -210,5 +213,50 @@ describe('room d20 window on the nested save of a hit', () => {
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await holdsDie(room)).toBe(true)
     expect(await targetConditions(room)).toContain(frightened.id)
+  })
+
+  it('holds the nested save a declined reaction rolls, as it holds one the roller enters', async () => {
+    // Everyone auto-rolls: the Bite hits on an 18, and once Shield is declined its OUTCOME rolls 1
+    // damage and the Character's nested save, a natural 2, inside the reaction's answer.
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: hitThenSaveBite }),
+        characterActor({ id: TARGET_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(hitThenSaveBite, 'Bite').id,
+      characterSpellcasting: { spells: [shield], prepared: [shield.id] },
+      autoRoll: 'EVERYONE',
+      rolls: [17, 0, 1],
+      seed: seedModifierGrant({
+        sourceActorId: TARGET_ID,
+        holderActorId: TARGET_ID,
+        lifecycle: {},
+        effect: heldSaveDieEffect(),
+        sourceLabel: resistance.label,
+        id: HELD_DIE_ID
+      })
+    })
+    const started = (await room.startAction(TARGET_ID)).answer
+    expect(started.type, JSON.stringify(started)).toBe('COMMAND_COMMITTED')
+    const reaction = await room.pendingDecision()
+    if (reaction.pending.kind !== 'REACTION_CHOICE')
+      throw new Error(`Expected the reaction choice, got ${reaction.pending.kind}.`)
+    const declined = await room.resolve(reaction, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+
+    const window = await readPendingActionDecision(room.room.base.stub)
+    expect(window?.pending).toMatchObject({
+      kind: 'ROLL_WINDOW',
+      rollerActorId: TARGET_ID,
+      d20: { selectedNatural: 2 },
+      options: [{ label: 'Resistance', count: 1, faces: 4, sign: 'ADD' }]
+    })
+    if (window?.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
+    const kept = await room.resolve(window, {
+      kind: 'ROLL_WINDOW_DECLINE',
+      requestId: window.pending.requestId
+    })
+    expect(kept.type, JSON.stringify(kept)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 })

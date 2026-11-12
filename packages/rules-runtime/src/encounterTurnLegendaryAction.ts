@@ -25,7 +25,7 @@ import { turnLegendaryActionEvidenceDtoSchema } from '@artificer-toolkit/schema/
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
-import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
 import { prepareAttackTargetGrantTriggers } from './encounterAttackAppliedEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
