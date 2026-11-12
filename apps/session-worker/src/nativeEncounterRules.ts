@@ -6,8 +6,6 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   actionTargetActorId,
-  ammunitionCommandChoice,
-  castChoice,
   resolveCheckActionInputDtoSchema,
   type RemoveAreaTargetInputDto,
   type ResolveEncounterActionInputDto,
@@ -18,7 +16,6 @@ import {
   encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
   isMeleeAttackSource,
@@ -27,7 +24,6 @@ import {
   type EncounterActionSourceRequest
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
-import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   isEncounterBasicActionId,
@@ -144,7 +140,7 @@ import {
   planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
 import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
-import { type ForcedMovementPick } from './nativeAreaPreparation.js'
+import { prepareCasterActionOnTarget, type ForcedMovementPick } from './nativeAreaPreparation.js'
 import { planForcedMovementDestination } from './nativeForcedMovementDestination.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
@@ -520,48 +516,41 @@ export async function planNativeLiveEncounterAction(
     attackDecoy: EncounterAttackDecoy | null,
     rollReactions: readonly NativeRollReaction[]
   ) =>
-    prepareEncounterActionMechanics({
-      attackDecoy,
-      windowReactionDice: rollReactions.map(({ die }) => die),
-      state,
-      actor: actors.find((actor) => actor.id === command.actorId)!,
-      target: actors.find((actor) => actor.id === targetActorId)!,
-      actors,
-      actionId: command.actionId,
-      ...castChoice(command),
-      spentUnits: command.spentUnits,
-      ammunition: ammunitionCommandChoice(command.target),
-      wieldConflictAcceptance: {
-        kind: 'PROMPTED',
-        accepted: command.acceptedWieldConflict,
-        handHolds: encounterSourceHandHolds(activeEffectsByActorId, command.actorId)
-      },
-      overridable: true,
-      saveWindow: true,
-      movementTargets: targets,
-      sceneContext,
-      ...attackSceneLoaders(targets),
-      loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
-        readNativeLiveEnemyProximity({
-          state,
-          actors,
-          attacker: sourceFacts,
-          target: targetFacts,
-          sceneContext,
-          loadTarget,
-          definitions,
-          capture
-        }),
-      loadMoveToward: ({ sourceFacts: attacker, targetFacts: target }) =>
-        readNativeLiveMoveToward({ attacker, target, sceneContext, capture }),
-      ...nativeActionStateLoaders({
-        campaign: state,
-        actorId: command.actorId,
+    prepareCasterActionOnTarget(
+      { state, system, actors, activeEffectsByActorId, capture, command },
+      {
+        caster: actors.find((actor) => actor.id === command.actorId)!,
+        target: actors.find((actor) => actor.id === targetActorId)!,
+        movementTargets: targets,
         sceneContext,
-        capture
-      }),
-      ...actionSources
-    }).catch(refuseStaleCharacterAction)
+        saveWindow: true,
+        attack: {
+          attackDecoy,
+          windowReactionDice: rollReactions.map(({ die }) => die),
+          ...attackSceneLoaders(targets),
+          loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
+            readNativeLiveEnemyProximity({
+              state,
+              actors,
+              attacker: sourceFacts,
+              target: targetFacts,
+              sceneContext,
+              loadTarget,
+              definitions,
+              capture
+            }),
+          loadMoveToward: ({ sourceFacts: attacker, targetFacts: target }) =>
+            readNativeLiveMoveToward({ attacker, target, sceneContext, capture }),
+          ...nativeActionStateLoaders({
+            campaign: state,
+            actorId: command.actorId,
+            sceneContext,
+            capture
+          }),
+          ...actionSources
+        }
+      }
+    )
   const continued = responseCommand ?? resumeCommand
   const occurrenceId = continued ? continued.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = continued ? continued.expectedOccurrenceVersion + 1 : 0

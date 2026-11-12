@@ -25812,7 +25812,7 @@
           "tasks": [
             {
               "id": "QUALITY-13.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -25821,12 +25821,28 @@
                 "size": 3,
                 "after": ["QUALITY-8.T1a2b", "QUALITY-10.T1"]
               },
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
-              "text": "One per-target preparer in the Worker replacing prepareAttackAs and prepareCasterActionOnTarget; every chosen list passes its creatures to the cast window, so a save or ray list offers the being-chosen reaction; a chosen-list save window is proved by test."
+              "text": "One per-target preparer in the Worker replacing prepareAttackAs and prepareCasterActionOnTarget; every chosen list passes its creatures to the cast window, so a save or ray list offers the being-chosen reaction; a chosen-list save window is proved by test.",
+              "mergedAt": "2026-11-12T01:22:53Z",
+              "proof": "m694 (7a634b4eb, fast path) from slice tip bfe703e24: Tests 43132054976, Live 43132053766, Browser journeys 43132055048 green. One per-target preparer (prepareCasterActionOnTarget, now also called by prepareAttackAs with an attack option); holdChosenReactions serves a list that commits at once and one that seals a save per creature, so every chosen list offers being-chosen reactions (D137). Red proof: nativeRoomChosenListReactions.test.ts RED (4 of 6); nativeRoomShieldMagicMissile.test.ts ALREADY-PASSING (fixture moved to unfilteredShield.ts)."
             },
             {
-              "id": "QUALITY-13.T1a",
+              "id": "QUALITY-13.T1a1",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-13.1"],
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-13.T1b"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T1a at the seam trace, within AC QUALITY-13.1 (no scope growth). Orchestrator rulings: TEST table dice rolled after a sealed d20 are the System's (rules-runtime.md, SPELLS-4.T2ps-d3), the one behaviour change; single-graph plans keep a small roll loop in advanceNativeActionGraphs (sight-held die and damage hold only).",
+              "text": "The TEST phase and fresh OUTCOME of advanceNativeActionGraphs delegate to prepareNativeActionTest and continueNativeActionAfterTest; Legendary Resistance and hit-reaction discovery stay between them (candidates withheld when absorbed by a decoy); its TEST save-window and sight logic is deleted; table dice after a sealed d20 roll as the System's."
+            },
+            {
+              "id": "QUALITY-13.T1a2",
               "status": "TODO",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
@@ -25834,10 +25850,10 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T1b"]
+                "after": ["QUALITY-13.T1a1"]
               },
-              "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
-              "text": "advanceNativeActionGraphs rebuilt on prepareNativeActionTest and continueNativeActionAfterTest; its own roll, window and answer logic deleted; no golden row or area test moves."
+              "note": "Split 2026-11-12 from QUALITY-13.T1a at the seam trace, within AC QUALITY-13.1 (no scope growth). Orchestrator rulings: TEST table dice rolled after a sealed d20 are the System's (rules-runtime.md, SPELLS-4.T2ps-d3), the one behaviour change; single-graph plans keep a small roll loop in advanceNativeActionGraphs (sight-held die and damage hold only).",
+              "text": "Resumed OUTCOME answers and DAMAGE_REROLL resume through continueNativeActionAfterTest from a boundary rebuilt from the retained OUTCOME (post-d20 dice read from the retained execution); advanceNativeActionGraphs moves to its own module to break the reconstruction import cycle; its remaining two-phase logic is deleted; audit staleness on a resumed OUTCOME is covered by tests."
             },
             {
               "id": "QUALITY-13.T1c",
@@ -25848,7 +25864,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T1a", "QUALITY-8.T1b"]
+                "after": ["QUALITY-13.T1a2", "QUALITY-8.T1b"]
               },
               "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
               "text": "A ray list (Scorching Ray, Eldritch Blast) resolves one ray at a time through the single-target driver under one root, so each ray gets hit reactions, Protection, roll reactions, on-hit riders and the incoming gate; the aggregate gains no reaction state."
