@@ -944,6 +944,66 @@ describe('a cast paid from a spell-source pool', () => {
     })
   })
 
+  describe('which slot a spell-slot cast may spend (SPELLS-8.T17)', () => {
+    const COUNTERSPELL = spell('Counterspell')
+    const slot = (level: number, remaining: number) => ({
+      slotKey: `STANDARD:${level}`,
+      label: `Level ${level}`,
+      max: 2,
+      level,
+      remaining
+    })
+    const decide = (authored: SpellAuthored, slots: ReturnType<typeof slot>[]) => {
+      const casts = [authored.level, authored.level + 1].map((level, sequence) =>
+        candidate(authored, level, { sequence })
+      )
+      const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+        spellIds: [authored.id],
+        spells: [compileSpell(authored)]
+      })
+      return evaluateDnd5e2014CharacterActions({
+        candidates: [],
+        abilityDefinitions: [],
+        spellCandidates: casts,
+        spellSlots: slots,
+        spellEffects: spellActionFacts,
+        spellMechanics: [],
+        spellcastingLocked: false,
+        proficiencies: [],
+        itemAdjustments: [],
+        activeSourceIds: [],
+        activeEquipmentInstanceIds: [],
+        resources: [],
+        modifierGroups: [],
+        totalLevel: 7,
+        classLevels: [],
+        proficiencyBonus: 3,
+        abilities: [],
+        skills: [],
+        spellcasting: null
+      }).spellCastDecisions
+    }
+    /** The spell's own level spent, the next level up not. */
+    const spentAt = (authored: SpellAuthored) => [
+      slot(authored.level, 0),
+      slot(authored.level + 1, 1)
+    ]
+
+    it('refuses the base level of a spell that reads its cast level once those slots are spent, and offers the higher slot', () => {
+      expect(decide(COUNTERSPELL, spentAt(COUNTERSPELL))).toMatchObject([
+        { status: 'UNAVAILABLE', reasonCode: 'SPELL_SLOT_EXHAUSTED', slotKey: 'STANDARD:3' },
+        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:4' }
+      ])
+    })
+
+    it('still lets a spell that ignores its cast level fall back to a higher slot', () => {
+      expect(decide(MEND, spentAt(MEND))).toMatchObject([
+        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:2' },
+        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:2' }
+      ])
+    })
+  })
+
   it('spends nothing in Manual play', () => {
     const { prepared } = prepare(pooled('LIMITED_USE'), 0, 'MANUAL')
     expect(prepared.resourceConsumption).toBeNull()
