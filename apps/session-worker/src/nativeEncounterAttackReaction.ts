@@ -13,7 +13,7 @@ import {
   attackHitDamageTypeIds,
   encounterReactorCandidates
 } from '@artificer-toolkit/rules-runtime/encounterReactors'
-import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {

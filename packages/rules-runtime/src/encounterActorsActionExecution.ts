@@ -1,4 +1,4 @@
-import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import { bindingAfterHitPoints, createFrozenRollTape } from './encounterAreaActionExecution.js'
 import { encounterChosenActorEntries } from './encounterAreaPending.js'
 import { nextRollInt } from './random.js'
