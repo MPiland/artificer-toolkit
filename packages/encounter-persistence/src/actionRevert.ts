@@ -173,11 +173,14 @@ const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
  * its last basic action or concealment-observer change (ADR 0034 decision 2, D45). Every change is inverted from the before-states
  * in its receipts; a later Encounter command, a later write to an affected Character, or a transition without a recorded
  * before-state refuses the undo instead of approximating it. Undoing an undo is not supported.
+ * `voidedOccurrenceId` names the held action a GM void cancelled in the same transaction, whose
+ * committed reactions this undo takes back.
  */
 export async function revertLastEncounterAction(
   ctx: EncounterCharacterWriteTransaction,
   command: RevertLastEncounterActionInputDto,
-  userId: string
+  userId: string,
+  voidedOccurrenceId?: string
 ): Promise<EncounterCommandResultDto> {
   const parsed = revertLastEncounterActionInputDtoSchema.parse(command)
   const input = {
@@ -322,10 +325,15 @@ export async function revertLastEncounterAction(
     !receipts.some((receipt) => receipt.commandId === raisedByCommandId)
   )
     revertUnavailable('The action that raised this one changed after it; adjust manually.')
+  // The held action a GM void just cancelled applied nothing, so the answers it took before the void
+  // and their evidence receipts are not this undo's to restore.
   const plans = groupRoots.map((group) =>
     planRevertRoot({
       ...group,
-      receipts,
+      laterEntries: voidedOccurrenceId
+        ? group.laterEntries.filter((entry) => entry.ruleOccurrenceId !== voidedOccurrenceId)
+        : group.laterEntries,
+      receipts: receipts.filter(({ occurrenceId }) => occurrenceId !== voidedOccurrenceId),
       otherRootOccurrenceIds: new Set(
         groupRoots.flatMap((other) => (other === group ? [] : [other.ruleOccurrenceId]))
       )

@@ -31,7 +31,11 @@ import type {
   EncounterWritePorts
 } from './ports.js'
 import { revertLastEncounterAction } from './actionRevert.js'
-import { readTrailingReactionDescendants, releaseReactionChildParent } from './reactionChildren.js'
+import {
+  readCommittedReactionDescendants,
+  readTrailingReactionDescendants,
+  releaseReactionChildParent
+} from './reactionChildren.js'
 
 type VoidChatTransaction = EncounterPersistenceTransaction & {
   readonly ports: EncounterPersistenceTransaction['ports'] &
@@ -332,10 +336,24 @@ export async function prepareRuleOccurrenceVoid(
   const { occurrence, run, input } = admission
   // A paused action stages nothing on the Run itself. The reactions chosen against it committed as
   // their own actions (D219), with the reactions chosen against those, so they are the one thing its
-  // cancel takes back.
+  // cancel takes back. An area's or a chosen list's open saves record none: the reactions chosen
+  // while its cast was held are read from the Run's commands.
   const context = (await readPendingSnapshot(ctx, occurrence))?.applicationContext
   const reactionChildren =
-    (context?.kind === 'ENCOUNTER_ACTION' ? context.reactionChildren : undefined) ?? []
+    context?.kind === 'ENCOUNTER_ACTION'
+      ? (context.reactionChildren ?? [])
+      : context?.kind === 'ENCOUNTER_AREA_ACTION'
+        ? (
+            await readCommittedReactionDescendants(ctx, {
+              encounterId: run.id,
+              rootCommandId: occurrence.rootCommandId,
+              afterVersion: resolveEncounterActionInputDtoSchema.parse(
+                JSON.parse(context.commandJson)
+              ).expectedVersion,
+              beforeVersion: run.version + 1
+            })
+          ).filter(({ parentCommandId }) => parentCommandId === occurrence.rootCommandId)
+        : []
   if (reactionChildren.length > 0) {
     const trailing = await readTrailingReactionDescendants(ctx, {
       encounterId: run.id,
@@ -369,7 +387,8 @@ export async function prepareRuleOccurrenceVoid(
         commandId: uuidV5(`${input.commandId}:reactions`, voidNamespace),
         expectedVersion: run.version
       },
-      admission.userId
+      admission.userId,
+      occurrence.id
     )
   const current = await ctx.db
     .query('encounterRuns')

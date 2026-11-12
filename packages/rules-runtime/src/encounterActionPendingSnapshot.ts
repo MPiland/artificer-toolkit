@@ -30,7 +30,7 @@ export type PendingReactionChildren = NonNullable<
  * own creatures to its own currentness until it committed.
  */
 export const reactedUnderAwaitedChild = (
-  recorded: PendingReactionChildren | undefined,
+  recorded: readonly { commandId: string; rollMode?: unknown }[] | undefined,
   committed: readonly {
     commandId: string
     reactorActorId: string

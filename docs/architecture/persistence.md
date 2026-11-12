@@ -384,7 +384,19 @@ caught first, which persistence does not read, so any creature of the Run that r
 tree excuses that one resume (the Worker compares the caught creature itself). From a child's resume the
 window may be followed by another offer, by the aggregate pending (`ENCOUNTER_AREA_ACTION`, which records no
 children), by the area's commit, including one that catches nobody or places no area, or by the countered
-cast. Transitional (until QUALITY-9.T1b3b): a GM void or undo over an area root that has reaction children.
+cast.
+
+Void, removal and undo over those hosts (current, QUALITY-9.T1b3b). A GM void of the aggregate pending
+(`prepareRuleOccurrenceVoid`, `occurrenceVoid.ts`) reads the root's committed reaction children from the
+Run's commands (`readCommittedReactionDescendants`, from the root command's own version), because the
+aggregate records none, and takes them back with the same undo a single-target void uses. That undo
+(`revertLastEncounterAction`) is told which occurrence the void cancelled: the answers that occurrence took
+before the void and their evidence receipts applied nothing, so they are not "a later rule result" and do
+not refuse it. A void of the cast window or of a later offer on the root reads `reactionChildren` as before.
+The GM's removal of the last creature an area waits on commits the area's stored root command, whose version
+each committed child left behind, so `readLiveEncounterActionAdmission` fences the removal's own version,
+as it does an answer's or a resume's; the removal admission pins that version to the Run and the occurrence.
+One undo of an area commit or a countered area cast restores the root and every child (`actionRevertGroups.ts`).
 
 The die a child rolls against a rolled attack (current contracts, QUALITY-9.T1e1, D219 "Roll-window reaction
 die"; inert until QUALITY-9.T1e2 wires the Worker, and the window reaction-die path it replaces stays until

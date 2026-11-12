@@ -344,6 +344,9 @@ export function castPendingContinues(
   )
 }
 
+type HeldActionContext = CastPendingContext &
+  Parameters<typeof reactionChildrenKept>[0] & { currentnessChecksum: string }
+
 /**
  * Whether a held action's next pause continues the pending action it resumes: the same occurrence,
  * about creatures that stand as they did when it was held, moved on as its pause allows
@@ -354,12 +357,15 @@ export function castPendingContinues(
 export function heldActionContinues(input: {
   resume: {
     occurrence: { id: string }
-    pending: { context: NativeActionPending['context'] }
-    reactionChildren: readonly LiveSessionReactionChild[]
+    pending: { context: HeldActionContext }
+    reactionChildren: readonly Pick<
+      LiveSessionReactionChild,
+      'commandId' | 'reactorActorId' | 'descendantReactorActorIds'
+    >[]
   } | null
   response: { resolution: { kind: string } } | null | undefined
   occurrenceId: string
-  next: NativeActionPending['context']
+  next: HeldActionContext
   endpointActorIds: readonly string[]
 }): boolean {
   const { resume, next } = input
