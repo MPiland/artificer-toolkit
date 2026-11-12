@@ -31,7 +31,7 @@ import type {
   EncounterWritePorts
 } from './ports.js'
 import { revertLastEncounterAction } from './actionRevert.js'
-import { countCommittedReactionChildren, releaseReactionChildParent } from './reactionChildren.js'
+import { readTrailingReactionDescendants, releaseReactionChildParent } from './reactionChildren.js'
 
 type VoidChatTransaction = EncounterPersistenceTransaction & {
   readonly ports: EncounterPersistenceTransaction['ports'] &
@@ -330,23 +330,22 @@ export async function prepareRuleOccurrenceVoid(
   const { admission } = plan
   const { occurrence, run, input } = admission
   // A paused action stages nothing on the Run itself. The reactions chosen against it committed as
-  // their own actions (D219), so they are the one thing its cancel takes back.
+  // their own actions (D219), with the reactions chosen against those, so they are the one thing its
+  // cancel takes back.
   const context = (await readPendingSnapshot(ctx, occurrence))?.applicationContext
   const reactionChildren =
-    (context?.kind === 'ENCOUNTER_ACTION' ? context.reactionChildren?.length : 0) ?? 0
-  if (
-    reactionChildren > 0 &&
-    (await countCommittedReactionChildren(ctx, {
+    (context?.kind === 'ENCOUNTER_ACTION' ? context.reactionChildren : undefined) ?? []
+  if (reactionChildren.length > 0) {
+    const trailing = await readTrailingReactionDescendants(ctx, {
       encounterId: run.id,
-      rootCommandId: occurrence.rootCommandId,
-      afterVersion: run.version - reactionChildren,
-      beforeVersion: run.version + 1
-    })) !== reactionChildren
-  )
-    rejectDomain(
-      'REVERT_UNAVAILABLE',
-      'The Encounter changed after a reaction to this action; answer it, then adjust manually.'
-    )
+      rootCommandId: occurrence.rootCommandId
+    })
+    if (!reactionChildren.every(({ commandId }) => trailing.has(commandId)))
+      rejectDomain(
+        'REVERT_UNAVAILABLE',
+        'The Encounter changed after a reaction to this action; answer it, then adjust manually.'
+      )
+  }
   const updatedAt = new Date().toISOString()
   const { _id, _creationTime, ...stored } = occurrence
   const voided = encounterStoredRuleOccurrenceSchema.parse({
@@ -360,7 +359,7 @@ export async function prepareRuleOccurrenceVoid(
   await ctx.db.patch(_id, changedFields(occurrence, voided))
   // With the action closed its reactions are the Run's last actions, and they go back as one undo
   // in this transaction, so a void that can't restore them is refused whole.
-  if (reactionChildren > 0)
+  if (reactionChildren.length > 0)
     await revertLastEncounterAction(
       ctx,
       {

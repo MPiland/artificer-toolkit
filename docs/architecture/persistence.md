@@ -287,10 +287,21 @@ advances the Run one version and re-pins the pending occurrence to it in the sam
 - A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
   `expectedVersion`; the live answer scope compares the answer's version, not the stored root's.
 - `readNativeActionPending` accepts a pin at most one version past the root for each recorded child, plus
-  one for each GM void of a paused child the Run recorded since the root (`countRunVoids`).
-- A replay of the parent root expects its commit at the root's version plus its committed REACTION children
-  plus those voids plus one. Both are counted from `encounterRunCommands`
-  (`countCommittedReactionChildren`, `countRunVoids`); no counter is stored.
+  one for each reaction that committed under one of its children, plus one for each version a GM void of a
+  held child made since the root (`countRunVoidVersions`: the void, and the undo it ran).
+- A replay of the parent root expects its commit at the root's version plus the committed reactions of its
+  tree plus those void versions plus one. Both are read from `encounterRunCommands`
+  (`readCommittedReactionDescendants`, `countRunVoidVersions`); no counter is stored.
+
+Reactions to a held reaction child (current in persistence, QUALITY-9.T1c1; no pipeline raises one until
+QUALITY-9.T1c2). A held child is itself a pending action, so it records the reactions chosen against it in
+its own `reactionChildren`, and the rules above apply to it as the parent. When such a nested child pauses,
+the held child is suspended like any parent; the action above it is already suspended. The tree is read
+from the commands: a reaction commits before the action it answers, so `readCommittedReactionDescendants`
+closes the tree from the root down rather than in Run order, and finds the reactions under a held child the
+GM voided (which has no command) through the void's occurrence. Every commit or void in the tree moves the
+Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
+action above the one they return to `PENDING`.
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
@@ -352,15 +363,17 @@ Undo and void of a reacted action. One undo rule: a receipt belongs to the occur
 `REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one
 step, attributing each receipt by occurrence instead of by a version range (`actionRevert.ts`). The group
 (`revertGroupRoots` in `actionRevertGroups.ts`) is the run of commands, back from the Run's last action,
-that are one action and its REACTION children, whichever of them is last: a child chosen while the action
+that are one action and the REACTION children of its tree (its own, and those chosen against them in
+turn), whichever of them is last: a child chosen while the action
 was held committed before it, and a child chosen from a post-commit offer (D219, QUALITY-8.T1c1; no
 pipeline raises one until QUALITY-8.T1c2) follows it and goes back child-then-parent. A last REACTION
 child whose parent has no command answered a voided parent and goes back with its siblings alone. A void of
 the pending parent (`prepareRuleOccurrenceVoid`) stages nothing of the parent's own; its committed
 reactions are what the cancel takes back, so it runs `REVERT_LAST_ACTION` for them in the same transaction
 (command id derived from the void's) and then records the void, two timeline rows. The reaction is
-refunded with the child's other changes. When the children are not the Run's latest commands, or their
-undo is unavailable, the void is refused whole (`REVERT_UNAVAILABLE`). A suspended parent cannot be voided
+refunded with the child's other changes. When the children are not among the Run's latest commands, which
+must all be reactions of the voided action's tree (`readTrailingReactionDescendants`), or their undo is
+unavailable, the void is refused whole (`REVERT_UNAVAILABLE`). A suspended parent cannot be voided
 while its child is pending. Voiding the paused child cancels it (it has spent nothing yet) and releases the
 parent in the same transaction (`releaseReactionChildParent`): back to `PENDING`, pinned to the Run version
 the void produced, with that child dropped from `reactionChildren`, so the offer it answered stands open

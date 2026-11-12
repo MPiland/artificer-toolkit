@@ -24,7 +24,11 @@ import {
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { readRunActor, readRunState } from './documents.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
-import { awaitsReactionChild, countRunVoids } from './reactionChildren.js'
+import {
+  awaitsReactionChild,
+  countRunVoidVersions,
+  readCommittedReactionDescendants
+} from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -65,21 +69,32 @@ export async function readNativeActionPending(
       ? escapeRelationshipInputDtoSchema
       : resolveEncounterActionInputDtoSchema
   ).parse(JSON.parse(context.commandJson))
-  // Each committed reaction child moved the occurrence one Run version past its root (D219), and so
-  // did each GM void of a paused one, which the action no longer records.
+  // Each committed reaction child moved the occurrence one Run version past its root (D219). So did
+  // each reaction that committed under one of those children, and each version a GM void of a held
+  // one made, none of which the action records.
   const versionsPastRoot = occurrence.expectedEncounterVersion - command.expectedVersion
   const unrecordedVersions = versionsPastRoot - (context.reactionChildren?.length ?? 0)
+  const held = {
+    encounterId: occurrence.encounterId,
+    afterVersion: command.expectedVersion
+  }
   if (
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
     versionsPastRoot < 0 ||
     (unrecordedVersions > 0 &&
       unrecordedVersions >
-        (await countRunVoids(ctx, {
-          encounterId: occurrence.encounterId,
-          afterVersion: command.expectedVersion,
+        (await countRunVoidVersions(ctx, {
+          ...held,
           throughVersion: occurrence.expectedEncounterVersion
-        }))) ||
+        })) +
+          (
+            await readCommittedReactionDescendants(ctx, {
+              ...held,
+              rootCommandId: occurrence.rootCommandId,
+              beforeVersion: occurrence.expectedEncounterVersion + 1
+            })
+          ).filter(({ parentCommandId }) => parentCommandId !== occurrence.rootCommandId).length) ||
     checksumCanonicalJson(command) !== context.commandFingerprint
   )
     throw new Error('Stored Encounter action root mismatch.')

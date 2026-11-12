@@ -8,7 +8,7 @@ import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtim
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { readEncounterActorDefeated } from './characterStates.js'
-import { countCommittedReactionChildren, countRunVoids } from './reactionChildren.js'
+import { countRunVoidVersions, readCommittedReactionDescendants } from './reactionChildren.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -86,17 +86,19 @@ export async function readNativeEncounterActionAdmission(
   if (replay) {
     presentTimelineEntry(replay)
     if (replay.commandType !== 'RESOLVE_ACTION') rejectDomain('COMMAND_ID_REUSED')
-    // The root committed one Run version after each reaction child that committed while it was
-    // pending, and after each void of a paused one (D219).
+    // The root committed one Run version after each reaction of its tree that committed while it
+    // was held, and after each version a void of a held one made (D219).
     const committedVersion =
       input.expectedVersion +
-      (await countCommittedReactionChildren(ctx, {
-        encounterId: run.id,
-        rootCommandId: input.commandId,
-        afterVersion: input.expectedVersion,
-        beforeVersion: replay.version
-      })) +
-      (await countRunVoids(ctx, {
+      (
+        await readCommittedReactionDescendants(ctx, {
+          encounterId: run.id,
+          rootCommandId: input.commandId,
+          afterVersion: input.expectedVersion,
+          beforeVersion: replay.version
+        })
+      ).length +
+      (await countRunVoidVersions(ctx, {
         encounterId: run.id,
         afterVersion: input.expectedVersion,
         throughVersion: replay.version - 1

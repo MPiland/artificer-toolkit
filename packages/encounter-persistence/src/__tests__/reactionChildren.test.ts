@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { buildEncounterCounteredCastStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { systemTriggerReactionCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import {
   CAMPAIGN_ID,
@@ -11,6 +12,7 @@ import {
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   encounterStoredRuleOccurrenceSchema,
+  encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -19,14 +21,16 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readNativeActionPending } from '../actionPending.js'
 import { insertRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
-import { writePendingSnapshot } from '../pendingSnapshots.js'
+import { readPendingSnapshot, writePendingSnapshot } from '../pendingSnapshots.js'
 import {
   awaitsReactionChild,
-  countCommittedReactionChildren,
-  countRunVoids,
+  countRunVoidVersions,
   reactionChildrenKept,
+  readCommittedReactionChildren,
+  readCommittedReactionDescendants,
   readReactionChildCastLevel,
   readReactionChildParent,
+  readTrailingReactionDescendants,
   releaseReactionChildParent,
   repinReactionChildParent,
   suspendReactionChildParent
@@ -225,6 +229,119 @@ async function pausedAttack(
 }
 
 const recorded = { reactionChildren: [{ commandId: reactionChild().commandId }] }
+
+const CHILD_OCCURRENCE_ID = testUuid(0x8a14)
+
+/** The reaction the attacker chose against the protector's held reaction: a child of that child. */
+const nestedChild = (expectedVersion = ROOT_VERSION) =>
+  systemTriggerReactionCommand({
+    encounterId: ENCOUNTER_ID,
+    expectedVersion,
+    parentCommandId: reactionChild().commandId,
+    holderActorId: ATTACKER_ID,
+    actionId: REACTION_ACTION_ID,
+    targetActorId: PROTECTOR_ID,
+    sceneContext: null
+  })
+
+const nestedLink = {
+  campaignId: CAMPAIGN_ID,
+  encounterId: ENCOUNTER_ID,
+  parentCommandId: reactionChild().commandId,
+  childCommandId: nestedChild().commandId
+}
+
+const nested = { reactionChildren: [{ commandId: nestedChild().commandId }] }
+
+/**
+ * Holds the attack's recorded reaction child as the Run's pending decision, its own context
+ * recording `reactionChildren`, and suspends the attack it answers. Returns the child's occurrence.
+ */
+async function holdReactionChild(
+  paused: Awaited<ReturnType<typeof pausedAttack>>,
+  reactionChildren?: { commandId: string }[]
+) {
+  const { ctx, memory, occurrence } = paused
+  const { _id, _creationTime, ...root } = occurrence()
+  const snapshot = await readPendingSnapshot(ctx, root)
+  if (
+    snapshot?.snapshotKind !== 'KERNEL_EVIDENCE' ||
+    snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION'
+  )
+    throw new Error('The attack is not paused.')
+  const command = reactionChild()
+  const {
+    reactionChildren: _recorded,
+    castLevel: _castLevel,
+    ...context
+  } = snapshot.applicationContext
+  await memory.store.insert(
+    'encounterRuleOccurrences',
+    encounterStoredRuleOccurrenceSchema.parse({
+      ...root,
+      id: CHILD_OCCURRENCE_ID,
+      rootCommandId: command.commandId,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: CHILD_OCCURRENCE_ID, encounterId: ENCOUNTER_ID },
+        serverRuleExecutionPendingSnapshotDtoSchema.parse({
+          ...snapshot,
+          occurrenceId: CHILD_OCCURRENCE_ID,
+          applicationContext: {
+            ...context,
+            commandJson: JSON.stringify(command),
+            commandFingerprint: checksumCanonicalJson(command),
+            rollerActorId: PROTECTOR_ID,
+            ...(reactionChildren && { reactionChildren })
+          }
+        })
+      )
+    })
+  )
+  await suspendReactionChildParent(ctx, link)
+  return () =>
+    memory.documents('encounterRuleOccurrences').find(({ id }) => id === CHILD_OCCURRENCE_ID)!
+}
+
+/** A GM command the Run recorded at `version`. */
+const insertGmCommand = (
+  memory: ReturnType<typeof createMemoryEncounterStore>,
+  version: number,
+  command:
+    | { commandType: 'VOID_RULE_OCCURRENCE'; ruleOccurrenceId: string }
+    | { commandType: 'REVERT_LAST_ACTION'; revertedCommandId: string }
+) =>
+  memory.store.insert(
+    'encounterRunCommands',
+    encounterStoredRunCommandSchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: CAMPAIGN_ID,
+      encounterId: ENCOUNTER_ID,
+      commandId: crypto.randomUUID(),
+      commandFingerprint: checksum('f'),
+      actorUserId: USER_ID,
+      version,
+      commandJson: '{}',
+      replayReceiptJson: '{}',
+      replayReceiptChecksum: checksum('e'),
+      createdAt: TIMESTAMP,
+      ...(command.commandType === 'REVERT_LAST_ACTION'
+        ? {
+            ...command,
+            ruleOccurrenceId: null,
+            initiativeStateJson: null,
+            initiativeStateChecksum: null
+          }
+        : command)
+    })
+  )
+
+/** The GM's void of a paused action, recorded on the Run at `version`. */
+const insertVoid = (
+  memory: ReturnType<typeof createMemoryEncounterStore>,
+  version: number,
+  ruleOccurrenceId: string = crypto.randomUUID()
+) => insertGmCommand(memory, version, { commandType: 'VOID_RULE_OCCURRENCE', ruleOccurrenceId })
 
 async function insertCommittedAction(
   memory: ReturnType<typeof createMemoryEncounterStore>,
@@ -519,27 +636,6 @@ describe('admitting the room’s resume of a pending action (D219)', () => {
 })
 
 describe('suspending the pending action while its reaction child is the pending decision (D219)', () => {
-  /** The GM's void of a paused child, recorded on the Run at `version`. */
-  const insertVoid = (memory: ReturnType<typeof createMemoryEncounterStore>, version: number) =>
-    memory.store.insert(
-      'encounterRunCommands',
-      encounterStoredRunCommandSchema.parse({
-        id: crypto.randomUUID(),
-        campaignId: CAMPAIGN_ID,
-        encounterId: ENCOUNTER_ID,
-        commandId: crypto.randomUUID(),
-        commandType: 'VOID_RULE_OCCURRENCE',
-        ruleOccurrenceId: crypto.randomUUID(),
-        commandFingerprint: checksum('f'),
-        actorUserId: USER_ID,
-        version,
-        commandJson: '{}',
-        replayReceiptJson: '{}',
-        replayReceiptChecksum: checksum('e'),
-        createdAt: TIMESTAMP
-      })
-    )
-
   it('suspends the action that records the child, which still reads as the child’s parent', async () => {
     const { ctx, occurrence } = await pausedAttack(recorded)
     await suspendReactionChildParent(ctx, link)
@@ -646,7 +742,7 @@ describe('suspending the pending action while its reaction child is the pending 
     await insertCommittedAction(memory, state, reactionChild(ROOT_VERSION + 1), ROOT_VERSION + 2)
     await insertVoid(memory, ROOT_VERSION + 3)
     const count = (afterVersion: number, throughVersion: number) =>
-      countRunVoids(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
+      countRunVoidVersions(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
     expect(await count(ROOT_VERSION, ROOT_VERSION + 3)).toBe(2)
     // The lower bound is exclusive and the upper inclusive.
     expect(await count(ROOT_VERSION + 1, ROOT_VERSION + 3)).toBe(1)
@@ -675,16 +771,299 @@ describe('counting a root’s committed reaction children from the Run’s comma
       }),
       ROOT_VERSION + 3
     )
-    const count = (afterVersion: number, beforeVersion: number) =>
-      countCommittedReactionChildren(ctx, {
-        encounterId: ENCOUNTER_ID,
-        rootCommandId: PARENT_COMMAND_ID,
-        afterVersion,
-        beforeVersion
-      })
+    const count = async (afterVersion: number, beforeVersion: number) =>
+      (
+        await readCommittedReactionDescendants(ctx, {
+          encounterId: ENCOUNTER_ID,
+          rootCommandId: PARENT_COMMAND_ID,
+          afterVersion,
+          beforeVersion
+        })
+      ).length
     expect(await count(ROOT_VERSION, ROOT_VERSION + 4)).toBe(1)
     // Both bounds are exclusive: the child at the edge is outside.
     expect(await count(ROOT_VERSION + 1, ROOT_VERSION + 4)).toBe(0)
     expect(await count(ROOT_VERSION, ROOT_VERSION + 1)).toBe(0)
+  })
+
+  it('reads the reactions chosen against a root’s reactions with them, in Run order (QUALITY-9.T1c1)', async () => {
+    const { ctx, memory, state } = await pausedAttack(recorded)
+    // A reaction to a held reaction commits before the reaction it answers.
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    await insertCommittedAction(memory, state, reactionChild(ROOT_VERSION + 1), ROOT_VERSION + 2)
+    expect(
+      await readCommittedReactionDescendants(ctx, {
+        encounterId: ENCOUNTER_ID,
+        rootCommandId: PARENT_COMMAND_ID,
+        afterVersion: ROOT_VERSION,
+        beforeVersion: ROOT_VERSION + 3
+      })
+    ).toEqual([
+      { commandId: nestedChild().commandId, parentCommandId: reactionChild().commandId },
+      { commandId: reactionChild().commandId, parentCommandId: PARENT_COMMAND_ID }
+    ])
+  })
+
+  it('reads the reactions under a held child the GM voided, and counts the undo its void made (QUALITY-9.T1c1)', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state } = paused
+    await holdReactionChild(paused, nested.reactionChildren)
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    // The void of the held child takes the reaction under it back as one undo, then records itself.
+    await insertGmCommand(memory, ROOT_VERSION + 2, {
+      commandType: 'REVERT_LAST_ACTION',
+      revertedCommandId: nestedChild().commandId
+    })
+    await insertVoid(memory, ROOT_VERSION + 3, CHILD_OCCURRENCE_ID)
+    expect(
+      await readCommittedReactionDescendants(ctx, {
+        encounterId: ENCOUNTER_ID,
+        rootCommandId: PARENT_COMMAND_ID,
+        afterVersion: ROOT_VERSION,
+        beforeVersion: ROOT_VERSION + 4
+      })
+    ).toEqual([{ commandId: nestedChild().commandId, parentCommandId: reactionChild().commandId }])
+    expect(
+      await countRunVoidVersions(ctx, {
+        encounterId: ENCOUNTER_ID,
+        afterVersion: ROOT_VERSION,
+        throughVersion: ROOT_VERSION + 3
+      })
+    ).toBe(2)
+  })
+})
+
+describe('a reaction chosen against a held reaction child (QUALITY-9.T1c1, D219)', () => {
+  /** Commits the held child on the Run at `version`, as its own commit records it. */
+  async function commitHeldChild(
+    paused: Awaited<ReturnType<typeof pausedAttack>>,
+    child: Awaited<ReturnType<typeof holdReactionChild>>,
+    version: number
+  ) {
+    const { ctx, memory, state } = paused
+    await insertCommittedAction(memory, state, reactionChild(), version)
+    await memory.store.patch(child()._id, {
+      state: 'COMPLETED',
+      completedAt: TIMESTAMP,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: CHILD_OCCURRENCE_ID, encounterId: ENCOUNTER_ID },
+        null
+      )
+    })
+    await repinReactionChildParent(ctx, { ...link, version })
+  }
+
+  it('admits the nested child against the held child that records it, the attack still suspended', async () => {
+    const paused = await pausedAttack(recorded)
+    await holdReactionChild(paused, nested.reactionChildren)
+    await expect(paused.admit(nestedChild())).resolves.toBeUndefined()
+    expect(paused.occurrence().state).toBe('SUSPENDED')
+    const open = await pausedAttack(recorded)
+    await holdReactionChild(open)
+    await expect(open.admit(nestedChild())).rejects.toThrow('COMMAND_ID_REUSED')
+  })
+
+  it('suspends the held child when the nested one pauses, so the Run keeps one pending decision', async () => {
+    const paused = await pausedAttack(recorded)
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await suspendReactionChildParent(paused.ctx, nestedLink)
+    expect(child().state).toBe('SUSPENDED')
+    expect(paused.occurrence().state).toBe('SUSPENDED')
+    expect(paused.memory.documents('encounterRuleOccurrences')).toHaveLength(2)
+  })
+
+  it('re-pins the held child and every suspended action above it to the Run the nested child left', async () => {
+    const paused = await pausedAttack(recorded)
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await repinReactionChildParent(paused.ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    expect(child()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    expect(paused.occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+  })
+
+  it('reads the attack past its own child and the reaction under that child', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    expect((await readNativeActionPending(ctx, child())).command).toEqual(reactionChild())
+
+    await commitHeldChild(paused, child, ROOT_VERSION + 2)
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION + 2
+    })
+    const pending = await readNativeActionPending(ctx, occurrence())
+    expect(pending.command).toEqual(parentCommand)
+    expect(pending.context.reactionChildren).toEqual(recorded.reactionChildren)
+    // One version further is no reaction of the attack's tree.
+    await memory.store.patch(occurrence()._id, { expectedEncounterVersion: ROOT_VERSION + 3 })
+    await expect(readNativeActionPending(ctx, occurrence())).rejects.toThrow(
+      'Stored Encounter action root mismatch.'
+    )
+  })
+
+  it('releases the held child when the GM voids the paused nested one, the attack’s pin moving with it', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, occurrence } = paused
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await suspendReactionChildParent(ctx, nestedLink)
+    await insertVoid(memory, ROOT_VERSION + 1)
+    await releaseReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    expect(child()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    expect((await readNativeActionPending(ctx, child())).context.reactionChildren).toBeUndefined()
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+
+    // The child then commits, and the attack reads past the void and its child.
+    await commitHeldChild(paused, child, ROOT_VERSION + 2)
+    expect((await readNativeActionPending(ctx, occurrence())).command).toEqual(parentCommand)
+  })
+
+  it('reads the attack a void released from a held child whose own reaction had committed', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    // The void takes the committed nested reaction back as one undo, then records itself.
+    await insertGmCommand(memory, ROOT_VERSION + 2, {
+      commandType: 'REVERT_LAST_ACTION',
+      revertedCommandId: nestedChild().commandId
+    })
+    await memory.store.patch(child()._id, {
+      state: 'VOIDED',
+      completedAt: TIMESTAMP,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: CHILD_OCCURRENCE_ID, encounterId: ENCOUNTER_ID },
+        null
+      )
+    })
+    await insertVoid(memory, ROOT_VERSION + 3, CHILD_OCCURRENCE_ID)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 3 })
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION + 3
+    })
+    const pending = await readNativeActionPending(ctx, occurrence())
+    expect(pending.command).toEqual(parentCommand)
+    expect(pending.context.reactionChildren).toBeUndefined()
+    await memory.store.patch(occurrence()._id, { expectedEncounterVersion: ROOT_VERSION + 4 })
+    await expect(readNativeActionPending(ctx, occurrence())).rejects.toThrow(
+      'Stored Encounter action root mismatch.'
+    )
+  })
+})
+
+describe('the reactions a GM void of a held action takes back (QUALITY-9.T1c1, D219)', () => {
+  const trailing = (ctx: Awaited<ReturnType<typeof pausedAttack>>['ctx']) =>
+    readTrailingReactionDescendants(ctx, {
+      encounterId: ENCOUNTER_ID,
+      rootCommandId: PARENT_COMMAND_ID
+    })
+  const unrelated = action({
+    commandId: testUuid(0x8a0d),
+    actorId: ALLY_ID,
+    expectedVersion: ROOT_VERSION - 1
+  })
+
+  it('are the Run’s last commands that are its reactions and the reactions chosen against them', async () => {
+    const { ctx, memory, state } = await pausedAttack(recorded)
+    await insertCommittedAction(memory, state, unrelated, ROOT_VERSION)
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    await insertCommittedAction(memory, state, reactionChild(ROOT_VERSION + 1), ROOT_VERSION + 2)
+    expect(await trailing(ctx)).toEqual(
+      new Set([reactionChild().commandId, nestedChild().commandId])
+    )
+  })
+
+  it('are none once anything else followed them, and none of another action’s', async () => {
+    const voided = await pausedAttack(recorded)
+    await insertCommittedAction(voided.memory, voided.state, reactionChild(), ROOT_VERSION + 1)
+    await insertVoid(voided.memory, ROOT_VERSION + 2)
+    expect(await trailing(voided.ctx)).toEqual(new Set())
+
+    const other = await pausedAttack(recorded)
+    await insertCommittedAction(
+      other.memory,
+      other.state,
+      reactionChild(ROOT_VERSION, OTHER_ROOT_COMMAND_ID),
+      ROOT_VERSION + 1
+    )
+    expect(await trailing(other.ctx)).toEqual(new Set())
+  })
+})
+
+describe('a committed child whose own cast a nested reaction countered (QUALITY-9.T1c1, D219)', () => {
+  it('reads as a child that did not cancel the action it answered', async () => {
+    const { ctx, memory, state } = await pausedAttack(recorded)
+    const command = reactionChild()
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    await insertCommittedAction(memory, state, command, ROOT_VERSION + 2)
+    // The countered child commits as the cast it lost: its slot and reaction, nothing of the spell.
+    const execution = buildEncounterCounteredCastStoredExecution({
+      occurrenceId: CHILD_OCCURRENCE_ID,
+      occurrenceVersion: 1,
+      actorId: PROTECTOR_ID,
+      sourceCharacterId: null,
+      spend: {
+        sourceCharacterStreamVersion: null,
+        resourceReceipt: null,
+        featureResourceReceipt: null,
+        sourceItemUseStateTransition: null,
+        itemConsumptionReceipt: null,
+        spellConsumptionReceipt: null,
+        sourceApplications: []
+      },
+      actionEconomy: null,
+      counter: null
+    })
+    await memory.store.insert(
+      'encounterRuleReceipts',
+      encounterStoredRuleReceiptSchema.parse({
+        id: crypto.randomUUID(),
+        campaignId: CAMPAIGN_ID,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: CHILD_OCCURRENCE_ID,
+        commandId: command.commandId,
+        commandType: 'RESOLVE_ACTION',
+        commandFingerprint: checksumCanonicalJson(command),
+        encounterVersion: ROOT_VERSION + 2,
+        commandMetadataJson: '{}',
+        resultJson: JSON.stringify(execution),
+        resultChecksum: checksumRuleDocument(execution),
+        actorUserId: USER_ID,
+        correlationId: null,
+        createdAt: TIMESTAMP
+      })
+    )
+    expect(
+      await readCommittedReactionChildren(ctx, {
+        campaignId: CAMPAIGN_ID,
+        gameSystemId: state.gameSystemId,
+        recorded: recorded.reactionChildren
+      })
+    ).toEqual([
+      {
+        commandId: command.commandId,
+        reactorActorId: PROTECTOR_ID,
+        actionId: REACTION_ACTION_ID,
+        imposesRollMode: false,
+        cancelsTriggeringEvent: false
+      }
+    ])
   })
 })
