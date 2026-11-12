@@ -983,19 +983,23 @@ describe('a cast paid from a spell-source pool', () => {
         spellcasting: null
       }).spellCastDecisions
     }
-    const spent = [slot(3, 0), slot(4, 1)]
+    /** The spell's own level spent, the next level up not. */
+    const spentAt = (authored: SpellAuthored) => [
+      slot(authored.level, 0),
+      slot(authored.level + 1, 1)
+    ]
 
     it('refuses the base level of a spell that reads its cast level once those slots are spent, and offers the higher slot', () => {
-      expect(decide(COUNTERSPELL, spent)).toMatchObject([
+      expect(decide(COUNTERSPELL, spentAt(COUNTERSPELL))).toMatchObject([
         { status: 'UNAVAILABLE', reasonCode: 'SPELL_SLOT_EXHAUSTED', slotKey: 'STANDARD:3' },
         { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:4' }
       ])
     })
 
     it('still lets a spell that ignores its cast level fall back to a higher slot', () => {
-      expect(decide(MEND, spent)).toMatchObject([
-        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:4' },
-        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:4' }
+      expect(decide(MEND, spentAt(MEND))).toMatchObject([
+        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:2' },
+        { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:2' }
       ])
     })
   })
