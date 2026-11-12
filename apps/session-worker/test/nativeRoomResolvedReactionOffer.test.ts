@@ -57,7 +57,7 @@ const giantKiller: ClassFeature = {
 /** A homebrew reaction authored as Giant Killer is, but answering only a hit, by an attacker of any size. */
 const riposte = ((): ClassFeature => {
   const [effect] = giantKillerOption.effects
-  if (!effect || !('reactionTrigger' in effect.invocation))
+  if (!effect || !('reactionTrigger' in effect.invocation) || !effect.invocation.reactionTrigger)
     throw new Error('Giant Killer is not a reaction.')
   return {
     id: testUuid(0x8f7),
@@ -87,7 +87,7 @@ const riposte = ((): ClassFeature => {
 /** A Wolf whose Bite (+4, reach 5 feet) attacks a Character 5 feet away, or at `reactorX` along the row. */
 function attackedRoom(
   input: {
-    creature?: typeof largeWolf
+    creature?: typeof attackBite
     feature?: ClassFeature
     reactorX?: number
     sceneOverrides?: ActionRoomConfig['sceneOverrides']
