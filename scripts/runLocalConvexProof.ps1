@@ -12,7 +12,7 @@ param(
     'publication-equipment-browser', 'campaign-lifecycle', 'campaign-custody-browser',
     'campaign-membership-browser', 'campaign-collaboration-browser', 'campaign-content-browser',
     'scene-live-browser', 'vtt-map-retention', 'movement', 'passage', 'disarm-browser', 'effects-browser',
-    'area-browser', 'shove-aside-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'held-effect-browser', 'concentration-sheet-browser', 'delegated-attack-browser', 'summon-turn-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
+    'area-browser', 'shove-aside-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'held-effect-browser', 'concentration-sheet-browser', 'delegated-attack-browser', 'giant-killer-browser', 'summon-turn-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
     'character-sheet-spells-browser', 'vtt-browser', 'v15-workload'
   )][string]$Proof
 )
@@ -62,6 +62,7 @@ $driverArguments = [string[]]@(switch ($Proof) {
   'held-effect-browser' { '--encounter-held-effect-browser' }
   'concentration-sheet-browser' { '--encounter-concentration-sheet-browser' }
   'delegated-attack-browser' { '--encounter-delegated-attack-browser' }
+  'giant-killer-browser' { '--encounter-giant-killer-browser' }
   'summon-turn-browser' { '--encounter-summon-turn-browser' }
   'builder-browser' { '--character-builder-browser' }
   'v15-workload' { '--encounter-v15-workload' }
