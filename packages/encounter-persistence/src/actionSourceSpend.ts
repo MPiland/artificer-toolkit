@@ -2,7 +2,8 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import {
   encounterRunActorStateSchema,
-  type EncounterRunActorState
+  type EncounterRunActorState,
+  type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
@@ -14,9 +15,14 @@ import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { encounterStowedItemInstanceId } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { writeRunActor } from './documents.js'
+import { listActiveRuleEffects } from './effectReads.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
-import type { EncounterWriteContext } from './store.js'
+import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
 type SourceSpendReceipts = Pick<
   Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }>,
@@ -147,6 +153,89 @@ export function combineSpendMutations(...mutations: readonly SpendMutation[]): S
     ...mutations.reduce<SpendMutation>((all, mutation) => ({ ...all, ...mutation }), {}),
     ...(characterSpellConsumptions.length > 0 ? { characterSpellConsumptions } : {})
   }
+}
+
+type SourceMechanicsReceipts = Pick<
+  Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }>,
+  'sourceApplications' | 'sourceCharacterStreamVersion' | 'sourceItemUseStateTransition'
+>
+
+/**
+ * The one mechanics batch an actor's own spend makes beside an action's outcome, under the action's
+ * resource event: its resource, item and slot mutation and the conditions its ended effects released.
+ */
+export async function applyActionSpendMechanics(
+  ctx: EncounterReadContext,
+  input: {
+    state: EncounterRunState
+    occurrenceId: string
+    sourceCommandId: string
+    occurredAt: string
+    actor: EncounterRunActorState
+    applications: SourceMechanicsReceipts['sourceApplications']
+    mutation: SpendMutation
+    applyMechanics(
+      batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+    ): Promise<EncounterMechanicsBatchResult>
+    currentCharacterMaximumHitPoints(state: EncounterRunState, characterId: string): Promise<number>
+  }
+) {
+  const { state, actor, occurrenceId, sourceCommandId } = input
+  return input.applyMechanics({
+    encounterId: state.id,
+    expectedEncounterVersion: state.version,
+    occurrenceId,
+    sourceCommandId,
+    occurredAt: input.occurredAt,
+    targetActorId: actor.id,
+    commandId: deriveEncounterCharacterMechanicsEventCommandId({
+      occurrenceId,
+      sourceCommandId,
+      phase: 'DIRECT_ACTION_RESOURCE',
+      ordinal: 0,
+      targetCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : actor.id
+    }),
+    applications: input.applications.map((application) => ({
+      ...application,
+      targetActorId: actor.id
+    })),
+    effectiveMaximumHitPoints:
+      actor.kind === 'CHARACTER'
+        ? await input.currentCharacterMaximumHitPoints(state, actor.sourceId)
+        : effectiveHitPointMaximum(
+            actor.maxHitPoints,
+            await listActiveRuleEffects(
+              ctx,
+              { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: actor.id },
+              { ownerVerified: true }
+            ),
+            actor.maximumFraction
+          ),
+    forceVersionAdvance: false,
+    ...input.mutation
+  })
+}
+
+/**
+ * Throws unless the source's own mechanics batch left exactly what the root recorded: its Character
+ * version, the conditions its ended effects released and the item it stowed. `sourceUsed` is the
+ * source's counter to a counter against its cast, which rides in the same batch.
+ */
+export function requireSourceSpendReceipt(
+  mechanics: EncounterMechanicsBatchResult | null,
+  receipts: SourceMechanicsReceipts,
+  sourceUsed?: { used: { receipt: { characterStreamVersion: number | null } } }
+) {
+  if (
+    (mechanics?.characterStreamVersion ?? null) !== receipts.sourceCharacterStreamVersion ||
+    (sourceUsed &&
+      sourceUsed.used.receipt.characterStreamVersion !== mechanics?.characterStreamVersion) ||
+    checksumCanonicalJson(mechanics?.receiptApplications ?? []) !==
+      checksumCanonicalJson(receipts.sourceApplications) ||
+    checksumCanonicalJson(mechanics?.itemUseStateTransition ?? null) !==
+      checksumCanonicalJson(receipts.sourceItemUseStateTransition)
+  )
+    throw new Error('Live Session source Character receipt mismatch.')
 }
 
 /**

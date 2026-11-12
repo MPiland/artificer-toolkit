@@ -17503,10 +17503,11 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
-                "after": ["QUALITY-8.T1c2a"]
+                "size": 1,
+                "after": ["QUALITY-8.T1c2b2"]
               },
-              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
+              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
+              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\"). Moves golden row srdEffectCompile.golden.txt:80 (Giant Killer REFUSED); the no-golden-move rule covers QUALITY-8 tasks only."
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -23825,6 +23826,49 @@
             }
           ],
           "internalReason": "Test placement only; no user-visible flow."
+        },
+        {
+          "id": "RELIABILITY-23",
+          "title": "The door journey converges deterministically",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [
+            "User approval 2026-11-12 (D187 exception: CI flake): the vtt-browser door journey failed waiting for scene v7 (managedRemoteVtt.spec.ts:678) on m695 and passed on rerun; measured door latency p50 300 ms, p95 345 ms."
+          ],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 2,
+            "after": []
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-23.1",
+              "status": "TODO",
+              "origin": [
+                "User approval 2026-11-12 (D187 exception: CI flake): the vtt-browser door journey failed waiting for scene v7 (managedRemoteVtt.spec.ts:678) on m695 and passed on rerun; measured door latency p50 300 ms, p95 345 ms."
+              ],
+              "text": "The managed VTT door convergence journey (collectDoorConvergenceTimings) waits on the door's own committed state rather than a menu that re-mounts, root-causes the missed scene version, and passes in three consecutive CI vtt-browser runs with no rerun; door latency stays recorded as run evidence."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-23.T1",
+              "status": "TODO",
+              "closes": ["RELIABILITY-23.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Root-cause the managedRemoteVtt.spec.ts:678 flake (waiting for v7 after a door toggle while the door menu re-mounts); fix product or test as the cause dictates, with a regression proof that fails before the fix."
+            }
+          ],
+          "internalReason": "A CI test-stability fix; no user-visible behavior changes."
         }
       ]
     },
@@ -25610,8 +25654,8 @@
               "text": "The generic post-commit reaction-offer occurrence in schema and persistence (nothing raises it yet): context kind and insert; DECLINE, and OPTION that closes the offer and records the chosen child command; GM void, owner and projection to the reactor's controller, no timer; REACTION admission proved by the completed offer's receipt and child commit without re-pin; undo groups child, offer answers and attack, child first; replay-fence and void-cascade refusals."
             },
             {
-              "id": "QUALITY-8.T1c2b",
-              "status": "TODO",
+              "id": "QUALITY-8.T1c2b1",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25620,8 +25664,37 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1c2a"]
               },
-              "note": "Split 2026-11-12 from QUALITY-8.T1c2 at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1 (no scope growth).",
-              "text": "ATTACK_RESOLVED_ON_HOLDER is raised after the attack commits, once per attack command and reactor (derived occurrence id, so chains end), only when nothing else is pending, reactors in actor-id order; one option per action attack with labels that tell a versatile weapon's attacks apart, none for a reactor at 0; OPTION runs the weapon attack as a REACTION root; drawer offer; room journey; docs. Ships with SPELLS-31.T4k1c."
+              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
+              "text": "Commit-time offer discovery in the attack planner: trigger check, one option per action attack with a persisted label (versatile attacks told apart), none off-Scene; the attack commit inserts each reactor's ENCOUNTER_REACTION_OFFER as QUEUED (derived id per attack and reactor); a raise mutation voids queued offers whose reactor fails liveness and raises the next in actor-id order when nothing is pending; room raiser; QUEUED handled by undo, actor removal, Run finish and the void cascade; chain test; sight projection fix.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-8.T1c2b2",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-8.T1c2b1"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
+              "text": "Room answer flow: REACTION_OFFER response route; OPTION and DECLINE through persistReactionOfferAnswer; the child raised in the same room turn; a REACTION child commits without a pending parent; GM void as DECLINE; crash-between test; end-to-end undo (child, answer, attack); drop the test-only planRevertRoot export."
+            },
+            {
+              "id": "QUALITY-8.T1c2b3",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-8.T1c2b2"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with SPELLS-31.T4k1c): split from QUALITY-8.T1c2b at the seam trace; offers are planned at the attack commit, queued, and raised when nothing is pending (D219 \"Queued post-commit offers\").",
+              "text": "Drawer offer in CampaignTabletopDecisionDrawer and the player-controller answer path; room and browser journey; docs (live-sessions, persistence, rules-runtime, the reactionTriggers transitional note). Ships with SPELLS-31.T4k1c."
             },
             {
               "id": "QUALITY-8.T1d",
@@ -25632,7 +25705,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c2b"]
+                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c2b3"]
               },
               "note": "Registered 2026-11-12 at the QUALITY-9.T1 seam trace (D219): AC QUALITY-8.1 requires every chosen reaction to run as a child; no new scope.",
               "text": "On-hit reactions (the REACTION pause: Shield, Absorb Elements) run as reaction children resuming by REBIND_TEST; the inline on-hit reaction path is deleted and REACTION merges into the one reaction offer."
@@ -25679,8 +25752,7 @@
             },
             {
               "id": "QUALITY-9.T1b1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25690,11 +25762,13 @@
                 "after": ["QUALITY-9.T1a"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
-              "text": "The parent cast's pending context records the triggering cast level; a reaction child's rules input reads its recording parent's level."
+              "text": "The parent cast's pending context records the triggering cast level; a reaction child's rules input reads its recording parent's level.",
+              "mergedAt": "2026-11-12T10:54:33Z",
+              "proof": "m703 (966041bc8) from slice tip ca4061fae: Tests 43197397075, Live 43197396950, Browser journeys 43197396978 green; ci/merge-m703 Tests 43204529381, Live 43204533264, Browser journeys 43204537728 green. The parent cast's pending context records castLevel; a reaction child's capture reads triggerCastLevel from its recording parent. Red proof: nativeRoomReactionSave.test.ts RED (1 of 7); reactionChildren.test.ts RED (6 of 33). Persisted shape: pending-context castLevel."
             },
             {
               "id": "QUALITY-9.T1b2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25704,7 +25778,9 @@
                 "after": ["QUALITY-9.T1b1"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
-              "text": "Counterspell's check runs as the child's own gate: the incoming gate generalised with a WARD or TRIGGER origin (pause, pending fences, GATED receipt, roll card); DC from the parent's level; pass cancels the cast, fail spends slot and reaction and the cast goes on; the cast's roll card links the countering child and its check."
+              "text": "Counterspell's check runs as the child's own gate: the incoming gate generalised with a WARD or TRIGGER origin (pause, pending fences, GATED receipt, roll card); DC from the parent's level; pass cancels the cast, fail spends slot and reaction and the cast goes on; the cast's roll card links the countering child and its check.",
+              "mergedAt": "2026-11-12T13:28:46Z",
+              "proof": "m704 (845d3d882, fast path) from slice tip ed06c54ba: Tests 43213709143, Live 43216803537, Browser journeys 43213709116 green; backstop ci/merge-m704 Tests 43227681463, Live 43227685768, Browser journeys 43227690081. One incoming gate with a WARD or TRIGGER origin (pause, pending fences, passed-gate memory, GATED receipt, roll card); a counter child owes its trigger check as its gate, DC from the parent's recorded cast level; pass cancels the cast (ENCOUNTER_COUNTERED_CAST counter null, check on the child receipt as passedGate), fail commits the child GATED (lost SPELL) and the cast goes on; the cast-to-child-to-check link proved in nativeRoomCounterspell.test.ts. Red proof: nativeRoomCounterspell RED (3 of 45), CounterspellCreatureCast RED (1 of 3), Sanctuary RED (2 of 12), NaturesSanctuary RED (1 of 8), Tranquility RED (1 of 2), actionPendingOffers RED (3 of 33), encounterAttackRetarget RED-IMPORT. Persisted shape: gate origin on pause, pending, GATED action; optional passedGate on mechanics batches; EncounterFailedWardGateDto. No golden moved."
             },
             {
               "id": "QUALITY-9.T1b3",
@@ -25715,14 +25791,15 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1c", "QUALITY-13.T2b"]
+                "after": ["QUALITY-9.T1c2", "QUALITY-13.T2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1b at the seam trace (D219 trigger-check gate), within AC QUALITY-9.1 (no scope growth).",
               "text": "Area and chosen-list cast windows resume from reaction children; the inline check path, the CHECK answer and EncounterCastReactionCheckDto are deleted."
             },
             {
-              "id": "QUALITY-9.T1c",
-              "status": "TODO",
+              "id": "QUALITY-9.T1c1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25731,8 +25808,36 @@
                 "size": 5,
                 "after": ["QUALITY-9.T1b2"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
-              "text": "A countered counter runs as a nested child: the pending fence and suspend/re-pin cover every descendant; the inline counter chain is deleted."
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
+              "text": "Persistence for nested reaction children (inert): descendant-aware stored-root and root replay fences, re-pin of every suspended ancestor, void cascade and undo grouping over descendants; a countered child reads as not cancelling, so an even chain offers the cast again."
+            },
+            {
+              "id": "QUALITY-9.T1c2",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1c1"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
+              "text": "Worker nesting on single-target casts: a reaction child offers its own cast to counters; ancestor holders are excluded; the ancestor's slot spend is projected into the child's capture; the source-changed currentness allowance in both layers; room tests for odd and even chains, a chain with a check, and undo and void of a nested chain."
+            },
+            {
+              "id": "QUALITY-9.T1c3",
+              "status": "TODO",
+              "closes": ["QUALITY-9.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-9.T1b3"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
+              "text": "Delete the inline counter chain from advanceNativeCastReactions and the chain field from the offer DTO; restate the chain tests as nested children; docs."
             },
             {
               "id": "QUALITY-9.T1d",
@@ -25743,7 +25848,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1c"]
+                "after": ["QUALITY-9.T1c2"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T1 at the seam trace (D219 cast and roll-window fold), within AC QUALITY-9.1 (re-estimate, no new scope).",
               "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children and prove REBIND_TEST; usedReactions is deleted end to end; CAST_REACTION is the one pre-roll offer whose options all run as children."
@@ -25852,7 +25957,7 @@
             "tc": 3,
             "rr": 5,
             "size": 5,
-            "after": ["QUALITY-8.T1c2b"]
+            "after": ["QUALITY-8.T1c2b3"]
           },
           "acs": [
             {
@@ -25873,7 +25978,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-8.T1c2b"]
+                "after": ["QUALITY-8.T1c2b3"]
               },
               "text": "One after-commit subscriber step in the room; DAMAGED raised once; single settle of mirrors and rewards."
             }
