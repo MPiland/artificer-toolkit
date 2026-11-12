@@ -1472,8 +1472,11 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   trigger whose row names it, so neither keeps a per-trigger list. `ATTACK_ON_OTHER` answers `ATTACK_AIMED_AT_OTHER` (the holder sees the attacker
   when the trigger requires sight, the attack's target is within `targetWithinFeet` of the holder, the holder has
   `holderEquippedCategory` equipped) and `ATTACK_RESOLVED_ON_SELF` answers `ATTACK_RESOLVED_ON_HOLDER`
-  (QUALITY-7.T1). Transitional: no caller raises `ATTACK_RESOLVED_ON_HOLDER` until the child action lands
-  (QUALITY-8), and `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
+  (QUALITY-7.T1). The attack planner raises `ATTACK_RESOLVED_ON_HOLDER` once an attack has settled, and the
+  offer is answered and run as the post-commit reaction offer ([persistence](persistence.md)); the SRD Hunter's
+  Giant Killer is its first consumer, authored from core options (a Large or larger attacker within 5 feet, seen,
+  a bare Feature weapon attack paired with each wielded weapon) with no pending record or timer of its own
+  (SPELLS-31.T4k1c, D217). Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
   (QUALITY-9). Target: every row names a moment and the one shared offer serves them all.
   Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
   persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,

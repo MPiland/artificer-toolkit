@@ -730,6 +730,74 @@ describe('CampaignTabletopDecisionDrawer attack retarget', () => {
   })
 })
 
+describe('CampaignTabletopDecisionDrawer reaction offer (D219)', () => {
+  const offerPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+    kind: 'REACTION_OFFER',
+    occurrenceId,
+    occurrenceVersion: 8,
+    encounterVersion: tabletopGmEncounter.version,
+    reactorActorId: tabletopGmEncounter.actors[0]!.id,
+    attackerActorId: tabletopGmEncounter.actors[1]!.id,
+    options: [
+      { optionId: 'a'.repeat(64), actionId: 'giant-killer-club', label: 'Giant Killer (Club)' },
+      { optionId: 'b'.repeat(64), actionId: 'giant-killer-dagger', label: 'Giant Killer (Dagger)' }
+    ],
+    allowedResponses: ['DECLINE', 'OPTION']
+  })
+
+  async function openOffer(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve']
+  ) {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={offerPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    return user
+  }
+
+  it('names the attack and one reaction per option, and answers the one picked', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openOffer(onResolve)
+
+    expect(screen.getByText('Reaction available')).toBeVisible()
+    expect(
+      screen.getByText(
+        `${tabletopGmEncounter.actors[1]!.label} attacked ${tabletopGmEncounter.actors[0]!.label}. Use a reaction?`
+      )
+    ).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Use Giant Killer (Dagger)' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId,
+        expectedOccurrenceVersion: 8,
+        resolution: { kind: 'OPTION', optionId: 'b'.repeat(64) }
+      })
+    )
+  })
+
+  it('declines with no reaction, and is not on a timer', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openOffer(onResolve)
+
+    expect(screen.queryByRole('timer')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Decline' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'DECLINE' } })
+    )
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => {
   it('picks the target of a Legendary Action that runs an attack (D51)', async () => {
     const user = userEvent.setup()
