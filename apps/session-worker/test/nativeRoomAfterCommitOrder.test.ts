@@ -108,9 +108,10 @@ describe('what one room command raises after it commits (QUALITY-11.T1a)', () =>
     const parentCommandId = command.commandId.toLowerCase()
     const burstId = burstCommandId(parentCommandId, source)
     expect(areaReceipts(after).roots.map(({ receipt }) => receipt.commandId)).toEqual([burstId])
-    expect(
-      after.commands.slice(before.commands.length).map(({ commandId }) => commandId)
-    ).toEqual([parentCommandId, burstId])
+    expect(after.commands.slice(before.commands.length).map(({ commandId }) => commandId)).toEqual([
+      parentCommandId,
+      burstId
+    ])
     // The burst reaches the attacker, who stands within 30 feet of the source.
     expect(hitPointsOf(after, ATTACKER_ID)).toBe((hitPointsOf(before, ATTACKER_ID) ?? 0) - 1)
   }, 120000)

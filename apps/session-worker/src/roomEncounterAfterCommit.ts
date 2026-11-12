@@ -54,7 +54,12 @@ export async function settleRoomEncounterAfterCommit(input: {
   outOfPlayBefore: ReadonlySet<string>
   executeAction(command: ResolveEncounterActionInputDto): Promise<unknown>
   executeTurn(
-    command: { type: 'ADVANCE_TURN'; encounterId: string; commandId: string; expectedVersion: number },
+    command: {
+      type: 'ADVANCE_TURN'
+      encounterId: string
+      commandId: string
+      expectedVersion: number
+    },
     actingUserId?: string
   ): Promise<unknown>
 }): Promise<boolean> {
@@ -110,9 +115,7 @@ export async function settleRoomEncounterAfterCommit(input: {
       command.type === 'ADVANCE_TURN' ||
       command.type === 'RESOLVE_RULE_OCCURRENCE')
       ? await raiseTurnStart(
-          (
-            delegatedLegendaryAction.continuationCommandId ?? input.turnRootCommandId
-          ).toLowerCase()
+          (delegatedLegendaryAction.continuationCommandId ?? input.turnRootCommandId).toLowerCase()
         )
       : false
   const raisedRuleEffects = raisesRoots ? await raiseRules() : false
