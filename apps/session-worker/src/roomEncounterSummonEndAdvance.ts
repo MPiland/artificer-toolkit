@@ -2,6 +2,7 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import type { SummonSweep } from '@artificer-toolkit/encounter-persistence/summonRemoval'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { summonEndAdvanceCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import { readRoomRaisableRun } from './roomEncounterChildRaise.js'
 
 /**
  * Ends the turn of a conjured creature whose carrier ended while it was acting (D200). The sweep
@@ -31,19 +32,9 @@ export async function advanceRoomPastEndedSummon(input: {
   let advanced = false
   let passes: number | null = null
   for (;;) {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', encounterId))
-      .unique()
-    if (!run || run.status !== 'ACTIVE') break
-    const waiting = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (query) =>
-        query.eq('encounterId', encounterId).eq('state', 'PENDING')
-      )
-      .first()
     // A turn start that paused on a decision keeps the creature standing until it is answered.
-    if (waiting) break
+    const run = await readRoomRaisableRun(ctx, encounterId)
+    if (!run || run.status !== 'ACTIVE') break
     // Every pass moves the cursor on and removes a creature that acted, so the actors bound the loop.
     passes ??= readRunState(run).actorIds.length
     if (passes-- === 0) break

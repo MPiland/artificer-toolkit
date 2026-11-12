@@ -4,6 +4,7 @@ import { systemTriggerAreaCommand } from '@artificer-toolkit/rules-runtime/encou
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { raiseRoomChild } from './roomEncounterChildRaise.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
 
@@ -24,12 +25,10 @@ export async function raiseRoomHpZeroEffects(input: {
   execute(command: ResolveEncounterActionInputDto): Promise<unknown>
 }) {
   const { ctx, encounterId } = input
-  const readRun = () =>
-    ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', encounterId))
-      .unique()
-  const first = await readRun()
+  const first = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (query) => query.eq('id', encounterId))
+    .unique()
   if (!first || first.status !== 'ACTIVE') return false
   const firstState = readRunState(first)
   const system = await ctx.ports.requireSystem(firstState.gameSystemId)
@@ -47,34 +46,34 @@ export async function raiseRoomHpZeroEffects(input: {
   }
   let committed = false
   for (const { holderActorId, actionId } of raised) {
-    const run = await readRun()
-    const waiting = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (query) =>
-        query.eq('encounterId', encounterId).eq('state', 'PENDING')
-      )
-      .first()
-    const binding = await ctx.db
-      .query('encounterActorTokenBindings')
-      .withIndex('by_encounterId_actorId', (query) =>
-        query.eq('encounterId', encounterId).eq('actorId', holderActorId)
-      )
-      .unique()
-    if (!run || waiting || !binding) continue
-    await input.execute(
-      systemTriggerAreaCommand({
-        encounterId,
-        expectedVersion: run.version,
-        parentCommandId: input.parentCommandId,
-        holderActorId,
-        actionId,
-        scene: {
-          sceneId: binding.sceneId,
-          expectedSceneVersion: readRoomScene(input.transaction, binding.sceneId).header.version
-        }
-      })
-    )
-    committed = true
+    const outcome = await raiseRoomChild({
+      ctx,
+      encounterId,
+      execute: input.execute,
+      command: async (run) => {
+        const binding = await ctx.db
+          .query('encounterActorTokenBindings')
+          .withIndex('by_encounterId_actorId', (query) =>
+            query.eq('encounterId', encounterId).eq('actorId', holderActorId)
+          )
+          .unique()
+        return binding
+          ? systemTriggerAreaCommand({
+              encounterId,
+              expectedVersion: run.version,
+              parentCommandId: input.parentCommandId,
+              holderActorId,
+              actionId,
+              scene: {
+                sceneId: binding.sceneId,
+                expectedSceneVersion: readRoomScene(input.transaction, binding.sceneId).header
+                  .version
+              }
+            })
+          : null
+      }
+    })
+    if (outcome === 'RAISED') committed = true
   }
   return committed
 }

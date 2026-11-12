@@ -194,6 +194,18 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   `persistMovementSettlements` checks it against the retained departures, and
   `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
   escape end path. The spatial receipt is unchanged.
+- Once a command commits, `settleRoomEncounterAfterCommit` (`roomEncounterAfterCommit.ts`) runs everything it
+  owes in the same transaction, in one fixed order (current, QUALITY-11.T1a): (1) the damage mirrors and defeat
+  rewards the command collected; (2) the HP-zero effects of newly defeated creatures; (3) a delegated Legendary
+  Action and its turn-end continuation; (4) the start-of-turn effects of a turn that began; (5) the rules'
+  failed-save actions; (6) the flag on a creature that returned onto an occupied space; (7) the mirrors and
+  rewards the roots raised in 2 to 5 collected; (8) the sweep of summons whose carrier ended and the advance
+  past one that was acting; (9) the next queued reaction offer (D219). Stages 2 to 5 run only on an ACTIVE Run
+  in a room that executes rules. Each raised root goes through `raiseRoomChild` (`roomEncounterChildRaise.ts`):
+  read the Run, raise nothing while a decision is PENDING, then execute. The two loops that advance turns (the
+  delegated Legendary Action and the summon advance) share its read (`readRoomRaisableRun`). A PENDING decision
+  skips one HP-zero or start-of-turn effect but stops the rule scan; the summon advance raises the rule actions
+  only when its turn start raised no root.
 - Pending decisions are routed by `roomEncounterResponseRouting.ts` from the Run's retained occurrence:
   TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, CONTEST, MOVEMENT or REACTION_OFFER (the
   answer to a post-commit reaction offer, which also runs the chosen reaction in the same command and is
