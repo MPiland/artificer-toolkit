@@ -301,6 +301,14 @@ triggering roll as `reactionChildren[].rollMode`, resolved by the System adapter
 until it resolves the parent takes no other answer. The child command names the Scene tokens the reaction
 was offered on (the holder's and the acting creature's), so its range is judged there like any action's.
 
+A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
+committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).
+A cast held at a `COUNTER` offer with no check and no chain whose unresolved child cancelled it commits through
+`persistEncounterCounteredCastCommit` from the resume, with no response: the root's
+`ENCOUNTER_COUNTERED_CAST.counter` is null, no reactor is spent, no evidence receipt is written, and the failed
+counters the pending context held are spent unchanged (`castCancelledByChildCarriesUsedReactions`). A non-null
+`counter` still requires the answer that used it.
+
 A child that pauses (current, QUALITY-8.T1b, D219 amendment). A reaction's own action may need evidence of
 its own, such as a save its target makes. The transaction that stores the child's pending decision also
 moves the parent occurrence to the stored state `SUSPENDED` (`suspendReactionChildParent`,

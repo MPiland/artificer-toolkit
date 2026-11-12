@@ -4,7 +4,10 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterCastReactionOfferDto,
+  EncounterUsedReactionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import {
@@ -59,7 +62,7 @@ export function createNativeCastPause(input: {
   loadTarget: (actor: EncounterRunActorState) => Promise<MovementTargets>
   capture: Parameters<typeof discoverNativeCastReactions>[0]['capture']
   requireAutoRoll: (actorId: string) => boolean
-  command: Pick<ResolveEncounterActionInputDto, 'commandId'>
+  command: Pick<ResolveEncounterActionInputDto, 'commandId' | 'systemTrigger'>
   /** The caster's preparation of the cast; an area or a list uses its lead creature's. */
   prepared: Prepared
   movementTargets: ReadonlyMap<string, MovementTargets>
@@ -84,20 +87,28 @@ export function createNativeCastPause(input: {
   /** Whether this replays a pending occurrence rather than opening one. */
   resumed: boolean
   usedReactions: readonly EncounterUsedReactionDto[]
-  /** The reactions chosen against this action that run as their holders' own child actions (D219). */
+  /**
+   * The reactions chosen against this action that run as their holders' own child actions (D219);
+   * null when the host never resumes the action from one, so a counter to it resolves in its window.
+   */
   reactionChildren: {
     /** The child the pending action records for each, with the roll mode it resumed with. */
     recorded: PendingReactionChildren
     /** Those of them that committed: who reacted with what, and whether it imposed its roll mode. */
     committed: readonly LiveSessionReactionChild[]
     /** The answered offer the room resumes this action past, its reactor's child now committed. */
-    resumedOffer: { reactorActorId: string; declinedReactorActorIds: readonly string[] } | null
-  }
+    resumedOffer: {
+      kind: EncounterCastReactionOfferDto['kind']
+      reactorActorId: string
+      declinedReactorActorIds: readonly string[]
+    } | null
+  } | null
 }) {
   const { prepared, state, command } = input
-  const { resumedOffer } = input.reactionChildren
+  const children = input.reactionChildren ?? { recorded: [], committed: [], resumedOffer: null }
+  const { resumedOffer } = children
   const committedChild = (commandId: string) => {
-    const child = input.reactionChildren.committed.find((child) => child.commandId === commandId)
+    const child = children.committed.find((child) => child.commandId === commandId)
     if (!child) throw new Error('Reaction evidence is stale.')
     return child
   }
@@ -107,7 +118,7 @@ export function createNativeCastPause(input: {
    */
   const resolveReactionChildren = () =>
     Promise.all(
-      input.reactionChildren.recorded.map(async (recorded) => {
+      children.recorded.map(async (recorded) => {
         if (recorded.rollMode !== undefined) return recorded
         const { reactorActorId, actionId, imposesRollMode } = committedChild(recorded.commandId)
         if (!imposesRollMode) return { ...recorded, rollMode: null }
@@ -277,11 +288,88 @@ export function createNativeCastPause(input: {
       return {
         kind: 'NONE' as const,
         usedReactions: input.usedReactions,
-        reactionChildren: input.reactionChildren.recorded
+        reactionChildren: children.recorded
       }
-    const reactionChildren = resumedOffer
-      ? await resolveReactionChildren()
-      : input.reactionChildren.recorded
+    const counterResume = resumedOffer?.kind === 'COUNTER' ? resumedOffer : null
+    const counteredCast = async (
+      counter: Parameters<typeof planNativeCounteredCast>[0]['counter'],
+      counters: readonly EncounterUsedReactionDto[]
+    ) => ({
+      kind: 'COUNTERED' as const,
+      countered: planNativeCounteredCast({
+        state,
+        actors: input.actors,
+        prepared,
+        casterEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
+        counter,
+        actionEconomy: cast.actionEconomy,
+        ruleOverrides: cast.ruleOverrides,
+        occurrenceId: input.occurrenceId,
+        occurrenceVersion: cast.occurrenceVersion,
+        commandId: command.commandId,
+        occurredAt: input.occurredAt,
+        userId: input.userId,
+        usedReactions: await planUsedReactions(counters)
+      })
+    })
+    // The counter the cast resumes from ran as its holder's own action, which spent it: when that
+    // action cancelled the cast, the cast is lost with no counter of its own to spend (D219).
+    if (
+      counterResume &&
+      children.recorded.some(
+        ({ commandId, rollMode }) =>
+          rollMode === undefined && committedChild(commandId).cancelsTriggeringEvent
+      )
+    )
+      return counteredCast(null, input.usedReactions)
+    const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
+    /**
+     * The reaction chosen at any moment runs as its holder's own action at the creature acting: the
+     * room commits that child, then resumes this action, which keeps the answered offer until then.
+     */
+    const awaitChild = async (
+      advanced: Extract<
+        Awaited<
+          ReturnType<typeof advanceNativeCastReactions | typeof advanceNativeTargetedReactions>
+        >,
+        { kind: 'CHILD' }
+      >
+    ) => {
+      const childScene = await readScene()
+      const holderToken = childScene.tokens.find(
+        (token) => token.actorId === advanced.child.holderActorId
+      )
+      return {
+        kind: 'CAST_PENDING' as const,
+        continuation: advanced.continuation,
+        rollerActorId: advanced.child.holderActorId,
+        pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
+        usedReactions: advanced.usedReactions,
+        reactionChildren: [
+          ...reactionChildren,
+          {
+            commandId: systemTriggerCommandId(
+              command.commandId,
+              advanced.child.holderActorId,
+              advanced.child.actionId
+            )
+          }
+        ],
+        // The child is judged on the Scene the reaction was offered on.
+        reactionChild: {
+          ...advanced.child,
+          targetActorId: prepared.actor.id,
+          sceneContext: holderToken
+            ? {
+                sceneId: childScene.sceneId,
+                expectedSceneVersion: childScene.sceneVersion,
+                sourceTokenId: holderToken.tokenId,
+                targetTokenId: childScene.sourceToken.tokenId
+              }
+            : null
+        }
+      }
+    }
     // An answer to an offer the action resumes from was made after every counter offer was heard, and
     // one to an attack aimed at another after every offer the cast made.
     const resumeAnswer =
@@ -297,7 +385,9 @@ export function createNativeCastPause(input: {
     if (
       triggerLevel !== null &&
       !resumeAnswer &&
-      !resumedOffer &&
+      (!resumedOffer || counterResume) &&
+      // A counter that runs as its holder's own action is offered only when nobody can counter it.
+      command.systemTrigger?.trigger !== 'REACTION' &&
       input.readScene &&
       input.actors.some((actor) => actor.kind === 'CHARACTER' && actor.id !== prepared.actor.id)
     ) {
@@ -310,32 +400,26 @@ export function createNativeCastPause(input: {
         triggerLevel,
         answer: input.answer,
         usedReactions,
+        // The creature whose own action did not cancel the cast has been heard, like one that declined.
+        declinedReactorActorIds: counterResume
+          ? [...counterResume.declinedReactorActorIds, counterResume.reactorActorId]
+          : [],
+        runsAsChild: input.reactionChildren !== null,
         autoRoll: input.requireAutoRoll,
         rollD20: () => (input.random ?? nextRollInt)(20) + 1,
         discover: await discoverCast(triggerLevel)
       })
       if (advanced.kind === 'COUNTERED')
-        return {
-          kind: 'COUNTERED' as const,
-          countered: planNativeCounteredCast({
-            state,
-            actors: input.actors,
-            prepared,
-            casterEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
+        return counteredCast(
+          {
+            countered: advanced,
             reactorEffects:
               input.activeEffectsByActorId.get(advanced.found.prepared.actor.id) ?? [],
-            triggerLevel,
-            actionEconomy: cast.actionEconomy,
-            ruleOverrides: cast.ruleOverrides,
-            occurrenceId: input.occurrenceId,
-            occurrenceVersion: cast.occurrenceVersion,
-            commandId: command.commandId,
-            occurredAt: input.occurredAt,
-            userId: input.userId,
-            countered: advanced,
-            usedReactions: await planUsedReactions(advanced.usedReactions)
-          })
-        }
+            triggerLevel
+          },
+          advanced.usedReactions
+        )
+      if (advanced.kind === 'CHILD') return awaitChild(advanced)
       if (advanced.kind === 'OFFER' || advanced.kind === 'CHECK')
         return {
           kind: 'CAST_PENDING' as const,
@@ -377,9 +461,10 @@ export function createNativeCastPause(input: {
         answer: aimedAnswer,
         triggerLevel: null,
         // The creature whose child the action resumes from has been heard, like one that declined.
-        declinedReactorActorIds: resumedOffer
-          ? [...resumedOffer.declinedReactorActorIds, resumedOffer.reactorActorId]
-          : [],
+        declinedReactorActorIds:
+          resumedOffer?.kind === 'ATTACK_ON_OTHER'
+            ? [...resumedOffer.declinedReactorActorIds, resumedOffer.reactorActorId]
+            : [],
         runsAsChild: true
       }
     ]) {
@@ -399,44 +484,7 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds: stage.declinedReactorActorIds,
         runsAsChild: stage.runsAsChild
       })
-      // The reaction chosen runs as its holder's own action at the creature acting: the room commits
-      // that child, then resumes this action, which keeps the answered offer until then.
-      if (advanced.kind === 'CHILD') {
-        const childScene = await readScene()
-        const holderToken = childScene.tokens.find(
-          (token) => token.actorId === advanced.child.holderActorId
-        )
-        return {
-          kind: 'CAST_PENDING' as const,
-          continuation: advanced.continuation,
-          rollerActorId: advanced.child.holderActorId,
-          pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          usedReactions: advanced.usedReactions,
-          reactionChildren: [
-            ...reactionChildren,
-            {
-              commandId: systemTriggerCommandId(
-                command.commandId,
-                advanced.child.holderActorId,
-                advanced.child.actionId
-              )
-            }
-          ],
-          // The child is judged on the Scene the reaction was offered on.
-          reactionChild: {
-            ...advanced.child,
-            targetActorId: prepared.actor.id,
-            sceneContext: holderToken
-              ? {
-                  sceneId: childScene.sceneId,
-                  expectedSceneVersion: childScene.sceneVersion,
-                  sourceTokenId: holderToken.tokenId,
-                  targetTokenId: childScene.sourceToken.tokenId
-                }
-              : null
-          }
-        }
-      }
+      if (advanced.kind === 'CHILD') return awaitChild(advanced)
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,

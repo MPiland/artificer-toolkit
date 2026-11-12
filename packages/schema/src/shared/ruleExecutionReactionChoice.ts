@@ -450,8 +450,10 @@ export const encounterWindowReactionReceiptDtoSchema: z.ZodMiniType<EncounterWin
   )
 
 /**
- * The root of a cast a reaction countered: the caster still spends its slot and action, nothing the
- * spell would have done is applied, and the counter's receipt records the reactor's own spend.
+ * The root of a cast a reaction countered: the caster still spends its slot and action, and nothing the
+ * spell would have done is applied. The counter's receipt records the reactor's own spend when this
+ * commit made it; it is null when the counter ran as its holder's own action (D219), whose own receipt
+ * records that spend.
  */
 const encounterCounteredCastApplicationOutputImplSchema = lazySchema(() =>
   z
@@ -462,12 +464,12 @@ const encounterCounteredCastApplicationOutputImplSchema = lazySchema(() =>
       sourceActorId: uuidSchema,
       sourceCharacterId: z.nullable(uuidSchema),
       ...sourceSpendReceiptShape(),
-      counter: encounterCounteredCastReceiptDtoSchema
+      counter: z.nullable(encounterCounteredCastReceiptDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
         validateSourceSpendReceipts(value, context)
-        if (value.counter.reaction.reactorActorId === value.sourceActorId)
+        if (value.counter?.reaction.reactorActorId === value.sourceActorId)
           context.addIssue({
             code: 'custom',
             path: ['counter', 'reaction', 'reactorActorId'],
@@ -483,7 +485,7 @@ export type EncounterCounteredCastApplicationOutputDto = SourceSpendReceipts & {
   occurrenceId: string
   sourceActorId: string
   sourceCharacterId: string | null
-  counter: EncounterCounteredCastReceiptDto
+  counter: EncounterCounteredCastReceiptDto | null
 }
 
 /** Named so the application-output union prints this member by name (TS7056). */

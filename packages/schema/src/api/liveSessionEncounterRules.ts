@@ -106,7 +106,7 @@ export const liveSessionEncounterTurnCommandSchema = lazySchema(() =>
 /**
  * The committed child actions of the reactions chosen against a pending action (D219), in the order
  * the action records them: who reacted with what, and whether the child's committed execution
- * imposes a roll mode on the action's roll.
+ * imposes a roll mode on the action's roll or cancels the action itself.
  */
 const liveSessionReactionChildrenSchema = lazySchema(() =>
   z
@@ -115,7 +115,8 @@ const liveSessionReactionChildrenSchema = lazySchema(() =>
         commandId: postgresUuidSchema,
         reactorActorId: postgresUuidSchema,
         actionId: encounterActionIdSchema,
-        imposesRollMode: z.boolean()
+        imposesRollMode: z.boolean(),
+        cancelsTriggeringEvent: z.boolean()
       })
     )
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

@@ -345,6 +345,25 @@ export function castCounteredCarriesUsedReactions(
   )
 }
 
+/**
+ * Whether a cast lost to the reaction child it resumes from (D219) carries exactly the failed counters
+ * it held: the child spent its own counter, which owed no check and stood in no chain, so the cast's
+ * commit spends no other.
+ */
+export function castCancelledByChildCarriesUsedReactions(
+  previous: CastPendingContext,
+  next: CastPendingContext
+): boolean {
+  const castReaction = castReactionOf(previous)
+  return (
+    castReaction != null &&
+    !castReaction.check &&
+    !castReaction.chain &&
+    awaitsReactionChild(previous) &&
+    sameMembers(usedReactorIds(next), usedReactorIds(previous))
+  )
+}
+
 /** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {
   pause?:

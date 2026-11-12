@@ -86,8 +86,24 @@ describe('removing a creature that several rays are aimed at', () => {
     expect(removed.removedActorIds).toEqual([FIRST, FIRST])
   })
 
-  it('refuses the creature once any ray aimed at it has been answered', () => {
-    const before = context([{ actorId: FIRST }, { actorId: FIRST, testedJson: '{}' }])
+  it('drops only the rays still unanswered, and keeps the ones already rolled', () => {
+    const before = context([
+      { actorId: FIRST, testedJson: '{}' },
+      { actorId: SECOND },
+      { actorId: FIRST },
+      { actorId: FIRST }
+    ])
+    const removed = removeEncounterAreaTarget(before, FIRST)
+    if (removed.kind !== 'REMOVED') throw new Error('Expected the creature to be removed.')
+    expect(removed.targets).toEqual([before.targets[0], before.targets[1]])
+    expect(removed.removedActorIds).toEqual([FIRST, FIRST])
+  })
+
+  it('refuses the creature once every ray aimed at it has been answered', () => {
+    const before = context([
+      { actorId: FIRST, testedJson: '{}' },
+      { actorId: FIRST, testedJson: '{}' }
+    ])
     expect(removeEncounterAreaTarget(before, FIRST)).toEqual({ kind: 'ANSWERED' })
   })
 })

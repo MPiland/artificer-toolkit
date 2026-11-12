@@ -751,6 +751,19 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
         )
       )
       .sort((left, right) => left - right)
+  /** The pending list as the room keeps it: every sealed ray, answered or not. */
+  const sealedRays = (room: HealerRoom) =>
+    runInDurableObject(room.room.base.stub, async (_instance, context) => {
+      const store = new RoomEncounterStore(context.storage)
+      const occurrence = store
+        .documents('encounterRuleOccurrences')
+        .find((candidate) => candidate.state === 'PENDING')
+      if (!occurrence) throw new Error('No area action is pending.')
+      const snapshot = await readPendingSnapshot({ db: store.store }, occurrence)
+      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+        throw new Error('Expected the pending area action.')
+      return snapshot
+    })
   const scorchingRay = (config: { rolls: readonly number[]; autoRoll?: 'BOTH' }) =>
     healerRoom({
       spell: scorchingRaySpell,
@@ -775,8 +788,9 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
 
     const { answer } = await room.startActorsAction([first, first, second], [], true)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // One ray at a time (QUALITY-13.T1c1): only the first ray awaits its attack roll.
     const { rays } = await pendingRays(room)
-    expect(rays.map((ray) => ray.targetActorId)).toEqual([first, first, second])
+    expect(rays.map((ray) => ray.targetActorId)).toEqual([first])
     expect(await hitPointsOf(room)).toEqual(before)
     // The slot is spent when the cast commits, with the last ray.
     expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
@@ -805,44 +819,91 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
     const room = await scorchingRay({ rolls: [] })
     await room.startActorsAction([first, first, second], [], true)
 
-    const verdicts = await runInDurableObject(room.room.base.stub, async (_instance, context) => {
-      const store = new RoomEncounterStore(context.storage)
-      const occurrence = store
-        .documents('encounterRuleOccurrences')
-        .find((candidate) => candidate.state === 'PENDING')
-      if (!occurrence) throw new Error('No area action is pending.')
-      const snapshot = await readPendingSnapshot({ db: store.store }, occurrence)
-      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+    const snapshot = await sealedRays(room)
+    const accepts = (
+      mutate: (targets: EncounterAreaActionPendingContextDto['targets']) => void
+    ) => {
+      const copy = structuredClone(snapshot)
+      if (copy.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
         throw new Error('Expected the pending area action.')
-      const accepts = (
-        mutate: (targets: EncounterAreaActionPendingContextDto['targets']) => void
-      ) => {
-        const copy = structuredClone(snapshot)
-        if (copy.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
-          throw new Error('Expected the pending area action.')
-        mutate(copy.applicationContext.targets)
-        return serverAggregateChoicePendingSnapshotDtoSchema.safeParse(copy).success
-      }
-      return {
-        intact: accepts(() => {}),
-        creatureRollsRepeat: accepts((targets) => {
-          for (const target of targets)
-            if (target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION')
-              target.snapshot.applicationContext.rollerActorId = target.actorId
-        }),
-        occurrenceRepeats: accepts((targets) => {
-          targets[1]!.snapshot.occurrenceId = targets[0]!.snapshot.occurrenceId
-        })
-      }
-    })
+      mutate(copy.applicationContext.targets)
+      return serverAggregateChoicePendingSnapshotDtoSchema.safeParse(copy).success
+    }
+    const verdicts = {
+      intact: accepts(() => {}),
+      creatureRollsRepeat: accepts((targets) => {
+        for (const target of targets)
+          if (target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION')
+            target.snapshot.applicationContext.rollerActorId = target.actorId
+      }),
+      occurrenceRepeats: accepts((targets) => {
+        targets[1]!.snapshot.occurrenceId = targets[0]!.snapshot.occurrenceId
+      })
+    }
 
     expect(verdicts).toEqual({ intact: true, creatureRollsRepeat: false, occurrenceRepeats: false })
   }, 120000)
 
+  it('offers one ray at a time in the order named, and rolls each ray with its own answer', async () => {
+    // The first ray's 2d6 are the raw 0 and 1 (a 1 and a 2); the critical ray rolls every die as a 6.
+    const room = await scorchingRay({ rolls: [0, 1] })
+    const before = await hitPointsOf(room)
+    await room.startActorsAction([first, second, first], [], true)
+    const sealedRequestIds = async () => {
+      const { applicationContext } = await sealedRays(room)
+      if (applicationContext.kind !== 'ENCOUNTER_AREA_ACTION') throw new Error('Expected the rays.')
+      return applicationContext.targets.map((target) => target.snapshot.request.requestId)
+    }
+    const requestIds = await sealedRequestIds()
+    expect(requestIds).toHaveLength(3)
+    const pendingRequestIds = async () =>
+      (await pendingRays(room)).rays.map((ray) => ray.request.requestId)
+
+    // A ray behind an unanswered one is neither offered nor answerable.
+    const { decision, rays } = await pendingRays(room)
+    expect(rays.map((ray) => ray.request.requestId)).toEqual([requestIds[0]])
+    const early = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: requestIds[2]!,
+        rawFaces: [HIT],
+        rollMode: rays[0]!.request.rollMode
+      })
+    )
+    expect(early.type).not.toBe('COMMAND_COMMITTED')
+    expect(await pendingRequestIds()).toEqual([requestIds[0]])
+
+    // The hit rolls its damage with its answer, and keeps the dice it rolled.
+    await answerRay(room, first, HIT)
+    expect(await pendingRequestIds()).toEqual([requestIds[1]])
+    const afterFirst = await sealedRays(room)
+    if (afterFirst.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+      throw new Error('Expected the rays.')
+    expect(afterFirst.applicationContext.targets.map((target) => target.rolls)).toEqual([
+      [
+        { maximum: 6, value: 0 },
+        { maximum: 6, value: 1 }
+      ],
+      undefined,
+      undefined
+    ])
+    await answerRay(room, second, MISS)
+    expect(await pendingRequestIds()).toEqual([requestIds[2]])
+    expect(await hitPointsOf(room)).toEqual(before)
+    await answerRay(room, first, CRIT)
+
+    // The first ray's damage is the dice it kept, never rolled again: 40 - 3 - 24.
+    expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 13 })
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(children).toHaveLength(3)
+    expect(requestedDamage(children)).toEqual([3, 24])
+  }, 120000)
+
   it('settles at once when the caster rolls for themself', async () => {
-    // The three attack rolls first (a hit, a critical hit, a miss), then the first ray's 2d6 (a 1 and a
-    // 2) and the critical ray's 4d6, each a 6.
-    const room = await scorchingRay({ rolls: [18, 19, 0, 0, 1], autoRoll: 'BOTH' })
+    // Each ray in turn (QUALITY-13.T1c1): a hit and its 2d6 (a 1 and a 2), a critical hit and its
+    // 4d6, each a 6, then a miss.
+    const room = await scorchingRay({ rolls: [18, 0, 1, 19, 5, 5, 5, 5, 0], autoRoll: 'BOTH' })
     const before = await hitPointsOf(room)
 
     const { answer } = await room.startActorsAction([first, second, third], [], true)
@@ -876,6 +937,28 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
     expect(removal.type, JSON.stringify(removal)).toBe('COMMAND_COMMITTED')
 
     expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 40 - 3 })
+  }, 120000)
+
+  it('lets the GM take out only the rays still unanswered at a creature', async () => {
+    const room = await scorchingRay({ rolls: [0, 1] })
+    const before = await hitPointsOf(room)
+    await room.startActorsAction([first, first, second], [], true)
+    await answerRay(room, first, HIT)
+
+    const removal = await room.send(
+      room.removeAreaTargetCommand(await room.pendingDecision(), first)
+    )
+    expect(removal.type, JSON.stringify(removal)).toBe('COMMAND_COMMITTED')
+    // The second ray at the creature is gone; the ray already rolled stays and the list goes on.
+    expect((await pendingRays(room)).rays.map((ray) => ray.targetActorId)).toEqual([second])
+    expect(await hitPointsOf(room)).toEqual(before)
+    await answerRay(room, second, MISS)
+
+    expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 40 - 3 })
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(children).toHaveLength(2)
+    expect(requestedDamage(children)).toEqual([3])
   }, 120000)
 
   it('fires a second beam from the 5th level, which meets the hit points the first left', async () => {

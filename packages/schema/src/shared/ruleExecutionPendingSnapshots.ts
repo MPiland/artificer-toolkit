@@ -592,6 +592,12 @@ export type EncounterAreaActionPendingContextDto = {
      * (D168); `testedJson` then holds the settled window. The windows open one at a time, in initiative order.
      */
     rolledJson?: string
+    /**
+     * The roll tape of an answered attack roll its caster makes one at a time (a ray): every die its
+     * roll and its outcome rolled, in roll order, each with its width and zero-based value. A later
+     * ray at the creature and the commit replay it, so no die is rolled twice.
+     */
+    rolls?: { maximum: number; value: number }[]
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -657,6 +663,18 @@ const encounterAreaTokenDtoSchema = lazySchema(() =>
 )
 export type EncounterAreaTokenDto = z.infer<typeof encounterAreaTokenDtoSchema>
 
+/** A frozen roll tape in roll order: each roll's width and its zero-based value. */
+const encounterFrozenRollsSchema = lazySchema(() =>
+  z
+    .array(
+      z
+        .strictObject({ maximum: positiveIntegerSchema, value: nonNegativeIntegerSchema })
+        .check(z.refine(({ maximum, value }) => value < maximum, 'A roll is under its width.'))
+    )
+    .check(z.minLength(1))
+    .check(z.maxLength(MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS))
+)
+
 const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -706,16 +724,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       damageRoll: z.optional(
         z
           .strictObject({
-            rolls: z
-              .array(
-                z
-                  .strictObject({ maximum: positiveIntegerSchema, value: nonNegativeIntegerSchema })
-                  .check(
-                    z.refine(({ maximum, value }) => value < maximum, 'A roll is under its width.')
-                  )
-              )
-              .check(z.minLength(1))
-              .check(z.maxLength(MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS)),
+            rolls: encounterFrozenRollsSchema,
             window: z.optional(z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema)),
             reroll: z.optional(damageRerollCostDtoSchema)
           })
@@ -746,6 +755,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
                 .check(z.maxLength(MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS))
             ),
             rolledJson: z.optional(z.string()),
+            rolls: z.optional(encounterFrozenRollsSchema),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
@@ -803,7 +813,8 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               message: 'A token footprint is sealed only against a Scene that was read.'
             })
           // A creature's own save is rolled by the creature, once. An attack ray is rolled by the
-          // caster, and a creature several rays are aimed at has an entry for each.
+          // caster, and a creature several rays are aimed at has an entry for each; the rays answered
+          // before the GM took the creature out stay.
           const casterRolls =
             inner.kind === 'ENCOUNTER_ACTION' && inner.rollerActorId === value.casterActorId
           // A creature a mover struck makes its own save besides any the area caught it for, and may
@@ -814,7 +825,8 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             seenOccurrences.has(target.snapshot.occurrenceId) ||
             (!struck &&
               ((seen.has(target.actorId) && !casterRolls) ||
-                value.removedActorIds.includes(target.actorId) ||
+                (value.removedActorIds.includes(target.actorId) &&
+                  !(casterRolls && target.testedJson !== undefined)) ||
                 value.unaffectedActorIds?.includes(target.actorId))) ||
             inner.commandFingerprint !== value.commandFingerprint ||
             inner.initiatorUserId !== value.initiatorUserId ||
@@ -833,6 +845,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['targets', index, 'testDice'],
               message: 'A save’s TEST dice are kept only with its answer.'
+            })
+          if (target.rolls && target.testedJson === undefined)
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'rolls'],
+              message: 'A roll tape is kept only with its answer.'
             })
           if (target.legendaryResistance) {
             if (

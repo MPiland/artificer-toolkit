@@ -202,8 +202,8 @@ export function reactionChildrenKept(
 
 /**
  * The committed child actions among those a pending action records, in recorded order: who reacted
- * with what, and whether the System reads a roll mode imposed on the action's roll from the child's
- * stored execution. A recorded child that has not committed is left out.
+ * with what, and whether the System reads a roll mode imposed on the action's roll, or the action's
+ * cancellation, from the child's stored execution. A recorded child that has not committed is left out.
  */
 export async function readCommittedReactionChildren(
   ctx: EncounterReadContext,
@@ -233,12 +233,13 @@ export async function readCommittedReactionChildren(
       JSON.parse(command.commandJson)
     )
     const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+    const completed = execution.status === 'COMPLETE' ? execution : null
     children.push({
       commandId,
       reactorActorId: actorId,
       actionId,
-      imposesRollMode:
-        execution.status === 'COMPLETE' && outcomes.imposesRollModeOnTriggeringRoll(execution)
+      imposesRollMode: completed !== null && outcomes.imposesRollModeOnTriggeringRoll(completed),
+      cancelsTriggeringEvent: completed !== null && outcomes.cancelsTriggeringEvent(completed)
     })
   }
   return children

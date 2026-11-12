@@ -193,6 +193,13 @@ export async function readNativeEncounterActionResponseAdmission(
   // A chosen reaction's child action is still to commit or be resumed from (D219): the offer it
   // answered takes no further answer.
   if (awaitsReactionChild(pending.context)) rejectDomain('DECISION_NOT_PENDING')
+  const awaiting =
+    area && areaSave
+      ? encounterAreaSaveAwaiting(
+          { casterActorId: area.context.casterActorId, targets: area.targets },
+          areaSave
+        )
+      : undefined
   if (areaPick) {
     if (
       answer.kind !== 'FORCED_MOVEMENT' ||
@@ -205,11 +212,10 @@ export async function readNativeEncounterActionResponseAdmission(
     if (!offer || offer.decision) rejectDomain('DECISION_NOT_PENDING')
     if (answer.decision.kind === 'USE' && answer.decision.optionId !== offer.resistance.useOptionId)
       rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
-  } else if (areaSave && encounterAreaSaveAwaiting(areaSave) === null)
-    rejectDomain('DECISION_NOT_PENDING')
+  } else if (awaiting === null) rejectDomain('DECISION_NOT_PENDING')
   else if (
-    areaSave &&
-    (encounterAreaSaveAwaiting(areaSave) === 'WINDOW') !==
+    awaiting !== undefined &&
+    (awaiting === 'WINDOW') !==
       (answer.kind === 'ROLL_WINDOW_USE' || answer.kind === 'ROLL_WINDOW_DECLINE')
   )
     rejectDomain('VERSION_STALE', 'The area save is not at this step.')
