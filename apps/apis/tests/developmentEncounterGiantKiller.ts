@@ -128,8 +128,12 @@ export async function verifyEncounterGiantKiller({
     })
   )
   // The Ogre's d20 shows a hit; the room then raises the Hunter's reaction offer as the pending decision.
-  const offered = await settle(attack, 19, 'REACTION_OFFER')
-  assert.equal(offered.occurrence?.pending?.kind, 'REACTION_OFFER', 'The hit raises the offer.')
+  await settle(attack, 19, 'REACTION_OFFER')
+  await checkpoint()
+  const offer = await owner.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    encounterId
+  })
+  assert.equal(offer?.kind, 'REACTION_OFFER', 'The hit raises the offer.')
   assert.ok(((await hitPoints(hero.id)) ?? 0) < heroFull, 'The Greatclub hit the Hunter.')
   assert.equal(await hitPoints(creature.id), ogreFull, 'The Ogre is unhurt before the answer.')
 
