@@ -26120,18 +26120,33 @@
               "proof": "m699 (83eef6ccd) from slice tip 735ef2928: Tests 43164605056, Live 43164605003, Browser journeys 43164605051 green; ci/merge-m699 Tests 43167416190, Live 43167419664, Browser journeys 43167423185 green. A ray list is answered strictly in order (encounterAreaSaveAwaiting shows only the next ray; out-of-turn answers refused in Worker, Convex admission and markEncounterAreaSaveTested); each answer runs advanceNativeActionGraphs via advanceEncounterListAttacks on the hit points earlier rays left, and keeps a roll tape replayed at Commit; GM removal takes only unanswered rays. Spec-dictated literals: pending rays [first] (was [first, first, second]); a dice script reordered per ray. Red proof: nativeRoomChosenActorsSpell.test.ts RED (4 of 39); encounterAreaPending.test.ts RED (1 of 13). Persisted shape: optional rolls on an area target record."
             },
             {
-              "id": "QUALITY-13.T1c2",
+              "id": "QUALITY-13.T1c2a",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-13.T2b", "QUALITY-13.T2c"]
+              },
+              "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
+              "text": "Extract the single-target between-phase reaction orchestration (discover, settle the pause answer, replay retained reaction, Legendary Resistance and audit; reaction use, effect and spends fed to the outcome planner) into one per-target function the single-target planner calls. Pure refactor."
+            },
+            {
+              "id": "QUALITY-13.T1c2b",
               "status": "TODO",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
-                "after": ["QUALITY-13.T2b", "QUALITY-13.T2c"]
+                "size": 2,
+                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d", "QUALITY-9.T1b3"]
               },
-              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
-              "text": "Hit reactions per ray: the between-phase orchestration becomes one per-target function used by single-target and ray paths; a ray's pause lives in its own inner snapshot; a reaction's effect holds for later rays; its cost and D219 child commit under the root."
+              "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
+              "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start."
             },
             {
               "id": "QUALITY-13.T1c3",
@@ -26142,7 +26157,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-13.T1c2"]
+                "after": ["QUALITY-13.T1c2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
               "text": "Protection, bystander reaction children and roll reactions per ray, with their spends in the commit."
@@ -26156,7 +26171,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T1c2"]
+                "after": ["QUALITY-13.T1c2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
               "text": "On-hit riders and the incoming gate per ray: the gate is passed per attack TEST; a ray lost at the gate offers ATTACK_RETARGET for that ray only (re-seals its own entry); a slot or pool spent on one ray is not offered on the next."
@@ -26195,7 +26210,7 @@
             },
             {
               "id": "QUALITY-13.T2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -26206,7 +26221,8 @@
               },
               "note": "Split 2026-11-12 from QUALITY-13.T2 at the seam trace (two layers, two assemblers each), within AC QUALITY-13.1 (no scope growth).",
               "text": "One per-target outcome settlement in persistence, called by the single-target commit and the area child loop: target mechanics, reaction spend, window reactions, charge and reaction economy, on-hit use spends and D219 children; area tests unchanged.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T16:11:01Z",
+              "proof": "m708 (649b9959b) from slice tip 7193ae229: Tests 43252940474, Live 43252940741, Browser journeys 43252940491 green; merge-slice run 43255673990. settleActionTargetOutcome (packages/encounter-persistence/src/actionTargetOutcomeSettlement.ts) settles one target's outcome for the action and area commits: reaction scope and slot spend, the one target mechanics batch with every riding spend, the common receipt check, the charge scope check and the charge/reaction-economy settle. On-hit use spends and D219 children stay in the single-target commit; caller-only receipt checks stay per caller; error literals unchanged; only which error wins when two mismatches coincide may differ (one transaction). Pure refactor: red proof skipped, no golden moved."
             }
           ]
         },
