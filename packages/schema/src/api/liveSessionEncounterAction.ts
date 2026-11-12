@@ -253,6 +253,11 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The spell's per-effect ability checks, pending on the caster's d20 under this cast's root (D182a). */
   spellCheck?: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>
+  /**
+   * The reactions this attack offers other creatures once it has resolved (D219), one offer for each
+   * reactor: its commit stores them queued, and the room raises them one at a time afterwards.
+   */
+  reactionOffers: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>[]
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /**
@@ -308,6 +313,9 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       ...liveSessionEncounterConcentrationFields(),
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
       spellCheck: z.optional(serverRuleExecutionPendingSnapshotDtoSchema),
+      reactionOffers: z
+        .array(serverRuleExecutionPendingSnapshotDtoSchema)
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
@@ -332,6 +340,7 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'concentrationEnds'
   | 'endedGrants'
   | 'cleaving'
+  | 'reactionOffers'
   | 'turnUses'
   | 'spentUseGrants'
   | 'forcedMovements'
@@ -452,6 +461,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'execution'
   | 'createdEffects'
   | 'cleaving'
+  | 'reactionOffers'
   | 'turnUses'
   | 'spentUseGrants'
   | 'reactionSpellConsumption'

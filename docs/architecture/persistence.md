@@ -348,15 +348,28 @@ result path of that test, the outcome its reaction trigger resumes by (`dnd5eTes
 to the path, so a failed save imposes it and a passed one imposes nothing. Recovery after a crash between
 the child's commit and the resume is the GM's void.
 
-Post-commit reaction offer (current in persistence, QUALITY-8.T1c2a, D219; inert: nothing raises one until
-the room does in QUALITY-8.T1c2b). A reaction that answers an attack's outcome is offered after the attack
-has committed, as a rule occurrence of its own (`insertReactionOffer`, `reactionOffer.ts`): an
-`AGGREGATE_CHOICE` snapshot whose context kind is `ENCOUNTER_REACTION_OFFER`, naming the committed attack
-command and its occurrence, the reactor, the attacker and the reactor's options. Its id is derived from the
-attack command and the reactor (`reactionOfferOccurrenceId`), so an attack offers a reactor once and a chain
-of reactions ends. It is raised only while the Run has no pending decision, so several reactors are offered
-one at a time. It is shown to the reactor's controller and the GM (`projectReactionOfferPending`). It has no
-timer: an offer whose reactor does not answer waits until the GM voids it, and the void settles it as a
+Post-commit reaction offer (D219; current: planned, queued and raised since QUALITY-8.T1c2b1; transitional:
+the room's answer route and the child's run land in QUALITY-8.T1c2b2). A reaction that answers an attack's
+outcome is planned with the attack and raised after it has committed. The trigger is checked at plan time:
+the attack's planner (`planNativeResolvedAttackOffers`, Session Worker) asks the event table whether the
+resolved attack meets a reaction the attacked Character holds, and prepares each such reaction against the
+attacker; an attack made off a Scene plans none. The plan carries one offer per reactor
+(`reactionOffers` on the commit input), and the attack's own commit stores each as a rule occurrence in
+state `QUEUED` (`queueReactionOffer`, `reactionOffer.ts`): an `AGGREGATE_CHOICE` snapshot whose context kind
+is `ENCOUNTER_REACTION_OFFER`, naming the committed attack command and its occurrence, the reactor, the
+attacker, the reactor's reaction allowance as planned, and the reactor's options with their labels. Its id
+is derived from the attack command and the reactor (`reactionOfferOccurrenceId`), so an attack offers a
+reactor once and a chain of reactions ends. A `QUEUED` occurrence is no pending decision: nothing shows it
+or answers it. Liveness is checked at raise: after each room command, `raiseQueuedReactionOffer` raises the
+next queued offer (earliest attack first, reactors in actor-id order) as `PENDING`, pinned to the Run as it
+stands, only while the Run has no pending decision, so several reactors are offered one at a time. It reads
+committed state alone and voids an offer whose reactor or attacker has left the Run, whose reactor has
+departed or is at 0 hit points, or whose reactor has used its reaction since the attack; staleness between
+the commit and the raise beyond that is refused by the chosen reaction's own prepare. Undo voids the queued
+offers of the attacks it takes back (`voidQueuedReactionOffers`), and a finished Run deletes them with its
+other occurrences. A raised offer is shown to the reactor's controllers, the GM among them
+(`projectReactionOfferPending`), whatever they see of the attacker: only the authored trigger hides an
+offer. It has no timer: an offer whose reactor does not answer waits until the GM voids it, and the void settles it as a
 decline (`classifyRuleOccurrenceVoid`). The answer (`persistReactionOfferAnswer`, `reactionOfferAnswer.ts`)
 closes the offer first: one command completes the occurrence, moves the Run on one version, changes no
 creature, and stores a receipt (transition `REACTION_OFFER`, output `REACTION_OFFER_ANSWER`) that records

@@ -605,7 +605,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .array(
             z.strictObject({
               optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-              actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+              actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+              label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
             })
           )
           .check(z.minLength(1))
