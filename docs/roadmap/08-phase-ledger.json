@@ -17506,7 +17506,8 @@
                 "size": 3,
                 "after": ["QUALITY-8.T1b"]
               },
-              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
+              "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4k2a",
@@ -25564,7 +25565,7 @@
             },
             {
               "id": "QUALITY-8.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -25575,11 +25576,12 @@
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth). Rescoped 2026-11-11 (D219): owner-at-creation dropped; CANCEL and REBIND_TEST proofs move to QUALITY-9.T1.",
               "text": "Persisted SUSPENDED occurrence state, set when a reaction child pauses (one PENDING occurrence per Run kept); the child final commit returns the parent to PENDING and the room resumes it; void of a pending child cancels it and returns its reaction; a homebrew reaction behind its own save proves ADJUST_ROLL and NOTHING.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T02:48:08Z",
+              "proof": "m696 (247b62f0f, batch ci/merge-m696: Tests 43143922760, Live 43143925491, Browser journeys 43143928674 green; an earlier m695 attempt failed on a vtt-browser door-menu flake that passed on rerun) from slice tip 93e65eb40: Tests 43133908043, Live 43133907997, Browser journeys 43133908113. The child's first pending insert suspends the parent; its commit re-pins the parent to PENDING and the room resumes it (RESUME_ACTION, room-internal); voiding the paused child releases the parent and reopens the offer; voiding a suspended parent is refused. A homebrew ATTACK_ON_OTHER reaction behind a Wisdom save proves ADJUST_ROLL and NOTHING. Every reaction child carries its offer Scene ref; voids count toward the pin and replay fence. Red proof: nativeRoomReactionSave.test.ts RED (6 of 6), reactionChildren.test.ts RED (7 of 27), reactionTriggerCompile.test.ts RED (1 of 20), nativeRoomProtection.test.ts RED (1 of 10, child commandJson now carries the Scene ref). Persisted shape: occurrence state gains SUSPENDED (D196 reset when next used). Follow-ups: re-choosing a reaction after its child was voided is refused (COMMAND_ID_REUSED); no room test for two-reactor void/undo; a system-raised child warning still rejects the OPTION answer."
             },
             {
               "id": "QUALITY-8.T1c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25589,14 +25591,15 @@
                 "after": ["QUALITY-8.T1b"]
               },
               "note": "Split 2026-11-11 from QUALITY-8.T1 at the seam audit (D219), within AC QUALITY-8.1 (no scope growth).",
-              "text": "Giant Killer as a post-commit child (resume NOTHING) raised after the attack commits; a reaction-activated Feature weapon attack pairs with the wielded weapon action attack; a reactor dropped to 0 gets no offer; one offer with one option per wielded weapon. Ships with SPELLS-31.T4k1c."
+              "text": "Giant Killer as a post-commit child (resume NOTHING) raised after the attack commits; a reaction-activated Feature weapon attack pairs with the wielded weapon action attack; a reactor dropped to 0 gets no offer; one offer with one option per wielded weapon. Ships with SPELLS-31.T4k1c.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
         {
           "id": "QUALITY-9",
           "title": "Cast, roll-window and movement reactions use the shared pipeline",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -25617,7 +25620,7 @@
           "tasks": [
             {
               "id": "QUALITY-9.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25626,7 +25629,8 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1b"]
               },
-              "text": "Fold cast and roll-window reactions (R5); delete their pause kinds. Proves the CANCEL and REBIND_TEST resume modes behind the reaction child own roll or save (QUALITY-8.1, D219)."
+              "text": "Fold cast and roll-window reactions (R5); delete their pause kinds. Proves the CANCEL and REBIND_TEST resume modes behind the reaction child own roll or save (QUALITY-8.1, D219).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T2",
@@ -25828,9 +25832,8 @@
             },
             {
               "id": "QUALITY-13.T1a1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
@@ -25839,11 +25842,13 @@
                 "after": ["QUALITY-13.T1b"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1a at the seam trace, within AC QUALITY-13.1 (no scope growth). Orchestrator rulings: TEST table dice rolled after a sealed d20 are the System's (rules-runtime.md, SPELLS-4.T2ps-d3), the one behaviour change; single-graph plans keep a small roll loop in advanceNativeActionGraphs (sight-held die and damage hold only).",
-              "text": "The TEST phase and fresh OUTCOME of advanceNativeActionGraphs delegate to prepareNativeActionTest and continueNativeActionAfterTest; Legendary Resistance and hit-reaction discovery stay between them (candidates withheld when absorbed by a decoy); its TEST save-window and sight logic is deleted; table dice after a sealed d20 roll as the System's."
+              "text": "The TEST phase and fresh OUTCOME of advanceNativeActionGraphs delegate to prepareNativeActionTest and continueNativeActionAfterTest; Legendary Resistance and hit-reaction discovery stay between them (candidates withheld when absorbed by a decoy); its TEST save-window and sight logic is deleted; table dice after a sealed d20 roll as the System's.",
+              "mergedAt": "2026-11-12T02:48:08Z",
+              "proof": "m696 (247b62f0f, batch ci/merge-m696: Tests 43143922760, Live 43143925491, Browser journeys 43143928674 green; an earlier m695 attempt failed on a vtt-browser door-menu flake that passed on rerun) from slice tip 393b7433a: Tests 43136272818, Live 43136272784, Browser journeys 43136272852. advanceNativeActionGraphs seals a two-phase TEST through prepareNativeActionTest, runs Legendary Resistance, reaction and on-hit discovery (withheld when a decoy absorbs), then continueNativeActionAfterTest; its own TEST block is deleted; table dice after a sealed d20 roll as the System's. Red proof: rollTable.test.ts RED (1 of 44); encounterActionExecution.test.ts ALREADY-PASSING (D168 nested save window guard). No golden moved."
             },
             {
               "id": "QUALITY-13.T1a2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -25853,7 +25858,8 @@
                 "after": ["QUALITY-13.T1a1"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1a at the seam trace, within AC QUALITY-13.1 (no scope growth). Orchestrator rulings: TEST table dice rolled after a sealed d20 are the System's (rules-runtime.md, SPELLS-4.T2ps-d3), the one behaviour change; single-graph plans keep a small roll loop in advanceNativeActionGraphs (sight-held die and damage hold only).",
-              "text": "Resumed OUTCOME answers and DAMAGE_REROLL resume through continueNativeActionAfterTest from a boundary rebuilt from the retained OUTCOME (post-d20 dice read from the retained execution); advanceNativeActionGraphs moves to its own module to break the reconstruction import cycle; its remaining two-phase logic is deleted; audit staleness on a resumed OUTCOME is covered by tests."
+              "text": "Resumed OUTCOME answers and DAMAGE_REROLL resume through continueNativeActionAfterTest from a boundary rebuilt from the retained OUTCOME (post-d20 dice read from the retained execution); advanceNativeActionGraphs moves to its own module to break the reconstruction import cycle; its remaining two-phase logic is deleted; audit staleness on a resumed OUTCOME is covered by tests. The Worker reaction paths that call continueNativeActionAfterTest pass the D168 saveWindow too, so an auto-rolled nested save there opens its window; the on-hit hold moves only if ordering is kept.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T1c",
