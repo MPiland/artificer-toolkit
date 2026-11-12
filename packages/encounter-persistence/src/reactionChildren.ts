@@ -2,6 +2,7 @@ import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/
 import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { reactionOfferOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -51,17 +52,22 @@ async function repinSuspendedAncestors(
 ) {
   for (let current = held; ;) {
     // A contested escape's root is the escape itself (D152): no reaction child.
-    const trigger = current.context.contest
+    const command = current.context.contest
       ? undefined
       : resolveEncounterActionInputDtoSchema.parse(JSON.parse(current.context.commandJson))
-          .systemTrigger
-    if (trigger?.trigger !== 'REACTION') return
-    const above = await readRecordingParent(ctx, {
+    if (command?.systemTrigger?.trigger !== 'REACTION') return
+    const link = {
       campaignId: current.parent.campaignId,
       encounterId: current.parent.encounterId,
-      parentCommandId: trigger.parentCommandId.toLowerCase(),
+      parentCommandId: command.systemTrigger.parentCommandId.toLowerCase(),
       childCommandId: current.parent.rootCommandId
-    })
+    }
+    // A child an offer's answer records answers a committed action: nothing above it is held.
+    if (
+      await readReactionOfferChild(ctx, { ...link, reactorActorId: command.actorId.toLowerCase() })
+    )
+      return
+    const above = await readRecordingParent(ctx, link)
     if (above?.parent.state !== 'SUSPENDED')
       throw new Error('The reaction’s pending action is gone.')
     await ctx.db.patch(above.parent._id, { expectedEncounterVersion: version })
@@ -98,14 +104,51 @@ export async function readReactionChildCastLevel(
 }
 
 /**
+ * The answer that records a reaction child chosen from the offer its action raised once it had
+ * committed (D219), or null when no settled offer of this Run records that child. The receipt is the
+ * proof, and the child's only tie to the action: nothing is held, so the child suspends, re-pins
+ * and releases nothing. A declined offer, the GM's void among them, records no child.
+ */
+export async function readReactionOfferChild(
+  ctx: EncounterReadContext,
+  input: ReactionChildLink & { reactorActorId: string }
+) {
+  const offer = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (query) =>
+      query.eq('id', reactionOfferOccurrenceId(input.parentCommandId, input.reactorActorId))
+    )
+    .unique()
+  if (
+    offer?.campaignId !== input.campaignId ||
+    offer.encounterId !== input.encounterId ||
+    offer.state !== 'COMPLETED'
+  )
+    return null
+  const answer = await ctx.db
+    .query('encounterRuleReceipts')
+    .withIndex('by_occurrenceId', (query) => query.eq('occurrenceId', offer.id))
+    .unique()
+  if (!answer) return null
+  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(answer.resultJson))
+  const output = result.status === 'AGGREGATE_CHOICE_COMPLETE' ? result.applicationOutputs : null
+  return output?.kind === 'REACTION_OFFER_ANSWER' &&
+    output.child?.commandId === input.childCommandId
+    ? { answer, output }
+    : null
+}
+
+/**
  * Suspends the pending action a reaction child answers when that child pauses on evidence of its
  * own, in the transaction that stores the child's pending decision, so the Run keeps one pending
- * decision: the child's.
+ * decision: the child's. Like the re-pin and the release below, it does nothing for a child an
+ * offer's answer records, whose action committed before it.
  */
 export async function suspendReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink
+  input: ReactionChildLink & { reactorActorId: string }
 ) {
+  if (await readReactionOfferChild(ctx, input)) return
   const parent = await readReactionChildParent(ctx, input)
   if (parent?.state !== 'PENDING') throw new Error('The reaction’s pending action is gone.')
   await ctx.db.patch(parent._id, { state: 'SUSPENDED' })
@@ -119,8 +162,9 @@ export async function suspendReactionChildParent(
  */
 export async function repinReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink & { version: number }
+  input: ReactionChildLink & { reactorActorId: string; version: number }
 ) {
+  if (await readReactionOfferChild(ctx, input)) return
   const recording = await readRecordingParent(ctx, input)
   if (!recording) throw new Error('The reaction’s pending action is gone.')
   await ctx.db.patch(recording.parent._id, {
@@ -137,8 +181,9 @@ export async function repinReactionChildParent(
  */
 export async function releaseReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink & { version: number }
+  input: ReactionChildLink & { reactorActorId: string; version: number }
 ) {
+  if (await readReactionOfferChild(ctx, input)) return
   const recording = await readRecordingParent(ctx, input)
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')

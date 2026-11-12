@@ -6,9 +6,12 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
+import {
+  applyActionSpendMechanics,
+  settleActionSourceSpend,
+  sourceSpendMutation
+} from './actionSourceSpend.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterWriteContext } from './store.js'
 
@@ -136,27 +139,11 @@ export async function applyUsedReactionSpends(
     const { used, reactor, spends, mutation } = reaction
     if (input.exceptActorIds.includes(reactor.id)) continue
     const mechanics = spends
-      ? await input.applyMechanics({
-          encounterId: input.state.id,
-          expectedEncounterVersion: input.state.version,
-          occurrenceId: input.occurrenceId,
-          sourceCommandId: input.sourceCommandId,
-          occurredAt: input.occurredAt,
-          targetActorId: reactor.id,
-          commandId: deriveEncounterCharacterMechanicsEventCommandId({
-            occurrenceId: input.occurrenceId,
-            sourceCommandId: input.sourceCommandId,
-            phase: 'DIRECT_ACTION_RESOURCE',
-            ordinal: 0,
-            targetCharacterId: reactor.sourceId
-          }),
+      ? await applyActionSpendMechanics(ctx, {
+          ...input,
+          actor: reactor,
           applications: [],
-          effectiveMaximumHitPoints: await input.currentCharacterMaximumHitPoints(
-            input.state,
-            reactor.sourceId
-          ),
-          forceVersionAdvance: false,
-          ...mutation
+          mutation
         })
       : null
     requireUsedReactionReceipt(reaction, mechanics)

@@ -242,6 +242,27 @@ port checks a Character's assignment from its head and verifies its play record 
 Builder-owned collections or draft, so a session read does not grow with a Character's inventory or
 spells (RELIABILITY-21.T4, `encounters/activeReadBudget.test.ts`).
 
+### Terminal action commit skeleton (current, QUALITY-13.T2a)
+
+The four terminal action commits (`persistEncounterActionCommit`, `persistEncounterAreaCommit`,
+`persistEncounterCounteredCastCommit`, `persistEncounterGatedActionCommit`) share one skeleton; each keeps
+only the checks and writes that are its own between the steps.
+
+- Head (`actionCommitFences.ts`): `admitActionCommit` admits the command and returns a lost response's
+  stored result already presented for its member; `requireRuleOutputScope` checks the room's rule output
+  covers exactly the Run's non-Character actors and names the commit in its error by label;
+  `requireActionCommitFence` runs the read fence and refuses an occurrence id already used by any
+  occurrence other than the pending one the commit resumes.
+- Source spend (`actionSourceSpend.ts`): `applyActionSpendMechanics` makes the one
+  `DIRECT_ACTION_RESOURCE` mechanics batch an actor's own spend needs (the source's, a countering reactor's,
+  and each used reaction's through `applyUsedReactionSpends`); `requireSourceSpendReceipt` compares it with
+  the receipt the room planned. The single-target commit checks its source inside its own mechanics
+  receipt check, because a source that targets itself spends in the target's batch.
+- Tail (`actionCommitRecords.ts`): `completeActionOccurrence` settles the root occurrence, and
+  `recordActionCommit` builds the command result, advances the Run, stores the root's receipt and its one
+  `RESOLVE_ACTION` command, writes the evidence receipt of the answer that resumed it, and presents the
+  result for the member.
+
 ### Rule-raised (SYSTEM) action admission (current, SPELLS-33.T6e1, D161 candidate)
 
 A rule, not a player, can raise an action: a defeated creature's passive `HP_ZERO` area (Balor Death Throes).
@@ -280,7 +301,7 @@ not committed, so the proof is the pending action's own record instead: `reactio
 `ENCOUNTER_ACTION` pending context lists the command id of each reaction chosen against it
 (`readReactionChildParent`, `reactionChildren.ts`). An open offer alone admits nothing. A fresh child runs on
 the Run version the pending occurrence is pinned to (`expectedEncounterVersion`), for a holder that still
-stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionRoot`)
+stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionCommit`)
 advances the Run one version and re-pins the pending occurrence to it in the same transaction
 (`repinReactionChildParent`), so the fences read as follows:
 
@@ -359,6 +380,27 @@ result path of that test, the outcome its reaction trigger resumes by (`dnd5eTes
 to the path, so a failed save imposes it and a passed one imposes nothing. Recovery after a crash between
 the child's commit and the resume is the GM's void.
 
+Post-commit reaction offer (current in persistence, QUALITY-8.T1c2a, D219; inert: nothing raises one until
+the room does in QUALITY-8.T1c2b). A reaction that answers an attack's outcome is offered after the attack
+has committed, as a rule occurrence of its own (`insertReactionOffer`, `reactionOffer.ts`): an
+`AGGREGATE_CHOICE` snapshot whose context kind is `ENCOUNTER_REACTION_OFFER`, naming the committed attack
+command and its occurrence, the reactor, the attacker and the reactor's options. Its id is derived from the
+attack command and the reactor (`reactionOfferOccurrenceId`), so an attack offers a reactor once and a chain
+of reactions ends. It is raised only while the Run has no pending decision, so several reactors are offered
+one at a time. It is shown to the reactor's controller and the GM (`projectReactionOfferPending`). It has no
+timer: an offer whose reactor does not answer waits until the GM voids it, and the void settles it as a
+decline (`classifyRuleOccurrenceVoid`). The answer (`persistReactionOfferAnswer`, `reactionOfferAnswer.ts`)
+closes the offer first: one command completes the occurrence, moves the Run on one version, changes no
+creature, and stores a receipt (transition `REACTION_OFFER`, output `REACTION_OFFER_ANSWER`) that records
+the chosen option and the one child command id that runs it, or no child for a decline. The chosen action
+then runs as its own `REACTION` root. No parent is pending, so `requireSystemTriggerAdmission` proves it by
+that receipt (`readReactionOfferChild`): the offer must be `COMPLETED`, the receipt must record this child
+id, and the child must target the recorded attacker; anything else is `COMMAND_ID_REUSED`. A fresh child
+runs only on the Run version the answer produced, so the record admits one run and none once the Run has
+moved (`VERSION_STALE`). Its commit suspends, re-pins and releases no parent. For undo, the answer's receipt
+names the attack's occurrence, so `planRevertRoot` reads it as the attack's own and the group goes back
+child, then attack with the answer.
+
 Undo and void of a reacted action. One undo rule: a receipt belongs to the occurrence that recorded it, so
 `REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one
 step, attributing each receipt by occurrence instead of by a version range (`actionRevert.ts`). The group
@@ -366,7 +408,7 @@ step, attributing each receipt by occurrence instead of by a version range (`act
 that are one action and the REACTION children of its tree (its own, and those chosen against them in
 turn), whichever of them is last: a child chosen while the action
 was held committed before it, and a child chosen from a post-commit offer (D219, QUALITY-8.T1c1; no
-pipeline raises one until QUALITY-8.T1c2) follows it and goes back child-then-parent. A last REACTION
+pipeline raises one until QUALITY-8.T1c2b) follows it and goes back child-then-parent. A last REACTION
 child whose parent has no command answered a voided parent and goes back with its siblings alone. A void of
 the pending parent (`prepareRuleOccurrenceVoid`) stages nothing of the parent's own; its committed
 reactions are what the cancel takes back, so it runs `REVERT_LAST_ACTION` for them in the same transaction

@@ -50,6 +50,7 @@ import {
   encounterGatedActionApplicationOutputDtoSchema,
   encounterSettledIncomingGateDtoSchema
 } from './ruleExecutionReactionChoice.js'
+import { reactionOfferAnswerApplicationOutputDtoSchema } from './ruleExecutionReactionOffer.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionUuidSchema as uuidSchema
@@ -568,6 +569,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof checkActionApplicationOutputDtoSchema>
   | z.infer<typeof escapeCheckApplicationOutputDtoSchema>
   | z.infer<typeof concealmentCheckApplicationOutputDtoSchema>
+  | z.infer<typeof reactionOfferAnswerApplicationOutputDtoSchema>
   | z.infer<typeof characterMechanicsBatchApplicationOutputDtoSchema>
 
 export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<ServerRuleExecutionApplicationOutputsDto> =
@@ -585,6 +587,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       checkActionApplicationOutputDtoSchema,
       escapeCheckApplicationOutputDtoSchema,
       concealmentCheckApplicationOutputDtoSchema,
+      reactionOfferAnswerApplicationOutputDtoSchema,
       characterMechanicsBatchApplicationOutputDtoSchema
     ])
   )

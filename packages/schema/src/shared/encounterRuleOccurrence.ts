@@ -592,6 +592,26 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
+      // A committed attack's reactions for one creature (D219). It has no `answerBy`: the offer waits
+      // for its reactor, and the GM voids it for a player who is away.
+      z.strictObject({
+        kind: z.literal('REACTION_OFFER'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        reactorActorId: uuidSchema,
+        attackerActorId: uuidSchema,
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
+        allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
       z.strictObject({
         kind: z.literal('MOVEMENT_PASSAGE_CHOICE'),
         occurrenceId: uuidSchema,

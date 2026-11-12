@@ -88,7 +88,8 @@ const link = {
   campaignId: CAMPAIGN_ID,
   encounterId: ENCOUNTER_ID,
   parentCommandId: PARENT_COMMAND_ID,
-  childCommandId: reactionChild().commandId
+  childCommandId: reactionChild().commandId,
+  reactorActorId: PROTECTOR_ID
 }
 
 /**
@@ -248,7 +249,8 @@ const nestedLink = {
   campaignId: CAMPAIGN_ID,
   encounterId: ENCOUNTER_ID,
   parentCommandId: reactionChild().commandId,
-  childCommandId: nestedChild().commandId
+  childCommandId: nestedChild().commandId,
+  reactorActorId: ATTACKER_ID
 }
 
 const nested = { reactionChildren: [{ commandId: nestedChild().commandId }] }

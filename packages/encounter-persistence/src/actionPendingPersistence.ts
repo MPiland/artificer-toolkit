@@ -294,7 +294,8 @@ export async function persistEncounterActionPending(
       campaignId: campaign.id,
       encounterId: run.id,
       parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
-      childCommandId: admission.input.commandId
+      childCommandId: admission.input.commandId,
+      reactorActorId: admission.input.actorId
     })
   const updatedAt = new Date().toISOString()
   const value = encounterStoredRuleOccurrenceSchema.parse({

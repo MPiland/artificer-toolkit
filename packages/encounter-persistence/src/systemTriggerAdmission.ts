@@ -12,7 +12,7 @@ import { readEncounterActorDefeated } from './characterStates.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActor } from './documents.js'
 import { rejectDomain } from './domainRejections.js'
-import { readReactionChildParent } from './reactionChildren.js'
+import { readReactionChildParent, readReactionOfferChild } from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 // Answers and rule-raised roots since the command that opened the window; more is not one chain.
@@ -83,6 +83,9 @@ export function ruleFailedSaveAction(
  * stands. A reaction root is the action of a reaction chosen against a pending action (D219): its
  * parent is not committed, so it is proved by that pending action's record of this root instead, and
  * a fresh one runs on the Run version the pending action is pinned to, for a holder that still stands.
+ * A reaction chosen from the offer a committed attack raised is proved by that offer's answer
+ * instead, which records this root and the attacker it targets; a fresh one runs only on the Run
+ * version the answer produced, so the record admits one run and none once the Run has moved.
  */
 export async function requireSystemTriggerAdmission(
   ctx: Parameters<typeof readEncounterActorDefeated>[0],
@@ -98,24 +101,36 @@ export async function requireSystemTriggerAdmission(
   const holderActorId = command.actorId.toLowerCase()
   const { trigger } = command.systemTrigger
   if (trigger === 'REACTION') {
-    const pendingParent =
+    const link = {
+      campaignId: run.campaignId,
+      encounterId: run.id,
+      parentCommandId,
+      childCommandId: command.commandId.toLowerCase()
+    }
+    const derived =
       command.target.kind === 'ACTOR' &&
-      command.commandId.toLowerCase() ===
+      link.childCommandId ===
         systemTriggerCommandId(parentCommandId, holderActorId, command.actionId)
-        ? await readReactionChildParent(ctx, {
-            campaignId: run.campaignId,
-            encounterId: run.id,
-            parentCommandId,
-            childCommandId: command.commandId.toLowerCase()
-          })
+    const pendingParent = derived ? await readReactionChildParent(ctx, link) : null
+    const offered =
+      derived && !pendingParent
+        ? await readReactionOfferChild(ctx, { ...link, reactorActorId: holderActorId })
         : null
-    if (!pendingParent)
-      rejectDomain('COMMAND_ID_REUSED', 'The reaction was not chosen against a pending action.')
+    // An offer's answer names the attacker with the child: the reaction runs against no one else.
+    const provedAtVersion =
+      pendingParent?.expectedEncounterVersion ??
+      (offered &&
+      command.target.kind === 'ACTOR' &&
+      command.target.actorId.toLowerCase() === offered.output.attackerActorId
+        ? offered.answer.encounterVersion
+        : null)
+    if (provedAtVersion === null)
+      rejectDomain(
+        'COMMAND_ID_REUSED',
+        'The reaction was not chosen against a pending action or from a settled offer.'
+      )
     if (!input.fresh) return
-    if (
-      pendingParent.expectedEncounterVersion !== state.version ||
-      command.expectedVersion !== state.version
-    )
+    if (provedAtVersion !== state.version || command.expectedVersion !== state.version)
       rejectDomain('VERSION_STALE')
     if (await readEncounterActorDefeated(ctx, await readRunActor(ctx, state, holderActorId)))
       rejectDomain('ACTOR_DEFEATED')
