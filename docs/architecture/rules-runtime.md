@@ -1679,7 +1679,10 @@ not answered it, and an odd chain loses it. Two rules read the held actions abov
 to a cast that answers its own held reaction: the holders of the reactions above the child are heard already
 in each discovery of the child's pause. And a held cast has not spent its slot yet, so a creature offered a
 counter while its own casts are held is counted with each of their slots spent (`projectSpellSlotSpend` over
-the child's own slot and its ancestors' `castSlotKey`). Transitional (until QUALITY-9.T1b3 and T1c3): area and
+the child's own slot and its ancestors' `castSlotKey`). The counter then runs as its holder's own action on the
+slots the Character stores, where the held casts have spent nothing, so a reaction that would spend another
+slot there than the offer counted (the slot a held cast owes) is not offered; the cast at the level of the slot
+that is left is (`prepareReaction` in `nativeEncounterCastPause.ts`). Transitional (until QUALITY-9.T1b3 and T1c3): area and
 chosen-list casts still resolve their counters inline as described below, with the offer's `chain` and a
 non-null `counter` receipt.
 

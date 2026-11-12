@@ -23,6 +23,7 @@ import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encount
 import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
+import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { REACTION_TRIGGERS } from '@artificer-toolkit/rules-runtime/events/reactionTriggers'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -196,12 +197,14 @@ export function createNativeCastPause(input: {
    * in; the caster of a held action above this one reacts with that action's slot spent, which its
    * commit still owes.
    */
+  const heldSlotKeys = (reactorActorId: string) =>
+    children.ancestors.flatMap(({ actorId, castSlotKey }) =>
+      actorId === reactorActorId && castSlotKey !== null ? [castSlotKey] : []
+    )
   const castSpentTarget = (reactorActorId: string, reactorTarget: MovementTargets) =>
     [
       ...(castConsumption && reactorActorId === prepared.actor.id ? [castConsumption.slotKey] : []),
-      ...children.ancestors.flatMap(({ actorId, castSlotKey }) =>
-        actorId === reactorActorId && castSlotKey !== null ? [castSlotKey] : []
-      )
+      ...heldSlotKeys(reactorActorId)
     ].reduce(
       (target, slotKey) =>
         projectSpellSlotSpend({
@@ -223,25 +226,38 @@ export function createNativeCastPause(input: {
     actionId: string,
     against: EncounterRunActorState,
     loadAttackPerception?: LoadAttackPerception
-  ) =>
-    prepareEncounterActionMechanics({
-      state,
-      actor: reactor,
-      target: against,
-      actors: input.actors,
-      actionId,
-      wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-      overridable: false,
-      movementTargets: new Map(input.movementTargets)
-        .set(reactor.id, castSpentTarget(reactor.id, reactorTarget))
-        .set(
-          against.id,
-          input.movementTargets.get(against.id) ?? (await input.loadTarget(against))
-        ),
-      sceneContext: null,
-      ...(loadAttackPerception ? { loadAttackPerception } : {}),
-      ...input.reactionSources
-    })
+  ) => {
+    const againstTarget =
+      input.movementTargets.get(against.id) ?? (await input.loadTarget(against))
+    const prepareWith = (target: MovementTargets) =>
+      prepareEncounterActionMechanics({
+        state,
+        actor: reactor,
+        target: against,
+        actors: input.actors,
+        actionId,
+        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: false,
+        movementTargets: new Map(input.movementTargets)
+          .set(reactor.id, target)
+          .set(against.id, againstTarget),
+        sceneContext: null,
+        ...(loadAttackPerception ? { loadAttackPerception } : {}),
+        ...input.reactionSources
+      })
+    const offered = await prepareWith(castSpentTarget(reactor.id, reactorTarget))
+    // A reaction that runs as its holder's own action spends from the slots the Character stores,
+    // where a held action above it has spent nothing yet. One that would take another slot there
+    // than the offer counted, the slot the held action owes, is not offered; the cast at the level
+    // of the slot that is left is.
+    if (
+      heldSlotKeys(reactor.id).length > 0 &&
+      (await prepareWith(reactorTarget)).characterActionState?.spellConsumption?.slotKey !==
+        offered.characterActionState?.spellConsumption?.slotKey
+    )
+      throw new StaleCharacterActionError()
+    return offered
+  }
   /** The creatures that may counter this cast, read once from the Scene the cast names. */
   const discoverCast = (level: number) =>
     (castDiscovery ??= (async () =>

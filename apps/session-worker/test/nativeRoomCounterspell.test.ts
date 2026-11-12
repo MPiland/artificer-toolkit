@@ -1479,6 +1479,56 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
         [3, 5, 4].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
       )
     })
+
+    it('offers the caster a counter with the one slot its held cast leaves it (QUALITY-9.T1c2)', async () => {
+      const room = await counterspellRoom({
+        casterCounterspell: true,
+        spell: unlimitedCureWounds,
+        castLevel: '4th',
+        casterSlotsSpent: [{ slotKey: 'STANDARD:3', used: 1 }]
+      })
+      await cast(room)
+      await answer(room, REACTOR_ACTOR_ID, 1)
+
+      // The held cast has not spent its 4th-level slot, yet the offer counts it spent: the 5th alone is
+      // left. The 3rd-level cast is not offered either: its own slot is gone, and the counter's own
+      // action would pay for it with the 4th-level slot the held cast owes.
+      const { pending } = await offered(room)
+      expect(pending.targetActorId).toBe(CASTER_ACTOR_ID)
+      expect(pending.options).toHaveLength(1)
+      expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(3))
+
+      await answer(room, CASTER_ACTOR_ID)
+      // The Caster's counter spent the 5th-level slot and saved its cast, which still holds the 4th.
+      expect((await room.pendingDecision()).pending.kind).toBe('ACTION_OUTCOME_EVIDENCE')
+      expect(await slotsOf(room, CASTER_ID)).toEqual(
+        [3, 5].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
+      )
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(4))
+    })
+
+    it('counts the held cast’s slot spent at every counter above it, not only the first (QUALITY-9.T1c2)', async () => {
+      const room = await counterspellRoom({
+        casterCounterspell: true,
+        secondReactor: true,
+        spell: unlimitedCureWounds,
+        castLevel: '4th',
+        casterSlotsSpent: [3, 5].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
+      })
+      await cast(room)
+      await answer(room, REACTOR_ACTOR_ID, 1)
+
+      // The first counter passes over the Caster, which stands before the second holder in the order.
+      await answer(room, SECOND_REACTOR_ACTOR_ID, 1)
+      // The second holder's counter saves the Caster's cast; the Caster is offered no counter to it either.
+      const decision = await room.pendingDecision()
+      expect(decision.pending.kind).toBe('ACTION_OUTCOME_EVIDENCE')
+      expect(await slotsOf(room, CASTER_ID)).toEqual(
+        [3, 5].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
+      )
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(4))
+      expect(await slotsOf(room, SECOND_REACTOR_ID)).toEqual(SLOT_SPENT(4))
+    })
   })
 
   describe('offers no Counterspell', () => {
