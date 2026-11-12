@@ -34,15 +34,17 @@ export async function readLiveEncounterActionAdmission(
 ) {
   const { userId } = await ctx.ports.requireIdentity()
   const continuation = input.response ?? input.resume
+  const continued = continuation ?? input.removal
   if (
     userId !== input.expectedUserId ||
     input.command.encounterId.toLowerCase() !== input.encounterId ||
     // An answer carries the stored root, whose version each committed reaction child left behind
     // (D219): the answer's own version is the scope's, and the response admission pins it to the
-    // pending occurrence. The room's resume after such a child is fenced the same way.
-    (continuation
-      ? continuation.encounterId.toLowerCase() !== input.encounterId ||
-        continuation.expectedVersion !== input.expectedVersion
+    // pending occurrence. The room's resume after such a child and the GM's removal that settles an
+    // area are fenced the same way.
+    (continued
+      ? continued.encounterId.toLowerCase() !== input.encounterId ||
+        continued.expectedVersion !== input.expectedVersion
       : input.command.expectedVersion !== input.expectedVersion) ||
     (input.response && input.resume) ||
     (input.removal && continuation)

@@ -94,10 +94,7 @@ export function createNativeCastPause(input: {
   /** Whether this replays a pending occurrence rather than opening one. */
   resumed: boolean
   usedReactions: readonly EncounterUsedReactionDto[]
-  /**
-   * The reactions chosen against this action that run as their holders' own child actions (D219);
-   * null when the host never resumes the action from one, so a counter to it resolves in its window.
-   */
+  /** The reactions chosen against this action that run as their holders' own child actions (D219). */
   reactionChildren: {
     /** The child the pending action records for each, with the roll mode it resumed with. */
     recorded: PendingReactionChildren
@@ -111,15 +108,10 @@ export function createNativeCastPause(input: {
     } | null
     /** The held actions above this one, when it is itself a reaction's child. */
     ancestors: readonly LiveSessionReactionAncestor[]
-  } | null
+  }
 }) {
   const { prepared, state, command } = input
-  const children = input.reactionChildren ?? {
-    recorded: [],
-    committed: [],
-    resumedOffer: null,
-    ancestors: []
-  }
+  const children = input.reactionChildren
   const { resumedOffer } = children
   /**
    * A creature whose reaction is spent on a held action above this one has been heard at every
@@ -487,7 +479,7 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds: counterResume
           ? [...counterResume.declinedReactorActorIds, counterResume.reactorActorId]
           : [],
-        runsAsChild: input.reactionChildren !== null,
+        runsAsChild: true,
         autoRoll: input.requireAutoRoll,
         rollD20: () => (input.random ?? nextRollInt)(20) + 1,
         discover: await discoverCast(triggerLevel)
@@ -524,7 +516,8 @@ export function createNativeCastPause(input: {
         offered:
           triggerLevel !== null &&
           !aimedAnswer &&
-          !resumedOffer &&
+          // A counter whose own action did not cancel the cast leaves it to name its targets.
+          (!resumedOffer || counterResume) &&
           input.chosenActorIds &&
           castOwnerId,
         discover: discoverTargeted,

@@ -1662,8 +1662,9 @@ chosen list calls it too; until then a ray offers no hit reaction (`advanceEncou
 A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
-**Counter as the holder's own action (current, QUALITY-9.T1a; D219 amendment).** A counter chosen against a
-single-target cast runs as a reaction child (see persistence.md, "Reaction arm"; `advanceNativeCastReactions`
+**Counter as the holder's own action (current, QUALITY-9.T1a; area and chosen-list casts since
+QUALITY-9.T1b3a; D219 amendment).** A counter chosen against a cast, whether it names one creature, a chosen
+list or an area, runs as a reaction child (see persistence.md, "Reaction arm"; `advanceNativeCastReactions`
 returns `CHILD`); a check it owes is the child's own incoming gate (QUALITY-9.T1b2). The child is
 the holder's own cast at the caster: its commit spends the holder's slot and reaction at the choice. The room
 then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by the System adapter from the
@@ -1673,8 +1674,8 @@ did not cancel leaves its holder heard, like a decline, and the offers continue.
 beside the child (`castLevel`, see persistence.md, "The cast a child answers"; QUALITY-9.T1b1), which is where
 the child reads the DC of its check from.
 
-**A counter of a counter (current on single-target casts, QUALITY-9.T1c2; D219).** Every counter chosen against
-a single-target cast runs as a child, whoever else could counter it, and the child's own cast pause offers that
+**A counter of a counter (current, QUALITY-9.T1c2 and T1b3a; D219).** Every counter chosen against
+a cast runs as a child, whoever else could counter it, and the child's own cast pause offers that
 cast to counters like any cast's (`createNativeCastPause`). A counter chosen there is a child of the child, so
 a chain is a line of held actions, each suspended under the one that answers it; they commit innermost first,
 and each resume reads only its own child. A countered counter commits as lost, which its parent's resume reads
@@ -1687,23 +1688,29 @@ counter while its own casts are held is counted with each of their slots spent (
 the child's own slot and its ancestors' `castSlotKey`). The counter then runs as its holder's own action on the
 slots the Character stores, where the held casts have spent nothing, so a reaction that would spend another
 slot there than the offer counted (the slot a held cast owes) is not offered; the cast at the level of the slot
-that is left is (`prepareReaction` in `nativeEncounterCastPause.ts`). Transitional (until QUALITY-9.T1b3 and T1c3): area and
-chosen-list casts still resolve their counters inline as described below, with the offer's `chain` and a
-non-null `counter` receipt.
+that is left is (`prepareReaction` in `nativeEncounterCastPause.ts`). An area or chosen-list cast
+resumes from its child in `openReachCastWindow` (`nativeAreaPreparation.ts`), and goes on to its next offer, its
+saves, its commit or its loss. On a chosen list the creatures a cast names are offered their own reaction
+(`TARGETED_SELF`) after a counter that did not cancel it. Transitional (until QUALITY-9.T1b3c and T1c3): the
+inline resolution described below (the offer's `check` and `chain`, a non-null `counter` receipt) is still in
+the code and the contracts, but no host raises it.
 
 **Currentness across a reaction child (current, QUALITY-9.T1a; widened by QUALITY-9.T1c2).** A held action's
 sealed currentness checksum covers its source's and its target's facts. When a creature that reacted in the
 tree of the child the action resumes from (the child's own reactor, or the reactor of a reaction committed
 under it, `descendantReactorActorIds`) is the action's source or its target, that tree changed those facts
 (the reaction spent, whatever the reaction applied), so that one resume is not compared with the checksum
-sealed before the child (`planNativeLiveEncounterAction`, and the persistence fence beside it); the next pause
+sealed before the child (`reactedUnderAwaitedChild`, called by `planNativeLiveEncounterAction`, by the area
+and chosen-list window `openReachCastWindow` for the caster and the creature its checksum sealed, and by the
+persistence fence beside them); the next pause
 seals the facts as the tree left them. The source matters once counters nest: the creature that counters a
 counter is often the caster it was aimed at. Nothing else is
 excused: the child and the resume run in one room turn, the Run moves only by the child while the action is
 held (`repinReactionChildParent`), and a child that paused held the same two creatures (its own source and
 target) to its own checksum until it committed. A resume from a bystander's child keeps the full comparison.
 
-**Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
+**Higher-level check (transitional inline path, REACTION-4.T3c; D127; raised by no host since
+QUALITY-9.T1b3a, deleted by QUALITY-9.T1b3c).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
 (`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
 and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules
@@ -1714,7 +1721,7 @@ failed reactor's slot and reaction atomically with the cast (`usedReactionSpend.
 Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
 is the cast's target spends through the target's own mechanics call.
 
-**Counterspell chain (current, REACTION-4.T3d).** A counter that stands (its check passed or none was owed) is
+**Counterspell chain (transitional inline path, REACTION-4.T3d; raised by no host since QUALITY-9.T1b3a).** A counter that stands (its check passed or none was owed) is
 itself a cast: the offer's `chain` (`counters`, `castDeclinedReactorActorIds`, `castLevel`) holds the standing counters
 in order, and the next level offers the other Characters, except the creature whose cast it answers and any reactor that
 already used a counter in this cast, a counter to the last one. The original caster is therefore offered a counter to a

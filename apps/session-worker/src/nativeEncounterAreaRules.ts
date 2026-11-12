@@ -18,6 +18,7 @@ import { initiativeActionOrder } from '@artificer-toolkit/rules-runtime/encounte
 import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
   LiveSessionEncounterRulesInput,
@@ -850,6 +851,8 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
     >,
     'command' | 'response' | 'snapshot'
   > & {
+    /** The child resume the held cast went on from to ask its saves (D219), when it did. */
+    resume?: LiveSessionEncounterActionResume | null
     dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]
     revisions: LiveSessionRulesRevisions
   }
@@ -858,6 +861,7 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
     ...scope,
     command: plan.command,
     response: plan.response,
+    resume: plan.resume ?? undefined,
     revisions: plan.revisions,
     maintenanceOwners: plan.dependencies.flatMap(({ request }) =>
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
@@ -1163,7 +1167,9 @@ export async function planNativeLiveEncounterAreaCommit(
     }
   }
 
-  const resumed = input.response ?? input.removal
+  // The area settles under the occurrence the answer, the removal or a reaction's child resume (D219)
+  // moved on.
+  const resumed = input.response ?? input.removal ?? input.castResume?.continuation
   const occurredAt = new Date().toISOString()
   const sealedUsedReactions = context.usedReactions ?? []
   const plan = await completeAreaCommit({

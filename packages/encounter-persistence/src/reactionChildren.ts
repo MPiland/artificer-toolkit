@@ -285,6 +285,48 @@ export async function countRunVoidVersions(
 }
 
 /**
+ * Whether a held root's occurrence stands at a Run version its tree accounts for (D219). Each
+ * committed reaction child moved the occurrence one Run version past its root. So did each reaction
+ * that committed under one of those children, and each version a GM void of a held one made, none of
+ * which the held action records. An area's or a chosen list's open saves record no child at all: the
+ * reactions that committed while its cast was held are all read from the Run's commands.
+ */
+export async function heldRootVersionAccounted(
+  ctx: EncounterReadContext,
+  input: {
+    occurrence: Pick<
+      EncounterDocument<'encounterRuleOccurrences'>,
+      'encounterId' | 'rootCommandId' | 'expectedEncounterVersion'
+    >
+    rootExpectedVersion: number
+    recorded: readonly { commandId: string }[]
+  }
+) {
+  const { occurrence, recorded } = input
+  const versionsPastRoot = occurrence.expectedEncounterVersion - input.rootExpectedVersion
+  const unrecordedVersions = versionsPastRoot - recorded.length
+  if (versionsPastRoot < 0) return false
+  if (unrecordedVersions <= 0) return true
+  const held = { encounterId: occurrence.encounterId, afterVersion: input.rootExpectedVersion }
+  const voidVersions = await countRunVoidVersions(ctx, {
+    ...held,
+    throughVersion: occurrence.expectedEncounterVersion
+  })
+  const descendants = await readCommittedReactionDescendants(ctx, {
+    ...held,
+    rootCommandId: occurrence.rootCommandId,
+    beforeVersion: occurrence.expectedEncounterVersion + 1
+  })
+  return (
+    unrecordedVersions <=
+    voidVersions +
+      descendants.filter(
+        ({ commandId }) => !recorded.some((child) => child.commandId === commandId)
+      ).length
+  )
+}
+
+/**
  * Whether a pending action records a reaction child it has not resumed from: the child's mode is
  * written only by the resume that follows its commit.
  */

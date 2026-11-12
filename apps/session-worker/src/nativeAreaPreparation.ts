@@ -12,6 +12,7 @@ import {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { type LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   LiveSessionEncounterRulesInput,
@@ -34,6 +35,7 @@ import {
   prepareEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { reactedUnderAwaitedChild } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
   encounterActionSuppressedWarning,
@@ -114,10 +116,15 @@ export type ReachCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
 }
 export type MovementTargets = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
-/** The paused counter window an answer to a multi-creature cast resumes by replaying the cast. */
+/** The held reaction window a multi-creature cast leaves by replaying the cast. */
 export type ReachCastResume = {
-  response: ResolveRuleOccurrenceInputDto
-  answer: NativeCastReactionAnswer
+  /**
+   * What moves the held cast on: a creature's answer to its offer, or the room's resume from the
+   * chosen reaction's committed child action (D219).
+   */
+  continuation: ResolveRuleOccurrenceInputDto | LiveSessionEncounterActionResume
+  /** The answer to the offer; null when the room resumes the cast from a child action. */
+  answer: NativeCastReactionAnswer | null
   initiatorUserId: string
   currentnessChecksum: string
   /** The reactions used against the cast before this answer (D127). */
@@ -142,8 +149,10 @@ export type ForcedMovementPick = (input: {
 
 /** What every multi-creature plan (a point area, a list of chosen creatures) reads from the room. */
 export type AreaPlanBase = {
-  /** Set when the plan replays a cast that paused for another Character's counter. */
+  /** Set when the plan replays a cast that paused for another Character's reaction. */
   castResume?: ReachCastResume
+  /** The reactions chosen against the cast that ran as their holders' own child actions (D219). */
+  reactionChildren: Parameters<typeof createNativeCastPause>[0]['reactionChildren']
   forcedMovementPick: ForcedMovementPick
   initial: LiveSessionEncounterRulesInput
   fingerprint: string
@@ -751,7 +760,7 @@ export function prepareCasterActionOnTarget(
   }).catch(refuseStaleCharacterAction)
 }
 
-/** The counter window of a multi-creature cast, held over the caster's lead preparation of the action. */
+/** The reaction window of a multi-creature cast, held over the caster's lead preparation of the action. */
 export function reachCastPause(
   input: ReachPlanInput,
   cast: {
@@ -794,8 +803,7 @@ export function reachCastPause(
     chosenActorIds: cast.chosenActorIds,
     // An attack at one creature is the single-target path's; a multi-creature action offers none.
     aimedAttackPerception: null,
-    // An area or a list is not resumed from a child action, so a counter to it resolves in its window.
-    reactionChildren: null,
+    reactionChildren: input.reactionChildren,
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,
@@ -805,12 +813,15 @@ export function reachCastPause(
   })
 }
 
-/** What a multi-creature cast carries out of its counter window into its saves or its commit. */
+/** What a multi-creature cast carries out of its reaction window into its saves or its commit. */
 export type ReachCastWindow = {
   occurrenceId: string
   occurrenceVersion: number
   occurredAt: string
-  /** The answer that resumed the cast; null when it opened just now. */
+  /**
+   * The answer that moved the held cast on; null when it opened just now or the room resumed it from
+   * a chosen reaction's child action.
+   */
   response: ResolveRuleOccurrenceInputDto | null
   initiatorUserId: string
   usedReactions: readonly EncounterUsedReactionDto[]
@@ -818,9 +829,10 @@ export type ReachCastWindow = {
 }
 
 /**
- * Opens a multi-creature cast to the counters of other Characters before any creature is touched
- * (D127). The cast is either ended or held for a counter, which is the plan to return, or goes on under
- * the occurrence it runs under, with the counters that failed against it so far.
+ * Opens a multi-creature cast to the reactions of other Characters before any creature is touched
+ * (D127). The cast is either ended or held for a reaction, which is the plan to return, or goes on
+ * under the occurrence it runs under, with the reactions it still owes a spend for. A reaction that
+ * runs as its holder's own action (D219) holds the cast until the room resumes it from that child.
  */
 export async function openReachCastWindow(
   input: ReachPlanInput,
@@ -835,8 +847,10 @@ export async function openReachCastWindow(
 ) {
   const { castResume } = input
   const { lead, ruleOverrides } = cast
-  const occurrenceId = castResume ? castResume.response.occurrenceId : crypto.randomUUID()
-  const occurrenceVersion = castResume ? castResume.response.expectedOccurrenceVersion + 1 : 0
+  const continuation = castResume?.continuation
+  const response = continuation?.type === 'RESOLVE_RULE_OCCURRENCE' ? continuation : null
+  const occurrenceId = continuation ? continuation.occurrenceId : crypto.randomUUID()
+  const occurrenceVersion = continuation ? continuation.expectedOccurrenceVersion + 1 : 0
   const occurredAt = new Date().toISOString()
   const initiatorUserId = castResume?.initiatorUserId ?? input.initial.expectedUserId
   const actionEconomy = cast.evaluation.economy?.consumption ?? null
@@ -847,7 +861,14 @@ export async function openReachCastWindow(
     maintenance: null,
     sceneContext: null
   })
-  if (castResume && castResume.currentnessChecksum !== currentnessChecksum)
+  if (
+    castResume &&
+    castResume.currentnessChecksum !== currentnessChecksum &&
+    !reactedUnderAwaitedChild(input.reactionChildren.recorded, input.reactionChildren.committed, [
+      lead.actor.id,
+      lead.target.id
+    ])
+  )
     throw new Error('The pending action source or target changed.')
   const pause = reachCastPause(input, {
     reach: cast.reach,
@@ -865,9 +886,7 @@ export async function openReachCastWindow(
       plan: {
         ...advanced,
         command: input.command,
-        response: castResume?.response ?? null,
-        // Only an action at one creature resumes from a reaction's child action (D219).
-        resume: null,
+        response,
         initiatorUserId,
         fingerprint: input.fingerprint,
         occurrenceId,
@@ -886,7 +905,7 @@ export async function openReachCastWindow(
       occurrenceId,
       occurrenceVersion,
       occurredAt,
-      response: castResume?.response ?? null,
+      response,
       initiatorUserId,
       usedReactions: advanced.usedReactions,
       pause

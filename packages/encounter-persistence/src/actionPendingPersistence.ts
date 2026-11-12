@@ -24,8 +24,8 @@ import {
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { castPendingContinues } from './actionPending.js'
-import { reactionChildrenKept, suspendReactionChildParent } from './reactionChildren.js'
+import { castPendingContinues, heldActionContinues } from './actionPending.js'
+import { suspendReactionChildParent } from './reactionChildren.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -133,11 +133,17 @@ export async function persistEncounterActionPending(
         snapshot.graph.source.gameSystemId !== state.gameSystemId ||
         snapshot.deferredCleaving !== undefined ||
         context.contest !== undefined ||
-        (resume &&
-          (snapshot.occurrenceId !== resume.occurrence.id ||
-            (context.currentnessChecksum !== resume.pending.context.currentnessChecksum &&
-              resume.pending.context.pause?.kind !== 'ATTACK_RETARGET') ||
-            !castPendingContinues(resume.pending.context, input.response, context)))
+        !heldActionContinues({
+          resume,
+          response: input.response,
+          occurrenceId: snapshot.occurrenceId,
+          next: context,
+          // An area's facts are its caster's and those of whichever creature it caught first.
+          endpointActorIds:
+            target.kind === 'ACTORS'
+              ? [admission.input.actorId, ...target.actorIds]
+              : state.actorIds
+        })
       )
         throw new Error('Live Session pending action root mismatch.')
       evidence = context
@@ -224,32 +230,13 @@ export async function persistEncounterActionPending(
         pause.payload.reactions.some(({ reactorActorId }) => reactorActorId !== target.actorId)) ||
       ((pause?.kind === 'ON_HIT' || pause?.kind === 'FORCED_MOVEMENT') &&
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
-      (resume &&
-        (snapshot.occurrenceId !== resume.occurrence.id ||
-          // A retarget answer turns the action on another creature, so its facts are the new creature's.
-          (snapshot.applicationContext.currentnessChecksum !==
-            resume.pending.context.currentnessChecksum &&
-            resume.pending.context.pause?.kind !== 'ATTACK_RETARGET' &&
-            // A source or target that reacted under the reaction child the action resumes from stands
-            // as that child's tree left it (D219): only that tree moved the Run while this action
-            // awaited it.
-            !resume.reactionChildren.some(
-              (child) =>
-                resume.pending.context.reactionChildren?.some(
-                  ({ commandId, rollMode }) =>
-                    commandId === child.commandId && rollMode === undefined
-                ) &&
-                [child.reactorActorId, ...child.descendantReactorActorIds].some(
-                  (actorId) => actorId === admission.input.actorId || actorId === target.actorId
-                )
-            )) ||
-          !castPendingContinues(
-            resume.pending.context,
-            input.response,
-            snapshot.applicationContext
-          ) ||
-          !reactionChildrenKept(resume.pending.context, snapshot.applicationContext))) ||
-      (!resume && snapshot.applicationContext.reactionChildren !== undefined) ||
+      !heldActionContinues({
+        resume,
+        response: input.response,
+        occurrenceId: snapshot.occurrenceId,
+        next: snapshot.applicationContext,
+        endpointActorIds: [admission.input.actorId, target.actorId]
+      }) ||
       input.command.optionalCombatIntent != null
     )
       throw new Error('Live Session pending action root mismatch.')

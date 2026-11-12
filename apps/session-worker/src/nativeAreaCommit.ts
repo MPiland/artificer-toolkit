@@ -9,6 +9,7 @@ import {
   liveSessionEncounterAreaCommitInputSchema,
   type LiveSessionForcedMovement
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
   LiveSessionEncounterRulesInput,
@@ -433,6 +434,8 @@ export function buildNativeLiveEncounterAreaCommitInput(
     Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>>,
     { kind: 'AREA_COMMIT' }
   > & {
+    /** The child resume the held cast went on from to settle (D219), when it did. */
+    resume?: LiveSessionEncounterActionResume | null
     dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]
     revisions: LiveSessionRulesRevisions
   }
@@ -448,6 +451,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     ...scope,
     command: plan.command,
     response: plan.response,
+    resume: plan.resume ?? undefined,
     removal: plan.removal,
     revisions: plan.revisions,
     maintenanceOwners: [...owners.values()],
