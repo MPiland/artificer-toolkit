@@ -7,8 +7,8 @@ import {
 } from './encounterActionSaveWindow.js'
 import { encounterD20WindowSelection, settleEncounterD20Window } from './encounterD20Window.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
+import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import {
-  advanceNativeActionGraphs,
   executeNativeActionGraphs,
   prepareNativeActionTest,
   continueNativeActionAfterTest,

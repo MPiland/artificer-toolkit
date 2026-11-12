@@ -6,7 +6,7 @@ import {
   onHitCandidates,
   onHitSlotChoices
 } from '../character/characterOnHitCosts.js'
-import { advanceNativeActionGraphs } from '../encounterActionExecution.js'
+import { advanceNativeActionGraphs } from '../encounterActionAdvance.js'
 import { resolveNativeActionOnHit } from '../encounterActionOnHit.js'
 import type { EncounterOnHitCandidate } from '../encounterOnHitChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -196,6 +196,78 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
         optionId: held.pause.payload.options[0]!.useOptionId
       })
     ).rejects.toThrow('On-hit evidence is stale.')
+  })
+})
+
+describe('an answer to the OUTCOME of a hit whose rider was decided (QUALITY-13)', () => {
+  /** The attacker paid for the rider and now owes the OUTCOME's first damage die. */
+  async function owedDamage() {
+    const attack = longswordAttack([HIT, 3, 0, 1, 2])
+    const held = await attack.advance([smiteAt(2)])
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
+    const { execution } = await resolveNativeActionOnHit({
+      ...attack.source,
+      autoRoll: { SOURCE: false, TARGET: true },
+      candidates: [smiteAt(2)],
+      adjustedBinding: null,
+      offer: held.pause.payload,
+      selection: { kind: 'OPTION', optionId: held.pause.payload.options[0]!.useOptionId }
+    })
+    const twoPhase = execution.kind === 'PENDING' ? execution.twoPhase : null
+    if (execution.kind !== 'PENDING' || twoPhase?.phase !== 'OUTCOME')
+      throw new Error('Expected the OUTCOME to wait for its damage.')
+    return {
+      attack,
+      twoPhase,
+      /** Answers the owed die against what the OUTCOME retained, as given or as tampered with. */
+      answer: (retained: typeof twoPhase = twoPhase) =>
+        advanceNativeActionGraphs({
+          ...attack.source,
+          resume: {
+            pending: { ...execution, twoPhase: retained },
+            resolution: { kind: 'AUTO_ROLL', requestId: execution.continuation.request.requestId }
+          }
+        })
+    }
+  }
+
+  it('settles on the retained hit and rider without rolling the attack again', async () => {
+    const { attack, twoPhase, answer } = await owedDamage()
+    expect(twoPhase.onHit).toMatchObject({ selection: 'USE', option: { slotLevel: 2 } })
+    const execution = completed(await answer())
+
+    expect(execution.d20).toMatchObject({ resultPath: 'ON_HIT' })
+    expect(damage(execution)).toEqual([
+      { requested: 4 + 3, resolved: 4 + 3, damageTypeId: SLASHING },
+      { requested: 1 + 2 + 3, resolved: 1 + 2 + 3, damageTypeId: RADIANT }
+    ])
+    expect(attack.scripted.remaining()).toEqual([])
+  })
+
+  it('refuses a rider decision that was not made on the retained hit', async () => {
+    const { twoPhase, answer } = await owedDamage()
+    await expect(
+      answer({ ...twoPhase, onHit: { ...twoPhase.onHit!, testExecutionChecksum: 'a'.repeat(64) } })
+    ).rejects.toThrow('The on-hit outcome audit is stale.')
+  })
+
+  it('refuses an OUTCOME whose rider decision was dropped', async () => {
+    const { twoPhase, answer } = await owedDamage()
+    // Without the rider the OUTCOME is another graph, which the pending request does not belong to.
+    await expect(answer({ ...twoPhase, onHit: null })).rejects.toThrow(
+      'The action evidence continuation is stale.'
+    )
+  })
+
+  it('refuses retained faces that do not rebuild the retained hit', async () => {
+    const { twoPhase, answer } = await owedDamage()
+    await expect(
+      answer({
+        ...twoPhase,
+        testRollEvidence: { ...twoPhase.testRollEvidence, rawFaces: [20], selectedNatural: 20 }
+      })
+    ).rejects.toThrow('The retained TEST execution is stale.')
   })
 })
 

@@ -16,7 +16,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import type { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
-import type { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import type { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import type {
   finishNativeActionMechanicsSettlement,
   NativeEncounterActionMechanicsInput,

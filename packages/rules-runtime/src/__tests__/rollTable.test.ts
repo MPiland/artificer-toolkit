@@ -13,10 +13,8 @@ import {
 
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
-import {
-  advanceNativeActionGraphs,
-  executeNativeActionGraphs
-} from '../encounterActionExecution.js'
+import { advanceNativeActionGraphs } from '../encounterActionAdvance.js'
+import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'

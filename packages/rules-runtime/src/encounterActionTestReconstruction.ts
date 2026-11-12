@@ -5,7 +5,7 @@ import type {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { prepareNativeActionTest } from './encounterActionExecution.js'
-import type { NativeActionBaseInput } from './encounterActionTestBoundary.js'
+import { sealedTestDice, type NativeActionBaseInput } from './encounterActionTestBoundary.js'
 
 /**
  * Rebuilds a sealed TEST boundary from current facts and the recorded faces, without rolling again.
@@ -45,18 +45,28 @@ export async function reconstructNativeActionTest(
   const pending = await prepareNativeActionTest(source)
   if (pending.kind !== 'PENDING' || pending.continuation.request.requestId !== input.d20.requestId)
     throw new Error('The retained TEST request is stale.')
+  // A window spent its dice after the roll; every other added die was rolled beside the d20 (D156).
+  const windowDice = (input.d20.addedDice ?? []).filter(
+    ({ spentEffectId, spentReaction }) => spentEffectId || spentReaction
+  )
+  const addedFaces = (input.d20.addedDice ?? []).flatMap((die) =>
+    windowDice.includes(die) ? [] : die.rolledFaces
+  )
   const boundary = await prepareNativeActionTest({
     ...source,
-    windowDice: (input.d20.addedDice ?? []).filter(
-      ({ spentEffectId, spentReaction }) => spentEffectId || spentReaction
-    ),
+    windowDice,
+    // The retained execution holds the dice its TEST rolled after the d20; they are read back, not rolled.
+    ...(input.execution
+      ? { testDice: sealedTestDice({ execution: input.execution, d20: input.d20 }) }
+      : {}),
     resume: {
       pending,
       resolution: {
         kind: 'ENTER_DICE',
         requestId: input.d20.requestId,
         rawFaces: input.d20.rawFaces,
-        rollMode: input.d20.rollMode
+        rollMode: input.d20.rollMode,
+        ...(addedFaces.length > 0 ? { addedFaces } : {})
       }
     }
   })

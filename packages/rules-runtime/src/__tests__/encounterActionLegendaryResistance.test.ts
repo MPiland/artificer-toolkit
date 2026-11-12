@@ -12,7 +12,7 @@ import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/a
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 
-import { advanceNativeActionGraphs } from '../encounterActionExecution.js'
+import { advanceNativeActionGraphs } from '../encounterActionAdvance.js'
 import { resolveNativeActionLegendaryResistance } from '../encounterActionLegendaryResistance.js'
 import { findEncounterFeatureResource } from '../encounterActorRuleOutput.js'
 import { discoverEncounterLegendaryResistanceCandidate } from '../encounterLegendaryResistanceDiscovery.js'

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  advanceNativeActionGraphs,
-  executeNativeActionGraphs
-} from '../encounterActionExecution.js'
+import { advanceNativeActionGraphs } from '../encounterActionAdvance.js'
+import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { settleEncounterDamageRollWindow } from '../encounterDamageRollWindow.js'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
