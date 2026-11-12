@@ -184,11 +184,8 @@ describe('castPendingContinues', () => {
           { passedIncomingGate: trigger }
         )
       ).toBe(false)
-      expect(
-        castPendingContinues(gateHeld, dice, {
-          passedIncomingGate: { origin: { kind: 'TRIGGER', triggerLevel: 5 } }
-        })
-      ).toBe(false)
+      const otherLevel = { origin: { kind: 'TRIGGER', triggerLevel: 5 } }
+      expect(castPendingContinues(gateHeld, dice, { passedIncomingGate: otherLevel })).toBe(false)
     })
 
     it('is carried by the action that passed it, so a commit straight after its roll continues', () => {
