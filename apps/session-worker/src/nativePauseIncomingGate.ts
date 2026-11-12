@@ -2,9 +2,9 @@ import { pendingSnapshotContinuation } from '@artificer-toolkit/rules-runtime/en
 import type { NativePauseHandler } from './nativePauseTypes.js'
 
 export const incomingGatePause: NativePauseHandler<'INCOMING_GATE'> = {
-  // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
+  // The source's roll against its gate is its own d20: the answer settles it and the action replays.
   read: ({ pause, snapshot, dice }) => {
-    if (!dice) throw new Error('The ward requires dice evidence.')
+    if (!dice) throw new Error('The incoming gate requires dice evidence.')
     return {
       kind: 'INCOMING_GATE',
       answer: {

@@ -1,6 +1,7 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { ruleCheckRollId } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { characterActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -155,6 +156,30 @@ async function offered(room: Room) {
   if (decision.pending.kind !== 'REACTION_CHOICE')
     throw new Error(`Expected the reaction choice, got ${decision.pending.kind}.`)
   return { decision, pending: decision.pending }
+}
+
+/** The reaction's own action the room ran against the Caster's cast, that cast, and each one's receipt. */
+async function readChildAndCast(room: Room) {
+  const history = await readRoomHistory(room.room.base.stub)
+  const actions = history.commands.flatMap((row) =>
+    row.commandType === 'RESOLVE_ACTION'
+      ? [resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))]
+      : []
+  )
+  const child = actions.find((command) => command.systemTrigger?.trigger === 'REACTION')
+  const parent = actions.find((command) => !command.systemTrigger)
+  if (!child || !parent) throw new Error('The room ran no reaction child against a cast.')
+  const executionOf = (commandId: string) => {
+    const receipt = history.receipts.find((candidate) => candidate.commandId === commandId)
+    if (!receipt) throw new Error('The action left no receipt.')
+    return parseReceiptExecution(receipt)
+  }
+  return {
+    child,
+    parent,
+    childExecution: executionOf(child.commandId),
+    castExecution: executionOf(parent.commandId)
+  }
 }
 
 async function undoLastAction(room: Room) {
@@ -600,15 +625,15 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       await cast(room)
       expect((await counterWithLowestSlot(room)).type).toBe('COMMAND_COMMITTED')
 
+      // The check is the gate of the holder's own Counterspell, read against the cast's recorded level.
       const context = await readPendingActionContext(room.room.base.stub)
-      if (
-        context.kind !== 'ENCOUNTER_ACTION' ||
-        context.pause?.kind !== 'CAST_REACTION' ||
-        !context.pause.payload.check
-      )
+      if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'INCOMING_GATE')
         throw new Error('Expected a pending counter check.')
       expect(context.rollerActorId).toBe(REACTOR_ACTOR_ID)
-      expect(context.pause.payload.check).toMatchObject({ triggerLevel: 4, dc: 14 })
+      expect(context.pause.payload).toMatchObject({
+        origin: { kind: 'TRIGGER', triggerLevel: 4 },
+        dc: 14
+      })
       expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
       expect(await hitPointsOf(room)).toBe(1)
       expect(await slotsOf(room, CASTER_ID)).toEqual([])
@@ -721,16 +746,94 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       expect(await slotsOf(room, REACTOR_ID)).toEqual([])
     })
 
-    it('records the check pause’s d20 evidence on its receipt', async () => {
+    it('asks the check pause’s d20 of the holder as its own roll', async () => {
       const room = await highCast()
       await cast(room)
       await counterWithLowestSlot(room)
 
-      const paused = (await readRoomHistory(room.room.base.stub)).receipts
-        .map(parseReceiptExecution)
-        .filter((execution) => execution.status === 'PAUSED')
-        .at(-1)
-      expect(paused).toMatchObject({ pending: { kind: 'D20_EVIDENCE', rollMode: 'NORMAL' } })
+      // The pause opens the holder's own action, so no answered receipt precedes it (D219).
+      expect((await room.pendingDecision()).pending).toMatchObject({
+        kind: 'D20_EVIDENCE',
+        request: { rollMode: 'NORMAL' }
+      })
+    })
+
+    it('records a passing check on the child’s receipt, carded from the child the cancelled cast is the parent of (D219)', async () => {
+      const room = await highCast()
+      await cast(room)
+      await counterWithLowestSlot(room)
+      expect((await rollTheCheck(room, 20)).type).toBe('COMMAND_COMMITTED')
+
+      const { child, parent, childExecution, castExecution } = await readChildAndCast(room)
+      expect(child.systemTrigger).toMatchObject({
+        parentCommandId: parent.commandId,
+        trigger: 'REACTION'
+      })
+      // The cast records no counter of its own: the check is evidence of the child that cancelled it.
+      if (
+        castExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+        castExecution.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
+      )
+        throw new Error(`Expected a countered cast, got ${castExecution.status}.`)
+      expect(castExecution.applicationOutputs.counter).toBeNull()
+      if (
+        childExecution.status !== 'COMPLETE' ||
+        childExecution.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH'
+      )
+        throw new Error(`Expected the Counterspell to complete, got ${childExecution.status}.`)
+      expect(childExecution.applicationOutputs.passedGate).toMatchObject({
+        origin: { kind: 'TRIGGER', triggerLevel: 4 },
+        dc: 14,
+        d20: { selectedNatural: 20 }
+      })
+      // The one card of the check is the child's, so it leads from the cast to who countered it.
+      const cards = (await readRoomRollCards(room.room.base.stub)).filter(
+        ({ roll }) => roll.source.kind === 'SKILL_CHECK'
+      )
+      expect(cards.map(({ roll }) => roll.id)).toEqual([
+        ruleCheckRollId(childExecution.occurrenceId, 0, 'counter-check')
+      ])
+    })
+
+    it('commits a failing check as the child’s gated action: the holder’s slot and reaction are spent and the cast goes on (D219)', async () => {
+      const room = await highCast()
+      await cast(room)
+      await counterWithLowestSlot(room)
+      expect((await rollTheCheck(room, 1)).type).toBe('COMMAND_COMMITTED')
+
+      // The child committed with its roll: the holder has paid before the cast it failed against ends.
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+      const reactor = (await readRoomHistory(room.room.base.stub)).actors.find(
+        ({ id }) => id === REACTOR_ACTOR_ID
+      )
+      if (!reactor) throw new Error('The room holds no reactor.')
+      expect(
+        encounterRuleUsageUsed(readStoredRunActor(reactor), DND5E_REACTION_ALLOWANCE_DEFINITION_ID)
+      ).toBe(1)
+      await healWithLowestDice(room)
+      expect(await hitPointsOf(room)).toBeGreaterThan(1)
+
+      const { child, parent, childExecution, castExecution } = await readChildAndCast(room)
+      expect(child.systemTrigger).toMatchObject({
+        parentCommandId: parent.commandId,
+        trigger: 'REACTION'
+      })
+      if (
+        childExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+        childExecution.applicationOutputs.kind !== 'ENCOUNTER_GATED_ACTION'
+      )
+        throw new Error(`Expected a gated Counterspell, got ${childExecution.status}.`)
+      expect(childExecution.applicationOutputs).toMatchObject({
+        lost: 'SPELL',
+        gate: { origin: { kind: 'TRIGGER', triggerLevel: 4 }, dc: 14, d20: { selectedNatural: 1 } }
+      })
+      expect(castExecution.status).toBe('COMPLETE')
+      const cards = (await readRoomRollCards(room.room.base.stub)).filter(
+        ({ roll }) => roll.source.kind === 'SKILL_CHECK'
+      )
+      expect(cards.map(({ roll }) => roll.id)).toEqual([
+        ruleCheckRollId(childExecution.occurrenceId, 0, 'counter-check')
+      ])
     })
 
     it('cards the holder’s check roll, passing or failing, from the holder', async () => {
@@ -739,7 +842,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
         await cast(room)
         await counterWithLowestSlot(room)
         expect((await rollTheCheck(room, face)).type).toBe('COMMAND_COMMITTED')
-        // A failing check is carded with the cast's own commit, after its healing dice.
+        // A failing check lets the cast go on to its healing dice.
         await healWithLowestDice(room)
 
         const cards = (await readRoomRollCards(room.room.base.stub)).filter(

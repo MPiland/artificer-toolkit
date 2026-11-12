@@ -501,13 +501,32 @@ export const encounterCounteredCastApplicationOutputDtoSchema: z.ZodMiniType<
 > = encounterCounteredCastApplicationOutputImplSchema
 
 /**
- * The save an attacker owes before an attack or harmful spell it aims at a warded creature lands
- * (`INCOMING_ATTACK_GATE`): the holder's gate effect, the ability and DC of the save, and the attacker's
- * frozen d20. The pause waits on that one roll.
+ * Why an action's source owes a check before its action runs: the ward of the creature it aims at
+ * (`INCOMING_ATTACK_GATE`), or the check its own authored reaction trigger asks against the level of
+ * the cast it answers (D219).
+ */
+export type EncounterIncomingGateOriginDto =
+  | { kind: 'WARD'; effectId: string; holderActorId: string }
+  | { kind: 'TRIGGER'; triggerLevel: number }
+
+const wardGateOriginSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('WARD'), effectId: uuidSchema, holderActorId: uuidSchema })
+)
+
+export const encounterIncomingGateOriginDtoSchema: z.ZodMiniType<EncounterIncomingGateOriginDto> =
+  lazySchema(() =>
+    z.discriminatedUnion('kind', [
+      wardGateOriginSchema,
+      z.strictObject({ kind: z.literal('TRIGGER'), triggerLevel: nonNegativeIntegerSchema })
+    ])
+  )
+
+/**
+ * The check an action's source must pass before its action runs: why it is owed, its ability and DC,
+ * and the source's frozen d20. The pause waits on that one roll.
  */
 export type EncounterIncomingGateOfferDto = {
-  effectId: string
-  holderActorId: string
+  origin: EncounterIncomingGateOriginDto
   checkDefinitionId: string
   dc: number
   d20: z.infer<typeof frozenCheckD20DtoSchema>
@@ -516,33 +535,44 @@ export type EncounterIncomingGateOfferDto = {
 export const encounterIncomingGateOfferDtoSchema: z.ZodMiniType<EncounterIncomingGateOfferDto> =
   lazySchema(() =>
     z.strictObject({
-      effectId: uuidSchema,
-      holderActorId: uuidSchema,
+      origin: encounterIncomingGateOriginDtoSchema,
       checkDefinitionId: uuidSchema,
       dc: positiveIntegerSchema,
       d20: frozenCheckD20DtoSchema
     })
   )
 
-/** The save a ward's attacker failed: the ward, the ability and DC of the save, and the d20 it rolled. */
-export type EncounterFailedIncomingGateDto = {
-  effectId: string
-  holderActorId: string
+/** A gate its action's source rolled: why it was owed, its ability and DC, and the d20 rolled. */
+export type EncounterSettledIncomingGateDto = {
+  origin: EncounterIncomingGateOriginDto
   checkDefinitionId: string
   dc: number
   d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
 }
 
-export const encounterFailedIncomingGateDtoSchema: z.ZodMiniType<EncounterFailedIncomingGateDto> =
+export const encounterSettledIncomingGateDtoSchema: z.ZodMiniType<EncounterSettledIncomingGateDto> =
   lazySchema(() =>
     z.strictObject({
-      effectId: uuidSchema,
-      holderActorId: uuidSchema,
+      origin: encounterIncomingGateOriginDtoSchema,
       checkDefinitionId: uuidSchema,
       dc: positiveIntegerSchema,
       d20: ruleCheckD20EvidenceDtoSchema
     })
   )
+
+/** A failed gate a ward raised: only a ward's failure offers the action another creature. */
+export type EncounterFailedWardGateDto = EncounterSettledIncomingGateDto & {
+  origin: Extract<EncounterIncomingGateOriginDto, { kind: 'WARD' }>
+}
+
+const encounterFailedWardGateDtoSchema: z.ZodMiniType<EncounterFailedWardGateDto> = lazySchema(() =>
+  z.strictObject({
+    origin: wardGateOriginSchema,
+    checkDefinitionId: uuidSchema,
+    dc: positiveIntegerSchema,
+    d20: ruleCheckD20EvidenceDtoSchema
+  })
+)
 
 /**
  * One creature the attacker could turn a lost attack or spell on instead (`ATTACK_RETARGET`). The use
@@ -577,7 +607,7 @@ export function encounterAttackRetargetUseOptionId(input: {
  * creatures on offer; answering with a creature replays the action against it.
  */
 export type EncounterAttackRetargetOfferDto = {
-  gate: EncounterFailedIncomingGateDto
+  gate: EncounterFailedWardGateDto
   options: EncounterAttackRetargetOptionDto[]
 }
 
@@ -585,7 +615,7 @@ export const encounterAttackRetargetOfferDtoSchema: z.ZodMiniType<EncounterAttac
   lazySchema(() =>
     z
       .strictObject({
-        gate: encounterFailedIncomingGateDtoSchema,
+        gate: encounterFailedWardGateDtoSchema,
         options: z
           .array(encounterAttackRetargetOptionDtoSchema)
           .check(z.minLength(1))
@@ -596,7 +626,7 @@ export const encounterAttackRetargetOfferDtoSchema: z.ZodMiniType<EncounterAttac
           const targets = value.options.map(({ targetActorId }) => targetActorId)
           if (
             new Set(targets).size !== targets.length ||
-            targets.includes(value.gate.holderActorId)
+            targets.includes(value.gate.origin.holderActorId)
           )
             context.addIssue({
               code: 'custom',
@@ -607,7 +637,7 @@ export const encounterAttackRetargetOfferDtoSchema: z.ZodMiniType<EncounterAttac
           for (const [index, option] of value.options.entries())
             if (
               encounterAttackRetargetUseOptionId({
-                gateEffectId: value.gate.effectId,
+                gateEffectId: value.gate.origin.effectId,
                 targetActorId: option.targetActorId
               }) !== option.useOptionId
             )
@@ -621,9 +651,10 @@ export const encounterAttackRetargetOfferDtoSchema: z.ZodMiniType<EncounterAttac
   )
 
 /**
- * The root of an action a warded creature's gate stopped: its attacker failed the save, so the attack or
- * spell is lost. The action is still spent: the receipts name the slot, resource, item and action economy
- * the source paid, and nothing the action would have done is applied.
+ * The root of an action its gate stopped: its source failed the check it owed (a warded creature's
+ * save, or its own reaction trigger's check), so the attack or spell is lost. The action is still
+ * spent: the receipts name the slot, resource, item and action economy the source paid, and nothing
+ * the action would have done is applied.
  */
 const encounterGatedActionApplicationOutputImplSchema = lazySchema(() =>
   z
@@ -634,9 +665,9 @@ const encounterGatedActionApplicationOutputImplSchema = lazySchema(() =>
       sourceActorId: uuidSchema,
       sourceCharacterId: z.nullable(uuidSchema),
       ...sourceSpendReceiptShape(),
-      /** What the failed save cost the source. */
+      /** What the failed check cost the source. */
       lost: z.enum(['ATTACK', 'SPELL']),
-      gate: encounterFailedIncomingGateDtoSchema
+      gate: encounterSettledIncomingGateDtoSchema
     })
     .check(z.superRefine(validateSourceSpendReceipts))
 )
@@ -648,7 +679,7 @@ export type EncounterGatedActionApplicationOutputDto = SourceSpendReceipts & {
   sourceActorId: string
   sourceCharacterId: string | null
   lost: 'ATTACK' | 'SPELL'
-  gate: EncounterFailedIncomingGateDto
+  gate: EncounterSettledIncomingGateDto
 }
 
 /** Named so the application-output union prints this member by name (TS7056). */

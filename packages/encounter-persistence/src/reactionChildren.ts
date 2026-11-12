@@ -51,6 +51,17 @@ export async function readReactionChildParent(ctx: EncounterReadContext, input: 
 }
 
 /**
+ * The level of the cast a reaction child answers, as the held action recorded it beside the child
+ * (D219); null when that action casts no spell, or no held action records the child.
+ */
+export async function readReactionChildCastLevel(
+  ctx: EncounterReadContext,
+  input: ReactionChildLink
+) {
+  return (await readRecordingParent(ctx, input))?.context.castLevel ?? null
+}
+
+/**
  * The answer that records a reaction child chosen from the offer its action raised once it had
  * committed (D219), or null when no settled offer of this Run records that child. The receipt is the
  * proof, and the child's only tie to the action: nothing is held, so the child suspends, re-pins
@@ -130,7 +141,8 @@ export async function releaseReactionChildParent(
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')
   const { parent, snapshot } = recording
-  const { reactionChildren = [], ...context } = recording.context
+  // The cast level is recorded with the children, so it goes when the last of them does.
+  const { reactionChildren = [], castLevel, ...context } = recording.context
   const kept = reactionChildren.filter(({ commandId }) => commandId !== input.childCommandId)
   await ctx.db.patch(parent._id, {
     state: 'PENDING',
@@ -138,7 +150,13 @@ export async function releaseReactionChildParent(
     expectedEncounterVersion: input.version,
     pendingSnapshotChecksum: await writePendingSnapshot(ctx, parent, {
       ...snapshot,
-      applicationContext: { ...context, ...(kept.length > 0 && { reactionChildren: kept }) }
+      applicationContext: {
+        ...context,
+        ...(kept.length > 0 && {
+          reactionChildren: kept,
+          ...(castLevel !== undefined && { castLevel })
+        })
+      }
     }),
     updatedAt: new Date().toISOString()
   })
@@ -173,12 +191,13 @@ export const awaitsReactionChild = (context: RecordedReactionChildren) =>
 
 type RecordedReactionChildren = {
   reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
+  castLevel?: number
 }
 
 /**
  * Whether a pending action's next context keeps the reaction children its previous one recorded:
  * the same commands in order, each resolved and a resolved mode never rewritten, with at most one
- * new, unresolved child after them.
+ * new, unresolved child after them, and the cast level recorded with them unchanged.
  */
 export function reactionChildrenKept(
   previous: RecordedReactionChildren,
@@ -188,6 +207,7 @@ export function reactionChildrenKept(
   const kept = next.reactionChildren ?? []
   return (
     kept.length - recorded.length <= 1 &&
+    (recorded.length === 0 || previous.castLevel === next.castLevel) &&
     recorded.every(({ commandId, rollMode }, index) => {
       const child = kept[index]
       return (

@@ -47,7 +47,8 @@ import {
 import {
   encounterActionReactionReceiptDtoSchema,
   encounterCounteredCastApplicationOutputDtoSchema,
-  encounterGatedActionApplicationOutputDtoSchema
+  encounterGatedActionApplicationOutputDtoSchema,
+  encounterSettledIncomingGateDtoSchema
 } from './ruleExecutionReactionChoice.js'
 import { reactionOfferAnswerApplicationOutputDtoSchema } from './ruleExecutionReactionOffer.js'
 import {
@@ -140,7 +141,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       /** The dice active grants added to, or took from, its damage, in node-prefix order (D156). */
       damageAddedDice: z.optional(damageAddedDiceDtoSchema),
       /** The zones its target holds that this melee hit set off against the attacker (D153). */
-      meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
+      meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema),
+      /** The check its source's reaction trigger asked and the source passed before it ran (D219). */
+      passedGate: z.optional(encounterSettledIncomingGateDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

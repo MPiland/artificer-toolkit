@@ -92,13 +92,13 @@ describe('room Counterspell against a Creature capability cast (REACTION-4.1)', 
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
 
     const context = await readPendingActionContext(room.room.base.stub)
-    if (
-      context.kind !== 'ENCOUNTER_ACTION' ||
-      context.pause?.kind !== 'CAST_REACTION' ||
-      !context.pause.payload.check
-    )
+    // The check is the gate of the holder's own counter, read against the capability's cast level (D219).
+    if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'INCOMING_GATE')
       throw new Error('Expected a pending counter check.')
-    expect(context.pause.payload.check).toMatchObject({ triggerLevel: 4, dc: 14 })
+    expect(context.pause.payload).toMatchObject({
+      origin: { kind: 'TRIGGER', triggerLevel: 4 },
+      dc: 14
+    })
   })
 
   it('offers no counter to a capability that casts no spell', async () => {

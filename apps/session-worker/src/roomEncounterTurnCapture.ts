@@ -46,6 +46,7 @@ import {
 } from './roomActionSceneInputs.js'
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
+import { readReactionChildCastLevel } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
   readNativeEncounterActionResponseAdmission,
@@ -335,7 +336,17 @@ export async function readRoomEncounterTurnCapture(
         : admission.kind === 'REPLAY'
           ? admission.result
           : null
+    const { systemTrigger } = admission.input
     const response = {
+      triggerCastLevel:
+        systemTrigger?.trigger === 'REACTION'
+          ? await readReactionChildCastLevel(ctx, {
+              campaignId: input.campaignId,
+              encounterId: input.encounterId,
+              parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
+              childCommandId: admission.input.commandId.toLowerCase()
+            })
+          : null,
       ...(resumed
         ? {
             kind: 'ACTION_RESPONSE' as const,

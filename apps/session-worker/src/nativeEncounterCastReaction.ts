@@ -317,9 +317,10 @@ export type NativeCastReactionAnswer =
  * an even one is spent without effect and the cast is offered again at its own level. Every counter in
  * the chain but the one that stands is kept for the terminal commit to spend.
  *
- * A counter to the cast itself that owes no check and that nobody can counter instead runs as its
- * holder's own action (D219): this names that child and keeps the answered offer, and the cast resumes
- * once the child has committed, lost if the child cancelled it.
+ * A counter to the cast itself that nobody can counter instead runs as its holder's own action
+ * (D219): this names that child and keeps the answered offer, and the cast resumes once the child has
+ * committed, lost if the child cancelled it. A check that counter owes is the child's own incoming
+ * gate, so only a counter another creature can counter still rolls its check here.
  */
 export async function advanceNativeCastReactions(input: {
   runtime: RulesRuntimeService
@@ -340,8 +341,8 @@ export async function advanceNativeCastReactions(input: {
    */
   declinedReactorActorIds: readonly string[]
   /**
-   * Whether a counter to the cast itself that owes no check, and that nobody can counter, runs as its
-   * holder's own action (D219). A counter that owes a check or joins a chain still resolves here.
+   * Whether a counter to the cast itself that nobody can counter runs as its holder's own action
+   * (D219). A counter that joins a chain still resolves here.
    */
   runsAsChild: boolean
   /** Whether a reactor's player has the app roll their dice, so its check settles without a pause. */
@@ -429,6 +430,26 @@ export async function advanceNativeCastReactions(input: {
         candidate: found.candidate,
         optionId: answer.selection.optionId
       })
+      if (
+        input.runsAsChild &&
+        chain.length === 0 &&
+        !(await input.discover({
+          declinedReactorActorIds: [...usedReactions.map(reactorOf), chosen.reactorActorId],
+          against: { actorId: chosen.reactorActorId, level: found.level }
+        }))
+      )
+        return {
+          kind: 'CHILD' as const,
+          child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
+          // The offer stays as it was answered until the cast resumes from the child.
+          continuation: await openEncounterReactionChoice({
+            runtime,
+            occurrenceId,
+            candidate: found.candidate
+          }),
+          offer: answer.offer,
+          usedReactions
+        }
       if (found.check) {
         const prepared = prepareEncounterCastReactionCheck({
           requirement: found.check,
@@ -469,27 +490,7 @@ export async function advanceNativeCastReactions(input: {
           continuation,
           evidence: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId }
         }
-      } else if (
-        input.runsAsChild &&
-        chain.length === 0 &&
-        !(await input.discover({
-          declinedReactorActorIds: [...usedReactions.map(reactorOf), chosen.reactorActorId],
-          against: { actorId: chosen.reactorActorId, level: found.level }
-        }))
-      )
-        return {
-          kind: 'CHILD' as const,
-          child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
-          // The offer stays as it was answered until the cast resumes from the child.
-          continuation: await openEncounterReactionChoice({
-            runtime,
-            occurrenceId,
-            candidate: found.candidate
-          }),
-          offer: answer.offer,
-          usedReactions
-        }
-      else stand(found, reaction, choice, null)
+      } else stand(found, reaction, choice, null)
     }
   }
   if (rolling) {

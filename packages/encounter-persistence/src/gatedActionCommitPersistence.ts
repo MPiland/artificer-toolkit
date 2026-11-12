@@ -18,16 +18,20 @@ import { endEffects } from './consumedGrantPersistence.js'
 import { readRunActors } from './documents.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
+import { sameGate } from './actionPending.js'
+import { recordCounterCheckRollCards } from './actionRollCards.js'
 
 /**
- * Commits an attack or harmful spell a warded creature's gate stopped, in the transaction of the roll
- * that failed the attacker's save: the root with the source's one spend and nothing of the action. When
- * the save was asked of a player, the sealed offer the answer resumed must be the gate the root records.
+ * Commits an action its incoming gate stopped, in the transaction of the roll that failed it: the root
+ * with the source's one spend and nothing of the action. When the roll was asked of a player, the
+ * sealed offer the answer resumed must be the gate the root records.
  */
 export async function persistEncounterGatedActionCommit(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+  },
   input: LiveSessionEncounterGatedActionCommitInput,
   callbacks: {
     validateReadFence(
@@ -80,8 +84,7 @@ export async function persistEncounterGatedActionCommit(
           checksumCanonicalJson(retarget.gate.d20) !== checksumCanonicalJson(root.gate.d20)
         : response.resolution.kind !== 'ENTER_DICE' &&
           response.resolution.kind !== 'SYSTEM_ROLL') ||
-      offered.effectId !== root.gate.effectId ||
-      offered.holderActorId !== root.gate.holderActorId ||
+      !sameGate(offered, root.gate) ||
       offered.checkDefinitionId !== root.gate.checkDefinitionId ||
       offered.dc !== root.gate.dc)
   )
@@ -90,13 +93,16 @@ export async function persistEncounterGatedActionCommit(
     throw new Error('Live Session gated action offer mismatch.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
-  const holder = actors.find((actor) => actor.id === root.gate.holderActorId)
+  const { origin } = root.gate
   if (
     !source ||
     root.sourceActorId !== source.id ||
     root.sourceCharacterId !== (source.kind === 'CHARACTER' ? source.sourceId : null) ||
-    !holder ||
-    holder.id === source.id
+    // A ward is another creature's; a trigger's check is owed only by a reaction child.
+    (origin.kind === 'WARD'
+      ? origin.holderActorId === source.id ||
+        !actors.some((actor) => actor.id === origin.holderActorId)
+      : command.systemTrigger?.trigger !== 'REACTION')
   )
     throw new Error('Live Session gated action actor scope mismatch.')
   const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
@@ -231,6 +237,20 @@ export async function persistEncounterGatedActionCommit(
       rootInitiatorUserId: initiatorUserId,
       answeredRequestId: resume.pending.snapshot.request.requestId,
       result: rootExecution
+    })
+  // A failed trigger check is carded as the reactor's counter check, as a passed one is.
+  if (origin.kind === 'TRIGGER')
+    await recordCounterCheckRollCards(ctx, {
+      campaign,
+      encounterId: state.id,
+      gameSystemId: state.gameSystemId,
+      occurrenceId: root.occurrenceId,
+      checks: [{ reactor: source, check: root.gate }],
+      response,
+      responderUserId: input.expectedUserId,
+      initiatorUserId,
+      visibility: command.visibility,
+      createdAt: input.occurredAt
     })
   return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }

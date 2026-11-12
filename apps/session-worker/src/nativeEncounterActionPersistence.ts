@@ -8,6 +8,7 @@ import {
   buildEncounterHeldActionPendingSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { planNativeLiveEncounterAction } from './nativeEncounterRules.js'
 
@@ -25,7 +26,8 @@ export function buildNativeLiveEncounterActionPendingInput(
     commandFingerprint: plan.fingerprint,
     initiatorUserId: plan.initiatorUserId,
     currentnessChecksum: plan.currentnessChecksum,
-    reactionChildren: plan.reactionChildren
+    reactionChildren: plan.reactionChildren,
+    castLevel: preparedSpellCastLevel(plan.prepared)
   }
   return liveSessionEncounterActionPendingInputSchema.parse({
     ...scope,

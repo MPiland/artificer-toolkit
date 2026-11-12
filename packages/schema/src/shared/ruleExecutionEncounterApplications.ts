@@ -44,7 +44,10 @@ import {
 } from './ruleExecutionEvidence.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 // A cycle: the reaction receipt reuses this module's spend receipts; both sides are lazy schemas.
-import { encounterActorReactionReceiptDtoSchema } from './ruleExecutionReactionChoice.js'
+import {
+  encounterActorReactionReceiptDtoSchema,
+  encounterSettledIncomingGateDtoSchema
+} from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionCapabilityKeySchema as capabilityKeySchema,
@@ -603,7 +606,9 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       /** The dice active grants added to, or took from, its damage, in node-prefix order (D156). */
       damageAddedDice: z.optional(damageAddedDiceDtoSchema),
       /** The zones its target holds that this melee hit set off against the attacker (D153). */
-      meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
+      meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema),
+      /** The check its source's reaction trigger asked and the source passed before it ran (D219). */
+      passedGate: z.optional(encounterSettledIncomingGateDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

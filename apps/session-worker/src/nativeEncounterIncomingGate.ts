@@ -3,15 +3,22 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { liveSessionEncounterGatedActionCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type {
+  LiveSessionEncounterRulesInput,
+  LiveSessionEncounterRulesRequest
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterIncomingGateOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterIncomingGateOfferDto,
+  EncounterSettledIncomingGateDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { buildEncounterGatedActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
@@ -23,7 +30,19 @@ import {
   evaluateEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
-import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import {
+  encounterAttackRetargetOffer,
+  openEncounterAttackRetargetChoice,
+  type EncounterAttackRetargetCandidate
+} from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
+import {
+  castReactionCheckRequirement,
+  prepareEncounterCastReactionCheck
+} from '@artificer-toolkit/rules-runtime/encounterCastReactionCheck'
+import {
+  preparedCastsSpell,
+  preparedSpellCastLevel
+} from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
   heldIncomingGate,
@@ -34,12 +53,13 @@ import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 
 import { planNativeLostSourceAction } from './nativeEncounterLostAction.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
 type Prepared = NativeEncounterActionMechanicsInput['prepared']
 type MovementTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
-/** The attacker's answer to the save a pending gate waits on. */
+/** The source's answer to the roll a pending gate waits on. */
 export type NativeIncomingGateAnswer = {
   offer: EncounterIncomingGateOfferDto
   continuation: ServerRuleExecutionContinuationDto
@@ -47,55 +67,112 @@ export type NativeIncomingGateAnswer = {
 }
 
 /**
- * The window in which an attacker of a warded creature owes the ward's saving throw, before the attack
- * or harmful spell does anything. A player who prompts for saves is asked for the roll; an auto-roll
- * player or a creature is rolled for. A pass lets the action go on with the ward remembered, so no later
- * pause of the same action asks again; a fail loses the action.
+ * The check a reaction's child action owes before it runs (D219): the one its authored trigger asks
+ * when the cast it answers is cast above the level the reaction is cast at. Null when it owes none.
+ */
+export function owedNativeTriggerCheck(prepared: Prepared, triggerLevel: number | null) {
+  const counterLevel = preparedSpellCastLevel(prepared)
+  if (triggerLevel === null || counterLevel === null || prepared.source.kind !== 'CHARACTER_ACTION')
+    return null
+  const trigger = prepared.source.candidate.mechanicFacts.invocation.reactionTrigger
+  const requirement = castReactionCheckRequirement({
+    higherLevelCheck: trigger?.kind === 'SPELL_CAST' ? trigger.higherLevelCheck : undefined,
+    counterLevel,
+    triggerLevel
+  })
+  return requirement && { requirement, triggerLevel }
+}
+
+/** What the action's source owes: the ward of the creature it aims at, or its own trigger's check. */
+type NativeOwedIncomingGate =
+  | {
+      kind: 'WARD'
+      holderActorId: string
+      holderEffects: readonly ActiveRuleEffectRecord[]
+      holderGrantFold: Parameters<typeof heldIncomingGate>[0]['grantFold']
+      /** The attacker's Creature type; null for a Character. */
+      attackerCreatureTypeId: string | null
+      /** The ward owner's facts as they stand now; null when the owner is no longer in the encounter. */
+      owner: (
+        ownerActorId: string
+      ) => Promise<Pick<
+        MovementTarget,
+        'effectiveRulePolicyOutput' | 'effectiveScalarValues'
+      > | null>
+    }
+  | ({ kind: 'TRIGGER'; system: SystemAuthoredDto } & NonNullable<
+      ReturnType<typeof owedNativeTriggerCheck>
+    >)
+
+/**
+ * The window in which an action's source owes a roll before its action does anything: the saving throw
+ * of the warded creature it attacks, or the check its own reaction trigger asks (D219). A player who
+ * prompts for the roll is asked for it; an auto-roll player or a creature is rolled for. A pass lets
+ * the action go on with the gate remembered, so no later pause of the same action asks again; a fail
+ * loses the action.
  */
 export async function advanceNativeIncomingGate(input: {
   runtime: RulesRuntimeService
   random?: (maximum: number) => number
   gameSystemId: string
   occurrenceId: string
-  holderActorId: string
-  holderEffects: readonly ActiveRuleEffectRecord[]
-  holderGrantFold: Parameters<typeof heldIncomingGate>[0]['grantFold']
+  owed: NativeOwedIncomingGate
+  /** The action's source, who rolls. */
   attacker: MovementTarget
-  /** The attacker's Creature type; null for a Character. */
-  attackerCreatureTypeId: string | null
-  /** The ward owner's facts as they stand now; null when the owner is no longer in the encounter. */
-  owner: (
-    ownerActorId: string
-  ) => Promise<Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'> | null>
   autoRoll: boolean
-  /** The ward whose save an earlier request of this action already passed. */
-  passedEffectId: string | undefined
+  /** The gate an earlier request of this action already passed. */
+  passed: EncounterSettledIncomingGateDto | undefined
   answer: NativeIncomingGateAnswer | null
 }) {
-  const held = heldIncomingGate({
-    holderActorId: input.holderActorId,
-    effects: input.holderEffects,
-    grantFold: input.holderGrantFold,
-    attackerCreatureTypeId: input.attackerCreatureTypeId,
-    attacker: {
-      actorId: input.attacker.actor.id,
-      characterId: input.attacker.actor.kind === 'CHARACTER' ? input.attacker.actor.sourceId : null
-    }
-  })
-  if (!held || held.wardId === input.passedEffectId) {
+  const { owed, passed } = input
+  const held =
+    owed.kind === 'WARD'
+      ? heldIncomingGate({
+          holderActorId: owed.holderActorId,
+          effects: owed.holderEffects,
+          grantFold: owed.holderGrantFold,
+          attackerCreatureTypeId: owed.attackerCreatureTypeId,
+          attacker: {
+            actorId: input.attacker.actor.id,
+            characterId:
+              input.attacker.actor.kind === 'CHARACTER' ? input.attacker.actor.sourceId : null
+          }
+        })
+      : null
+  if (
+    owed.kind === 'WARD'
+      ? !held || (passed?.origin.kind === 'WARD' && passed.origin.effectId === held.wardId)
+      : passed?.origin.kind === 'TRIGGER'
+  ) {
     if (input.answer) throw new Error('The incoming gate is no longer owed.')
     // A ward an earlier request of this action passed still owes its success immunity at the commit.
     return { kind: 'NONE' as const, passed: held }
   }
-  const owner = await input.owner(held.ownerActorId)
-  if (!owner) throw new Error('The owner of the incoming gate is no longer in the encounter.')
-  const offer = incomingGateOffer({
-    gameSystemId: input.gameSystemId,
-    held,
-    holderActorId: input.holderActorId,
-    owner,
-    attacker: input.attacker
-  })
+  let offer: EncounterIncomingGateOfferDto
+  if (owed.kind === 'TRIGGER') {
+    const check = prepareEncounterCastReactionCheck({
+      requirement: owed.requirement,
+      gameSystemId: input.gameSystemId,
+      system: owed.system,
+      reactor: input.attacker
+    })
+    offer = {
+      origin: { kind: 'TRIGGER', triggerLevel: owed.triggerLevel },
+      checkDefinitionId: check.checkDefinitionId,
+      dc: owed.requirement.dc,
+      d20: check.d20
+    }
+  } else {
+    const owner = await owed.owner(held!.ownerActorId)
+    if (!owner) throw new Error('The owner of the incoming gate is no longer in the encounter.')
+    offer = incomingGateOffer({
+      gameSystemId: input.gameSystemId,
+      held: held!,
+      holderActorId: owed.holderActorId,
+      owner,
+      attacker: input.attacker
+    })
+  }
   if (input.answer && checksumRuleDocument(input.answer.offer) !== checksumRuleDocument(offer))
     throw new Error('The incoming gate changed.')
   const continuation =
@@ -127,22 +204,70 @@ export async function advanceNativeIncomingGate(input: {
     random,
     expectedOccurrenceId: input.occurrenceId
   })
+  const gate: EncounterSettledIncomingGateDto = {
+    origin: offer.origin,
+    checkDefinitionId: offer.checkDefinitionId,
+    dc: offer.dc,
+    d20: evaluated.d20
+  }
   return evaluated.reachesDc
-    ? { kind: 'PASSED' as const, effectId: offer.effectId, passed: held }
-    : {
-        kind: 'FAILED' as const,
-        gate: {
-          effectId: offer.effectId,
-          holderActorId: offer.holderActorId,
-          checkDefinitionId: offer.checkDefinitionId,
-          dc: offer.dc,
-          d20: evaluated.d20
-        }
-      }
+    ? { kind: 'PASSED' as const, gate, passed: held }
+    : { kind: 'FAILED' as const, gate }
 }
 
 /**
- * The action a ward stopped: the source spends its slot, resource, item and action and nothing the attack
+ * The offer to turn an action a ward stopped on another creature before it is lost, or null when
+ * there is nobody to turn it on. Only creatures the attacker's own list shows are offered: a hidden
+ * creature's id never leaves. A failed trigger check offers nothing: its action answers one cast.
+ */
+export async function offerNativeAttackRetarget(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  gameSystemId: string
+  gate: EncounterSettledIncomingGateDto
+  command: ResolveEncounterActionInputDto
+  actors: readonly EncounterRunActorState[]
+  prepared: Prepared
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => ReturnType<LiveCaptureReads['encounterRules']>
+}) {
+  const { gate, prepared } = input
+  const { origin } = gate
+  if (origin.kind !== 'WARD' || input.command.target.kind !== 'ACTOR') return null
+  const bindings = input.command.sceneContext
+    ? await input.capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
+    : null
+  if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
+    throw new Error('Retarget bindings are unavailable.')
+  const seen = await input.capture({ kind: 'SEEN_ACTORS' })
+  if (seen.kind !== 'SEEN_ACTORS') throw new Error('Retarget sight is unavailable.')
+  const seenIds = new Set(seen.actorIds)
+  const candidates = input.actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
+    if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
+    if (!seenIds.has(actor.id)) return []
+    if (!bindings) return [{ actorId: actor.id, tokenId: null }]
+    const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
+    return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []
+  })
+  if (!candidates.length) return null
+  return {
+    continuation: await openEncounterAttackRetargetChoice({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      gameSystemId: input.gameSystemId,
+      optionCount: candidates.length
+    }),
+    rollerActorId: prepared.actor.id,
+    pause: {
+      kind: 'ATTACK_RETARGET' as const,
+      payload: encounterAttackRetargetOffer({ ...gate, origin }, candidates)
+    }
+  }
+}
+
+/**
+ * The action its gate stopped: the source spends its slot, resource, item and action and nothing the attack
  * or spell would have done happens. Nothing is stored; the commit applies the spend and the sealed record.
  */
 export function planNativeGatedAction(input: {

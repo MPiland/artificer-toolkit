@@ -3,7 +3,7 @@ import {
   encounterAttackRetargetUseOptionId,
   type EncounterAttackRetargetOfferDto,
   type EncounterAttackRetargetOptionDto,
-  type EncounterFailedIncomingGateDto
+  type EncounterFailedWardGateDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
@@ -24,7 +24,7 @@ export type EncounterAttackRetargetCandidate = { actorId: string; tokenId: strin
 
 /** The offer made for one failed ward save: each candidate, identified by the ward that stopped the action. */
 export function encounterAttackRetargetOffer(
-  gate: EncounterFailedIncomingGateDto,
+  gate: EncounterFailedWardGateDto,
   candidates: readonly EncounterAttackRetargetCandidate[]
 ): EncounterAttackRetargetOfferDto {
   return {
@@ -33,7 +33,7 @@ export function encounterAttackRetargetOffer(
       targetActorId: actorId,
       targetTokenId: tokenId,
       useOptionId: encounterAttackRetargetUseOptionId({
-        gateEffectId: gate.effectId,
+        gateEffectId: gate.origin.effectId,
         targetActorId: actorId
       })
     }))

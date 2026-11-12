@@ -1412,7 +1412,7 @@ choice (`openEncounterSealedChoice`, or `openEncounterAuthoredChoice` for a feat
 answer names (`chosenEncounterSealedOption`), and settle with exactly that index (`settleEncounterSealedChoice`). Each
 kind's module keeps what was offered and its staleness checksum. The incoming gate is the one member that waits on a
 d20 instead of a choice. The rules graphs resume only `LEGENDARY_RESISTANCE`, `REACTION`, `ON_HIT` and
-`FORCED_MOVEMENT`; a held cast, ward or retarget pauses before the graphs run. GM undo of a held action cancels it
+`FORCED_MOVEMENT`; a held cast, gate (a ward's save or a reaction trigger's check) or retarget pauses before the graphs run. GM undo of a held action cancels it
 whatever its pause kind.
 
 **Worker handler layout (current, RULES-2.T4b).** `planNativeLiveEncounterAction` no longer answers pauses inline. `apps/session-worker/src/nativePauseHandlers.ts` holds one exhaustive table, `{ [Kind in NativePauseKind]: NativePauseHandler<Kind> }`, so a new pause kind fails to compile until it has a handler. Each handler has `read` (turn the response into that kind's typed answer, refusing a missing decision or die) and, for the kinds the rules graphs resume, `settle` (continue the action into its execution). One module per kind: `nativePauseLegendaryResistance`, `nativePauseReaction` (`REACTION` and `ON_HIT`, which share the target's current reaction), `nativePauseForcedMovement`, and read-only `nativePauseCastReaction`, `nativePauseIncomingGate`, `nativePauseAttackRetarget`: cast, ward and retarget answers feed their own earlier steps of the planner. Shared types live in `nativePauseTypes.ts`. The planner calls `readNativePauseAnswer` once, then `settleNativePauseAnswer` where it used to branch per kind.
@@ -1636,6 +1636,16 @@ Concentration starts. Undo restores both creatures. Character ACTORS-target and 
 `CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
 each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
 that occurrence; the area commit input carries `usedReactions` and spends them like the single-target commit.
+
+**One Worker per-target outcome planner (QUALITY-13.T2c, current).** `planNativeActionTargetOutcome`
+(`apps/session-worker/src/nativeActionTargetOutcome.ts`) plans what one target's outcome leaves on it, for the
+single-target commit (`nativeEncounterRules.ts`) and for every kept entry of an area commit (`planAreaOutcomes`):
+the effects the damage ended, the effect records the outcome creates (state, recurring, riders, the reaction
+effect, grants), the mechanics batch, the target's Legendary Resistance charge and its spent reaction, and the
+effect transitions the stored execution records. Callers pass only what differs by root: the grant triggers, the
+source spend and releases, the maintained state and the item changes. A new per-target step is added in this
+planner, never in a caller. It is not the won-check planner `planNativeTargetOutcome` described below.
+
 A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
@@ -1647,7 +1657,9 @@ then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by t
 child's stored execution) makes the resume commit the cast as lost with `counter: null`
 (`ENCOUNTER_COUNTERED_CAST`), spending only the caster and the failed counters already recorded. A child that
 did not cancel leaves its holder heard, like a decline, and the offers continue. A reaction child's own cast
-offers no counter. Transitional: a counter that owes a check (QUALITY-9.T1b), a counter that others could
+offers no counter. The cast records its level beside the child (`castLevel`, see persistence.md, "The cast a
+child answers"; QUALITY-9.T1b1), which is where the child will read the DC of its check from.
+Transitional: a counter that owes a check (QUALITY-9.T1b2), a counter that others could
 counter and every chain (T1c), and area or chosen-list casts still resolve inline as described here, with a
 non-null `counter` receipt.
 
@@ -2231,8 +2243,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
   d20 pause (an `INCOMING_GATE` pause on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
-  `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
+  `passedIncomingGate` (the settled gate), carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
   source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
+  The gate is general (QUALITY-9.T1b2, D219): "a roll the action's source must pass before its action runs", with an
+  `origin` of `WARD` (this modifier) or `TRIGGER` (the check a reaction child's authored trigger asks against the cast it
+  answers, `owedNativeTriggerCheck`). Both use the same pause, fences, pass memory and gated commit; only a failed ward
+  offers a retarget, and only a passed trigger check is written to the receipt (`passedGate`). A child that owes its
+  trigger's check is asked that check alone, not also a ward of the creature it targets (deferred edge).
   Before a failed save loses the action (SPELLS-4.T2k3b) the attacker is offered another creature: an `ATTACK_RETARGET`
   pause (`{gate, options}`) on the `ENCOUNTER_ACTION` context (`ATTACK_RETARGET_CHOICE` summary). `DECLINE` commits the same gated action;
   `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
