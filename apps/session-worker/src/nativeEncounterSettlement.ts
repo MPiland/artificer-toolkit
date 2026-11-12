@@ -1,4 +1,3 @@
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
@@ -8,11 +7,7 @@ import {
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import type { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import type { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
-import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
-import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
-import { effectsAfterEnding } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
 import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import {
   buildEncounterMaintenanceTransition,
@@ -25,10 +20,11 @@ import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterM
 import type { EncounterMechanicsBatchPlan } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-import {
+import type {
   prepareNativeLiveMaintainedState,
-  type prepareNativeLiveActionMaintenance
+  prepareNativeLiveActionMaintenance
 } from './nativeEncounterMaintenance.js'
+import type { planNativeActionTargetOutcome } from './nativeActionTargetOutcome.js'
 
 type CharacterFacts = PreparedLiveCharacterSheet
 type Maintenance = NonNullable<Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>>
@@ -90,28 +86,14 @@ export function createNativeActiveEffect(
 
 /** Projects the exact state after mechanics, effects and maintenance, before concentration runs. */
 export function planNativeLiveEncounterSettlement(input: {
-  command: ResolveEncounterActionInputDto
-  occurrenceId: string
   occurredAt: string
   prepared: Awaited<ReturnType<typeof prepareEncounterActionMechanics<CharacterFacts>>>
-  mechanics: ReturnType<typeof planNativeEncounterActionMechanics>
-  effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
-  /** The id the action's lasting effect takes, minted before its applications name it (D156). */
-  recurringEffectId: string
-  /** The effect plan of the reaction the target used against this action, when it used one. */
-  reactionEffect: {
-    id: string
-    plan: NonNullable<
-      ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
-    >
-  } | null
-  /** The timed grants the target's own passive damage triggers made from this hit, after its other effects. */
-  damageGrants: readonly {
-    id: string
-    plan: NonNullable<
-      ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
-    >
-  }[]
+  /** The target's planned outcome: its mechanics and the effects it created. */
+  outcome: ReturnType<typeof planNativeActionTargetOutcome>
+  /** The effects the target holds after the outcome, the created ones among them. */
+  targetEffects: ActiveRuleEffectRecord[]
+  /** The maintained state the outcome's effects depend on. */
+  maintainedState: ReturnType<typeof prepareNativeLiveMaintainedState> | null
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   actionEconomyOverridden: boolean
   attackAction: EncounterAttackActionTransitionDto | null
@@ -121,61 +103,13 @@ export function planNativeLiveEncounterSettlement(input: {
     consumption: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
     attackAction: EncounterAttackActionTransitionDto
   } | null
+  /** The maintenance the maintained state replaced; null when the outcome maintains nothing. */
   maintenance: Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }) {
-  const { prepared, mechanics, effects } = input
-  const maintenance = effects.maintenance ? input.maintenance : null
-  const maintainedState = effects.maintenance
-    ? prepareNativeLiveMaintainedState({
-        completedPolicy: effects.maintenance,
-        maintenance,
-        encounterId: prepared.state.id,
-        ownerActorId: prepared.actor.id,
-        actionId: input.command.actionId,
-        sourceOccurrenceId: input.occurrenceId,
-        occurredAt: input.occurredAt
-      })
-    : null
-  const owner = nativeEffectOwner(prepared.target, prepared.state.id)
+  const { prepared, maintenance, maintainedState, targetEffects } = input
+  const { mechanics, createdEffects } = input.outcome
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
-  const targetEffects = effectsAfterEnding(
-    prepared.targetFacts.activeEffects,
-    maintenance?.removed ?? [],
-    input.occurredAt
-  )
-  const createdEffects: ActiveRuleEffectRecord[] = []
-  const create = (
-    plan: typeof effects.stateEffect,
-    maintainedEffectStateId?: string,
-    id?: string
-  ) => {
-    if (!plan) return null
-    const record = createNativeActiveEffect(plan, {
-      owner,
-      currentEffects: targetEffects,
-      occurredAt: input.occurredAt,
-      maintainedEffectStateId,
-      id
-    })
-    createdEffects.push(record)
-    return record
-  }
-  const stateEffect = create(effects.stateEffect)
-  const recurringEffect = create(
-    effects.recurringEffect,
-    maintainedState?.id,
-    input.recurringEffectId
-  )
-  const riderEffects = createLinkedRiders(effects.riderEffects, recurringEffect, (plan) =>
-    create(plan, effects.riderMaintained ? maintainedState?.id : undefined)
-  )
-  // The effect of the reaction the target used lands on the target after the attack's own effects.
-  const reactionEffect =
-    input.reactionEffect && create(input.reactionEffect.plan, undefined, input.reactionEffect.id)
-  const damageGrantEffects = input.damageGrants.map((grant) =>
-    create(grant.plan, undefined, grant.id)
-  )
   const consumedActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,
@@ -256,36 +190,16 @@ export function planNativeLiveEncounterSettlement(input: {
     gameSystemId: prepared.state.gameSystemId,
     occurredAt: input.occurredAt
   })
-  const transitions = projectNativeActionEffectTransitions({
-    state: stateEffect,
-    recurring: recurringEffect,
-    riders: riderEffects,
-    targetActorId: prepared.target.id
-  })
   return {
     ...reconciled,
     createdEffects,
     maintainedState,
-    ...transitions,
-    reactionActiveEffectTransitions: projectNativeActionEffectTransitions({
-      state: null,
-      recurring: reactionEffect,
-      targetActorId: prepared.target.id
-    }).activeEffectTransitions,
-    grantEffectTransitions: damageGrantEffects.flatMap(
-      (grant) =>
-        projectNativeActionEffectTransitions({
-          state: null,
-          recurring: grant,
-          targetActorId: prepared.target.id
-        }).activeEffectTransitions
-    ),
     maintenanceTransition:
       maintainedState && maintenance
         ? buildEncounterMaintenanceTransition({
             maintenance,
             createdState: maintainedState,
-            createdDependentEffectIds: transitions.activeEffectTransitions.map(
+            createdDependentEffectIds: input.outcome.effectTransitions.activeEffectTransitions.map(
               (effect) => effect.activeEffectId
             )
           })

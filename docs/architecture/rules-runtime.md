@@ -1636,6 +1636,16 @@ Concentration starts. Undo restores both creatures. Character ACTORS-target and 
 `CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
 each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
 that occurrence; the area commit input carries `usedReactions` and spends them like the single-target commit.
+
+**One Worker per-target outcome planner (QUALITY-13.T2c, current).** `planNativeActionTargetOutcome`
+(`apps/session-worker/src/nativeActionTargetOutcome.ts`) plans what one target's outcome leaves on it, for the
+single-target commit (`nativeEncounterRules.ts`) and for every kept entry of an area commit (`planAreaOutcomes`):
+the effects the damage ended, the effect records the outcome creates (state, recurring, riders, the reaction
+effect, grants), the mechanics batch, the target's Legendary Resistance charge and its spent reaction, and the
+effect transitions the stored execution records. Callers pass only what differs by root: the grant triggers, the
+source spend and releases, the maintained state and the item changes. A new per-target step is added in this
+planner, never in a caller. It is not the won-check planner `planNativeTargetOutcome` described below.
+
 A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 

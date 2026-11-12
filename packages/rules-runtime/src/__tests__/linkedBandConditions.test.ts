@@ -211,8 +211,7 @@ describe('marginRiderPlan (SPELLS-33 T4i3f)', () => {
 
 describe('the rider-creation roots (SPELLS-33 T4i3e)', () => {
   const roots = [
-    'apps/session-worker/src/nativeEncounterSettlement.ts',
-    'apps/session-worker/src/nativeAreaCommitPlan.ts',
+    'apps/session-worker/src/nativeActionTargetOutcome.ts',
     'packages/rules-runtime/src/encounterTurnLegendaryAction.ts',
     'packages/rules-runtime/src/encounterMovementReactionEffects.ts'
   ]
