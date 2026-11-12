@@ -239,23 +239,13 @@ export async function settleAreaCommit(args: {
     attackAction
   })
 
-  // The actors as persistence leaves them: the caster's resource write, each outcome, each charge a
-  // Legendary Resistance spent, then the caster's feature charge, action economy and Attack action.
+  // The actors as persistence leaves them: the caster's resource write, each outcome with the charge
+  // a Legendary Resistance spent, then the caster's feature charge, action economy and Attack action.
   const settledActors = new Map(actors.map((actor) => [actor.id, actor] as const))
   if (sourceSpend?.sourceResourcePlan)
     settledActors.set(caster.id, sourceSpend.sourceResourcePlan.updatedActor)
   for (const child of children) {
-    const updated = child.mechanics.mechanics.updatedActor
-    const charge = child.resistance?.charge
-    settledActors.set(
-      child.actorId,
-      charge
-        ? encounterRunActorStateSchema.parse({
-            ...updated,
-            resources: withFeatureChargeUsed(updated, charge.ownerFeatureId, charge.afterUsed)
-          })
-        : updated
-    )
+    settledActors.set(child.actorId, child.mechanics.mechanics.updatedActor)
   }
   // A creature that failed to counter the cast has spent its reaction. A kept creature pays it in its
   // own outcome; the caster's and any other creature's are paid by persistence.
