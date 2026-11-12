@@ -30,8 +30,15 @@ import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
  * from the generic weapon-attack option on a Feature effect, with no closed rule.
  */
 
+/** The Hunter feature that offers each option, and the level it is chosen at. */
+const OPTION_FEATURES = {
+  Volley: { featureLabel: "Hunter's Multiattack", level: 11 },
+  'Whirlwind Attack': { featureLabel: "Hunter's Multiattack", level: 11 },
+  'Giant Killer': { featureLabel: "Hunter's Prey", level: 3 }
+} as const
+
 function hunter(
-  option: 'Volley' | 'Whirlwind Attack',
+  option: keyof typeof OPTION_FEATURES,
   items: NonNullable<SrdCharacterInput['items']>
 ) {
   return evaluateSrdCharacter({
@@ -42,8 +49,7 @@ function hunter(
         owner: 'SUBCLASS',
         classLabel: 'Ranger',
         subclassLabel: 'Hunter',
-        featureLabel: "Hunter's Multiattack",
-        level: 11,
+        ...OPTION_FEATURES[option],
         optionLabels: [option]
       })
     ],
@@ -232,5 +238,38 @@ describe('Hunter Whirlwind Attack (SPELLS-31.T5s)', () => {
     })
     expect(target).toEqual(expect.objectContaining({ kind: 'ACTORS' }))
     expect(damageExpression(actions[0]!.decision)).toBe('1d10 + 3')
+  })
+})
+
+/**
+ * QUALITY-8.T1c1 (D219): a Feature weapon attack activated by a reaction is made with the wielded
+ * weapon's action attack, one reaction for each weapon.
+ */
+describe('Hunter Giant Killer (QUALITY-8.T1c1)', () => {
+  it("is a reaction made with the wielded weapon's melee action attack", () => {
+    const character = hunter('Giant Killer', [{ label: 'Dagger', equipped: true }])
+    const actions = optionActions(character, 'Giant Killer')
+    expect(actions.map(({ candidate }) => candidate.label)).toEqual(['Giant Killer (Dagger)'])
+    const [{ candidate, decision }] = actions as [(typeof actions)[number]]
+    expect(candidate.activationSourceKind).toBe('ACTIVE_SOURCE_AND_EQUIPMENT')
+    expect(candidate.equipment?.itemInstanceId).toBe(character.itemInstanceId('Dagger'))
+    expect(candidate.mechanicFacts.invocation.activation?.code).toBe('REACTION')
+    expect(candidate.mechanicFacts.invocation.reactionTrigger?.kind).toBe('ATTACK_RESOLVED_ON_SELF')
+    expect(decision.mechanic.attackKind).toBe('MELEE')
+    expect(decision.mechanic.attackBonus).toBe(7)
+    expect(damageExpression(decision)).toBe('1d4 + 3')
+  })
+
+  it('holds one reaction for each wielded melee weapon', () => {
+    const character = hunter('Giant Killer', [
+      { label: 'Shortsword', equipped: true },
+      { label: 'Dagger' },
+      { label: 'Longbow' }
+    ])
+    expect(
+      optionActions(character, 'Giant Killer')
+        .map(({ candidate }) => candidate.label)
+        .sort()
+    ).toEqual(['Giant Killer (Dagger)', 'Giant Killer (Shortsword)'])
   })
 })

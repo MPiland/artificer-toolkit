@@ -17504,7 +17504,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-8.T1c1"]
+                "after": ["QUALITY-8.T1c2a"]
               },
               "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect."
             },
@@ -25580,8 +25580,7 @@
             },
             {
               "id": "QUALITY-8.T1c1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25591,11 +25590,14 @@
                 "after": ["QUALITY-8.T1b"]
               },
               "note": "Split 2026-11-12 from QUALITY-8.T1c at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1.",
-              "text": "A reaction-activated Feature weapon attack pairs with each wielded weapon's action attack (one reaction action per weapon; non-reaction pairing unchanged; Giant Killer golden row stays REFUSED); undo groups a last-root REACTION child of a committed parent child-then-parent, keeping the voided-parent case."
+              "text": "A reaction-activated Feature weapon attack pairs with each wielded weapon's action attack (one reaction action per weapon; non-reaction pairing unchanged; Giant Killer golden row stays REFUSED); undo groups a last-root REACTION child of a committed parent child-then-parent, keeping the voided-parent case.",
+              "mergedAt": "2026-11-12T05:32:19Z",
+              "proof": "m698 (eaa4bade8) from slice tip 80c108cd5: Tests 43158844789 (full), Live 43158844857, Browser journeys 43158844763 green; ci/merge-m698 Tests 43162076484, Live 43162079734, Browser journeys 43162082770 green. A reaction-activated Feature weapon attack pairs with each wielded weapon action attack (generic, characterActionRuleFacts.ts); undo grouping moved to the pure revertGroupRoots (actionRevertGroups.ts) and groups a REACTION child committed after its parent, child first. encounter-persistence test tsconfig moved to ES2023 to match its build. Red proof: hunterWieldedWeaponAttacks.test.ts RED (2 of 12); actionRevertGroups.test.ts RED-IMPORT (new module)."
             },
             {
-              "id": "QUALITY-8.T1c2",
-              "status": "TODO",
+              "id": "QUALITY-8.T1c2a",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25604,8 +25606,22 @@
                 "size": 5,
                 "after": ["QUALITY-8.T1c1"]
               },
-              "note": "Split 2026-11-12 from QUALITY-8.T1c at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1.",
-              "text": "ATTACK_RESOLVED_ON_HOLDER is raised after the attack commits into a generic post-commit reaction-offer occurrence (no timer, GM voidable, raised only when no other decision is pending); one option per wielded weapon, none for a reactor at 0; an OPTION runs the weapon attack as a REACTION root proved by the occurrence; commit without re-pin; replay-fence and void-cascade checks; drawer offer; room journey; Giant Killer closed-rule effect removed; docs. Ships with SPELLS-31.T4k1c."
+              "note": "Split 2026-11-12 from QUALITY-8.T1c2 at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1 (no scope growth).",
+              "text": "The generic post-commit reaction-offer occurrence in schema and persistence (nothing raises it yet): context kind and insert; DECLINE, and OPTION that closes the offer and records the chosen child command; GM void, owner and projection to the reactor's controller, no timer; REACTION admission proved by the completed offer's receipt and child commit without re-pin; undo groups child, offer answers and attack, child first; replay-fence and void-cascade refusals."
+            },
+            {
+              "id": "QUALITY-8.T1c2b",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-8.T1c2a"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-8.T1c2 at the seam trace (D219 post-commit reaction offer), within AC QUALITY-8.1 (no scope growth).",
+              "text": "ATTACK_RESOLVED_ON_HOLDER is raised after the attack commits, once per attack command and reactor (derived occurrence id, so chains end), only when nothing else is pending, reactors in actor-id order; one option per action attack with labels that tell a versatile weapon's attacks apart, none for a reactor at 0; OPTION runs the weapon attack as a REACTION root; drawer offer; room journey; docs. Ships with SPELLS-31.T4k1c."
             },
             {
               "id": "QUALITY-8.T1d",
@@ -25616,7 +25632,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c2"]
+                "after": ["QUALITY-9.T1d", "QUALITY-8.T1c2b"]
               },
               "note": "Registered 2026-11-12 at the QUALITY-9.T1 seam trace (D219): AC QUALITY-8.1 requires every chosen reaction to run as a child; no new scope.",
               "text": "On-hit reactions (the REACTION pause: Shield, Absorb Elements) run as reaction children resuming by REBIND_TEST; the inline on-hit reaction path is deleted and REACTION merges into the one reaction offer."
@@ -25806,7 +25822,7 @@
             "tc": 3,
             "rr": 5,
             "size": 5,
-            "after": ["QUALITY-8.T1c2"]
+            "after": ["QUALITY-8.T1c2b"]
           },
           "acs": [
             {
@@ -25827,7 +25843,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-8.T1c2"]
+                "after": ["QUALITY-8.T1c2b"]
               },
               "text": "One after-commit subscriber step in the room; DAMAGED raised once; single settle of mirrors and rewards."
             }
@@ -25932,7 +25948,7 @@
             },
             {
               "id": "QUALITY-13.T1a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -25943,11 +25959,13 @@
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1a at the seam trace, within AC QUALITY-13.1 (no scope growth). Orchestrator rulings: TEST table dice rolled after a sealed d20 are the System's (rules-runtime.md, SPELLS-4.T2ps-d3), the one behaviour change; single-graph plans keep a small roll loop in advanceNativeActionGraphs (sight-held die and damage hold only).",
               "text": "Resumed OUTCOME answers and DAMAGE_REROLL resume through continueNativeActionAfterTest from a boundary rebuilt from the retained OUTCOME (post-d20 dice read from the retained execution); advanceNativeActionGraphs moves to its own module to break the reconstruction import cycle; its remaining two-phase logic is deleted; audit staleness on a resumed OUTCOME is covered by tests. The Worker reaction paths that call continueNativeActionAfterTest pass the D168 saveWindow too, so an auto-rolled nested save there opens its window; the on-hit hold moves only if ordering is kept.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T05:29:48Z",
+              "proof": "m697 (c6c98fdeb, fast path) from slice tip 96b5e78f4: Tests 43158895995, Live 43158896009, Browser journeys 43158896014 green. advanceNativeActionGraphs moved to encounterActionAdvance.ts (breaks the import cycle); every resumed OUTCOME answer rebuilds its TEST with reconstructNativeActionTest from the retained execution and evidence (added faces and post-d20 table dice replayed) and resumes in continueNativeActionAfterTest with the retained audits; the two-phase driver loop is deleted; the Worker passes the D168 saveWindow on every answer path; the on-hit hold stays (ordering). Red proof: nativeRoomOutcomeSaveD20Window.test.ts RED (1 of 4); six rules-runtime files RED-IMPORT (new module). No golden moved."
             },
             {
-              "id": "QUALITY-13.T1c",
-              "status": "TODO",
+              "id": "QUALITY-13.T1c1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -25956,8 +25974,50 @@
                 "size": 5,
                 "after": ["QUALITY-13.T1a2", "QUALITY-8.T1b"]
               },
-              "note": "Split 2026-11-11 from QUALITY-13.T1 at the seam trace, within AC QUALITY-13.1 (no scope growth).",
-              "text": "A ray list (Scorching Ray, Eldritch Blast) resolves one ray at a time through the single-target driver under one root, so each ray gets hit reactions, Protection, roll reactions, on-hit riders and the incoming gate; the aggregate gains no reaction state."
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
+              "text": "A ray list seals only its next ray; each answer runs advanceNativeActionGraphs against the binding the earlier rays left, and kept answers replay at Commit. Legendary Resistance and the D168 window unchanged; the pending summary shows one ray at a time; the aggregate gains no reaction state."
+            },
+            {
+              "id": "QUALITY-13.T1c2",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T2"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
+              "text": "Hit reactions per ray: the between-phase orchestration becomes one per-target function used by single-target and ray paths; a ray's pause lives in its own inner snapshot; a reaction's effect holds for later rays; its cost and D219 child commit under the root."
+            },
+            {
+              "id": "QUALITY-13.T1c3",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-13.T1c2"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
+              "text": "Protection, bystander reaction children and roll reactions per ray, with their spends in the commit."
+            },
+            {
+              "id": "QUALITY-13.T1c4",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T1c2"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
+              "text": "On-hit riders and the incoming gate per ray: the gate is passed per attack TEST; a ray lost at the gate offers ATTACK_RETARGET for that ray only (re-seals its own entry); a slot or pool spent on one ray is not offered on the next."
             },
             {
               "id": "QUALITY-13.T2",
@@ -25968,7 +26028,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-13.T1c"]
+                "after": ["QUALITY-13.T1c1"]
               },
               "text": "One commit skeleton for action, area, countered-cast and gated commits."
             }
