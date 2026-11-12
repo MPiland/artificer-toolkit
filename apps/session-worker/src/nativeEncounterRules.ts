@@ -262,8 +262,6 @@ export async function planNativeLiveEncounterAction(
     admission.kind === 'ACTION_RESPONSE' || admission.kind === 'AREA_REMOVAL'
       ? admission.areaSnapshot
       : null
-  /** The committed child action of each reaction chosen against this action, if it is pending (D219). */
-  const committedReactionChildren = pendingAdmission?.reactionChildren ?? []
   const resumedOffer = resumeCommand
     ? readNativeResumedReactionOffer({
         resume: resumeCommand,
@@ -806,7 +804,10 @@ export async function planNativeLiveEncounterAction(
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' &&
     snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
     // The retargeted action's facts are the new creature's, not the ones the offer was made against.
-    !retargetOption
+    !retargetOption &&
+    // A target whose own reaction child the action resumes from stands as that child left it (D219):
+    // the Run moved only by the child, which held both creatures to its own currentness until it committed.
+    resumedOffer?.reactorActorId !== prepared.target.id
   )
     throw new Error('The pending action source or target changed.')
   const resume =
@@ -976,7 +977,8 @@ export async function planNativeLiveEncounterAction(
     aimedAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
     reactionChildren: {
       recorded: reactionChildren,
-      committed: committedReactionChildren,
+      // The committed child action of each reaction chosen against this action, if it is pending.
+      committed: pendingAdmission?.reactionChildren ?? [],
       resumedOffer
     },
     answer: castAnswer,

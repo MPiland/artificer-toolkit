@@ -1651,6 +1651,15 @@ offers no counter. Transitional: a counter that owes a check (QUALITY-9.T1b), a 
 counter and every chain (T1c), and area or chosen-list casts still resolve inline as described here, with a
 non-null `counter` receipt.
 
+**Currentness across a reaction child (current, QUALITY-9.T1a).** A held action's sealed currentness checksum
+covers its source's and its target's facts. When the creature whose reaction child the action resumes from is
+the action's own target, the child's commit changed those facts (the reaction spent, whatever the child
+applied), so that one resume is not compared with the checksum sealed before the child
+(`planNativeLiveEncounterAction`); the next pause seals the facts as the child left them. Nothing else is
+excused: the child and the resume run in one room turn, the Run moves only by the child while the action is
+held (`repinReactionChildParent`), and a child that paused held the same two creatures (its own source and
+target) to its own checksum until it committed. A resume from a bystander's child keeps the full comparison.
+
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
 (`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC

@@ -306,6 +306,49 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
+  it('lets the creature a cast targets counter it as its own action: the cast resumes past the reaction its target spent and commits as lost (D219)', async () => {
+    const room = await counterspellRoom()
+    const { answer } = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { decision, pending } = await offered(room)
+    expect(pending.targetActorId).toBe(REACTOR_ACTOR_ID)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const actions = history.commands.flatMap((row) =>
+      row.commandType === 'RESOLVE_ACTION'
+        ? [resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))]
+        : []
+    )
+    const cast = actions.find((command) => !command.systemTrigger)
+    if (!cast) throw new Error('The room holds no cast.')
+    expect(actions.filter((command) => command.systemTrigger?.trigger === 'REACTION')).toHaveLength(
+      1
+    )
+    const receipt = history.receipts.find((candidate) => candidate.commandId === cast.commandId)
+    if (!receipt) throw new Error('The cast left no receipt.')
+    const lost = parseReceiptExecution(receipt)
+    if (
+      lost.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+      lost.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
+    )
+      throw new Error(`Expected a countered cast, got ${lost.status}.`)
+    expect(lost.applicationOutputs.counter).toBeNull()
+    const reactor = history.actors.find(({ id }) => id === REACTOR_ACTOR_ID)
+    if (!reactor) throw new Error('The room holds no reactor.')
+    expect(
+      encounterRuleUsageUsed(readStoredRunActor(reactor), DND5E_REACTION_ALLOWANCE_DEFINITION_ID)
+    ).toBe(1)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(1))
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+  })
+
   it('uses up the caster’s grant that ends on a cast, and releases its condition, even when the cast is countered, and one undo gives both back (SPELLS-27.1)', async () => {
     const room = await counterspellRoom({
       casterConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],

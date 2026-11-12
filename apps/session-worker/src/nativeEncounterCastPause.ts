@@ -323,9 +323,17 @@ export function createNativeCastPause(input: {
     )
       return counteredCast(null, input.usedReactions)
     const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
-    /** The action held at the offer just answered until the room has committed the child it names. */
+    /**
+     * The reaction chosen at any moment runs as its holder's own action at the creature acting: the
+     * room commits that child, then resumes this action, which keeps the answered offer until then.
+     */
     const awaitChild = async (
-      advanced: Extract<Awaited<ReturnType<typeof advanceNativeCastReactions>>, { kind: 'CHILD' }>
+      advanced: Extract<
+        Awaited<
+          ReturnType<typeof advanceNativeCastReactions | typeof advanceNativeTargetedReactions>
+        >,
+        { kind: 'CHILD' }
+      >
     ) => {
       const childScene = await readScene()
       const holderToken = childScene.tokens.find(
@@ -476,44 +484,7 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds: stage.declinedReactorActorIds,
         runsAsChild: stage.runsAsChild
       })
-      // The reaction chosen runs as its holder's own action at the creature acting: the room commits
-      // that child, then resumes this action, which keeps the answered offer until then.
-      if (advanced.kind === 'CHILD') {
-        const childScene = await readScene()
-        const holderToken = childScene.tokens.find(
-          (token) => token.actorId === advanced.child.holderActorId
-        )
-        return {
-          kind: 'CAST_PENDING' as const,
-          continuation: advanced.continuation,
-          rollerActorId: advanced.child.holderActorId,
-          pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          usedReactions: advanced.usedReactions,
-          reactionChildren: [
-            ...reactionChildren,
-            {
-              commandId: systemTriggerCommandId(
-                command.commandId,
-                advanced.child.holderActorId,
-                advanced.child.actionId
-              )
-            }
-          ],
-          // The child is judged on the Scene the reaction was offered on.
-          reactionChild: {
-            ...advanced.child,
-            targetActorId: prepared.actor.id,
-            sceneContext: holderToken
-              ? {
-                  sceneId: childScene.sceneId,
-                  expectedSceneVersion: childScene.sceneVersion,
-                  sourceTokenId: holderToken.tokenId,
-                  targetTokenId: childScene.sourceToken.tokenId
-                }
-              : null
-          }
-        }
-      }
+      if (advanced.kind === 'CHILD') return awaitChild(advanced)
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,
