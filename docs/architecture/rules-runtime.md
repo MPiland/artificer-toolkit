@@ -1658,24 +1658,39 @@ A Creature capability is offered a counter only when its Feature action effect s
 below (T3d).
 
 **Counter as the holder's own action (current, QUALITY-9.T1a; D219 amendment).** A counter chosen against a
-single-target cast runs as a reaction child (see persistence.md, "Reaction arm") when it owes no check, the
-offer holds no chain and nobody could counter it (`advanceNativeCastReactions` returns `CHILD`). The child is
+single-target cast runs as a reaction child (see persistence.md, "Reaction arm"; `advanceNativeCastReactions`
+returns `CHILD`); a check it owes is the child's own incoming gate (QUALITY-9.T1b2). The child is
 the holder's own cast at the caster: its commit spends the holder's slot and reaction at the choice. The room
 then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by the System adapter from the
 child's stored execution) makes the resume commit the cast as lost with `counter: null`
 (`ENCOUNTER_COUNTERED_CAST`), spending only the caster and the failed counters already recorded. A child that
-did not cancel leaves its holder heard, like a decline, and the offers continue. A reaction child's own cast
-offers no counter. The cast records its level beside the child (`castLevel`, see persistence.md, "The cast a
-child answers"; QUALITY-9.T1b1), which is where the child will read the DC of its check from.
-Transitional: a counter that owes a check (QUALITY-9.T1b2), a counter that others could
-counter and every chain (T1c), and area or chosen-list casts still resolve inline as described here, with a
+did not cancel leaves its holder heard, like a decline, and the offers continue. The cast records its level
+beside the child (`castLevel`, see persistence.md, "The cast a child answers"; QUALITY-9.T1b1), which is where
+the child reads the DC of its check from.
+
+**A counter of a counter (current on single-target casts, QUALITY-9.T1c2; D219).** Every counter chosen against
+a single-target cast runs as a child, whoever else could counter it, and the child's own cast pause offers that
+cast to counters like any cast's (`createNativeCastPause`). A counter chosen there is a child of the child, so
+a chain is a line of held actions, each suspended under the one that answers it; they commit innermost first,
+and each resume reads only its own child. A countered counter commits as lost, which its parent's resume reads
+as a child that did not cancel: an even chain leaves the cast whole and the cast goes on to offer whoever has
+not answered it, and an odd chain loses it. Two rules read the held actions above the child
+(`reactionAncestors`, see persistence.md, "The held actions above a child"). No creature is offered a counter
+to a cast that answers its own held reaction: the holders of the reactions above the child are heard already
+in each discovery of the child's pause. And a held cast has not spent its slot yet, so a creature offered a
+counter while its own casts are held is counted with each of their slots spent (`projectSpellSlotSpend` over
+the child's own slot and its ancestors' `castSlotKey`). Transitional (until QUALITY-9.T1b3 and T1c3): area and
+chosen-list casts still resolve their counters inline as described below, with the offer's `chain` and a
 non-null `counter` receipt.
 
-**Currentness across a reaction child (current, QUALITY-9.T1a).** A held action's sealed currentness checksum
-covers its source's and its target's facts. When the creature whose reaction child the action resumes from is
-the action's own target, the child's commit changed those facts (the reaction spent, whatever the child
-applied), so that one resume is not compared with the checksum sealed before the child
-(`planNativeLiveEncounterAction`); the next pause seals the facts as the child left them. Nothing else is
+**Currentness across a reaction child (current, QUALITY-9.T1a; widened by QUALITY-9.T1c2).** A held action's
+sealed currentness checksum covers its source's and its target's facts. When a creature that reacted in the
+tree of the child the action resumes from (the child's own reactor, or the reactor of a reaction committed
+under it, `descendantReactorActorIds`) is the action's source or its target, that tree changed those facts
+(the reaction spent, whatever the reaction applied), so that one resume is not compared with the checksum
+sealed before the child (`planNativeLiveEncounterAction`, and the persistence fence beside it); the next pause
+seals the facts as the tree left them. The source matters once counters nest: the creature that counters a
+counter is often the caster it was aimed at. Nothing else is
 excused: the child and the resume run in one room turn, the Run moves only by the child while the action is
 held (`repinReactionChildParent`), and a child that paused held the same two creatures (its own source and
 target) to its own checksum until it committed. A resume from a bystander's child keeps the full comparison.

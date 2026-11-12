@@ -113,17 +113,29 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * the cast it answers from here, not from its own command (D219). Absent for an action that
        * casts no spell.
        */
-      castLevel: z.optional(ruleExecutionNonNegativeIntegerSchema)
+      castLevel: z.optional(ruleExecutionNonNegativeIntegerSchema),
+      /**
+       * The spell slot this action's cast spends when it commits, recorded with its reaction children:
+       * a reaction to one of those children is offered to this action's caster against the slots the
+       * cast leaves (D219). Absent for an action whose cast spends no slot.
+       */
+      castSlotKey: z.optional(
+        z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
+      )
     })
     .check(
       z.superRefine((value, context) => {
         const { pause } = value
-        if (value.castLevel !== undefined && !value.reactionChildren?.length)
-          context.addIssue({
-            code: 'custom',
-            path: ['castLevel'],
-            message: 'Only an action that records a reaction child records its cast level.'
-          })
+        for (const [path, name] of [
+          ['castLevel', 'level'],
+          ['castSlotKey', 'slot']
+        ] as const)
+          if (value[path] !== undefined && !value.reactionChildren?.length)
+            context.addIssue({
+              code: 'custom',
+              path: [path],
+              message: `Only an action that records a reaction child records its cast ${name}.`
+            })
         if (!value.contest !== !value.contestPhase)
           context.addIssue({
             code: 'custom',

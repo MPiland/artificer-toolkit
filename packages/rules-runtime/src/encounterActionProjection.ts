@@ -4,7 +4,6 @@ import {
   type StoredCharacter
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import type { NativeCharacterSpellConsumption } from './character/characterNativeActionResources.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { evaluateCharacterRules } from './character/characterRuleEvaluation.js'
 import { updateSpellSlotUsage } from './character/sheetCommandReducer.js'
@@ -26,13 +25,13 @@ export type ProjectableCharacterFacts = CharacterMovementFacts & {
 }
 
 /**
- * The target with a spell slot spent, still on the Character version it was read at: a counter to a
- * Counterspell against the target's own cast is planned against the slots the cast leaves, and both
- * spends commit in one batch on that version.
+ * The target with one more use of a spell slot spent, still on the Character version it was read
+ * at: a reaction to a cast the target itself still holds is planned against the slots that cast
+ * leaves, whether both spends commit in one batch or the held cast commits its own later.
  */
 export function projectSpellSlotSpend<TCharacterFacts extends ProjectableCharacterFacts>(input: {
   target: MovementTarget<TCharacterFacts>
-  consumption: Pick<NativeCharacterSpellConsumption, 'slotKey' | 'afterUsed'>
+  slotKey: string
   campaignId: string
   gameSystemId: string
   occurredAt: string
@@ -46,8 +45,8 @@ export function projectSpellSlotSpend<TCharacterFacts extends ProjectableCharact
       characterUpdate: {
         character: updateSpellSlotUsage(
           characterFacts.character,
-          input.consumption.slotKey,
-          () => input.consumption.afterUsed
+          input.slotKey,
+          (used) => used + 1
         ),
         sheetState: null
       },

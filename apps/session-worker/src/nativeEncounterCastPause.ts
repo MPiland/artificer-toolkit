@@ -9,7 +9,10 @@ import type {
   EncounterUsedReactionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type {
+  LiveSessionReactionAncestor,
+  LiveSessionReactionChild
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import {
   prepareEncounterActionMechanics,
   withEncounterRollInfluences
@@ -34,7 +37,9 @@ import {
   discoverNativeTargetedReactions,
   planNativeCounteredCast,
   planNativeUsedReactions,
-  type NativeCastReactionAnswer
+  type CastReactionDiscovery,
+  type NativeCastReactionAnswer,
+  type NativeCastResponse
 } from './nativeEncounterCastReaction.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
@@ -62,7 +67,7 @@ export function createNativeCastPause(input: {
   loadTarget: (actor: EncounterRunActorState) => Promise<MovementTargets>
   capture: Parameters<typeof discoverNativeCastReactions>[0]['capture']
   requireAutoRoll: (actorId: string) => boolean
-  command: Pick<ResolveEncounterActionInputDto, 'commandId' | 'systemTrigger'>
+  command: Pick<ResolveEncounterActionInputDto, 'commandId'>
   /** The caster's preparation of the cast; an area or a list uses its lead creature's. */
   prepared: Prepared
   movementTargets: ReadonlyMap<string, MovementTargets>
@@ -102,11 +107,35 @@ export function createNativeCastPause(input: {
       reactorActorId: string
       declinedReactorActorIds: readonly string[]
     } | null
+    /** The held actions above this one, when it is itself a reaction's child. */
+    ancestors: readonly LiveSessionReactionAncestor[]
   } | null
 }) {
   const { prepared, state, command } = input
-  const children = input.reactionChildren ?? { recorded: [], committed: [], resumedOffer: null }
+  const children = input.reactionChildren ?? {
+    recorded: [],
+    committed: [],
+    resumedOffer: null,
+    ancestors: []
+  }
   const { resumedOffer } = children
+  /**
+   * A creature whose reaction is spent on a held action above this one has been heard at every
+   * moment, like one that declined: nothing of that action has committed, so its reaction still
+   * reads as unspent.
+   */
+  const heardAbove =
+    <Found extends NativeCastResponse>(
+      discover: CastReactionDiscovery<Found>
+    ): CastReactionDiscovery<Found> =>
+    (filter) =>
+      discover({
+        ...filter,
+        declinedReactorActorIds: [
+          ...filter.declinedReactorActorIds,
+          ...children.ancestors.flatMap(({ actorId, reaction }) => (reaction ? [actorId] : []))
+        ]
+      })
   const committedChild = (commandId: string) => {
     const child = children.committed.find((child) => child.commandId === commandId)
     if (!child) throw new Error('Reaction evidence is stale.')
@@ -163,18 +192,27 @@ export function createNativeCastPause(input: {
   }
   /**
    * A reactor counters against the slots it has left. The cast's own caster counters a counter cast
-   * against its cast with the cast's slot already spent, on the Character version both spends commit in.
+   * against its cast with the cast's slot already spent, on the Character version both spends commit
+   * in; the caster of a held action above this one reacts with that action's slot spent, which its
+   * commit still owes.
    */
   const castSpentTarget = (reactorActorId: string, reactorTarget: MovementTargets) =>
-    castConsumption && reactorActorId === prepared.actor.id
-      ? projectSpellSlotSpend({
-          target: reactorTarget,
-          consumption: castConsumption,
+    [
+      ...(castConsumption && reactorActorId === prepared.actor.id ? [castConsumption.slotKey] : []),
+      ...children.ancestors.flatMap(({ actorId, castSlotKey }) =>
+        actorId === reactorActorId && castSlotKey !== null ? [castSlotKey] : []
+      )
+    ].reduce(
+      (target, slotKey) =>
+        projectSpellSlotSpend({
+          target,
+          slotKey,
           campaignId: state.campaignId,
           gameSystemId: state.gameSystemId,
           occurredAt: input.occurredAt
-        })
-      : reactorTarget
+        }),
+      reactorTarget
+    )
   /**
    * A reaction prepared against the creature whose cast, attack or being targeted it answers. The
    * Scene's sight is read for a reaction to an attack, whose range or requirements may need it.
@@ -207,49 +245,55 @@ export function createNativeCastPause(input: {
   /** The creatures that may counter this cast, read once from the Scene the cast names. */
   const discoverCast = (level: number) =>
     (castDiscovery ??= (async () =>
-      discoverNativeCastReactions({
-        state,
-        actors: input.actors,
-        caster: prepared.actor,
-        triggerLevel: level,
-        scene: await readScene(),
-        loadTarget: input.loadTarget,
-        prepareReaction,
-        capture: input.capture
-      }))())
+      heardAbove(
+        discoverNativeCastReactions({
+          state,
+          actors: input.actors,
+          caster: prepared.actor,
+          triggerLevel: level,
+          scene: await readScene(),
+          loadTarget: input.loadTarget,
+          prepareReaction,
+          capture: input.capture
+        })
+      ))())
   /** The creatures beside the attack that may answer its aim at another, before its d20 (D217). */
   const discoverAimed = () => {
     const loadAttackPerception = input.aimedAttackPerception
     const attackerTarget = input.movementTargets.get(prepared.actor.id)
     if (!loadAttackPerception || !attackerTarget) throw new Error('Reaction evidence is stale.')
-    return discoverNativeAimedReactions({
-      state,
-      actors: input.actors,
-      attacker: prepared.actor,
-      attackerTarget,
-      attacked: prepared.target,
-      loadScene: readScene,
-      loadTarget: async (actor) =>
-        input.movementTargets.get(actor.id) ?? (await input.loadTarget(actor)),
-      loadAttackPerception,
-      prepareReaction: (reactor, reactorTarget, actionId) =>
-        prepareReaction(reactor, reactorTarget, actionId, prepared.actor, loadAttackPerception),
-      capture: input.capture
-    })
+    return heardAbove(
+      discoverNativeAimedReactions({
+        state,
+        actors: input.actors,
+        attacker: prepared.actor,
+        attackerTarget,
+        attacked: prepared.target,
+        loadScene: readScene,
+        loadTarget: async (actor) =>
+          input.movementTargets.get(actor.id) ?? (await input.loadTarget(actor)),
+        loadAttackPerception,
+        prepareReaction: (reactor, reactorTarget, actionId) =>
+          prepareReaction(reactor, reactorTarget, actionId, prepared.actor, loadAttackPerception),
+        capture: input.capture
+      })
+    )
   }
   /** The chosen creatures that may answer being chosen; needs no Scene, only the spell and its targets. */
   const discoverTargeted = () => {
     if (!input.chosenActorIds || !castOwnerId) throw new Error('Reaction evidence is stale.')
-    return discoverNativeTargetedReactions({
-      state,
-      actors: input.actors,
-      chosenActorIds: input.chosenActorIds,
-      castOwnerId,
-      loadTarget: input.loadTarget,
-      prepareReaction: (reactor, reactorTarget, actionId) =>
-        prepareReaction(reactor, reactorTarget, actionId, reactor),
-      capture: input.capture
-    })
+    return heardAbove(
+      discoverNativeTargetedReactions({
+        state,
+        actors: input.actors,
+        chosenActorIds: input.chosenActorIds,
+        castOwnerId,
+        loadTarget: input.loadTarget,
+        prepareReaction: (reactor, reactorTarget, actionId) =>
+          prepareReaction(reactor, reactorTarget, actionId, reactor),
+        capture: input.capture
+      })
+    )
   }
   /**
    * What each reaction spent before the action did anything spends when it ends, planned against the
@@ -386,8 +430,6 @@ export function createNativeCastPause(input: {
       triggerLevel !== null &&
       !resumeAnswer &&
       (!resumedOffer || counterResume) &&
-      // A counter that runs as its holder's own action is offered only when nobody can counter it.
-      command.systemTrigger?.trigger !== 'REACTION' &&
       input.readScene &&
       input.actors.some((actor) => actor.kind === 'CHARACTER' && actor.id !== prepared.actor.id)
     ) {

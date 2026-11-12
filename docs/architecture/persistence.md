@@ -323,7 +323,7 @@ advances the Run one version and re-pins the pending occurrence to it in the sam
   tree plus those void versions plus one. Both are read from `encounterRunCommands`
   (`readCommittedReactionDescendants`, `countRunVoidVersions`); no counter is stored.
 
-Reactions to a held reaction child (current in persistence, QUALITY-9.T1c1; no pipeline raises one until
+Reactions to a held reaction child (current, QUALITY-9.T1c1; raised by a single-target cast's counters since
 QUALITY-9.T1c2). A held child is itself a pending action, so it records the reactions chosen against it in
 its own `reactionChildren`, and the rules above apply to it as the parent. When such a nested child pauses,
 the held child is suspended like any parent; the action above it is already suspended. The tree is read
@@ -350,6 +350,27 @@ returns it as `triggerCastLevel` on the child's `ACTION_COMMAND` and `ACTION_RES
 (`readReactionChildCastLevel`), null for any other command and for a parent that casts no spell.
 This is a persisted pending-context shape change; refresh local data when next used (D196).
 
+The held actions above a child (current, QUALITY-9.T1c2, D219). The same pending context records the slot the
+cast spends at its commit as `castSlotKey`, under `castLevel`'s rules (only beside a child, never rewritten
+while one is recorded, dropped with the last child a void releases). `readReactionChildAncestors` walks from
+a child's command up through the pending contexts that record it, nearest first, and returns each held
+action's actor, whether that action is itself a reaction, and its `castSlotKey`; the capture carries the list
+as `reactionAncestors` on the child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions and on the
+`ACTION_RESUME` of a held child (with that child's own `triggerCastLevel`), empty for any other command. The
+Worker reads it to keep those creatures out of the child's own offers and to count their unspent slots (see
+rules-runtime.md, "Counter as the holder's own action"); persistence does not fence either. The walk stops at
+a parent that is not a pending action (a post-commit offer's child has no held action above it); no
+single-target cast reaches that stop, so it has no room test. `castSlotKey` is a persisted pending-context
+shape change; refresh local data when next used (D196).
+
+Currentness across a nested child (current, QUALITY-9.T1c2). A resumed parent's commit is compared with the
+facts sealed before its child ran. `readCommittedReactionChildren` returns, beside each unresolved child's
+reactor, the reactors of the reactions committed under that child (`descendantReactorActorIds`), and the
+pending fence (`actionPendingPersistence.ts`) excuses the comparison when the source or the target of the
+resumed action is one of them: a counter of a counter is cast by, or at, a creature of the action two levels
+down. A resume from a child whose tree holds neither creature keeps the full comparison. The Worker's planner
+applies the same rule (rules-runtime.md, "Currentness across a reaction child").
+
 The check a child owes (current, QUALITY-9.T1b2, D219 "Trigger-check gate"). A child whose authored
 `reactionTrigger` asks a check against a higher-level cast owes it as its incoming gate, read against
 `triggerCastLevel` (`owedNativeTriggerCheck`, `advanceNativeIncomingGate`). A gate carries a discriminated
@@ -364,8 +385,9 @@ child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and react
 gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
 reactor's `Counter` check on the child's occurrence (`recordCounterCheckRollCards`), and the cancelled cast
 commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Transitional (until
-QUALITY-9.T1b3): a counter another creature could itself counter, and the area and chosen-list hosts, still roll
-the check inline on the parent (`CAST_REACTION.check`). These are persisted pending-context and receipt shape
+QUALITY-9.T1b3): the area and chosen-list hosts still roll the check inline on the parent
+(`CAST_REACTION.check`); a single-target cast's counter that another creature could itself counter has run as a
+child since QUALITY-9.T1c2. These are persisted pending-context and receipt shape
 changes; refresh local data when next used (D196).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
