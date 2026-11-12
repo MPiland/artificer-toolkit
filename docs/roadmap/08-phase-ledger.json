@@ -14437,14 +14437,14 @@
         {
           "id": "SPELLS-8",
           "title": "Cast spells in an Encounter",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/web/tests/live-backend/encounterPlayer.ts"],
           "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Spell action choices, slot spend and undo, upcasting, rituals, concentration start, multi-effect spells and components work in an Encounter.",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "proof": [
                 "Closed by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7 (m422), SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14 (m352); see each task's proof."
               ],
@@ -14742,6 +14742,20 @@
               },
               "text": "Bug: a SEQUENTIAL result's later outcomes see its earlier HIT_POINTS_MAX grants when clamping healing, on the creature path and the Character/Sheet path, so Aid raises current hit points by 5 per slot level above 1st. Seams: encounterActionMechanicsPreparation.ts:982, encounterMechanicsBatchPlan.ts:213/770/794, nativeAreaCommitPlan.ts:220, and the Sheet maximum clamp. Unit and room proofs; the Aid HP assertion lives here.",
               "note": "Bug split from SPELLS-8.T4 (orchestrator ruling B, 2026-10-29); handoff note from the T4 session. Merged in m557 (00c4e3502)."
+            },
+            {
+              "id": "SPELLS-8.T17",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "note": "User approved 2026-11-12 (D187 growth, new bug task, size 2). Found at the QUALITY-9.T1c2 review and confirmed by trace: characterActions.ts:142-231 lets the base cast candidate fall back to a higher slot when its own-level slots are exhausted, while the cast resolves at the candidate level (characterSpellCastActions.ts:388), so a 3rd-level Counterspell paid with a 4th-level slot still owes the check against a 4th-level spell and level-scaled damage or healing under-scales. D126: each slot level is its own option.",
+              "text": "A spell that reads its cast level offers no base-level option once that level's slots are spent (no fallback to a higher slot); the upcast option for each owned higher slot stays. Level-independent spells keep the fallback. Regression tests (rules-runtime candidate and an Encounter Counterspell) fail before the fix."
             }
           ]
         },
@@ -16948,36 +16962,14 @@
           "acs": [
             {
               "id": "SPELLS-31.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds. Closed 2026-11-03 by SPELLS-31.T1, SPELLS-31.T2, SPELLS-31.T3a, SPELLS-31.T3b, SPELLS-31.T3c, SPELLS-31.T3d, SPELLS-31.T4c1a, SPELLS-31.T4c1p, SPELLS-31.T4c1a2, SPELLS-31.T4c1b, SPELLS-31.T4c1b2, SPELLS-31.T4c1b3, SPELLS-31.T4c1b4, SPELLS-31.T4c1b4b, SPELLS-31.T4c1b5, SPELLS-31.T4c1c, SPELLS-31.T4c2, SPELLS-31.T4c2b, SPELLS-31.T4c2c, SPELLS-31.T4c3a, SPELLS-31.T4c3b1, SPELLS-31.T4c3b2, SPELLS-31.T4e, SPELLS-31.T4e2, SPELLS-31.T4f, SPELLS-31.T4f2, SPELLS-31.T4f2b, SPELLS-31.T4f2c, SPELLS-31.T4i, SPELLS-31.T4i2, SPELLS-31.T4j, SPELLS-31.T4k1, SPELLS-31.T4k2a, SPELLS-31.T4k2b, SPELLS-31.T4k2c, SPELLS-31.T4k2d2, SPELLS-31.T4l1, SPELLS-31.T4l2, SPELLS-31.T4l2b-1, SPELLS-31.T4l2b-2, SPELLS-31.T4m, SPELLS-31.T4n, SPELLS-31.T4o, SPELLS-31.T4r, SPELLS-31.T4s, SPELLS-31.T4v, SPELLS-31.T5a, SPELLS-31.T5b, SPELLS-31.T5c, SPELLS-31.T5d, SPELLS-31.T5e, SPELLS-31.T5e2a, SPELLS-31.T5e2b, SPELLS-31.T5f1, SPELLS-31.T5f2, SPELLS-31.T5f4, SPELLS-31.T5f3, SPELLS-31.T5g, SPELLS-31.T5g2, SPELLS-31.T5g3, SPELLS-31.T5h-1, SPELLS-31.T5h-3, SPELLS-31.T5h-2, SPELLS-31.T5i, SPELLS-31.T5j, SPELLS-31.T5k, SPELLS-31.T5l, SPELLS-31.T5m, SPELLS-31.T5n, SPELLS-31.T5n2, SPELLS-31.T5o, SPELLS-31.T5o2, SPELLS-31.T5p, SPELLS-31.T5q-A, SPELLS-31.T5q-B, SPELLS-31.T5ra, SPELLS-31.T5rb, SPELLS-31.T5s, SPELLS-31.T5t, SPELLS-31.T5i2, SPELLS-31.T5i3, SPELLS-31.T5i4, SPELLS-31.T4v2a, SPELLS-31.T4v2b, SPELLS-31.T4m2, SPELLS-31.T6w. Reopened 2026-11-10 (D217): 32 closed-rule kinds were still authored; see the D217 tasks.",
               "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
               "proof": [
-                "nativeRoomHideAction.test.ts",
-                "nativeRoomEscapeAction.test.ts",
-                "occurrenceOwner.test.ts",
-                "cunningActionAndKiAuthoringParity.test.ts",
-                "nativeRoomCunningAction.test.ts",
-                "characterSpellCastActions.test.ts",
-                "classHealingDealtAuthoringParity.test.ts",
-                "classConditionImmunityAuraAuthoringParity.test.ts",
-                "encounterOccupantSaveBonusCompilation.test.ts",
-                "encounterOccupantSaveAuras.test.ts",
-                "nativeRoomTurnZoneEffects.test.ts",
-                "druidFeatureAuthoringParity.test.ts",
-                "wildShapeScaling.test.ts",
-                "nativeRoomFrenzy.test.ts",
-                "sheetCommandReducer.test.ts",
-                "nativeRoomSpellSlotExchange.test.ts",
-                "CharacterSheetActions.test.tsx",
-                "classFeatureOptionsAuthoringParity.test.ts",
-                "subclassSpecializationGrantFold.test.ts",
-                "featureChoiceRulingsAuthoringParity.test.ts",
-                "nativeRoomFiendishResilience.test.ts",
-                "srdClassNodeMap.test.ts",
-                "classFeatureCoreOptions.test.ts"
+                "Closed by 89 tasks, last SPELLS-31.T4k1c (m714); journeys delegated-attack-browser, giant-killer-browser; see each task's proof."
               ],
-              "journeys": ["delegated-attack-browser"]
+              "journeys": ["delegated-attack-browser", "giant-killer-browser"]
             },
             {
               "id": "SPELLS-31.2",
@@ -17497,7 +17489,7 @@
             },
             {
               "id": "SPELLS-31.T4k1c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -17508,7 +17500,8 @@
               },
               "text": "Giant Killer end to end (D217) as the first consumer of the reaction child action (QUALITY-8, same slice): the ATTACK_RESOLVED_ON_SELF offer, the reaction weapon attack against the triggering creature, the drawer offer, a room journey and docs; no pending record or timer of its own; remove the Giant Killer closed-rule effect.",
               "note": "User approved 2026-11-12 (D187 growth, 8 to 13 with QUALITY-8.T1c2b3): split from QUALITY-8.T1c2b at the seam trace. Re-traced 2026-11-12: Giant Killer is already authored (hunter.ts) and a Hunter attacks through each wielded weapon (characterActionRuleFacts.ts), so the bare-Feature golden row srdEffectCompile.golden.txt:80 stays REFUSED (decisions line on bare weapon-attack Features); no closed-rule effect remained to remove. The drawer shipped with QUALITY-8.T1c2b3; this task carries the live-stack Giant Killer browser journey.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12T20:21:00Z",
+              "proof": "m714 (a97903e96) from slice tip 251eb3278: Tests 43288666996, Live 43288666971, Browser journeys 43288667022 (one account-deletion-browser shard rerun green) and dispatched giant-killer-browser 43288725368 green. Live-stack journey giant-killer-browser: a Hunter with the SRD Giant Killer option is hit by a Large Ogre within 5 ft; the room raises the REACTION_OFFER, the player answers it in the decision drawer, and the Dagger/Club reaction attack runs in the same command and damages the Ogre. Golden row 80 unchanged (bare Feature stays REFUSED). Test-only (journey) change: no red proof."
             },
             {
               "id": "SPELLS-31.T4k2a",

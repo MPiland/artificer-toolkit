@@ -37,6 +37,7 @@ export async function startPlayerEncounterJourney({
   playerUserId,
   creatureSourceId,
   extraCreatureSourceId,
+  creatureX = 250,
   spellSubjectIds,
   classId,
   initiativePolicyDefinitionId,
@@ -53,6 +54,8 @@ export async function startPlayerEncounterJourney({
   creatureSourceId: string
   /** A second creature, standing thirty feet further from the Character. */
   extraCreatureSourceId?: string
+  /** The creature's x on the Scene; the Character stands at 100 and each square is 50. Thirty feet away by default. */
+  creatureX?: number
   /** The spell copies the Character may know, by source id. */
   spellSubjectIds: readonly string[]
   classId: string
@@ -184,7 +187,7 @@ export async function startPlayerEncounterJourney({
       ).projection
     )
 
-  // The creature stands thirty feet from the Character.
+  // The creature stands thirty feet from the Character, unless the journey places it.
   const heroPlacement = {
     id: hero.id,
     label: hero.label,
@@ -196,7 +199,7 @@ export async function startPlayerEncounterJourney({
   const creaturePlacement = {
     id: creature.id,
     label: creature.label,
-    x: 250,
+    x: creatureX,
     y: 100,
     controlledByUserIds: [],
     tokenId: crypto.randomUUID()
@@ -332,8 +335,11 @@ export async function startPlayerEncounterJourney({
     if (!choices) throw new Error('The actor has no action choices.')
     return choices
   }
-  /** Stands in for every die of an action: each d20 shows `d20`, each damage roll its minimum. */
-  const settle = async (start: EncounterCommandResultDto, d20: number) => {
+  /**
+   * Stands in for every die of an action: each d20 shows `d20`, each damage roll its minimum. Stops at a
+   * pending decision of kind `stopAt`, which the journey answers itself.
+   */
+  const settle = async (start: EncounterCommandResultDto, d20: number, stopAt?: string) => {
     let current = start
     for (let answers = 0; current.occurrence?.status === 'PENDING'; answers++) {
       assert.ok(answers < 10, `The ${name} dice did not settle.`)
@@ -345,6 +351,7 @@ export async function startPlayerEncounterJourney({
         (await owner.query(api.encounters.pendingReads.pendingRuleOccurrence, {
           encounterId: run.id
         }))
+      if (stopAt && pending?.kind === stopAt) break
       let resolution: Resolution
       if (pending?.kind === 'D20_EVIDENCE') {
         resolution = {
@@ -381,6 +388,7 @@ export async function startPlayerEncounterJourney({
     creature,
     extraCreature,
     scene: { id: preparedScene.liveSceneId, name: sceneName },
+    tokenIds: { hero: heroPlacement.tokenId, creature: creaturePlacement.tokenId },
     execute,
     readProjection,
     readChoices,

@@ -2852,6 +2852,7 @@ try {
     process.argv.includes('--encounter-held-effect-browser') ||
     process.argv.includes('--encounter-concentration-sheet-browser') ||
     process.argv.includes('--encounter-delegated-attack-browser') ||
+    process.argv.includes('--encounter-giant-killer-browser') ||
     process.argv.includes('--encounter-summon-turn-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
@@ -2891,6 +2892,7 @@ try {
       '--encounter-concentration-sheet-browser'
     )
     const delegatedAttackBrowser = process.argv.includes('--encounter-delegated-attack-browser')
+    const giantKillerBrowser = process.argv.includes('--encounter-giant-killer-browser')
     const summonTurnBrowser = process.argv.includes('--encounter-summon-turn-browser')
     const lifecycle =
       lifecycleSuite ||
@@ -2906,6 +2908,7 @@ try {
       heldEffectBrowser ||
       concentrationSheetBrowser ||
       delegatedAttackBrowser ||
+      giantKillerBrowser ||
       summonTurnBrowser ||
       workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
@@ -2932,6 +2935,7 @@ try {
       heldEffectBrowser ||
       concentrationSheetBrowser ||
       delegatedAttackBrowser ||
+      giantKillerBrowser ||
       summonTurnBrowser
         ? (['SPELL'] as const)
         : [])
@@ -3003,7 +3007,15 @@ try {
                     undefined,
                     (await import('./fixtures/encounterSummonTurn')).summonActsAfterOwner
                   )
-                : null
+                : giantKillerBrowser
+                  ? await createDevelopmentSpellCharacter(
+                      player.client,
+                      characterId,
+                      [thunderwave],
+                      [{ spellLevel: 1, slotCount: 1 }],
+                      (await import('./fixtures/encounterGiantKiller')).createGiantKillerFeatures
+                    )
+                  : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3380,6 +3392,71 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/delegated-attack-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (giantKillerBrowser) {
+        if (!spellCharacter) throw new Error('The Giant Killer journey needs its Character.')
+        const { createGiantKillerOgre } = await import('./fixtures/encounterGiantKiller')
+        publicationAuthors.push({
+          client: owner.client,
+          userId: owner.identity.userId,
+          systemId: srdSystemRecord.id,
+          subjectKind: 'CREATURE'
+        })
+        browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+        const ogre = createGiantKillerOgre(crypto.randomUUID(), 'Giant ogre')
+        const draft = await owner.client.mutation(api.content.drafts.save, {
+          subjectKind: 'CREATURE',
+          subjectId: ogre.id,
+          systemId: srdSystemRecord.id,
+          label: ogre.label,
+          payload: ogre
+        })
+        assert.ok(draft.updatedAt)
+        await owner.client.mutation(api.content.publication.publishDraft, {
+          subjectKind: 'CREATURE',
+          subjectId: draft.subjectId,
+          expectedDraftUpdatedAt: draft.updatedAt
+        })
+        const { verifyEncounterGiantKiller } = await import('./developmentEncounterGiantKiller')
+        await verifyEncounterGiantKiller({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          creatureSourceId: ogre.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterGiantKillerBrowser } =
+              await import('../../web/tests/live-backend/encounterGiantKiller')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterGiantKillerBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/giant-killer-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url
