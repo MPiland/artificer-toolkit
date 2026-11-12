@@ -432,6 +432,17 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           )
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
+        /**
+         * The attack roll an offer made after it answers (D219): who rolled, the kept face and the
+         * total the roll stands at. Absent for an offer made before any roll.
+         */
+        attackRoll: z.optional(
+          z.strictObject({
+            attackerActorId: uuidSchema,
+            selectedNatural: z.number().check(z.int()),
+            total: z.number().check(z.int())
+          })
+        ),
         ...reactionAnswerByShape(),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),

@@ -7,6 +7,7 @@ import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredL
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { reactionOfferOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -291,15 +292,16 @@ export const awaitsReactionChild = (context: RecordedReactionChildren) =>
   context.reactionChildren?.some(({ rollMode }) => rollMode === undefined) ?? false
 
 type RecordedReactionChildren = {
-  reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
+  reactionChildren?: readonly { commandId: string; rollMode?: string | null; rolledDie?: object }[]
   castLevel?: number
   castSlotKey?: string
 }
 
 /**
  * Whether a pending action's next context keeps the reaction children its previous one recorded:
- * the same commands in order, each resolved and a resolved mode never rewritten, with at most one
- * new, unresolved child after them, and the cast recorded with them unchanged.
+ * the same commands in order, each resolved and a resolved mode or die never rewritten, with at most
+ * one new, unresolved child after them, and the cast recorded with them unchanged. The resume that
+ * resolves a child is the one write of its mode and of the die it rolled.
  */
 export function reactionChildrenKept(
   previous: RecordedReactionChildren,
@@ -311,22 +313,27 @@ export function reactionChildrenKept(
     kept.length - recorded.length <= 1 &&
     (recorded.length === 0 ||
       (previous.castLevel === next.castLevel && previous.castSlotKey === next.castSlotKey)) &&
-    recorded.every(({ commandId, rollMode }, index) => {
+    recorded.every(({ commandId, rollMode, rolledDie }, index) => {
       const child = kept[index]
       return (
         child?.commandId === commandId &&
         child.rollMode !== undefined &&
-        (rollMode === undefined || child.rollMode === rollMode)
+        (rollMode === undefined ||
+          (child.rollMode === rollMode &&
+            checksumCanonicalJson(child.rolledDie ?? null) ===
+              checksumCanonicalJson(rolledDie ?? null)))
       )
     }) &&
-    kept.slice(recorded.length).every(({ rollMode }) => rollMode === undefined)
+    kept
+      .slice(recorded.length)
+      .every(({ rollMode, rolledDie }) => rollMode === undefined && rolledDie === undefined)
   )
 }
 
 /**
  * The committed child actions among those a pending action records, in recorded order: who reacted
- * with what, and whether the System reads a roll mode imposed on the action's roll, or the action's
- * cancellation, from the child's stored execution. A recorded child that has not committed is left out.
+ * with what, and whether the System reads a roll mode imposed on the action's roll, a die subtracted
+ * from it, or the action's cancellation, from the child's stored execution. A recorded child that has not committed is left out.
  */
 export async function readCommittedReactionChildren(
   ctx: EncounterReadContext,
@@ -369,6 +376,8 @@ export async function readCommittedReactionChildren(
       reactorActorId: actorId,
       actionId,
       imposesRollMode: completed !== null && outcomes.imposesRollModeOnTriggeringRoll(completed),
+      subtractsFromTriggeringRoll:
+        completed !== null && outcomes.subtractsFromTriggeringRoll(completed),
       cancelsTriggeringEvent: completed !== null && outcomes.cancelsTriggeringEvent(completed),
       descendantReactorActorIds: [
         ...new Set(descendants.map(({ reactorActorId }) => reactorActorId))

@@ -371,6 +371,33 @@ resumed action is one of them: a counter of a counter is cast by, or at, a creat
 down. A resume from a child whose tree holds neither creature keeps the full comparison. The Worker's planner
 applies the same rule (rules-runtime.md, "Currentness across a reaction child").
 
+The die a child rolls against a rolled attack (current contracts, QUALITY-9.T1e1, D219 "Roll-window reaction
+die"; inert until QUALITY-9.T1e2 wires the Worker, and the window reaction-die path it replaces stays until
+QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is rolled:
+
+- The offer. The `CAST_REACTION` pause's offer gains the kind `ATTACK_ROLL_BY_OTHER` and, for that kind
+  only, `rolled`: the action's TEST as it froze with the roll (`test`: the paused continuation, its bound
+  facts checksum and the settled d20, the shape a reactor window keeps) and the app roll it settled with. The
+  pending context holds such an offer on `twoPhase.phase === 'TEST'`; every other cast offer is still held
+  before any phase. The offer owes no check and stands in no chain.
+- The fence. `castPendingContinues` lets a rolled offer be followed only by an offer of the same roll or by
+  the roll's settlement, and lets a reaction chosen from it leave the pause only by recording a child: it is
+  never carried as a used reaction for the action's own commit to spend. Child recording, the room's resume
+  and the reactor's decline follow the rules of any cast offer. What may precede the first rolled offer is
+  not fenced here; T1e2 owns that entry.
+- The resolved child. `reactionChildren[].rolledDie` records the die the committed child rolled, with its
+  faces, written by the same resume that writes `rollMode` (a die on an unresolved child is refused, and so
+  is a die that names a held effect or a window reaction as its spender: the child spent it).
+  `reactionChildrenKept` keeps a resolved child's die as recorded, so a replay of the action reads the die
+  and does not roll it again; a GM void that releases a later child keeps an earlier child's die.
+- The committed read. `readCommittedReactionChildren` returns `subtractsFromTriggeringRoll` beside
+  `imposesRollMode` and `cancelsTriggeringEvent`, read by the System adapter from the child's stored execution.
+
+The reactor's decision is authorized as any cast offer's (the reactor is the pending's roller), and its
+`REACTION_CHOICE` summary names the roll it decides on as `attackRoll` (the attacker, the kept face and the
+total). The offer's `rolled`, its kind and `reactionChildren[].rolledDie` are persisted pending-context shape
+changes; refresh local data when next used (D196).
+
 The check a child owes (current, QUALITY-9.T1b2, D219 "Trigger-check gate"). A child whose authored
 `reactionTrigger` asks a check against a higher-level cast owes it as its incoming gate, read against
 `triggerCastLevel` (`owedNativeTriggerCheck`, `advanceNativeIncomingGate`). A gate carries a discriminated

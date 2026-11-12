@@ -25,6 +25,7 @@ import {
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema
 } from './ruleExecutionMechanics.js'
+import { d20RolledSaveDtoSchema, type D20RolledSaveDto } from './ruleExecutionD20WindowOffer.js'
 import {
   serverCompletedRuleExecutionDtoSchema,
   type ServerCompletedRuleExecutionDto
@@ -209,12 +210,21 @@ export const encounterCastReactionCheckDtoSchema: z.ZodMiniType<EncounterCastRea
  * used: `TARGETED_SELF` offers a creature the cast names as a target its reactions (Shield against Magic
  * Missile), and the cast then resolves against the reactor as the reaction leaves it; `ATTACK_ON_OTHER`
  * offers a creature beside an attack aimed at another its reactions, which adjust the roll the attack
- * then makes.
+ * then makes; `ATTACK_ROLL_BY_OTHER` offers a creature that sees an attack roll its reactions after the
+ * d20 is rolled (D219, "Roll-window reaction die"). That last offer is the only one made after the
+ * action's roll: it keeps the rolled d20 as `rolled`, every offer of the same roll carries the same
+ * one, and the reaction chosen runs as its holder's own action, so it owes no check and stands in no
+ * chain.
  */
 export type EncounterCastReactionOfferDto = {
-  kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER'
+  kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'
   reactions: EncounterReactionPinDto[]
   declinedReactorActorIds: string[]
+  /**
+   * The attack d20 a post-roll offer follows: the action's TEST as it froze with the roll, which the
+   * settlement resumes, and the app roll it settled with (null for an entered die).
+   */
+  rolled?: { test: D20RolledSaveDto; appRollId: string | null }
   check?: EncounterCastReactionCheckDto
   chain?: {
     counters: EncounterUsedReactionDto[]
@@ -227,12 +237,18 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
   lazySchema(() =>
     z
       .strictObject({
-        kind: z.enum(['COUNTER', 'TARGETED_SELF', 'ATTACK_ON_OTHER']),
+        kind: z.enum(['COUNTER', 'TARGETED_SELF', 'ATTACK_ON_OTHER', 'ATTACK_ROLL_BY_OTHER']),
         reactions: z
           .array(encounterReactionPinDtoSchema)
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
         declinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        rolled: z.optional(
+          z.strictObject({
+            test: z.lazy(() => d20RolledSaveDtoSchema),
+            appRollId: z.nullable(uuidSchema)
+          })
+        ),
         check: z.optional(encounterCastReactionCheckDtoSchema),
         chain: z.optional(
           z.strictObject({
@@ -259,6 +275,16 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
               path: ['reactions'],
               message:
                 'An offer holds reactions of one trigger: counters to a cast, or the trigger its kind names.'
+            })
+          if (
+            (value.kind === 'ATTACK_ROLL_BY_OTHER') !== (value.rolled !== undefined) ||
+            (value.rolled !== undefined && (value.check !== undefined || value.chain !== undefined))
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['rolled'],
+              message:
+                'Only an offer made after the attack roll keeps the rolled d20, and its reaction owes no check and stands in no chain.'
             })
         })
       )
