@@ -794,7 +794,8 @@ export function reachCastPause(
     chosenActorIds: cast.chosenActorIds,
     // An attack at one creature is the single-target path's; a multi-creature action offers none.
     aimedAttackPerception: null,
-    reactionChildren: { recorded: [], committed: [], resumedOffer: null },
+    // An area or a list is not resumed from a child action, so a counter to it resolves in its window.
+    reactionChildren: null,
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,
@@ -865,7 +866,7 @@ export async function openReachCastWindow(
         ...advanced,
         command: input.command,
         response: castResume?.response ?? null,
-        // Only an attack at one creature resumes from a reaction's child action (D219).
+        // Only an action at one creature resumes from a reaction's child action (D219).
         resume: null,
         initiatorUserId,
         fingerprint: input.fingerprint,

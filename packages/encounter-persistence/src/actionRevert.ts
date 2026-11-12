@@ -746,7 +746,7 @@ export async function revertLastEncounterAction(
     // each that reacted to the attack roll spent its reaction and charge (D207).
     const invertReactorSpend = (
       spend: Pick<
-        CounteredRoot['counter'],
+        NonNullable<CounteredRoot['counter']>,
         | 'spellCastConsumption'
         | 'applications'
         | 'characterStreamVersion'
@@ -783,7 +783,8 @@ export async function revertLastEncounterAction(
         resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
       })
     }
-    if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
+    // A counter that ran as its holder's own action is undone as that action, not here (D219).
+    if (lostRoot && 'counter' in lostRoot && lostRoot.counter) invertReactorSpend(lostRoot.counter)
     for (const used of root.usedReactions) invertReactorSpend(used)
     for (const reacted of root.windowReactions)
       invertReactorSpend({ ...reacted, spellCastConsumption: null, applications: [] })

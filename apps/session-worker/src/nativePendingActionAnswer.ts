@@ -67,7 +67,7 @@ export function readNativePendingActionAnswer(input: {
 
 /**
  * The reaction offer the room resumes a pending action from, once the child action of the reaction
- * chosen at it committed (D219): who was offered it and who declined before. The action must be an
+ * chosen at it committed (D219): its moment, who was offered it and who declined before. The action must be an
  * ordinary single-target action still held at that offer.
  */
 export function readNativeResumedReactionOffer(input: {
@@ -89,6 +89,7 @@ export function readNativeResumedReactionOffer(input: {
   )
     throw new Error('The pending action evidence is invalid.')
   return {
+    kind: context.pause.payload.kind,
     reactorActorId: context.rollerActorId,
     declinedReactorActorIds: context.pause.payload.declinedReactorActorIds
   }
