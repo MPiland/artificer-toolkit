@@ -25720,14 +25720,14 @@
         },
         {
           "id": "QUALITY-9",
-          "title": "Cast, roll-window and movement reactions use the shared pipeline",
+          "title": "Cast and roll-window reactions use the shared pipeline",
           "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 3,
             "tc": 3,
             "rr": 5,
-            "size": 20,
+            "size": 13,
             "after": ["QUALITY-8.T1b"]
           },
           "acs": [
@@ -25736,7 +25736,7 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R5+R6.",
-              "text": "Counterspell, roll-window and movement reactions (opportunity attacks) are offered and run through the shared offer and child action; their dedicated pause kinds, MOVEMENT_REACTION and the nested movement-reaction workflow modules are deleted; the Counterspell, roll-window and nativeMovementDecisionReplay tests pass."
+              "text": "Counterspell and roll-window reactions are offered and run through the shared offer and child action; their dedicated pause kinds are deleted; the Counterspell and roll-window tests pass. Movement reactions moved to QUALITY-18 (2026-11-12)."
             }
           ],
           "tasks": [
@@ -25944,24 +25944,10 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-9.T1e2", "QUALITY-9.T2"]
+                "after": ["QUALITY-9.T1e2", "QUALITY-18.T6"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
               "text": "Delete the window reaction die: spentReaction, windowReactions, EncounterWindowReactionReceiptDto, the reaction-die option, planNativeWindowReactions and the movement step field; ROLL_WINDOW stays for held dice and damage rerolls; docs."
-            },
-            {
-              "id": "QUALITY-9.T2",
-              "status": "IN_PROGRESS",
-              "closes": ["QUALITY-9.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 3,
-                "rr": 5,
-                "size": 8,
-                "after": ["QUALITY-8.T1b"]
-              },
-              "text": "Fold movement reactions (R6); delete MOVEMENT_REACTION and the nested workflow modules.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -26039,7 +26025,7 @@
             "bv": 2,
             "tc": 3,
             "rr": 5,
-            "size": 8,
+            "size": 13,
             "after": ["QUALITY-8.T1c2b3"]
           },
           "acs": [
@@ -26054,8 +26040,7 @@
           "tasks": [
             {
               "id": "QUALITY-11.T1a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-11.1"],
               "wsjf": {
                 "bv": 2,
@@ -26065,7 +26050,9 @@
                 "after": ["QUALITY-8.T1c2b3"]
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
-              "text": "One after-commit step module in the room owns the ordered subscriber list (HP-zero, delegated Legendary Action, start of turn, rule, return flag, summon advance, queued offer) and one raise primitive; mirror and reward settlement is a stage of the step drained at today's two points; pin test of child order for a multi-trigger command including a mirror kill."
+              "text": "One after-commit step module in the room owns the ordered subscriber list (HP-zero, delegated Legendary Action, start of turn, rule, return flag, summon advance, queued offer) and one raise primitive; mirror and reward settlement is a stage of the step drained at today's two points; pin test of child order for a multi-trigger command including a mirror kill.",
+              "mergedAt": "2026-11-12T22:36:21Z",
+              "proof": "m717 (ce229bbc9) from slice tip 6013c8c69: Tests 43317632964, Browser journeys 43317632818 green (Live path-filtered; merge-slice dispatched it). Red proof nativeRoomAfterCommitOrder.test.ts ALREADY-PASSING (pure refactor). settleRoomEncounterAfterCommit (roomEncounterAfterCommit.ts) is the one ordered after-commit step; roomEncounterChildRaise.ts holds readRoomRaisableRun and raiseRoomChild; ledgers drain at the two points (ruling a). The pin test proves a Warding Bond mirror kill raises the source's death burst in the same command."
             },
             {
               "id": "QUALITY-11.T1b",
@@ -26080,6 +26067,21 @@
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
               "text": "Turn-start and failed-save become event-table events (DEFEATED reused) with a raise-action hook and a System vocabulary binding; the after-commit step and action admission discover the HP-zero, start-of-turn and rule triggers from the table; the delegated Legendary Action stays a run-state subscriber."
+            },
+            {
+              "id": "QUALITY-11.T2",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-11.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["QUALITY-11.T1a"]
+              },
+              "note": "User approved 2026-11-12 (D187 growth, bug, size 2). Found at QUALITY-11.T1a: requireSystemTriggerAdmission (systemTriggerAdmission.ts:214-216) requires each raised child at exactly the parent's Run version, and the first child moves the Run, so a command that drops two creatures with HP-zero effects (or a creature with two start-of-turn passives) is rejected whole with VERSION_STALE.",
+              "text": "A command that raises several system-trigger children (two HP-zero effects, two start-of-turn passives, several rule raises) commits all of them: each child is admitted against the parent's version plus its committed sibling children, the descendants allowance pending answers use. Regression room tests fail before the fix."
             }
           ]
         },
@@ -26381,7 +26383,7 @@
             "tc": 2,
             "rr": 5,
             "size": 13,
-            "after": ["QUALITY-6.T1", "QUALITY-9.T2"]
+            "after": ["QUALITY-6.T1", "QUALITY-18.T6"]
           },
           "acs": [
             {
@@ -26402,7 +26404,7 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-6.T1", "QUALITY-9.T2"]
+                "after": ["QUALITY-6.T1", "QUALITY-18.T6"]
               },
               "text": "Compiler composition replacing the shape ladders."
             },
@@ -26500,6 +26502,114 @@
             "packages/rules-runtime/src/__tests__/encounterMeleeRetaliation.test.ts"
           ],
           "journeyStatus": "verified"
+        },
+        {
+          "id": "QUALITY-18",
+          "title": "Movement reactions run as reaction children",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 20,
+            "after": ["QUALITY-9.T1b3b"]
+          },
+          "acs": [
+            {
+              "id": "QUALITY-18.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "Opportunity attacks and other movement reactions are offered as REACTION_CHOICE and run as D219 children of the Scene move, which resumes from them (a reaction that stops movement ends the move at the contact point); void and undo follow the child rules (an opportunity-attack child is not undone on its own); MOVEMENT_REACTION, the movement reaction phases and the nested movement-reaction workflow modules are deleted; nativeMovementDecisionReplay and the movement journey pass."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-18.T1",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-9.T1b3b"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "A Scene move parent records children: reactionChildren on the movement CHOICE context; recording parent, ancestors, suspend, re-pin and release accept a move parent; child admission; a room-internal move resume; descendants and voids allowance on the movement fences. Inert until T2."
+            },
+            {
+              "id": "QUALITY-18.T2",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-18.T1", "QUALITY-11.T1a"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "The opportunity attack runs as a child at the contact point; the child commit or its answered roll resumes the move; a STOP resume (System adapter stopsTriggeringMovement) or a mover at 0 HP ends it; reaction economy, turn uses and retaliation come from the action host; core movement room tests restated."
+            },
+            {
+              "id": "QUALITY-18.T3",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-18.T2"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed."
+            },
+            {
+              "id": "QUALITY-18.T4",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-18.T2"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move."
+            },
+            {
+              "id": "QUALITY-18.T5",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-18.T2"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "Web and timer: the movement offer is REACTION_CHOICE in the decision drawer and the token badge; timed decline through the encounter path; stories and the movement journey."
+            },
+            {
+              "id": "QUALITY-18.T6",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-18.T3", "QUALITY-18.T4", "QUALITY-18.T5"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "text": "Delete the MOVEMENT_REACTION summary kind, the movement reaction phases, completedReactionExecutions, the nested movement-reaction modules, liveMovementReactionPersistence and the movement window-die field; restate tests; update rules-runtime.md and persistence.md; D196 reset."
+            }
+          ]
         }
       ],
       "uatByOtherFeatures": true
