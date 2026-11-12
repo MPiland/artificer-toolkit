@@ -401,7 +401,11 @@ export function createNativeCastPause(input: {
       })
       // The reaction chosen runs as its holder's own action at the creature acting: the room commits
       // that child, then resumes this action, which keeps the answered offer until then.
-      if (advanced.kind === 'CHILD')
+      if (advanced.kind === 'CHILD') {
+        const childScene = await readScene()
+        const holderToken = childScene.tokens.find(
+          (token) => token.actorId === advanced.child.holderActorId
+        )
         return {
           kind: 'CAST_PENDING' as const,
           continuation: advanced.continuation,
@@ -418,8 +422,21 @@ export function createNativeCastPause(input: {
               )
             }
           ],
-          reactionChild: { ...advanced.child, targetActorId: prepared.actor.id }
+          // The child is judged on the Scene the reaction was offered on.
+          reactionChild: {
+            ...advanced.child,
+            targetActorId: prepared.actor.id,
+            sceneContext: holderToken
+              ? {
+                  sceneId: childScene.sceneId,
+                  expectedSceneVersion: childScene.sceneVersion,
+                  sourceTokenId: holderToken.tokenId,
+                  targetTokenId: childScene.sourceToken.tokenId
+                }
+              : null
+          }
         }
+      }
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,

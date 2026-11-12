@@ -24,7 +24,7 @@ import {
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { readRunActor, readRunState } from './documents.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
-import { awaitsReactionChild } from './reactionChildren.js'
+import { awaitsReactionChild, countRunVoids } from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -65,13 +65,21 @@ export async function readNativeActionPending(
       ? escapeRelationshipInputDtoSchema
       : resolveEncounterActionInputDtoSchema
   ).parse(JSON.parse(context.commandJson))
-  // Each committed reaction child moved the occurrence one Run version past its root (D219).
+  // Each committed reaction child moved the occurrence one Run version past its root (D219), and so
+  // did each GM void of a paused one, which the action no longer records.
   const versionsPastRoot = occurrence.expectedEncounterVersion - command.expectedVersion
+  const unrecordedVersions = versionsPastRoot - (context.reactionChildren?.length ?? 0)
   if (
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
     versionsPastRoot < 0 ||
-    versionsPastRoot > (context.reactionChildren?.length ?? 0) ||
+    (unrecordedVersions > 0 &&
+      unrecordedVersions >
+        (await countRunVoids(ctx, {
+          encounterId: occurrence.encounterId,
+          afterVersion: command.expectedVersion,
+          throughVersion: occurrence.expectedEncounterVersion
+        }))) ||
     checksumCanonicalJson(command) !== context.commandFingerprint
   )
     throw new Error('Stored Encounter action root mismatch.')

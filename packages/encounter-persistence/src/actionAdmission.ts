@@ -8,7 +8,7 @@ import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtim
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { readEncounterActorDefeated } from './characterStates.js'
-import { countCommittedReactionChildren } from './reactionChildren.js'
+import { countCommittedReactionChildren, countRunVoids } from './reactionChildren.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -86,7 +86,8 @@ export async function readNativeEncounterActionAdmission(
   if (replay) {
     presentTimelineEntry(replay)
     if (replay.commandType !== 'RESOLVE_ACTION') rejectDomain('COMMAND_ID_REUSED')
-    // The root committed one Run version after each reaction child that committed while it was pending (D219).
+    // The root committed one Run version after each reaction child that committed while it was
+    // pending, and after each void of a paused one (D219).
     const committedVersion =
       input.expectedVersion +
       (await countCommittedReactionChildren(ctx, {
@@ -94,6 +95,11 @@ export async function readNativeEncounterActionAdmission(
         rootCommandId: input.commandId,
         afterVersion: input.expectedVersion,
         beforeVersion: replay.version
+      })) +
+      (await countRunVoids(ctx, {
+        encounterId: run.id,
+        afterVersion: input.expectedVersion,
+        throughVersion: replay.version - 1
       }))
     if (
       replay.encounterId !== run.id ||

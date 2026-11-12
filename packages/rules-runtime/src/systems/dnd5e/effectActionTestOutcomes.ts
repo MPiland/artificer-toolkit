@@ -9,7 +9,10 @@ import {
   damageMultiplier,
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
-import type { Dnd5eAuthoredOutcome } from './effectActionOutcomes.js'
+import {
+  dnd5eTestPathResumeOutcome,
+  type Dnd5eAuthoredOutcome
+} from './effectActionOutcomes.js'
 import {
   parseBoundedDiceConfiguration,
   type Dnd5eEffectScalingFacts
@@ -81,18 +84,24 @@ export function damageSourceOutcomeId(outcome: TestPhaseOutcome) {
  */
 export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number],
+  /** The action's invocation, whose reaction trigger pairs the outcome that resumes what it answered. */
+  invocation: object | null,
   /** The source's bound facts, which only the outcome phase has. */
   facts: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
 ): SpecializedOutcome
 export function specializedTestOutcome(
-  entry: CompiledEffectGroup['entries'][number]
+  entry: CompiledEffectGroup['entries'][number],
+  invocation: object | null
 ): TestPhaseOutcome
 export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number],
+  invocation: object | null,
   facts?: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
 ): TestPhaseOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
+  const resume = dnd5eTestPathResumeOutcome(outcome, invocation)
+  if (resume) return resume
   if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED' && outcome.bonuses?.length) {
     // "Damage equal to your Charisma modifier": the bonuses read the source, so the amount waits
     // for its resolved expression.

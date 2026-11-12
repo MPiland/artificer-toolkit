@@ -286,10 +286,11 @@ advances the Run one version and re-pins the pending occurrence to it in the sam
 
 - A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
   `expectedVersion`; the live answer scope compares the answer's version, not the stored root's.
-- `readNativeActionPending` accepts a pin at most one version past the root for each recorded child.
+- `readNativeActionPending` accepts a pin at most one version past the root for each recorded child, plus
+  one for each GM void of a paused child the Run recorded since the root (`countRunVoids`).
 - A replay of the parent root expects its commit at the root's version plus its committed REACTION children
-  plus one. The children are counted from `encounterRunCommands` (`countCommittedReactionChildren`); no
-  counter is stored.
+  plus those voids plus one. Both are counted from `encounterRunCommands`
+  (`countCommittedReactionChildren`, `countRunVoids`); no counter is stored.
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
@@ -297,7 +298,21 @@ reaction (its own economy charge; the parent records no used reaction for it); t
 (`ACTION_RESUME` admission, room-internal) then reads the committed child and records what it imposes on the
 triggering roll as `reactionChildren[].rollMode`, resolved by the System adapter
 (`imposesRollModeOnTriggeringRoll`). A child without `rollMode` is unresolved (`awaitsReactionChild`), and
-until it resolves the parent takes no other answer.
+until it resolves the parent takes no other answer. The child command names the Scene tokens the reaction
+was offered on (the holder's and the acting creature's), so its range is judged there like any action's.
+
+A child that pauses (current, QUALITY-8.T1b, D219 amendment). A reaction's own action may need evidence of
+its own, such as a save its target makes. The transaction that stores the child's pending decision also
+moves the parent occurrence to the stored state `SUSPENDED` (`suspendReactionChildParent`,
+`actionPendingPersistence.ts`), so the Run still has at most one `PENDING` occurrence: the child's. A
+suspended occurrence keeps its sealed snapshot under PENDING's rules and takes no answer. `SUSPENDED` is a
+stored state only; the public occurrence summary does not carry it. The child's final commit re-pins the
+parent and returns it to `PENDING` in the same transaction (`repinReactionChildParent`), and the room then
+resumes the parent from that commit, whoever's answer produced it. A child that never pauses never suspends
+its parent. The System decides what a reaction's own test may propose: the dnd5e compiler admits, on a
+result path of that test, the outcome its reaction trigger resumes by (`dnd5eTestPathResumeOutcome`), gated
+to the path, so a failed save imposes it and a passed one imposes nothing. Recovery after a crash between
+the child's commit and the resume is the GM's void.
 
 Undo and void of a reacted action. One undo rule: a receipt belongs to the occurrence that recorded it, so
 `REVERT_LAST_ACTION` groups a root with the REACTION children raised against it and inverts them as one
@@ -306,7 +321,11 @@ the pending parent (`prepareRuleOccurrenceVoid`) stages nothing of the parent's 
 reactions are what the cancel takes back, so it runs `REVERT_LAST_ACTION` for them in the same transaction
 (command id derived from the void's) and then records the void, two timeline rows. The reaction is
 refunded with the child's other changes. When the children are not the Run's latest commands, or their
-undo is unavailable, the void is refused whole (`REVERT_UNAVAILABLE`).
+undo is unavailable, the void is refused whole (`REVERT_UNAVAILABLE`). A suspended parent cannot be voided
+while its child is pending. Voiding the paused child cancels it (it has spent nothing yet) and releases the
+parent in the same transaction (`releaseReactionChildParent`): back to `PENDING`, pinned to the Run version
+the void produced, with that child dropped from `reactionChildren`, so the offer it answered stands open
+again. Undo stays refused while anything is pending.
 
 ### Encounter record shapes (ADR 0035 Amendment 12)
 

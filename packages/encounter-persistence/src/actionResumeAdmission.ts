@@ -310,9 +310,8 @@ export async function readNativeEncounterActionResumeAdmission(
   const { command } = pending
   if (command.type !== 'RESOLVE_ACTION' || !awaitsReactionChild(pending.context))
     rejectDomain('DECISION_NOT_PENDING')
-  const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
-  if (!(await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence })))
-    rejectDomain('NOT_ACTOR_CONTROLLER')
+  // The room resumes for whoever's command committed the child: the reactor's choice, or the answer
+  // to the child's own roll, which may be another creature's controller.
   const admission = await readNativeEncounterActionAdmission(ctx, command, userId, {
     occurrence,
     initiatorUserId: pending.context.initiatorUserId

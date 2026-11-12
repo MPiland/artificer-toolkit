@@ -106,7 +106,7 @@ function zoneDamageOutcome(
   const { outcome } = entry
   if (outcome.effectKind !== 'DAMAGE' || outcome.valueKind !== 'DICE')
     return boundedTestOutcome(entry)
-  const authored = specializedTestOutcome(entry)
+  const authored = specializedTestOutcome(entry, null)
   if (authored.kind === 'DAMAGE') return authored
   const multiplier = damageMultiplier(outcome)
   if (

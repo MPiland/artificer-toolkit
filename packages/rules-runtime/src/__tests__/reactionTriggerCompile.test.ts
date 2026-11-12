@@ -2,12 +2,22 @@ import { describe, expect, it } from 'vitest'
 
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import {
+  ACTIVATION_CODE,
+  MEASUREMENT_UNIT_CODE,
+  PATH_CODE,
+  RANGE_KIND,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER
+} from '@artificer-toolkit/shared/core'
 import { BARDIC_INSPIRATION_CHARGE_ID } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { cuttingWordsReaction } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
 import { protectionReactionEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
@@ -195,6 +205,73 @@ describe('a reaction authored with the ATTACK_ON_OTHER trigger (SPELLS-31.T4k1, 
         invocation: { ...effect.invocation, reactionTrigger: { kind: 'ATTACKED_SELF' } }
       } as EffectAuthored)
     ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  })
+
+  // QUALITY-8.T1b (D219): a homebrew reaction whose own save gates the outcome that resumes the
+  // attack it answered.
+  const savedProtection = (trigger: 'ATTACK_ON_OTHER' | 'ATTACKED_SELF'): EffectAuthored => {
+    const effect = protection()
+    const reactionTrigger =
+      trigger === 'ATTACK_ON_OTHER'
+        ? { kind: trigger, requiresSight: true, targetWithinFeet: 5 }
+        : { kind: trigger }
+    return {
+      ...effect,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: id(5),
+          dcMethod: 'DERIVED_DC',
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
+          baseDc: 8,
+          bonuses: [{ id: id(6), bonusKind: 'PROFICIENCY_BONUS' }]
+        },
+        activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+        reactionTrigger,
+        range: {
+          id: id(1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 30,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          self: 'WARN'
+        }
+      },
+      paths: effect.paths.map((path) => ({ ...path, pathCode: PATH_CODE.ON_SAVE_FAIL }))
+    }
+  }
+  const savePlan = (effect: EffectAuthored) => {
+    const action = characterActionDescriptor(compileEffect(effect))
+    return dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+      action,
+      compilerSource: buildCompiledActionCompilerSource(action)
+    })
+  }
+
+  it('compiles the roll-mode outcome behind the reaction’s own save, on the failed-save path', () => {
+    const plan = savePlan(savedProtection('ATTACK_ON_OTHER'))
+    if (plan?.kind !== 'TEST_OUTCOME') throw new Error('The reaction is not a test action.')
+    expect(plan.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_SAVE_FAIL'])
+    const failed = dnd5eCharacterRuleActionSystemAdapter.specializeOutcomeTemplate?.({
+      compilerSource: plan.compilerSource,
+      testTemplate: plan.test,
+      selectedPath: 'ON_SAVE_FAIL',
+      facts: {},
+      testRollMode: 'NORMAL'
+    })
+    expect(operationKeys(failed?.published)).toEqual([
+      IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_OPERATION_KEY
+    ])
+  })
+
+  it('refuses the roll-mode outcome behind the save of a reaction to any other trigger', () => {
+    expect(() => savePlan(savedProtection('ATTACKED_SELF'))).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
   })
 })
 
