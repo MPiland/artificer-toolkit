@@ -115,6 +115,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { prepareAttackTargetGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterAttackAppliedEffects'
 import {
+  reactedUnderAwaitedChild,
   restoreEncounterActionPending,
   type PendingReactionChildren
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
@@ -257,10 +258,17 @@ export async function planNativeLiveEncounterAction(
     ? readNativeResumedReactionOffer({
         resume: resumeCommand,
         snapshot,
-        command: admission.command,
         fingerprint: admission.fingerprint
       })
     : null
+  /** The child action of each reaction chosen against this action, and this action's place in that tree (D219). */
+  const reactionChildWindow = {
+    recorded: pendingContext?.reactionChildren ?? [],
+    // The committed child action of each reaction chosen against this action, if it is pending.
+    committed: pendingAdmission?.reactionChildren ?? [],
+    resumedOffer,
+    ancestors: 'reactionAncestors' in admission ? admission.reactionAncestors : []
+  }
   const { areaDecision, areaLanding, pauseAnswer } = responseCommand
     ? readNativePendingActionAnswer({
         response: responseCommand,
@@ -341,19 +349,22 @@ export async function planNativeLiveEncounterAction(
   const resolved = await settledActionSaveWindow(pauseAnswer, executionOptions)
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
-    // An answer to a counter offered before the cast did anything replays the cast itself.
+    // An answer to a reaction offered before the cast did anything, or the resume from that reaction's
+    // child action (D219), replays the cast itself.
+    const continuation = resumeCommand ?? (castAnswer ? responseCommand : null)
     const castResume =
-      castAnswer && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' && responseCommand
+      continuation && pendingContext
         ? {
-            response: responseCommand,
+            continuation,
             answer: castAnswer,
-            initiatorUserId: snapshot.applicationContext.initiatorUserId,
-            currentnessChecksum: snapshot.applicationContext.currentnessChecksum,
-            usedReactions: snapshot.applicationContext.usedReactions ?? []
+            initiatorUserId: pendingContext.initiatorUserId,
+            currentnessChecksum: pendingContext.currentnessChecksum,
+            usedReactions: pendingContext.usedReactions ?? []
           }
         : undefined
     const areaInput = {
       castResume,
+      reactionChildren: reactionChildWindow,
       forcedMovementPick: executionOptions.forcedMovementPick,
       initial,
       command: { ...command, target },
@@ -429,6 +440,8 @@ export async function planNativeLiveEncounterAction(
             ...areaInput,
             command: { ...command, target }
           })),
+      // The child resume a held cast went on from, which its pause, commit or countered commit names.
+      resume: resumeCommand,
       dependencies,
       revisions
     }
@@ -799,18 +812,10 @@ export async function planNativeLiveEncounterAction(
     // A source or target that reacted under the child the action resumes from stands as that child's
     // tree left it (D219): the Run moved only by those actions, each of which held its own creatures to
     // its own currentness until it committed.
-    !(
-      resumedOffer &&
-      pendingAdmission?.reactionChildren.some(
-        (child) =>
-          pendingContext?.reactionChildren?.some(
-            ({ commandId, rollMode }) => commandId === child.commandId && rollMode === undefined
-          ) &&
-          [child.reactorActorId, ...child.descendantReactorActorIds].some(
-            (actorId) => actorId === prepared.actor.id || actorId === prepared.target.id
-          )
-      )
-    )
+    !reactedUnderAwaitedChild(reactionChildWindow.recorded, reactionChildWindow.committed, [
+      prepared.actor.id,
+      prepared.target.id
+    ])
   )
     throw new Error('The pending action source or target changed.')
   const resume =
@@ -872,7 +877,7 @@ export async function planNativeLiveEncounterAction(
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
   /** The child of each reaction chosen against this action so far, set once its offers are heard. */
-  let reactionChildren: PendingReactionChildren = pendingContext?.reactionChildren ?? []
+  let reactionChildren: PendingReactionChildren = reactionChildWindow.recorded
   const preflight = () => ({
     command,
     response: responseCommand,
@@ -956,13 +961,7 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     userId: initial.expectedUserId,
     aimedAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
-    reactionChildren: {
-      recorded: reactionChildren,
-      // The committed child action of each reaction chosen against this action, if it is pending.
-      committed: pendingAdmission?.reactionChildren ?? [],
-      resumedOffer,
-      ancestors: 'reactionAncestors' in admission ? admission.reactionAncestors : []
-    },
+    reactionChildren: reactionChildWindow,
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
     resumed: snapshot !== null && !gateAnswer,

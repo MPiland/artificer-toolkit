@@ -9,6 +9,7 @@ import type { ServerRuleExecutionPendingApplicationContextDto } from '@artificer
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
+import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
@@ -21,13 +22,14 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import { reactedUnderAwaitedChild } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { readRunActor, readRunState } from './documents.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
   awaitsReactionChild,
-  countRunVoidVersions,
-  readCommittedReactionDescendants
+  heldRootVersionAccounted,
+  reactionChildrenKept
 } from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -69,32 +71,14 @@ export async function readNativeActionPending(
       ? escapeRelationshipInputDtoSchema
       : resolveEncounterActionInputDtoSchema
   ).parse(JSON.parse(context.commandJson))
-  // Each committed reaction child moved the occurrence one Run version past its root (D219). So did
-  // each reaction that committed under one of those children, and each version a GM void of a held
-  // one made, none of which the action records.
-  const versionsPastRoot = occurrence.expectedEncounterVersion - command.expectedVersion
-  const unrecordedVersions = versionsPastRoot - (context.reactionChildren?.length ?? 0)
-  const held = {
-    encounterId: occurrence.encounterId,
-    afterVersion: command.expectedVersion
-  }
   if (
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
-    versionsPastRoot < 0 ||
-    (unrecordedVersions > 0 &&
-      unrecordedVersions >
-        (await countRunVoidVersions(ctx, {
-          ...held,
-          throughVersion: occurrence.expectedEncounterVersion
-        })) +
-          (
-            await readCommittedReactionDescendants(ctx, {
-              ...held,
-              rootCommandId: occurrence.rootCommandId,
-              beforeVersion: occurrence.expectedEncounterVersion + 1
-            })
-          ).filter(({ parentCommandId }) => parentCommandId !== occurrence.rootCommandId).length) ||
+    !(await heldRootVersionAccounted(ctx, {
+      occurrence,
+      rootExpectedVersion: command.expectedVersion,
+      recorded: context.reactionChildren ?? []
+    })) ||
     checksumCanonicalJson(command) !== context.commandFingerprint
   )
     throw new Error('Stored Encounter action root mismatch.')
@@ -357,6 +341,42 @@ export function castPendingContinues(
   return (
     sameMembers(offered.declinedReactorActorIds, [...declinedPrevious, roller]) &&
     sameMembers(offered.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
+  )
+}
+
+/**
+ * Whether a held action's next pause continues the pending action it resumes: the same occurrence,
+ * about creatures that stand as they did when it was held, moved on as its pause allows
+ * (`castPendingContinues`), with the reaction children it recorded kept. An action that resumes
+ * nothing records no child. `endpointActorIds` are the creatures the action's currentness covers:
+ * its source and every creature it names.
+ */
+export function heldActionContinues(input: {
+  resume: {
+    occurrence: { id: string }
+    pending: { context: NativeActionPending['context'] }
+    reactionChildren: readonly LiveSessionReactionChild[]
+  } | null
+  response: { resolution: { kind: string } } | null | undefined
+  occurrenceId: string
+  next: NativeActionPending['context']
+  endpointActorIds: readonly string[]
+}): boolean {
+  const { resume, next } = input
+  if (!resume) return next.reactionChildren === undefined
+  const previous = resume.pending.context
+  return (
+    input.occurrenceId === resume.occurrence.id &&
+    (next.currentnessChecksum === previous.currentnessChecksum ||
+      // A retarget answer turns the action on another creature, so its facts are the new creature's.
+      previous.pause?.kind === 'ATTACK_RETARGET' ||
+      reactedUnderAwaitedChild(
+        previous.reactionChildren,
+        resume.reactionChildren,
+        input.endpointActorIds
+      )) &&
+    castPendingContinues(previous, input.response, next) &&
+    reactionChildrenKept(previous, next)
   )
 }
 

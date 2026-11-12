@@ -238,10 +238,11 @@ export async function persistEncounterAreaCommit(
   let scope: CommitScope
   const usedReceipts = input.usedReactions.map(({ receipt }) => receipt)
   if (input.area === null) {
-    // An action that asked for no save waits on no one, so nothing is removed. Only a counter
-    // offered before it did anything can pause it, and its answer resumes the cast (D127). It
-    // reaches the creatures a chosen list names or, for an area that picks its own (a hit-point
-    // pool), the ones its commit carries.
+    // An action that asked for no save waits on no one, so nothing is removed. Only a reaction
+    // offered before it did anything can pause it, and the cast resumes from that offer's decline
+    // (D127) or from the chosen reaction's committed child action (D219). It reaches the creatures
+    // a chosen list names or, for an area that picks its own (a hit-point pool), the ones its
+    // commit carries.
     const reachedActorIds =
       target.kind === 'ACTORS' ? target.actorIds : input.targets.map(({ actorId }) => actorId)
     if (
@@ -249,7 +250,6 @@ export async function persistEncounterAreaCommit(
       input.removal ||
       (resume
         ? resume.area ||
-          !input.response ||
           !castPendingContinues(resume.pending.context, input.response, {
             usedReactions: usedReceipts
           })
@@ -300,10 +300,9 @@ export async function persistEncounterAreaCommit(
           requestId: resume.pending.snapshot.request.requestId
         })
     } else if (resume) {
-      // The counter's last answer ended the pause and the area caught nobody, so it settled without a
-      // stored area: the cast's own pending is what it continues.
+      // The cast left its pause, by the last decline or from a reaction's committed child (D219), and
+      // the area settled without a stored one: the cast's own pending is what it continues.
       if (
-        !input.response ||
         !castPendingContinues(resume.pending.context, input.response, {
           usedReactions: usedReceipts
         })

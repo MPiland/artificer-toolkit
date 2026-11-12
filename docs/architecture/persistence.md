@@ -318,7 +318,10 @@ advances the Run one version and re-pins the pending occurrence to it in the sam
   `expectedVersion`; the live answer scope compares the answer's version, not the stored root's.
 - `readNativeActionPending` accepts a pin at most one version past the root for each recorded child, plus
   one for each reaction that committed under one of its children, plus one for each version a GM void of a
-  held child made since the root (`countRunVoidVersions`: the void, and the undo it ran).
+  held child made since the root (`countRunVoidVersions`: the void, and the undo it ran). The area read
+  (`readNativeAreaActionPending`) applies the same rule (`heldRootVersionAccounted`, `reactionChildren.ts`)
+  with no recorded child of its own: an aggregate reached from a cast window sits past the root by the
+  reactions committed in the root's tree.
 - A replay of the parent root expects its commit at the root's version plus the committed reactions of its
   tree plus those void versions plus one. Both are read from `encounterRunCommands`
   (`readCommittedReactionDescendants`, `countRunVoidVersions`); no counter is stored.
@@ -369,7 +372,19 @@ reactor, the reactors of the reactions committed under that child (`descendantRe
 pending fence (`actionPendingPersistence.ts`) excuses the comparison when the source or the target of the
 resumed action is one of them: a counter of a counter is cast by, or at, a creature of the action two levels
 down. A resume from a child whose tree holds neither creature keeps the full comparison. The Worker's planner
-applies the same rule (rules-runtime.md, "Currentness across a reaction child").
+applies the same rule (rules-runtime.md, "Currentness across a reaction child"); both call
+`reactedUnderAwaitedChild` (`encounterActionPendingSnapshot.ts`), and both pending inserts go through
+`heldActionContinues` (`actionPending.ts`).
+
+Area and chosen-list hosts (current, QUALITY-9.T1b3a). The cast window of an area or a chosen list is an
+`ENCOUNTER_ACTION` pending on the cast's root, so it records children, takes the room's resume and is fenced
+as a single-target cast's is. The endpoints of the currentness rule differ by what the checksum sealed: a
+chosen list's are its caster and its chosen creatures; an area's are its caster and whichever creature it
+caught first, which persistence does not read, so any creature of the Run that reacted in the awaited child's
+tree excuses that one resume (the Worker compares the caught creature itself). From a child's resume the
+window may be followed by another offer, by the aggregate pending (`ENCOUNTER_AREA_ACTION`, which records no
+children), by the area's commit, including one that catches nobody or places no area, or by the countered
+cast. Transitional (until QUALITY-9.T1b3b): a GM void or undo over an area root that has reaction children.
 
 The die a child rolls against a rolled attack (current contracts, QUALITY-9.T1e1, D219 "Roll-window reaction
 die"; inert until QUALITY-9.T1e2 wires the Worker, and the window reaction-die path it replaces stays until
@@ -411,10 +426,10 @@ grant), checked against the pending gate at the commit (`persistEncounterActionC
 child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and reaction; the parent's resume reads a
 gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
 reactor's `Counter` check on the child's occurrence (`recordCounterCheckRollCards`), and the cancelled cast
-commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Transitional (until
-QUALITY-9.T1b3): the area and chosen-list hosts still roll the check inline on the parent
-(`CAST_REACTION.check`); a single-target cast's counter that another creature could itself counter has run as a
-child since QUALITY-9.T1c2. These are persisted pending-context and receipt shape
+commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
+runs as a child since QUALITY-9.T1b3a (area and chosen-list casts) and QUALITY-9.T1c2 (single-target casts).
+Transitional (until QUALITY-9.T1b3c): the inline check on the parent (`CAST_REACTION.check`) is still
+accepted by the contracts, but no host raises it. These are persisted pending-context and receipt shape
 changes; refresh local data when next used (D196).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
