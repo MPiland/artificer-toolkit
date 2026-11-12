@@ -7,6 +7,7 @@ import {
 import { type ScenePoint } from '@artificer-toolkit/shared/vtt/scene'
 
 import type { CharacterHitPointOutcomeApplication } from './characterRuleActionSystemAdapter.js'
+import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import {
   continueNativeActionAfterTest,
   prepareNativeActionTest,
@@ -248,11 +249,10 @@ export function bindingAfterHitPoints<Binding extends object>(
 }
 
 /**
- * Settles the whole action once every roll is answered: each entry takes the outcome its own roll
+ * Settles the whole action once every save is answered: each creature takes the outcome its own roll
  * selected, with its own resistance, immunity and vulnerability. A point area (`rollsPerTarget`
- * false) rolls its damage once and freezes it across the creatures; a list of rays rolls each ray's
- * damage on its own, and a creature a further ray is aimed at meets the hit points its earlier rays
- * left it. A creature may carry a Legendary Resistance decision sealed against its own failed save.
+ * false) rolls its damage once and freezes it across the creatures; a save settled on its own rolls
+ * its own. A creature may carry a Legendary Resistance decision sealed against its own failed save.
  */
 export async function settleEncounterAreaAction(
   input: AreaActionSource & {
@@ -281,16 +281,14 @@ export async function settleEncounterAreaAction(
     throw new Error('A Legendary Resistance choice is undecided; the area cannot settle.')
   const random = input.random ?? nextRollInt
   const sharedRolls = createFrozenRollTape(random, input.sharedRolls)
-  const bindings = new Map<string, EncounterAreaTarget['binding']>()
   const settled = []
   for (const target of input.targets) {
     const test = input.tests.find((entry) => entry.occurrenceId === target.occurrenceId)
     if (test?.kind !== 'TESTED') throw new Error('The area roll is unavailable.')
-    const binding = bindings.get(target.actorId) ?? target.currentBinding ?? target.binding
     const result = await continueNativeActionAfterTest({
       ...input,
       occurrenceId: target.occurrenceId,
-      binding,
+      binding: target.currentBinding ?? target.binding,
       testBinding: target.binding,
       // The roller of a nested save would pause here: only the damage may be rolled.
       autoRoll: { SOURCE: true, TARGET: false },
@@ -301,8 +299,64 @@ export async function settleEncounterAreaAction(
     })
     if (result.kind !== 'COMPLETE')
       throw new Error('An area outcome cannot ask for evidence beyond its damage.')
-    bindings.set(target.actorId, bindingAfterHitPoints(binding, result.applications))
     settled.push({ actorId: target.actorId, occurrenceId: target.occurrenceId, complete: result })
+  }
+  return settled
+}
+
+/**
+ * One attack roll of a list its caster rolls one at a time (a ray): the creature it is aimed at, its
+ * sealed roll and the answer to it.
+ */
+type EncounterListAttack = Pick<
+  EncounterAreaTarget,
+  'actorId' | 'occurrenceId' | 'binding' | 'attackSight'
+> & {
+  pending: ResumedNativeActionGraphs
+  resolution: EncounterEvidenceAnswer
+  /** The roll tape kept with an earlier answer, replayed; null for the answer given now, which rolls. */
+  rolls: readonly EncounterFrozenRoll[] | null
+}
+
+/**
+ * Resolves a list's attack rolls in the order given, each through the single-target driver: a ray's
+ * roll is answered and its outcome runs before the next ray's, on the hit points the earlier rays at
+ * its creature left it. A ray answered earlier replays the roll tape kept with it and rolls nothing;
+ * the ray answered now rolls its dice, which are returned to keep.
+ */
+export async function advanceEncounterListAttacks(
+  input: AreaActionSource & { attacks: readonly EncounterListAttack[] }
+) {
+  const random = input.random ?? nextRollInt
+  const bindings = new Map<string, EncounterAreaTarget['binding']>()
+  const settled = []
+  for (const attack of input.attacks) {
+    const rolls = [...(attack.rolls ?? [])]
+    const binding = bindings.get(attack.actorId) ?? attack.binding
+    const result = await advanceNativeActionGraphs({
+      runtime: input.runtime,
+      adapter: input.adapter,
+      plan: input.plan,
+      occurrenceId: attack.occurrenceId,
+      binding,
+      testBinding: attack.binding,
+      attackSight: attack.attackSight,
+      // The roller of a nested save would pause here: only the ray's own dice may be rolled.
+      autoRoll: { SOURCE: true, TARGET: false },
+      afterTest: async () => undefined,
+      random: createFrozenRollTape(random, rolls)(),
+      resume: { pending: attack.pending, resolution: attack.resolution }
+    })
+    if (result.kind !== 'COMPLETE') throw new Error('A ray must settle with its answer.')
+    if (attack.rolls && rolls.length !== attack.rolls.length)
+      throw new Error('A kept ray is never rolled again.')
+    bindings.set(attack.actorId, bindingAfterHitPoints(binding, result.applications))
+    settled.push({
+      actorId: attack.actorId,
+      occurrenceId: attack.occurrenceId,
+      complete: result,
+      rolls
+    })
   }
   return settled
 }

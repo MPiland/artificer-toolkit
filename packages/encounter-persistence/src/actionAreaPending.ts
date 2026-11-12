@@ -370,13 +370,10 @@ export function requireAreaActionAnswer(input: {
     throw new Error('Live Session pending area answer mismatch.')
   const settled =
     answered.testedJson !== undefined
-      ? markEncounterAreaSaveTested(
-          input.stored,
-          input.requestId,
-          answered.testedJson,
-          answered.legendaryResistance,
-          answered.testDice
-        )
+      ? markEncounterAreaSaveTested(input.stored, input.requestId, {
+          ...answered,
+          testedJson: answered.testedJson
+        })
       : answered.rolledJson !== undefined
         ? markEncounterAreaSaveRolled(input.stored, input.requestId, answered.rolledJson)
         : null
@@ -556,9 +553,11 @@ export function projectNativeAreaActionPending(
         ]
       : []
   )
-  // A save waits on its roll, or, once rolled, on the d20 window the earliest creature has open.
+  // A save waits on its roll, or, once rolled, on the d20 window the earliest creature has open. A
+  // caster's rays wait one at a time, so only the next of them is read.
+  const area = { casterActorId: casterId, targets: pending.targets }
   const answerable = pending.targets.flatMap((target) => {
-    const awaiting = encounterAreaSaveAwaiting(target)
+    const awaiting = encounterAreaSaveAwaiting(area, target)
     const rollerActorId = target.context.rollerActorId
     if (!awaiting || !answers(rollerActorId)) return []
     return [

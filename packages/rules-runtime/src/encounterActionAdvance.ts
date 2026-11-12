@@ -80,6 +80,11 @@ export async function advanceNativeActionGraphs(input: {
   occurrenceId: string
   autoRoll: EncounterActionAutoRoll
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
+  /**
+   * The binding a two-phase action's TEST was sealed against, when its OUTCOME runs on a later one
+   * (`continueNativeActionAfterTest`): a further ray at a creature the earlier rays hurt.
+   */
+  testBinding?: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(execution: ServerCompletedRuleExecutionDto): Promise<void>
   /**
    * The Legendary Resistance the resisting target may use against a failed TEST save. A found
@@ -134,16 +139,19 @@ export async function advanceNativeActionGraphs(input: {
       damageRerolls,
       resume,
       attackSight: testSight,
+      testBinding,
       ...action
     } = input
+    const sealedAgainst = { ...action, binding: testBinding ?? action.binding }
     // An answer to the OUTCOME: its TEST is rebuilt from what the OUTCOME retained of it, never rolled
     // again, and the decisions the OUTCOME was sealed against are proved against that TEST.
     if (resume?.pending.twoPhase?.phase === 'OUTCOME') {
       const outcome = resume.pending.twoPhase
       return continueNativeActionAfterTest({
         ...action,
+        testBinding,
         boundary: await reconstructNativeActionTest({
-          ...action,
+          ...sealedAgainst,
           execution: outcome.testExecution,
           d20: outcome.testRollEvidence
         }),
@@ -161,7 +169,7 @@ export async function advanceNativeActionGraphs(input: {
     if (resolution?.kind === 'DAMAGE_REROLL')
       throw new Error('The damage roll window evidence is stale.')
     const test = await prepareNativeActionTest({
-      ...action,
+      ...sealedAgainst,
       attackSight: testSight,
       saveWindow,
       ...(resume && resolution ? { resume: { pending: resume.pending, resolution } } : {})
@@ -246,7 +254,13 @@ export async function advanceNativeActionGraphs(input: {
         gameSystemId: test.published.gameSystemId,
         reaction: null
       })
-    return continueNativeActionAfterTest({ ...action, boundary: test, saveWindow, damageRerolls })
+    return continueNativeActionAfterTest({
+      ...action,
+      testBinding,
+      boundary: test,
+      saveWindow,
+      damageRerolls
+    })
   }
 
   // A single graph: at most one d20 stage, which sight may govern, and a damage roll its caster may reroll.
