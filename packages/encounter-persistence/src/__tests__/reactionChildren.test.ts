@@ -43,7 +43,7 @@ import { readMovementResponseAuthority } from '../movementResolutionDocuments.js
 import { readPendingSnapshot, writePendingSnapshot } from '../pendingSnapshots.js'
 import {
   awaitsReactionChild,
-  countRunVoidVersions,
+  countRunSettlementVersions,
   reactionChildrenKept,
   readCommittedReactionChildren,
   readCommittedReactionDescendants,
@@ -53,6 +53,7 @@ import {
   readTrailingReactionDescendants,
   releaseReactionChildParent,
   repinReactionChildParent,
+  resumeSettledReactionChildParent,
   suspendReactionChildParent
 } from '../reactionChildren.js'
 import { readNativeEncounterActionResumeAdmission } from '../actionResumeAdmission.js'
@@ -1214,7 +1215,7 @@ describe('suspending the pending action while its reaction child is the pending 
     await insertCommittedAction(memory, state, reactionChild(ROOT_VERSION + 1), ROOT_VERSION + 2)
     await insertVoid(memory, ROOT_VERSION + 3)
     const count = (afterVersion: number, throughVersion: number) =>
-      countRunVoidVersions(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
+      countRunSettlementVersions(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
     expect(await count(ROOT_VERSION, ROOT_VERSION + 3)).toBe(2)
     // The lower bound is exclusive and the upper inclusive.
     expect(await count(ROOT_VERSION + 1, ROOT_VERSION + 3)).toBe(1)
@@ -1310,7 +1311,7 @@ describe('counting a root’s committed reaction children from the Run’s comma
       }
     ])
     expect(
-      await countRunVoidVersions(ctx, {
+      await countRunSettlementVersions(ctx, {
         encounterId: ENCOUNTER_ID,
         afterVersion: ROOT_VERSION,
         throughVersion: ROOT_VERSION + 3
@@ -1818,6 +1819,158 @@ async function pausedMove(
   }
   return { ...paused, move, choice: async () => (await move()).choice }
 }
+
+const CHECK_OCCURRENCE_ID = testUuid(0x8a46)
+
+/**
+ * Leaves a check as the Run's pending decision, as a reaction child's commit at `version` raises one
+ * for its target (a Concentration check, say). Returns the settling of that check, answered or
+ * voided, on the Run version that settling produced.
+ */
+async function raiseChildCheck(paused: Awaited<ReturnType<typeof pausedAttack>>, version: number) {
+  const { memory, occurrence } = paused
+  const { _id, _creationTime, ...root } = occurrence()
+  await memory.store.insert(
+    'encounterRuleOccurrences',
+    encounterStoredRuleOccurrenceSchema.parse({
+      ...root,
+      id: CHECK_OCCURRENCE_ID,
+      rootCommandId: testUuid(0x8a47),
+      state: 'PENDING',
+      version: 0,
+      expectedEncounterVersion: version
+    })
+  )
+  return async (state: 'COMPLETED' | 'VOIDED', settledVersion: number) => {
+    const check = memory
+      .documents('encounterRuleOccurrences')
+      .find(({ id }) => id === CHECK_OCCURRENCE_ID)!
+    await memory.store.patch(check._id, { state, completedAt: TIMESTAMP })
+    await memory.store.patch(memory.documents('encounterRuns')[0]!._id, {
+      version: settledVersion
+    })
+    if (state === 'VOIDED') await insertVoid(memory, settledVersion, CHECK_OCCURRENCE_ID)
+    else
+      await memory.store.insert(
+        'encounterRunCommands',
+        encounterStoredRunCommandSchema.parse({
+          id: crypto.randomUUID(),
+          campaignId: CAMPAIGN_ID,
+          encounterId: ENCOUNTER_ID,
+          commandId: crypto.randomUUID(),
+          commandType: 'RESOLVE_RULE_OCCURRENCE',
+          ruleOccurrenceId: CHECK_OCCURRENCE_ID,
+          ruleResultChecksum: checksum('d'),
+          optionalCombatSnapshotChecksum: paused.state.optionalCombatSnapshotChecksum,
+          commandFingerprint: checksum('f'),
+          actorUserId: USER_ID,
+          version: settledVersion,
+          commandJson: '{}',
+          replayReceiptJson: '{}',
+          replayReceiptChecksum: checksum('e'),
+          createdAt: TIMESTAMP
+        })
+      )
+  }
+}
+
+const pendingOccurrenceIds = (memory: ReturnType<typeof createMemoryEncounterStore>) =>
+  memory
+    .documents('encounterRuleOccurrences')
+    .filter(({ state }) => state === 'PENDING')
+    .map(({ id }) => id)
+
+describe('a reaction child whose commit leaves a check of its own pending (QUALITY-18.T2b2, D219)', () => {
+  it.each(['COMPLETED', 'VOIDED'] as const)(
+    'holds the move suspended while the check is pending, and returns it to pending once the check is %s',
+    async (settled) => {
+      const paused = await pausedMove(recorded.reactionChildren)
+      const { ctx, memory, state, occurrence } = paused
+      const held = occurrence()
+      await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+      const settleCheck = await raiseChildCheck(paused, ROOT_VERSION + 1)
+      await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+      // The move follows the Run the child left, but the check is the Run's one pending decision.
+      expect(occurrence()).toMatchObject({
+        state: 'SUSPENDED',
+        version: held.version,
+        expectedEncounterVersion: ROOT_VERSION + 1,
+        pendingSnapshotChecksum: held.pendingSnapshotChecksum
+      })
+      expect(pendingOccurrenceIds(memory)).toEqual([CHECK_OCCURRENCE_ID])
+      expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(false)
+      expect(occurrence().state).toBe('SUSPENDED')
+
+      await settleCheck(settled, ROOT_VERSION + 2)
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+      // Pinned to the Run the settled check left; its history and version do not change.
+      expect(occurrence()).toMatchObject({
+        state: 'PENDING',
+        version: held.version,
+        expectedEncounterVersion: ROOT_VERSION + 2,
+        pendingSnapshotChecksum: held.pendingSnapshotChecksum
+      })
+      expect(pendingOccurrenceIds(memory)).toEqual([OCCURRENCE_ID])
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(false)
+    }
+  )
+
+  it('holds a pending attack the same way: the host of the child does not matter', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+    const settleCheck = await raiseChildCheck(paused, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    await settleCheck('COMPLETED', ROOT_VERSION + 2)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION + 2
+    })
+    expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual(
+      recorded.reactionChildren
+    )
+  })
+
+  it('returns only the action whose child committed: one above it still waits on its held child', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    const settleCheck = await raiseChildCheck(paused, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    expect(child()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+
+    await settleCheck('COMPLETED', ROOT_VERSION + 2)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(child()).toMatchObject({ state: 'PENDING', expectedEncounterVersion: ROOT_VERSION + 2 })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 2
+    })
+  })
+
+  it('returns nothing while a child is itself the pending decision, or when nothing is held', async () => {
+    const open = await pausedAttack(recorded)
+    expect(await resumeSettledReactionChildParent(open.ctx, ENCOUNTER_ID)).toBe(false)
+    const paused = await pausedAttack(recorded)
+    await holdReactionChild(paused)
+    expect(await resumeSettledReactionChildParent(paused.ctx, ENCOUNTER_ID)).toBe(false)
+    expect(paused.occurrence().state).toBe('SUSPENDED')
+  })
+})
 
 describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)', () => {
   it('is the held move whose reaction choice records the child command', async () => {

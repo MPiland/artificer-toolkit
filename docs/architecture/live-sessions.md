@@ -200,7 +200,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   Action and its turn-end continuation; (4) the start-of-turn effects of a turn that began; (5) the rules'
   failed-save actions; (6) the flag on a creature that returned onto an occupied space; (7) the mirrors and
   rewards the roots raised in 2 to 5 collected; (8) the sweep of summons whose carrier ended and the advance
-  past one that was acting; (9) the next queued reaction offer (D219). Stages 2 to 5 run only on an ACTIVE Run
+  past one that was acting; (9) the held action whose reaction child's own checks have all settled, which
+  returns to PENDING once the Run waits on no other decision (`resumeSettledReactionChildParent`, D219);
+  (10) the next queued reaction offer (D219). Stages 2 to 5 run only on an ACTIVE Run
   in a room that executes rules. Each raised root goes through `raiseRoomChild` (`roomEncounterChildRaise.ts`):
   read the Run, raise nothing while a decision is PENDING, then execute. The two loops that advance turns (the
   delegated Legendary Action and the summon advance) share its read (`readRoomRaisableRun`). A PENDING decision

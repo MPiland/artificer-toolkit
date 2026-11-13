@@ -25,9 +25,30 @@ type ReactionChildLink = {
 }
 
 /**
- * The held parent that records a reaction child, with the sealed snapshot that records it: a
- * pending action, or a Scene move paused on a reaction choice.
+ * A held occurrence that can record reaction children, with its sealed snapshot and the children it
+ * records: a pending action, or a Scene move paused on a reaction choice. Null for any other.
  */
+async function readHeldRecord(
+  ctx: EncounterReadContext,
+  parent: EncounterDocument<'encounterRuleOccurrences'>
+) {
+  const snapshot = await readPendingSnapshot(ctx, parent)
+  if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE') return null
+  const context = snapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_ACTION' && context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+    return null
+  const recorded =
+    context.kind === 'ENCOUNTER_ACTION'
+      ? context.reactionChildren
+      : context.phase.kind === 'CHOICE'
+        ? context.phase.reactionChildren
+        : undefined
+  return { parent, snapshot, context, recorded: recorded ?? [] }
+}
+
+type RecordingParent = NonNullable<Awaited<ReturnType<typeof readHeldRecord>>>
+
+/** The held parent that records a reaction child, or null when no held parent of the Run does. */
 async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChildLink) {
   const parent = await ctx.db
     .query('encounterRuleOccurrences')
@@ -40,22 +61,9 @@ async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChi
     (parent.state !== 'PENDING' && parent.state !== 'SUSPENDED')
   )
     return null
-  const snapshot = await readPendingSnapshot(ctx, parent)
-  if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE') return null
-  const context = snapshot.applicationContext
-  if (context.kind !== 'ENCOUNTER_ACTION' && context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-    return null
-  const recorded =
-    context.kind === 'ENCOUNTER_ACTION'
-      ? context.reactionChildren
-      : context.phase.kind === 'CHOICE'
-        ? context.phase.reactionChildren
-        : undefined
-  if (!recorded?.some(({ commandId }) => commandId === input.childCommandId)) return null
-  return { parent, snapshot, context }
+  const held = await readHeldRecord(ctx, parent)
+  return held?.recorded.some(({ commandId }) => commandId === input.childCommandId) ? held : null
 }
-
-type RecordingParent = NonNullable<Awaited<ReturnType<typeof readRecordingParent>>>
 
 /**
  * The creature taking a held action or making a held move, and the link from that action to the one
@@ -265,6 +273,10 @@ export async function suspendReactionChildParent(
  * and returns it to pending if the child had paused. A pending action is pinned to one Run version,
  * so its later answers and its own commit are fenced on the Run as the child left it. The suspended
  * actions above it move with it.
+ *
+ * A child is not complete until the checks it raised are. When its commit left one as the Run's
+ * pending decision (its target's Concentration check, say), the action it answers stays suspended,
+ * so the Run keeps one pending decision; `resumeSettledReactionChildParent` returns it to pending.
  */
 export async function repinReactionChildParent(
   ctx: EncounterWriteContext,
@@ -273,11 +285,62 @@ export async function repinReactionChildParent(
   if (await readReactionOfferChild(ctx, input)) return
   const recording = await readRecordingParent(ctx, input)
   if (!recording) throw new Error('The reaction’s pending action is gone.')
+  const pending = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_encounterId_state', (query) =>
+      query.eq('encounterId', input.encounterId).eq('state', 'PENDING')
+    )
+    .take(2)
   await ctx.db.patch(recording.parent._id, {
-    state: 'PENDING',
+    state: pending.some(({ id }) => id !== recording.parent.id) ? 'SUSPENDED' : 'PENDING',
     expectedEncounterVersion: input.version
   })
   await repinSuspendedAncestors(ctx, recording, input.version)
+}
+
+/**
+ * Returns a held action to pending once every decision its committed reaction child left has
+ * settled, answered or voided, pinned to the Run as it stands, and reports whether one returned.
+ * Nothing returns while the Run waits on a decision. The action is the suspended one whose recorded
+ * children have all committed: an action above it waits on a child that is itself still held. The
+ * suspended actions above it move with it.
+ */
+export async function resumeSettledReactionChildParent(
+  ctx: EncounterWriteContext,
+  encounterId: string
+): Promise<boolean> {
+  const held = (state: 'PENDING' | 'SUSPENDED') =>
+    ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_encounterId_state', (query) =>
+        query.eq('encounterId', encounterId).eq('state', state)
+      )
+  const suspended = await held('SUSPENDED').take(MAX_ENCOUNTER_ACTORS)
+  if (suspended.length === 0 || (await held('PENDING').first())) return false
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (query) => query.eq('id', encounterId))
+    .unique()
+  if (!run) throw new Error('Encounter is unavailable.')
+  for (const parent of suspended) {
+    const record = await readHeldRecord(ctx, parent)
+    if (!record || record.recorded.length === 0) continue
+    const committed = await Promise.all(
+      record.recorded.map(({ commandId }) =>
+        ctx.db
+          .query('encounterRunCommands')
+          .withIndex('by_campaignId_commandId', (query) =>
+            query.eq('campaignId', run.campaignId).eq('commandId', commandId)
+          )
+          .unique()
+      )
+    )
+    if (committed.includes(null)) continue
+    await ctx.db.patch(parent._id, { state: 'PENDING', expectedEncounterVersion: run.version })
+    await repinSuspendedAncestors(ctx, record, run.version)
+    return true
+  }
+  return false
 }
 
 /**
@@ -359,12 +422,13 @@ export async function releaseReactionChildParent(
 }
 
 /**
- * How many Run versions GM voids made after one version, up to and including another: one for each
- * void, and one for the undo a void makes of the reactions that committed under the action it
- * cancels. While an action is held, the Run moves only by the reactions of its tree: each commit,
- * and each void of a held one.
+ * How many Run versions settled decisions made after one version, up to and including another: one
+ * for each answer that settled a check a committed reaction raised, one for each GM void, and one for
+ * the undo a void makes of the reactions that committed under the action it cancels. While an action
+ * is held, the Run moves only by the reactions of its tree: each commit, each settled check one
+ * raised, and each void of a held one.
  */
-export async function countRunVoidVersions(
+export async function countRunSettlementVersions(
   ctx: EncounterReadContext,
   input: { encounterId: string; afterVersion: number; throughVersion: number }
 ) {
@@ -379,16 +443,19 @@ export async function countRunVoidVersions(
     .take(MAX_ENCOUNTER_ACTORS + 1)
   return commands.filter(
     ({ commandType }) =>
-      commandType === 'VOID_RULE_OCCURRENCE' || commandType === 'REVERT_LAST_ACTION'
+      commandType === 'RESOLVE_RULE_OCCURRENCE' ||
+      commandType === 'VOID_RULE_OCCURRENCE' ||
+      commandType === 'REVERT_LAST_ACTION'
   ).length
 }
 
 /**
  * Whether a held root's occurrence stands at a Run version its tree accounts for (D219). Each
  * committed reaction child moved the occurrence one Run version past its root. So did each reaction
- * that committed under one of those children, and each version a GM void of a held one made, none of
- * which the held action records. An area's or a chosen list's open saves record no child at all: the
- * reactions that committed while its cast was held are all read from the Run's commands.
+ * that committed under one of those children, each settled check one of them raised, and each version
+ * a GM void of a held one made, none of which the held action records. An area's or a chosen list's
+ * open saves record no child at all: the reactions that committed while its cast was held are all
+ * read from the Run's commands.
  */
 export async function heldRootVersionAccounted(
   ctx: EncounterReadContext,
@@ -407,7 +474,7 @@ export async function heldRootVersionAccounted(
   if (versionsPastRoot < 0) return false
   if (unrecordedVersions <= 0) return true
   const held = { encounterId: occurrence.encounterId, afterVersion: input.rootExpectedVersion }
-  const voidVersions = await countRunVoidVersions(ctx, {
+  const settlementVersions = await countRunSettlementVersions(ctx, {
     ...held,
     throughVersion: occurrence.expectedEncounterVersion
   })
@@ -418,7 +485,7 @@ export async function heldRootVersionAccounted(
   })
   return (
     unrecordedVersions <=
-    voidVersions +
+    settlementVersions +
       descendants.filter(
         ({ commandId }) => !recorded.some((child) => child.commandId === commandId)
       ).length

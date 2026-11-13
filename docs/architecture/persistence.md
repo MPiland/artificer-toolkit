@@ -311,19 +311,25 @@ not committed, so the proof is the pending action's own record instead: `reactio
 the Run version the pending occurrence is pinned to (`expectedEncounterVersion`), for a holder that still
 stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionCommit`)
 advances the Run one version and re-pins the pending occurrence to it in the same transaction
-(`repinReactionChildParent`), so the fences read as follows:
+(`repinReactionChildParent`). A child is not complete until its own check chain is (QUALITY-18.T2b2,
+ruling 17): when the child's commit leaves a prompted check of its own PENDING, the parent takes the new pin
+but stays SUSPENDED, so the Run keeps one pending decision. The room's after-commit settlement returns it to
+PENDING on the Run's version (`resumeSettledReactionChildParent`) once that chain is answered or voided and
+the Run waits on no other decision; only then does the room issue a paused move's `REACTION_CHILD_RESUME`.
+The fences read as follows:
 
 - A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
   `expectedVersion`; the live answer scope compares the answer's version, not the stored root's.
 - `readNativeActionPending` accepts a pin at most one version past the root for each recorded child, plus
-  one for each reaction that committed under one of its children, plus one for each version a GM void of a
-  held child made since the root (`countRunVoidVersions`: the void, and the undo it ran). The area read
+  one for each reaction that committed under one of its children, plus one for each version a settled
+  decision made since the root (`countRunSettlementVersions`: an answered check of a child, a GM void, and
+  the undo it ran). The area read
   (`readNativeAreaActionPending`) applies the same rule (`heldRootVersionAccounted`, `reactionChildren.ts`)
   with no recorded child of its own: an aggregate reached from a cast window sits past the root by the
   reactions committed in the root's tree.
 - A replay of the parent root expects its commit at the root's version plus the committed reactions of its
-  tree plus those void versions plus one. Both are read from `encounterRunCommands`
-  (`readCommittedReactionDescendants`, `countRunVoidVersions`); no counter is stored.
+  tree plus those settlement versions plus one. Both are read from `encounterRunCommands`
+  (`readCommittedReactionDescendants`, `countRunSettlementVersions`); no counter is stored.
 
 Reactions to a held reaction child (current, QUALITY-9.T1c1; raised by a single-target cast's counters since
 QUALITY-9.T1c2). A held child is itself a pending action, so it records the reactions chosen against it in
