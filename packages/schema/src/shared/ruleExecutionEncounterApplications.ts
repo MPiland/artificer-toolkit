@@ -465,6 +465,11 @@ export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
       maximum: positiveIntegerSchema,
       beforeUsed: nonNegativeIntegerSchema,
       afterUsed: positiveIntegerSchema,
+      /**
+       * The turn an `EACH_TURN` allowance was spent on, whose usage is kept with that turn; absent for
+       * an allowance refreshed at its holder's turn start.
+       */
+      turnSequence: z.optional(nonNegativeIntegerSchema),
       /** The spell-casting record a spell cast with this allowance changed; absent for any other action. */
       spellCasting: z.optional(encounterSpellCastingTransitionDtoSchema)
     })
