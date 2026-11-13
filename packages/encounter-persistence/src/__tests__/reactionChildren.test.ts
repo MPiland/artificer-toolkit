@@ -16,6 +16,7 @@ import {
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { movementReactionTimelineDtoSchema } from '@artificer-toolkit/schema/shared/reaction'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   encounterReactionSelectionIdentity,
@@ -1509,5 +1510,200 @@ describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () =>
     expect((await readNativeActionPending(later.ctx, later.occurrence())).context.castSlotKey).toBe(
       SLOT_KEY
     )
+  })
+})
+
+/**
+ * A Run at `ROOT_VERSION` whose Scene move, the attacker's, is paused on the protector's reaction
+ * choice at its contact, the choice recording `reactionChildren`. Returns that choice with the Run.
+ */
+async function pausedMove(reactionChildren?: { commandId: string; rollMode?: null }[]) {
+  const paused = await pausedAttack()
+  const { ctx, memory, occurrence } = paused
+  const { _id, _creationTime, ...root } = occurrence()
+  const snapshot = await readPendingSnapshot(ctx, root)
+  if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE') throw new Error('The Run holds no decision.')
+  const path = [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 }
+  ]
+  const contact = { contact: { x: 5, y: 0 }, pathDistance: 5 }
+  const reactor = { reactorActorId: PROTECTOR_ID, reactorTokenId: testUuid(0x8a41) }
+  // Parsed first, so the selection checksum binds the timeline as it is stored.
+  const reactionTimeline = movementReactionTimelineDtoSchema.parse([
+    {
+      kind: 'CONTROLLER_CHOICE',
+      group: {
+        pathDistance: contact.pathDistance,
+        ...reactor,
+        options: [
+          {
+            optionId: checksum('7'),
+            contactSourceId: checksum('8'),
+            actionId: REACTION_ACTION_ID,
+            actionSourceKind: 'ENCOUNTER_FEATURE',
+            actionSourceCurrentnessChecksum: checksum('9'),
+            candidate: {
+              ...contact,
+              ...reactor,
+              movingActorId: ATTACKER_ID,
+              sourceId: checksum('8'),
+              stage: 'BEFORE_LEAVE_REACH'
+            },
+            binding: {
+              kind: 'MOVEMENT',
+              stage: 'BEFORE_LEAVE_REACH',
+              perceptionRequirement: 'SEE',
+              eligibilityDefinitionId: testUuid(0x8a42)
+            },
+            policy: {
+              eligible: true,
+              allowanceDefinitionId: testUuid(0x8a31),
+              allowanceMaximum: 1,
+              allowanceRefreshBoundary: 'START_OF_TURN',
+              selectionPolicy: 'CHOICE',
+              choiceDefinitionId: testUuid(0x8a32),
+              targetPolicy: 'MOVER'
+            },
+            eligibilityEvidenceChecksum: checksum('a'),
+            authority: { kind: 'GM' },
+            visibility: 'GM_ONLY'
+          }
+        ]
+      }
+    }
+  ])
+  await memory.store.patch(_id, {
+    pendingSnapshotChecksum: await writePendingSnapshot(
+      ctx,
+      root,
+      serverRuleExecutionPendingSnapshotDtoSchema.parse({
+        ...snapshot,
+        applicationContext: {
+          kind: 'ENCOUNTER_MOVEMENT_REACTION',
+          schemaVersion: 1,
+          root: {
+            commandId: PARENT_COMMAND_ID,
+            commandFingerprint: checksum('3'),
+            initiatorUserId: USER_ID,
+            correlationId: null,
+            encounterId: ENCOUNTER_ID,
+            sceneId: testUuid(0x8a43),
+            tokenId: testUuid(0x8a44),
+            expectedEncounterVersion: ROOT_VERSION,
+            expectedSceneVersion: 3,
+            currentSceneVersion: 3,
+            movementKind: 'VOLUNTARY',
+            originalPath: path,
+            pathChecksum: checksumRuleDocument(path),
+            pathStartDistance: contact.pathDistance,
+            currentPosition: contact.contact,
+            resolutionCommands: []
+          },
+          spatialSelectionChecksum: checksum('4'),
+          spatialCurrentnessChecksum: checksum('5'),
+          reactionSelectionChecksum: checksumRuleDocument(reactionTimeline),
+          completedSpatialExecutions: [],
+          completedReactionExecutions: [],
+          phase: { kind: 'CHOICE', ...(reactionChildren && { reactionChildren }) },
+          remainingSpatialCandidates: [],
+          reactionTimeline
+        }
+      })
+    )
+  })
+  const choice = async () => {
+    const stored = await readPendingSnapshot(ctx, occurrence())
+    if (
+      stored?.snapshotKind !== 'KERNEL_EVIDENCE' ||
+      stored.applicationContext.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
+      stored.applicationContext.phase.kind !== 'CHOICE'
+    )
+      throw new Error('The move is not paused on a reaction choice.')
+    return stored.applicationContext.phase
+  }
+  return { ...paused, choice }
+}
+
+describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)', () => {
+  it('is the held move whose reaction choice records the child command', async () => {
+    const { ctx, occurrence, choice } = await pausedMove(recorded.reactionChildren)
+    expect(await choice()).toEqual({ kind: 'CHOICE', ...recorded })
+    expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
+    const open = await pausedMove()
+    expect(await open.choice()).toEqual({ kind: 'CHOICE' })
+    expect(await readReactionChildParent(open.ctx, link)).toBeNull()
+    const other = await pausedMove([{ commandId: testUuid(0x8a0c) }])
+    expect(await readReactionChildParent(other.ctx, link)).toBeNull()
+  })
+
+  it('admits the recorded child on the Run version the move is pinned to', async () => {
+    const { admit } = await pausedMove(recorded.reactionChildren)
+    await expect(admit(reactionChild())).resolves.toBeUndefined()
+    await expect(admit(reactionChild(ROOT_VERSION - 1))).rejects.toThrow('VERSION_STALE')
+    await expect(admit(reactionChild(ROOT_VERSION, OTHER_ROOT_COMMAND_ID))).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
+  })
+
+  it('admits nothing the move’s open choice only offers', async () => {
+    const { admit } = await pausedMove()
+    await expect(admit(reactionChild())).rejects.toThrow('COMMAND_ID_REUSED')
+  })
+
+  it('names the mover as the one held creature above the child: no reaction, no cast', async () => {
+    const { ctx } = await pausedMove(recorded.reactionChildren)
+    expect(await readReactionChildAncestors(ctx, link)).toEqual([
+      { actorId: ATTACKER_ID, reaction: false, castSlotKey: null }
+    ])
+    expect(await readReactionChildCastLevel(ctx, link)).toBeNull()
+  })
+
+  it('suspends the move while its child is the pending decision, and re-pins it to the Run the child left', async () => {
+    const { ctx, occurrence } = await pausedMove(recorded.reactionChildren)
+    const held = occurrence()
+    await suspendReactionChildParent(ctx, link)
+    expect(occurrence().state).toBe('SUSPENDED')
+    expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    // The move's version counts its recorded answers, and a child's commit is not one of them.
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      version: held.version,
+      expectedEncounterVersion: ROOT_VERSION + 1,
+      pendingSnapshotChecksum: held.pendingSnapshotChecksum
+    })
+  })
+
+  it('refuses to suspend or re-pin a move that does not record the child', async () => {
+    const { ctx, occurrence } = await pausedMove()
+    await expect(suspendReactionChildParent(ctx, link)).rejects.toThrow(
+      'The reaction’s pending action is gone.'
+    )
+    await expect(
+      repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    ).rejects.toThrow('The reaction’s pending action is gone.')
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION
+    })
+  })
+
+  it('waits on a recorded child until the move resumes from it', async () => {
+    const waiting = await pausedMove(recorded.reactionChildren)
+    expect(awaitsReactionChild(await waiting.choice())).toBe(true)
+    const resumed = await pausedMove([{ ...recorded.reactionChildren[0]!, rollMode: null }])
+    expect(awaitsReactionChild(await resumed.choice())).toBe(false)
+    expect(awaitsReactionChild(await (await pausedMove()).choice())).toBe(false)
+  })
+
+  it('leaves the release of a voided child to the move’s own recorded answer', async () => {
+    const { ctx, occurrence } = await pausedMove(recorded.reactionChildren)
+    await suspendReactionChildParent(ctx, link)
+    const suspended = occurrence()
+    await expect(
+      releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    ).rejects.toThrow('A Scene move does not release a reaction child here.')
+    expect(occurrence()).toEqual(suspended)
   })
 })

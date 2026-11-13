@@ -19,7 +19,10 @@ type ReactionChildLink = {
   childCommandId: string
 }
 
-/** The held action that records a reaction child, with the sealed snapshot that records it. */
+/**
+ * The held parent that records a reaction child, with the sealed snapshot that records it: a
+ * pending action, or a Scene move paused on a reaction choice.
+ */
 async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChildLink) {
   const parent = await ctx.db
     .query('encounterRuleOccurrences')
@@ -33,24 +36,33 @@ async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChi
   )
     return null
   const snapshot = await readPendingSnapshot(ctx, parent)
-  if (
-    snapshot?.snapshotKind !== 'KERNEL_EVIDENCE' ||
-    snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-    !snapshot.applicationContext.reactionChildren?.some(
-      ({ commandId }) => commandId === input.childCommandId
-    )
-  )
+  if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE') return null
+  const context = snapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_ACTION' && context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
     return null
-  return { parent, snapshot, context: snapshot.applicationContext }
+  const recorded =
+    context.kind === 'ENCOUNTER_ACTION'
+      ? context.reactionChildren
+      : context.phase.kind === 'CHOICE'
+        ? context.phase.reactionChildren
+        : undefined
+  if (!recorded?.some(({ commandId }) => commandId === input.childCommandId)) return null
+  return { parent, snapshot, context }
 }
 
 type RecordingParent = NonNullable<Awaited<ReturnType<typeof readRecordingParent>>>
 
 /**
- * The creature taking a held action, and the link from that action to the one it answers when it is
- * itself a reaction's child. Null for a contested escape, whose root is the escape itself (D152).
+ * The creature taking a held action or making a held move, and the link from that action to the one
+ * it answers when it is itself a reaction's child. Null for a contested escape, whose root is the
+ * escape itself (D152).
  */
 function heldAction(held: RecordingParent) {
+  if (held.context.kind === 'ENCOUNTER_MOVEMENT_REACTION') {
+    // Every option at a move's contact names its one mover, and a move answers nothing.
+    const mover = held.context.reactionTimeline[0]?.group.options[0]?.candidate.movingActorId
+    return mover ? { actorId: mover, answers: null } : null
+  }
   if (held.context.contest) return null
   const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(held.context.commandJson))
   return {
@@ -122,7 +134,8 @@ export async function readReactionChildCastLevel(
   ctx: EncounterReadContext,
   input: ReactionChildLink
 ) {
-  return (await readRecordingParent(ctx, input))?.context.castLevel ?? null
+  const held = await readRecordingParent(ctx, input)
+  return held?.context.kind === 'ENCOUNTER_ACTION' ? (held.context.castLevel ?? null) : null
 }
 
 /**
@@ -144,7 +157,8 @@ export async function readReactionChildAncestors(
     ancestors.push({
       actorId: action.actorId,
       reaction: action.answers !== null,
-      castSlotKey: held.context.castSlotKey ?? null
+      castSlotKey:
+        held.context.kind === 'ENCOUNTER_ACTION' ? (held.context.castSlotKey ?? null) : null
     })
     link = action.answers
   }
@@ -236,6 +250,9 @@ export async function releaseReactionChildParent(
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')
   const { parent, snapshot } = recording
+  // A move's version counts its recorded answers, so its release is a recorded answer of its own.
+  if (recording.context.kind !== 'ENCOUNTER_ACTION')
+    throw new Error('A Scene move does not release a reaction child here.')
   // The cast is recorded with the children, so it goes when the last of them does.
   const { reactionChildren = [], castLevel, castSlotKey, ...context } = recording.context
   const kept = reactionChildren.filter(({ commandId }) => commandId !== input.childCommandId)

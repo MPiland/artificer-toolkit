@@ -840,6 +840,15 @@ raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admis
 actor in range, allies included, except the holder. It never recurses: the burst's own defeats raise nothing
 (deferred edge case in the SPELLS-33 workbook).
 
+Several system-trigger children of one command (QUALITY-11.T2): each child moves the Run, so the SYSTEM
+admission of an HP-zero or START_OF_TURN child accepts the Run at its parent's version plus the committed
+sibling children before it (`countCommittedSystemSiblings`, the same descendants allowance pending answers use for
+reaction children). It still rejects `VERSION_STALE` when any command that is not a sibling child of that parent
+moved the Run, or when the child names another version. A rule-raised child is proved by its failed-save window and
+a Legendary Action continuation by its delegation, so neither is affected. A passive start-of-turn
+effect compiles with activation `FREE` (`encounterFeatureActionCapabilityDiscovery.ts`): the System fires it, so it
+spends none of the holder's action economy, and a second passive on one holder is not refused for a spent Action.
+
 ### Passive effect at the start of the holder's turn (current, SPELLS-33.T4i1a)
 
 An authored Effect with invocation `{ kind: PASSIVE, triggerCode: START_OF_TURN }` is a creature trait that
@@ -1709,6 +1718,12 @@ counter is often the caster it was aimed at. Nothing else is
 excused: the child and the resume run in one room turn, the Run moves only by the child while the action is
 held (`repinReactionChildParent`), and a child that paused held the same two creatures (its own source and
 target) to its own checksum until it committed. A resume from a bystander's child keeps the full comparison.
+
+**A Scene move as a reaction child's parent (transitional, QUALITY-18.T1a).** The movement reaction pending
+context (`ENCOUNTER_MOVEMENT_REACTION`) accepts `reactionChildren` on its `CHOICE` phase, in the shape the
+action context uses, and the persistence module reads a move as a parent (persistence.md, "Reaction arm").
+No host records a child on a move yet: movement reactions still resolve inline under `MOVE_SCENE_TOKEN`.
+QUALITY-18.T1b adds the move's resume and release, and QUALITY-18.T2 moves the reaction itself to a child.
 
 **Higher-level check (current, D127; the child's incoming gate since QUALITY-9.T1b2).**
 `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`) makes a reaction cast below the triggering cast's

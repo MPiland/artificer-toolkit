@@ -8,7 +8,10 @@ import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
-import { encounterActionHeldD20DtoSchema } from './encounterActionPending.js'
+import {
+  encounterActionHeldD20DtoSchema,
+  encounterReactionChildrenDtoSchema
+} from './encounterActionPending.js'
 import {
   serverRuleExecutionD20BeliefDtoSchema,
   serverRuleExecutionD20EvidenceDtoSchema,
@@ -144,7 +147,14 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       kind: z.literal('SPATIAL_EVIDENCE'),
       currentCandidate: spatialPendingCandidateDtoSchema
     }),
-    z.strictObject({ kind: z.literal('CHOICE') }),
+    z.strictObject({
+      kind: z.literal('CHOICE'),
+      /**
+       * The child actions of the reactions chosen against this move at its current contact (D219).
+       * Nothing records one yet (QUALITY-18.T2 does).
+       */
+      reactionChildren: z.optional(encounterReactionChildrenDtoSchema)
+    }),
     z.strictObject({
       kind: z.literal('CONCENTRATION_EVIDENCE'),
       damageSource: z.strictObject({

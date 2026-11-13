@@ -47,6 +47,44 @@ export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD
     })
 )
 
+/**
+ * The child actions of the reactions chosen against a held parent, in the order they were chosen
+ * (D219): a pending action, or a Scene move paused on a reaction choice. Only a child recorded here
+ * is admitted while the parent is held, and each one that commits moves the parent's occurrence one
+ * Run version on. `rollMode` is the mode the committed child imposes on the parent's roll, null when
+ * it imposes none; it is absent until the room resumes the parent after the child. `rolledDie` is the
+ * die the committed child rolled against the parent's roll, with its faces, recorded by that same
+ * resume: a replay of the parent reads the die from here and does not roll it again.
+ */
+export const encounterReactionChildrenDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z
+        .strictObject({
+          commandId: ruleExecutionUuidSchema,
+          rollMode: z.optional(z.nullable(systemCoreCodeSchema)),
+          rolledDie: z.optional(d20RolledAddedDieDtoSchema)
+        })
+        .check(
+          z.superRefine((child, context) => {
+            if (
+              child.rolledDie &&
+              (child.rollMode === undefined ||
+                child.rolledDie.spentEffectId !== undefined ||
+                child.rolledDie.spentReaction !== undefined)
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['rolledDie'],
+                message:
+                  'Only a child the action resumed from records its die, which the child itself spent.'
+              })
+          })
+        )
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+
 /** Native action ownership; the command JSON is parsed by its owning command schema on every read. */
 export const encounterActionPendingContextDtoSchema = lazySchema(() =>
   z
@@ -92,26 +130,8 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       usedReactions: z.optional(
         z.array(encounterUsedReactionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       ),
-      /**
-       * The child actions of the reactions chosen against this action, in the order they were chosen
-       * (D219). Only a child recorded here is admitted while the action is pending, and each one that
-       * commits moves the action's occurrence one Run version past its root command. `rollMode` is
-       * the mode the committed child imposes on the action's roll, null when it imposes none; it is
-       * absent until the room resumes the action after the child. `rolledDie` is the die the committed
-       * child rolled against the action's roll, with its faces, recorded by that same resume: a replay
-       * of the action reads the die from here and does not roll it again.
-       */
-      reactionChildren: z.optional(
-        z
-          .array(
-            z.strictObject({
-              commandId: ruleExecutionUuidSchema,
-              rollMode: z.optional(z.nullable(systemCoreCodeSchema)),
-              rolledDie: z.optional(d20RolledAddedDieDtoSchema)
-            })
-          )
-          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      ),
+      /** The child actions of the reactions chosen against this action (D219). */
+      reactionChildren: z.optional(encounterReactionChildrenDtoSchema),
       /**
        * The level this action casts its spell at, recorded with its reaction children: a child reads
        * the cast it answers from here, not from its own command (D219). Absent for an action that
@@ -139,19 +159,6 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: [path],
               message: `Only an action that records a reaction child records its cast ${name}.`
-            })
-        for (const [index, child] of (value.reactionChildren ?? []).entries())
-          if (
-            child.rolledDie &&
-            (child.rollMode === undefined ||
-              child.rolledDie.spentEffectId !== undefined ||
-              child.rolledDie.spentReaction !== undefined)
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['reactionChildren', index, 'rolledDie'],
-              message:
-                'Only a child the action resumed from records its die, which the child itself spent.'
             })
         if (!value.contest !== !value.contestPhase)
           context.addIssue({
