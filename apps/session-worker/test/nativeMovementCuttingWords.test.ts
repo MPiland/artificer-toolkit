@@ -271,15 +271,17 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
 
     // The Bard's reaction is spent, so the second attack holds no choice. The room runs the first
     // attack on and resumes the move by itself, so the second Wolf's decision is waited for.
-    const second = await vi.waitFor(async () => {
+    await vi.waitFor(async () => {
       const decision = await room.pending()
       if (
         decision?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
         decision.context.reactionTimeline[0]?.group.reactorActorId !== SECOND_WOLF_ID
       )
         throw new Error(`Expected the second Wolf's decision, got ${decision?.context.kind}.`)
-      return decision
     }, 20_000)
+    const second = await room.pending()
+    if (second?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+      throw new Error(`Expected the second Wolf's decision, got ${second?.context.kind}.`)
     expect(second.context.reactionTimeline[0]?.group.reactorActorId).toBe(SECOND_WOLF_ID)
     const attacked = await room.useReaction()
     expect(attacked.answer.type, JSON.stringify(attacked.answer)).toBe('COMMAND_COMMITTED')
