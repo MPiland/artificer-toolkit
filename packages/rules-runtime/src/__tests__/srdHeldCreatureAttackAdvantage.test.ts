@@ -24,7 +24,7 @@ import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharac
  * the same assertions (authoring parity).
  */
 
-const ATTACK_DOMAINS = ['MELEE', 'RANGED', 'SPELL', 'UNARMED']
+const ATTACK_DOMAINS = ['MELEE', 'RANGED', 'SPELL', 'UNARMED'] as const
 const HOLDER_ID = 'holder'
 const TARGET_ID = 'target'
 const OTHER_ID = 'other'

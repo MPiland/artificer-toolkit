@@ -48,8 +48,11 @@ describe('a held-creature attack advantage through the creature node map (SPELLS
     const restrained = SRD_CONDITION_TYPES.find(({ code }) => code === 'RESTRAINED')
     if (!restrained) throw new Error('The SRD must define Restrained.')
     for (const grant of grants.modifiers) {
-      expect(grant.domain?.againstHeldConditionTypeId).toBe(GRAPPLED_CONDITION_ID)
-      grant.domain = { ...grant.domain, againstHeldConditionTypeId: restrained.id }
+      const { domain } = grant
+      if (!domain || !('attackDomain' in domain))
+        throw new Error('Grappler grants must author an attack domain.')
+      expect(domain.againstHeldConditionTypeId).toBe(GRAPPLED_CONDITION_ID)
+      grant.domain = { ...domain, againstHeldConditionTypeId: restrained.id }
     }
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
