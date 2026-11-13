@@ -170,34 +170,10 @@ export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOff
     })
 )
 /**
- * The check a reactor owes to counter a cast above the level it counters at: its ability check against
- * a DC set by the cast's level, frozen before it is rolled. The pending waits on that one d20.
- */
-export type EncounterCastReactionCheckDto = {
-  choiceExecution: ServerCompletedRuleExecutionDto
-  triggerLevel: number
-  checkDefinitionId: string
-  dc: number
-  d20: z.infer<typeof frozenCheckD20DtoSchema>
-}
-
-export const encounterCastReactionCheckDtoSchema: z.ZodMiniType<EncounterCastReactionCheckDto> =
-  lazySchema(() =>
-    z.strictObject({
-      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      triggerLevel: nonNegativeIntegerSchema,
-      checkDefinitionId: uuidSchema,
-      dc: positiveIntegerSchema,
-      d20: frozenCheckD20DtoSchema
-    })
-  )
-
-/**
  * A cast held before it executes for one creature's chance to counter it. The reactions are that
- * reactor's menu (one reaction a round); the reactors that already declined or failed their check are
- * recorded so that a replay of the cast offers the next reactor rather than the same one. Once the
- * reactor has chosen a counter that owes a check, `reactions` holds that one counter and `check` the
- * roll the pause now waits on.
+ * reactor's menu (one reaction a round); the reactors already heard from are recorded so that a replay
+ * of the cast offers the next reactor rather than the same one. A counter that owes a check rolls it
+ * in its holder's own action (D219), never at this pause.
  *
  * A counter is itself a cast another creature may counter. While counters stand, `chain` holds them in
  * the order they were chosen: `reactions` then offers a counter to the last one, `declinedReactorActorIds`
@@ -213,8 +189,7 @@ export const encounterCastReactionCheckDtoSchema: z.ZodMiniType<EncounterCastRea
  * then makes; `ATTACK_ROLL_BY_OTHER` offers a creature that sees an attack roll its reactions after the
  * d20 is rolled (D219, "Roll-window reaction die"). That last offer is the only one made after the
  * action's roll: it keeps the rolled d20 as `rolled`, every offer of the same roll carries the same
- * one, and the reaction chosen runs as its holder's own action, so it owes no check and stands in no
- * chain.
+ * one, and the reaction chosen runs as its holder's own action, so it stands in no chain.
  */
 export type EncounterCastReactionOfferDto = {
   kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'
@@ -225,7 +200,6 @@ export type EncounterCastReactionOfferDto = {
    * settlement resumes, and the app roll it settled with (null for an entered die).
    */
   rolled?: { test: D20RolledSaveDto; appRollId: string | null }
-  check?: EncounterCastReactionCheckDto
   chain?: {
     counters: EncounterUsedReactionDto[]
     castDeclinedReactorActorIds: string[]
@@ -249,7 +223,6 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
             appRollId: z.nullable(uuidSchema)
           })
         ),
-        check: z.optional(encounterCastReactionCheckDtoSchema),
         chain: z.optional(
           z.strictObject({
             counters: z
@@ -278,13 +251,13 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
             })
           if (
             (value.kind === 'ATTACK_ROLL_BY_OTHER') !== (value.rolled !== undefined) ||
-            (value.rolled !== undefined && (value.check !== undefined || value.chain !== undefined))
+            (value.rolled !== undefined && value.chain !== undefined)
           )
             context.addIssue({
               code: 'custom',
               path: ['rolled'],
               message:
-                'Only an offer made after the attack roll keeps the rolled d20, and its reaction owes no check and stands in no chain.'
+                'Only an offer made after the attack roll keeps the rolled d20, and its reaction stands in no chain.'
             })
         })
       )

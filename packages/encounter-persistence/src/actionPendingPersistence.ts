@@ -309,11 +309,9 @@ export async function persistEncounterActionPending(
   if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
   const occurrence = await ctx.db.get(id)
   if (!occurrence) throw new Error('The pending action was not stored.')
-  // A counter's check pause rolls the reactor's own d20, and a gate's the source's roll: neither is the
-  // action's own policy.
+  // A gate's pause rolls the source's roll against it, which is not the action's own policy.
   const d20Policy =
     evidence?.d20Policy ??
-    castReaction?.check?.d20 ??
     (evidence?.pause?.kind === 'INCOMING_GATE' ? evidence.pause.payload.d20 : undefined)
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
