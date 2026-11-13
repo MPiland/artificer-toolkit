@@ -387,10 +387,7 @@ describe('room movement response publication', () => {
                 value: pending.request.max
               }
       if (resolution.kind === 'OPTION') selected = true
-      // Annotated so the race's result type does not depend on the decision it answers.
-      const contenders: (Parameters<typeof executeInRoom>[1] & {
-        command: { commandId: string }
-      })[] = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
+      const contenders = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE' as const,
           commandId,
@@ -449,13 +446,12 @@ describe('room movement response publication', () => {
       expect(await stored(value)).toEqual(settled)
       // Restated (QUALITY-18.T2b3): the answer that completes the reaction's own action no longer
       // carries the move (D219), so the next decision is read from the move as the room resumed it.
-      const next: NonNullable<NonNullable<typeof root>['occurrence']>['pending'] =
+      pending =
         winner.value.occurrence?.status === 'PENDING'
           ? winner.value.occurrence.pending
-          : current.kind === 'MOVEMENT_REACTION'
+          : winner.value.occurrence?.occurrenceId === choice.occurrenceId
             ? null
             : (await readResumedMovement(owner.caller, campaign.id, choice)).pending
-      pending = next
     }
     expect(selected).toBe(true)
     const final = await stored(value)
