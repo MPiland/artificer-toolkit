@@ -408,7 +408,9 @@ export function projectNativeActionPending(
               total:
                 pause.payload.rolled.test.d20.total +
                 d20AddedDiceTotal(
-                  context.reactionChildren?.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : []))
+                  context.reactionChildren?.flatMap(({ rolledDie }) =>
+                    rolledDie ? [rolledDie] : []
+                  )
                 )
             }
           }),

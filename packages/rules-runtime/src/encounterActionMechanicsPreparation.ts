@@ -250,7 +250,9 @@ export function withEncounterRollInfluences<
 export function withEncounterReactionDice<
   Prepared extends {
     attackDomain: string | null
-    binding: { sourceDerivedFacts: { attackAfterRollDice?: Record<string, readonly D20AddedDieDto[]> } }
+    binding: {
+      sourceDerivedFacts: { attackAfterRollDice?: Record<string, readonly D20AddedDieDto[]> }
+    }
   }
 >(prepared: Prepared, dice: readonly D20AddedDieDto[]): Prepared {
   const { attackDomain } = prepared

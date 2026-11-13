@@ -43,10 +43,12 @@ export function triggeringRollDieFacts(
   const [die] = dice
   if (!die || dice.length !== 1)
     throw new Error('D&D subtract-from-triggering-roll action requires one exact resolved die.')
-  return { [DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY]: scaledRolledDieFaces(die, classLevels ?? {}) }
+  return {
+    [DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY]: scaledRolledDieFaces(die, classLevels ?? {})
+  }
 }
 
-const TRIGGERING_ROLL_DIE_NODE =new RegExp(`^${DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX}die-\\d+$`)
+const TRIGGERING_ROLL_DIE_NODE = new RegExp(`^${DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX}die-\\d+$`)
 
 /**
  * The die a committed reaction execution rolled against the roll it answered: its size and the faces

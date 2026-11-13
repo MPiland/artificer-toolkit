@@ -800,7 +800,7 @@ describe('CampaignTabletopDecisionDrawer reaction to a hit (D219)', () => {
     )
   })
 
-  it('shows a reactor asked on a rolled attack the roll as it stands',async () => {
+  it('shows a reactor asked on a rolled attack the roll as it stands', async () => {
     const attacker = tabletopGmEncounter.actors[1]!
     const rolled = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
       ...hitPending(menu.slice(0, 1)),

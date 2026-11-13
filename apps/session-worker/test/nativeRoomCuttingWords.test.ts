@@ -12,7 +12,7 @@ import {
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { bard } from'@artificer-toolkit/source-data/srd/classes/bard.js'
+import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { collegeOfLore } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -67,7 +67,8 @@ const rolledDamageBite = creatureAuthoredDtoSchema.parse({
                     resultBlock: {
                       ...path.resultBlock,
                       outcomes: path.resultBlock.outcomes.map((outcome) => {
-                        if (outcome.effectKind !== 'DAMAGE') throw new Error('Expected Bite damage.')
+                        if (outcome.effectKind !== 'DAMAGE')
+                          throw new Error('Expected Bite damage.')
                         return {
                           id: outcome.id,
                           effectKind: 'DAMAGE' as const,
@@ -456,7 +457,13 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     const context = await readPendingActionContext(room.room.base.stub)
     expect(context.reactionChildren).toMatchObject([
       {
-        rolledDie: { label: 'Cutting Words', count: 1, faces: 6, sign: 'SUBTRACT', rolledFaces: [1] }
+        rolledDie: {
+          label: 'Cutting Words',
+          count: 1,
+          faces: 6,
+          sign: 'SUBTRACT',
+          rolledFaces: [1]
+        }
       }
     ])
 
