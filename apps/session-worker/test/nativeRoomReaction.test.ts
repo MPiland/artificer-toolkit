@@ -691,6 +691,41 @@ const wardingFlash = (() => {
   return { ...spell, id: testUuid(0x7d3), label: 'Warding Flash' }
 })()
 
+/** A homebrew reaction to being attacked whose own outcome needs a roll: its caster regains 1d4. */
+const secondBreath = (() => {
+  const [reaction] = shield.effects!
+  return {
+    ...shield,
+    id: testUuid(0x7d7),
+    label: 'Second Breath',
+    effects: [
+      {
+        ...reaction!,
+        paths: reaction!.paths!.map((path) =>
+          !('resultBlock' in path)
+            ? path
+            : {
+                ...path,
+                resultBlock: {
+                  id: path.resultBlock.id,
+                  resultKind: 'SINGLE' as const,
+                  outcomes: [
+                    {
+                      id: testUuid(0x7d8),
+                      effectKind: 'HEAL' as const,
+                      valueKind: 'DICE' as const,
+                      scalingKind: 'NONE' as const,
+                      diceConfig: '1d4'
+                    }
+                  ]
+                }
+              }
+        )
+      }
+    ]
+  }
+})()
+
 describe('room homebrew reaction authored from core options (ADR 0038)', () => {
   it('grants its own bonus against the triggering hit', async () => {
     const room = await actionRoom({
@@ -721,6 +756,60 @@ describe('room homebrew reaction authored from core options (ADR 0038)', () => {
     })
     // The roll beat the old armor class by 2, so +3 turns the hit into a miss.
     expect(hitPointsLost(batch)).toBe(0)
+  })
+
+  // QUALITY-8.T1d2b (D219): the inline settlement refused a reaction that asks for dice. As its
+  // holder's own action it pauses for them like any action, and the hit waits on it.
+  it('rolls its own dice as the Character’s action while the hit waits, then takes the hit', async () => {
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: attackBite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+      characterSpellcasting: { spells: [secondBreath], prepared: [secondBreath.id] },
+      characterPlay: { currentHitPoints: 5 }
+    })
+    const { commandId } = await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    // The Character's own action holds the Run for its healing die; nothing has been applied.
+    const dice = await room.pendingDecision()
+    if (dice.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+      throw new Error(`Expected the healing die, got ${dice.pending.kind}.`)
+    expect(dice.pending.request).toMatchObject({ min: 1, max: 4 })
+    expect(areaReceipts(await readRoomHistory(room.room.base.stub)).children).toEqual([])
+    const rolled = await room.resolve(dice, {
+      kind: 'ENTER_INTEGER',
+      requestId: dice.pending.request.requestId,
+      value: 3
+    })
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const { child, parent } = committedActions(history)
+    expect(child?.command.systemTrigger).toMatchObject({
+      parentCommandId: commandId,
+      trigger: 'REACTION'
+    })
+    expect(parent?.version).toBeGreaterThan(child!.version)
+    const reaction = reactionChildBatch(history)
+    expect(reaction.spellCastConsumption).toMatchObject({ spellId: secondBreath.id })
+    expect(reaction.targetTransition).toMatchObject({
+      before: { currentHitPoints: 5 },
+      after: { currentHitPoints: 8 }
+    })
+    // The reaction raised no armor class, so the kept roll still hits the healed Character.
+    const batch = characterBatch(history)
+    expect(batch.reaction).toBeNull()
+    expect(batch.targetTransition.before.currentHitPoints).toBe(8)
+    expect(hitPointsLost(batch)).toBe(1)
   })
 })
 
