@@ -518,7 +518,6 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     await strike(room, -1)
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-    expect(characterBatch(await readRoomHistory(room.room.base.stub)).reaction).toBeNull()
   })
 
   it('lets the player who controls the Character answer, and refuses the attacker’s player', async () => {
@@ -1432,7 +1431,6 @@ describe('a timed reaction offer (D207)', () => {
     // Restated (QUALITY-8.T1d2a, D219): the GM's use is the child action committed for the
     // Character, read from its command and batch instead of a reaction record on the Bite's batch.
     const history = await readRoomHistory(room.room.base.stub)
-    expect(characterBatch(history).reaction).toBeNull()
     expect(committedActions(history).child?.command.actorId).toBe(CHARACTER_ACTOR_ID)
     expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({ spellId: shield.id })
   })

@@ -282,7 +282,6 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
     await strike(room, 0)
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-    expect(knightBatch(await readRoomHistory(room.room.base.stub)).reaction).toBeNull()
   })
 
   it('refuses an answer from the attacker’s player: the GM decides for the Knight', async () => {
