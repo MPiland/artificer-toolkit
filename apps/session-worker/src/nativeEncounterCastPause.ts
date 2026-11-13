@@ -11,6 +11,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import {
   prepareEncounterActionMechanics,
+  withEncounterReactionDice,
   withEncounterRollInfluences
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { PendingReactionChildren } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
@@ -124,46 +125,72 @@ export function createNativeCastPause(input: {
     return child
   }
   /**
-   * The recorded children with the mode of the one the action resumes from resolved: the mode its
-   * reaction authors when its committed action imposed one on the roll it answered, and none otherwise.
+   * The recorded children with what the one the action resumes from did to the roll it answered: the
+   * mode its reaction authors when its committed action imposed one, the die that action rolled
+   * against the roll, with its faces, and neither otherwise.
    */
   const resolveReactionChildren = () =>
     Promise.all(
       children.recorded.map(async (recorded) => {
         if (recorded.resumeOutcome !== undefined) return recorded
-        const { reactorActorId, actionId, imposesRollMode } = committedChild(recorded.commandId)
-        if (!imposesRollMode) return { ...recorded, resumeOutcome: null }
+        const { reactorActorId, actionId, imposesRollMode, triggeringRollSubtraction } =
+          committedChild(recorded.commandId)
+        if (!imposesRollMode && !triggeringRollSubtraction)
+          return { ...recorded, resumeOutcome: null }
         const reactor = input.actors.find((actor) => actor.id === reactorActorId)
         const held = reactor
           ? characterReactionCandidates(
               input.movementTargets.get(reactor.id) ?? (await input.loadTarget(reactor))
             ).find((candidate) => candidate.actionId === actionId)
           : undefined
-        const rollMode = held && authoredImposedRollMode(held)
-        if (!rollMode) throw new Error('Reaction evidence is stale.')
-        return { ...recorded, resumeOutcome: { kind: 'ROLL_MODE' as const, rollMode } }
+        const rollMode = imposesRollMode && held ? authoredImposedRollMode(held) : null
+        if (!held || (imposesRollMode && !rollMode)) throw new Error('Reaction evidence is stale.')
+        return {
+          ...recorded,
+          resumeOutcome: rollMode ? { kind: 'ROLL_MODE' as const, rollMode } : null,
+          ...(triggeringRollSubtraction
+            ? {
+                rolledDie: {
+                  label: held.label,
+                  count: triggeringRollSubtraction.rolledFaces.length,
+                  faces: triggeringRollSubtraction.faces,
+                  sign: 'SUBTRACT' as const,
+                  rolledFaces: triggeringRollSubtraction.rolledFaces
+                }
+              }
+            : {})
+        }
       })
     )
   /**
-   * How the reactions that ran as child actions before an attack's d20 change that attack: each imposes
-   * the roll mode its child resolved on the roll (D217). The attack is re-prepared as its pauses are
-   * answered, so the same reactions are applied to each preparation.
+   * How the reactions that ran as child actions change the attack they answered: one used before its
+   * d20 imposes the roll mode its child resolved on the roll (D217), and one used on the rolled d20
+   * adds the die its child rolled to the dice the roll may total (D219). The attack is re-prepared as
+   * its pauses are answered, so the same reactions are applied to each preparation.
    */
-  const imposeChildRollModes =
+  const applyReactionChildren =
     (children: PendingReactionChildren) =>
-    <Attack extends Parameters<typeof withEncounterRollInfluences>[0]>(attack: Attack) =>
-      withEncounterRollInfluences(
-        attack,
-        children.flatMap(({ commandId, resumeOutcome }) =>
-          resumeOutcome?.kind === 'ROLL_MODE'
-            ? [
-                {
-                  reaction: { reactorActorId: committedChild(commandId).reactorActorId },
-                  rollMode: resumeOutcome.rollMode
-                }
-              ]
-            : []
-        )
+    <
+      Attack extends Parameters<typeof withEncounterRollInfluences>[0] &
+        Parameters<typeof withEncounterReactionDice>[0]
+    >(
+      attack: Attack
+    ) =>
+      withEncounterReactionDice(
+        withEncounterRollInfluences(
+          attack,
+          children.flatMap(({ commandId, resumeOutcome }) =>
+            resumeOutcome?.kind === 'ROLL_MODE'
+              ? [
+                  {
+                    reaction: { reactorActorId: committedChild(commandId).reactorActorId },
+                    rollMode: resumeOutcome.rollMode
+                  }
+                ]
+              : []
+          )
+        ),
+        children.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : []))
       )
   const triggerLevel = preparedSpellCastLevel(prepared)
   const castConsumption = prepared.characterActionState?.spellConsumption
@@ -377,9 +404,11 @@ export function createNativeCastPause(input: {
         kind: 'NONE' as const,
         reactionChildren: children.recorded
       }
-    // A hit's offer is made by the attack's roll, after every moment here: its answer, and the resume
-    // from the child it chose, pass them all.
-    if (input.answer?.offer.kind === 'HIT_BY_ATTACK' || resumedOffer?.kind === 'HIT_BY_ATTACK')
+    // The offers of a rolled d20 and of a hit are made by the attack's roll, after every moment here:
+    // their answers, and the resumes from the children they chose, pass them all.
+    const madeByRoll = (kind: EncounterCastReactionOfferDto['kind'] | undefined) =>
+      kind === 'ATTACK_ROLL_BY_OTHER' || kind === 'HIT_BY_ATTACK'
+    if (madeByRoll(input.answer?.offer.kind) || madeByRoll(resumedOffer?.kind))
       return {
         kind: 'NONE' as const,
         reactionChildren: resumedOffer ? await resolveReactionChildren() : children.recorded
@@ -524,7 +553,7 @@ export function createNativeCastPause(input: {
     }
     return { kind: 'NONE' as const, reactionChildren }
   }
-  return { advance, imposeChildRollModes, planResolvedOffers, launchReactionChild }
+  return { advance, applyReactionChildren, planResolvedOffers, launchReactionChild }
 }
 
 export type NativeCastPause = ReturnType<typeof createNativeCastPause>

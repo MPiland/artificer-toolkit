@@ -36,6 +36,13 @@ import {
   type EncounterActionAutoRoll
 } from './encounterActionRequest.js'
 import {
+  heldOnRollReaction,
+  holdForRollReaction,
+  type EncounterActionRollReaction,
+  type EncounterRolledReactionOffer
+} from './encounterActionRollReaction.js'
+import { nativeTestIdentity } from './encounterActionTestBoundary.js'
+import {
   heldWindowedSave,
   type EncounterActionSaveWindow,
   type EncounterActionWindowAnswer
@@ -128,6 +135,27 @@ export async function advanceNativeActionGraphs(input: {
       | { kind: 'RESUMED' }
   }
   /**
+   * The creatures that may react to the action's rolled attack d20 (D219). Once the roller's own window
+   * has settled, the roll is held for each in turn before it resolves; a reaction one of them uses runs
+   * as its holder's own action.
+   */
+  rollReaction?: EncounterActionRollReaction
+  /**
+   * The held offer of the rolled attack d20 once it is answered (D219). The d20 is never rolled again.
+   * `USE` keeps the action held on the answered offer until the chosen reaction's own action commits.
+   * `DECLINE` and `RESUMED` (which follows that commit) hold the same roll for the next creature; when
+   * nobody is left, the kept faces are tested against the binding as it stands now, with `childDice`,
+   * the dice the reactions' actions rolled against the roll, and the action continues from that TEST.
+   */
+  heldRoll?: {
+    offer: EncounterRolledReactionOffer
+    answer:
+      | { kind: 'USE'; candidate: EncounterReactionCandidate }
+      | { kind: 'DECLINE' }
+      | { kind: 'RESUMED' }
+    childDice: readonly D20RolledAddedDieDto[]
+  }
+  /**
    * The ways the attacker could pay for an optional on-hit rider. Any found holds a hit, once no
    * reaction is offered, for the attacker's choice before its OUTCOME.
    */
@@ -160,6 +188,8 @@ export async function advanceNativeActionGraphs(input: {
       legendaryResistance,
       reaction,
       heldHit,
+      rollReaction,
+      heldRoll,
       onHitCandidates,
       saveWindow,
       damageRerolls,
@@ -194,7 +224,34 @@ export async function advanceNativeActionGraphs(input: {
     const resolution = resume?.resolution
     if (resolution?.kind === 'DAMAGE_REROLL')
       throw new Error('The damage roll window evidence is stale.')
-    if (heldHit && resume) throw new Error('Reaction evidence is stale.')
+    if ((heldHit || heldRoll) && resume) throw new Error('Reaction evidence is stale.')
+    if (heldHit && heldRoll) throw new Error('Reaction evidence is stale.')
+    if (heldRoll) {
+      const { offer, answer } = heldRoll
+      const [offered] = offer.reactions
+      const identity = nativeTestIdentity(sealedAgainst)
+      const held = {
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        twoPhase: {
+          phase: 'TEST' as const,
+          compilerSourceChecksum: identity.plan.compilerSource.compilerSourceChecksum,
+          testTemplateChecksum: identity.plan.test.template.checksum,
+          boundFactsChecksum: identity.factsChecksum
+        }
+      }
+      if (answer.kind === 'USE')
+        return heldOnRollReaction({ ...held, offer, candidate: answer.candidate })
+      if (!rollReaction || !offered) throw new Error('Reaction evidence is stale.')
+      // The creature that answered has been heard; the same roll is held for the next one.
+      const next = await holdForRollReaction({
+        ...held,
+        rollReaction,
+        rolled: offer.rolled,
+        heardReactorActorIds: [...offer.declinedReactorActorIds, offered.reactorActorId]
+      })
+      if (next) return next
+    }
     const test = heldHit
       ? await reconstructNativeActionTest({
           ...sealedAgainst,
@@ -203,12 +260,25 @@ export async function advanceNativeActionGraphs(input: {
             : { execution: heldHit.offer.hit.originalExecution }),
           d20: heldHit.offer.hit.originalD20
         })
-      : await prepareNativeActionTest({
-          ...sealedAgainst,
-          attackSight: testSight,
-          saveWindow,
-          ...(resume && resolution ? { resume: { pending: resume.pending, resolution } } : {})
-        })
+      : heldRoll
+        ? // Everyone was heard: the kept d20 resolves with the dice the reactions' actions rolled.
+          await reconstructNativeActionTest({
+            ...sealedAgainst,
+            d20: {
+              ...heldRoll.offer.rolled.test.d20,
+              addedDice: [
+                ...(heldRoll.offer.rolled.test.d20.addedDice ?? []),
+                ...heldRoll.childDice
+              ]
+            }
+          })
+        : await prepareNativeActionTest({
+            ...sealedAgainst,
+            attackSight: testSight,
+            saveWindow,
+            rollReaction,
+            ...(resume && resolution ? { resume: { pending: resume.pending, resolution } } : {})
+          })
     if (test.kind === 'PENDING') return test
     if (heldHit?.answer.kind === 'USE')
       return {

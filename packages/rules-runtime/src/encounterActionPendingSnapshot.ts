@@ -145,11 +145,14 @@ export function buildEncounterActionPendingSnapshot(
       commandJson: input.commandJson,
       commandFingerprint: input.commandFingerprint,
       initiatorUserId: input.initiatorUserId,
-      // A reactor's d20 window is answered by the reactor, not the roller (D207).
+      // A reactor's d20 window is answered by the reactor, not the roller (D207), and so is the offer
+      // a rolled d20 or a hit holds for a creature that may react to it (D219).
       rollerActorId:
         (execution.pause?.kind === 'ROLL_WINDOW' &&
           !isDamageRollWindow(execution.pause.payload) &&
           d20WindowReactorActorId(execution.pause.payload)) ||
+        (execution.pause?.kind === 'CAST_REACTION' &&
+          execution.pause.payload.reactions[0]?.reactorActorId) ||
         (execution.roller === 'SOURCE' ? input.sourceActorId : input.targetActorId),
       currentnessChecksum: input.currentnessChecksum,
       d20Policy: execution.d20Policy,
