@@ -79,6 +79,7 @@ export function readNativeResumedReactionOffer(input: {
   const { resume, snapshot } = input
   const context = snapshot?.applicationContext
   if (
+    !snapshot ||
     context?.kind !== 'ENCOUNTER_ACTION' ||
     (input.areaSnapshot ?? snapshot)?.occurrenceId !== resume.occurrenceId ||
     context.commandFingerprint !== input.fingerprint ||
