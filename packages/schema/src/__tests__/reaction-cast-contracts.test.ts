@@ -136,16 +136,14 @@ describe('cast reaction offers', () => {
     expect(issuePaths(offer('ATTACK_ON_OTHER'))).toEqual([['reactions'], ['rolled']])
   })
 
-  it('holds a chain only with a counter standing, and the declines it outranks', () => {
-    const withChain = (chain: unknown) =>
+  it('holds no chain: a counter of a counter is offered by that counter’s own action (D219)', () => {
+    expect(
       encounterCastReactionOfferDtoSchema.safeParse({
         kind: 'COUNTER',
         reactions: [castPin(1)],
         declinedReactorActorIds: [],
-        chain
+        chain: { counters: [], castDeclinedReactorActorIds: [], castLevel: 3 }
       }).success
-    expect(withChain({ counters: [], castDeclinedReactorActorIds: [], castLevel: 3 })).toBe(false)
-    expect(withChain({ counters: [{}], castDeclinedReactorActorIds: [], castLevel: 3 })).toBe(false)
-    expect(withChain({ castDeclinedReactorActorIds: [], castLevel: 3 })).toBe(false)
+    ).toBe(false)
   })
 })

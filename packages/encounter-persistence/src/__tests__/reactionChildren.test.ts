@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { buildEncounterCounteredCastStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
-import { systemTriggerReactionCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import { appendEncounterMovementReactionResolutionCommand } from '@artificer-toolkit/rules-runtime/encounterMovementReactionContinuation'
+import {
+  reactionChildMoveCommandId,
+  systemTriggerReactionCommand
+} from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/subtractFromTriggeringRoll'
 import {
   CAMPAIGN_ID,
@@ -56,6 +60,8 @@ const ATTACKER_ID = testUuid(0x8a01)
 const ALLY_ID = testUuid(0x8a02)
 const PROTECTOR_ID = testUuid(0x8a03)
 const USER_ID = testUuid(0x8a04)
+/** The GM, whose void of a held child releases the action it answers. */
+const GM_USER_ID = testUuid(0x8a45)
 const PARENT_COMMAND_ID = testUuid(0x8a05)
 const OCCURRENCE_ID = testUuid(0x8a06)
 const OTHER_ROOT_COMMAND_ID = testUuid(0x8a07)
@@ -127,7 +133,8 @@ const link = {
   encounterId: ENCOUNTER_ID,
   parentCommandId: PARENT_COMMAND_ID,
   childCommandId: reactionChild().commandId,
-  reactorActorId: PROTECTOR_ID
+  reactorActorId: PROTECTOR_ID,
+  actorUserId: GM_USER_ID
 }
 
 /**
@@ -352,7 +359,8 @@ const nestedLink = {
   encounterId: ENCOUNTER_ID,
   parentCommandId: reactionChild().commandId,
   childCommandId: nestedChild().commandId,
-  reactorActorId: ATTACKER_ID
+  reactorActorId: ATTACKER_ID,
+  actorUserId: GM_USER_ID
 }
 
 const nested = { reactionChildren: [{ commandId: nestedChild().commandId }] }
@@ -816,8 +824,7 @@ describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219
   })
 
   it('keeps the rolled d20 exactly when it is the offer after the roll', async () => {
-    const unkept =
-      'Only an offer made after the attack roll keeps the rolled d20, and its reaction stands in no chain.'
+    const unkept = 'Only an offer made after the attack roll keeps the rolled d20.'
     await expect(
       pausedAttack({ offer: { kind: 'ATTACK_ROLL_BY_OTHER', test: true } })
     ).rejects.toThrow(unkept)
@@ -1354,8 +1361,7 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
         spellConsumptionReceipt: null,
         sourceApplications: []
       },
-      actionEconomy: null,
-      counter: null
+      actionEconomy: null
     })
     await insertChildReceipt(memory, command, execution, ROOT_VERSION + 2)
     expect(
@@ -1517,7 +1523,9 @@ describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () =>
 
 /**
  * A Run at `ROOT_VERSION` whose Scene move, the attacker's, is paused on the protector's reaction
- * choice at its contact, the choice recording `reactionChildren`. Returns that choice with the Run.
+ * choice at its contact, the choice recording `reactionChildren`. Nothing has answered the move yet,
+ * so its history is empty and its occurrence at version 0. Returns that choice and the move's root
+ * with the Run.
  */
 async function pausedMove(reactionChildren?: { commandId: string; rollMode?: null }[]) {
   const paused = await pausedAttack()
@@ -1576,6 +1584,7 @@ async function pausedMove(reactionChildren?: { commandId: string; rollMode?: nul
     }
   ])
   await memory.store.patch(_id, {
+    version: 0,
     pendingSnapshotChecksum: await writePendingSnapshot(
       ctx,
       root,
@@ -1614,7 +1623,7 @@ async function pausedMove(reactionChildren?: { commandId: string; rollMode?: nul
       })
     )
   })
-  const choice = async () => {
+  const move = async () => {
     const stored = await readPendingSnapshot(ctx, occurrence())
     if (
       stored?.snapshotKind !== 'KERNEL_EVIDENCE' ||
@@ -1622,9 +1631,9 @@ async function pausedMove(reactionChildren?: { commandId: string; rollMode?: nul
       stored.applicationContext.phase.kind !== 'CHOICE'
     )
       throw new Error('The move is not paused on a reaction choice.')
-    return stored.applicationContext.phase
+    return { stored, root: stored.applicationContext.root, choice: stored.applicationContext.phase }
   }
-  return { ...paused, choice }
+  return { ...paused, move, choice: async () => (await move()).choice }
 }
 
 describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)', () => {
@@ -1698,14 +1707,98 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
     expect(awaitsReactionChild(await resumed.choice())).toBe(false)
     expect(awaitsReactionChild(await (await pausedMove()).choice())).toBe(false)
   })
+})
 
-  it('leaves the release of a voided child to the move’s own recorded answer', async () => {
-    const { ctx, occurrence } = await pausedMove(recorded.reactionChildren)
+describe('releasing a Scene move from a voided reaction child (QUALITY-18.T1b1, D219)', () => {
+  const RESUMED_CHILD = { commandId: testUuid(0x8a0c), rollMode: null }
+
+  it('records the release as the next entry of the move’s history, made by the GM', async () => {
+    const { ctx, occurrence, move } = await pausedMove(recorded.reactionChildren)
     await suspendReactionChildParent(ctx, link)
     const suspended = occurrence()
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    const { root, choice } = await move()
+    expect(root.resolutionCommands).toEqual([
+      {
+        kind: 'REACTION_CHILD_RELEASE',
+        childCommandId: link.childCommandId,
+        commandId: reactionChildMoveCommandId({
+          parentCommandId: PARENT_COMMAND_ID,
+          childCommandId: link.childCommandId,
+          kind: 'REACTION_CHILD_RELEASE',
+          occurrenceVersion: suspended.version
+        }),
+        commandFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
+        actorUserId: GM_USER_ID,
+        correlationId: null,
+        expectedOccurrenceVersion: suspended.version
+      }
+    ])
+    // The offer the child answered stands open again, and the move's version still counts its history.
+    expect(choice).toEqual({ kind: 'CHOICE' })
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      version: suspended.version + 1,
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    expect(occurrence().version).toBe(root.resolutionCommands.length)
+    expect(occurrence().pendingSnapshotChecksum).not.toBe(suspended.pendingSnapshotChecksum)
+    expect(await readReactionChildParent(ctx, link)).toBeNull()
+  })
+
+  it('keeps the children the move already resumed from', async () => {
+    const { ctx, move } = await pausedMove([RESUMED_CHILD, ...recorded.reactionChildren])
+    await suspendReactionChildParent(ctx, link)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect((await move()).choice).toEqual({ kind: 'CHOICE', reactionChildren: [RESUMED_CHILD] })
+  })
+
+  it('releases only a move suspended on that child', async () => {
+    const { ctx, occurrence } = await pausedMove(recorded.reactionChildren)
+    const pending = occurrence()
     await expect(
       releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
-    ).rejects.toThrow('A Scene move does not release a reaction child here.')
-    expect(occurrence()).toEqual(suspended)
+    ).rejects.toThrow('The reaction’s pending action is gone.')
+    expect(occurrence()).toEqual(pending)
+  })
+
+  it('takes the next answer at the version the release left, and none at the one before it', async () => {
+    const { ctx, occurrence, move } = await pausedMove(recorded.reactionChildren)
+    await suspendReactionChildParent(ctx, link)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    const { stored, root } = await move()
+    const decline = (expectedOccurrenceVersion: number) =>
+      appendEncounterMovementReactionResolutionCommand({
+        history: root.resolutionCommands,
+        command: {
+          commandId: testUuid(0x8a46),
+          commandFingerprint: checksum('6'),
+          actorUserId: USER_ID,
+          correlationId: null,
+          expectedOccurrenceVersion,
+          kind: 'DECLINE'
+        },
+        selection: { kind: 'DECLINE' },
+        actorUserId: USER_ID,
+        proposedOccurrenceVersion: expectedOccurrenceVersion + 1
+      })
+    expect(() => decline(occurrence().version - 1)).toThrow(
+      'The movement reaction resolution command is stale.'
+    )
+    const resolutionCommands = decline(occurrence().version)
+    expect(resolutionCommands.map(({ kind }) => kind)).toEqual([
+      'REACTION_CHILD_RELEASE',
+      'DECLINE'
+    ])
+    // The stored decision's own contract takes the history the answer extends.
+    expect(
+      serverRuleExecutionPendingSnapshotDtoSchema.parse({
+        ...stored,
+        applicationContext: {
+          ...stored.applicationContext,
+          root: { ...root, resolutionCommands }
+        }
+      }).applicationContext
+    ).toMatchObject({ root: { resolutionCommands } })
   })
 })

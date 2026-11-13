@@ -344,7 +344,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       lost.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
     )
       throw new Error(`Expected a countered cast, got ${lost.status}.`)
-    expect(lost.applicationOutputs.counter).toBeNull()
+    expect(lost.applicationOutputs).not.toHaveProperty('counter')
     expect(lost.applicationOutputs.spellCastConsumption).not.toBeNull()
     const reactor = history.actors.find(({ id }) => id === REACTOR_ACTOR_ID)
     if (!reactor) throw new Error('The room holds no reactor.')
@@ -389,7 +389,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       lost.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
     )
       throw new Error(`Expected a countered cast, got ${lost.status}.`)
-    expect(lost.applicationOutputs.counter).toBeNull()
+    expect(lost.applicationOutputs).not.toHaveProperty('counter')
     const reactor = history.actors.find(({ id }) => id === REACTOR_ACTOR_ID)
     if (!reactor) throw new Error('The room holds no reactor.')
     expect(
@@ -801,7 +801,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
         castExecution.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
       )
         throw new Error(`Expected a countered cast, got ${castExecution.status}.`)
-      expect(castExecution.applicationOutputs.counter).toBeNull()
+      expect(castExecution.applicationOutputs).not.toHaveProperty('counter')
       if (
         childExecution.status !== 'COMPLETE' ||
         childExecution.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH'
@@ -1011,7 +1011,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       expect(context.usedReactions ?? []).toEqual([])
       expect(context.pause.payload.declinedReactorActorIds).toEqual([])
       // The offer is the pause of the first holder's own cast, held above the Caster's (D219).
-      expect(context.pause.payload.chain).toBeUndefined()
+      expect(context.pause.payload).not.toHaveProperty('chain')
       const counter = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
       expect(counter).toMatchObject({
         actorId: REACTOR_ACTOR_ID,
@@ -1188,7 +1188,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
           execution.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
         )
           return false
-        expect(execution.applicationOutputs.counter).toBeNull()
+        expect(execution.applicationOutputs).not.toHaveProperty('counter')
         return true
       }
 

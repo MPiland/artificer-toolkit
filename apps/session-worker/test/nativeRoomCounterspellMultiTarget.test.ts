@@ -311,7 +311,7 @@ describe('room Counterspell against a Character’s cast on chosen creatures (RE
       castExecution.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
     )
       throw new Error(`Expected a countered cast, got ${castExecution.status}.`)
-    expect(castExecution.applicationOutputs.counter).toBeNull()
+    expect(castExecution.applicationOutputs).not.toHaveProperty('counter')
     expect(castExecution.applicationOutputs.spellCastConsumption).not.toBeNull()
   })
 

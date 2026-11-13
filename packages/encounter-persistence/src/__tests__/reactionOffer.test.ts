@@ -175,7 +175,8 @@ const link = {
   encounterId: ENCOUNTER_ID,
   parentCommandId: ATTACK_COMMAND_ID,
   childCommandId: reactionChild().commandId,
-  reactorActorId: REACTOR_ID
+  reactorActorId: REACTOR_ID,
+  actorUserId: GM_ID
 }
 
 /**

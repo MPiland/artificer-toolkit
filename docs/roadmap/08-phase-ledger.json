@@ -25870,7 +25870,7 @@
             },
             {
               "id": "QUALITY-9.T1c3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25881,11 +25881,12 @@
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
               "text": "Delete the inline counter chain from advanceNativeCastReactions and the chain field from the offer DTO; restate the chain tests as nested children; docs.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m722 (f4cbd527c) from slice tip ddf97c85e: Tests 43340922404, Live 43340922322, Browser journeys 43340922343 green. Red proof nativeRoomCounterspell.test.ts and nativeRoomCounterspellMultiTarget.test.ts RED; actionPendingOffers.test.ts and reaction-cast-contracts.test.ts ALREADY-PASSING. The inline counter chain is deleted: the offer chain, the chain loop and COUNTERED result, planCounterReactorSpend, applyNativeCastReaction, EncounterCounterCheckEvidenceDto, EncounterUsedReactionDto.check, the countered-cast counter receipt and its revert inversion. Chain tests run as nested children. Restated: counter toBeNull to not.toHaveProperty(counter). D196: three pending/output shapes lost fields; refresh local data when next used."
             },
             {
               "id": "QUALITY-9.T1d1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25895,7 +25896,8 @@
                 "after": ["QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between).",
-              "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children on the chosen-list host: child target and Scene tokens from the stage; the list resume rebinds the reactor's entries (REBIND_TEST room proof, undo and void of the child); delete holdChosenReactions' effect derivation, the prepareSealedReach hold and the TARGETED_SELF reactionEffects path; Shield tests restated on the child path."
+              "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children on the chosen-list host: child target and Scene tokens from the stage; the list resume rebinds the reactor's entries (REBIND_TEST room proof, undo and void of the child); delete holdChosenReactions' effect derivation, the prepareSealedReach hold and the TARGETED_SELF reactionEffects path; Shield tests restated on the child path.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1d2",
@@ -26025,7 +26027,7 @@
         {
           "id": "QUALITY-11",
           "title": "One after-commit trigger step",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 2,
@@ -26037,7 +26039,7 @@
           "acs": [
             {
               "id": "QUALITY-11.1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R8.",
               "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; damage mirrors and defeat rewards settle as one stage of that step; a multi-trigger command raises children in today's order."
@@ -26076,8 +26078,7 @@
             },
             {
               "id": "QUALITY-11.T2",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-11.1"],
               "wsjf": {
                 "bv": 5,
@@ -26087,7 +26088,9 @@
                 "after": ["QUALITY-11.T1a"]
               },
               "note": "User approved 2026-11-12 (D187 growth, bug, size 2). Found at QUALITY-11.T1a: requireSystemTriggerAdmission (systemTriggerAdmission.ts:214-216) requires each raised child at exactly the parent's Run version, and the first child moves the Run, so a command that drops two creatures with HP-zero effects (or a creature with two start-of-turn passives) is rejected whole with VERSION_STALE.",
-              "text": "A command that raises several system-trigger children (two HP-zero effects, two start-of-turn passives, several rule raises) commits all of them: each child is admitted against the parent's version plus its committed sibling children, the descendants allowance pending answers use. Regression room tests fail before the fix."
+              "text": "A command that raises several system-trigger children (two HP-zero effects, two start-of-turn passives, several rule raises) commits all of them: each child is admitted against the parent's version plus its committed sibling children, the descendants allowance pending answers use. Regression room tests fail before the fix.",
+              "mergedAt": "2026-11-13",
+              "proof": "m720 (8b0674e44) from slice tip 51427f066: Tests 43338042556, Live 43338042602, Browser journeys 43338042628 green. Red proof systemTriggerSiblings.test.ts RED 1/5. A system-trigger child is admitted at the parent version plus its committed sibling children (countCommittedSystemSiblings); any other command moving the Run still rejects VERSION_STALE. Found and fixed: a passive start-of-turn effect compiled with activation ACTION, so a second passive on one holder was refused ACTION_ECONOMY_UNAVAILABLE; it now compiles FREE. Room tests prove two HP-zero children and two start-of-turn passives (duplicated Regeneration) commit in one command. No persisted-shape change."
             }
           ]
         },
@@ -26533,8 +26536,7 @@
           "tasks": [
             {
               "id": "QUALITY-18.T1a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26544,35 +26546,40 @@
                 "after": ["QUALITY-9.T1b3b"]
               },
               "note": "Split 2026-11-12 at the seam trace (5 to 11); user approved the D187 growth (+6) and ruling 4 (resume and release are resolutionCommands entries of a new kind). See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "A Scene move parent records children: reactionChildren on the movement CHOICE context; recording parent, ancestors, suspend, re-pin and awaitsReactionChild accept a move parent; one neutral resume marker for both parents; child admission proved by test. Inert until T2."
+              "text": "A Scene move parent records children: reactionChildren on the movement CHOICE context; recording parent, ancestors, suspend, re-pin and awaitsReactionChild accept a move parent; one neutral resume marker for both parents; child admission proved by test. Inert until T2.",
+              "mergedAt": "2026-11-13",
+              "proof": "m721 (a11354125) from slice tip ec9d26b2f: Tests 43338644623, Live 43338644669, Browser journeys 43338644610 green. Red proof reactionChildren.test.ts RED 6/69 and spatial-movement-rule-contracts.test.ts RED 1/23. The movement CHOICE phase accepts reactionChildren (shared encounterReactionChildrenDtoSchema); the recording parent, ancestors (the mover, never a reaction), suspend, re-pin and awaitsReactionChild accept a move parent. Inert until T2. The rollMode resume marker is kept; its rename folds into T2. D196: additive optional field, no reset."
             },
             {
-              "id": "QUALITY-18.T1b",
-              "status": "TODO",
+              "id": "QUALITY-18.T1b1",
+              "status": "DONE",
+              "mergedAt": "2026-11-13",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 3,
                 "after": ["QUALITY-18.T1a"]
               },
-              "note": "Split 2026-11-12 at the seam trace (5 to 11); user approved the D187 growth (+6) and ruling 4 (resume and release are resolutionCommands entries of a new kind). See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "Move resume and release: a room-internal move resume and its admission; release for a move parent; each resume and release is a resolutionCommands entry of a new kind with a derived command id, so the history-length invariant, Scene geometry save, receipts and replay hold."
+              "note": "Split 2026-11-12 at the seam trace (5 to 8); user approved T1b1 3 with the move resume folded into T2 (8 to 13), net +3.",
+              "text": "Release of a move parent: REACTION_CHILD_RESUME and REACTION_CHILD_RELEASE history kinds with a derived command id (reactionChildMoveCommandId); a voided child appends the release entry, drops the child and returns the move to PENDING at version + 1.",
+              "proof": "m724 (e1888560e) from slice tip 1e3324e87: Tests 43351555569, Live 43351555774, Browser journeys 43351555548 green. Red proof reactionChildren.test.ts RED 3/72 and spatial-movement-rule-contracts.test.ts RED 1/24; reactionOffer.test.ts ALREADY-PASSING (fixture only). The T1a throw test is replaced by four release tests (entry, derived id, GM actor, version equals history length; kept resumed children; refusal when not suspended; the next answer extends the history). The id includes kind and occurrence version so a re-chosen reaction gets a fresh id. D196: additive union widening, no reset."
             },
             {
               "id": "QUALITY-18.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
-                "after": ["QUALITY-18.T1b", "QUALITY-11.T1a"]
+                "size": 13,
+                "after": ["QUALITY-18.T1b1", "QUALITY-11.T1a"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "The opportunity attack runs as a child at the contact point; the child commit or its answered roll resumes the move; a STOP resume (System adapter stopsTriggeringMovement) or a mover at 0 HP ends it; reaction economy, turn uses and retaliation come from the action host; core movement room tests restated. Also the descendants-plus-voids allowance on the movement fences (root replay block, SUSPENDED move response authority), proved through the room."
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Split 2026-11-12 at the seam trace (5 to 8); user approved T1b1 3 with the move resume folded into T2 (8 to 13), net +3.",
+              "text": "The opportunity attack runs as a child at the contact point; the child commit or its answered roll resumes the move; a STOP resume (System adapter stopsTriggeringMovement) or a mover at 0 HP ends it; reaction economy, turn uses and retaliation come from the action host; core movement room tests restated. Also the descendants-plus-voids allowance on the movement fences (root replay block, SUSPENDED move response authority), proved through the room. Also the room-internal move resume (a resolution kind inside RESOLVE_RULE_OCCURRENCE refused from clients, riding commitMovementDecision as the campaign owner, resuming the Kernel choice with the option index and dropping that timeline entry) and the rename of the rollMode resume marker to a neutral name that includes STOP.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T3",

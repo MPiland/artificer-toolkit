@@ -261,8 +261,8 @@ export async function persistEncounterActionPending(
       actors.some(
         (actor) =>
           actor.id === reaction.reactorActorId &&
-          // The caster may counter a counter to its spell, never its own cast (D127).
-          (actor.id !== admission.input.actorId || castReaction.chain !== undefined) &&
+          // The caster never reacts to its own action; it counters a counter in that counter's own action.
+          actor.id !== admission.input.actorId &&
           actor.kind === 'CHARACTER' &&
           actor.sourceId === reaction.characterId
       )

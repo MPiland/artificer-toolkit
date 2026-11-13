@@ -1851,6 +1851,36 @@ describe('spatial movement rule contracts', () => {
     )
   })
 
+  it('keeps a reaction child’s resume and release as entries of the move’s history (QUALITY-18.T1b1, D219)', () => {
+    const { requestId: _requestId, ...base } = resolutionCommand(ids.commandTwo, 1)
+    const entry = (kind: string) => ({ ...base, kind, childCommandId: ids.entry })
+    for (const kind of ['REACTION_CHILD_RESUME', 'REACTION_CHILD_RELEASE'])
+      expect(movementRuleResolutionCommandDtoSchema.parse(entry(kind))).toEqual(entry(kind))
+    for (const malformed of [
+      base,
+      { ...base, kind: 'REACTION_CHILD_RELEASE' },
+      { ...entry('REACTION_CHILD_RELEASE'), childCommandId: 'child' },
+      { ...entry('REACTION_CHILD_RELEASE'), requestId: 'd20-request' },
+      entry('REACTION_CHILD_VOID')
+    ])
+      expect(movementRuleResolutionCommandDtoSchema.safeParse(malformed).success).toBe(false)
+
+    // The entry is one version of the occurrence like any answer: after the die before it, and
+    // nowhere else.
+    const choice = { ...movementReactionActionPendingContext(), phase: { kind: 'CHOICE' } }
+    const history = (resolutionCommands: object[]) =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
+        ...choice,
+        root: { ...choice.root, resolutionCommands }
+      }).success
+    const die = resolutionCommand(ids.command, 0)
+    expect(history([die, entry('REACTION_CHILD_RELEASE')])).toBe(true)
+    expect(history([entry('REACTION_CHILD_RELEASE')])).toBe(false)
+    expect(history([die, { ...entry('REACTION_CHILD_RELEASE'), commandId: die.commandId }])).toBe(
+      false
+    )
+  })
+
   it('retains only the committed spatial prefix while later spatial evidence is pending', () => {
     const pending = lastReactionSpatialEvidenceContext()
     pending.completedSpatialExecutions.push(completedExecution(1, 7, ids.effectTwo))

@@ -336,17 +336,26 @@ GM voided (which has no command) through the void's occurrence. Every commit or 
 Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
 action above the one they return to `PENDING`.
 
-A Scene move as the parent (transitional, QUALITY-18.T1a; target QUALITY-18.T1b and T2). A paused move's
+A Scene move as the parent (transitional, QUALITY-18.T1a and T1b1; target QUALITY-18.T2). A paused move's
 `ENCOUNTER_MOVEMENT_REACTION` pending context can record reaction children too: `reactionChildren` on its
 `CHOICE` phase, the same child shape as the action's (`encounterReactionChildrenDtoSchema`), and on no other
 phase. `reactionChildren.ts` reads either parent: a recorded child is admitted against the move
 (`readReactionChildParent`), its ancestors name the mover (the moving actor of the open reaction choice, with
 no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
 `awaitsReactionChild` treat the move as they treat an action. Nothing records a child on a move yet
-(QUALITY-18.T2 does), so no stored move carries the field. Release and resume of a move are QUALITY-18.T1b:
-until then `releaseReactionChildParent` throws for a move parent, because a move's version must still equal
-its `resolutionCommands` count. The field is optional and additive, so stored rows stay valid (D196: no
-local refresh).
+(QUALITY-18.T2 does), so no stored move carries the field.
+
+A move's occurrence version must equal its `root.resolutionCommands` count, so what a reaction child does to
+the move is an entry of that history (`movementReactionChildCommandDtoSchema`): kind `REACTION_CHILD_RELEASE`
+or `REACTION_CHILD_RESUME`, with the `childCommandId` and the fields every history entry has. No client
+sends one. Its command id is derived (`reactionChildMoveCommandId`: the move's command, the child's, the
+kind and the occurrence version it is recorded at), its fingerprint is the checksum of the kind and the two
+command ids, and its `correlationId` is null. `releaseReactionChildParent` (QUALITY-18.T1b1) appends the
+release entry when the GM voids the held child, with the GM as `actorUserId`: it drops the child from the
+`CHOICE` phase, returns the move to `PENDING` one version on and pins it to the Run version the void
+produced, so the next answer is fenced on that version like any other. The resume entry has a schema only:
+QUALITY-18.T2 writes it through the Scene geometry response path. The field and the two kinds are additive,
+so stored rows stay valid (D196: no local refresh).
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
@@ -418,7 +427,7 @@ QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is 
   only, `rolled`: the action's TEST as it froze with the roll (`test`: the paused continuation, its bound
   facts checksum and the settled d20, the shape a reactor window keeps) and the app roll it settled with. The
   pending context holds such an offer on `twoPhase.phase === 'TEST'`; every other cast offer is still held
-  before any phase. The offer owes no check and stands in no chain.
+  before any phase.
 - The fence. `castPendingContinues` lets a rolled offer be followed only by an offer of the same roll or by
   the roll's settlement, and lets a reaction chosen from it leave the pause only by recording a child: it is
   never carried as a used reaction for the action's own commit to spend. Child recording, the room's resume
@@ -450,20 +459,21 @@ grant), checked against the pending gate at the commit (`persistEncounterActionC
 child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and reaction; the parent's resume reads a
 gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
 reactor's `Counter` check on the child's occurrence (`recordCounterCheckRollCards`), and the cancelled cast
-commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
+records no counter: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
 runs as a child since QUALITY-9.T1b3a (area and chosen-list casts) and QUALITY-9.T1c2 (single-target casts).
-QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offer carries no `check`, its
-pause takes only a decline or a chosen reaction (`castPendingContinues`), and a cast is never committed as
-countered by a failed roll against the counter standing (`castCounteredCarriesUsedReactions`). These are persisted
-pending-context and receipt shape changes; refresh local data when next used (D196).
+QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offer carries no `check` and its
+pause takes only a decline or a chosen reaction (`castPendingContinues`). QUALITY-9.T1c3 deleted the inline
+chain: the offer carries no `chain`, a used reaction no `check`, and `ENCOUNTER_COUNTERED_CAST` no `counter`
+(the countered-cast commit input no `reactionSpellConsumption`). These are persisted pending-context and
+receipt shape changes; refresh local data when next used (D196).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).
-A cast held at a `COUNTER` offer with no chain whose unresolved child cancelled it commits through
-`persistEncounterCounteredCastCommit` from the resume, with no response: the root's
-`ENCOUNTER_COUNTERED_CAST.counter` is null, no reactor is spent, no evidence receipt is written, and the failed
-counters the pending context held are spent unchanged (`castCancelledByChildCarriesUsedReactions`). A non-null
-`counter` still requires the answer that used it.
+A cast held at a `COUNTER` offer whose unresolved child cancelled it commits through
+`persistEncounterCounteredCastCommit` from the resume, with no response: no reactor is spent, no evidence
+receipt is written, and the used reactions the pending context held are spent unchanged
+(`castCancelledByChildCarriesUsedReactions`). This is the only way a cast commits as countered: an answer
+never does (QUALITY-9.T1c3).
 
 A child that pauses (current, QUALITY-8.T1b, D219 amendment). A reaction's own action may need evidence of
 its own, such as a save its target makes. The transaction that stores the child's pending decision also
