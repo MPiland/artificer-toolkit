@@ -28,6 +28,24 @@ export function reactionOfferCommandId(occurrenceId: string) {
 }
 
 /**
+ * The entry a paused Scene move records in its own history for a reaction child (D219): its resume
+ * from the child's commit, or its release when the GM voids the held child. One per move, child,
+ * kind and occurrence version, so a retry never records it twice and a reaction chosen again after a
+ * release never repeats an id.
+ */
+export function reactionChildMoveCommandId(input: {
+  parentCommandId: string
+  childCommandId: string
+  kind: 'REACTION_CHILD_RESUME' | 'REACTION_CHILD_RELEASE'
+  occurrenceVersion: number
+}) {
+  return uuidv5(
+    `${input.parentCommandId}:${input.childCommandId}:${input.kind}:${input.occurrenceVersion}`,
+    NAMESPACE
+  )
+}
+
+/**
  * The ADVANCE_TURN that finishes a turn end split around a delegated Legendary Action: the remaining
  * windows and the next turn's start, once the delegated action has resolved.
  */

@@ -409,6 +409,7 @@ export async function prepareRuleOccurrenceVoid(
       parentCommandId: child.systemTrigger.parentCommandId.toLowerCase(),
       childCommandId: occurrence.rootCommandId,
       reactorActorId: child.actorId.toLowerCase(),
+      actorUserId: admission.userId,
       version: current.version + 1
     })
   return {

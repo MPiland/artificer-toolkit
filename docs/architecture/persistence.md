@@ -336,17 +336,26 @@ GM voided (which has no command) through the void's occurrence. Every commit or 
 Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
 action above the one they return to `PENDING`.
 
-A Scene move as the parent (transitional, QUALITY-18.T1a; target QUALITY-18.T1b and T2). A paused move's
+A Scene move as the parent (transitional, QUALITY-18.T1a and T1b1; target QUALITY-18.T2). A paused move's
 `ENCOUNTER_MOVEMENT_REACTION` pending context can record reaction children too: `reactionChildren` on its
 `CHOICE` phase, the same child shape as the action's (`encounterReactionChildrenDtoSchema`), and on no other
 phase. `reactionChildren.ts` reads either parent: a recorded child is admitted against the move
 (`readReactionChildParent`), its ancestors name the mover (the moving actor of the open reaction choice, with
 no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
 `awaitsReactionChild` treat the move as they treat an action. Nothing records a child on a move yet
-(QUALITY-18.T2 does), so no stored move carries the field. Release and resume of a move are QUALITY-18.T1b:
-until then `releaseReactionChildParent` throws for a move parent, because a move's version must still equal
-its `resolutionCommands` count. The field is optional and additive, so stored rows stay valid (D196: no
-local refresh).
+(QUALITY-18.T2 does), so no stored move carries the field.
+
+A move's occurrence version must equal its `root.resolutionCommands` count, so what a reaction child does to
+the move is an entry of that history (`movementReactionChildCommandDtoSchema`): kind `REACTION_CHILD_RELEASE`
+or `REACTION_CHILD_RESUME`, with the `childCommandId` and the fields every history entry has. No client
+sends one. Its command id is derived (`reactionChildMoveCommandId`: the move's command, the child's, the
+kind and the occurrence version it is recorded at), its fingerprint is the checksum of the kind and the two
+command ids, and its `correlationId` is null. `releaseReactionChildParent` (QUALITY-18.T1b1) appends the
+release entry when the GM voids the held child, with the GM as `actorUserId`: it drops the child from the
+`CHOICE` phase, returns the move to `PENDING` one version on and pins it to the Run version the void
+produced, so the next answer is fenced on that version like any other. The resume entry has a schema only:
+QUALITY-18.T2 writes it through the Scene geometry response path. The field and the two kinds are additive,
+so stored rows stay valid (D196: no local refresh).
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
