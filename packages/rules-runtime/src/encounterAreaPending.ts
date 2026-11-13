@@ -341,12 +341,15 @@ export function openEncounterAreaSaveWindow(
  * Holds the ray with `requestId` on `hold`, the reaction offer its hit raised (D219): the ray stays
  * unanswered, and the creature it hit answers the offer. The same ray is held again as the offer
  * records the child action of the reaction chosen from it, and as the resume from that child resolves
- * it. Every other entry stays exactly as sealed.
+ * it. Every other entry stays exactly as sealed, except that a chosen reaction keeps, with each
+ * answered ray in `testBindings` (by occurrence), the facts its roll was made against: the child
+ * action is about to change them, and that roll replays against the creature as it stood.
  */
 export function holdEncounterAreaRayReaction(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
   requestId: string,
-  hold: AreaTarget['snapshot']
+  hold: AreaTarget['snapshot'],
+  testBindings: ReadonlyMap<string, string> = new Map()
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
   const held = applicationContext.targets.find(
@@ -366,9 +369,14 @@ export function holdEncounterAreaRayReaction(
     ...snapshot,
     applicationContext: {
       ...applicationContext,
-      targets: applicationContext.targets.map((target) =>
-        target === held ? { ...target, snapshot: hold } : target
-      )
+      targets: applicationContext.targets.map((target) => {
+        if (target === held) return { ...target, snapshot: hold }
+        const testBindingJson =
+          target.testedJson === undefined || target.testBindingJson !== undefined
+            ? undefined
+            : testBindings.get(target.snapshot.occurrenceId)
+        return testBindingJson === undefined ? target : { ...target, testBindingJson }
+      })
     }
   })
 }

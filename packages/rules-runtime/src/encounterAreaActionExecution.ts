@@ -304,25 +304,54 @@ export async function settleEncounterAreaAction(
   return settled
 }
 
+type GraphsInput = Parameters<typeof advanceNativeActionGraphs>[0]
+
+/** What a ray's roll runs on, whichever way it advances. */
+type EncounterListAttackSource = Pick<
+  GraphsInput,
+  | 'runtime'
+  | 'adapter'
+  | 'plan'
+  | 'occurrenceId'
+  | 'binding'
+  | 'testBinding'
+  | 'autoRoll'
+  | 'afterTest'
+  | 'random'
+>
+
 /**
- * One attack roll of a list its caster rolls one at a time (a ray): the creature it is aimed at, its
- * sealed roll and the answer to it.
+ * One attack roll of a list its caster rolls one at a time (a ray): the creature it is aimed at and
+ * how its sealed roll advances.
  */
 type EncounterListAttack = Pick<
   EncounterAreaTarget,
   'actorId' | 'occurrenceId' | 'binding' | 'attackSight'
 > & {
-  pending: ResumedNativeActionGraphs
-  resolution: EncounterEvidenceAnswer
-  /** The roll tape kept with an earlier answer, replayed; null for the answer given now, which rolls. */
+  /** The facts an answered roll was made against, when a reaction's child action changed them since (D219). */
+  testBinding?: EncounterAreaTarget['binding']
+  /** The roll tape kept with an earlier answer, replayed; null for the ray advanced now, which rolls. */
   rolls: readonly EncounterFrozenRoll[] | null
-}
+} & (
+    | {
+        /** The sealed roll resumed with its answer, or rebuilt from the hit a reaction offer kept (D219). */
+        settle: Pick<GraphsInput, 'resume'> | Pick<GraphsInput, 'heldHit'>
+      }
+    | {
+        /**
+         * The ray advanced now through its host, which offers the creature it hits its reactions and
+         * may leave it held on that offer (D219). Only the last ray of a list is advanced so.
+         */
+        host: (source: EncounterListAttackSource) => ReturnType<typeof advanceNativeActionGraphs>
+      }
+  )
 
 /**
  * Resolves a list's attack rolls in the order given, each through the single-target driver: a ray's
  * roll is answered and its outcome runs before the next ray's, on the hit points the earlier rays at
  * its creature left it. A ray answered earlier replays the roll tape kept with it and rolls nothing;
- * the ray answered now rolls its dice, which are returned to keep.
+ * the ray advanced now rolls its dice, which are returned to keep. `held` is that ray left pending on
+ * the reaction offer its hit raised, and null once every ray settled.
  */
 export async function advanceEncounterListAttacks(
   input: AreaActionSource & { attacks: readonly EncounterListAttack[] }
@@ -330,24 +359,38 @@ export async function advanceEncounterListAttacks(
   const random = input.random ?? nextRollInt
   const bindings = new Map<string, EncounterAreaTarget['binding']>()
   const settled = []
-  for (const attack of input.attacks) {
+  for (const [index, attack] of input.attacks.entries()) {
     const rolls = [...(attack.rolls ?? [])]
     const binding = bindings.get(attack.actorId) ?? attack.binding
-    const result = await advanceNativeActionGraphs({
+    const source: EncounterListAttackSource = {
       runtime: input.runtime,
       adapter: input.adapter,
       plan: input.plan,
       occurrenceId: attack.occurrenceId,
       binding,
-      testBinding: attack.binding,
-      attackSight: attack.attackSight,
+      testBinding: attack.testBinding ?? attack.binding,
       // The roller of a nested save would pause here: only the ray's own dice may be rolled.
       autoRoll: { SOURCE: true, TARGET: false },
       afterTest: async () => undefined,
-      random: createFrozenRollTape(random, rolls)(),
-      resume: { pending: attack.pending, resolution: attack.resolution }
-    })
-    if (result.kind !== 'COMPLETE') throw new Error('A ray must settle with its answer.')
+      random: createFrozenRollTape(random, rolls)()
+    }
+    const result =
+      'host' in attack
+        ? await attack.host(source)
+        : await advanceNativeActionGraphs({
+            ...source,
+            attackSight: attack.attackSight,
+            ...attack.settle
+          })
+    if (result.kind !== 'COMPLETE') {
+      if (
+        !('host' in attack) ||
+        index !== input.attacks.length - 1 ||
+        result.pause?.kind !== 'CAST_REACTION'
+      )
+        throw new Error('A ray must settle with its answer.')
+      return { settled, held: result }
+    }
     if (attack.rolls && rolls.length !== attack.rolls.length)
       throw new Error('A kept ray is never rolled again.')
     bindings.set(attack.actorId, bindingAfterHitPoints(binding, result.applications))
@@ -358,5 +401,5 @@ export async function advanceEncounterListAttacks(
       rolls
     })
   }
-  return settled
+  return { settled, held: null }
 }

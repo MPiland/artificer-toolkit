@@ -613,8 +613,10 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       command: resolveEncounterActionInputDtoSchema,
       fingerprint: projectionChecksumSchema,
-      /** The pending action as its reaction choice left it. */
+      /** The pending action as its reaction choice left it; for a list, the ray held on that choice. */
       snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema,
+      /** Set only when the resumed action is a pending list: the whole list. */
+      areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema),
       reactionChildren: liveSessionReactionChildrenSchema,
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
       triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,

@@ -592,6 +592,12 @@ export type EncounterAreaActionPendingContextDto = {
      * ray at the creature and the commit replay it, so no die is rolled twice.
      */
     rolls?: { maximum: number; value: number }[]
+    /**
+     * The facts an answered ray's roll was made against, kept once the creature it is aimed at chose a
+     * reaction to a later ray's hit (D219): that reaction's child action changes the creature under the
+     * pending list, and the ray's roll still replays against the creature as it stood when rolled.
+     */
+    testBindingJson?: string
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -747,6 +753,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             ),
             rolledJson: z.optional(z.string()),
             rolls: z.optional(encounterFrozenRollsSchema),
+            testBindingJson: z.optional(z.string()),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
@@ -806,8 +813,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           // A creature's own save is rolled by the creature, once. An attack ray is rolled by the
           // caster, and a creature several rays are aimed at has an entry for each; the rays answered
           // before the GM took the creature out stay.
+          // A ray held on its hit's reaction offer (D219) is still the caster's roll; the creature that
+          // may react answers the offer.
           const casterRolls =
-            inner.kind === 'ENCOUNTER_ACTION' && inner.rollerActorId === value.casterActorId
+            inner.kind === 'ENCOUNTER_ACTION' &&
+            (inner.rollerActorId === value.casterActorId ||
+              (inner.pause?.kind === 'CAST_REACTION' && inner.pause.payload.kind === 'HIT_BY_ATTACK'))
           // A creature a mover struck makes its own save besides any the area caught it for, and may
           // be one the area never kept.
           const struck = target.collision !== undefined
@@ -842,6 +853,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['targets', index, 'rolls'],
               message: 'A roll tape is kept only with its answer.'
+            })
+          if (target.testBindingJson !== undefined && target.testedJson === undefined)
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'testBindingJson'],
+              message: 'The facts a roll was made against are kept only with its answer.'
             })
           if (target.legendaryResistance) {
             if (
