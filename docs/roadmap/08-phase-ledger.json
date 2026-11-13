@@ -25768,7 +25768,7 @@
             },
             {
               "id": "QUALITY-8.T1d2a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25778,7 +25778,8 @@
                 "after": ["QUALITY-8.T1d1", "QUALITY-9.T1d2"]
               },
               "note": "Split 2026-11-13 at the seam trace (5 to about 11); approved under the user standing approval for QUALITY growth (2026-11-13), net +8. Orchestrator ruling: under the child model a reaction effect that ends when ATTACKED is stored as the child's own effect and ended by the attack it answered, hit or miss.",
-              "text": "Character holder end to end: the attack graphs emit a HIT_BY_ATTACK CAST_REACTION pause on the held TEST; the held snapshot keeps twoPhase for a hit offer; the Worker host post-TEST stage records and launches the child and resumes the parent; a rules-runtime continue function declines from the original roll or rebinds the kept d20 against committed state; persistence continuity for a TEST-held offer. Shield proofs: child actor, target, parent and versions, raised AC, one undo, void cascade, decline, replay; the Shield block of nativeRoomReaction restated."
+              "text": "Character holder end to end: the attack graphs emit a HIT_BY_ATTACK CAST_REACTION pause on the held TEST; the held snapshot keeps twoPhase for a hit offer; the Worker host post-TEST stage records and launches the child and resumes the parent; a rules-runtime continue function declines from the original roll or rebinds the kept d20 against committed state; persistence continuity for a TEST-held offer. Shield proofs: child actor, target, parent and versions, raised AC, one undo, void cascade, decline, replay; the Shield block of nativeRoomReaction restated.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1d2b",
@@ -25994,7 +25995,7 @@
             },
             {
               "id": "QUALITY-9.T1d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -26005,7 +26006,8 @@
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between). Resized 2 to 5 on 2026-11-13 at the seam trace (about 30 files in 5 packages: wire schema, stored receipt, two commit fences, undo); user approved +3, one slice.",
               "text": "Delete usedReactions end to end (pending contexts, commit inputs, stored receipt, fences, undo, the usedReactionSpend arm; usedReactionSpend stays for window reactions until T1e3) and update docs; CAST_REACTION is then the one pre-roll offer whose options all run as children.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m730 (102dec2b1), fast path from slice tip b53177723: Tests 43442815691, Live 43442815450, Browser journeys 43442815663 green; red proof job 131945933615 green (actionPendingOffers is the only file with assertions that can go red). usedReactions deleted from the pending context, area snapshot, stored receipt, commit inputs, fences, undo and the usedReactionSpend arm (window reactions keep usedReactionSpend until T1e3); castCancelledByChildCarriesUsedReactions became castCancelledByReactionChild. Restated in actionPendingOffers: usedReactions negative cases and the carried-failed-counters case removed because the key and behaviour no longer exist; the child-loss case restated to castCancelledByReactionChild. nativeRoomProtection and nativeRoomCounterspell still assert the child through reactionChildren and the suspended parent. D196: clear encounterRunCommands, encounterRuleOccurrences, encounterPendingSnapshotParts, encounterRuleReceipts, encounterReplayIndex (or reset encounter runs) when local is next used; build packages first."
             },
             {
               "id": "QUALITY-9.T1e1",
