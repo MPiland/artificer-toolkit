@@ -55,6 +55,10 @@ import {
 } from './ruleExecutionPrimitives.js'
 import { legendaryActionChoicePendingContextDtoSchema } from './ruleExecutionTurnPending.js'
 import {
+  encounterOnHitAuditDtoSchema,
+  type EncounterOnHitAuditDto
+} from './ruleExecutionOnHitChoice.js'
+import {
   damageRerollCostDtoSchema,
   type DamageRerollCostDto
 } from './ruleExecutionDamageRollWindow.js'
@@ -598,6 +602,12 @@ export type EncounterAreaActionPendingContextDto = {
      * pending list, and the ray's roll still replays against the creature as it stood when rolled.
      */
     testBindingJson?: string
+    /**
+     * What the caster decided at the on-hit offer an answered ray's hit was held on: the rider used and
+     * what pays for it, or the decline. The ray's outcome replays with it, the commit spends it, and a
+     * slot or pool it spent is not offered on a later ray of the list.
+     */
+    onHit?: EncounterOnHitAuditDto
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -754,6 +764,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             rolledJson: z.optional(z.string()),
             rolls: z.optional(encounterFrozenRollsSchema),
             testBindingJson: z.optional(z.string()),
+            onHit: z.optional(encounterOnHitAuditDtoSchema),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
@@ -860,6 +871,23 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['targets', index, 'testBindingJson'],
               message: 'The facts a roll was made against are kept only with its answer.'
+            })
+          if (
+            target.onHit &&
+            (target.testedJson === undefined ||
+              inner.kind !== 'ENCOUNTER_ACTION' ||
+              inner.pause?.kind !== 'ON_HIT' ||
+              inner.pause.payload.testExecutionChecksum !== target.onHit.testExecutionChecksum ||
+              (target.onHit.option !== null &&
+                !inner.pause.payload.options.some(
+                  ({ useOptionId }) => useOptionId === target.onHit?.option?.useOptionId
+                )))
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'onHit'],
+              message:
+                'An on-hit decision is kept with the answered ray whose held offer it answers, and uses an option of that offer.'
             })
           if (target.legendaryResistance) {
             if (

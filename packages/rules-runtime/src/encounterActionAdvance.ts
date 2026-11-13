@@ -5,6 +5,10 @@ import {
   type DamageRerollCostDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type {
+  EncounterOnHitAuditDto,
+  EncounterOnHitOfferDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type {
   EncounterCastReactionOfferDto,
   EncounterSettledHitDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -125,6 +129,12 @@ export async function advanceNativeActionGraphs(input: {
       | { kind: 'RESUMED' }
   }
   /**
+   * The held on-hit offer with the decision its attacker made at it, kept with a ray's answer. The TEST
+   * is rebuilt from the faces the offer kept, never rolled again, and its OUTCOME runs sealed against
+   * the decision.
+   */
+  heldOnHit?: { offer: EncounterOnHitOfferDto; audit: EncounterOnHitAuditDto }
+  /**
    * The ways the attacker could pay for an optional on-hit rider. Any found holds a hit, once no
    * reaction is offered, for the attacker's choice before its OUTCOME.
    */
@@ -157,6 +167,7 @@ export async function advanceNativeActionGraphs(input: {
       legendaryResistance,
       reaction,
       heldHit,
+      heldOnHit,
       onHitCandidates,
       saveWindow,
       damageRerolls,
@@ -191,6 +202,21 @@ export async function advanceNativeActionGraphs(input: {
     if (resolution?.kind === 'DAMAGE_REROLL')
       throw new Error('The damage roll window evidence is stale.')
     if (heldHit && resume) throw new Error('Reaction evidence is stale.')
+    if (heldOnHit) {
+      if (heldHit || resume) throw new Error('On-hit evidence is stale.')
+      return continueNativeActionAfterTest({
+        ...action,
+        testBinding,
+        boundary: await reconstructNativeActionTest({
+          ...sealedAgainst,
+          execution: heldOnHit.offer.testExecution,
+          d20: heldOnHit.offer.testD20
+        }),
+        onHit: heldOnHit.audit,
+        saveWindow,
+        damageRerolls
+      })
+    }
     const test = heldHit
       ? await reconstructNativeActionTest({
           ...sealedAgainst,

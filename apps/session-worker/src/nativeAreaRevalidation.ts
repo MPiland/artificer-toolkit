@@ -266,10 +266,11 @@ export function sealedListAttack(
   const resolution = answer ?? kept
   if (!resolution) throw new Error('The area roll is unanswered.')
   const context = sealed.snapshot.applicationContext
-  const offer =
-    context.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
-      ? context.pause.payload
-      : null
+  const pause = context.kind === 'ENCOUNTER_ACTION' ? context.pause : null
+  const offer = pause?.kind === 'CAST_REACTION' ? pause.payload : null
+  // A ray answered at its on-hit offer is rebuilt from the d20 the offer kept, with the decision made there.
+  const heldOnHit =
+    pause?.kind === 'ON_HIT' && sealed.onHit ? { offer: pause.payload, audit: sealed.onHit } : null
   const testBinding: AreaPrepared['binding'] | undefined =
     sealed.testBindingJson === undefined ? undefined : JSON.parse(sealed.testBindingJson)
   return {
@@ -281,7 +282,9 @@ export function sealedListAttack(
     rolls: answer ? null : (sealed.rolls ?? []),
     // A ray held on its hit's reaction offer is rebuilt from the d20 the offer kept: past the
     // reaction that ran as a child action, or with the decline proved against the hit (D219).
-    settle: offer?.hit
+    settle: heldOnHit
+      ? { heldOnHit }
+      : offer?.hit
       ? {
           heldHit: {
             offer: { ...offer, hit: offer.hit },

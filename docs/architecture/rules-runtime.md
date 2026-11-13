@@ -831,7 +831,7 @@ through the per-target function every attack uses (`advanceAreaRay` drives `adva
 `advanceNativeActionTarget` as its host), so a ray that hits a creature holding a `HIT_BY_ATTACK` reaction
 stops on that offer in its own snapshot, and the drawer asks the reactor before any later ray is rolled. A
 decline settles the ray with the d20 the offer kept. A chosen reaction launches the holder's child; the resume
-(`planNativeLiveEncounterAreaRayReaction`) seals every unanswered ray again from the room as the child left
+(`planNativeLiveEncounterAreaRayOffer`) seals every unanswered ray again from the room as the child left
 it, then rebinds the held ray's kept d20, so the reaction's effect counts for that ray and every later one,
 and a reaction already spent is not offered again. Rays answered before the reaction keep the binding they
 were rolled against (`testBindingJson`) and the commit replays them with it, so an earlier hit stays a hit.
