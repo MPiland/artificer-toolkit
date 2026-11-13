@@ -33,6 +33,7 @@ export function actionEconomyReceipt(consumption: EncounterActionEconomyConsumpt
         maximum: consumption.maximum,
         beforeUsed: consumption.beforeUsed,
         afterUsed: consumption.afterUsed,
+        ...(consumption.turnSequence !== undefined && { turnSequence: consumption.turnSequence }),
         ...(consumption.spellCasting && { spellCasting: consumption.spellCasting })
       }
     : null

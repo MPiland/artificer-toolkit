@@ -2,11 +2,13 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import {
+  encounterActionEconomyUsed,
+  withEncounterActionEconomyUsed,
+  type EncounterActionEconomyConsumption
+} from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import {
   featureChargeUsed,
-  encounterRuleUsageUsed,
-  withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { revertEncounterSpellCastingTransition } from '@artificer-toolkit/rules-runtime/encounterSpellCasting'
@@ -48,11 +50,11 @@ export function returnSpentActionEconomy(
   economy: EncounterActionEconomyConsumption | null
 ): EncounterRunActorState {
   if (!economy) return actor
-  if (encounterRuleUsageUsed(actor, economy.definitionId) !== economy.afterUsed)
+  if (encounterActionEconomyUsed(actor, economy) !== economy.afterUsed)
     revertUnavailable("The actor's action economy changed after this action; adjust manually.")
   const returned = encounterRunActorStateSchema.parse({
     ...actor,
-    resources: withEncounterRuleUsageUsed(actor, economy.definitionId, economy.beforeUsed)
+    resources: withEncounterActionEconomyUsed(actor, economy, economy.beforeUsed)
   })
   if (!economy.spellCasting) return returned
   const restored = revertEncounterSpellCastingTransition(returned, economy.spellCasting)

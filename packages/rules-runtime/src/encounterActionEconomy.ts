@@ -14,7 +14,11 @@ import {
   encounterActiveGrantCapabilitySuppressions,
   encounterGrantsEnabledDomain
 } from './encounterActiveGrants.js'
-import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from './encounterActorState.js'
+import {
+  encounterAllowanceUsed,
+  encounterRuleUsageUsed,
+  withEncounterRuleUsageUsed
+} from './encounterActorState.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   resolveRuleCapabilityState,
@@ -104,12 +108,20 @@ export type ActionEconomyInput = {
   actor: EncounterRunActorState
   state: EncounterRunState
   activation: { code: string; amount: number }
+  /**
+   * The allowance a reaction's option was offered under, spent in place of the one the activation
+   * binds to: its own definition sets its maximum and when it refreshes.
+   */
+  offeredAllowanceDefinitionId?: string | null
   target?: ActionEconomyTarget
   loadTarget(): Promise<ActionEconomyTarget | undefined>
   definitions: CurrentReusableDefinitionSource
 }
 
-/** The allowance capability an activation binds to, resolved against the actor's conditions and effects. */
+/**
+ * The allowance capability an action spends, resolved against the actor's conditions and effects: the
+ * one its option was offered under, or the one its activation binds to.
+ */
 async function resolveActionAllowance(input: ActionEconomyInput) {
   if (input.state.automationMode === 'MANUAL') return null
   const binding = actionEconomyCapabilityRegistry
@@ -133,11 +145,13 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
     target.actor.systemId !== input.state.gameSystemId
   )
     throw new Error('Encounter action economy source is stale.')
+  const offeredDefinitionId = input.offeredAllowanceDefinitionId ?? null
+  const definitionId = offeredDefinitionId ?? binding.capabilityDefinitionId
   const capabilityState = await resolveRuleCapabilityState({
     definitions: input.definitions,
     gameSystemId: input.state.gameSystemId,
     activeConditionDefinitionIds: heldConditionIds(target),
-    capabilityDefinitionIds: [binding.capabilityDefinitionId],
+    capabilityDefinitionIds: [definitionId],
     activeEffectSuppressions: activeEffectCapabilitySuppressions(
       input.state.gameSystemId,
       target.activeEffects
@@ -145,16 +159,36 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
   })
   const capability = capabilityState.capabilities[0]
   const usage = capability?.capability.document.usage
-  if (!capability || !usage || usage.refreshBoundary !== 'START_OF_TURN')
+  // Only an offered allowance may refresh each turn; one an activation binds to refreshes with its
+  // holder's turn (`stageEncounterActionEconomyRefreshes`).
+  if (
+    !capability ||
+    !usage ||
+    (offeredDefinitionId === null && usage.refreshBoundary !== 'START_OF_TURN')
+  )
     throw new Error('The selected action allowance is unavailable.')
+  if (offeredDefinitionId !== null)
+    return {
+      definitionId,
+      capability,
+      maximum: usage.maximum,
+      beforeUsed: encounterAllowanceUsed(
+        input.actor,
+        { definitionId, refreshBoundary: usage.refreshBoundary },
+        input.state.turnSequence
+      ),
+      turnSequence: usage.refreshBoundary === 'EACH_TURN' ? input.state.turnSequence : undefined,
+      excludedBySibling: false
+    }
   const granted = binding.grantedCountDomain
     ? activeSetValueGrantMaximum(target.activeEffects, binding.grantedCountDomain)
     : null
   return {
-    definitionId: binding.capabilityDefinitionId,
+    definitionId,
     capability,
     maximum: Math.max(usage.maximum, granted ?? 0),
     beforeUsed: encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId),
+    turnSequence: undefined,
     excludedBySibling:
       binding.exclusiveWithCapabilityDefinitionId !== undefined &&
       encounterGrantsEnabledDomain(target.activeEffects, 'ACTION_BONUS_ACTION_EXCLUSIVITY') &&
@@ -182,7 +216,8 @@ export async function evaluateEncounterActionEconomy(input: ActionEconomyInput):
       definitionChecksum: capability.capability.definitionChecksum,
       maximum,
       beforeUsed,
-      afterUsed: beforeUsed + 1
+      afterUsed: beforeUsed + 1,
+      ...(allowance.turnSequence !== undefined && { turnSequence: allowance.turnSequence })
     },
     available: capability.available && beforeUsed < maximum && !excludedBySibling
   }

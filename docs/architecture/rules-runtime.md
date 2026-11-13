@@ -1748,8 +1748,26 @@ the release. No host records a child on a move yet: movement reactions still res
 `REACTION_CHILD_RESUME` resolution of `RESOLVE_RULE_OCCURRENCE`, which `liveSessionCommandDtoSchema` refuses
 from a client. The outcome capability adapter gains `stopsTriggeringMovement(execution)` beside
 `cancelsTriggeringEvent`: the D&D adapter (`systems/dnd5e/stopTriggeringMovement.ts`) reads the graph output
-`movementInterruption` from the child's TEST phase receipt, or from its outputs when it ran no TEST. It does
-not read the inline engine's Legendary Resistance override of that path, which T2b must carry or retire.
+`movementInterruption` from the child's TEST phase receipt, or from its outputs when it ran no TEST. A child
+whose target used Legendary Resistance (`applicationOutputs.legendaryResistance.use`) resolved the success
+path after that TEST ran, so the adapter then reads the path the trigger authors from the TEST's
+movement-interruption trace and stops the move only when it is `ON_SAVE_SUCCESS` (QUALITY-18.T2b1).
+
+QUALITY-18.T2b1 adds what the child's own action reads of the move, still inert until T2b2 records a child on
+a move. The action capture returns `triggerMovement` (`{ attackOccasion, allowanceDefinitionId }`,
+`readReactionChildMovement`) beside `triggerCastLevel` and `triggerDamageTypeIds`: the occasion is the one
+constant the inline path also passes (`MOVEMENT_REACTION_ATTACK_OCCASION`), and the allowance is the one the
+reactor's option was offered under. The action host passes both on without a move-specific branch: the attack
+preparation takes the occasion, and the action economy spends the offered allowance in place of the one the
+activation binds to (`ActionEconomyInput.offeredAllowanceDefinitionId`), by that allowance's own maximum and
+refresh boundary. An `EACH_TURN` allowance's consumption carries the `turnSequence` it was spent on, so settle,
+allowance return and undo read and write `resources.turnUsage` for that turn
+(`encounterActionEconomyUsed`, `withEncounterActionEconomyUsed`). The capture carries no contact position: a
+held move's token already stands at its contact (`movementResolutionDocuments.ts` requires it), so the host's
+own Scene reads judge perception, cover, flanking, proximity and light there. Two inline refusals are not
+carried and are open for QUALITY-18.T3: a movement reaction that uses up a single-use item, and the blanket
+single-target policy (`requireReactionTargetPolicy`); the action host applies its general rules to both.
+
 QUALITY-18.T2b moves the reaction itself to a child and raises the resume in the room as the campaign owner:
 it resumes the Kernel choice with the index of the option the child came from, drops that timeline entry and
 continues the move, or ends it at the contact when the child stops it.

@@ -10,13 +10,23 @@ export type CommittedExecutionTrace = {
   }
 }
 
-/** A committed rules execution's graph outputs, with those of each phase it ran in. */
-export type CommittedExecutionOutputs = {
+type CommittedGraphOutputs = {
   outputs: Readonly<Record<string, unknown>>
-  phaseReceipts?: readonly {
-    phase: string
-    execution: { outputs: Readonly<Record<string, unknown>> }
-  }[]
+  evidence: {
+    trace: readonly {
+      operation: { key: string }
+      inputs: Readonly<Record<string, unknown>>
+    }[]
+  }
+}
+
+/**
+ * A committed rules execution's graph outputs, with those of each phase it ran in and the decision
+ * its target made between them to turn a failed save into a success.
+ */
+export type CommittedExecutionOutputs = CommittedGraphOutputs & {
+  phaseReceipts?: readonly { phase: string; execution: CommittedGraphOutputs }[]
+  applicationOutputs?: { kind: string; legendaryResistance?: { use: boolean } | null }
 }
 
 /**

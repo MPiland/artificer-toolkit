@@ -1,8 +1,12 @@
 import { v5 as uuidv5 } from 'uuid'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { AreaAimDto } from '@artificer-toolkit/schema/shared/spatialFacts'
+import type { AttackOccasionCode } from '@artificer-toolkit/shared/core'
 
 const NAMESPACE = '6b0c2f0e-3d0a-5c1e-9f55-0a7f1d9a4c21'
+
+/** A reaction attack provoked by movement is an opportunity attack. */
+export const MOVEMENT_REACTION_ATTACK_OCCASION: AttackOccasionCode = 'OPPORTUNITY'
 
 /** One trigger per parent command, holder and effect, so a replayed parent never raises it twice. */
 export function systemTriggerCommandId(
