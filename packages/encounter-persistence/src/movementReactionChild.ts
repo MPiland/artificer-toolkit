@@ -148,6 +148,7 @@ export async function repinMovementReactionChildScene(
   const { occurrence, snapshot } = await readMovementResponseAuthority(ctx, resume)
   const context = snapshot.applicationContext
   if (
+    snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
     context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
     context.root.currentSceneVersion === sceneVersion
   )

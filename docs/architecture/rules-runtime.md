@@ -1762,7 +1762,9 @@ refresh boundary. An `EACH_TURN` allowance's consumption carries the `turnSequen
 allowance return and undo read and write `resources.turnUsage` for that turn
 (`encounterActionEconomyUsed`, `withEncounterActionEconomyUsed`). The capture carries no contact position: a
 held move's token already stands at its contact (`movementResolutionDocuments.ts` requires it), so the host's
-own Scene reads judge perception, cover, flanking, proximity and light there. Two inline refusals are not
+own Scene reads judge perception, cover, flanking, proximity and light there. The one Scene read it skips is
+the action's range (`evaluateEncounterActionTargetPolicy` `rangeProven`): the contact of a creature leaving
+reach is the first point outside that reach, and the move's offer is what proved the reach. Two inline refusals are not
 carried and are open for QUALITY-18.T3: a movement reaction that uses up a single-use item, and the blanket
 single-target policy (`requireReactionTargetPolicy`); the action host applies its general rules to both.
 

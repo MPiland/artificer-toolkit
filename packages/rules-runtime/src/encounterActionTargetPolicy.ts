@@ -223,6 +223,11 @@ export function evaluateEncounterActionTargetPolicy(input: {
   makesAttackRoll: boolean
   /** The Encounter's Facing rule (ATTACK-12): a creature cannot target into the arcs it names. */
   facing: Pick<FacingRule, 'arcs' | 'sourceCannotTargetInOwnArcs'> | null
+  /**
+   * What the action answers already proved its range: a Scene move offered the reaction at a reach
+   * contact (D219), where the mover's token is held, so the tokens are not measured again.
+   */
+  rangeProven?: boolean
 }): EncounterRuleWarningDto[] | null {
   // An actor out of play, however it left, is no legal target (D178).
   if (input.target.absence != null) return null
@@ -255,7 +260,8 @@ export function evaluateEncounterActionTargetPolicy(input: {
       code: 'TARGET_FACING_ARC',
       message: `The target is in this creature's ${facingArcLabel(facingArc)} arc.`
     })
-  if (range.rangeKind === 'UNLIMITED' || range.rangeKind === 'SIGHT') return warnings
+  if (input.rangeProven || range.rangeKind === 'UNLIMITED' || range.rangeKind === 'SIGHT')
+    return warnings
   // A ranged weapon attack reaches its long range, at disadvantage beyond its normal range.
   const band = input.sceneContext
     ? sceneRangeBand(

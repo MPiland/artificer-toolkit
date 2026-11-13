@@ -240,7 +240,7 @@ export function targetRuleOverrides(input: {
     'activationCode' | 'economy' | 'suppressed'
   >
   endWarnings: RuleWarningInput['preparedWarnings']
-  scene: Pick<RuleWarningInput['target'], 'sceneContext' | 'facing'>
+  scene: Pick<RuleWarningInput['target'], 'sceneContext' | 'facing' | 'rangeProven'>
   gameSystemId: string
   movementTargets: ReadonlyMap<string, MovementTargets>
 }) {
