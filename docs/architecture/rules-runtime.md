@@ -845,7 +845,7 @@ admission of an HP-zero or START_OF_TURN child accepts the Run at its parent's v
 sibling children before it (`countCommittedSystemSiblings`, the same descendants allowance pending answers use for
 reaction children). It still rejects `VERSION_STALE` when any command that is not a sibling child of that parent
 moved the Run, or when the child names another version. A rule-raised child is proved by its failed-save window and
-a Legendary Action continuation by its delegation, so neither is affected. A passive HP-zero or start-of-turn
+a Legendary Action continuation by its delegation, so neither is affected. A passive start-of-turn
 effect compiles with activation `FREE` (`encounterFeatureActionCapabilityDiscovery.ts`): the System fires it, so it
 spends none of the holder's action economy, and a second passive on one holder is not refused for a spent Action.
 
