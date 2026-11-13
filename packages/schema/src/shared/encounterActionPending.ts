@@ -224,8 +224,8 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 ])
               if (
                 holdsActionD20 ||
-                // An offer made after the attack roll holds that roll's TEST; every other is held before any.
-                (pause.payload.rolled ? !test : value.twoPhase !== null) ||
+                // An offer made after the attack roll or its hit holds that TEST; every other is held before any.
+                (pause.payload.rolled || pause.payload.hit ? !test : value.twoPhase !== null) ||
                 pause.payload.reactions.some(
                   ({ reactorActorId }) => reactorActorId !== value.rollerActorId
                 ) ||

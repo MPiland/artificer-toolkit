@@ -446,6 +446,27 @@ The reactor's decision is authorized as any cast offer's (the reactor is the pen
 total). The offer's `rolled`, its kind and `reactionChildren[].rolledDie` are persisted pending-context shape
 changes; refresh local data when next used (D196).
 
+The hit a child answers (current contracts, QUALITY-8.T1d-a, D219; inert until QUALITY-8.T1d-b wires the
+Worker, and the on-hit `REACTION` pause it replaces stays until QUALITY-8.T1d-c). Three contracts carry a
+reaction chosen by the creature an attack hit:
+
+- The offer. The `CAST_REACTION` pause's offer gains the kind `HIT_BY_ATTACK` and, for that kind only, `hit`:
+  the settled hit the old `REACTION` pause keeps (the completed execution, its d20 and policy, and the two
+  checksums) and `damageTypeIds`, the damage types the hit deals. It is the one kind whose menu holds two
+  triggers, `ATTACKED_SELF` and `DAMAGE_TAKEN`; every other kind still holds one. The pending context holds it
+  on `twoPhase.phase === 'TEST'`, as it holds a rolled offer.
+- The fence. `castPendingContinues` treats the hit as a new moment: its offer may follow the action's own roll,
+  a declined earlier offer or a child's resume, with no reactor yet declined and no used reaction or child
+  added. Once held, the hit is kept unchanged; a decline leaves it only for the outcome, never for another
+  offer (it is made to the one creature hit), and a chosen reaction leaves it only by recording a child.
+- The child's read. The action capture returns the offer's `damageTypeIds` as `triggerDamageTypeIds` on the
+  child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions and on the `ACTION_RESUME` of a held child
+  (`readReactionChildHitDamageTypeIds`), null for any other command and for a parent that holds no hit.
+
+The resolved child records nothing new: the parent keeps its TEST and the kept d20, so its resume tests that
+d20 again against the committed state. The offer's `hit` and kind are persisted pending-context shape changes;
+refresh local data when next used (D196).
+
 The check a child owes (current, QUALITY-9.T1b2, D219 "Trigger-check gate"). A child whose authored
 `reactionTrigger` asks a check against a higher-level cast owes it as its incoming gate, read against
 `triggerCastLevel` (`owedNativeTriggerCheck`, `advanceNativeIncomingGate`). A gate carries a discriminated

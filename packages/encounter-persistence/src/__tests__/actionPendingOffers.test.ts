@@ -353,6 +353,76 @@ describe('castPendingContinues', () => {
     })
   })
 
+  describe('an offer made to the creature an attack hit, which keeps the hit (QUALITY-8.T1d-a, D219)', () => {
+    const hit = { originalExecutionChecksum: 'hit', damageTypeIds: ['fire'] }
+    const offer = (declinedReactorActorIds: string[] = [], kept: object | null = hit) => ({
+      kind: 'CAST_REACTION' as const,
+      payload: { declinedReactorActorIds, ...(kept && { hit: kept }) }
+    })
+    const hitHeld = { rollerActorId: 'target', pause: offer() }
+    const child = { commandId: 'child' }
+    const raised = { ...hitHeld, reactionChildren: [child] }
+    /** An offer the action held before the hit: before its roll, or on the rolled d20. */
+    const earlier = (payload: object = {}) => ({
+      rollerActorId: 'first',
+      pause: {
+        kind: 'CAST_REACTION' as const,
+        payload: { declinedReactorActorIds: [], ...payload }
+      }
+    })
+
+    it('follows the action’s own roll, or an earlier offer left by a decline, with no one heard from yet', () => {
+      expect(castPendingContinues({}, null, hitHeld)).toBe(true)
+      expect(castPendingContinues(earlier(), decline, hitHeld)).toBe(true)
+      expect(castPendingContinues(earlier({ rolled: { test: {} } }), decline, hitHeld)).toBe(true)
+      // The hit's offer is never the answer to a chosen reaction, and begins with no declines.
+      expect(castPendingContinues(earlier(), option, hitHeld)).toBe(false)
+      expect(
+        castPendingContinues(earlier(), decline, { ...hitHeld, pause: offer(['first']) })
+      ).toBe(false)
+      expect(castPendingContinues(earlier(), decline, raised)).toBe(false)
+    })
+
+    it('follows the resume from an earlier offer’s child', () => {
+      const awaited = { ...earlier(), reactionChildren: [child] }
+      const resumed = { ...hitHeld, reactionChildren: [{ ...child, rollMode: null }] }
+      expect(castPendingContinues(awaited, null, resumed)).toBe(true)
+      expect(castPendingContinues(awaited, decline, resumed)).toBe(false)
+    })
+
+    it('is left by a decline to the action’s outcome, never to another offer', () => {
+      expect(castPendingContinues(hitHeld, decline, {})).toBe(true)
+      expect(castPendingContinues(hitHeld, decline, { pause: offer(['target']) })).toBe(false)
+      expect(castPendingContinues(hitHeld, decline, { pause: offer(['target'], null) })).toBe(false)
+      expect(
+        castPendingContinues(hitHeld, decline, {
+          pause: offer(['target'], { ...hit, originalExecutionChecksum: 'other' })
+        })
+      ).toBe(false)
+    })
+
+    it('runs a chosen reaction only as its holder’s own action, on the same offer and hit', () => {
+      expect(castPendingContinues(hitHeld, option, raised)).toBe(true)
+      expect(castPendingContinues(hitHeld, option, {})).toBe(false)
+      expect(castPendingContinues(hitHeld, option, { ...raised, pause: offer([], null) })).toBe(
+        false
+      )
+      expect(
+        castPendingContinues(hitHeld, option, {
+          ...raised,
+          pause: offer([], { ...hit, damageTypeIds: ['cold'] })
+        })
+      ).toBe(false)
+      expect(castPendingContinues(hitHeld, decline, raised)).toBe(false)
+    })
+
+    it('moves on from the child by the room’s resume, which tests the kept hit again', () => {
+      const resumed = { reactionChildren: [{ ...child, rollMode: null }] }
+      expect(castPendingContinues(raised, null, resumed)).toBe(true)
+      expect(castPendingContinues(raised, option, resumed)).toBe(false)
+    })
+  })
+
   it('carries earlier failed counters through every later pause of the cast', () => {
     const carrying = { usedReactions: [failedBy('first')] }
     expect(castPendingContinues(carrying, dice, { usedReactions: [failedBy('first')] })).toBe(true)

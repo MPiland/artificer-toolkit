@@ -157,6 +157,14 @@ const liveSessionTriggerCastLevelSchema = lazySchema(() =>
   z.nullable(z.number().check(z.int()).check(z.nonnegative()))
 )
 
+/**
+ * The damage types of the hit a reaction child's command answers, as the held attack's offer keeps
+ * them (D219); null for any other command, and when the action it answers offered no hit.
+ */
+const liveSessionTriggerDamageTypeIdsSchema = lazySchema(() =>
+  z.nullable(z.array(postgresUuidSchema).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)))
+)
+
 /** Private, authorized stored records for DO rules; no evaluated facts or write instructions. */
 export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -556,6 +564,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       fingerprint: projectionChecksumSchema,
       result: z.nullable(encounterCommandResultDtoSchema),
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
+      triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,
       reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
@@ -572,6 +581,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema),
       reactionChildren: liveSessionReactionChildrenSchema,
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
+      triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,
       reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
@@ -584,6 +594,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema,
       reactionChildren: liveSessionReactionChildrenSchema,
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
+      triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,
       reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({

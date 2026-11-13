@@ -9,6 +9,7 @@ import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from '@art
 import {
   CAMPAIGN_ID,
   ENCOUNTER_ID,
+  SRD_SYSTEM_ID,
   TIMESTAMP,
   creatureActor,
   srdEncounterState,
@@ -46,6 +47,7 @@ import {
   readCommittedReactionDescendants,
   readReactionChildAncestors,
   readReactionChildCastLevel,
+  readReactionChildHitDamageTypeIds,
   readReactionChildParent,
   readTrailingReactionDescendants,
   releaseReactionChildParent,
@@ -72,6 +74,54 @@ const ROOT_VERSION = 4
 const checksum = (letter: string) => letter.repeat(64)
 /** The attack d20 an offer made after the roll keeps. */
 const ROLLED_D20 = { selectedNatural: 14, total: 19 }
+const FIRE_ID = testUuid(0x8a50)
+const COLD_ID = testUuid(0x8a51)
+/** The attack's settled TEST as it hit: its execution, d20 and policy, with the damage types the hit deals. */
+const HIT_EXECUTION = {
+  status: 'COMPLETE',
+  outputs: {},
+  evidence: {
+    source: {
+      definitionId: testUuid(0x8a0a),
+      gameSystemId: SRD_SYSTEM_ID,
+      definitionFamilyKey: 'effect.action',
+      checksum: checksum('a')
+    },
+    capabilityContractVersion: 1,
+    facts: {},
+    trace: [],
+    outputs: {}
+  }
+}
+const SETTLED_HIT = {
+  originalExecution: HIT_EXECUTION,
+  originalD20: {
+    requestId: 'd20',
+    rollMode: 'NORMAL',
+    keep: 'FIRST',
+    derivedRollMode: 'NORMAL',
+    rawFaces: [ROLLED_D20.selectedNatural],
+    selectedNatural: ROLLED_D20.selectedNatural,
+    contributors: [],
+    contributorChecksum: checksumRuleDocument([]),
+    modifier: ROLLED_D20.total - ROLLED_D20.selectedNatural,
+    total: ROLLED_D20.total,
+    defenseOrDc: 10,
+    resultPath: 'ON_HIT'
+  },
+  d20: {
+    requestNodeId: 'd20',
+    rollMode: 'NORMAL',
+    keep: 'FIRST',
+    contributors: [],
+    contributorChecksum: checksumRuleDocument([]),
+    modifier: 5,
+    dc: 10
+  },
+  originalExecutionChecksum: checksumRuleDocument(HIT_EXECUTION),
+  targetStateChecksum: checksum('d'),
+  damageTypeIds: [FIRE_ID, COLD_ID]
+}
 
 /** The protector's reaction as an offer of `trigger` pins it. */
 const reactionPin = (trigger: EncounterReactionPinDto['trigger']) => {
@@ -157,7 +207,15 @@ async function pausedAttack(
      * Holds the attack on an offer of the protector's reactions instead of on its own d20: before the
      * roll, or after it (`rolled`), where the offer keeps the frozen TEST and `twoPhase` names it.
      */
-    offer?: { kind: 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'; rolled?: boolean; test?: boolean }
+    offer?:
+      | { kind: 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'; rolled?: boolean; test?: boolean }
+      /** An offer to the creature the attack hit: the reactions it pins, and whether it keeps the hit. */
+      | {
+          kind: 'HIT_BY_ATTACK'
+          triggers: EncounterReactionPinDto['trigger'][]
+          hit?: boolean
+          test?: boolean
+        }
   } = {}
 ) {
   const memory = createMemoryEncounterStore()
@@ -267,29 +325,33 @@ async function pausedAttack(
           kind: 'CAST_REACTION',
           payload: {
             kind: offer.kind,
-            reactions: [reactionPin(offer.kind)],
+            reactions: (offer.kind === 'HIT_BY_ATTACK' ? offer.triggers : [offer.kind]).map(
+              reactionPin
+            ),
             declinedReactorActorIds: [],
-            ...(offer.rolled && {
-              rolled: {
-                test: {
-                  continuation,
-                  initialFactsChecksum: checksumRuleDocument(continuation.facts),
-                  d20: {
-                    requestId: 'd20',
-                    rollMode: 'NORMAL',
-                    keep: 'FIRST',
-                    derivedRollMode: 'NORMAL',
-                    rawFaces: [ROLLED_D20.selectedNatural],
-                    selectedNatural: ROLLED_D20.selectedNatural,
-                    modifier: ROLLED_D20.total - ROLLED_D20.selectedNatural,
-                    total: ROLLED_D20.total,
-                    contributors: [],
-                    contributorChecksum: checksumRuleDocument([])
-                  }
-                },
-                appRollId: null
-              }
-            })
+            ...(offer.kind === 'HIT_BY_ATTACK' && offer.hit && { hit: SETTLED_HIT }),
+            ...(offer.kind !== 'HIT_BY_ATTACK' &&
+              offer.rolled && {
+                rolled: {
+                  test: {
+                    continuation,
+                    initialFactsChecksum: checksumRuleDocument(continuation.facts),
+                    d20: {
+                      requestId: 'd20',
+                      rollMode: 'NORMAL',
+                      keep: 'FIRST',
+                      derivedRollMode: 'NORMAL',
+                      rawFaces: [ROLLED_D20.selectedNatural],
+                      selectedNatural: ROLLED_D20.selectedNatural,
+                      modifier: ROLLED_D20.total - ROLLED_D20.selectedNatural,
+                      total: ROLLED_D20.total,
+                      contributors: [],
+                      contributorChecksum: checksumRuleDocument([])
+                    }
+                  },
+                  appRollId: null
+                }
+              })
           }
         }
       }),
@@ -845,6 +907,85 @@ describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219
     expect(
       (await readNativeActionPending(resumed.ctx, resumed.occurrence())).context.reactionChildren
     ).toEqual([{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }])
+  })
+})
+
+describe('an offer of reactions made to the creature an attack hit (QUALITY-8.T1d-a, D219)', () => {
+  const offer = {
+    kind: 'HIT_BY_ATTACK',
+    triggers: ['ATTACKED_SELF', 'DAMAGE_TAKEN'],
+    hit: true,
+    test: true
+  } satisfies NonNullable<Parameters<typeof pausedAttack>[0]>['offer']
+  const child = reactionChild().commandId
+
+  it('is held on the attack’s settled TEST with the hit, its reactions to the hit and to its damage one menu', async () => {
+    const paused = await pausedAttack({ offer })
+    const occurrence = paused.occurrence()
+    const pending = await readNativeActionPending(paused.ctx, occurrence)
+    expect(pending.context.pause).toEqual({
+      kind: 'CAST_REACTION',
+      payload: {
+        kind: 'HIT_BY_ATTACK',
+        reactions: [reactionPin('ATTACKED_SELF'), reactionPin('DAMAGE_TAKEN')],
+        declinedReactorActorIds: [],
+        hit: SETTLED_HIT
+      }
+    })
+    expect(
+      pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(
+        projectNativeActionPending(occurrence, pending, false)
+      )
+    ).toEqual({
+      kind: 'REACTION_CHOICE',
+      occurrenceId: OCCURRENCE_ID,
+      occurrenceVersion: 1,
+      encounterVersion: ROOT_VERSION,
+      targetActorId: PROTECTOR_ID,
+      options: [
+        { optionId: reactionPin('ATTACKED_SELF').useOptionId, actionId: REACTION_ACTION_ID },
+        { optionId: reactionPin('DAMAGE_TAKEN').useOptionId, actionId: REACTION_ACTION_ID }
+      ],
+      allowedResponses: ['DECLINE', 'OPTION']
+    })
+  })
+
+  it('holds no reaction of another moment, and every other offer still holds one trigger', async () => {
+    const mixed = 'An offer holds the reactions its kind names'
+    await expect(
+      pausedAttack({ offer: { ...offer, triggers: ['ATTACKED_SELF', 'TARGETED_SELF'] } })
+    ).rejects.toThrow(mixed)
+    await expect(pausedAttack({ offer: { ...offer, triggers: ['SPELL_CAST'] } })).rejects.toThrow(
+      mixed
+    )
+  })
+
+  it('keeps the hit exactly when it is the offer to the creature hit, on the TEST that hit', async () => {
+    const unkept = 'Only an offer made to the creature an attack hit keeps that hit.'
+    await expect(pausedAttack({ offer: { ...offer, hit: false } })).rejects.toThrow(unkept)
+    await expect(pausedAttack({ offer: { ...offer, test: false } })).rejects.toThrow(
+      'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'
+    )
+  })
+
+  it('records the chosen reaction as a child of the held attack, which reads the hit’s damage types from the offer', async () => {
+    const raised = await pausedAttack({ offer, reactionChildren: [{ commandId: child }] })
+    expect(await readReactionChildParent(raised.ctx, link)).toEqual(raised.occurrence())
+    expect(await readReactionChildHitDamageTypeIds(raised.ctx, link)).toEqual([FIRE_ID, COLD_ID])
+    await suspendReactionChildParent(raised.ctx, link)
+    expect(await readReactionChildHitDamageTypeIds(raised.ctx, link)).toEqual([FIRE_ID, COLD_ID])
+  })
+
+  it('reads no damage types for a child that answers no hit, or that the attack does not record', async () => {
+    const aimed = await pausedAttack({
+      offer: { kind: 'ATTACK_ON_OTHER' },
+      reactionChildren: [{ commandId: child }]
+    })
+    expect(await readReactionChildHitDamageTypeIds(aimed.ctx, link)).toBeNull()
+    const unheld = await pausedAttack({ reactionChildren: [{ commandId: child }] })
+    expect(await readReactionChildHitDamageTypeIds(unheld.ctx, link)).toBeNull()
+    const other = await pausedAttack({ offer, reactionChildren: [{ commandId: testUuid(0x8a0b) }] })
+    expect(await readReactionChildHitDamageTypeIds(other.ctx, link)).toBeNull()
   })
 })
 
