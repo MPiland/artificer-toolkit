@@ -95,11 +95,6 @@ import {
   type prepareNativeLiveMovementTarget
 } from './nativeEncounterTargets.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import {
-  encounterAreaTargetCommandId,
-  encounterAreaTargetOccurrenceId
-} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
-import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { type NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
 import { encounterFleeActionWarnings } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
@@ -909,70 +904,6 @@ export async function openReachCastWindow(
     } satisfies ReachCastWindow
   }
 }
-
-/**
- * Holds what the chosen creatures of a list did on being chosen (Shield, D137) before the cast
- * resolves. Each reaction used is planned to spend when the cast ends, and its reactor's entries are
- * prepared again against the creature as the reaction's effect leaves it; the effect itself lands with
- * the reactor's first outcome. The same hold serves a list that commits at once and one that seals a
- * roll per creature, which holds it again each time the pending cast is read.
- */
-export async function holdChosenReactions(
-  input: ReachPlanInput,
-  cast: {
-    reach: AreaReach
-    pause: ReturnType<typeof reachCastPause>
-    occurrenceId: string
-    occurredAt: string
-    usedReactions: readonly EncounterUsedReactionDto[]
-  }
-) {
-  const usedReactions = await cast.pause.planUsedReactions(cast.usedReactions)
-  const reach = { ...cast.reach, movementTargets: new Map(cast.reach.movementTargets) }
-  const reactionEffects = new Map<
-    string,
-    Awaited<ReturnType<typeof applyNativeReactionEffect>>['reactionEffect']
-  >()
-  const prepareReactor = (actor: EncounterRunActorState, token: ReachToken | null) =>
-    prepareAreaTarget({ ...input, base: reach, actor, token })
-  for (const { receipt, found } of usedReactions) {
-    if (receipt.reaction.trigger !== 'TARGETED_SELF') continue
-    const reactorId = receipt.reaction.reactorActorId
-    const reactor = input.actors.find((actor) => actor.id === reactorId)
-    if (!reactor) throw new Error('Reaction evidence is stale.')
-    const reactorOccurrenceId = encounterAreaTargetOccurrenceId(cast.occurrenceId, reactorId)
-    const applied = await applyNativeReactionEffect({
-      reaction: { prepared: found.prepared, triggerDamageTypeIds: [] },
-      runtime: input.runtime,
-      // The effect lands with the reactor's first outcome, so it is that outcome's own.
-      occurrenceId: reactorOccurrenceId,
-      commandId: encounterAreaTargetCommandId(reactorOccurrenceId),
-      reactorActorId: reactorId,
-      occurredAt: cast.occurredAt,
-      activeEffectsByActorId: input.activeEffectsByActorId,
-      loadTarget: input.loadTarget,
-      prepareAttack: async (_reactedTargets, adjustedTarget) => {
-        reach.movementTargets.set(reactorId, adjustedTarget)
-        return (
-          await prepareReactor(
-            reactor,
-            reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
-          )
-        ).prepared
-      }
-    })
-    reactionEffects.set(reactorId, applied.reactionEffect)
-  }
-  return {
-    usedReactions,
-    reactionEffects,
-    /** The creature's entry as the reaction it used leaves it; null for a creature that used none. */
-    prepareReactor: async (actor: EncounterRunActorState, token: ReachToken | null) =>
-      reactionEffects.has(actor.id) ? prepareReactor(actor, token) : null
-  }
-}
-
-export type ChosenReactionsHold = Awaited<ReturnType<typeof holdChosenReactions>>
 
 /** The creatures a rolled hit-point pool covers, lowest current hit points first (Sleep). */
 export function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(

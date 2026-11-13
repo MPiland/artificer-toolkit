@@ -191,7 +191,7 @@ describe('castPendingContinues', () => {
     expect(castPendingContinues(held, dice, {})).toBe(false)
   })
 
-  it('lets a reaction spent at its own offer leave the cast as a decline does, carried as used', () => {
+  it('refuses a reaction spent at its own offer: a chosen reaction always runs as its own action (D219)', () => {
     const settled = (overrides: object) => ({
       pause: {
         kind: 'CAST_REACTION' as const,
@@ -200,7 +200,7 @@ describe('castPendingContinues', () => {
       usedReactions: [failedBy('second')],
       ...overrides
     })
-    expect(castPendingContinues(held, option, settled({}))).toBe(true)
+    expect(castPendingContinues(held, option, settled({}))).toBe(false)
     expect(castPendingContinues(held, option, settled({ usedReactions: [] }))).toBe(false)
     expect(
       castPendingContinues(

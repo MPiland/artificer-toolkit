@@ -818,14 +818,13 @@ list all prepare the caster's action on a creature through `prepareCasterActionO
 (`nativeAreaPreparation.ts`); the single-target path passes what only it reads (its Scene, state and source
 loaders) as the `attack` option. Every list, immediate or sealed, passes its creatures to the cast window
 (`openReachCastWindow` with `chosenActorIds`), so a chosen creature may answer being chosen (D137) before its
-save or the ray at it is rolled. `holdChosenReactions` then plans each used reaction's cost, builds its effect
-and prepares the reactor's entries again against the creature as the effect leaves it. An immediate list uses
-that hold once. A sealed list seals its saves from it and adds no pending state: the Answer, Legendary
-Resistance, d20 window and Commit planners rebuild the hold from the aggregate's own `usedReactions`
-(`prepareSealedReach`, `nativeAreaRevalidation.ts`). A sealed creature's currentness checksum is taken on its
-preparation without the reaction's effect, at seal and at every recheck, so using a reaction does not make the
-pending cast stale; the adjusted preparation is what the roll resolves against. The effect and the reactor's
-cost land at Commit, the effect with the reactor's first outcome.
+save or the ray at it is rolled. **A used reaction is a child (current, QUALITY-9.T1d1, D219):** the chosen
+reaction runs as its holder's own action on itself (`TARGETED_SELF`, resume `REBIND_TEST`), so its cost and
+effect are in the room before the list goes on. The resumed list prepares every creature from the room as the
+child left it (`prepareReach`), so an immediate list resolves, and a sealed list seals its saves or rays,
+against the reactor as its reaction leaves it; no planner derives or holds a reaction's effect, and the list's
+commit carries none. Undoing the list undoes its reaction children with it, and voiding the held list voids
+them.
 
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 
@@ -1721,9 +1720,10 @@ resumes from its child in `openReachCastWindow` (`nativeAreaPreparation.ts`), an
 saves, its commit or its loss. On a chosen list the creatures a cast names are offered their own reaction
 (`TARGETED_SELF`) after a counter that did not cancel it. QUALITY-9.T1c3 deleted the inline chain this
 replaced (REACTION-4.T3d): the offer's `chain`, the parity resolution in `advanceNativeCastReactions`, the
-countered cast's `counter` receipt with its reactor spend, and the used reaction's `check`. Transitional
-(until QUALITY-9.T1d1): `usedReactions` still carries a `TARGETED_SELF` reaction spent at its own offer to
-the action's terminal commit.
+countered cast's `counter` receipt with its reactor spend, and the used reaction's `check`. QUALITY-9.T1d1
+moved `TARGETED_SELF` onto the same child path and deleted the spend at the offer, so no cast pause adds a
+used reaction any more (`castPendingContinues` refuses one). Transitional (until QUALITY-9.T1d2): the
+`usedReactions` field and its commit plumbing remain, always empty for a cast.
 
 **Currentness across a reaction child (current, QUALITY-9.T1a; widened by QUALITY-9.T1c2).** A held action's
 sealed currentness checksum covers its source's and its target's facts. When a creature that reacted in the
@@ -1808,8 +1808,9 @@ Every sealed offer pins its reactions with one schema, `encounterReactionPinDtoS
 the `trigger`, which is any `reactionTrigger` kind. The former per-trigger pin schemas (hit, cast and roll window) are
 removed. A reaction used before its action did anything is carried on the pending context in `usedReactions`
 (`triggerLevel` is null when the action is not a spell cast) and is spent by the action's terminal commit
-(`usedReactionSpend.ts`). The list holds every reaction spent before the action's own effects: a counter that failed
-or was itself countered, a reaction to being named a target, and a reaction to an attack aimed at another.
+(`usedReactionSpend.ts`). Transitional (until QUALITY-9.T1d2): no cast pause fills the list since QUALITY-9.T1d1,
+because every chosen cast reaction (a counter, a reaction to being named a target, a reaction to an attack aimed at
+another) runs as its holder's own child action (D219).
 
 The offer's `kind` names what it holds: `COUNTER` for counters to a cast (`SPELL_CAST` pins), otherwise the trigger of
 its pins, `TARGETED_SELF` or `ATTACK_ON_OTHER`. The schema refuses an offer whose pins do not match its kind.

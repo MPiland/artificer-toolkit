@@ -31,7 +31,6 @@ import {
 } from './nativeEncounterAimedReaction.js'
 import {
   advanceNativeCastReactions,
-  advanceNativeTargetedReactions,
   discoverNativeCastReactions,
   discoverNativeTargetedReactions,
   planNativeCounteredCast,
@@ -332,12 +331,10 @@ export function createNativeCastPause(input: {
     return planNativeUsedReactions({
       usedReactions: counters,
       discover: async (trigger) => {
-        const { moment } = REACTION_TRIGGERS[trigger]
-        if (moment === 'TARGETED_BY_CAST') return discoverTargeted()
-        // A reaction to an attack aimed at another is spent by its own child action, never here (D219).
-        if (moment !== 'SPELL_CAST_BY_OTHER' || triggerLevel === null)
+        // A reaction to a cast or to an attack aimed at another is spent by its own child action (D219).
+        if (REACTION_TRIGGERS[trigger].moment !== 'TARGETED_BY_CAST')
           throw new Error('Reaction evidence is stale.')
-        return discoverCast(triggerLevel)
+        return discoverTargeted()
       },
       state,
       occurrenceId: input.occurrenceId,
@@ -391,27 +388,28 @@ export function createNativeCastPause(input: {
       }
     const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
     /**
-     * The reaction chosen at any moment runs as its holder's own action at the creature acting: the
-     * room commits that child, then resumes this action, which keeps the answered offer until then.
+     * The reaction chosen at any moment runs as its holder's own action at the creature its moment
+     * names: the room commits that child, then resumes this action, which keeps the answered offer
+     * until then.
      */
     const awaitChild = async (
-      advanced: Extract<
-        Awaited<
-          ReturnType<typeof advanceNativeCastReactions | typeof advanceNativeTargetedReactions>
-        >,
-        { kind: 'CHILD' }
-      >
+      advanced: Extract<Awaited<ReturnType<typeof advanceNativeCastReactions>>, { kind: 'CHILD' }>,
+      targetActorId: string
     ) => {
-      const childScene = await readScene()
-      const holderToken = childScene.tokens.find(
-        (token) => token.actorId === advanced.child.holderActorId
-      )
+      // A cast that names its targets off any Scene still offers them their reactions to being named.
+      const childScene = input.readScene ? await readScene() : null
+      const tokenOf = (actorId: string) =>
+        actorId === prepared.actor.id
+          ? childScene?.sourceToken
+          : childScene?.tokens.find((token) => token.actorId === actorId)
+      const holderToken = tokenOf(advanced.child.holderActorId)
+      const targetToken = tokenOf(targetActorId)
       return {
         kind: 'CAST_PENDING' as const,
         continuation: advanced.continuation,
         rollerActorId: advanced.child.holderActorId,
         pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-        usedReactions: advanced.usedReactions,
+        usedReactions: input.usedReactions,
         reactionChildren: [
           ...reactionChildren,
           {
@@ -425,15 +423,16 @@ export function createNativeCastPause(input: {
         // The child is judged on the Scene the reaction was offered on.
         reactionChild: {
           ...advanced.child,
-          targetActorId: prepared.actor.id,
-          sceneContext: holderToken
-            ? {
-                sceneId: childScene.sceneId,
-                expectedSceneVersion: childScene.sceneVersion,
-                sourceTokenId: holderToken.tokenId,
-                targetTokenId: childScene.sourceToken.tokenId
-              }
-            : null
+          targetActorId,
+          sceneContext:
+            childScene && holderToken && targetToken
+              ? {
+                  sceneId: childScene.sceneId,
+                  expectedSceneVersion: childScene.sceneVersion,
+                  sourceTokenId: holderToken.tokenId,
+                  targetTokenId: targetToken.tokenId
+                }
+              : null
         }
       }
     }
@@ -444,7 +443,7 @@ export function createNativeCastPause(input: {
     const targetedAnswer = aimedAnswer ? null : resumeAnswer
     if (input.answer && !aimedAnswer && triggerLevel === null)
       throw new Error('Reaction evidence is stale.')
-    let usedReactions = input.usedReactions
+    const { usedReactions } = input
     let declinedReactorActorIds: readonly string[] = []
     if (
       triggerLevel !== null &&
@@ -456,32 +455,31 @@ export function createNativeCastPause(input: {
       const advanced = await advanceNativeCastReactions({
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,
-        casterActorId: prepared.actor.id,
-        triggerLevel,
+        kind: 'COUNTER',
         answer: input.answer,
-        usedReactions,
         // The creature whose own action did not cancel the cast has been heard, like one that declined.
         declinedReactorActorIds: counterResume
           ? [...counterResume.declinedReactorActorIds, counterResume.reactorActorId]
           : [],
         discover: await discoverCast(triggerLevel)
       })
-      if (advanced.kind === 'CHILD') return awaitChild(advanced)
+      if (advanced.kind === 'CHILD') return awaitChild(advanced, prepared.actor.id)
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,
           continuation: advanced.continuation,
           rollerActorId: advanced.reactor.id,
           pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          usedReactions: advanced.usedReactions,
+          usedReactions,
           reactionChildren,
           reactionChild: null
         }
-      usedReactions = advanced.usedReactions
       declinedReactorActorIds = advanced.declinedReactorActorIds
     }
     // Each moment the action resumes from offers its reactions in turn: being named a cast's target,
-    // then an attack aimed at another creature. A moment already answered past is not offered again.
+    // then an attack aimed at another creature. A moment already answered past is not offered again,
+    // and the creature whose child the action resumes from has been heard, like one that declined.
+    const targetedResume = resumedOffer?.kind === 'TARGETED_SELF' ? resumedOffer : null
     for (const stage of [
       {
         kind: 'TARGETED_SELF' as const,
@@ -489,14 +487,16 @@ export function createNativeCastPause(input: {
           triggerLevel !== null &&
           !aimedAnswer &&
           // A counter whose own action did not cancel the cast leaves it to name its targets.
-          (!resumedOffer || counterResume) &&
+          (!resumedOffer || counterResume || targetedResume) &&
           input.chosenActorIds &&
           castOwnerId,
         discover: discoverTargeted,
         answer: targetedAnswer,
-        triggerLevel,
-        declinedReactorActorIds,
-        runsAsChild: false
+        declinedReactorActorIds: targetedResume
+          ? [...targetedResume.declinedReactorActorIds, targetedResume.reactorActorId]
+          : declinedReactorActorIds,
+        // The reaction answers its holder being named, so its action is the holder's on itself.
+        childTargetActorId: (holderActorId: string) => holderActorId
       },
       {
         kind: 'ATTACK_ON_OTHER' as const,
@@ -507,43 +507,37 @@ export function createNativeCastPause(input: {
           input.readScene,
         discover: discoverAimed,
         answer: aimedAnswer,
-        triggerLevel: null,
-        // The creature whose child the action resumes from has been heard, like one that declined.
         declinedReactorActorIds:
           resumedOffer?.kind === 'ATTACK_ON_OTHER'
             ? [...resumedOffer.declinedReactorActorIds, resumedOffer.reactorActorId]
             : [],
-        runsAsChild: true
+        childTargetActorId: () => prepared.actor.id
       }
     ]) {
       if (!stage.offered) {
         if (stage.answer) throw new Error('Reaction evidence is stale.')
         continue
       }
-      const advanced = await advanceNativeTargetedReactions({
+      const advanced = await advanceNativeCastReactions({
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,
         kind: stage.kind,
-        casterActorId: prepared.actor.id,
-        triggerLevel: stage.triggerLevel,
         discover: stage.discover(),
         answer: stage.answer,
-        usedReactions,
-        declinedReactorActorIds: stage.declinedReactorActorIds,
-        runsAsChild: stage.runsAsChild
+        declinedReactorActorIds: stage.declinedReactorActorIds
       })
-      if (advanced.kind === 'CHILD') return awaitChild(advanced)
+      if (advanced.kind === 'CHILD')
+        return awaitChild(advanced, stage.childTargetActorId(advanced.child.holderActorId))
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,
           continuation: advanced.continuation,
           rollerActorId: advanced.reactor.id,
           pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          usedReactions: advanced.usedReactions,
+          usedReactions,
           reactionChildren,
           reactionChild: null
         }
-      usedReactions = advanced.usedReactions
     }
     return { kind: 'NONE' as const, usedReactions, reactionChildren }
   }

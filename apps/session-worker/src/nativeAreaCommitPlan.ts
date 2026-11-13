@@ -17,7 +17,6 @@ import {
   buildEncounterJoinedMaintenanceTransition,
   buildEncounterMaintenanceTransition
 } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
-import type { createNativeActiveEffect } from './nativeEncounterSettlement.js'
 import { planNativeActionTargetOutcome } from './nativeActionTargetOutcome.js'
 import type { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
@@ -88,10 +87,6 @@ export async function planAreaOutcomes(args: {
   tests: readonly Pick<Awaited<ReturnType<typeof replayAreaTargetSave>>, 'actorId' | 'boundary'>[]
   audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
   struck: StruckSaves
-  reactionEffects?: ReadonlyMap<
-    string,
-    { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }
-  >
   formCreature?: EncounterActorFormCreature | null
   maintenance: Awaited<ReturnType<typeof prepareAreaCommitMaintenance>>['maintenance']
   holdingZone: Parameters<typeof prepareNativeActionEffectsPlan>[0]['holdingZone']
@@ -119,7 +114,6 @@ export async function planAreaOutcomes(args: {
     tests,
     audits,
     struck,
-    reactionEffects,
     formCreature,
     maintenance,
     holdingZone,
@@ -255,8 +249,7 @@ export async function planAreaOutcomes(args: {
       dispositions,
       currentEffects: targetEffects,
       maintainedState: joined,
-      // The effect of a reaction the creature used on being chosen lands with its first outcome.
-      reactionEffect: (firstEntry ? reactionEffects?.get(actor.id) : undefined) ?? null,
+      reactionEffect: null,
       grants: [],
       formCreature: formCreature ?? null,
       targetSpends: carriesUsedReactionSpend,

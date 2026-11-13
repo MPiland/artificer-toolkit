@@ -21,7 +21,6 @@ import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import { readChosenFormCreature, sealReachSaves } from './nativeEncounterAreaRules.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
 import {
-  holdChosenReactions,
   openReachCastWindow,
   prepareAreaTarget,
   prepareCasterSource,
@@ -187,29 +186,18 @@ export async function planNativeLiveEncounterActorsAction(
   })
   if (opened.kind === 'PLAN') return opened.plan
   const { window } = opened
-  const held = await holdChosenReactions(input, {
-    reach,
-    pause: window.pause,
-    occurrenceId: window.occurrenceId,
-    occurredAt: window.occurredAt,
-    usedReactions: window.usedReactions
-  })
   // An action that asks each creature for a save waits for the rollers it names.
   if (lead.plan.kind !== 'SINGLE_GRAPH')
     return sealReachSaves(input, {
       reach,
       lead,
       targets: prepared,
-      held,
       unaffectedActorIds: [],
       evaluation,
       ruleOverrides,
       window
     })
   const { economy, attackAction } = evaluation
-  const { usedReactions, reactionEffects } = held
-  for (const [index, entry] of prepared.entries())
-    prepared[index] = { ...entry, ...(await held.prepareReactor(entry.actor, entry.token)) }
   const settled = await executeEncounterActorsAction({
     runtime: input.runtime,
     random: input.random,
@@ -227,8 +215,7 @@ export async function planNativeLiveEncounterActorsAction(
     command,
     caster,
     occurredAt: window.occurredAt,
-    usedReactions,
-    reactionEffects,
+    usedReactions: await window.pause.planUsedReactions(window.usedReactions),
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),
     lead,

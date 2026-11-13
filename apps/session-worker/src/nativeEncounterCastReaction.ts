@@ -80,8 +80,6 @@ type CastReactionFilter = {
   declinedReactorActorIds: readonly string[]
   /** Only this reaction of this creature: the offer that is being answered. */
   answering?: { reactorActorId: string; actionId: string }
-  /** The cast the reactions answer, when it is not the original caster's own. */
-  against?: { actorId: string; level: number | null }
 }
 
 /** The first creature, by actor id, holding a reaction to the cast, with its menu; null when none does. */
@@ -132,8 +130,7 @@ export async function firstNativeReactorOffered<Found>(input: {
  * answers with its own range, and is cast at a level at least the cast's, or authors a check for a
  * higher-level cast. A defeated Character (D63), the creature whose cast is answered, and a creature
  * already unavailable (declined, used a counter) offer nothing. In a Scene a creature with no token on
- * it cannot reach the cast. The cast answered is the original caster's unless `against` names a counter
- * cast, itself a cast another creature may counter, the original caster included.
+ * it cannot reach the cast.
  */
 export function discoverNativeCastReactions(input: {
   state: EncounterRunState
@@ -155,25 +152,17 @@ export function discoverNativeCastReactions(input: {
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }): CastReactionDiscovery<NativeCastResponse> {
-  const { state, caster, scene } = input
+  const { state, caster, scene, triggerLevel } = input
   const grid = resolveEncounterSceneGrid({
     encounter: state,
     sceneGrid: scene.sceneGrid
   })
-  return async (filter) => {
-    const againstActorId = filter.against?.actorId ?? caster.id
-    const triggerLevel = filter.against?.level ?? input.triggerLevel
-    const against = input.actors.find((actor) => actor.id === againstActorId)
-    const tokenOf = (actorId: string) =>
-      actorId === caster.id
-        ? scene.sourceToken
-        : scene.tokens.find((token) => token.actorId === actorId)
-    const againstToken = tokenOf(againstActorId)
-    if (!against || !againstToken) return null
-    return firstNativeReactorOffered({
+  return (filter) =>
+    firstNativeReactorOffered({
       actors: input.actors,
       filter,
-      concerns: (actor) => actor.id !== againstActorId && tokenOf(actor.id) !== undefined,
+      concerns: (actor) =>
+        actor.id !== caster.id && scene.tokens.some((token) => token.actorId === actor.id),
       loadTarget: input.loadTarget,
       offer: (reactor, reactorTarget) =>
         offerNativeReactions({
@@ -183,7 +172,7 @@ export function discoverNativeCastReactions(input: {
           held: characterReactionCandidates(reactorTarget),
           events: [{ kind: 'SPELL_CAST_BY_OTHER' }],
           answering: filter.answering?.actionId,
-          prepare: (actionId) => input.prepareReaction(reactor, reactorTarget, actionId, against),
+          prepare: (actionId) => input.prepareReaction(reactor, reactorTarget, actionId, caster),
           admit: (prepared) => {
             if (prepared.source.kind !== 'CHARACTER_ACTION') return null
             const level = preparedSpellCastLevel(prepared)
@@ -200,12 +189,15 @@ export function discoverNativeCastReactions(input: {
             if (check && castReactionCheckAbility(check, reactorTarget) === undefined) return null
             return {}
           },
-          range: { grid, sourceToken: tokenOf(reactor.id)!, targetToken: againstToken },
-          targetIds: [againstActorId],
+          range: {
+            grid,
+            sourceToken: scene.tokens.find((token) => token.actorId === reactor.id)!,
+            targetToken: scene.sourceToken
+          },
+          targetIds: [caster.id],
           capture: input.capture
         })
     })
-  }
 }
 
 /**
@@ -266,45 +258,38 @@ export type NativeCastReactionAnswer = {
 }
 
 /**
- * Where the offers to counter a cast stand once an answer, if any, is taken in: the child action of
- * the counter a creature chose, the next creature to ask, or nobody left to ask. A decline hands the
- * cast to the next creature in turn. The cast itself is never held; it replays from its command with
- * the declines recorded.
+ * Where the offers of one moment before an action does anything stand once an answer, if any, is
+ * taken in (the creatures that may counter a cast, those it names as targets, those beside an attack
+ * aimed at another): the child action of the reaction a creature chose, the next creature to ask, or
+ * nobody left to ask. A decline hands the action to the next creature in turn. The action itself is
+ * never held; it replays from its command with the declines recorded.
  *
- * A counter runs as its holder's own action (D219): this names that child and keeps the answered
- * offer, and the cast resumes once the child has committed, lost if the child cancelled it. The child
- * is itself a cast, which offers its own counters and owes the counter's check as its own incoming
- * gate, so no check is rolled here.
+ * A chosen reaction runs as its holder's own action (D219): this names that child and keeps the
+ * answered offer, and the action resumes past that creature once the child has committed. A counter's
+ * child is itself a cast, which offers its own counters and owes the counter's check as its own
+ * incoming gate, so no check is rolled here.
  */
 export async function advanceNativeCastReactions(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
-  /** The creature casting the spell, whose own offers are measured from it. */
-  casterActorId: string
-  /** The level the cast is cast at. */
-  triggerLevel: number
-  discover: ReturnType<typeof discoverNativeCastReactions>
+  /** The offer kind of the moment these reactions answer. */
+  kind: EncounterCastReactionOfferDto['kind']
+  discover: CastReactionDiscovery<NativeCastResponse>
   answer: NativeCastReactionAnswer | null
-  /** The attempts that already failed against this cast. */
-  usedReactions: readonly EncounterUsedReactionDto[]
   /**
-   * The creatures already heard from at the cast's own level when no answer is in hand: those that
-   * declined, and the one whose counter ran as its own action without cancelling the cast.
+   * The creatures already heard from when no answer is in hand: those that declined, and the one
+   * whose reaction ran as its own action.
    */
   declinedReactorActorIds: readonly string[]
 }) {
   const { runtime, occurrenceId, answer } = input
-  const usedReactions = [...input.usedReactions]
   const declinedReactorActorIds = [
     ...(answer?.offer.declinedReactorActorIds ?? input.declinedReactorActorIds)
   ]
   if (answer) {
     const chosen = chosenEncounterReaction(answer.offer, answer.selection)
     if (answer.selection.kind === 'OPTION') {
-      const { found } = await findNativeCastReaction(input.discover, chosen, {
-        actorId: input.casterActorId,
-        level: input.triggerLevel
-      })
+      const { found } = await findNativeCastReaction(input.discover, chosen)
       await settleEncounterCastReactionUse({
         runtime,
         occurrenceId,
@@ -315,117 +300,19 @@ export async function advanceNativeCastReactions(input: {
       return {
         kind: 'CHILD' as const,
         child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
-        // The offer stays as it was answered until the cast resumes from the child.
+        // The offer stays as it was answered until the action resumes from the child.
         continuation: await openEncounterReactionChoice({
           runtime,
           occurrenceId,
           candidate: found.candidate
         }),
-        offer: answer.offer,
-        usedReactions
+        offer: answer.offer
       }
     }
     declinedReactorActorIds.push(chosen.reactorActorId)
   }
-  const next = await input.discover({
-    declinedReactorActorIds: [
-      ...declinedReactorActorIds,
-      ...usedReactions.map(({ reaction }) => reaction.reactorActorId)
-    ]
-  })
-  if (!next) return { kind: 'NONE' as const, usedReactions, declinedReactorActorIds }
-  return {
-    kind: 'OFFER' as const,
-    reactor: next.reactor,
-    continuation: await openEncounterReactionChoice({
-      runtime,
-      occurrenceId,
-      candidate: next.reactions[0]!.candidate
-    }),
-    offer: {
-      kind: 'COUNTER' as const,
-      reactions: next.reactions.map(({ candidate }) => encounterReactionPin(candidate)),
-      declinedReactorActorIds
-    },
-    usedReactions
-  }
-}
-
-/**
- * Where the offers of one moment that the action resumes from stand once an answer, if any, is taken
- * in (the creatures a cast names as targets, the creatures beside an attack aimed at another): the
- * reaction a creature used (kept with the action's other spent reactions, to be spent and applied at
- * its terminal commit), the next creature to ask, or nobody left. A decline and a use both hand the
- * action to the next creature in turn; the creature heard from is not asked again. A moment whose
- * reactions run as their own actions (D219) instead names the child action of the reaction chosen and
- * keeps its offer: the action resumes past that creature once the child has committed.
- */
-export async function advanceNativeTargetedReactions(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  /** The offer kind of the moment these reactions answer. */
-  kind: Exclude<EncounterCastReactionOfferDto['kind'], 'COUNTER'>
-  /** The creature taking the action. */
-  casterActorId: string
-  /** The level the cast is cast at; null when the action casts no spell. */
-  triggerLevel: number | null
-  discover: CastReactionDiscovery<NativeCastResponse>
-  answer: NativeCastReactionAnswer | null
-  /** The reactions already spent against this cast. */
-  usedReactions: readonly EncounterUsedReactionDto[]
-  /** The creatures the counter offers already heard from, which the first targeted offer carries on. */
-  declinedReactorActorIds: readonly string[]
-  /** Whether a reaction chosen at this moment runs as its holder's own action (D219). */
-  runsAsChild: boolean
-}) {
-  const { runtime, occurrenceId, answer } = input
-  const usedReactions = [...input.usedReactions]
-  const declinedReactorActorIds = [
-    ...(answer ? answer.offer.declinedReactorActorIds : input.declinedReactorActorIds)
-  ]
-  if (answer) {
-    const chosen = chosenEncounterReaction(answer.offer, answer.selection)
-    declinedReactorActorIds.push(chosen.reactorActorId)
-    if (answer.selection.kind === 'OPTION') {
-      const { found } = await findNativeCastReaction(input.discover, chosen, {
-        actorId: input.casterActorId,
-        level: input.triggerLevel
-      })
-      const { reaction, choice } = await settleEncounterCastReactionUse({
-        runtime,
-        occurrenceId,
-        offer: answer.offer,
-        candidate: found.candidate,
-        optionId: answer.selection.optionId
-      })
-      if (input.runsAsChild)
-        return {
-          kind: 'CHILD' as const,
-          child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
-          // The offer stays as it was answered until the action resumes from the child.
-          continuation: await openEncounterReactionChoice({
-            runtime,
-            occurrenceId,
-            candidate: found.candidate
-          }),
-          offer: answer.offer,
-          usedReactions
-        }
-      usedReactions.push({
-        reaction,
-        choiceExecution: choice,
-        triggerLevel: input.triggerLevel,
-        againstActorId: input.casterActorId
-      })
-    }
-  }
-  const next = await input.discover({
-    declinedReactorActorIds: [
-      ...declinedReactorActorIds,
-      ...usedReactions.map(({ reaction }) => reaction.reactorActorId)
-    ]
-  })
-  if (!next) return { kind: 'NONE' as const, usedReactions }
+  const next = await input.discover({ declinedReactorActorIds })
+  if (!next) return { kind: 'NONE' as const, declinedReactorActorIds }
   return {
     kind: 'OFFER' as const,
     reactor: next.reactor,
@@ -438,21 +325,18 @@ export async function advanceNativeTargetedReactions(input: {
       kind: input.kind,
       reactions: next.reactions.map(({ candidate }) => encounterReactionPin(candidate)),
       declinedReactorActorIds
-    },
-    usedReactions
+    }
   }
 }
 
 /** The reaction as an offer pinned it, still as affordable and as prepared as it was. */
 async function findNativeCastReaction<Found extends NativeCastResponse>(
   discover: CastReactionDiscovery<Found>,
-  pin: { reactorActorId: string; actionId: string },
-  against: { actorId: string; level: number | null }
+  pin: { reactorActorId: string; actionId: string }
 ) {
   const match = await discover({
     declinedReactorActorIds: [],
-    answering: { reactorActorId: pin.reactorActorId, actionId: pin.actionId },
-    against
+    answering: { reactorActorId: pin.reactorActorId, actionId: pin.actionId }
   })
   const [found] = match?.reactions ?? []
   if (!match || !found) throw new Error('Reaction evidence is stale.')
@@ -480,8 +364,7 @@ export async function planNativeUsedReactions(input: {
   for (const used of input.usedReactions) {
     const { found } = await findNativeCastReaction(
       await input.discover(used.reaction.trigger),
-      used.reaction,
-      { actorId: used.againstActorId, level: used.triggerLevel }
+      used.reaction
     )
     if (!sameEncounterReactionCandidate(used.reaction, found.candidate))
       throw new Error('Reaction evidence is stale.')

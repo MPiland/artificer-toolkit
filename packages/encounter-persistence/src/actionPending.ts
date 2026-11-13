@@ -201,14 +201,13 @@ function castAnswer(
 
 /**
  * How a cast's pending may continue (D127, D219). A held cast leaves its pause by a decline or by
- * choosing a reaction. A reaction that runs as its holder's own action is recorded as a child: the same
- * offer stays held until the room resumes it, which moves the cast on as the reactor's decline would.
- * A reaction spent at its own offer is carried as used to the cast's terminal commit, which spends it.
- * Either way the creature heard from joins the offer's declines and is not asked again.
+ * choosing a reaction. A chosen reaction always runs as its holder's own action, recorded as a child:
+ * the same offer stays held until the room resumes it, which moves the cast on as the reactor's
+ * decline would. Either way the creature heard from joins the offer's declines and is not asked
+ * again, and no pause adds a used reaction.
  *
  * An offer made after the action's attack roll keeps the rolled d20: it is left by a decline, to the
- * next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction,
- * which is recorded as a child action and never carried as a used reaction.
+ * next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction.
  */
 export function castPendingContinues(
   previous: CastPendingContext,
@@ -264,22 +263,20 @@ export function castPendingContinues(
     return false
   const recordsChild =
     (next.reactionChildren?.length ?? 0) > (previous.reactionChildren?.length ?? 0)
-  // A reaction chosen after the roll always runs as its holder's own action (D219).
-  if (castReaction.rolled && spends && !recordsChild) return false
+  if (!sameMembers(usedNext, usedPrevious)) return false
   // The chosen reaction runs as a child action: the same offer stays held until the room resumes it.
-  if (recordsChild)
+  if (spends || recordsChild)
     return (
       spends &&
+      recordsChild &&
       nextCastReaction != null &&
       next.rollerActorId === roller &&
-      sameMembers(usedNext, usedPrevious) &&
       sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
       awaitsReactionChild(next)
     )
   return (
-    sameMembers(usedNext, [...usedPrevious, ...(spends ? [roller] : [])]) &&
-    (!nextCastReaction ||
-      sameMembers(nextCastReaction.declinedReactorActorIds, [...declinedPrevious, roller]))
+    !nextCastReaction ||
+    sameMembers(nextCastReaction.declinedReactorActorIds, [...declinedPrevious, roller])
   )
 }
 
