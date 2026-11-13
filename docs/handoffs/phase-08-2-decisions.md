@@ -2179,3 +2179,12 @@ QUALITY-8's seam audit found the reaction paths settle their effects inline (Pro
   3. **Child inputs.** The child reads its occasion and the mover's contact position from the parent's pending context, as `castLevel` is read, not from new command fields.
 
   Movement keeps its own host for spatial evidence and spatial concentration. QUALITY-9.T1e3 and QUALITY-15.T1 follow QUALITY-18.T6.
+
+  **T1 split (2026-11-12; user approved the D187 growth, +6).** The seam trace found T1 at about 11. There is one movement host, the room. The encounter-persistence preview host named in `rules-runtime.md` is a read-only choice preview, and the Convex `scenes/*` tests drive the real Session Worker. The split:
+  - **T1a (3):** the move parent records children.
+  - **T1b (5):** move resume and release.
+  - **T2 (5 → 8):** takes over the fence allowance and proves it through the room once it writes the first child.
+
+  User ruling 4: **each move resume and release is a `resolutionCommands` entry of a new kind with a derived command id**, as system-trigger children derive theirs. This is additive to the persisted shape. It keeps the invariant `resolutionCommands.length === occurrence.version` at its twelve sites. It also gives the Scene geometry save, receipts and replay the command id they already need.
+
+  Orchestrator ruling 5: a child record keeps one resume marker for both parent kinds, under a neutral name. STOP joins that vocabulary in T2.
