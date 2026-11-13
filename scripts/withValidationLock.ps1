@@ -80,7 +80,9 @@ try {
           $held = $candidate
           break
         }
-        $ageMinutes = ((Get-Date) - (Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue).LastWriteTime).TotalMinutes
+        $lockItem = Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue
+        if (-not $lockItem) { continue }
+        $ageMinutes = ((Get-Date) - $lockItem.LastWriteTime).TotalMinutes
         if (-not $staleWarned -and $ageMinutes -gt $staleMinutes) {
           Write-Warning "$candidate is $([int]$ageMinutes) minutes old and its owner is alive. Report it; do not delete it."
           $staleWarned = $true
