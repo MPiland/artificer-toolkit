@@ -547,7 +547,7 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
   type Execution = Awaited<ReturnType<typeof run>>['execution']
   /** The d6 a subtract outcome's graph rolls beside its proposal, as the compiler adds it (D219). */
   const triggeringRollDie = rolledDiceNodes(
-    { count: 1, die: 6 },
+    { count: 1, die: 6, modifier: 0 },
     DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX
   ).nodes
   it.each<

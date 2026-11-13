@@ -3160,7 +3160,7 @@ function compileEffectActionGraph(
     'outcome' in authored &&
     authored.outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL'
       ? rolledDiceNodes(
-          { count: authored.outcome.die.count, die: authored.outcome.die.faces },
+          { count: authored.outcome.die.count, die: authored.outcome.die.faces, modifier: 0 },
           DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX,
           { facesFactKey: DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY }
         ).nodes
