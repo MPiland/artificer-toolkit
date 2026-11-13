@@ -757,15 +757,17 @@ function creatureActionEffect(
     .require(gameSystemId)
     .raiseActionHook(invocation.triggerCode)?.subscription.event
   if (raisedOn === 'DEFEATED')
-    return {
-      ...compiled,
-      invocation: {
-        ...invocation,
-        kind: 'ACTION',
-        triggerCode: 'SAVING_THROW',
-        activation: { code: 'ACTION', amount: 1 }
-      }
-    }
+    return !('savingThrow' in invocation)
+      ? compiled
+      : {
+          ...compiled,
+          invocation: {
+            ...invocation,
+            kind: 'ACTION',
+            triggerCode: 'SAVING_THROW',
+            activation: { code: 'ACTION', amount: 1 }
+          }
+        }
   return raisedOn === 'TURN_STARTED'
     ? {
         ...compiled,
