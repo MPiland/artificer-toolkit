@@ -646,7 +646,8 @@ async function advanceAreaRay(
             prepareReaction: prepareReachReaction(
               input,
               prepared.target,
-              async () => (await readReach()).movementTargets
+              // The reaction is its holder's action on itself, so it reads that creature alone.
+              async () => new Map([[sealed.actorId, await input.loadTarget(prepared.target)]])
             ),
             // Every reaction to a ray's hit runs as its holder's child action, never inline.
             prepareReactedAttack: async () => {

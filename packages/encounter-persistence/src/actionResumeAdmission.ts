@@ -68,8 +68,8 @@ export async function readNativeEncounterActionResponseAdmission(
       : null
   const { resolution: answer } = response
   // A Legendary Resistance decision names its creature, an open push pick (D157) takes only its own
-  // destination, an open damage window (D208) only its caster's answer, and every other area answer
-  // names a save's request.
+  // destination, an open damage window (D208) only its caster's answer, a reaction choice answers the
+  // held ray, and every other area answer names a save's request.
   const areaPick = area?.context.forcedMovement?.pick
   const areaWindow = area && encounterAreaDamageRollWindow(area.context)
   const windowContext = areaWindow?.window.applicationContext
@@ -89,9 +89,15 @@ export async function readNativeEncounterActionResponseAdmission(
               target.actorId === areaPick.targetActorId
             : answer.kind === 'AREA_LEGENDARY_RESISTANCE'
               ? target.actorId === answer.actorId
-              : answer.kind !== 'FORCED_MOVEMENT' &&
-                'requestId' in answer &&
-                target.snapshot.request.requestId === answer.requestId
+              : answer.kind === 'DECLINE' || answer.kind === 'OPTION'
+                ? // A reaction choice names no request: it answers the ray held on its hit's offer.
+                  encounterAreaSaveAwaiting(
+                    { casterActorId: area.context.casterActorId, targets: area.targets },
+                    target
+                  ) === 'REACTION'
+                : answer.kind !== 'FORCED_MOVEMENT' &&
+                  'requestId' in answer &&
+                  target.snapshot.request.requestId === answer.requestId
         )
       : null
   const areaAnswer = areaDamage ?? areaSave
