@@ -75,11 +75,7 @@ import { castPendingContinues } from './actionPending.js'
 import { settleActionTargetOutcome } from './actionTargetOutcomeSettlement.js'
 import { applyUsedReactionSpends, usedReactionSpends } from './usedReactionSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
-import {
-  recordActionRollCards,
-  recordCounterCheckRollCards,
-  settledD20s
-} from './actionRollCards.js'
+import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 import { rollerAsPerceivedByCaster } from './ruleRollCards.js'
 import type {
   bindEncounterConcentrationApplications,
@@ -953,18 +949,6 @@ export async function persistEncounterAreaCommit(
         dice: settledD20s(batch)
       })
     })
-  await recordCounterCheckRollCards(ctx, {
-    campaign,
-    encounterId: state.id,
-    gameSystemId: state.gameSystemId,
-    occurrenceId: areaOccurrenceId,
-    checks: reactionSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : [])),
-    response: input.response,
-    responderUserId: userId,
-    initiatorUserId,
-    visibility: command.visibility,
-    createdAt: input.occurredAt
-  })
   return recordActionCommit(ctx, {
     admission,
     command,

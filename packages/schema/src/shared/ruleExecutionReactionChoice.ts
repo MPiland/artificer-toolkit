@@ -173,13 +173,8 @@ export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOff
  * A cast held before it executes for one creature's chance to counter it. The reactions are that
  * reactor's menu (one reaction a round); the reactors already heard from are recorded so that a replay
  * of the cast offers the next reactor rather than the same one. A counter that owes a check rolls it
- * in its holder's own action (D219), never at this pause.
- *
- * A counter is itself a cast another creature may counter. While counters stand, `chain` holds them in
- * the order they were chosen: `reactions` then offers a counter to the last one, `declinedReactorActorIds`
- * lists who declined at that level, and `castDeclinedReactorActorIds` and `castLevel` keep what the
- * outer level needs when the chain resolves (the declines to the cast itself, and the level of the last
- * counter, which is the cast the reactions now answer).
+ * in its holder's own action (D219), never at this pause. That action is itself a cast, which holds its
+ * own offers to counter it, so an offer never nests another.
  *
  * `kind` names what is offered: `COUNTER` offers counters to the cast (`SPELL_CAST` reactions). The
  * other kinds carry the trigger of the reactions they offer, which the action resumes from once one is
@@ -189,7 +184,7 @@ export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOff
  * then makes; `ATTACK_ROLL_BY_OTHER` offers a creature that sees an attack roll its reactions after the
  * d20 is rolled (D219, "Roll-window reaction die"). That last offer is the only one made after the
  * action's roll: it keeps the rolled d20 as `rolled`, every offer of the same roll carries the same
- * one, and the reaction chosen runs as its holder's own action, so it stands in no chain.
+ * one.
  */
 export type EncounterCastReactionOfferDto = {
   kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'
@@ -200,11 +195,6 @@ export type EncounterCastReactionOfferDto = {
    * settlement resumes, and the app roll it settled with (null for an entered die).
    */
   rolled?: { test: D20RolledSaveDto; appRollId: string | null }
-  chain?: {
-    counters: EncounterUsedReactionDto[]
-    castDeclinedReactorActorIds: string[]
-    castLevel: number
-  }
 }
 
 export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastReactionOfferDto> =
@@ -222,18 +212,6 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
             test: z.lazy(() => d20RolledSaveDtoSchema),
             appRollId: z.nullable(uuidSchema)
           })
-        ),
-        chain: z.optional(
-          z.strictObject({
-            counters: z
-              .array(encounterUsedReactionDtoSchema)
-              .check(z.minLength(1))
-              .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-            castDeclinedReactorActorIds: z
-              .array(uuidSchema)
-              .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-            castLevel: nonNegativeIntegerSchema
-          })
         )
       })
       .check(
@@ -249,54 +227,35 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
               message:
                 'An offer holds reactions of one trigger: counters to a cast, or the trigger its kind names.'
             })
-          if (
-            (value.kind === 'ATTACK_ROLL_BY_OTHER') !== (value.rolled !== undefined) ||
-            (value.rolled !== undefined && value.chain !== undefined)
-          )
+          if ((value.kind === 'ATTACK_ROLL_BY_OTHER') !== (value.rolled !== undefined))
             context.addIssue({
               code: 'custom',
               path: ['rolled'],
-              message:
-                'Only an offer made after the attack roll keeps the rolled d20, and its reaction stands in no chain.'
+              message: 'Only an offer made after the attack roll keeps the rolled d20.'
             })
         })
       )
   )
 
-/** What a failed counter checked: the reactor's settled d20 against the cast level's DC. */
-export type EncounterCounterCheckEvidenceDto = {
-  checkDefinitionId: string
-  d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
-}
-
-const encounterCounterCheckEvidenceDtoSchema: z.ZodMiniType<EncounterCounterCheckEvidenceDto> =
-  lazySchema(() =>
-    z.strictObject({ checkDefinitionId: uuidSchema, d20: ruleCheckD20EvidenceDtoSchema })
-  )
-
 /**
- * A reaction a reactor used before the action executed and that did not cancel it: a counter whose
- * check failed or that was itself countered, a reaction to being named a target, or a reaction to an
- * attack aimed at another. It is part of the action's own occurrence: carried by every pending of the
- * action, it is spent with whatever terminal commit the action reaches. `againstActorId` is the creature
- * whose action it was offered against (the actor, or the creature that cast the counter it answers),
- * which is where its range and target are measured from; `triggerLevel` is null when the action it
- * answered is not a cast, and `check` is null when it owed no check.
+ * A reaction a reactor used at its own offer, before the action executed, and that did not cancel it:
+ * a reaction to being named a target. It is part of the action's own occurrence: carried by every
+ * pending of the action, it is spent with whatever terminal commit the action reaches.
+ * `againstActorId` is the creature whose action it was offered against, which is where its range and
+ * target are measured from; `triggerLevel` is null when the action it answered is not a cast.
  */
 export type EncounterUsedReactionDto = {
   reaction: EncounterReactionPinDto
   choiceExecution: ServerCompletedRuleExecutionDto
   triggerLevel: number | null
   againstActorId: string
-  check: EncounterCounterCheckEvidenceDto | null
 }
 
 const usedReactionShape = () => ({
   reaction: encounterReactionPinDtoSchema,
   choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
   triggerLevel: z.nullable(nonNegativeIntegerSchema),
-  againstActorId: uuidSchema,
-  check: z.nullable(encounterCounterCheckEvidenceDtoSchema)
+  againstActorId: uuidSchema
 })
 
 export const encounterUsedReactionDtoSchema: z.ZodMiniType<EncounterUsedReactionDto> = lazySchema(
@@ -357,33 +316,6 @@ function validateCounterSpend(value: CounterSpendDto, context: z.core.$Refinemen
       message: 'The reactor allowance spend must be the one the reaction pinned.'
     })
 }
-
-/**
- * What a countered cast sealed: the reactor's settled choice, the reaction's own execution (whose trace
- * cancels the triggering event), the level of the cast it countered, the check that earned the counter
- * when the cast was above the counter's level, and what the reactor spent.
- */
-export type EncounterCounteredCastReceiptDto = CounterSpendDto & {
-  choiceExecution: ServerCompletedRuleExecutionDto
-  counterExecution: ServerCompletedRuleExecutionDto
-  triggerLevel: number
-  check: EncounterCounterCheckEvidenceDto | null
-}
-
-// Named so the output union that embeds it stays under the compiler's declaration size limit (TS7056).
-export const encounterCounteredCastReceiptDtoSchema: z.ZodMiniType<EncounterCounteredCastReceiptDto> =
-  lazySchema(() =>
-    z
-      .strictObject({
-        reaction: encounterReactionPinDtoSchema,
-        choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-        counterExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-        triggerLevel: nonNegativeIntegerSchema,
-        check: z.nullable(encounterCounterCheckEvidenceDtoSchema),
-        ...counterSpendShape()
-      })
-      .check(z.superRefine(validateCounterSpend))
-  )
 
 /** A used reaction once its spend is settled with the action's terminal commit. */
 export type EncounterUsedReactionReceiptDto = EncounterUsedReactionDto & CounterSpendDto
@@ -450,9 +382,8 @@ export const encounterWindowReactionReceiptDtoSchema: z.ZodMiniType<EncounterWin
 
 /**
  * The root of a cast a reaction countered: the caster still spends its slot and action, and nothing the
- * spell would have done is applied. The counter's receipt records the reactor's own spend when this
- * commit made it; it is null when the counter ran as its holder's own action (D219), whose own receipt
- * records that spend.
+ * spell would have done is applied. The counter ran as its holder's own action (D219), whose own
+ * receipt records the reactor's spend.
  */
 const encounterCounteredCastApplicationOutputImplSchema = lazySchema(() =>
   z
@@ -462,20 +393,9 @@ const encounterCounteredCastApplicationOutputImplSchema = lazySchema(() =>
       occurrenceId: uuidSchema,
       sourceActorId: uuidSchema,
       sourceCharacterId: z.nullable(uuidSchema),
-      ...sourceSpendReceiptShape(),
-      counter: z.nullable(encounterCounteredCastReceiptDtoSchema)
+      ...sourceSpendReceiptShape()
     })
-    .check(
-      z.superRefine((value, context) => {
-        validateSourceSpendReceipts(value, context)
-        if (value.counter?.reaction.reactorActorId === value.sourceActorId)
-          context.addIssue({
-            code: 'custom',
-            path: ['counter', 'reaction', 'reactorActorId'],
-            message: 'A cast is countered by another creature.'
-          })
-      })
-    )
+    .check(z.superRefine(validateSourceSpendReceipts))
 )
 
 export type EncounterCounteredCastApplicationOutputDto = SourceSpendReceipts & {
@@ -484,7 +404,6 @@ export type EncounterCounteredCastApplicationOutputDto = SourceSpendReceipts & {
   occurrenceId: string
   sourceActorId: string
   sourceCharacterId: string | null
-  counter: EncounterCounteredCastReceiptDto | null
 }
 
 /** Named so the application-output union prints this member by name (TS7056). */

@@ -427,7 +427,7 @@ QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is 
   only, `rolled`: the action's TEST as it froze with the roll (`test`: the paused continuation, its bound
   facts checksum and the settled d20, the shape a reactor window keeps) and the app roll it settled with. The
   pending context holds such an offer on `twoPhase.phase === 'TEST'`; every other cast offer is still held
-  before any phase. The offer owes no check and stands in no chain.
+  before any phase.
 - The fence. `castPendingContinues` lets a rolled offer be followed only by an offer of the same roll or by
   the roll's settlement, and lets a reaction chosen from it leave the pause only by recording a child: it is
   never carried as a used reaction for the action's own commit to spend. Child recording, the room's resume
@@ -459,20 +459,21 @@ grant), checked against the pending gate at the commit (`persistEncounterActionC
 child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and reaction; the parent's resume reads a
 gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
 reactor's `Counter` check on the child's occurrence (`recordCounterCheckRollCards`), and the cancelled cast
-commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
+records no counter: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
 runs as a child since QUALITY-9.T1b3a (area and chosen-list casts) and QUALITY-9.T1c2 (single-target casts).
-QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offer carries no `check`, its
-pause takes only a decline or a chosen reaction (`castPendingContinues`), and a cast is never committed as
-countered by a failed roll against the counter standing (`castCounteredCarriesUsedReactions`). These are persisted
-pending-context and receipt shape changes; refresh local data when next used (D196).
+QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offer carries no `check` and its
+pause takes only a decline or a chosen reaction (`castPendingContinues`). QUALITY-9.T1c3 deleted the inline
+chain: the offer carries no `chain`, a used reaction no `check`, and `ENCOUNTER_COUNTERED_CAST` no `counter`
+(the countered-cast commit input no `reactionSpellConsumption`). These are persisted pending-context and
+receipt shape changes; refresh local data when next used (D196).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).
-A cast held at a `COUNTER` offer with no chain whose unresolved child cancelled it commits through
-`persistEncounterCounteredCastCommit` from the resume, with no response: the root's
-`ENCOUNTER_COUNTERED_CAST.counter` is null, no reactor is spent, no evidence receipt is written, and the failed
-counters the pending context held are spent unchanged (`castCancelledByChildCarriesUsedReactions`). A non-null
-`counter` still requires the answer that used it.
+A cast held at a `COUNTER` offer whose unresolved child cancelled it commits through
+`persistEncounterCounteredCastCommit` from the resume, with no response: no reactor is spent, no evidence
+receipt is written, and the used reactions the pending context held are spent unchanged
+(`castCancelledByChildCarriesUsedReactions`). This is the only way a cast commits as countered: an answer
+never does (QUALITY-9.T1c3).
 
 A child that pauses (current, QUALITY-8.T1b, D219 amendment). A reaction's own action may need evidence of
 its own, such as a save its target makes. The transaction that stores the child's pending decision also

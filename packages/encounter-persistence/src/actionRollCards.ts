@@ -8,7 +8,7 @@ import {
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { EncounterCounterCheckEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { damageAddedDieOfNode } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { actionSystemRollAnswers, readAppCardedDice, type SettledDie } from './appCardedDice.js'
 import type {
@@ -36,9 +36,9 @@ export function settledD20s(
 }
 
 /**
- * Cards the d20 of each spellcasting check a reactor rolled to counter a higher-level cast (D127), one
- * card per check, from the reactor. A die the app rolled for a `SYSTEM_ROLL` answer was carded as its
- * app attempt; an entered or auto-rolled die is carded here.
+ * Cards the d20 of each spellcasting check a reactor rolled as its action's gate to counter a
+ * higher-level cast (D127, D219), one card per check, from the reactor. A die the app rolled for a
+ * `SYSTEM_ROLL` answer was carded as its app attempt; an entered or auto-rolled die is carded here.
  */
 export async function recordCounterCheckRollCards(
   ctx: EncounterCharacterWriteTransaction & {
@@ -48,9 +48,9 @@ export async function recordCounterCheckRollCards(
     campaign: CampaignAuthority['campaign']
     encounterId: string
     gameSystemId: string
-    /** The cast's occurrence, which seeds the card ids and holds the answers that rolled the dice. */
+    /** The reactor's occurrence, which seeds the card ids and holds the answers that rolled the dice. */
     occurrenceId: string
-    checks: readonly { reactor: EncounterRunActorState; check: EncounterCounterCheckEvidenceDto }[]
+    checks: readonly { reactor: EncounterRunActorState; check: EncounterSettledIncomingGateDto }[]
     response: ResolveRuleOccurrenceInputDto | null | undefined
     responderUserId: string
     initiatorUserId: string

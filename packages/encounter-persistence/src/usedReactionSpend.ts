@@ -16,11 +16,10 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterWriteContext } from './store.js'
 
 /**
- * Checks each reaction another creature spends with the action: one used before the action executed
- * (a counter that failed against a cast, a reaction to being named a target or to an attack aimed at
- * another), or a reaction rolled against the attack roll (D207). Its reactor is a Character of the run, named
- * once, and the slot or charge it spends is the one its receipt recorded. The cast's own source may
- * counter a counter cast against it, never its own cast, and never reacts to its own attack roll.
+ * Checks each reaction another creature spends with the action: one used at its own offer before the
+ * action executed (a reaction to being named a target), or a reaction rolled against the attack roll
+ * (D207). Its reactor is a Character of the run, named once, and the slot or charge it spends is the
+ * one its receipt recorded. The action's own source never reacts to its own action or attack roll.
  * Returns what each reactor's mechanics apply.
  */
 export function usedReactionSpends(input: {
@@ -66,7 +65,6 @@ export function usedReactionSpends(input: {
       return {
         used,
         reactor,
-        check: used.receipt.check,
         ...spend(reactor, {
           resource: null,
           spell: used.spellConsumption,
@@ -84,7 +82,6 @@ export function usedReactionSpends(input: {
       return {
         used,
         reactor,
-        check: null,
         ...spend(reactor, {
           resource: used.resourceConsumption,
           spell: null,
