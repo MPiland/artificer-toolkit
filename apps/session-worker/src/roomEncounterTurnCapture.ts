@@ -49,9 +49,7 @@ import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-pers
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
 import {
   readReactionChildAncestors,
-  readReactionChildCastLevel,
-  readReactionChildHitDamageTypeIds,
-  readReactionChildMovement
+  readReactionChildTrigger
 } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
@@ -100,9 +98,7 @@ async function readReactionChildHeldActions(
     reactorActorId: command.actorId.toLowerCase()
   }
   return {
-    triggerCastLevel: await readReactionChildCastLevel(ctx, link),
-    triggerDamageTypeIds: await readReactionChildHitDamageTypeIds(ctx, link),
-    triggerMovement: await readReactionChildMovement(ctx, { ...link, actionId: command.actionId }),
+    ...(await readReactionChildTrigger(ctx, { ...link, actionId: command.actionId })),
     reactionAncestors: await readReactionChildAncestors(ctx, link)
   }
 }

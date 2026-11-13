@@ -176,17 +176,9 @@ export async function advanceNativeActionTarget(input: {
           const found = await discoverReaction({ critical })
           return {
             candidates: found.map(({ candidate }) => candidate),
-            // Transitional (QUALITY-8.T1d2b ends it): a hit's reactions run as child actions (D219)
-            // only when each is a spell a Character casts in answer to the attack itself. Any other
-            // still runs inline, where the damage a reaction answers and a creature's reaction are read.
-            childHitDamageTypeIds: found.every(
-              ({ candidate, prepared }) =>
-                candidate.characterId !== null &&
-                candidate.trigger === 'ATTACKED_SELF' &&
-                prepared.characterActionState?.spellConsumption
-            )
-              ? [...attackHitDamageTypeIds(attackFacts, critical)]
-              : null
+            // Every reaction to a hit runs as its holder's child action (D219), which reads the
+            // damage it answers from the held offer.
+            childHitDamageTypeIds: [...attackHitDamageTypeIds(attackFacts, critical)]
           }
         },
         targetStateChecksum
