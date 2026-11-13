@@ -25752,7 +25752,7 @@
             },
             {
               "id": "QUALITY-8.T1d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25763,11 +25763,12 @@
               },
               "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
               "text": "Inert contracts and persistence: the one reaction offer gains kind HIT_BY_ATTACK holding the settled hit and trigger damage type ids, with ATTACKED_SELF and DAMAGE_TAKEN in one menu; pending validation and castPendingContinues for a TEST-held hit offer; triggerDamageTypeIds captured for the child.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m728 (8f8393fda), fast path from slice tip ef773db88: Tests 43370158306, Live 43370158046, Browser journeys 43370158087 green. Red proof actionPendingOffers 4/35, reactionChildren 6/79, reaction-cast-contracts 1/10 RED. The one reaction offer gains an optional settled hit (HIT_BY_ATTACK) held on a TEST; pending validation and castPendingContinues accept a TEST-held hit offer and refuse a second offer after it; readReactionChildHitDamageTypeIds captures the trigger damage types for the child. Inert: nothing writes a hit offer yet. Restated: the rolled-offer refusal message now names a TEST held on its rolled d20 or its hit (exact full-string match kept). D196: optional fields only, no reset."
             },
             {
               "id": "QUALITY-8.T1d2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25777,7 +25778,8 @@
                 "after": ["QUALITY-8.T1d1"]
               },
               "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
-              "text": "Worker host and room proofs: the hit offer through the shared offer, the child launched from the post-TEST pending, resume by REBIND_TEST against committed state; Shield and Absorb Elements as children (actor, target, parent, versions), raised AC and resistance applied, one undo, void cascade, creature holder (Parry), drawer; reactions needing rolls work, refusal tests restated with the user ruling."
+              "text": "Worker host and room proofs: the hit offer through the shared offer, the child launched from the post-TEST pending, resume by REBIND_TEST against committed state; Shield and Absorb Elements as children (actor, target, parent, versions), raised AC and resistance applied, one undo, void cascade, creature holder (Parry), drawer; reactions needing rolls work, refusal tests restated with the user ruling.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1d3",
@@ -25979,7 +25981,7 @@
             },
             {
               "id": "QUALITY-9.T1d2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25989,7 +25991,8 @@
                 "after": ["QUALITY-9.T1d1", "QUALITY-9.T1c3"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between).",
-              "text": "Delete usedReactions end to end (pending contexts, commit inputs, stored receipt, fences, undo, the usedReactionSpend arm; usedReactionSpend stays for window reactions until T1e3) and update docs; CAST_REACTION is then the one pre-roll offer whose options all run as children."
+              "text": "Delete usedReactions end to end (pending contexts, commit inputs, stored receipt, fences, undo, the usedReactionSpend arm; usedReactionSpend stays for window reactions until T1e3) and update docs; CAST_REACTION is then the one pre-roll offer whose options all run as children.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1e1",
@@ -26669,7 +26672,7 @@
               "proof": "m727 (aa5539037), batch with QUALITY-18.T2a and RELIABILITY-24.T1 (first batch m726 failed on a liveSessions/authority.test.ts rate-limit timing flake, green on rerun), from slice tip 8bc21d313: Tests 43359014787, Live 43359014925, Browser journeys 43359014816 green. Red proof nativeRoomProtection 1/10, nativeRoomReactionSave 3/7, actionPendingOffers 4/30, reactionChildren 18/74, live-session-contracts 1/17, spatial-movement-rule-contracts 1/24 RED; effectOutcomeRegistry RED-IMPORT. reactionChildren[].rollMode became resumeOutcome (ROLL_MODE or STOP); stopsTriggeringMovement adapter (dnd5e/stopTriggeringMovement.ts); REACTION_CHILD_RESUME resolution kind refused on the client frame. The move fences stay equality on the pin, proved through child commit, nested reaction and void with release (ruling 10). Void of a held move taking back children stays with T4 (ruling 9). Restated: rollMode to resumeOutcome renames only. D196: pending-snapshot JSON only, no reset; clear any local Run held on an already-resumed child."
             },
             {
-              "id": "QUALITY-18.T2b",
+              "id": "QUALITY-18.T2b1",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
@@ -26679,9 +26682,37 @@
                 "size": 13,
                 "after": ["QUALITY-18.T2a"]
               },
-              "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
-              "text": "The flip: a chosen opportunity-attack option records a reaction child and the room raises it; the room-internal resume (rulings 1-3 and 6-8, id from reactionChildMoveCommandId); STOP or a mover at 0 HP ends the move at the contact point; economy, turn uses and retaliation from the action host; the fences proved through the room. Every room and Convex movement-reaction test restated in the same slice. The inline engine stays, unreachable from a choice and labelled transitional.",
+              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
+              "text": "Action-host parity for opportunity attacks, mergeable alone with the inline tests green: the generic trigger-context capture (occasion, contact position, allowance policy) shared with triggerDamageTypeIds; attackOccasion OPPORTUNITY on the child; the action-economy consumption gains the allowance refresh boundary through plan, settle, revert and allowance return; Legendary Resistance STOP carried into the stopsTriggeringMovement adapter; revert refuses a REACTION child of a held move (ruling 2).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-18.T2b2",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-18.T2b1"]
+              },
+              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
+              "text": "Orchestration behind the choice: a member OPTION on a move CHOICE records the reaction child and raises it in one room transaction (rolled back on a refused child); the room issues the owner REACTION_CHILD_RESUME after the child commits and from the alarm; STOP or a mover at 0 HP ends the move at the contact point; child command ids include the parent occurrence version; decoys salt from the child occurrence; token at contact and the re-pin of the move Scene save verified (ruling 15). New room tests."
+            },
+            {
+              "id": "QUALITY-18.T2b3",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 28,
+                "after": ["QUALITY-18.T2b2"]
+              },
+              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
+              "text": "Restate every movement-reaction flow for the flip (worker nativeMovement* and nativeRoom*, Convex scenes and encounters, encounter-persistence reactionChildren), each restated assertion with its reason; the web client shows a child prompt while its move is SUSPENDED; browser journeys green. Built on the T2b2 branch and merged with it."
             },
             {
               "id": "QUALITY-18.T2c",
@@ -26692,7 +26723,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-18.T2b"]
+                "after": ["QUALITY-18.T2b3"]
               },
               "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
               "text": "Delete the inline movement reaction engine: the ACTION_EVIDENCE, LEGENDARY_RESISTANCE_CHOICE and reaction-sourced CONCENTRATION_EVIDENCE phases, completedReactionExecutions, the move receipt reactionExecutions, the replay code, the web drawer stories and tests, and the regenerated Convex files."
@@ -26706,7 +26737,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-18.T2b"]
+                "after": ["QUALITY-18.T2b3"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed."
@@ -26720,7 +26751,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2b"]
+                "after": ["QUALITY-18.T2b3"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move."
@@ -26734,7 +26765,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2b"]
+                "after": ["QUALITY-18.T2b3"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Web and timer: the movement offer is REACTION_CHOICE in the decision drawer and the token badge; timed decline through the encounter path; stories and the movement journey."
