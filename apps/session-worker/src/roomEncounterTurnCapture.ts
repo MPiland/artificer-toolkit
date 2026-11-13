@@ -296,12 +296,8 @@ export async function readRoomEncounterTurnCapture(
       .withIndex('by_publicId', (query) => query.eq('id', input.encounterId))
       .unique()
     if (!run) throw new Error('Encounter Run was not found.')
-    const { admission, pending, reactionChildren } = await readNativeEncounterActionResumeAdmission(
-      ctx,
-      resume,
-      run,
-      userId
-    )
+    const { admission, pending, area, reactionChildren } =
+      await readNativeEncounterActionResumeAdmission(ctx, resume, run, userId)
     if (
       admission.state.campaignId !== input.campaignId ||
       admission.membership.role !== input.expectedRole
@@ -317,6 +313,7 @@ export async function readRoomEncounterTurnCapture(
       command: admission.input,
       fingerprint: admission.fingerprint,
       snapshot: pending.snapshot,
+      areaSnapshot: area?.snapshot ?? null,
       reactionChildren,
       ...(await readReactionChildHeldActions(ctx, input, admission.input)),
       revisions: observed

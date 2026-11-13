@@ -68,8 +68,8 @@ export async function readNativeEncounterActionResponseAdmission(
       : null
   const { resolution: answer } = response
   // A Legendary Resistance decision names its creature, an open push pick (D157) takes only its own
-  // destination, an open damage window (D208) only its caster's answer, and every other area answer
-  // names a save's request.
+  // destination, an open damage window (D208) only its caster's answer, a reaction choice answers the
+  // held ray, and every other area answer names a save's request.
   const areaPick = area?.context.forcedMovement?.pick
   const areaWindow = area && encounterAreaDamageRollWindow(area.context)
   const windowContext = areaWindow?.window.applicationContext
@@ -89,9 +89,15 @@ export async function readNativeEncounterActionResponseAdmission(
               target.actorId === areaPick.targetActorId
             : answer.kind === 'AREA_LEGENDARY_RESISTANCE'
               ? target.actorId === answer.actorId
-              : answer.kind !== 'FORCED_MOVEMENT' &&
-                'requestId' in answer &&
-                target.snapshot.request.requestId === answer.requestId
+              : answer.kind === 'DECLINE' || answer.kind === 'OPTION'
+                ? // A reaction choice names no request: it answers the ray held on its hit's offer.
+                  encounterAreaSaveAwaiting(
+                    { casterActorId: area.context.casterActorId, targets: area.targets },
+                    target
+                  ) === 'REACTION'
+                : answer.kind !== 'FORCED_MOVEMENT' &&
+                  'requestId' in answer &&
+                  target.snapshot.request.requestId === answer.requestId
         )
       : null
   const areaAnswer = areaDamage ?? areaSave
@@ -222,7 +228,9 @@ export async function readNativeEncounterActionResponseAdmission(
   else {
     // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
     // its answer.
-    const offeredOptionIds = areaAnswer ? [] : offeredDecisionOptionIds(pending.context)
+    // So does a ray held on the reaction to its hit; no other area answer is a decision.
+    const offeredOptionIds =
+      areaAnswer && awaiting !== 'REACTION' ? [] : offeredDecisionOptionIds(pending.context)
     if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
       if (!offeredOptionIds.length) rejectDomain('DECISION_NOT_PENDING')
       if (answer.kind === 'OPTION' && !offeredOptionIds.includes(answer.optionId))
@@ -305,7 +313,18 @@ export async function readNativeEncounterActionResumeAdmission(
     occurrence.state !== 'PENDING'
   )
     rejectDomain('DECISION_NOT_PENDING')
-  const pending = await readNativeActionPending(ctx, occurrence)
+  // A list of rays resumes the one ray held on the reaction to its hit, under the list's root.
+  const stored = await readPendingSnapshot(ctx, occurrence)
+  const area =
+    stored && areaActionPendingContext(stored)
+      ? await readNativeAreaActionPending(ctx, occurrence)
+      : null
+  const heldRay = area?.targets.find(({ context }) => awaitsReactionChild(context))
+  if (area && !heldRay) rejectDomain('DECISION_NOT_PENDING')
+  const pending =
+    area && heldRay
+      ? { command: area.command, context: heldRay.context, snapshot: heldRay.snapshot }
+      : await readNativeActionPending(ctx, occurrence)
   if (
     occurrence.version !== resume.expectedOccurrenceVersion ||
     run.version !== resume.expectedVersion ||
@@ -329,5 +348,12 @@ export async function readNativeEncounterActionResumeAdmission(
     recorded
   })
   if (reactionChildren.length !== recorded.length) rejectDomain('DECISION_NOT_PENDING')
-  return { kind: 'READY' as const, admission, occurrence, pending, area: null, reactionChildren }
+  return {
+    kind: 'READY' as const,
+    admission,
+    occurrence,
+    pending,
+    area: area && heldRay ? { snapshot: area.snapshot, actorId: heldRay.actorId } : null,
+    reactionChildren
+  }
 }

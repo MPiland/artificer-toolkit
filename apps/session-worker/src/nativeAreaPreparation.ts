@@ -752,6 +752,43 @@ export function prepareCasterActionOnTarget(
   }).catch(refuseStaleCharacterAction)
 }
 
+type ReactionSources = Pick<ActionMechanicsInput, 'loadSource' | 'loadRelationshipFacts'>
+
+/** Where a reaction to a multi-creature cast reads its holder's action from. */
+const reachReactionSources = (
+  input: Pick<AreaPlanBase, 'system' | 'capture' | 'activeEffectsByActorId'>
+): ReactionSources => ({
+  loadSource: async (source) =>
+    resolveEncounterActionSource({
+      ...source,
+      system: input.system,
+      spells: await readNativeLiveSpellPins(input.capture)
+    }),
+  loadRelationshipFacts: nativeLiveRelationshipFacts({
+    activeEffectsByActorId: input.activeEffectsByActorId
+  })
+})
+
+/** Prepares a reaction a creature a ray hit holds, as that creature's own action on itself (D219). */
+export const prepareReachReaction =
+  (
+    input: ReachPlanInput,
+    holder: EncounterRunActorState,
+    movementTargets: () => Promise<ReadonlyMap<string, MovementTargets>>
+  ) =>
+  async (actionId: string) =>
+    prepareEncounterActionMechanics({
+      state: input.state,
+      actor: holder,
+      target: holder,
+      actors: input.actors,
+      actionId,
+      wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+      overridable: false,
+      movementTargets: await movementTargets(),
+      sceneContext: null,
+      ...reachReactionSources(input)
+    })
 /** The reaction window of a multi-creature cast, held over the caster's lead preparation of the action. */
 export function reachCastPause(
   input: ReachPlanInput,
@@ -775,17 +812,8 @@ export function reachCastPause(
     command: input.command,
     prepared: cast.lead,
     movementTargets: cast.reach.movementTargets,
-    reactionSources: {
-      loadSource: async (source) =>
-        resolveEncounterActionSource({
-          ...source,
-          system: input.system,
-          spells: await readNativeLiveSpellPins(input.capture)
-        }),
-      loadRelationshipFacts: nativeLiveRelationshipFacts({
-        activeEffectsByActorId: input.activeEffectsByActorId
-      })
-    },
+    reactionSources: reachReactionSources(input),
+
     // Range is read from the Scene, so a cast aimed at none offers no reaction.
     readScene: scene ? async () => scene : null,
     chosenActorIds: cast.chosenActorIds,
