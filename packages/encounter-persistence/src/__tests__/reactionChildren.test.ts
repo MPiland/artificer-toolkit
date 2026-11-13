@@ -2072,8 +2072,19 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       Parameters<typeof revertLastEncounterAction>[0]
   }
 
-  /** The GM's answer to the move's open choice, read through the move's own response fence. */
-  async function answer(held: Held, expectedVersion: number, expectedOccurrenceVersion: number) {
+  /** The room's resume of the move from the child its choice records, made as the Campaign owner. */
+  const RESUME = { kind: 'REACTION_CHILD_RESUME' as const, childCommandId: link.childCommandId }
+
+  /**
+   * The GM's answer to the move, read through the move's own response fence: a decline of its open
+   * choice, or `resolution`.
+   */
+  async function answer(
+    held: Held,
+    expectedVersion: number,
+    expectedOccurrenceVersion: number,
+    resolution: typeof RESUME | { kind: 'DECLINE' } = { kind: 'DECLINE' }
+  ) {
     const { memory } = held
     if (memory.documents('encounterSceneBindings').length === 0)
       await memory.store.insert('encounterSceneBindings', {
@@ -2092,7 +2103,7 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       correlationId: null,
       occurrenceId: OCCURRENCE_ID,
       expectedOccurrenceVersion,
-      resolution: { kind: 'DECLINE' }
+      resolution
     })
   }
 
@@ -2100,22 +2111,27 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     const held = await pausedMove(recorded.reactionChildren)
     const { ctx, memory, state, occurrence } = held
     // Restated (QUALITY-18.T2b3): the choice that recorded the child is the move's first answer, so
-    // every answer here is read at occurrence version 1 (it was 0) above that one history entry.
-    await expect(answer(held, ROOT_VERSION, 1)).resolves.toMatchObject({
+    // every answer here is read at occurrence version 1 (it was 0) above that one history entry. And
+    // a move that records a child takes only the room's resume from it, so the answer read is that
+    // resume (it was the GM's decline, which such a move now refuses as stale at any version).
+    await expect(answer(held, ROOT_VERSION, 1, RESUME)).resolves.toMatchObject({
       occurrence: occurrence()
     })
+    await expect(answer(held, ROOT_VERSION, 1)).rejects.toThrow(
+      'Movement response occurrence is stale.'
+    )
     await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
     await advanceRun(held, ROOT_VERSION + 1)
     // A Run that moved without re-pinning the move is not the Run the move was held on.
-    await expect(answer(held, ROOT_VERSION + 1, 1)).rejects.toThrow(
+    await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).rejects.toThrow(
       'Movement response occurrence is stale.'
     )
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
-    await expect(answer(held, ROOT_VERSION + 1, 1)).resolves.toMatchObject({
+    await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).resolves.toMatchObject({
       occurrence: occurrence(),
       root: { resolutionCommands: [chosenOption(MOVE_OPTIONS[0]!.optionId)] }
     })
-    await expect(answer(held, ROOT_VERSION, 1)).rejects.toThrow('VERSION_STALE')
+    await expect(answer(held, ROOT_VERSION, 1, RESUME)).rejects.toThrow('VERSION_STALE')
   })
 
   it('refuses the GM’s undo of a committed child while the move it answered is still held (QUALITY-18.T2b1)', async () => {

@@ -670,7 +670,9 @@ export async function evaluateEncounterMovementActionResponse<
         kind: 'TERMINAL',
         result,
         selectionChecksum: context.spatialSelectionChecksum,
-        currentnessChecksum: context.spatialCurrentnessChecksum
+        currentnessChecksum: context.spatialCurrentnessChecksum,
+        // A child's stop leaves the move no execution to read the stop distance from (D219).
+        terminalPathDistance: root.pathStartDistance
       },
       settlements,
       resolutionCommands

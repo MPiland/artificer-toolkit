@@ -113,7 +113,8 @@ function moverPosition(room: Room) {
       .find((candidate) => candidate.key === key)
     if (!row) throw new Error('The room stores no token for the mover.')
     const { value } = sceneStoredLiveEntitySchema.parse(JSON.parse(row.json))
-    if (value.collection !== 'tokens') throw new Error('The mover’s Scene entity is not a token.')
+    if (value?.collection !== 'tokens' || !('position' in value.entity))
+      throw new Error('The mover’s Scene entity is not a token.')
     return value.entity.position
   })
 }
@@ -226,12 +227,12 @@ describe('a reaction chosen at a paused Scene move (QUALITY-18.T2b2)', () => {
       spatialEffects: [{ center: { x: 475, y: 150 }, radius: 5, save: true }]
     })
     const contact = await walkToContact(room)
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const failure = vi.spyOn(console, 'error').mockImplementation(() => {})
     // The resume's spatial save is the fourth die, so the move stays answered and unresumed.
     failDieAfter(room, 3)
     const used = await room.respondOnly(contact.use)
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
-    await vi.waitFor(() => expect(console.error).toHaveBeenCalled(), 10_000)
+    await vi.waitFor(() => expect(failure).toHaveBeenCalled(), 10_000)
     const afterChild = await moverHitPoints(room)
 
     const again = await room.respondOnly(contact.use)
