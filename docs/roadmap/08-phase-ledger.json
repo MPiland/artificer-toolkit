@@ -25784,7 +25784,7 @@
             },
             {
               "id": "QUALITY-8.T1d2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25795,7 +25795,8 @@
               },
               "note": "Split 2026-11-13 at the seam trace (5 to about 11); approved under the user standing approval for QUALITY growth (2026-11-13), net +8. Orchestrator ruling: under the child model a reaction effect that ends when ATTACKED is stored as the child's own effect and ended by the attack it answered, hit or miss.",
               "text": "The other on-hit reactions: the child consumes triggerDamageTypeIds (Absorb Elements); the Shield plus Absorb menu; ATTACKED-ending effects (Parry, Uncanny Dodge) ended by the answered attack on a hit and on a rebind to a miss; creature holder (Parry, GM answers); reactions needing rolls allowed, pool- or charge-paid reactions refused; drawer proof; one parent read for the trigger context (ruling 11); docs. Remaining nativeRoomReaction blocks and nativeRoomParry restated.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m732 (dc00d0e08), fast path from slice tip aa0d935d4: Tests 43481272179, Live 43481272291, Browser journeys 43481272249 green. Red proof nativeRoomParry 4/8, nativeRoomReaction 9/47, reactionChildren 9/83 RED; CampaignTabletopDecisionDrawer and actionPendingOffers ALREADY-PASSING (new proofs of T1d1/T1d2a behaviour). The transitional gate ended: every reaction to a hit runs as its holder's child through the HIT_BY_ATTACK offer; the child binds the trigger damage types its trigger names (reactionTriggerDamageTypeIds shared with discovery); creature holders admitted (GM answers Parry, the attacker's player refused); ATTACKED-ending effects (Parry, Uncanny Dodge, Deflect Missiles) committed by the child and ended by the answered attack on a hit and a rebind to a miss; a reaction needing its own roll pauses as the child; drawer menu proofs; persistence continuity for the TEST-held hit offer; readReactionChildTrigger is the one trigger-context read (ruling 11). Restated with reasons in the tests: batch.reaction records become null with the child batch carrying the spend and effect; menu checks read CAST_REACTION; Parry \"keeps no effect\" became \"ends its effect with the attack it answered\" (orchestrator ruling). D196: no persisted shape change."
             },
             {
               "id": "QUALITY-8.T1d3",
@@ -25806,9 +25807,9 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-8.T1d2b"]
+                "after": ["QUALITY-8.T1d2b", "QUALITY-13.T1c2b"]
               },
-              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
+              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal. Sequenced after QUALITY-13.T1c2b on 2026-11-13 (no size change) so no ray host still reaches the inline on-hit path when it is deleted.",
               "text": "Delete the inline on-hit path: the REACTION pause kind, EncounterReactionOfferDto, resolveNativeActionReaction, replayNativeActionReaction, applyNativeReactionEffect, createNativeCurrentReaction, the retained audit and receipt DTOs, the persistence spend, effect and revert arms, the outcome planner reaction fields and reactionCastEnded; docs updated."
             }
           ]
@@ -26029,7 +26030,7 @@
             },
             {
               "id": "QUALITY-9.T1e2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -26039,7 +26040,8 @@
                 "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d2b"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
-              "text": "Reaction die on the action host: the Worker offers it after the roller's own window, launches the child (which pauses for its die, manual entry kept), resumes the parent applying the die to the held d20, rebinds a reactor-is-target child through the QUALITY-8.T1d mechanism; the drawer; the room tests restated on the child path, including undo and void of the child."
+              "text": "Reaction die on the action host: the Worker offers it after the roller's own window, launches the child (which pauses for its die, manual entry kept), resumes the parent applying the die to the held d20, rebinds a reactor-is-target child through the QUALITY-8.T1d mechanism; the drawer; the room tests restated on the child path, including undo and void of the child.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1e3",
@@ -26347,7 +26349,7 @@
             },
             {
               "id": "QUALITY-13.T1c2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26357,7 +26359,8 @@
                 "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d2b", "QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
-              "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start."
+              "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T1c3",

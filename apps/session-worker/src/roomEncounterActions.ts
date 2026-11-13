@@ -13,7 +13,7 @@ import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encou
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import {
-  readReactionChildMovement,
+  readReactionChildTrigger,
   readReactionChildParent,
   readReactionOfferChild
 } from '@artificer-toolkit/encounter-persistence/reactionChildren'
@@ -279,14 +279,12 @@ export async function executeRoomEncounterAction(input: {
   }
   // A paused Scene move settles through its Scene, so the room resumes it once this commit is
   // published.
-  if (
-    await readReactionChildMovement(ctx, {
-      ...link,
-      reactorActorId: captured.command.actorId.toLowerCase(),
-      actionId: captured.command.actionId
-    })
-  )
-    return committed
+  const { triggerMovement } = await readReactionChildTrigger(ctx, {
+    ...link,
+    reactorActorId: captured.command.actorId.toLowerCase(),
+    actionId: captured.command.actionId
+  })
+  if (triggerMovement) return committed
   const expectedVersion = scope.expectedVersion + 1
   return executeRoomEncounterAction({
     ...input,

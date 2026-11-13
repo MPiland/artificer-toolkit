@@ -132,47 +132,39 @@ export async function readReactionChildParent(ctx: EncounterReadContext, input: 
 }
 
 /**
- * The level of the cast a reaction child answers, as the held action recorded it beside the child
- * (D219); null when that action casts no spell, or no held action records the child.
+ * What a reaction child reads of what it answers, in one read of the held parent that records it
+ * (D219); every fact is null when no held parent records the child.
+ * - `triggerCastLevel`: the level of the cast it answers, as the held action recorded it beside the
+ *   child; null when that action casts no spell.
+ * - `triggerDamageTypeIds`: the damage types of the hit it answers, as the held attack's offer keeps
+ *   them; null when it answers no hit.
+ * - `triggerMovement`: the occasion its attack is made on and the allowance it was offered under, from
+ *   the option the held move's contact offers its reactor for its action; null when it answers no move.
  */
-export async function readReactionChildCastLevel(
-  ctx: EncounterReadContext,
-  input: ReactionChildLink
-) {
-  const held = await readRecordingParent(ctx, input)
-  return held?.context.kind === 'ENCOUNTER_ACTION' ? (held.context.castLevel ?? null) : null
-}
-
-/**
- * The damage types of the hit a reaction child answers, as the held attack's offer keeps them
- * (D219); null when the child answers no hit, or no held action records it.
- */
-export async function readReactionChildHitDamageTypeIds(
-  ctx: EncounterReadContext,
-  input: ReactionChildLink
-) {
-  const held = await readRecordingParent(ctx, input)
-  const pause = held?.context.kind === 'ENCOUNTER_ACTION' ? held.context.pause : undefined
-  return pause?.kind === 'CAST_REACTION' ? (pause.payload.hit?.damageTypeIds ?? null) : null
-}
-
-/**
- * What a reaction child reads of the Scene move it answers, from the option its reactor took at the
- * held move's contact (D219): the occasion its attack is made on and the allowance the option was
- * offered under. Null when the child answers no move, or no held move records it. The option is the
- * one the move's history last recorded as chosen, so a contact that offers one action twice still
- * names the allowance that was taken; it must be that reactor's, for the child's action.
- */
-export async function readReactionChildMovement(
+export async function readReactionChildTrigger(
   ctx: EncounterReadContext,
   input: ReactionChildLink & { reactorActorId: string; actionId: string }
-): Promise<LiveSessionTriggerMovement | null> {
-  const held = await readRecordingParent(ctx, input)
-  if (held?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION') return null
-  const chosenOptionId = held.context.root.resolutionCommands
+): Promise<{
+  triggerCastLevel: number | null
+  triggerDamageTypeIds: string[] | null
+  triggerMovement: LiveSessionTriggerMovement | null
+}> {
+  const context = (await readRecordingParent(ctx, input))?.context
+  if (context?.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+    return {
+      triggerCastLevel: context?.castLevel ?? null,
+      triggerDamageTypeIds:
+        context?.pause?.kind === 'CAST_REACTION'
+          ? (context.pause.payload.hit?.damageTypeIds ?? null)
+          : null,
+      triggerMovement: null
+    }
+  // The option is the one the move's history last recorded as chosen, so a contact that offers one
+  // action twice still names the allowance that was taken.
+  const chosenOptionId = context.root.resolutionCommands
     .flatMap((entry) => (entry.kind === 'OPTION' ? [entry.optionId] : []))
     .at(-1)
-  const option = held.context.reactionTimeline[0]?.group.options.find(
+  const option = context.reactionTimeline[0]?.group.options.find(
     ({ optionId }) => optionId === chosenOptionId
   )
   if (
@@ -181,8 +173,12 @@ export async function readReactionChildMovement(
   )
     throw new Error('The reaction’s move no longer offers it.')
   return {
-    attackOccasion: MOVEMENT_REACTION_ATTACK_OCCASION,
-    allowanceDefinitionId: option.policy.allowanceDefinitionId
+    triggerCastLevel: null,
+    triggerDamageTypeIds: null,
+    triggerMovement: {
+      attackOccasion: MOVEMENT_REACTION_ATTACK_OCCASION,
+      allowanceDefinitionId: option.policy.allowanceDefinitionId
+    }
   }
 }
 

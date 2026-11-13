@@ -107,6 +107,7 @@ import {
   settleEncounterAttackRetarget
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
+import { reactionTriggerDamageTypeIds } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
@@ -1085,6 +1086,17 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     attackAction,
     chosenItemInstanceId,
+    // A reaction's child action binds the damage it answers, of what the hit it answers deals (D219).
+    ...('triggerDamageTypeIds' in admission && admission.triggerDamageTypeIds
+      ? {
+          trigger: {
+            damageTypeIds: reactionTriggerDamageTypeIds(
+              mechanicFacts.invocation.reactionTrigger,
+              new Set(admission.triggerDamageTypeIds)
+            )
+          }
+        }
+      : {}),
     weaponHits:
       prepared.source.kind === 'CHARACTER_ACTION' && prepared.target.kind === 'CREATURE'
         ? discoverEncounterFeatureActions({

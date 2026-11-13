@@ -112,15 +112,27 @@ async function offeredParry(room: Room) {
   return { decision, pending: decision.pending }
 }
 
-/** The Bite's settled batch on the Knight. */
-function knightBatch(history: RoomHistory) {
+/** The settled batch the action of `sourceActorId` left on the Knight. */
+function batchOnKnight(history: RoomHistory, sourceActorId: string) {
   const batch = areaReceipts(history).children.find(
     ({ outputs }) =>
-      outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' && outputs.targetActorId === KNIGHT_ID
+      outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
+      outputs.sourceActorId === sourceActorId &&
+      outputs.targetActorId === KNIGHT_ID
   )?.outputs
-  if (batch?.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') throw new Error('The Bite left no batch.')
+  if (batch?.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+    throw new Error(`The action of ${sourceActorId} left no batch.`)
   return batch
 }
+
+/**
+ * The Bite's settled batch on the Knight. It is picked by its attacker: the Parry the Knight uses
+ * as a child action (D219) commits its own batch on the Knight before the Bite's.
+ */
+const knightBatch = (history: RoomHistory) => batchOnKnight(history, WOLF_ID)
+
+/** The batch the Knight's own Parry, run as a child of the Bite (D219), left on itself. */
+const parryChildBatch = (history: RoomHistory) => batchOnKnight(history, KNIGHT_ID)
 
 const hitPointsLost = (batch: ReturnType<typeof knightBatch>) =>
   batch.targetTransition.before.currentHitPoints - batch.targetTransition.after.currentHitPoints
@@ -149,7 +161,12 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
     expect(history.actors).toEqual(before.actors)
   })
 
-  it('turns the hit into a miss when used, spends the Knight’s reaction, keeps no effect, and undoes', async () => {
+  // Restated (QUALITY-8.T1d2b, D219; architect ruling): Parry runs as the Knight's own child action.
+  // Its bonus is no longer an adjustment on the Bite's reaction record that keeps no effect: the
+  // child commits it as its own effect, which lasts until the Knight is attacked, and the attack it
+  // answered ends it. The title said "keeps no effect"; what holds now is "the effect is committed by
+  // the child and ended by the attack it answered", so nothing stays on the Knight either way.
+  it('turns the hit into a miss when used, spends the Knight’s reaction, ends its effect with the attack it answered, and undoes', async () => {
     const room = await parryRoom()
     const before = await readRoomHistory(room.room.base.stub)
     const armorClass = await strike(room, 0)
@@ -165,13 +182,20 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
     const history = await readRoomHistory(room.room.base.stub)
     const batch = knightBatch(history)
     expect(hitPointsLost(batch)).toBe(0)
-    expect(batch.reaction).toMatchObject({
-      selection: 'USE',
-      adjustment: { defenseBefore: armorClass, defenseAfter: armorClass + KNIGHT_PARRY_BONUS },
-      actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 },
-      activeEffectTransitions: []
+    // Restated: the Bite's batch records no reaction; its attack is bound again to the Knight as the
+    // child left it, so the sealed d20 carries the armor class it missed.
+    expect(batch.reaction).toBeNull()
+    expect(batch.d20).toMatchObject({
+      defenseOrDc: armorClass + KNIGHT_PARRY_BONUS,
+      resultPath: 'ON_MISS'
     })
-    // The bonus counted against this attack alone: nothing stays on the Knight for the next one.
+    // Restated: the spent reaction and the effect are the child's, sealed on the batch it committed
+    // on the Knight.
+    const parry = parryChildBatch(history)
+    expect(parry.actionEconomyTransition).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
+    expect(parry.activeEffectTransitions).toHaveLength(1)
+    // The bonus counted against this attack alone: the Bite that missed ended the child's effect, so
+    // nothing stays on the Knight for the next one.
     expect(history.activeEffects).toEqual(before.activeEffects)
 
     await undoLastAction(room)
@@ -191,9 +215,59 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
 
     const declined = await room.resolve(decision, { kind: 'DECLINE' })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
-    const batch = knightBatch(await readRoomHistory(room.room.base.stub))
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = knightBatch(history)
     expect(hitPointsLost(batch)).toBe(1)
-    expect(batch.reaction).toMatchObject({ selection: 'DECLINE', actionEconomyTransition: null })
+    // Restated (QUALITY-8.T1d2b, D219): a declined offer of a reaction that would run as a child
+    // leaves no record on the Bite's batch. That no reaction was spent is proved by no child having
+    // committed a batch on the Knight as the Knight's own action.
+    expect(batch.reaction).toBeNull()
+    expect(() => parryChildBatch(history)).toThrow('left no batch')
+  })
+
+  it('still hits when the roll beats the armor class Parry raised, and the hit ends Parry’s effect (D219)', async () => {
+    const room = await parryRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    const armorClass = await strike(room, KNIGHT_PARRY_BONUS)
+    const { decision, pending } = await offeredParry(room)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = knightBatch(history)
+    expect(hitPointsLost(batch)).toBe(1)
+    expect(batch.d20).toMatchObject({
+      defenseOrDc: armorClass + KNIGHT_PARRY_BONUS,
+      resultPath: 'ON_HIT'
+    })
+    const parry = parryChildBatch(history)
+    expect(parry.actionEconomyTransition).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
+    expect(parry.activeEffectTransitions).toHaveLength(1)
+    expect(history.activeEffects).toEqual(before.activeEffects)
+  })
+
+  it('lets the GM use Parry for the Knight, and refuses the Knight’s use from the attacker’s player (D219)', async () => {
+    const room = await parryRoom({ otherPlayerControlledActorIds: [WOLF_ID] })
+    await strike(room, 0)
+    const { decision, pending } = await offeredParry(room)
+    const use = { kind: 'OPTION' as const, optionId: pending.options[0].optionId }
+
+    const refused = await room.sendAsPlayer(room.resolveCommand(decision, use), 'OTHER_PLAYER')
+    expect(refused.type).toBe('COMMAND_REJECTED')
+    expect(areaReceipts(await readRoomHistory(room.room.base.stub)).children).toEqual([])
+
+    const used = await room.resolve(decision, use)
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(parryChildBatch(history)).toMatchObject({
+      sourceActorId: KNIGHT_ID,
+      targetActorId: KNIGHT_ID
+    })
+    expect(hitPointsLost(knightBatch(history))).toBe(0)
   })
 
   it('offers nothing against a ranged attack', async () => {

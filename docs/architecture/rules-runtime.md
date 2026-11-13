@@ -1752,8 +1752,9 @@ whose target used Legendary Resistance (`applicationOutputs.legendaryResistance.
 path after that TEST ran, so the adapter then reads the path the trigger authors from the TEST's
 movement-interruption trace and stops the move only when it is `ON_SAVE_SUCCESS` (QUALITY-18.T2b1).
 
-QUALITY-18.T2b1 adds what the child's own action reads of the move. The action capture returns `triggerMovement` (`{ attackOccasion, allowanceDefinitionId }`,
-`readReactionChildMovement`) beside `triggerCastLevel` and `triggerDamageTypeIds`: the occasion is the one
+QUALITY-18.T2b1 adds what the child's own action reads of the move. The action capture returns
+`triggerMovement` (`{ attackOccasion, allowanceDefinitionId }`, `readReactionChildTrigger`) beside
+`triggerCastLevel` and `triggerDamageTypeIds`: the occasion is the one
 constant the inline path also passes (`MOVEMENT_REACTION_ATTACK_OCCASION`), and the allowance is the one the
 reactor's option was offered under. The action host passes both on without a move-specific branch: the attack
 preparation takes the occasion, and the action economy spends the offered allowance in place of the one the
@@ -1797,6 +1798,18 @@ cast's slot already spent (`projectSpellSlotSpend`), on the same Character versi
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
+Current since QUALITY-8.T1d2b (D219): every reaction to a hit, `ATTACKED_SELF` or `DAMAGE_TAKEN`, held by a
+Character or a creature, is chosen from the held `HIT_BY_ATTACK` offer and runs as its holder's own child
+action; see "The hit a child answers" in [persistence](persistence.md). The child commits the reaction's
+effect as its own (the resistance below; Parry's and Uncanny Dodge's adjustment, which lasts until its holder
+is attacked), and the resumed attack is prepared again against the target as the child left it, so that
+effect counts as any active effect does and the attack's own `ATTACKED` event ends it, on a hit or on a miss
+(`targetEndedEffects`). The child binds a `TRIGGER` resistance to the types the reaction's trigger names
+among those the offer keeps (`reactionTriggerDamageTypeIds`, the same rule discovery offers it by). A
+reaction paid from a pool or a charge is still not offered. The paragraphs below also describe the inline
+settlement (the adjusted binding at the outcome phase's `REACTION` pause), which no hit reaches any more and
+QUALITY-8.T1d3 deletes.
+
 `reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds }` (a user-authored Absorb Elements) rides the same
 pause as `ATTACKED_SELF`: discovery (a `HIT_BY_ATTACK` event, see "Event hooks") offers it when one of `damageTypeIds`
 is a damage type of the hit attack's `ON_HIT`/`ON_CRIT` outcomes (`attackHitDamageTypeIds`). The candidate and
@@ -1826,13 +1839,13 @@ counter's check, a roll window's die, the roll mode a reaction imposes), holds i
 Scene and to the reactor's action economy, and returns the candidates. A reaction that is stale or that its own
 target requirements refuse is not offered. The four callers differ only in the moment they raise:
 
-| Moment                   | Caller                             | Pause                              |
-| ------------------------ | ---------------------------------- | ---------------------------------- |
-| `HIT_BY_ATTACK`          | `nativeEncounterAttackReaction.ts` | the outcome phase's reaction pause |
-| `SPELL_CAST_BY_OTHER`    | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
-| `TARGETED_BY_CAST`       | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                    |
-| `ATTACK_AIMED_AT_OTHER`  | `nativeEncounterAimedReaction.ts`  | `CAST_REACTION`                    |
-| `ATTACK_ROLLED_BY_OTHER` | `nativeEncounterRollReaction.ts`   | the attack roll's d20 window       |
+| Moment                   | Caller                             | Pause                           |
+| ------------------------ | ---------------------------------- | ------------------------------- |
+| `HIT_BY_ATTACK`          | `nativeEncounterAttackReaction.ts` | `CAST_REACTION` (holds the hit) |
+| `SPELL_CAST_BY_OTHER`    | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                 |
+| `TARGETED_BY_CAST`       | `nativeEncounterCastReaction.ts`   | `CAST_REACTION`                 |
+| `ATTACK_AIMED_AT_OTHER`  | `nativeEncounterAimedReaction.ts`  | `CAST_REACTION`                 |
+| `ATTACK_ROLLED_BY_OTHER` | `nativeEncounterRollReaction.ts`   | the attack roll's d20 window    |
 
 Every sealed offer pins its reactions with one schema, `encounterReactionPinDtoSchema`
 (`packages/schema/src/shared/ruleExecutionReactionChoice.ts`): the reactor, the action, the preparation checksums and

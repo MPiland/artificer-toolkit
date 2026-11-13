@@ -28,7 +28,7 @@ type ApplyReactionInput = Parameters<typeof applyNativeReactionEffect>[0]
 /**
  * Advances an action against one target through what happens between its TEST and its OUTCOME: the
  * target's Legendary Resistance against a failed save, its reaction to a hit (chosen from the held
- * offer and run as its own child action, D219; or, transitionally until QUALITY-8.T1d3, inline), and
+ * offer and run as its own child action, D219; the inline settlement stays until QUALITY-8.T1d3), and
  * the attacker's on-hit rider. A response that answers one of those is settled against the target as it stands now;
  * a decision an earlier answer kept is replayed and proved against it. Nothing is spent here: the
  * returned records carry each cost for the action's commit.
@@ -176,17 +176,9 @@ export async function advanceNativeActionTarget(input: {
           const found = await discoverReaction({ critical })
           return {
             candidates: found.map(({ candidate }) => candidate),
-            // Transitional (QUALITY-8.T1d2b ends it): a hit's reactions run as child actions (D219)
-            // only when each is a spell a Character casts in answer to the attack itself. Any other
-            // still runs inline, where the damage a reaction answers and a creature's reaction are read.
-            childHitDamageTypeIds: found.every(
-              ({ candidate, prepared }) =>
-                candidate.characterId !== null &&
-                candidate.trigger === 'ATTACKED_SELF' &&
-                prepared.characterActionState?.spellConsumption
-            )
-              ? [...attackHitDamageTypeIds(attackFacts, critical)]
-              : null
+            // Every reaction to a hit runs as its holder's child action (D219), which reads the
+            // damage it answers from the held offer.
+            childHitDamageTypeIds: [...attackHitDamageTypeIds(attackFacts, critical)]
           }
         },
         targetStateChecksum

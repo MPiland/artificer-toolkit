@@ -730,6 +730,77 @@ describe('CampaignTabletopDecisionDrawer attack retarget', () => {
   })
 })
 
+/**
+ * QUALITY-8.T1d2b: a hit holds one offer of every reaction its target can use (D219). The room
+ * presents it as a reaction choice whatever the holder (a Character, or a creature the GM answers
+ * for) and whatever the reaction it then runs as a child action.
+ */
+describe('CampaignTabletopDecisionDrawer reaction to a hit (D219)', () => {
+  const menu = [
+    { optionId: 'a'.repeat(64), actionId: 'shield' },
+    { optionId: 'b'.repeat(64), actionId: 'absorb-elements' }
+  ]
+  const hitPending = (options: typeof menu) =>
+    validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      kind: 'REACTION_CHOICE',
+      occurrenceId,
+      occurrenceVersion: 8,
+      encounterVersion: tabletopGmEncounter.version,
+      targetActorId: tabletopGmEncounter.actors[0]!.id,
+      options,
+      allowedResponses: ['DECLINE', 'OPTION']
+    })
+
+  async function openHit(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve'],
+    pending = hitPending(menu)
+  ) {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={pending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    return user
+  }
+
+  it('offers each reaction of the menu and answers with the one picked', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openHit(onResolve)
+
+    expect(screen.getByText('Reaction available')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Use shield' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Use absorb-elements' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId,
+        expectedOccurrenceVersion: 8,
+        resolution: { kind: 'OPTION', optionId: 'b'.repeat(64) }
+      })
+    )
+  })
+
+  it('offers a lone reaction as one use, and declines the offer', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openHit(onResolve, hitPending(menu.slice(0, 1)))
+
+    expect(screen.getByRole('button', { name: 'Use reaction' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Decline' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'DECLINE' } })
+    )
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer reaction offer (D219)', () => {
   const offerPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     kind: 'REACTION_OFFER',
