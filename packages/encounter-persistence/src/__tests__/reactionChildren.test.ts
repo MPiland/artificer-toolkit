@@ -36,6 +36,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { projectNativeActionPending, readNativeActionPending } from '../actionPending.js'
+import { revertLastEncounterAction } from '../actionRevert.js'
 import { insertRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import { readMovementResponseAuthority } from '../movementResolutionDocuments.js'
@@ -49,6 +50,7 @@ import {
   readReactionChildAncestors,
   readReactionChildCastLevel,
   readReactionChildHitDamageTypeIds,
+  readReactionChildMovement,
   readReactionChildParent,
   readTrailingReactionDescendants,
   releaseReactionChildParent,
@@ -1825,6 +1827,42 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
     expect(await readReactionChildCastLevel(ctx, link)).toBeNull()
   })
 
+  it('reads the child’s attack as an opportunity attack under the allowance its option was offered (QUALITY-18.T2b1)', async () => {
+    const { ctx } = await pausedMove(recorded.reactionChildren)
+    const child = { ...link, actionId: REACTION_ACTION_ID }
+    expect(await readReactionChildMovement(ctx, child)).toEqual({
+      attackOccasion: 'OPPORTUNITY',
+      allowanceDefinitionId: testUuid(0x8a31)
+    })
+    // Still read while the move is suspended for the child's own evidence.
+    await suspendReactionChildParent(ctx, link)
+    expect(await readReactionChildMovement(ctx, child)).toMatchObject({
+      allowanceDefinitionId: testUuid(0x8a31)
+    })
+  })
+
+  it('reads no move for a child a held attack records, or one the move does not record (QUALITY-18.T2b1)', async () => {
+    const child = { ...link, actionId: REACTION_ACTION_ID }
+    const attack = await pausedAttack(recorded)
+    expect(await readReactionChildMovement(attack.ctx, child)).toBeNull()
+    const open = await pausedMove()
+    expect(await readReactionChildMovement(open.ctx, child)).toBeNull()
+  })
+
+  it('refuses a recorded child whose action the contact never offered its reactor (QUALITY-18.T2b1)', async () => {
+    const { ctx } = await pausedMove(recorded.reactionChildren)
+    await expect(
+      readReactionChildMovement(ctx, { ...link, actionId: 'creature-bandit:scimitar' })
+    ).rejects.toThrow('The reaction’s move no longer offers it.')
+    await expect(
+      readReactionChildMovement(ctx, {
+        ...link,
+        actionId: REACTION_ACTION_ID,
+        reactorActorId: ALLY_ID
+      })
+    ).rejects.toThrow('The reaction’s move no longer offers it.')
+  })
+
   it('suspends the move while its child is the pending decision, and re-pins it to the Run the child left', async () => {
     const { ctx, occurrence } = await pausedMove(recorded.reactionChildren)
     const held = occurrence()
@@ -1971,20 +2009,9 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     })
   }
 
-  /** The GM's answer to the move's open choice, read through the move's own response fence. */
-  async function answer(held: Held, expectedVersion: number, expectedOccurrenceVersion: number) {
-    const { memory, ctx, state } = held
-    if (memory.documents('encounterSceneBindings').length === 0)
-      await memory.store.insert('encounterSceneBindings', {
-        encounterId: ENCOUNTER_ID,
-        campaignId: CAMPAIGN_ID,
-        sceneId: MOVE_SCENE_ID,
-        commandId: testUuid(0x8a47),
-        commandFingerprint: checksum('a'),
-        createdAt: TIMESTAMP
-      })
-    // Only the platform is faked: who is signed in and their Campaign membership.
-    const gm = {
+  /** The GM's transaction. Only the platform is faked: who is signed in and their Campaign membership. */
+  function gmTransaction({ ctx, state }: Held) {
+    return {
       db: ctx.db,
       ports: {
         ...ctx.ports,
@@ -2005,8 +2032,23 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
         }),
         readAssignedCharacter: async () => null
       }
-    } as unknown as Parameters<typeof readMovementResponseAuthority>[0]
-    return readMovementResponseAuthority(gm, {
+    } as unknown as Parameters<typeof readMovementResponseAuthority>[0] &
+      Parameters<typeof revertLastEncounterAction>[0]
+  }
+
+  /** The GM's answer to the move's open choice, read through the move's own response fence. */
+  async function answer(held: Held, expectedVersion: number, expectedOccurrenceVersion: number) {
+    const { memory } = held
+    if (memory.documents('encounterSceneBindings').length === 0)
+      await memory.store.insert('encounterSceneBindings', {
+        encounterId: ENCOUNTER_ID,
+        campaignId: CAMPAIGN_ID,
+        sceneId: MOVE_SCENE_ID,
+        commandId: testUuid(0x8a47),
+        commandFingerprint: checksum('a'),
+        createdAt: TIMESTAMP
+      })
+    return readMovementResponseAuthority(gmTransaction(held), {
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: ENCOUNTER_ID,
       commandId: testUuid(0x8a48),
@@ -2036,6 +2078,30 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       root: { resolutionCommands: [] }
     })
     await expect(answer(held, ROOT_VERSION, 0)).rejects.toThrow('VERSION_STALE')
+  })
+
+  it('refuses the GM’s undo of a committed child while the move it answered is still held (QUALITY-18.T2b1)', async () => {
+    const held = await pausedMove(recorded.reactionChildren)
+    const { ctx, memory, state, occurrence } = held
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+    await advanceRun(held, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    const pinned = occurrence()
+    await expect(
+      revertLastEncounterAction(
+        gmTransaction(held),
+        {
+          type: 'REVERT_LAST_ACTION',
+          encounterId: ENCOUNTER_ID,
+          commandId: testUuid(0x8a49),
+          expectedVersion: ROOT_VERSION + 1
+        },
+        GM_USER_ID
+      )
+    ).rejects.toMatchObject({ data: { reason: 'PENDING_DECISION' } })
+    // Nothing of the child is taken back, and the move still waits on the Run the child left.
+    expect(occurrence()).toEqual(pinned)
+    expect(memory.documents('encounterRunCommands')).toHaveLength(1)
   })
 
   it('follows the reaction that commits under its held child and the GM void that takes both back', async () => {

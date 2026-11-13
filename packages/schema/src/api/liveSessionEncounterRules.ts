@@ -6,6 +6,7 @@ import {
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { attackOccasionCodeSchema } from '../shared/enums.js'
 import { sceneActorLightSchema } from './characterMechanicsRead.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR } from '../shared/activeRuleEffects.js'
@@ -166,6 +167,24 @@ const liveSessionTriggerCastLevelSchema = lazySchema(() =>
 const liveSessionTriggerDamageTypeIdsSchema = lazySchema(() =>
   z.nullable(z.array(postgresUuidSchema).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)))
 )
+
+/**
+ * What a reaction child's command reads of the Scene move it answers, from the option its reactor
+ * took there (D219): the occasion its attack is made on, and the allowance the option was offered
+ * under, which the child spends in place of the one its activation binds to. Null for any other
+ * command.
+ */
+const liveSessionTriggerMovementSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      attackOccasion: attackOccasionCodeSchema,
+      allowanceDefinitionId: postgresUuidSchema
+    })
+  )
+)
+export type LiveSessionTriggerMovement = NonNullable<
+  z.infer<typeof liveSessionTriggerMovementSchema>
+>
 
 /** Private, authorized stored records for DO rules; no evaluated facts or write instructions. */
 export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
@@ -567,6 +586,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       result: z.nullable(encounterCommandResultDtoSchema),
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
       triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,
+      triggerMovement: liveSessionTriggerMovementSchema,
       reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
@@ -584,6 +604,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       reactionChildren: liveSessionReactionChildrenSchema,
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
       triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,
+      triggerMovement: liveSessionTriggerMovementSchema,
       reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({
@@ -597,6 +618,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       reactionChildren: liveSessionReactionChildrenSchema,
       triggerCastLevel: liveSessionTriggerCastLevelSchema,
       triggerDamageTypeIds: liveSessionTriggerDamageTypeIdsSchema,
+      triggerMovement: liveSessionTriggerMovementSchema,
       reactionAncestors: liveSessionReactionAncestorsSchema
     }),
     z.strictObject({

@@ -512,6 +512,9 @@ export async function planNativeLiveEncounterAction(
   const attackScene = { state, system, actors, loadTarget, definitions, sceneContext, capture }
   const attackSceneLoaders = (targets: typeof movementTargets) =>
     nativeLiveAttackSceneLoaders({ ...attackScene, movementTargets: targets })
+  // What the Scene move a reaction's child answers offered it under (D219). The mover's token already
+  // stands at the contact the move is held at, so the Scene is read as any action reads it.
+  const triggerMovement = 'triggerMovement' in admission ? admission.triggerMovement : null
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
@@ -528,6 +531,7 @@ export async function planNativeLiveEncounterAction(
         saveWindow: true,
         attack: {
           attackDecoy,
+          attackOccasion: triggerMovement?.attackOccasion,
           windowReactionDice: rollReactions.map(({ die }) => die),
           ...attackSceneLoaders(targets),
           loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
@@ -648,7 +652,8 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
-      weaponAttackOffer: weaponAttackOffer.charge
+      weaponAttackOffer: weaponAttackOffer.charge,
+      offeredAllowanceDefinitionId: triggerMovement?.allowanceDefinitionId
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'

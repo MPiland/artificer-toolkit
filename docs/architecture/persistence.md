@@ -480,6 +480,17 @@ reaction chosen by the creature an attack hit:
   child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions and on the `ACTION_RESUME` of a held child
   (`readReactionChildHitDamageTypeIds`), null for any other command and for a parent that holds no hit.
 
+The move a child answers (current contract, QUALITY-18.T2b1, D219; inert until QUALITY-18.T2b2 records a
+child on a move). The same three admissions return `triggerMovement`, null unless a held Scene move records
+the child: `readReactionChildMovement` finds the option the move's contact offers the child's reactor for the
+child's action and returns its attack occasion and `policy.allowanceDefinitionId`, and throws when the move
+offers that reactor no such action. The child's economy transition (`encounterActionEconomyTransitionDtoSchema`)
+gains optional `turnSequence`, set when the spent allowance refreshes `EACH_TURN`; the undo
+(`returnSpentActionEconomy`) returns such a spend to that turn's `turnUsage` entry and refuses once the turn
+has passed. The field is additive, so stored receipts stay valid (D196: no refresh needed).
+`REVERT_LAST_ACTION` of a committed child is refused while its move is held: the move is the Run's pending
+decision (`PENDING_DECISION`).
+
 The resolved child records nothing new: the parent keeps its TEST and the kept d20, so its resume tests that
 d20 again against the committed state. The offer's `hit` and kind are persisted pending-context shape changes;
 refresh local data when next used (D196).
