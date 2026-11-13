@@ -2197,3 +2197,9 @@ QUALITY-8's seam audit found the reaction paths settle their effects inline (Pro
     - 7. The resume continues the Kernel choice with the index of the option the child came from, drops that timeline entry and records no `completedReactionExecutions` entry. Then `continueMovement` runs.
     - 8. A resume entry's `actorUserId` is the campaign owner. A release entry's is the voiding GM.
   - **Command ids:** both entries derive their id with `reactionChildMoveCommandId` from the parent and child ids, the kind and the occurrence version. A reaction chosen again after a release therefore gets a fresh id.
+
+  **T2 split (2026-11-13; user approved the D187 growth, +13).**
+  - **The trace:** T2 traced at about 30. Today's opportunity attack is a second action engine inside the move (its own evidence, Legendary Resistance and Concentration phases), and 26 Worker plus 15 Convex test files drive it, so the flip and its restated tests must go green together.
+  - **The split:** T2a (5) inert groundwork: the `rollMode` marker becomes `resumeOutcome` (`ROLL_MODE` or `STOP`), the `stopsTriggeringMovement` System adapter, the `REACTION_CHILD_RESUME` resolution kind refused on the client frame, and fence proofs. T2b (13) the flip with every test restated; the inline engine stays, unreachable from a choice. T2c (8) deletes the inline engine.
+  - **Orchestrator ruling 9:** a void of a held move's choice is a decline that skips that choice, not a cancel of the move, so T2a does not take back recorded children. Which children a void of a held move gives back stays with T4's registered cascade, decided there.
+  - **Orchestrator ruling 10:** the move's fences stay equality on its pin; the child seam already re-pins it, so the action host's descendants-plus-voids count is not applied to moves. T2b's resume keeps `resolutionCommands.length === occurrence.version` (ruling 4).

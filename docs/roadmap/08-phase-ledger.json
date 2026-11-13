@@ -23871,6 +23871,51 @@
             }
           ],
           "internalReason": "A CI test-stability fix; no user-visible behavior changes."
+        },
+        {
+          "id": "RELIABILITY-24",
+          "title": "A session whose account is gone leaves the signed-in pages without an error",
+          "status": "IN_PROGRESS",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "origin": [
+            "User approval 2026-11-13 (D187 exception: CI flake): account-deletion-browser failed on the m723 batch (43350651093) with an Unauthenticated console error from accountEntitlements:get in the deleted account's second session; user ruled a client fix. Investigation: SessionConvergence clears the query cache while the signed-in tree is mounted, so the account route's useSuspenseQuery re-subscribes as the revoked identity and throws to the route error boundary."
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 2,
+            "after": []
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-24.1",
+              "status": "IN_PROGRESS",
+              "origin": [
+                "User approval 2026-11-13 (D187 exception: CI flake): account-deletion-browser failed on the m723 batch (43350651093) with an Unauthenticated console error from accountEntitlements:get in the deleted account's second session; user ruled a client fix. Investigation: SessionConvergence clears the query cache while the signed-in tree is mounted, so the account route's useSuspenseQuery re-subscribes as the revoked identity and throws to the route error boundary."
+              ],
+              "text": "When a session loses its identity (account deleted, signed out elsewhere, banned, expired), it leaves the signed-in route tree before the private query cache is dropped, so no suspense query throws to an error boundary or logs an Unauthenticated console error; a regression test against the real query client fails before the fix, and account-deletion-browser passes with zero unexpected diagnostics.",
+              "proof": []
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-24.T1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["RELIABILITY-24.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "In SessionConvergence (and the test router copy), on identity loss leave the signed-in tree before clearing the query cache and private content snapshots; sign-in and identity switches keep today's order. Regression test with the real ConvexQueryClient plus the account-deletion-browser proof."
+            }
+          ],
+          "internalReason": "Fixes a brief error flash in another open session of a deleted or signed-out account, and the CI flake it causes."
         }
       ]
     },
@@ -25886,7 +25931,7 @@
             },
             {
               "id": "QUALITY-9.T1d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25897,7 +25942,8 @@
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between).",
               "text": "TARGETED_SELF reactions (Shield against Magic Missile) run as children on the chosen-list host: child target and Scene tokens from the stage; the list resume rebinds the reactor's entries (REBIND_TEST room proof, undo and void of the child); delete holdChosenReactions' effect derivation, the prepareSealedReach hold and the TARGETED_SELF reactionEffects path; Shield tests restated on the child path.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m725 (21d1617f1), batch with QUALITY-11.T1b and QUALITY-9.T1d1, from slice tip 4dbf3d144: Tests 43355690037, Live 43355689886, Browser journeys 43355689892 green. Red proof nativeRoomChosenListReactions 1/7, nativeRoomShieldMagicMissile 1/8, actionPendingOffers 1/30 RED. A used TARGETED_SELF reaction (Shield) runs as its holder's own child action on the chosen-list host; deleted holdChosenReactions, prepareSealedReach and held re-preparation, the reactionEffects commit path, advanceNativeTargetedReactions, the against filter, planUsedReactions' SPELL_CAST_BY_OTHER branch and the inline spend at the offer. Restated: actionPendingOffers inline-spend acceptance flipped to refusal; chosen-list mid-pause slot and effect now land at the choice (D219). The always-empty usedReactions plumbing stays for T1d2. D196: no persisted shape change."
             },
             {
               "id": "QUALITY-9.T1d2",
@@ -26027,7 +26073,7 @@
         {
           "id": "QUALITY-11",
           "title": "One after-commit trigger step",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 2,
@@ -26039,10 +26085,11 @@
           "acs": [
             {
               "id": "QUALITY-11.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R8.",
-              "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; damage mirrors and defeat rewards settle as one stage of that step; a multi-trigger command raises children in today's order."
+              "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; damage mirrors and defeat rewards settle as one stage of that step; a multi-trigger command raises children in today's order.",
+              "proof": ["QUALITY-11.T1a, T1b (m725) and T2 (m720) DONE."]
             }
           ],
           "tasks": [
@@ -26064,7 +26111,7 @@
             },
             {
               "id": "QUALITY-11.T1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-11.1"],
               "wsjf": {
                 "bv": 2,
@@ -26074,7 +26121,9 @@
                 "after": ["QUALITY-11.T1a"]
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
-              "text": "Turn-start and failed-save become event-table events (DEFEATED reused) with a raise-action hook and a System vocabulary binding; the after-commit step and action admission discover the HP-zero, start-of-turn and rule triggers from the table; the delegated Legendary Action stays a run-state subscriber."
+              "text": "Turn-start and failed-save become event-table events (DEFEATED reused) with a raise-action hook and a System vocabulary binding; the after-commit step and action admission discover the HP-zero, start-of-turn and rule triggers from the table; the delegated Legendary Action stays a run-state subscriber.",
+              "mergedAt": "2026-11-13",
+              "proof": "m725 (21d1617f1), batch with QUALITY-11.T1b and QUALITY-9.T1d1, from slice tip 4b01a873f: Tests 43355906643, Live 43355906729, Browser journeys 43355906837 green (account-deletion-browser failed once on the refused m723 batch and passed on rerun 43353627428; root cause registered as RELIABILITY-24). Red proof all RED: nativeRoomAfterCommitOrder 3/4, nativeRoomStartOfTurnRegeneration 1/5, creatureStartOfTurnRegeneration 12/12, encounterPassiveHpZeroEffects 6/6, encounterRuleAction 1/7, raiseActionHooks 4/4. Trigger events raise rule actions through one table; action admission refuses a submitted action naming any raised action. D196: no persisted shape change."
             },
             {
               "id": "QUALITY-11.T2",
@@ -26092,7 +26141,12 @@
               "mergedAt": "2026-11-13",
               "proof": "m720 (8b0674e44) from slice tip 51427f066: Tests 43338042556, Live 43338042602, Browser journeys 43338042628 green. Red proof systemTriggerSiblings.test.ts RED 1/5. A system-trigger child is admitted at the parent version plus its committed sibling children (countCommittedSystemSiblings); any other command moving the Run still rejects VERSION_STALE. Found and fixed: a passive start-of-turn effect compiled with activation ACTION, so a second passive on one holder was refused ACTION_ECONOMY_UNAVAILABLE; it now compiles FREE. Room tests prove two HP-zero children and two start-of-turn passives (duplicated Regeneration) commit in one command. No persisted-shape change."
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomAfterCommitOrder.test.ts",
+            "apps/session-worker/test/nativeRoomStartOfTurnRegeneration.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-12",
@@ -26567,19 +26621,47 @@
               "proof": "m724 (e1888560e) from slice tip 1e3324e87: Tests 43351555569, Live 43351555774, Browser journeys 43351555548 green. Red proof reactionChildren.test.ts RED 3/72 and spatial-movement-rule-contracts.test.ts RED 1/24; reactionOffer.test.ts ALREADY-PASSING (fixture only). The T1a throw test is replaced by four release tests (entry, derived id, GM actor, version equals history length; kept resumed children; refusal when not suspended; the next answer extends the history). The id includes kind and occurrence version so a re-chosen reaction gets a fresh id. D196: additive union widening, no reset."
             },
             {
-              "id": "QUALITY-18.T2",
+              "id": "QUALITY-18.T2a",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
+                "size": 5,
                 "after": ["QUALITY-18.T1b1", "QUALITY-11.T1a"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Split 2026-11-12 at the seam trace (5 to 8); user approved T1b1 3 with the move resume folded into T2 (8 to 13), net +3.",
-              "text": "The opportunity attack runs as a child at the contact point; the child commit or its answered roll resumes the move; a STOP resume (System adapter stopsTriggeringMovement) or a mover at 0 HP ends it; reaction economy, turn uses and retaliation come from the action host; core movement room tests restated. Also the descendants-plus-voids allowance on the movement fences (root replay block, SUSPENDED move response authority), proved through the room. Also the room-internal move resume (a resolution kind inside RESOLVE_RULE_OCCURRENCE refused from clients, riding commitMovementDecision as the campaign owner, resuming the Kernel choice with the option index and dropping that timeline entry) and the rename of the rollMode resume marker to a neutral name that includes STOP.",
+              "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
+              "text": "Inert groundwork for opportunity attacks as children: rename the rollMode resume marker to a neutral name that includes STOP; add the stopsTriggeringMovement System adapter beside cancelsTriggeringEvent; add the room-internal move-resume resolution kind inside RESOLVE_RULE_OCCURRENCE with its client-schema refusal; a void of a held move takes back its recorded children; the movement fences allow committed descendants and voids, proved at persistence level.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-18.T2b",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-18.T2a"]
+              },
+              "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
+              "text": "The flip: a chosen opportunity-attack option records a reaction child and the room raises it; the room-internal resume (rulings 1-3 and 6-8, id from reactionChildMoveCommandId); STOP or a mover at 0 HP ends the move at the contact point; economy, turn uses and retaliation from the action host; the fences proved through the room. Every room and Convex movement-reaction test restated in the same slice. The inline engine stays, unreachable from a choice and labelled transitional."
+            },
+            {
+              "id": "QUALITY-18.T2c",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-18.T2b"]
+              },
+              "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
+              "text": "Delete the inline movement reaction engine: the ACTION_EVIDENCE, LEGENDARY_RESISTANCE_CHOICE and reaction-sourced CONCENTRATION_EVIDENCE phases, completedReactionExecutions, the move receipt reactionExecutions, the replay code, the web drawer stories and tests, and the regenerated Convex files."
             },
             {
               "id": "QUALITY-18.T3",
@@ -26590,7 +26672,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-18.T2"]
+                "after": ["QUALITY-18.T2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed."
@@ -26604,7 +26686,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2"]
+                "after": ["QUALITY-18.T2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move."
@@ -26618,7 +26700,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2"]
+                "after": ["QUALITY-18.T2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Web and timer: the movement offer is REACTION_CHOICE in the decision drawer and the token badge; timed decline through the encounter path; stories and the movement journey."
