@@ -5,6 +5,10 @@ import {
   type DamageRerollCostDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type {
+  EncounterCastReactionOfferDto,
+  EncounterSettledHitDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto,
   ServerRuleExecutionD20EvidenceDto,
@@ -99,8 +103,29 @@ export async function advanceNativeActionGraphs(input: {
    * critically). Any found candidate holds the action before its OUTCOME for the target's choice.
    */
   reaction?: {
-    discover(critical: boolean): Promise<readonly EncounterReactionCandidate[]>
+    discover(critical: boolean): Promise<{
+      candidates: readonly EncounterReactionCandidate[]
+      /**
+       * The damage types the hit deals, when the reactions found run as their holder's own actions
+       * (D219); null while they still run inline, which QUALITY-8.T1d2b ends.
+       */
+      childHitDamageTypeIds: readonly string[] | null
+    }>
     targetStateChecksum: string
+  }
+  /**
+   * The held `HIT_BY_ATTACK` offer once it is answered (D219). Its TEST is rebuilt from the kept faces,
+   * never rolled again, and no reaction is offered for that hit again. `USE` keeps the action held
+   * on the answered offer until the chosen reaction's own action commits. `DECLINE` continues from the
+   * kept TEST. `RESUMED` follows that commit: the same faces are tested against the binding as the
+   * reaction's action left the target, and the action continues from that TEST.
+   */
+  heldHit?: {
+    offer: EncounterCastReactionOfferDto & { hit: EncounterSettledHitDto }
+    answer:
+      | { kind: 'USE'; candidate: EncounterReactionCandidate }
+      | { kind: 'DECLINE' }
+      | { kind: 'RESUMED' }
   }
   /**
    * The ways the attacker could pay for an optional on-hit rider. Any found holds a hit, once no
@@ -134,6 +159,7 @@ export async function advanceNativeActionGraphs(input: {
     const {
       legendaryResistance,
       reaction,
+      heldHit,
       onHitCandidates,
       saveWindow,
       damageRerolls,
@@ -168,13 +194,35 @@ export async function advanceNativeActionGraphs(input: {
     const resolution = resume?.resolution
     if (resolution?.kind === 'DAMAGE_REROLL')
       throw new Error('The damage roll window evidence is stale.')
-    const test = await prepareNativeActionTest({
-      ...sealedAgainst,
-      attackSight: testSight,
-      saveWindow,
-      ...(resume && resolution ? { resume: { pending: resume.pending, resolution } } : {})
-    })
+    if (heldHit && resume) throw new Error('Reaction evidence is stale.')
+    const test = heldHit
+      ? await reconstructNativeActionTest({
+          ...sealedAgainst,
+          ...(heldHit.answer.kind === 'RESUMED'
+            ? {}
+            : { execution: heldHit.offer.hit.originalExecution }),
+          d20: heldHit.offer.hit.originalD20
+        })
+      : await prepareNativeActionTest({
+          ...sealedAgainst,
+          attackSight: testSight,
+          saveWindow,
+          ...(resume && resolution ? { resume: { pending: resume.pending, resolution } } : {})
+        })
     if (test.kind === 'PENDING') return test
+    if (heldHit?.answer.kind === 'USE')
+      return {
+        kind: 'PENDING',
+        continuation: await openEncounterReactionChoice({
+          runtime: input.runtime,
+          occurrenceId: input.occurrenceId,
+          candidate: heldHit.answer.candidate
+        }),
+        d20Policy: null,
+        twoPhase: test.twoPhase,
+        roller: 'TARGET',
+        pause: { kind: 'CAST_REACTION', payload: heldHit.offer }
+      }
     /** What a choice about the sealed roll pins of it. */
     const sealedRoll = () => ({
       originalExecution: test.execution,
@@ -214,14 +262,18 @@ export async function advanceNativeActionGraphs(input: {
     const windowReactors = windowSpentReactions({ d20: test.d20, nestedD20: null }).map(
       ({ reactorActorId }) => reactorActorId
     )
-    const reactionCandidates =
-      reaction && struck
-        ? (await reaction.discover(test.d20.resultPath === 'ON_CRIT')).filter(
-            ({ reactorActorId }) => !windowReactors.includes(reactorActorId)
-          )
-        : []
+    // A held hit already made its offer, so it is offered no reaction again.
+    const found =
+      reaction && struck && !heldHit
+        ? await reaction.discover(test.d20.resultPath === 'ON_CRIT')
+        : null
+    const reactionCandidates = (found?.candidates ?? []).filter(
+      ({ reactorActorId }) => !windowReactors.includes(reactorActorId)
+    )
     const [firstReaction] = reactionCandidates
-    if (reaction && firstReaction)
+    if (reaction && found && firstReaction) {
+      const hit = { ...sealedRoll(), targetStateChecksum: reaction.targetStateChecksum }
+      const reactions = reactionCandidates.map(encounterReactionPin)
       return {
         kind: 'PENDING',
         continuation: await openEncounterReactionChoice({
@@ -232,15 +284,20 @@ export async function advanceNativeActionGraphs(input: {
         d20Policy: null,
         twoPhase: test.twoPhase,
         roller: 'TARGET',
-        pause: {
-          kind: 'REACTION',
-          payload: {
-            ...sealedRoll(),
-            targetStateChecksum: reaction.targetStateChecksum,
-            reactions: reactionCandidates.map(encounterReactionPin)
-          }
-        }
+        pause: found.childHitDamageTypeIds
+          ? {
+              kind: 'CAST_REACTION',
+              payload: {
+                kind: 'HIT_BY_ATTACK',
+                reactions,
+                declinedReactorActorIds: [],
+                hit: { ...hit, damageTypeIds: [...found.childHitDamageTypeIds] }
+              }
+            }
+          : // Transitional: the inline offer, which QUALITY-8.T1d2b stops making and T1d3 deletes.
+            { kind: 'REACTION', payload: { ...hit, reactions } }
       }
+    }
     // The rider is offered before the OUTCOME is selected, since the choice can change which one runs.
     if (onHitCandidates?.length && struck)
       return holdForOnHitChoice({

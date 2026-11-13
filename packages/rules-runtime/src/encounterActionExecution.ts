@@ -286,11 +286,20 @@ export type PendingNativeActionGraphs = {
   /**
    * Set while the action waits on a choice: a rolled save's d20 window, a failed save's Legendary
    * Resistance, a hit's reaction or on-hit rider, or a settled action's forced-movement destination.
-   * `continuation` is that choice.
+   * `continuation` is that choice. A hit's reactions that run as their holder's own actions (D219)
+   * are offered by `CAST_REACTION`; `REACTION` is the inline offer QUALITY-8.T1d3 deletes.
    */
   pause?: Extract<
     EncounterActionPauseDto,
-    { kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
+    {
+      kind:
+        | 'ROLL_WINDOW'
+        | 'LEGENDARY_RESISTANCE'
+        | 'REACTION'
+        | 'CAST_REACTION'
+        | 'ON_HIT'
+        | 'FORCED_MOVEMENT'
+    }
   >
 }
 

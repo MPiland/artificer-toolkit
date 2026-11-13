@@ -212,7 +212,8 @@ export async function executeRoomEncounterAction(input: {
       },
       callbacks
     )
-    if (plan.kind !== 'CAST_PENDING' || !plan.reactionChild) return pending
+    const reactionChild = 'reactionChild' in plan ? plan.reactionChild : null
+    if (!reactionChild) return pending
     // A chosen reaction runs as its own action in the same turn (D219). It commits and the room
     // resumes the held action below, or it pauses on evidence of its own and suspends that action.
     return executeRoomEncounterAction({
@@ -221,7 +222,7 @@ export async function executeRoomEncounterAction(input: {
         encounterId: scope.encounterId,
         expectedVersion: scope.expectedVersion,
         parentCommandId: plan.command.commandId,
-        ...plan.reactionChild
+        ...reactionChild
       })
     })
   }
