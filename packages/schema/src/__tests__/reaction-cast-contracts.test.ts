@@ -136,6 +136,37 @@ describe('cast reaction offers', () => {
     expect(issuePaths(offer('ATTACK_ON_OTHER'))).toEqual([['reactions'], ['rolled']])
   })
 
+  it('holds a HIT_BY_ATTACK offer of reactions to the hit and to its damage, only with the hit it follows (QUALITY-8.T1d-a)', () => {
+    // The offer that keeps a settled hit is proved against a stored pending action in encounter-persistence.
+    const offer = (
+      kind: 'HIT_BY_ATTACK' | 'TARGETED_SELF' | 'ATTACK_ROLL_BY_OTHER',
+      ...triggers: EncounterReactionPinDto['trigger'][]
+    ) => ({
+      kind,
+      reactions: triggers.map((trigger, index) => castPin(index + 1, trigger)),
+      declinedReactorActorIds: []
+    })
+    const issuePaths = (value: unknown) =>
+      encounterCastReactionOfferDtoSchema.safeParse(value).error?.issues.map(({ path }) => path)
+    // One menu holds both triggers of the hit; without the hit only the missing hit is at issue.
+    expect(issuePaths(offer('HIT_BY_ATTACK', 'ATTACKED_SELF', 'DAMAGE_TAKEN'))).toEqual([['hit']])
+    expect(issuePaths(offer('HIT_BY_ATTACK', 'DAMAGE_TAKEN'))).toEqual([['hit']])
+    expect(issuePaths(offer('HIT_BY_ATTACK', 'ATTACKED_SELF', 'TARGETED_SELF'))).toEqual([
+      ['reactions'],
+      ['hit']
+    ])
+    expect(issuePaths(offer('HIT_BY_ATTACK', 'SPELL_CAST'))).toEqual([['reactions'], ['hit']])
+    // A hit's reactions travel under no other kind, and no other kind keeps a hit.
+    expect(issuePaths(offer('TARGETED_SELF', 'ATTACKED_SELF'))).toEqual([['reactions']])
+    expect(issuePaths(offer('TARGETED_SELF', 'TARGETED_SELF', 'DAMAGE_TAKEN'))).toEqual([
+      ['reactions']
+    ])
+    expect(issuePaths(offer('ATTACK_ROLL_BY_OTHER', 'DAMAGE_TAKEN'))).toEqual([
+      ['reactions'],
+      ['rolled']
+    ])
+  })
+
   it('holds no chain: a counter of a counter is offered by that counter’s own action (D219)', () => {
     expect(
       encounterCastReactionOfferDtoSchema.safeParse({

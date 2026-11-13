@@ -142,6 +142,19 @@ export async function readReactionChildCastLevel(
 }
 
 /**
+ * The damage types of the hit a reaction child answers, as the held attack's offer keeps them
+ * (D219); null when the child answers no hit, or no held action records it.
+ */
+export async function readReactionChildHitDamageTypeIds(
+  ctx: EncounterReadContext,
+  input: ReactionChildLink
+) {
+  const held = await readRecordingParent(ctx, input)
+  const pause = held?.context.kind === 'ENCOUNTER_ACTION' ? held.context.pause : undefined
+  return pause?.kind === 'CAST_REACTION' ? (pause.payload.hit?.damageTypeIds ?? null) : null
+}
+
+/**
  * The held actions above a reaction child, nearest first (D219): the action that records it, the
  * action that one answers, and so on up to the action nothing holds. Each names its creature, whether
  * it is itself a reaction (its holder's reaction is spent on it, though nothing of it has committed),
