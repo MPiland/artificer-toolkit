@@ -47,6 +47,7 @@ import {
   buildEncounterAreaPendingSnapshot,
   decideEncounterAreaDamageRoll,
   encounterAreaDamageRollWindow,
+  encounterAreaHeldRay,
   encounterAreaSaveAwaiting,
   encounterAreaSettled,
   encounterChosenActorEntries,
@@ -55,6 +56,7 @@ import {
   holdEncounterAreaCollisionSaves,
   holdEncounterAreaDamageRoll,
   holdEncounterAreaForcedMovement,
+  holdEncounterAreaRayReaction,
   landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveRolled,
@@ -62,9 +64,14 @@ import {
   nextEncounterAreaWindowRequestId,
   openEncounterAreaSaveWindow,
   removeEncounterAreaTargetFromSnapshot,
-  rerolledEncounterAreaRolls
+  rerolledEncounterAreaRolls,
+  resealEncounterAreaTargets
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
-import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  buildEncounterActionPendingSnapshot,
+  restoreEncounterActionPending
+} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import type { EncounterCastReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   characterClassLevels,
   characterTotalLevel
@@ -104,6 +111,8 @@ import {
   prepareAreaScene,
   prepareAreaTarget,
   prepareReach,
+  prepareReachReaction,
+  reachCastPause,
   reachRuleOverrides
 } from './nativeAreaPreparation.js'
 import {
@@ -118,6 +127,8 @@ import {
   sealedListAttack
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
+import { advanceNativeActionTarget } from './nativeActionTargetAdvance.js'
+import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
 
 /**
@@ -487,7 +498,18 @@ async function autoRollAreaSave(
   entry: { actor: EncounterRunActorState; prepared: AreaPrepared; sealed: AreaTargetRecord }
 ) {
   const { sealed } = entry
+  const context = snapshot.applicationContext
+  const current =
+    context.kind === 'ENCOUNTER_AREA_ACTION'
+      ? context.targets.find(
+          (target) => target.snapshot.occurrenceId === sealed.snapshot.occurrenceId
+        )
+      : undefined
+  // A ray behind one held on its hit's reaction offer waits for that ray (D219).
   if (
+    context.kind !== 'ENCOUNTER_AREA_ACTION' ||
+    !current ||
+    encounterAreaSaveAwaiting(context, current) !== 'ROLL' ||
     sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     !input.requireAutoRoll(sealed.snapshot.applicationContext.rollerActorId)
   )
@@ -517,30 +539,10 @@ async function recordAreaRoll(
 ) {
   const requestId = entry.sealed.snapshot.request.requestId
   if (entry.prepared.makesAttackRoll) {
-    const context = snapshot.applicationContext
-    if (context.kind !== 'ENCOUNTER_AREA_ACTION' || resolution.kind === 'ROLL_WINDOW')
+    if (resolution.kind === 'ROLL_WINDOW')
       throw new Error('The pending action evidence is invalid.')
-    const index = context.targets.findIndex(
-      (target) => target.snapshot.request.requestId === requestId
-    )
-    const settled = await advanceEncounterListAttacks({
-      runtime: input.runtime,
-      random: input.random,
-      adapter: entry.prepared.adapter,
-      plan: entry.prepared.plan,
-      occurrenceId: areaOccurrenceId,
-      attacks: [
-        ...context.targets
-          .slice(0, index)
-          .filter((target) => target.actorId === entry.sealed.actorId)
-          .map((earlier) => sealedListAttack(earlier, entry.prepared)),
-        sealedListAttack(entry.sealed, entry.prepared, resolution)
-      ]
-    })
-    return markEncounterAreaSaveTested(snapshot, requestId, {
-      testedJson: JSON.stringify(resolution),
-      rolls: settled.at(-1)?.rolls
-    })
+    // A hit its creature can react to holds the ray on that offer, which no child is chosen at yet.
+    return (await advanceAreaRay(input, snapshot, entry, { kind: 'ROLL', resolution })).snapshot
   }
   const result = await rollAreaTargetSave(
     input,
@@ -579,6 +581,155 @@ async function recordAreaRoll(
       }) ?? undefined,
     testDice: sealedTestDice(result.boundary)
   })
+}
+
+/**
+ * Advances the ray whose turn it is through the single-target function, on the hit points the earlier
+ * rays at its creature left it: with the caster's roll, with its creature's answer to the reaction
+ * offer its hit raised, or past that offer once the chosen reaction's child action committed (D219).
+ * A hit its creature can react to, and a reaction it chose, leave the ray held on the offer in its
+ * own snapshot; any other outcome keeps the ray's answer with every die it rolled.
+ */
+async function advanceAreaRay(
+  input: ReachPlanInput,
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  entry: { prepared: AreaPrepared; sealed: AreaTargetRecord },
+  step:
+    | { kind: 'ROLL'; resolution: EncounterEvidenceAnswer }
+    | {
+        kind: 'REACTION'
+        answer: NativeCastReactionAnswer
+        /** The facts each answered ray was rolled against, kept if the reaction is used. */
+        testBindings: ReadonlyMap<string, string>
+      }
+    | { kind: 'RESUMED'; offer: EncounterCastReactionOfferDto }
+) {
+  const { prepared, sealed } = entry
+  const context = snapshot.applicationContext
+  const inner = sealed.snapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_AREA_ACTION' || inner.kind !== 'ENCOUNTER_ACTION')
+    throw new Error('The pending action evidence is invalid.')
+  const requestId = sealed.snapshot.request.requestId
+  const index = context.targets.findIndex(
+    (target) => target.snapshot.request.requestId === requestId
+  )
+  let reach: Promise<AreaReach> | undefined
+  const readReach = () => (reach ??= prepareReach(input))
+  const occurredAt = new Date().toISOString()
+  const chosen: { child: Awaited<ReturnType<typeof advanceNativeActionTarget>>['reactionChild'] } =
+    { child: null }
+  const { settled, held } = await advanceEncounterListAttacks({
+    runtime: input.runtime,
+    random: input.random,
+    adapter: prepared.adapter,
+    plan: prepared.plan,
+    occurrenceId: snapshot.occurrenceId,
+    attacks: [
+      ...context.targets
+        .slice(0, index)
+        .filter((target) => target.actorId === sealed.actorId)
+        .map((earlier) => sealedListAttack(earlier, prepared)),
+      {
+        actorId: sealed.actorId,
+        occurrenceId: sealed.snapshot.occurrenceId,
+        binding: prepared.binding,
+        attackSight: prepared.attackSight,
+        rolls: null,
+        host: async (actionSource) => {
+          const advanced = await advanceNativeActionTarget({
+            state: input.state,
+            system: input.system,
+            capture: input.capture,
+            attack: prepared,
+            actionSource,
+            targetStateChecksum: checksumRuleDocument(prepared.target),
+            prepareReaction: prepareReachReaction(
+              input,
+              prepared.target,
+              async () => (await readReach()).movementTargets
+            ),
+            // Every reaction to a ray's hit runs as its holder's child action, never inline.
+            prepareReactedAttack: async () => {
+              throw new Error('A ray’s hit reaction runs as its holder’s own action.')
+            },
+            loadTarget: input.loadTarget,
+            activeEffectsByActorId: input.activeEffectsByActorId,
+            commandId: input.command.commandId,
+            occurredAt,
+            onHitNow: [],
+            pauseAnswer:
+              step.kind === 'REACTION' ? { kind: 'CAST_REACTION', answer: step.answer } : null,
+            resumedOffer: step.kind === 'RESUMED' ? step.offer : null,
+            resume:
+              step.kind === 'ROLL'
+                ? {
+                    pending: { ...restoreEncounterActionPending(sealed.snapshot), roller: 'TARGET' },
+                    resolution: step.resolution
+                  }
+                : null
+          })
+          chosen.child = advanced.reactionChild
+          return advanced.execution
+        }
+      }
+    ]
+  })
+  if (held) {
+    const launched = chosen.child
+      ? await reachCastPause(input, {
+          reach: await readReach(),
+          lead: prepared,
+          chosenActorIds: null,
+          occurrenceId: snapshot.occurrenceId,
+          occurredAt,
+          answer: null
+        }).launchReactionChild(
+          input.reactionChildren.recorded,
+          chosen.child,
+          chosen.child.holderActorId
+        )
+      : null
+    return {
+      snapshot: holdEncounterAreaRayReaction(
+        snapshot,
+        requestId,
+        buildEncounterActionPendingSnapshot({
+          execution: held,
+          optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+          commandJson: context.commandJson,
+          commandFingerprint: context.commandFingerprint,
+          initiatorUserId: context.initiatorUserId,
+          sourceActorId: context.casterActorId,
+          targetActorId: sealed.actorId,
+          currentnessChecksum: inner.currentnessChecksum,
+          ...(launched && { reactionChildren: launched.reactionChildren })
+        }),
+        step.kind === 'REACTION' ? step.testBindings : undefined
+      ),
+      reactionChild: launched?.reactionChild ?? null
+    }
+  }
+  // A ray that left its hit's offer keeps the d20 the offer held as its answer.
+  const hit = inner.pause?.kind === 'CAST_REACTION' ? inner.pause.payload.hit : undefined
+  const answer: EncounterEvidenceAnswer | null =
+    step.kind === 'ROLL'
+      ? step.resolution
+      : hit
+        ? {
+            kind: 'ENTER_DICE',
+            requestId,
+            rawFaces: hit.originalD20.rawFaces,
+            rollMode: hit.originalD20.rollMode
+          }
+        : null
+  if (!answer) throw new Error('The pending action evidence is invalid.')
+  return {
+    snapshot: markEncounterAreaSaveTested(snapshot, requestId, {
+      testedJson: JSON.stringify(answer),
+      rolls: settled.at(-1)?.rolls
+    }),
+    reactionChild: null
+  }
 }
 
 /**
@@ -826,6 +977,155 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
   }
 }
 
+/**
+ * Plans what moves a ray held on its hit's reaction offer (D219): its creature's answer, or the room's
+ * resume once the reaction it chose committed as its holder's own child action. A decline runs the
+ * ray's outcome. A chosen reaction keeps the ray held, records its child and keeps, with every
+ * answered ray, the facts it was rolled against, so the list's replay finds the earlier rolls as they
+ * were made. The resume seals every entry again to the creatures as the child left them, then runs
+ * the ray past its offer against them. The rays behind it whose roller auto-rolls follow, each
+ * stopping the list at its own hit's offer.
+ */
+export async function planNativeLiveEncounterAreaRayReaction(
+  input: ReachPlanInput & {
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+    continuation:
+      | { response: ResolveRuleOccurrenceInputDto; answer: NativeCastReactionAnswer }
+      | { resume: LiveSessionEncounterActionResume; offer: EncounterCastReactionOfferDto }
+  }
+) {
+  const { command, actors, areaSnapshot, continuation } = input
+  const context = areaSnapshot.applicationContext
+  const held = encounterAreaHeldRay(areaSnapshot)
+  const response = 'response' in continuation ? continuation.response : null
+  const resume = 'resume' in continuation ? continuation.resume : null
+  if (
+    context.kind !== 'ENCOUNTER_AREA_ACTION' ||
+    !held ||
+    (response ?? resume)?.occurrenceId !== areaSnapshot.occurrenceId ||
+    (response !== null && encounterAreaSaveAwaiting(context, held) !== 'REACTION') ||
+    context.commandFingerprint !== input.fingerprint ||
+    command.optionalCombatIntent != null ||
+    context.targets.some(({ collision }) => collision)
+  )
+    throw new Error('The pending action evidence is invalid.')
+  const reach = await prepareReach(input)
+  const entries = []
+  for (const sealed of context.targets)
+    entries.push({ sealed, ...(await revalidateAreaTarget(input, context, sealed, reach)) })
+  const heldIndex = context.targets.indexOf(held)
+  const heldEntry = entries[heldIndex]
+  if (!heldEntry) throw new Error('The pending action evidence is invalid.')
+  let snapshot = areaSnapshot
+  if ('resume' in continuation) {
+    const lead = heldEntry.target.prepared
+    const reactionChildren = await reachCastPause(input, {
+      reach,
+      lead,
+      chosenActorIds: null,
+      occurrenceId: areaSnapshot.occurrenceId,
+      occurredAt: new Date().toISOString(),
+      answer: null
+    }).resolveReactionChildren()
+    const unrolled = entries.filter(
+      ({ sealed }) => sealed.testedJson === undefined && sealed !== held
+    )
+    const tests = await prepareEncounterAreaTests({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: lead.adapter,
+      plan: lead.plan,
+      occurrenceId: areaSnapshot.occurrenceId,
+      targets: unrolled.map(({ sealed, target: { prepared } }) => ({
+        actorId: sealed.actorId,
+        occurrenceId: sealed.snapshot.occurrenceId,
+        binding: prepared.binding,
+        attackSight: prepared.attackSight,
+        autoRoll: { SOURCE: false, TARGET: false },
+        discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
+      }))
+    })
+    snapshot = resealEncounterAreaTargets(
+      areaSnapshot,
+      entries.map(({ sealed, currentnessChecksum }) => {
+        const inner = sealed.snapshot.applicationContext
+        if (inner.kind !== 'ENCOUNTER_ACTION')
+          throw new Error('The pending action evidence is invalid.')
+        // An answered ray keeps its roll, and the held ray its offer with its child's outcome.
+        if (sealed.testedJson !== undefined || sealed === held)
+          return {
+            ...sealed.snapshot,
+            applicationContext: {
+              ...inner,
+              currentnessChecksum,
+              ...(sealed === held && { reactionChildren })
+            }
+          }
+        const test = tests.find(
+          (candidate) => candidate.occurrenceId === sealed.snapshot.occurrenceId
+        )
+        if (test?.kind !== 'PENDING') throw new Error('An area roll must wait for its roller.')
+        return buildEncounterActionPendingSnapshot({
+          execution: test.pending,
+          optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+          commandJson: context.commandJson,
+          commandFingerprint: context.commandFingerprint,
+          initiatorUserId: context.initiatorUserId,
+          sourceActorId: context.casterActorId,
+          targetActorId: sealed.actorId,
+          currentnessChecksum
+        })
+      })
+    )
+  }
+  const sealedAt = (index: number) => {
+    const current = snapshot.applicationContext
+    const sealed =
+      current.kind === 'ENCOUNTER_AREA_ACTION' ? current.targets[index] : undefined
+    if (!sealed) throw new Error('The pending action evidence is invalid.')
+    return sealed
+  }
+  const advanced = await advanceAreaRay(
+    input,
+    snapshot,
+    { prepared: heldEntry.target.prepared, sealed: sealedAt(heldIndex) },
+    'resume' in continuation
+      ? { kind: 'RESUMED', offer: continuation.offer }
+      : {
+          kind: 'REACTION',
+          answer: continuation.answer,
+          testBindings: new Map(
+            entries.flatMap(({ sealed, target }) =>
+              sealed.testedJson !== undefined && sealed.testBindingJson === undefined
+                ? [[sealed.snapshot.occurrenceId, JSON.stringify(target.prepared.binding)] as const]
+                : []
+            )
+          )
+        }
+  )
+  snapshot = advanced.snapshot
+  for (const [index, { actor, target }] of entries.entries())
+    if (index > heldIndex)
+      snapshot = await autoRollAreaSave(input, snapshot, areaSnapshot.occurrenceId, {
+        actor,
+        prepared: target.prepared,
+        sealed: sealedAt(index)
+      })
+  if (encounterAreaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({ ...input, response, resume, areaSnapshot: snapshot })
+  return {
+    kind: 'AREA_PENDING' as const,
+    command,
+    response,
+    snapshot,
+    reactionChild: advanced.reactionChild,
+    prepared: { actors },
+    fingerprint: input.fingerprint,
+    initiatorUserId: context.initiatorUserId,
+    occurrenceId: areaSnapshot.occurrenceId
+  }
+}
+
 /** The sealed pending contract the room persists for a point-area action: every caught creature's save. */
 export function buildNativeLiveEncounterAreaActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
@@ -1000,6 +1300,8 @@ export async function planNativeLiveEncounterAreaCommit(
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
     /** The GM removal that left nothing to wait on, when it, not an answer, settles the area. */
     removal?: RemoveAreaTargetInputDto
+    /** The room's resume from a ray's reaction child (D219), when it, not an answer, settles the list. */
+    resume?: LiveSessionEncounterActionResume | null
   }
 ): Promise<Awaited<ReturnType<typeof completeAreaCommit>> | AreaPendingPlan> {
   const { command, areaSnapshot } = input
@@ -1093,10 +1395,12 @@ export async function planNativeLiveEncounterAreaCommit(
     occurrenceId: areaOccurrenceId
   }
   const settled = rollsPerTarget
-    ? await advanceEncounterListAttacks({
-        ...source,
-        attacks: kept.map(({ sealed, target }) => sealedListAttack(sealed, target.prepared))
-      })
+    ? (
+        await advanceEncounterListAttacks({
+          ...source,
+          attacks: kept.map(({ sealed, target }) => sealedListAttack(sealed, target.prepared))
+        })
+      ).settled
     : await settleEncounterAreaAction({
         ...source,
         targets: kept.map(({ target, sealed }) => ({
@@ -1155,7 +1459,8 @@ export async function planNativeLiveEncounterAreaCommit(
 
   // The area settles under the occurrence the answer, the removal or a reaction's child resume (D219)
   // moved on.
-  const resumed = input.response ?? input.removal ?? input.castResume?.continuation
+  const resumed =
+    input.response ?? input.removal ?? input.resume ?? input.castResume?.continuation
   const occurredAt = new Date().toISOString()
   const plan = await completeAreaCommit({
     input,
