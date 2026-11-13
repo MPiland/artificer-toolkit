@@ -28,7 +28,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
 import { encounterChosenActorEntries } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
-import { createNativeActiveEffect } from './nativeEncounterSettlement.js'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
@@ -209,11 +208,6 @@ export async function completeAreaCommit(args: {
   occurredAt: string
   /** What each reaction used against the cast before it executed spends with this commit (D127). */
   usedReactions: Awaited<ReturnType<ReachCastWindow['pause']['planUsedReactions']>>
-  /** The effect each creature's used reaction to being chosen leaves on it, by actor id. */
-  reactionEffects?: ReadonlyMap<
-    string,
-    { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }
-  >
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -256,7 +250,6 @@ export async function completeAreaCommit(args: {
     caster,
     occurredAt,
     usedReactions,
-    reactionEffects,
     movementTargets,
     kept: caughtKept,
     lead,
@@ -370,7 +363,6 @@ export async function completeAreaCommit(args: {
     tests,
     audits,
     struck,
-    reactionEffects,
     formCreature,
     maintenance,
     holdingZone,

@@ -168,15 +168,15 @@ describe('a chosen creature answers being chosen before its save (QUALITY-13.T1b
     expect(await effectIds(room)).toEqual([])
   }, 120000)
 
-  it('asks the save once the reaction is used, and lands its effect and cost with the save', async () => {
+  it('asks the save once the reaction is used, its effect and cost landed by its own action (D219)', async () => {
     const room = await splashRoom()
     await cast(room, [REACTOR_ACTOR_ID])
     await useReaction(room)
 
     const { pending } = await pendingRolls(room)
     expect(pending.saves.map(({ actorId }) => actorId)).toEqual([REACTOR_ACTOR_ID])
-    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
-    expect(await effectIds(room)).toEqual([])
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SHIELD_SLOT)
+    expect(await effectIds(room)).toHaveLength(1)
 
     await answerRoll(room, FAIL)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
@@ -188,6 +188,29 @@ describe('a chosen creature answers being chosen before its save (QUALITY-13.T1b
     expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS)
     expect(await slotsOf(room, REACTOR_ID)).toEqual([])
     expect(await effectIds(room)).toEqual([])
+  }, 120000)
+
+  it('gives back the used reaction’s slot and effect when the GM voids the cast at its save', async () => {
+    const room = await splashRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await cast(room, [REACTOR_ACTOR_ID])
+    await useReaction(room)
+    const { decision } = await pendingRolls(room)
+
+    const voided = await room.send({
+      type: 'VOID_RULE_OCCURRENCE',
+      commandId: crypto.randomUUID(),
+      encounterId: room.room.encounterId,
+      expectedVersion: await room.version(),
+      occurrenceId: decision.occurrence.id,
+      expectedOccurrenceVersion: decision.occurrence.version
+    })
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    expect(await effectIds(room)).toEqual([])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
   }, 120000)
 
   it('asks the save when the reaction is declined, spending and applying nothing of it', async () => {

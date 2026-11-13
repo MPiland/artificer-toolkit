@@ -1,5 +1,6 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { characterActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -188,6 +189,36 @@ describe('room Shield against Magic Missile (REACTION-4.1)', () => {
     // The reaction is back: the same cast offers it again.
     await cast(room)
     await offered(room)
+  })
+
+  it('runs the used reaction as its holder’s own action on itself, committed before the cast it answers (D219)', async () => {
+    const room = await targetedRoom()
+    await cast(room)
+    const version = await room.version()
+    const { decision, pending } = await offered(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const actions = history.commands
+      .filter((row) => row.commandType === 'RESOLVE_ACTION')
+      .map((row) => ({
+        version: row.version,
+        command: resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
+      }))
+    const child = actions.find(({ command }) => command.systemTrigger?.trigger === 'REACTION')
+    const parent = actions.find(({ command }) => !command.systemTrigger)
+    if (!child || !parent) throw new Error('The room ran no reaction child against a cast.')
+    expect(child.command).toMatchObject({
+      actorId: REACTOR_ACTOR_ID,
+      target: { kind: 'ACTOR', actorId: REACTOR_ACTOR_ID },
+      systemTrigger: { parentCommandId: parent.command.commandId, trigger: 'REACTION' }
+    })
+    expect(child.version).toBe(version + 1)
+    expect(parent.version).toBe(version + 2)
   })
 
   it('lands the darts when declined, spending only the Caster’s slot', async () => {

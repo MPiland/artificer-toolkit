@@ -19,11 +19,8 @@ import {
   type AreaPrepared,
   type AreaReach,
   type ReachPlanInput,
-  holdChosenReactions,
   prepareAreaTarget,
-  prepareCasterActionOnTarget,
-  prepareReach,
-  reachCastPause
+  prepareCasterActionOnTarget
 } from './nativeAreaPreparation.js'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 
@@ -60,64 +57,14 @@ export function discoverNativeLegendaryResistance(
 }
 
 /**
- * The reach of a pending multi-creature action, read again as the room stands now, with what its
- * chosen creatures did on being chosen (D137) held again from the reactions sealed with it. The
- * pending action keeps only those reactions; their effect on each reactor is derived here every time.
- */
-export async function prepareSealedReach(
-  input: ReachPlanInput,
-  areaSnapshot: ServerAggregateChoicePendingSnapshotDto
-) {
-  const context = areaSnapshot.applicationContext
-  if (context.kind !== 'ENCOUNTER_AREA_ACTION')
-    throw new Error('The pending area action is unavailable.')
-  const base = await prepareReach(input)
-  const { target } = input.command
-  const usedReactions = (context.usedReactions ?? []).filter(
-    ({ reaction }) => reaction.trigger === 'TARGETED_SELF'
-  )
-  const [first] = usedReactions
-  if (!first || target.kind !== 'ACTORS') return { base, held: null }
-  const reactor = input.actors.find((actor) => actor.id === first.reaction.reactorActorId)
-  if (!reactor) throw new Error('Reaction evidence is stale.')
-  if (!base.movementTargets.has(reactor.id))
-    base.movementTargets.set(reactor.id, await input.loadTarget(reactor))
-  const occurredAt = new Date().toISOString()
-  // The window is the caster's, held over the action as it was prepared on a creature it names.
-  const lead = await prepareAreaTarget({
-    ...input,
-    base,
-    actor: reactor,
-    token: base.scene?.tokens.find((candidate) => candidate.actorId === reactor.id) ?? null
-  })
-  const held = await holdChosenReactions(input, {
-    reach: base,
-    pause: reachCastPause(input, {
-      reach: base,
-      lead: lead.prepared,
-      chosenActorIds: target.actorIds,
-      occurrenceId: areaSnapshot.occurrenceId,
-      occurredAt,
-      answer: null,
-      usedReactions
-    }),
-    occurrenceId: areaSnapshot.occurrenceId,
-    occurredAt,
-    usedReactions
-  })
-  return { base, held }
-}
-
-/**
  * Prepares a sealed creature again against the Scene and its facts as they are now, and refuses it if
  * the area, the creature's source or target, or the action's economy changed since the area opened.
- * A creature that used a reaction on being chosen is then prepared as that reaction leaves it.
  */
 export async function revalidateAreaTarget(
   input: ReachPlanInput,
   context: AreaContext,
   sealed: AreaTargetRecord,
-  { base, held }: Awaited<ReturnType<typeof prepareSealedReach>>
+  base: AreaReach
 ) {
   const { command, state, actors, capture } = input
   requireAreaUnchanged(base, context)
@@ -168,11 +115,7 @@ export async function revalidateAreaTarget(
     })
   )
     throw new Error('The pending action source or target changed.')
-  return {
-    actor,
-    target: { ...target, ...(await held?.prepareReactor(actor, token)) },
-    evaluation
-  }
+  return { actor, target, evaluation }
 }
 
 function requireAreaUnchanged(base: AreaReach, context: AreaContext) {
