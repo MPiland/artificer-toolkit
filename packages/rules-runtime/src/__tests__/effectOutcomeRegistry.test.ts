@@ -25,7 +25,10 @@ import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { executionAddsSpeedToMovement } from '../systems/dnd5e/addSpeedToMovement.js'
 import { executionCancelsTriggeringEvent } from '../systems/dnd5e/cancelTriggeringEvent.js'
 import { dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
+import {
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  dnd5eResolvedProposalTrace
+} from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import {
   DND5E_CONDITION_IMMUNE_FACT_KEYS,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
@@ -54,6 +57,7 @@ import { withMovementInterruption } from '../systems/dnd5e/effectActionTestPhase
 import { executionImposesRollModeOnTriggeringRoll } from '../systems/dnd5e/imposeRollModeOnTriggeringRoll.js'
 import { executionStopsTriggeringMovement } from '../systems/dnd5e/stopTriggeringMovement.js'
 import {
+  DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
   DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX,
   executionTriggeringRollSubtraction
 } from '../systems/dnd5e/subtractFromTriggeringRoll.js'
@@ -550,14 +554,7 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
     { count: 1, die: 6, modifier: 0 },
     DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX
   ).nodes
-  it.each<
-    [
-      string,
-      Dnd5eRegisteredOutcome,
-      (execution: Execution) => boolean,
-      RuleGraphDefinition['nodes']?
-    ]
-  >([
+  it.each<[string, Dnd5eRegisteredOutcome, (execution: Execution) => boolean]>([
     ['ADD_SPEED_TO_MOVEMENT', { kind: 'ADD_SPEED_TO_MOVEMENT' }, executionAddsSpeedToMovement],
     [
       'CANCEL_TRIGGERING_EVENT',
@@ -565,12 +562,17 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       executionCancelsTriggeringEvent
     ],
     // Restated reason (QUALITY-9.T1e2, D219): the committed read now returns the die the reaction
-    // rolled, not a flag, so the graph rolls that die and "commits" is a die read back.
+    // rolled, not a flag, and a graph under a test has no place for that die (the compiler refuses
+    // the outcome there, above). The path claim is kept on the resolved proposal the read starts
+    // from; the die it then reads is the next test.
     [
       'SUBTRACT_FROM_TRIGGERING_ROLL',
       { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' },
-      (execution) => executionTriggeringRollSubtraction(execution) !== null,
-      triggeringRollDie
+      (execution) =>
+        dnd5eResolvedProposalTrace(
+          execution.evidence.trace,
+          DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY
+        ) !== undefined
     ],
     [
       'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL',
@@ -584,14 +586,10 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
     ]
   ])(
     'commits %s only when the save resolves to its authored path',
-    async (_kind, outcome, commits, dice = []) => {
-      const rolling = (graph: RuleGraphDefinition) => ({
-        ...graph,
-        nodes: [...dice, ...graph.nodes]
-      })
-      const direct = await run(rolling(directGraph(outcome)))
-      const authored = await run(rolling(saveGraph(outcome, 'ON_SAVE_FAIL')))
-      const other = await run(rolling(saveGraph(outcome, 'ON_SAVE_SUCCESS')))
+    async (_kind, outcome, commits) => {
+      const direct = await run(directGraph(outcome))
+      const authored = await run(saveGraph(outcome, 'ON_SAVE_FAIL'))
+      const other = await run(saveGraph(outcome, 'ON_SAVE_SUCCESS'))
       expect(commits(direct.execution)).toBe(true)
       expect(commits(authored.execution)).toBe(true)
       expect(commits(other.execution)).toBe(false)
