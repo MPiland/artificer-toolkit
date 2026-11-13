@@ -289,7 +289,12 @@ describe('room movement response publication', () => {
               : {
                   kind: 'ENTER_INTEGER',
                   requestId: pending.request.requestId,
-                  value: pending.request.max
+                  // Restated (QUALITY-18.T2b3): the minimum, where this entered the maximum. A
+                  // maximum critical hit drops the mover to 0 Hit Points, and a move whose mover a
+                  // reaction drops now ends at the contact (D219; pinned in
+                  // apps/session-worker/test/nativeMovementReactionChild.test.ts), so the next
+                  // reactor this test declines would never be offered.
+                  value: pending.request.min
                 }
       }
       lastCommand = command
@@ -384,7 +389,10 @@ describe('room movement response publication', () => {
             : {
                 kind: 'ENTER_INTEGER',
                 requestId: pending.request.requestId,
-                value: pending.request.max
+                // Restated (QUALITY-18.T2b3): the minimum, where this entered the maximum, so the
+                // mover survives the critical hit and the second reactor's choice is still raced
+                // (a mover a reaction drops to 0 Hit Points ends its move at the contact, D219).
+                value: pending.request.min
               }
       if (resolution.kind === 'OPTION') selected = true
       const contenders = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
@@ -412,14 +420,16 @@ describe('room movement response publication', () => {
       // the Encounter version) or only advanced the occurrence: neither logs a cause.
       // Restated (QUALITY-18.T2b3): a reaction's evidence is its own action's decision (D219), so
       // a stale evidence answer is refused in that action's words; a stale answer to the move's own
-      // choice keeps the move's.
+      // choice keeps the move's. Once the winner completes the action, the Run's pending decision
+      // is the move again, so the loser's evidence answer names a decision that is unavailable.
       const staleMessages =
         current.kind === 'MOVEMENT_REACTION'
           ? ['Encounter version is stale.']
           : [
               'Encounter version is stale.',
               'The action occurrence version is stale.',
-              'The action occurrence is no longer pending.'
+              'The action occurrence is no longer pending.',
+              'Rule occurrence is unavailable.'
             ]
       const expectStaleRefusal = (failure: unknown, causes: readonly string[]) => {
         expect(failure).toMatchObject({
@@ -465,10 +475,15 @@ describe('room movement response publication', () => {
     expect(JSON.stringify([final, timeline])).not.toMatch(new RegExp(losers.join('|')))
     // Each Run version the winners committed carries exactly one command: the receipts are
     // room-held (D85), so the timeline is where a member sees them.
+    // Restated (QUALITY-18.T2b3): the used reaction commits as its own action's command (D219),
+    // so the count takes that command with the move's answers.
     const committed = final.runs[0]!.version - reactionStart.runs[0]!.version
     expect(committed).toBeGreaterThan(0)
     expect(
-      timeline.filter((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')
+      timeline.filter(
+        (entry) =>
+          entry.commandType === 'RESOLVE_RULE_OCCURRENCE' || entry.commandType === 'RESOLVE_ACTION'
+      )
     ).toHaveLength(committed)
     await expect(
       executeSceneInRoom(owner.caller, value.rootInput, rootMove.expectedSessionSequence)

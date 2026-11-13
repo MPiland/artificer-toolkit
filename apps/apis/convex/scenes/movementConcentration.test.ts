@@ -16,6 +16,7 @@ import {
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import {
   readResumedMovement,
+  retriedAfterMovementResume,
   useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedConcentration } from '../../tests/fixtures/concentration'
@@ -483,8 +484,11 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   expect(JSON.stringify(completed)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(completed)).not.toContain('frozenGraph')
   // A retried decision is answered from the room's journal, identical and without rolling again.
+  // Restated (QUALITY-18.T2b3): the retry returns the journaled result with the Run as it now
+  // stands, and the room completed the move in its own command after this answer (D219), so the
+  // retry reads the Run one version on where the answer and the move shared one commit.
   await expect(executeInRoom(value.owner.caller, { command: lastAnswer })).resolves.toEqual(
-    completed
+    retriedAfterMovementResume(completed)
   )
   // Settled decisions are no longer routable.
   await expect(
@@ -721,13 +725,20 @@ it('ends Concentration without a check when a movement reaction defeats the hold
       (entry) => entry.id === concentrationEndOccurrenceId(reaction!.id, seeded.state.id)
     )
   ).toMatchObject({ state: 'COMPLETED' })
-  // The GM controls this Character, so the end's chat entry is private and posts nothing; the
-  // table-visible entry is pinned in apps/session-worker/test/nativeMovementConcentrationEnd.test.ts.
-  await expect(
-    value.owner.caller.query(api.campaigns.chat.list, {
-      campaignId: value.base.campaign.id,
-      room: 'TABLE',
-      limit: 100
-    })
-  ).rejects.toThrow('Conversation not found.')
+  // Restated (QUALITY-18.T2b3): this pinned that nothing was posted (the table conversation did
+  // not exist). The reaction is now its own action (D219), so its roll cards and the end it causes
+  // post to the table as any action's do: the attack, its damage and the Concentration-end line.
+  const chat = await value.owner.caller.query(api.campaigns.chat.list, {
+    campaignId: value.base.campaign.id,
+    room: 'TABLE',
+    limit: 100
+  })
+  expect(chat.entries.map((entry) => entry.roll?.source.label ?? entry.body)).toEqual(
+    expect.arrayContaining([
+      'Bite',
+      'Bite: Piercing damage',
+      expect.stringMatching(/can't act and loses Concentration\.$/)
+    ])
+  )
+  expect(chat.entries).toHaveLength(3)
 }, 60_000)

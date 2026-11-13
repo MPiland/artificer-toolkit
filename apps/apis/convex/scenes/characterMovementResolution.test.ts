@@ -50,7 +50,10 @@ import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { readResumedMovement } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readResumedMovement,
+  retriedAfterMovementResume
+} from '../../tests/fixtures/automaticSceneMovement'
 import { reactionBinding } from '../../tests/fixtures/reactionBinding'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import {
@@ -712,8 +715,11 @@ describe('native Character movement-decision authority', () => {
       expect(readStoredRunActor(source).resources).toMatchObject({
         ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
       })
+      // Restated (QUALITY-18.T2b3): a retry returns the journaled result with the Run as it now
+      // stands, and the room completed the move in its own command after this answer (D219), so
+      // the retry reads the Run one version on where the answer and the move shared one commit.
       await expect(executeInRoom(value.player.caller, { command: lastResponse })).resolves.toEqual(
-        result
+        retriedAfterMovementResume(result)
       )
       expect(await reactionMechanics(value)).toEqual(completed)
     },
@@ -944,11 +950,9 @@ describe('native Character movement-decision authority', () => {
       }
     })
     // Restated (QUALITY-18.T2b3): choosing the option answers with the reaction's own action
-    // (D219), paused on its attack roll, where it answered with the move's occurrence before.
-    expect(chosen.occurrence).toMatchObject({
-      status: 'PENDING',
-      pending: { kind: 'D20_EVIDENCE' }
-    })
+    // (D219), where it answered with the move's occurrence before. This player's dice roll
+    // automatically, so that action completes in the same answer.
+    expect(chosen.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     expect(chosen.occurrence?.occurrenceId).not.toBe(futurePending.occurrenceId)
   }, 30000)
 

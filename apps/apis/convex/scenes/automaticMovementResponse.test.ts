@@ -32,10 +32,12 @@ it.each(['DECLINE', 'OPTION'] as const)(
         { x: 450, y: 50 }
       ]
     })
-    await queueRoomRolls(value.base.campaign.id, {
-      rolls: Array.from({ length: 2 }, () => [14, 0, 0]).flat(),
-      repeat: 0
-    })
+    // Restated (QUALITY-18.T2b3): a Use runs the reaction as the reactor's own action (D219), which
+    // also rolls the Bite's knock-prone save for the mover (a success here) that the inline engine
+    // never drew, so each Use queues its own hit instead of both sharing one queue of three dice.
+    const queueReactionHit = () =>
+      queueRoomRolls(value.base.campaign.id, { rolls: [14, 0, 0, 14], repeat: 0 })
+    await queueReactionHit()
     /** Convex's rows, after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
     const snapshot = async () => {
       await checkpointLiveRoom(value.base.campaign.id)
@@ -85,6 +87,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
           }
         : answered
     expect(decided.occurrence).toMatchObject({ status: 'PENDING' })
+    await queueReactionHit()
     const before = await snapshot()
     const used = await useMovementReactionsInRoom(value, 10, decided)
     expect(used.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })

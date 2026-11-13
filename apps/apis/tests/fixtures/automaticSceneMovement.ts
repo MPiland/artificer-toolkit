@@ -3,7 +3,7 @@ import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
-import { vi } from 'vitest'
+import { expect, vi } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -318,6 +318,23 @@ export function readResumedMovement(
     },
     { timeout: 10_000, interval: 25 }
   )
+}
+
+/**
+ * What a retry of the answer that completed a reaction's own action returns once the room's resume
+ * completed the move (D219): the journaled result with the Run as it now stands, one version on.
+ */
+export function retriedAfterMovementResume<
+  Result extends { projection: { version: number; updatedAt: string } }
+>(result: Result) {
+  return {
+    ...result,
+    projection: {
+      ...result.projection,
+      version: result.projection.version + 1,
+      updatedAt: expect.any(String)
+    }
+  }
 }
 
 /**
