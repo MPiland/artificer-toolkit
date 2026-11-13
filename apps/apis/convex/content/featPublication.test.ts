@@ -1,6 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
+import { GRAPPLED_CONDITION_ID } from '@artificer-toolkit/source-data/srd/creatures/shared.js'
 import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -144,17 +145,17 @@ describe('native Feat publication', () => {
 
     const document = featAuthoredDtoSchema.parse(stored.document)
     expect(document.prerequisites?.groups).toHaveLength(1)
-    const advantagePath = document.features?.[0]?.effects?.[0]?.paths?.[0]
-    expect(advantagePath).toMatchObject({
-      groupType: 'SINGLE',
-      resultBlock: { resultKind: 'SINGLE' }
-    })
-    if (advantagePath?.selectionKind !== 'FIXED')
-      throw new Error('Missing Grappler advantage result block')
-    expect(advantagePath.resultBlock.outcomes?.[0]).toMatchObject({
-      effectKind: 'CLOSED_RULE',
-      ruleKind: 'GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET'
-    })
+    // Restated: Grappler's advantage and Pin were CLOSED_RULE outcomes; the advantage is now a
+    // data-authored held-creature ROLL_INFLUENCE grant and Pin a GM_CHOICE ruling (T8a, Q30).
+    const advantageModifiers = document.features?.[0]?.grants?.modifiers ?? []
+    expect(advantageModifiers.length).toBeGreaterThan(0)
+    for (const modifier of advantageModifiers)
+      expect(modifier).toMatchObject({
+        valueDomainCode: 'ATTACK_ROLL',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
+        domain: { againstHeldConditionTypeId: GRAPPLED_CONDITION_ID }
+      })
     const pinPath = document.features?.[1]?.effects?.[0]?.paths?.[0]
     expect(pinPath).toMatchObject({
       groupType: 'SINGLE',
@@ -162,8 +163,8 @@ describe('native Feat publication', () => {
     })
     if (pinPath?.selectionKind !== 'FIXED') throw new Error('Missing Grappler pin result block')
     expect(pinPath.resultBlock.outcomes?.[0]).toMatchObject({
-      effectKind: 'CLOSED_RULE',
-      ruleKind: 'GRAPPLER_PIN'
+      effectKind: 'MANUAL_ADJUDICATION',
+      reasonCode: 'GM_CHOICE'
     })
     expect(stored.version?.compilation?.authoredChecksum).toBe(result.checksum)
     const projection = jsonValueSchema.parse(

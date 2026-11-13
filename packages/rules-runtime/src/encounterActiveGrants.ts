@@ -15,6 +15,8 @@ import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   feetInLengthUnit,
+  NO_HELD_CONDITIONS,
+  modifierHeldTargetApplies,
   modifierRollInfluence,
   type AttackDomainCode,
   type AttackOccasionCode,
@@ -1398,13 +1400,15 @@ export function encounterHeldSavingThrowDice(
  * A Creature holder's active advantage and disadvantage grants on its own attack rolls of one
  * attack domain (Vicious Mockery's disadvantage), as roll contributors. A grant naming an ability
  * covers only attacks made with it (`attackAbility`). A Character folds the same grants through its
- * own policy instead.
+ * own policy instead. A grant limited to held creatures (Grappler) holds while the conditions the
+ * holder holds its target with, `heldConditionTypeIds`, include the one it names.
  */
 export function creatureActiveGrantAttackContributors(
   holderActorId: string,
   attackDomain: string,
   attackAbility: string | null,
-  effects: readonly ActiveRuleEffectRecord[]
+  effects: readonly ActiveRuleEffectRecord[],
+  heldConditionTypeIds: ReadonlySet<string> = NO_HELD_CONDITIONS
 ): EncounterRelationshipD20Contributor[] {
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
@@ -1414,6 +1418,7 @@ export function creatureActiveGrantAttackContributors(
         modifier.valueDomainCode === 'ATTACK_ROLL' &&
         modifier.domain.attackDomain === attackDomain &&
         modifier.domain.againstEffectSource !== true &&
+        modifierHeldTargetApplies(modifier, heldConditionTypeIds) &&
         (grantAbility === null || grantAbility === attackAbility) &&
         modifier.scope === 'GLOBAL'
         ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)]
@@ -1494,7 +1499,8 @@ function deferredGroupMet(
  * `nearestEnemyFeet` meets (Pack Tactics) or a target that has yet to take a turn (Assassinate); any
  * other deferred requirement fails closed. `nearestEnemyFeet` is null when no enemy stands near the
  * target or there is no Scene to measure on. `holderLight` is the light on the holder's square
- * (Sunlight Sensitivity), null without a Scene.
+ * (Sunlight Sensitivity), null without a Scene. `heldConditionTypeIds` are the conditions the holder
+ * holds the target with (Grappler's advantage against a creature it grapples).
  */
 export function creatureFeatureAttackContributors(
   holderActorId: string,
@@ -1503,7 +1509,8 @@ export function creatureFeatureAttackContributors(
   modifiers: FeatureModifiers,
   nearestEnemyFeet: number | null,
   targetHasNotTakenTurn = false,
-  holderLight: EncounterHolderLight | null = null
+  holderLight: EncounterHolderLight | null = null,
+  heldConditionTypeIds: ReadonlySet<string> = NO_HELD_CONDITIONS
 ): EncounterRelationshipD20Contributor[] {
   return modifiers.flatMap((modifier) => {
     const grantAbility = modifier.domain.ability ?? null
@@ -1519,6 +1526,7 @@ export function creatureFeatureAttackContributors(
       modifier.source.kind !== 'ACTIVE_EFFECT' &&
       modifier.domain.attackDomain === attackDomain &&
       modifier.domain.againstEffectSource !== true &&
+      modifierHeldTargetApplies(modifier, heldConditionTypeIds) &&
       (grantAbility === null || grantAbility === attackAbility) &&
       requirementsMet
       ? [

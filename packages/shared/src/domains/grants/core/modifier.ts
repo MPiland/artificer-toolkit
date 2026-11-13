@@ -78,6 +78,24 @@ export function modifierRollInfluence(
     : null
 }
 
+/** The conditions held on a target nobody holds: grants limited to held creatures stay out. */
+export const NO_HELD_CONDITIONS: ReadonlySet<string> = new Set()
+
+/**
+ * Whether an attack roll grant limited to creatures the attacker holds (`againstHeldConditionTypeId`,
+ * Grappler) holds against a target the attacker holds with `heldConditionTypeIds`. A grant without
+ * the limit always holds.
+ */
+export function modifierHeldTargetApplies(
+  modifier: { readonly domain: { readonly againstHeldConditionTypeId?: string } },
+  heldConditionTypeIds: ReadonlySet<string>
+): boolean {
+  const { againstHeldConditionTypeId } = modifier.domain
+  return (
+    againstHeldConditionTypeId === undefined || heldConditionTypeIds.has(againstHeldConditionTypeId)
+  )
+}
+
 export type ModifierTypeOption = CoreMeta<ModifierKind>
 
 /** How a fractional proficiency-bonus value rounds to a whole bonus. */

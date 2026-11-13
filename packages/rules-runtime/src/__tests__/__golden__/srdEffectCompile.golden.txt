@@ -1,4 +1,3 @@
-00000000-0000-0000-0050-120000000000 CHARACTER:feats Advantage on Grappled Target | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-0050-121000000000 CHARACTER:feats Pin | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-8040-010203000000 CHARACTER:backgrounds Shelter of the Faithful | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-a001-000302140000 CHARACTER:races Lucky | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
