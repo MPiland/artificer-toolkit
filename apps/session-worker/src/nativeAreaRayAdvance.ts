@@ -1,9 +1,11 @@
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { advanceEncounterListAttacks } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
-  holdEncounterAreaRayReaction,
+  holdEncounterAreaRay,
   markEncounterAreaSaveTested
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import { encounterOnHitAudit } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   buildEncounterActionPendingSnapshot,
   restoreEncounterActionPending
@@ -21,14 +23,17 @@ import {
   reachCastPause
 } from './nativeAreaPreparation.js'
 import { type AreaTargetRecord, sealedListAttack } from './nativeAreaRevalidation.js'
-import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
+import type { NativePauseAnswer } from './nativePauseTypes.js'
 
 /**
  * Advances the ray whose turn it is through the single-target function, on the hit points the earlier
- * rays at its creature left it: with the caster's roll, with its creature's answer to the reaction
- * offer its hit raised, or past that offer once the chosen reaction's child action committed (D219).
- * A hit its creature can react to, and a reaction it chose, leave the ray held on the offer in its
- * own snapshot; any other outcome keeps the ray's answer with every die it rolled.
+ * rays at its creature left it: with the caster's roll, with the answer to an offer its hit raised
+ * (its creature's reaction, then its caster's on-hit rider), or past the reaction offer once the
+ * chosen reaction's child action committed (D219). A hit its creature can react to, a reaction it
+ * chose and a hit its caster can add a rider to leave the ray held on the offer in its own snapshot;
+ * any other outcome keeps the ray's answer with every die it rolled. A rider is offered per hit, and
+ * one that spends a slot or a pool is not offered once an earlier ray of the list chose such a one:
+ * the cast settles one slot and one pool.
  */
 export async function advanceAreaRay(
   input: ReachPlanInput,
@@ -37,9 +42,9 @@ export async function advanceAreaRay(
   step:
     | { kind: 'ROLL'; resolution: EncounterEvidenceAnswer }
     | {
-        kind: 'REACTION'
-        answer: NativeCastReactionAnswer
-        /** The facts each answered ray was rolled against, kept if the reaction is used. */
+        kind: 'ANSWER'
+        answer: Extract<NativePauseAnswer, { kind: 'CAST_REACTION' | 'ON_HIT' }>
+        /** The facts each answered ray was rolled against, kept if a reaction is used. */
         testBindings: ReadonlyMap<string, string>
       }
     | { kind: 'RESUMED'; offer: EncounterCastReactionOfferDto }
@@ -53,11 +58,28 @@ export async function advanceAreaRay(
   const index = context.targets.findIndex(
     (target) => target.snapshot.request.requestId === requestId
   )
+  // The optional on-hit riders the caster could pay for at this ray's hit, as for an attack at one creature.
+  const onHitNow =
+    prepared.source.kind === 'CHARACTER_ACTION' && prepared.plan.kind === 'TEST_OUTCOME'
+      ? onHitCandidates({
+          riders: prepared.adapter.optionalOnHitRiders({
+            compilerSource: prepared.plan.compilerSource
+          }),
+          settled: prepared.characterActionState,
+          chosenBefore: context.targets
+            .slice(0, index)
+            .flatMap(({ onHit }) => (onHit?.option ? [onHit.option] : [])),
+          spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
+          resources: prepared.source.effectivePolicyOutput.resources
+        })
+      : []
   let reach: Promise<AreaReach> | undefined
   const readReach = () => (reach ??= prepareReach(input))
   const occurredAt = new Date().toISOString()
-  const chosen: { child: Awaited<ReturnType<typeof advanceNativeActionTarget>>['reactionChild'] } =
-    { child: null }
+  const chosen: Pick<
+    Awaited<ReturnType<typeof advanceNativeActionTarget>>,
+    'reactionChild' | 'chosenOnHit'
+  > = { reactionChild: null, chosenOnHit: null }
   const { settled, held } = await advanceEncounterListAttacks({
     runtime: input.runtime,
     random: input.random,
@@ -89,9 +111,8 @@ export async function advanceAreaRay(
               // The reaction is its holder's action on itself, so it reads that creature alone.
               async () => new Map([[sealed.actorId, await input.loadTarget(prepared.target)]])
             ),
-            onHitNow: [],
-            pauseAnswer:
-              step.kind === 'REACTION' ? { kind: 'CAST_REACTION', answer: step.answer } : null,
+            onHitNow,
+            pauseAnswer: step.kind === 'ANSWER' ? step.answer : null,
             resumedOffer: step.kind === 'RESUMED' ? step.offer : null,
             // The dice the ray's own children rolled against its d20, as its snapshot records them.
             rolledChildDice: (inner.reactionChildren ?? []).flatMap(({ rolledDie }) =>
@@ -105,14 +126,15 @@ export async function advanceAreaRay(
                   }
                 : null
           })
-          chosen.child = advanced.reactionChild
+          chosen.reactionChild = advanced.reactionChild
+          chosen.chosenOnHit = advanced.chosenOnHit
           return advanced.execution
         }
       }
     ]
   })
   if (held) {
-    const launched = chosen.child
+    const launched = chosen.reactionChild
       ? await reachCastPause(input, {
           reach: await readReach(),
           lead: prepared,
@@ -122,12 +144,12 @@ export async function advanceAreaRay(
           answer: null
         }).launchReactionChild(
           input.reactionChildren.recorded,
-          chosen.child,
-          chosen.child.holderActorId
+          chosen.reactionChild,
+          chosen.reactionChild.holderActorId
         )
       : null
     return {
-      snapshot: holdEncounterAreaRayReaction(
+      snapshot: holdEncounterAreaRay(
         snapshot,
         requestId,
         buildEncounterActionPendingSnapshot({
@@ -139,31 +161,41 @@ export async function advanceAreaRay(
           sourceActorId: context.casterActorId,
           targetActorId: sealed.actorId,
           currentnessChecksum: inner.currentnessChecksum,
-          ...(launched && { reactionChildren: launched.reactionChildren })
+          // A hit held on its rider once its reaction ran keeps the record of that reaction's child.
+          ...((launched ?? inner).reactionChildren && {
+            reactionChildren: (launched ?? inner).reactionChildren
+          })
         }),
-        step.kind === 'REACTION' ? step.testBindings : undefined
+        // Only a chosen reaction's child changes the creature under the answered rays.
+        launched && step.kind === 'ANSWER' ? step.testBindings : undefined
       ),
       reactionChild: launched?.reactionChild ?? null
     }
   }
   // A ray that left its hit's offer keeps the d20 the offer held as its answer.
-  const hit = inner.pause?.kind === 'CAST_REACTION' ? inner.pause.payload.hit : undefined
+  const onHitOffer = inner.pause?.kind === 'ON_HIT' ? inner.pause.payload : null
+  const heldD20 =
+    onHitOffer?.testD20 ??
+    (inner.pause?.kind === 'CAST_REACTION' ? inner.pause.payload.hit?.originalD20 : undefined)
   const answer: EncounterEvidenceAnswer | null =
     step.kind === 'ROLL'
       ? step.resolution
-      : hit
+      : heldD20
         ? {
             kind: 'ENTER_DICE',
             requestId,
-            rawFaces: hit.originalD20.rawFaces,
-            rollMode: hit.originalD20.rollMode
+            rawFaces: heldD20.rawFaces,
+            rollMode: heldD20.rollMode
           }
         : null
   if (!answer) throw new Error('The pending action evidence is invalid.')
   return {
     snapshot: markEncounterAreaSaveTested(snapshot, requestId, {
       testedJson: JSON.stringify(answer),
-      rolls: settled.at(-1)?.rolls
+      rolls: settled.at(-1)?.rolls,
+      ...(onHitOffer && {
+        onHit: encounterOnHitAudit({ offer: onHitOffer, option: chosen.chosenOnHit })
+      })
     }),
     reactionChild: null
   }

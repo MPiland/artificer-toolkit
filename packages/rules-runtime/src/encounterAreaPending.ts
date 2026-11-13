@@ -212,6 +212,16 @@ const hitReactionOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
     : null
 }
 
+/** Whether a ray's hit is held on its caster's on-hit rider offer, whatever came of it. */
+const heldOnHitOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
+  const context = target.snapshot.applicationContext
+  return context.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'ON_HIT'
+}
+
+/** Whether a ray's hit is held on a choice made between its roll and its outcome: the reaction to it, then its rider. */
+const heldOnHitChoice = (target: Pick<SaveProgress, 'snapshot'>) =>
+  hitReactionOffer(target) !== null || heldOnHitOffer(target)
+
 /**
  * Whether the area's caster makes the entry's roll, as for an attack roll at a creature. A ray held
  * on its hit's reaction offer is still the caster's roll, though the creature it hit answers the offer.
@@ -233,24 +243,29 @@ const awaitingTurn = (area: SaveList, target: SaveProgress) =>
 
 /**
  * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, the
- * reaction of the creature its ray hit (D219), or nothing (settled, rolled and waiting its turn at the
- * window, a ray behind an unanswered one, or a ray whose chosen reaction is running as a child action).
+ * decision its ray's hit is held on (the reaction of the creature it hit, D219, then its caster's
+ * on-hit rider), or nothing (settled, rolled and waiting its turn at the window, a ray behind an
+ * unanswered one, or a ray whose chosen reaction is running as a child action).
  */
 export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) => {
   if (awaitingTurn(area, target)) return null
-  const offer = target.testedJson === undefined ? hitReactionOffer(target) : null
-  if (offer)
-    return offer.reactionChildren?.some(({ resumeOutcome }) => resumeOutcome === undefined)
+  if (target.testedJson === undefined && heldOnHitChoice(target))
+    return hitReactionOffer(target)?.reactionChildren?.some(
+      ({ resumeOutcome }) => resumeOutcome === undefined
+    )
       ? null
-      : 'REACTION'
+      : 'DECISION'
   return awaitingRoll(target) ? 'ROLL' : windowOpen(target) ? 'WINDOW' : null
 }
 
-/** The ray of `snapshot` held on its hit's reaction offer (D219), answered or awaiting its child; null if none. */
+/**
+ * The ray of `snapshot` whose hit is held: on its reaction offer (D219), answered or awaiting its
+ * child, or on its caster's on-hit rider offer; null if none.
+ */
 export function encounterAreaHeldRay(snapshot: ServerAggregateChoicePendingSnapshotDto) {
   return (
     requireAreaContext(snapshot).targets.find(
-      (target) => target.testedJson === undefined && hitReactionOffer(target) !== null
+      (target) => target.testedJson === undefined && heldOnHitChoice(target)
     ) ?? null
   )
 }
@@ -338,14 +353,15 @@ export function openEncounterAreaSaveWindow(
 }
 
 /**
- * Holds the ray with `requestId` on `hold`, the reaction offer its hit raised (D219): the ray stays
- * unanswered, and the creature it hit answers the offer. The same ray is held again as the offer
- * records the child action of the reaction chosen from it, and as the resume from that child resolves
- * it. Every other entry stays exactly as sealed, except that a chosen reaction keeps, with each
- * answered ray in `testBindings` (by occurrence), the facts its roll was made against: the child
- * action is about to change them, and that roll replays against the creature as it stood.
+ * Holds the ray with `requestId` on `hold`, an offer its hit raised: the ray stays unanswered while
+ * the creature it hit answers the reaction offer (D219), then while its caster answers the on-hit
+ * rider offer. The same ray is held again as the reaction offer records the child action of the
+ * reaction chosen from it, and as the resume from that child resolves it. Every other entry stays
+ * exactly as sealed, except that a chosen reaction keeps, with each answered ray in `testBindings`
+ * (by occurrence), the facts its roll was made against: the child action is about to change them,
+ * and that roll replays against the creature as it stood.
  */
-export function holdEncounterAreaRayReaction(
+export function holdEncounterAreaRay(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
   requestId: string,
   hold: AreaTarget['snapshot'],
@@ -362,9 +378,11 @@ export function holdEncounterAreaRayReaction(
     !casterRolls(applicationContext, held) ||
     awaitingTurn(applicationContext, held) ||
     hold.occurrenceId !== held.snapshot.occurrenceId ||
-    hitReactionOffer({ snapshot: hold }) === null
+    !heldOnHitChoice({ snapshot: hold }) ||
+    // A hit is offered its rider once its reaction is past, never the other way round.
+    (heldOnHitOffer(held) && !heldOnHitOffer({ snapshot: hold }))
   )
-    throw new Error('This ray has no hit to hold for a reaction.')
+    throw new Error('This ray has no hit to hold.')
   return serverAggregateChoicePendingSnapshotDtoSchema.parse({
     ...snapshot,
     applicationContext: {
@@ -413,8 +431,8 @@ export function resealEncounterAreaTargets(
 /**
  * Records that the roller of the roll with `requestId` answered it, keeping what settles the area
  * without rolling again: the answer, the dice a save's TEST rolled after the d20 or a ray's whole
- * roll tape, and the Legendary Resistance offered if the save failed. The other rolls, the caught
- * set and its checksum stay exactly as sealed.
+ * roll tape with what its caster decided at its on-hit offer, and the Legendary Resistance offered
+ * if the save failed. The other rolls, the caught set and its checksum stay exactly as sealed.
  */
 export function markEncounterAreaSaveTested(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
@@ -423,8 +441,12 @@ export function markEncounterAreaSaveTested(
     testedJson,
     legendaryResistance,
     testDice,
-    rolls
-  }: { testedJson: string } & Pick<AreaTarget, 'legendaryResistance' | 'testDice' | 'rolls'>
+    rolls,
+    onHit
+  }: { testedJson: string } & Pick<
+    AreaTarget,
+    'legendaryResistance' | 'testDice' | 'rolls' | 'onHit'
+  >
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
   const answered = applicationContext.targets.find(
@@ -443,6 +465,7 @@ export function markEncounterAreaSaveTested(
               testedJson,
               ...(testDice?.length ? { testDice } : {}),
               ...(rolls?.length ? { rolls } : {}),
+              ...(onHit ? { onHit } : {}),
               ...(legendaryResistance ? { legendaryResistance } : {})
             }
           : target
