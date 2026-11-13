@@ -202,10 +202,24 @@ const awaitingRoll = (target: SaveProgress) =>
 
 type SaveList = Pick<AreaContext, 'casterActorId'> & { targets: readonly SaveProgress[] }
 
-/** Whether the area's caster makes the entry's roll, as for an attack roll at a creature. */
+/** The offer a ray's hit is held on while the creature it hit answers it (D219), whatever came of it. */
+const hitReactionOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
+  const context = target.snapshot.applicationContext
+  return context.kind === 'ENCOUNTER_ACTION' &&
+    context.pause?.kind === 'CAST_REACTION' &&
+    context.pause.payload.kind === 'HIT_BY_ATTACK'
+    ? context
+    : null
+}
+
+/**
+ * Whether the area's caster makes the entry's roll, as for an attack roll at a creature. A ray held
+ * on its hit's reaction offer is still the caster's roll, though the creature it hit answers the offer.
+ */
 const casterRolls = (area: SaveList, target: SaveProgress) =>
-  target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-  target.snapshot.applicationContext.rollerActorId === area.casterActorId
+  hitReactionOffer(target) !== null ||
+  (target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+    target.snapshot.applicationContext.rollerActorId === area.casterActorId)
 
 /**
  * Whether an entry waits its turn: a caster makes the rolls of a list one at a time, in the order
@@ -218,17 +232,28 @@ const awaitingTurn = (area: SaveList, target: SaveProgress) =>
     .some((earlier) => casterRolls(area, earlier) && earlier.testedJson === undefined)
 
 /**
- * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, or
- * nothing (settled, rolled and waiting its turn at the window, or a ray behind an unanswered one).
+ * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, the
+ * reaction of the creature its ray hit (D219), or nothing (settled, rolled and waiting its turn at the
+ * window, a ray behind an unanswered one, or a ray whose chosen reaction is running as a child action).
  */
-export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) =>
-  awaitingTurn(area, target)
-    ? null
-    : awaitingRoll(target)
-      ? 'ROLL'
-      : windowOpen(target)
-        ? 'WINDOW'
-        : null
+export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) => {
+  if (awaitingTurn(area, target)) return null
+  const offer = target.testedJson === undefined ? hitReactionOffer(target) : null
+  if (offer)
+    return offer.reactionChildren?.some(({ resumeOutcome }) => resumeOutcome === undefined)
+      ? null
+      : 'REACTION'
+  return awaitingRoll(target) ? 'ROLL' : windowOpen(target) ? 'WINDOW' : null
+}
+
+/** The ray of `snapshot` held on its hit's reaction offer (D219), answered or awaiting its child; null if none. */
+export function encounterAreaHeldRay(snapshot: ServerAggregateChoicePendingSnapshotDto) {
+  return (
+    requireAreaContext(snapshot).targets.find(
+      (target) => target.testedJson === undefined && hitReactionOffer(target) !== null
+    ) ?? null
+  )
+}
 
 /**
  * The save whose d20 window opens next, or null: windows open one at a time, once every save is
@@ -308,6 +333,79 @@ export function openEncounterAreaSaveWindow(
       targets: applicationContext.targets.map((target) =>
         target === rolled ? { ...target, snapshot: window } : target
       )
+    }
+  })
+}
+
+/**
+ * Holds the ray with `requestId` on `hold`, the reaction offer its hit raised (D219): the ray stays
+ * unanswered, and the creature it hit answers the offer. The same ray is held again as the offer
+ * records the child action of the reaction chosen from it, and as the resume from that child resolves
+ * it. Every other entry stays exactly as sealed, except that a chosen reaction keeps, with each
+ * answered ray in `testBindings` (by occurrence), the facts its roll was made against: the child
+ * action is about to change them, and that roll replays against the creature as it stood.
+ */
+export function holdEncounterAreaRayReaction(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  hold: AreaTarget['snapshot'],
+  testBindings: ReadonlyMap<string, string> = new Map()
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const held = applicationContext.targets.find(
+    (target) => target.snapshot.request.requestId === requestId
+  )
+  if (
+    !held ||
+    held.testedJson !== undefined ||
+    held.rolledJson !== undefined ||
+    !casterRolls(applicationContext, held) ||
+    awaitingTurn(applicationContext, held) ||
+    hold.occurrenceId !== held.snapshot.occurrenceId ||
+    hitReactionOffer({ snapshot: hold }) === null
+  )
+    throw new Error('This ray has no hit to hold for a reaction.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: applicationContext.targets.map((target) => {
+        if (target === held) return { ...target, snapshot: hold }
+        const testBindingJson =
+          target.testedJson === undefined || target.testBindingJson !== undefined
+            ? undefined
+            : testBindings.get(target.snapshot.occurrenceId)
+        return testBindingJson === undefined ? target : { ...target, testBindingJson }
+      })
+    }
+  })
+}
+
+/**
+ * Seals every entry again once a reaction's child action changed the Run under the pending list
+ * (D219): each entry keeps its place, its occurrence and its answer, and takes the sealed roll
+ * prepared against the creatures as that child left them.
+ */
+export function resealEncounterAreaTargets(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  sealed: readonly AreaTarget['snapshot'][]
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  if (
+    sealed.length !== applicationContext.targets.length ||
+    applicationContext.targets.some(
+      (target, index) => target.snapshot.occurrenceId !== sealed[index]!.occurrenceId
+    )
+  )
+    throw new Error('A pending list is sealed again entry for entry.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: applicationContext.targets.map((target, index) => ({
+        ...target,
+        snapshot: sealed[index]!
+      }))
     }
   })
 }

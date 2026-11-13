@@ -22,7 +22,10 @@ import {
   prepareAreaTarget,
   prepareCasterActionOnTarget
 } from './nativeAreaPreparation.js'
-import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  reactedUnderAwaitedChild,
+  restoreEncounterActionPending
+} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 
 export type AreaContext = Extract<
   ServerAggregateChoicePendingSnapshotDto['applicationContext'],
@@ -104,18 +107,24 @@ export async function revalidateAreaTarget(
     loadCarriedHolder: async (carrier) =>
       base.movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
+  const currentnessChecksum = encounterActionCurrentnessChecksum({
+    prepared: target.prepared,
+    actionEconomy: economy?.consumption ?? null,
+    attackAction,
+    maintenance,
+    sceneContext: target.sceneContext
+  })
+  // The caster and a creature a held ray hit stand as the reaction it awaits left them (D219); the
+  // resume from that reaction's child seals the entry to them again.
   if (
-    sealed.snapshot.applicationContext.currentnessChecksum !==
-    encounterActionCurrentnessChecksum({
-      prepared: target.prepared,
-      actionEconomy: economy?.consumption ?? null,
-      attackAction,
-      maintenance,
-      sceneContext: target.sceneContext
-    })
+    sealed.snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
+    !reactedUnderAwaitedChild(input.reactionChildren.recorded, input.reactionChildren.committed, [
+      base.caster.id,
+      actor.id
+    ])
   )
     throw new Error('The pending action source or target changed.')
-  return { actor, target, evaluation }
+  return { actor, target, evaluation, currentnessChecksum }
 }
 
 function requireAreaUnchanged(base: AreaReach, context: AreaContext) {
@@ -256,14 +265,41 @@ export function sealedListAttack(
     sealed.testedJson === undefined ? null : JSON.parse(sealed.testedJson)
   const resolution = answer ?? kept
   if (!resolution) throw new Error('The area roll is unanswered.')
+  const context = sealed.snapshot.applicationContext
+  const offer =
+    context.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
+      ? context.pause.payload
+      : null
+  const testBinding: AreaPrepared['binding'] | undefined =
+    sealed.testBindingJson === undefined ? undefined : JSON.parse(sealed.testBindingJson)
   return {
     actorId: sealed.actorId,
     occurrenceId: sealed.snapshot.occurrenceId,
     binding: prepared.binding,
+    ...(testBinding && { testBinding }),
     attackSight: prepared.attackSight,
-    pending: { ...restoreEncounterActionPending(sealed.snapshot), roller: 'TARGET' as const },
-    resolution,
-    rolls: answer ? null : (sealed.rolls ?? [])
+    rolls: answer ? null : (sealed.rolls ?? []),
+    // A ray held on its hit's reaction offer is rebuilt from the d20 the offer kept: past the
+    // reaction that ran as a child action, or with the decline proved against the hit (D219).
+    settle: offer?.hit
+      ? {
+          heldHit: {
+            offer: { ...offer, hit: offer.hit },
+            answer:
+              context.kind === 'ENCOUNTER_ACTION' && context.reactionChildren?.length
+                ? { kind: 'RESUMED' as const }
+                : { kind: 'DECLINE' as const }
+          }
+        }
+      : {
+          resume: {
+            pending: {
+              ...restoreEncounterActionPending(sealed.snapshot),
+              roller: 'TARGET' as const
+            },
+            resolution
+          }
+        }
   }
 }
 

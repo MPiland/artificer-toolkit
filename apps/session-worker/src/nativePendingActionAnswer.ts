@@ -72,13 +72,16 @@ export function readNativePendingActionAnswer(input: {
 export function readNativeResumedReactionOffer(input: {
   resume: LiveSessionEncounterActionResume
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto | null
+  /** The ray list whose held ray the snapshot is, when the resumed action is one. */
+  areaSnapshot: { occurrenceId: string } | null
   fingerprint: string
 }) {
   const { resume, snapshot } = input
   const context = snapshot?.applicationContext
   if (
+    !snapshot ||
     context?.kind !== 'ENCOUNTER_ACTION' ||
-    snapshot?.occurrenceId !== resume.occurrenceId ||
+    (input.areaSnapshot ?? snapshot)?.occurrenceId !== resume.occurrenceId ||
     context.commandFingerprint !== input.fingerprint ||
     context.pause?.kind !== 'CAST_REACTION' ||
     context.contest ||
