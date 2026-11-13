@@ -2,6 +2,12 @@ import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/enco
 import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import {
+  chosenEncounterReaction,
+  settleEncounterCastReactionUse
+} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import { attackHitDamageTypeIds } from '@artificer-toolkit/rules-runtime/encounterReactors'
+import type { EncounterCastReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
@@ -21,8 +27,9 @@ type ApplyReactionInput = Parameters<typeof applyNativeReactionEffect>[0]
 
 /**
  * Advances an action against one target through what happens between its TEST and its OUTCOME: the
- * target's Legendary Resistance against a failed save, its reaction to a hit, and the attacker's
- * on-hit rider. A response that answers one of those is settled against the target as it stands now;
+ * target's Legendary Resistance against a failed save, its reaction to a hit (chosen from the held
+ * offer and run as its own child action, D219; or, transitionally until QUALITY-8.T1d3, inline), and
+ * the attacker's on-hit rider. A response that answers one of those is settled against the target as it stands now;
  * a decision an earlier answer kept is replayed and proved against it. Nothing is spent here: the
  * returned records carry each cost for the action's commit.
  */
@@ -49,6 +56,8 @@ export async function advanceNativeActionTarget(input: {
   occurredAt: string
   onHitNow: NativePauseSettleContext['onHitNow']
   pauseAnswer: NativePauseAnswer | null
+  /** The answered offer the action resumes past, its reactor's child action committed (D219). */
+  resumedOffer: EncounterCastReactionOfferDto | null
   resume: GraphsInput['resume'] | null
 }) {
   const { state, capture, attack, actionSource, targetStateChecksum, onHitNow, resume } = input
@@ -111,6 +120,46 @@ export async function advanceNativeActionTarget(input: {
           retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
         )
       : null)
+  const castAnswer = input.pauseAnswer?.kind === 'CAST_REACTION' ? input.pauseAnswer.answer : null
+  const hitOffer = castAnswer?.offer ?? input.resumedOffer
+  /**
+   * The held hit offer this call answers or resumes past (D219). A chosen reaction is found again as
+   * it stands now and its sealed choice settled; it then runs as its holder's own child action.
+   */
+  const heldHit = async (
+    offer: NonNullable<GraphsInput['heldHit']>['offer']
+  ): Promise<{
+    answer: NonNullable<GraphsInput['heldHit']>['answer']
+    child: { holderActorId: string; actionId: string } | null
+  }> => {
+    if (!castAnswer) return { answer: { kind: 'RESUMED' }, child: null }
+    if (offer.hit.targetStateChecksum !== targetStateChecksum)
+      throw new Error('Reaction evidence is stale.')
+    const chosen = chosenEncounterReaction(offer, castAnswer.selection)
+    if (castAnswer.selection.kind !== 'OPTION') return { answer: { kind: 'DECLINE' }, child: null }
+    const [found] = await discoverReaction({
+      answering: chosen.actionId,
+      critical: offer.hit.originalD20.resultPath === 'ON_CRIT'
+    })
+    if (!found) throw new Error('Reaction evidence is stale.')
+    await settleEncounterCastReactionUse({
+      runtime: actionSource.runtime,
+      occurrenceId: actionSource.occurrenceId,
+      offer,
+      candidate: found.candidate,
+      optionId: castAnswer.selection.optionId
+    })
+    return {
+      answer: { kind: 'USE', candidate: found.candidate },
+      child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId }
+    }
+  }
+  const heldOffer = hitOffer?.hit ? { ...hitOffer, hit: hitOffer.hit } : null
+  const answeredHit = heldOffer ? { offer: heldOffer, ...(await heldHit(heldOffer)) } : null
+  const attackFacts =
+    attack.source.kind === 'CHARACTER_ACTION'
+      ? attack.source.candidate.mechanicFacts
+      : attack.source.capability.mechanicFacts
   const execution =
     settled?.execution ??
     (await advanceNativeActionGraphs({
@@ -120,10 +169,28 @@ export async function advanceNativeActionTarget(input: {
       attackSight: attack.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
+      ...(answeredHit
+        ? { heldHit: { offer: answeredHit.offer, answer: answeredHit.answer } }
+        : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
-        discover: async (critical) =>
-          (await discoverReaction({ critical })).map(({ candidate }) => candidate),
+        discover: async (critical) => {
+          const found = await discoverReaction({ critical })
+          return {
+            candidates: found.map(({ candidate }) => candidate),
+            // Transitional (QUALITY-8.T1d2b ends it): a hit's reactions run as child actions (D219)
+            // only when each is a spell a Character casts in answer to the attack itself. Any other
+            // still runs inline, where the damage a reaction answers and a creature's reaction are read.
+            childHitDamageTypeIds: found.every(
+              ({ candidate, prepared }) =>
+                candidate.characterId !== null &&
+                candidate.trigger === 'ATTACKED_SELF' &&
+                prepared.characterActionState?.spellConsumption
+            )
+              ? [...attackHitDamageTypeIds(attackFacts, critical)]
+              : null
+          }
+        },
         targetStateChecksum
       }
     }))
@@ -154,6 +221,8 @@ export async function advanceNativeActionTarget(input: {
     execution,
     resistance,
     reaction,
+    /** The reaction chosen against the held hit, which runs as its holder's own action (D219). */
+    reactionChild: answeredHit?.child ?? null,
     /** What the reaction the target used does and costs; null when it used none. */
     reactionUse:
       reaction?.audit.selection === 'USE' && reaction.applied

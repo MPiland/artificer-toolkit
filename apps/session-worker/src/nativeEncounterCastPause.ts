@@ -322,6 +322,47 @@ export function createNativeCastPause(input: {
     )
   }
   /**
+   * The reaction chosen at any moment runs as its holder's own action at the creature its moment
+   * names (D219): the pending action records the child command, and the room commits that child, then
+   * resumes the action, which keeps the answered offer until then.
+   */
+  const launchReactionChild = async (
+    recorded: PendingReactionChildren,
+    child: { holderActorId: string; actionId: string },
+    targetActorId: string
+  ) => {
+    // A cast that names its targets off any Scene still offers them their reactions to being named.
+    const childScene = input.readScene ? await readScene() : null
+    const tokenOf = (actorId: string) =>
+      actorId === prepared.actor.id
+        ? childScene?.sourceToken
+        : childScene?.tokens.find((token) => token.actorId === actorId)
+    const holderToken = tokenOf(child.holderActorId)
+    const targetToken = tokenOf(targetActorId)
+    return {
+      reactionChildren: [
+        ...recorded,
+        {
+          commandId: systemTriggerCommandId(command.commandId, child.holderActorId, child.actionId)
+        }
+      ],
+      // The child is judged on the Scene the reaction was offered on.
+      reactionChild: {
+        ...child,
+        targetActorId,
+        sceneContext:
+          childScene && holderToken && targetToken
+            ? {
+                sceneId: childScene.sceneId,
+                expectedSceneVersion: childScene.sceneVersion,
+                sourceTokenId: holderToken.tokenId,
+                targetTokenId: targetToken.tokenId
+              }
+            : null
+      }
+    }
+  }
+  /**
    * Before a Character's spell does anything, another Character in range may counter it. A cast that
    * already offered itself replays past this point once answered: a decline moves to the next creature,
    * and an answer to a later decision (dice, a Legendary Resistance) was made after every offer.
@@ -335,6 +376,13 @@ export function createNativeCastPause(input: {
       return {
         kind: 'NONE' as const,
         reactionChildren: children.recorded
+      }
+    // A hit's offer is made by the attack's roll, after every moment here: its answer, and the resume
+    // from the child it chose, pass them all.
+    if (input.answer?.offer.kind === 'HIT_BY_ATTACK' || resumedOffer?.kind === 'HIT_BY_ATTACK')
+      return {
+        kind: 'NONE' as const,
+        reactionChildren: resumedOffer ? await resolveReactionChildren() : children.recorded
       }
     const counterResume = resumedOffer?.kind === 'COUNTER' ? resumedOffer : null
     // The counter the cast resumes from ran as its holder's own action, which spent it: when that
@@ -363,54 +411,17 @@ export function createNativeCastPause(input: {
         })
       }
     const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
-    /**
-     * The reaction chosen at any moment runs as its holder's own action at the creature its moment
-     * names: the room commits that child, then resumes this action, which keeps the answered offer
-     * until then.
-     */
+    /** The action held on the answered offer while the reaction chosen from it runs as a child. */
     const awaitChild = async (
       advanced: Extract<Awaited<ReturnType<typeof advanceNativeCastReactions>>, { kind: 'CHILD' }>,
       targetActorId: string
-    ) => {
-      // A cast that names its targets off any Scene still offers them their reactions to being named.
-      const childScene = input.readScene ? await readScene() : null
-      const tokenOf = (actorId: string) =>
-        actorId === prepared.actor.id
-          ? childScene?.sourceToken
-          : childScene?.tokens.find((token) => token.actorId === actorId)
-      const holderToken = tokenOf(advanced.child.holderActorId)
-      const targetToken = tokenOf(targetActorId)
-      return {
-        kind: 'CAST_PENDING' as const,
-        continuation: advanced.continuation,
-        rollerActorId: advanced.child.holderActorId,
-        pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-        reactionChildren: [
-          ...reactionChildren,
-          {
-            commandId: systemTriggerCommandId(
-              command.commandId,
-              advanced.child.holderActorId,
-              advanced.child.actionId
-            )
-          }
-        ],
-        // The child is judged on the Scene the reaction was offered on.
-        reactionChild: {
-          ...advanced.child,
-          targetActorId,
-          sceneContext:
-            childScene && holderToken && targetToken
-              ? {
-                  sceneId: childScene.sceneId,
-                  expectedSceneVersion: childScene.sceneVersion,
-                  sourceTokenId: holderToken.tokenId,
-                  targetTokenId: targetToken.tokenId
-                }
-              : null
-        }
-      }
-    }
+    ) => ({
+      kind: 'CAST_PENDING' as const,
+      continuation: advanced.continuation,
+      rollerActorId: advanced.child.holderActorId,
+      pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
+      ...(await launchReactionChild(reactionChildren, advanced.child, targetActorId))
+    })
     // An answer to an offer the action resumes from was made after every counter offer was heard, and
     // one to an attack aimed at another after every offer the cast made.
     const resumeAnswer = input.answer && input.answer.offer.kind !== 'COUNTER' ? input.answer : null
@@ -513,7 +524,7 @@ export function createNativeCastPause(input: {
     }
     return { kind: 'NONE' as const, reactionChildren }
   }
-  return { advance, imposeChildRollModes, planResolvedOffers }
+  return { advance, imposeChildRollModes, planResolvedOffers, launchReactionChild }
 }
 
 export type NativeCastPause = ReturnType<typeof createNativeCastPause>
