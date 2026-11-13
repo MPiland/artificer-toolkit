@@ -24,9 +24,9 @@ describe('passive effects that fire at 0 hit points (SPELLS-33.T6e1a)', () => {
   it('lists Balor Death Throes by its trigger, not as an action', () => {
     const found = discover('Balor')
     expect(found.unavailable.filter(({ label }) => label === 'Death Throes')).toEqual([])
-    expect(
-      raisedBy(found, { kind: 'DEFEATED' }).map(({ capability }) => capability.label)
-    ).toEqual(['Death Throes'])
+    expect(raisedBy(found, { kind: 'DEFEATED' }).map(({ capability }) => capability.label)).toEqual(
+      ['Death Throes']
+    )
     expect(found.available.map(({ label }) => label)).not.toContain('Death Throes')
   })
 

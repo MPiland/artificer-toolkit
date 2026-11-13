@@ -416,7 +416,9 @@ describe('a rule’s failed-save action (ATTACK-16.T1c2b)', () => {
     const document = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse(seed.document)
     if (document.parameters.kind !== 'MASSIVE_DAMAGE' || !document.parameters.failedSaveEffectId)
       throw new Error('The SRD Massive Damage rule raises no failed-save effect.')
-    const policy = (snapshot: ReturnType<typeof encounterOptionalCombatSnapshotDtoSchema.parse>) => ({
+    const policy = (
+      snapshot: ReturnType<typeof encounterOptionalCombatSnapshotDtoSchema.parse>
+    ) => ({
       ...srdEncounterState({ actors: [], currentActorId: null }),
       optionalCombatSnapshot: snapshot,
       optionalCombatSnapshotChecksum: checksumRuleDocument(snapshot)
@@ -474,7 +476,10 @@ describe('a rule’s failed-save action (ATTACK-16.T1c2b)', () => {
       encounterRuleRaisedActions(policy(homebrewRuleSnapshot().snapshot), CREATURE_ID)
     ).toEqual([])
     expect(
-      encounterRuleRaisedActions(srdEncounterState({ actors: [], currentActorId: null }), CREATURE_ID)
+      encounterRuleRaisedActions(
+        srdEncounterState({ actors: [], currentActorId: null }),
+        CREATURE_ID
+      )
     ).toEqual([])
     expect(
       encounterRuleRaisedActions({ ...state, automationMode: 'MANUAL' as const }, CREATURE_ID)
