@@ -70,8 +70,7 @@ export async function readSceneHoldingDecision(
   const snapshot = pending ? await readPendingSnapshot(ctx, pending) : null
   const context = snapshot?.applicationContext
   if (context && isEncounterMovementContext(context)) return 'MOVEMENT'
-  return context?.kind === 'ENCOUNTER_ACTION' &&
-    (context.pause?.kind === 'REACTION' || context.pause?.kind === 'CAST_REACTION')
+  return context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
     ? 'REACTION'
     : null
 }

@@ -207,8 +207,6 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   itemConsumption: z.infer<typeof liveSessionCharacterItemConsumptionSchema> | null
   /** The spell slot this cast spent, with the Character version it was planned at. */
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
-  /** The spell slot the attacked Character's reaction spent, with the Character version it was planned at. */
-  reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The reactions other creatures used against the attack roll, each spent with this commit (D207). */
   windowReactions: LiveSessionWindowReaction[]
   /** The planned action's display name; the stored command, the timeline and its roll cards carry it (D150). */
@@ -281,11 +279,10 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-      reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       windowReactions: liveSessionWindowReactionsSchema,
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,
-      // The action's state and recurring effects, and the effect of a reaction its target used.
+      // The action's state and recurring effects.
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(3)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
       ...liveSessionEncounterConcentrationFields(),
@@ -312,7 +309,6 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
 export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
   | 'maintenanceOwners'
-  | 'reactionSpellConsumption'
   | 'createdEffects'
   | 'maintainedState'
   | 'concentration'
@@ -440,7 +436,6 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'reactionOffers'
   | 'turnUses'
   | 'spentUseGrants'
-  | 'reactionSpellConsumption'
   | 'windowReactions'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>

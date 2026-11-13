@@ -143,7 +143,7 @@ type CastPendingContext = {
     /** The failed ward save whose attacker is offered another creature to turn the action on. */
     | { kind: 'ATTACK_RETARGET'; payload: { gate: PendingGate } }
     | {
-        kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
+        kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'ON_HIT' | 'FORCED_MOVEMENT'
         payload: unknown
       }
   reactionChildren?: readonly { commandId: string; resumeOutcome?: object | null }[]
@@ -333,7 +333,7 @@ export function offeredDecisionOptionIds(context: {
   pause?:
     | { kind: 'LEGENDARY_RESISTANCE'; payload: { resistance: { useOptionId: string } } }
     | {
-        kind: 'REACTION' | 'CAST_REACTION'
+        kind: 'CAST_REACTION'
         payload: { reactions: readonly { useOptionId: string }[] }
       }
     | {
@@ -350,7 +350,6 @@ export function offeredDecisionOptionIds(context: {
     case 'ATTACK_RETARGET':
     case 'ON_HIT':
       return pause.payload.options.map((option) => option.useOptionId)
-    case 'REACTION':
     case 'CAST_REACTION':
       return pause.payload.reactions.map((reaction) => reaction.useOptionId)
     default:
@@ -381,7 +380,6 @@ export function projectNativeActionPending(
         options: [{ optionId: pause.payload.resistance.useOptionId }],
         allowedResponses: ['DECLINE', 'OPTION']
       }
-    case 'REACTION':
     case 'CAST_REACTION':
       return {
         kind: 'REACTION_CHOICE',

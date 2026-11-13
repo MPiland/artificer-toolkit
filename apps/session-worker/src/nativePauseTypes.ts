@@ -10,14 +10,12 @@ import type {
 import type { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
 import type { resolveNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
 import type { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
-import type { resolveNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import type { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import type {
   EncounterActionPauseDto,
   EncounterPausePayload
 } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { EncounterD20WindowSelection } from '@artificer-toolkit/rules-runtime/encounterD20Window'
-import type { NativeCurrentReaction } from './nativePauseReaction.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import type { NativeIncomingGateAnswer } from './nativeEncounterIncomingGate.js'
 
@@ -59,7 +57,6 @@ export type NativePauseAnswer =
   | { kind: 'EVIDENCE'; answer: EncounterEvidenceAnswer }
   | { kind: 'ROLL_WINDOW'; answer: NativeD20WindowAnswer }
   | { kind: 'LEGENDARY_RESISTANCE'; answer: NativeSealedChoiceAnswer<'LEGENDARY_RESISTANCE'> }
-  | { kind: 'REACTION'; answer: NativeSealedChoiceAnswer<'REACTION'> }
   | { kind: 'CAST_REACTION'; answer: NativeCastReactionAnswer }
   | { kind: 'INCOMING_GATE'; answer: NativeIncomingGateAnswer }
   | { kind: 'ATTACK_RETARGET'; answer: NativeSealedChoiceAnswer<'ATTACK_RETARGET'> }
@@ -79,8 +76,8 @@ export type NativePauseReadInput<Kind extends NativePauseKind> = {
 /** The action as the planner prepared it, which a settled answer continues. */
 export type NativePauseSettleContext = {
   actionSource: Omit<
-    Parameters<typeof resolveNativeActionReaction>[0],
-    'offer' | 'selection' | 'candidate' | 'targetStateChecksum' | 'adjustedBinding'
+    Parameters<typeof resolveNativeActionOnHit>[0],
+    'offer' | 'selection' | 'candidates'
   >
   currentResistance: () => Promise<
     Pick<
@@ -88,29 +85,14 @@ export type NativePauseSettleContext = {
       'candidate' | 'currentFeatureResource' | 'targetStateChecksum'
     >
   >
-  currentReaction: (
-    used: boolean,
-    answering: string,
-    critical: boolean
-  ) => Promise<NativeCurrentReaction>
   onHitNow: ReturnType<typeof onHitCandidates>
-}
-
-/** What a held on-hit offer keeps of the reaction its hit answered. */
-export type NativeHeldReaction = {
-  reaction: NonNullable<EncounterPausePayload<'ON_HIT'>['reaction']>
-  testExecution: EncounterPausePayload<'ON_HIT'>['testExecution']
-  testRollEvidence: EncounterPausePayload<'ON_HIT'>['testD20']
 }
 
 /** What a settled answer leaves the planner: the execution it continued and the records it made. */
 export type NativePauseSettlement = {
   execution: Awaited<ReturnType<typeof advanceNativeActionGraphs>>
   resistance?: Awaited<ReturnType<typeof resolveNativeActionLegendaryResistance>>['resistance']
-  reaction?: NativeCurrentReaction & Awaited<ReturnType<typeof resolveNativeActionReaction>>
   onHit?: Awaited<ReturnType<typeof resolveNativeActionOnHit>>
-  heldReaction?: NativeHeldReaction | null
-  heldReactionNow?: NativeCurrentReaction | null
 }
 
 /** Method syntax keeps the table's per-kind handlers assignable to the union-kind handler that dispatches. */
