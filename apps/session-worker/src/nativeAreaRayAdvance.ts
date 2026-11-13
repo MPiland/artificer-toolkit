@@ -89,14 +89,6 @@ export async function advanceAreaRay(
               // The reaction is its holder's action on itself, so it reads that creature alone.
               async () => new Map([[sealed.actorId, await input.loadTarget(prepared.target)]])
             ),
-            // Every reaction to a ray's hit runs as its holder's child action, never inline.
-            prepareReactedAttack: async () => {
-              throw new Error('A ray’s hit reaction runs as its holder’s own action.')
-            },
-            loadTarget: input.loadTarget,
-            activeEffectsByActorId: input.activeEffectsByActorId,
-            commandId: input.command.commandId,
-            occurredAt,
             onHitNow: [],
             pauseAnswer:
               step.kind === 'REACTION' ? { kind: 'CAST_REACTION', answer: step.answer } : null,

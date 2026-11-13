@@ -384,6 +384,56 @@ describe('a creature reacts to the ray that hits it, as its own action (QUALITY-
     expect(await effectIds(room)).toEqual([])
     expect((await committedActions(room)).children).toEqual([])
   }, 120000)
+
+  /** The GM voids the pending cast; the Run's actors, slots and effects must be as before it. */
+  async function voidsBackTo(
+    room: Room,
+    before: Awaited<ReturnType<typeof readRoomHistory>>,
+    occurrence: { id: string; version: number }
+  ) {
+    const voided = await room.send({
+      type: 'VOID_RULE_OCCURRENCE',
+      commandId: crypto.randomUUID(),
+      encounterId: room.room.encounterId,
+      expectedVersion: await room.version(),
+      occurrenceId: occurrence.id,
+      expectedOccurrenceVersion: occurrence.version
+    })
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    expect(await effectIds(room)).toEqual([])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  }
+
+  it('leaves the Run as before the cast when the GM voids it with a ray held on its choice', async () => {
+    const room = await rayRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await cast(room, TWO_RAYS)
+    await answerRoll(room, NARROW_HIT)
+    const { decision } = await offered(room)
+
+    await voidsBackTo(room, before, decision.occurrence)
+    expect((await committedActions(room)).children).toEqual([])
+  }, 120000)
+
+  it('takes the used reaction back with the cast when the GM voids it at a later ray', async () => {
+    const room = await rayRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await cast(room, TWO_RAYS)
+    await answerRoll(room, NARROW_HIT)
+    await useReaction(room)
+    const { decision } = await pendingRolls(room)
+
+    await voidsBackTo(room, before, decision.occurrence)
+    // The reaction's action is undone with the cast: the Character holds its reaction again.
+    const cast2 = await room.startActorsAction(TWO_RAYS, [], true)
+    expect(cast2.answer.type, JSON.stringify(cast2.answer)).toBe('COMMAND_COMMITTED')
+    await answerRoll(room, NARROW_HIT)
+    expect((await offered(room)).pending.targetActorId).toBe(REACTOR_ACTOR_ID)
+  }, 120000)
 })
 
 describe('a chosen creature holding an after-the-roll die is shown its save (QUALITY-13.T1b)', () => {
