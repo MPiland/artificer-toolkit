@@ -40,9 +40,13 @@ import {
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { projectNativeActionPending } from './actionPending.js'
+import { heldActionContinues, projectNativeActionPending } from './actionPending.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
-import { heldRootVersionAccounted } from './reactionChildren.js'
+import {
+  awaitsReactionChild,
+  heldRootVersionAccounted,
+  reactionChildrenKept
+} from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 type AreaSceneContext = Extract<
@@ -324,6 +328,127 @@ function withOpenedHold(
   return pick ? holdEncounterAreaForcedMovement(area, pick, opened.forcedMovement?.rays) : area
 }
 
+type SealedAreaTarget = EncounterAreaActionPendingContextDto['targets'][number]
+
+/** The hit a ray's own snapshot holds a reaction offer on, if it holds one. */
+const hitReactionOf = (target: SealedAreaTarget | undefined) => {
+  const context = target?.snapshot.applicationContext
+  return context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
+    ? (context.pause.payload.hit ?? null)
+    : null
+}
+
+/** Whether a ray still waits at the reaction offer its hit raised. */
+const heldOnHitReaction = (target: SealedAreaTarget) =>
+  target.testedJson === undefined && hitReactionOf(target) !== null
+
+/** A sealed ray without what its own steps write: its snapshot, its answer and what that answer rolled. */
+const rayIdentity = ({
+  snapshot,
+  testedJson: _testedJson,
+  rolls: _rolls,
+  testBindingJson: _testBindingJson,
+  ...identity
+}: SealedAreaTarget) => ({ ...identity, occurrenceId: snapshot.occurrenceId })
+
+/**
+ * Verifies the list a ray's step stores when that step is about the reaction to its hit (D219). The
+ * ray's roll hit and raised the offer; its creature declined, so the ray is answered with the d20 the
+ * offer kept; its creature chose a reaction, so the ray stays held and records that reaction's child;
+ * or the room resumed from the committed child, so the ray is answered and the child's outcome is
+ * written. Nothing else of the list changes but this: a ray answered before keeps its answer and, once
+ * written, the facts it was rolled against; after a decline or a resume the rays behind may be
+ * answered, the next of them held on its own hit; and only the resume, which follows a committed
+ * child, seals the rays again to the creatures as that child left them.
+ */
+function requireAreaActionRayReaction(
+  input: Parameters<typeof requireAreaActionAnswer>[0] & { at: number }
+) {
+  const stored = areaActionPendingContext(input.stored)
+  const next = areaActionPendingContext(input.next)
+  const { at, resume, response } = input
+  const mismatch = () => new Error('Live Session pending area answer mismatch.')
+  const before = stored?.targets[at]
+  const after = next?.targets[at]
+  const previous = before?.snapshot.applicationContext
+  const context = after?.snapshot.applicationContext
+  if (
+    !stored ||
+    !next ||
+    !before ||
+    !after ||
+    previous?.kind !== 'ENCOUNTER_ACTION' ||
+    context?.kind !== 'ENCOUNTER_ACTION' ||
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    input.next.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    stored.targets.length !== next.targets.length ||
+    checksumCanonicalJson({ ...input.stored, applicationContext: { ...stored, targets: [] } }) !==
+      checksumCanonicalJson({ ...input.next, applicationContext: { ...next, targets: [] } }) ||
+    stored.targets.some(
+      (target, index) =>
+        checksumCanonicalJson(rayIdentity(target)) !==
+        checksumCanonicalJson(rayIdentity(next.targets[index]!))
+    ) ||
+    next.targets.filter(heldOnHitReaction).length > 1
+  )
+    throw mismatch()
+  const resumed = !response && awaitsReactionChild(previous)
+  const offer = hitReactionOf(before)
+  const kind = response?.resolution.kind
+  const held = heldOnHitReaction(after)
+  // The ray's own step: its roll raises the offer, a decline or the resume leaves it, a chosen
+  // reaction stays on it with its child recorded.
+  if (!offer) {
+    if (!held || before.testedJson !== undefined || context.reactionChildren !== undefined)
+      throw mismatch()
+  } else if (
+    before.testedJson !== undefined ||
+    checksumCanonicalJson(hitReactionOf(after)) !== checksumCanonicalJson(offer) ||
+    !reactionChildrenKept(previous, context) ||
+    (held
+      ? kind !== 'OPTION' ||
+        !heldActionContinues({
+          resume,
+          response,
+          occurrenceId: input.next.occurrenceId,
+          next: context,
+          endpointActorIds: [stored.casterActorId, before.actorId]
+        })
+      : awaitsReactionChild(context) ||
+        (resumed
+          ? false
+          : kind !== 'DECLINE' ||
+            awaitsReactionChild(previous) ||
+            checksumCanonicalJson(after.snapshot) !== checksumCanonicalJson(before.snapshot)))
+  )
+    throw mismatch()
+  for (const [index, target] of stored.targets.entries()) {
+    const sealed = next.targets[index]!
+    if (index === at) continue
+    const answeredBefore = target.testedJson !== undefined
+    if (
+      // An answer is written once, with what it rolled.
+      (answeredBefore &&
+        checksumCanonicalJson([sealed.testedJson, sealed.rolls ?? null]) !==
+          checksumCanonicalJson([target.testedJson, target.rolls ?? null])) ||
+      // So are the facts a ray was rolled against, and only when a reaction is chosen.
+      (target.testBindingJson !== undefined
+        ? sealed.testBindingJson !== target.testBindingJson
+        : sealed.testBindingJson !== undefined &&
+          !(answeredBefore && offer && held && kind === 'OPTION')) ||
+      // Only the rays behind a ray that left its offer go on, in order.
+      (!answeredBefore &&
+        (sealed.testedJson !== undefined || heldOnHitReaction(sealed)) &&
+        (index < at || held || !offer)) ||
+      // Only the resume seals a ray again.
+      (!resumed &&
+        (answeredBefore || (sealed.testedJson === undefined && !heldOnHitReaction(sealed))) &&
+        checksumCanonicalJson(sealed.snapshot) !== checksumCanonicalJson(target.snapshot))
+    )
+      throw mismatch()
+  }
+}
+
 /**
  * Verifies the area snapshot a save answer stores: it is the stored area with exactly the answered
  * creature's save marked tested (or, for a roll a held die could still change, rolled), with the
@@ -334,6 +459,9 @@ export function requireAreaActionAnswer(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
   next: ServerRuleExecutionPendingSnapshotDto
   requestId: string
+  /** The pending list the step continues, and the answer that takes it; the room's resume carries none. */
+  resume: NonNullable<Parameters<typeof heldActionContinues>[0]['resume']>
+  response: { resolution: { kind: string } } | null | undefined
 }) {
   const stored = areaActionPendingContext(input.stored)
   const next = areaActionPendingContext(input.next)
@@ -359,6 +487,11 @@ export function requireAreaActionAnswer(input: {
       throw new Error('Live Session pending area damage roll mismatch.')
     return
   }
+  const at =
+    stored?.targets.findIndex((target) => target.snapshot.request.requestId === input.requestId) ??
+    -1
+  if (hitReactionOf(stored?.targets[at]) || (next?.targets[at] && heldOnHitReaction(next.targets[at])))
+    return requireAreaActionRayReaction({ ...input, at })
   // An answer that opens the next d20 window swaps that save's snapshot, so the answered creature is
   // found by its place in the stored area.
   const answered =
@@ -540,6 +673,21 @@ export function projectNativeAreaActionPending(
           positions: pick.positions,
           allowedResponses: ['FORCED_MOVEMENT']
         }
+      : null
+  // A ray held on the reaction to its hit (D219) is the list's one decision, its creature's.
+  const heldRay = pending.targets.find(
+    (target) =>
+      encounterAreaSaveAwaiting({ casterActorId: casterId, targets: pending.targets }, target) ===
+      'REACTION'
+  )
+  if (heldRay)
+    return answers(heldRay.context.rollerActorId)
+      ? projectNativeActionPending(
+          occurrence,
+          { snapshot: heldRay.snapshot, context: heldRay.context, command: pending.command },
+          viewer.isOwner,
+          reasons
+        )
       : null
   const caught =
     viewer.isOwner || viewer.controlledActorIds.has(casterId)

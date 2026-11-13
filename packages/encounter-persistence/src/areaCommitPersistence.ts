@@ -287,7 +287,9 @@ export async function persistEncounterAreaCommit(
         requireAreaActionAnswer({
           stored: resume.area.snapshot,
           next: area,
-          requestId: resume.pending.snapshot.request.requestId
+          requestId: resume.pending.snapshot.request.requestId,
+          resume,
+          response: input.response
         })
     } else if (resume) {
       // The cast left its pause, by the last decline or from a reaction's committed child (D219), and

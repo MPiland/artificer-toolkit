@@ -189,16 +189,8 @@ export async function executeRoomEncounterAction(input: {
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
       })
   }
-  if (plan.kind === 'AREA_PENDING')
-    return persistEncounterActionPending(
-      ctx,
-      {
-        ...buildNativeLiveEncounterAreaActionPendingInput(scope, plan),
-        revisions
-      },
-      callbacks
-    )
   if (
+    plan.kind === 'AREA_PENDING' ||
     plan.kind === 'PENDING' ||
     plan.kind === 'CAST_PENDING' ||
     plan.kind === 'GATE_PENDING' ||
@@ -207,7 +199,9 @@ export async function executeRoomEncounterAction(input: {
     const pending = await persistEncounterActionPending(
       ctx,
       {
-        ...buildNativeLiveEncounterActionPendingInput(scope, plan),
+        ...(plan.kind === 'AREA_PENDING'
+          ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
+          : buildNativeLiveEncounterActionPendingInput(scope, plan)),
         revisions
       },
       callbacks

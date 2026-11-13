@@ -1282,6 +1282,8 @@ type AreaPendingPlan = {
   command: ResolveEncounterActionInputDto
   response: ResolveRuleOccurrenceInputDto | null
   snapshot: ServerAggregateChoicePendingSnapshotDto
+  /** The reaction a ray's creature chose at its hit, which the room runs as its own action (D219). */
+  reactionChild?: Awaited<ReturnType<typeof advanceAreaRay>>['reactionChild']
   prepared: { actors: AreaPlanBase['actors'] }
   fingerprint: string
   initiatorUserId: string

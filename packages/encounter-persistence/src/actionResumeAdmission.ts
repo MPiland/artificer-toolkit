@@ -222,7 +222,9 @@ export async function readNativeEncounterActionResponseAdmission(
   else {
     // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
     // its answer.
-    const offeredOptionIds = areaAnswer ? [] : offeredDecisionOptionIds(pending.context)
+    // So does a ray held on the reaction to its hit; no other area answer is a decision.
+    const offeredOptionIds =
+      areaAnswer && awaiting !== 'REACTION' ? [] : offeredDecisionOptionIds(pending.context)
     if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
       if (!offeredOptionIds.length) rejectDomain('DECISION_NOT_PENDING')
       if (answer.kind === 'OPTION' && !offeredOptionIds.includes(answer.optionId))
@@ -305,7 +307,18 @@ export async function readNativeEncounterActionResumeAdmission(
     occurrence.state !== 'PENDING'
   )
     rejectDomain('DECISION_NOT_PENDING')
-  const pending = await readNativeActionPending(ctx, occurrence)
+  // A list of rays resumes the one ray held on the reaction to its hit, under the list's root.
+  const stored = await readPendingSnapshot(ctx, occurrence)
+  const area =
+    stored && areaActionPendingContext(stored)
+      ? await readNativeAreaActionPending(ctx, occurrence)
+      : null
+  const heldRay = area?.targets.find(({ context }) => awaitsReactionChild(context))
+  if (area && !heldRay) rejectDomain('DECISION_NOT_PENDING')
+  const pending =
+    area && heldRay
+      ? { command: area.command, context: heldRay.context, snapshot: heldRay.snapshot }
+      : await readNativeActionPending(ctx, occurrence)
   if (
     occurrence.version !== resume.expectedOccurrenceVersion ||
     run.version !== resume.expectedVersion ||
@@ -329,5 +342,12 @@ export async function readNativeEncounterActionResumeAdmission(
     recorded
   })
   if (reactionChildren.length !== recorded.length) rejectDomain('DECISION_NOT_PENDING')
-  return { kind: 'READY' as const, admission, occurrence, pending, area: null, reactionChildren }
+  return {
+    kind: 'READY' as const,
+    admission,
+    occurrence,
+    pending,
+    area: area && heldRay ? { snapshot: area.snapshot, actorId: heldRay.actorId } : null,
+    reactionChildren
+  }
 }

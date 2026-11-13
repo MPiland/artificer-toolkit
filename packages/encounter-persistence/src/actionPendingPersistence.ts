@@ -115,7 +115,9 @@ export async function persistEncounterActionPending(
         requireAreaActionAnswer({
           stored: resume.area.snapshot,
           next: snapshot,
-          requestId: resume.pending.snapshot.request.requestId
+          requestId: resume.pending.snapshot.request.requestId,
+          resume,
+          response: input.response
         })
     } else if (resume && resume.pending.context.pause?.kind !== 'CAST_REACTION')
       throw new Error('Live Session pending area answer mismatch.')
