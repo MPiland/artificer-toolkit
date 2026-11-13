@@ -41,7 +41,6 @@ export async function advanceNativeActionTarget(input: {
   targetStateChecksum: string
   /** Prepares a reaction the target holds, as the target's own action. */
   prepareReaction: DiscoverReactionInput['prepareReaction']
-  reactionSpentActorIds: DiscoverReactionInput['reactionSpentActorIds']
   /** Prepares the action again against the target's facts once a reaction has changed them. */
   prepareReactedAttack: ApplyReactionInput['prepareAttack']
   loadTarget: ApplyReactionInput['loadTarget']
@@ -73,7 +72,6 @@ export async function advanceNativeActionTarget(input: {
     system: input.system,
     spells: await readNativeLiveSpellPins(capture),
     attack,
-    reactionSpentActorIds: input.reactionSpentActorIds,
     prepareReaction: input.prepareReaction,
     capture
   })

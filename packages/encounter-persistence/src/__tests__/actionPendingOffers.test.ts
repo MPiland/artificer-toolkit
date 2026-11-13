@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  castCancelledByChildCarriesUsedReactions,
+  castCancelledByReactionChild,
   castPendingContinues,
   heldActionContinues,
   offeredDecisionOptionIds,
@@ -79,7 +79,6 @@ describe('castPendingContinues', () => {
   const decline = { resolution: { kind: 'DECLINE' } }
   const option = { resolution: { kind: 'OPTION' } }
   const dice = { resolution: { kind: 'ENTER_DICE' } }
-  const failedBy = (reactorActorId: string) => ({ reaction: { reactorActorId } })
 
   it('lets an unrelated pause continue on any answer', () => {
     expect(castPendingContinues({}, option, {})).toBe(true)
@@ -106,12 +105,9 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues({ rollerActorId: 'attacker' }, dice, offered)).toBe(false)
     })
 
-    it('carries no passed ward and no counters', () => {
+    it('carries no passed ward', () => {
       expect(
         castPendingContinues(gateHeld, dice, { ...offered, passedIncomingGate: ward('ward') })
-      ).toBe(false)
-      expect(
-        castPendingContinues(gateHeld, dice, { ...offered, usedReactions: [failedBy('first')] })
       ).toBe(false)
     })
 
@@ -126,9 +122,6 @@ describe('castPendingContinues', () => {
           passedIncomingGate: ward('ward')
         })
       ).toBe(false)
-      expect(castPendingContinues(offered, option, { usedReactions: [failedBy('first')] })).toBe(
-        false
-      )
     })
 
     it('may offer again from the chosen creature’s own ward, and only after a choice', () => {
@@ -191,17 +184,15 @@ describe('castPendingContinues', () => {
     expect(castPendingContinues(held, dice, {})).toBe(false)
   })
 
-  it('refuses a reaction spent at its own offer: a chosen reaction always runs as its own action (D219)', () => {
+  it('refuses a reaction answered at its own offer: a chosen reaction always runs as its own action (D219)', () => {
     const settled = (overrides: object) => ({
       pause: {
         kind: 'CAST_REACTION' as const,
         payload: { declinedReactorActorIds: ['first', 'second'] }
       },
-      usedReactions: [failedBy('second')],
       ...overrides
     })
     expect(castPendingContinues(held, option, settled({}))).toBe(false)
-    expect(castPendingContinues(held, option, settled({ usedReactions: [] }))).toBe(false)
     expect(
       castPendingContinues(
         held,
@@ -240,9 +231,6 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues(held, option, { ...raised, rollerActorId: 'third' })).toBe(false)
       expect(castPendingContinues(held, option, { ...held, ...resumed })).toBe(false)
       expect(
-        castPendingContinues(held, option, { ...raised, usedReactions: [failedBy('second')] })
-      ).toBe(false)
-      expect(
         castPendingContinues(held, option, {
           ...raised,
           pause: {
@@ -267,9 +255,6 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues(raised, decline, resumed)).toBe(false)
       expect(castPendingContinues(raised, option, resumed)).toBe(false)
       expect(castPendingContinues(raised, dice, resumed)).toBe(false)
-      expect(
-        castPendingContinues(raised, null, { ...resumed, usedReactions: [failedBy('second')] })
-      ).toBe(false)
     })
 
     it('never offers another creature the chosen counter from the cast’s own pause: that offer is the child’s', () => {
@@ -281,20 +266,12 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues(held, option, offeredOn(['first', 'second']))).toBe(false)
     })
 
-    it('loses the cast to its child with exactly the used reactions it held', () => {
-      const carrying = { ...raised, usedReactions: [failedBy('earlier')] }
-      expect(castCancelledByChildCarriesUsedReactions(raised, {})).toBe(true)
-      expect(
-        castCancelledByChildCarriesUsedReactions(carrying, { usedReactions: [failedBy('earlier')] })
-      ).toBe(true)
-      expect(castCancelledByChildCarriesUsedReactions(carrying, {})).toBe(false)
-      expect(
-        castCancelledByChildCarriesUsedReactions(raised, { usedReactions: [failedBy('second')] })
-      ).toBe(false)
+    it('is lost to its child only while it awaits one', () => {
+      expect(castCancelledByReactionChild(raised)).toBe(true)
       // A cast that awaits no child is never lost this way.
-      expect(castCancelledByChildCarriesUsedReactions(held, {})).toBe(false)
-      expect(castCancelledByChildCarriesUsedReactions({ ...held, ...resumed }, {})).toBe(false)
-      expect(castCancelledByChildCarriesUsedReactions({}, {})).toBe(false)
+      expect(castCancelledByReactionChild(held)).toBe(false)
+      expect(castCancelledByReactionChild({ ...held, ...resumed })).toBe(false)
+      expect(castCancelledByReactionChild({})).toBe(false)
     })
   })
 
@@ -330,11 +307,9 @@ describe('castPendingContinues', () => {
 
     it('runs a chosen reaction only as its holder’s own action, on the same offer and roll', () => {
       expect(castPendingContinues(rolledHeld, option, raised)).toBe(true)
-      // Never spent with the action's own commit, and never held on without its child recorded.
+      // Never answered in place, and never held on without its child recorded.
       expect(castPendingContinues(rolledHeld, option, {})).toBe(false)
-      expect(castPendingContinues(rolledHeld, option, { ...rolledHeld, usedReactions: [] })).toBe(
-        false
-      )
+      expect(castPendingContinues(rolledHeld, option, rolledHeld)).toBe(false)
       expect(
         castPendingContinues(rolledHeld, option, { ...raised, pause: offer(['first'], null) })
       ).toBe(false)
@@ -425,12 +400,6 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues(raised, null, resumed)).toBe(true)
       expect(castPendingContinues(raised, option, resumed)).toBe(false)
     })
-  })
-
-  it('carries earlier failed counters through every later pause of the cast', () => {
-    const carrying = { usedReactions: [failedBy('first')] }
-    expect(castPendingContinues(carrying, dice, { usedReactions: [failedBy('first')] })).toBe(true)
-    expect(castPendingContinues(carrying, dice, {})).toBe(false)
   })
 })
 

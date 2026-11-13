@@ -24,7 +24,6 @@ import { settleActionTargetOutcome } from './actionTargetOutcomeSettlement.js'
 import { readRunActors } from './documents.js'
 import {
   applyActionSpendMechanics,
-  combineSpendMutations,
   sourceSpendMutation,
   settleActionSourceSpend
 } from './actionSourceSpend.js'
@@ -113,11 +112,9 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
-    // Failed counters come from a cast's earlier pauses, so a commit with none behind it carries none.
-    (!resume && (input.usedReactions.length > 0 || input.windowReactions.length > 0)) ||
+    (!resume && input.windowReactions.length > 0) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
-        usedReactions: input.usedReactions.map(({ receipt }) => receipt),
         // A gate passed earlier, or by the roll this commit answers, stays passed through the commit.
         passedIncomingGate: passedGateAfter(resume.pending.context)
       })) ||
@@ -227,22 +224,14 @@ export async function persistEncounterActionCommit(
     spell: input.spellConsumption,
     receipts: batch
   })
-  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast
-  // (D127), and every reaction rolled against the attack roll its reaction and charge (D207).
+  // Every reaction rolled against the attack roll spends its reaction and charge with the action (D207).
   const reactionSpends = usedReactionSpends({
-    usedReactions: input.usedReactions,
     windowReactions: input.windowReactions,
     actors,
     source
   })
-  // The cast's target pays its own failed counter in its single mechanics call.
+  // The action's target pays its own reaction in its single mechanics call.
   const targetUsed = reactionSpends.find(({ reactor }) => reactor.id === target.id)
-  // The source's counter to a Counterspell against its cast spends its slot in the source's one
-  // mechanics call, after the cast's, so the Character advances once.
-  const sourceUsed =
-    source.id === target.id
-      ? undefined
-      : reactionSpends.find(({ reactor }) => reactor.id === source.id)
   // The source's own batch carries its spend and the conditions its ended effects released.
   const sourceMechanics =
     (spends || batch.sourceApplications.length) && source.id !== target.id
@@ -253,7 +242,7 @@ export async function persistEncounterActionCommit(
           occurredAt: input.occurredAt,
           actor: source,
           applications: batch.sourceApplications,
-          mutation: combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {}),
+          mutation: sourceMutation,
           applyMechanics: callbacks.applyMechanics,
           currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
         })
@@ -299,11 +288,6 @@ export async function persistEncounterActionCommit(
     },
     applyMechanics: callbacks.applyMechanics
   })
-  if (
-    sourceUsed &&
-    sourceUsed.used.receipt.characterStreamVersion !== sourceMechanics?.characterStreamVersion
-  )
-    throw new Error('Live Session used reaction Character receipt mismatch.')
   if (targetUsed) requireUsedReactionReceipt(targetUsed, mechanics)
   if (
     checksumCanonicalJson(mechanics.itemReleaseTransition) !==
@@ -328,25 +312,13 @@ export async function persistEncounterActionCommit(
     throw new Error('Live Session mechanics receipt mismatch.')
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
-  const castSettledSource = await settleActionSourceSpend(ctx, {
+  const settledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
     source: beforeSource,
     spend: batch,
     economyOverridden: overridesActionEconomy(input.ruleOverrides),
     engages: attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target })
   })
-  const settledSource = sourceUsed
-    ? await settleActionSourceSpend(ctx, {
-        encounterId: state.id,
-        source: castSettledSource,
-        spend: {
-          featureResourceConsumption: null,
-          actionEconomyTransition: sourceUsed.used.receipt.actionEconomyTransition,
-          attackActionTransition: undefined
-        },
-        economyOverridden: false
-      })
-    : castSettledSource
   // A delegated attack spends one attack of its commander's Attack action (DELEGATED_ATTACK).
   const delegated = batch.delegatingActorSpend
   const commander = delegated && actors.find((actor) => actor.id === delegated.actorId)
@@ -573,7 +545,6 @@ export async function persistEncounterActionCommit(
       forcedMovementLandings: settledMovements.landings,
       turnUses,
       clearedDamageTypes,
-      usedReactions: input.usedReactions.map(({ receipt }) => receipt),
       windowReactions: input.windowReactions.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },

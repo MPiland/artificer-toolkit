@@ -358,8 +358,7 @@ export async function planNativeLiveEncounterAction(
             continuation,
             answer: castAnswer,
             initiatorUserId: pendingContext.initiatorUserId,
-            currentnessChecksum: pendingContext.currentnessChecksum,
-            usedReactions: pendingContext.usedReactions ?? []
+            currentnessChecksum: pendingContext.currentnessChecksum
           }
         : undefined
     const areaInput = {
@@ -961,15 +960,11 @@ export async function planNativeLiveEncounterAction(
     reactionChildren: reactionChildWindow,
     answer: castAnswer,
     // A gate pause held the action before any counter was offered, so its answer replays them all.
-    resumed: snapshot !== null && !gateAnswer,
-    // The counters that failed against this cast so far; its terminal commit spends them (D127).
-    usedReactions: pendingContext?.usedReactions ?? []
+    resumed: snapshot !== null && !gateAnswer
   })
   const cast = await castPause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
   reactionChildren = cast.reactionChildren
-  const usedReactions = cast.usedReactions
-  const reactionSpends = await castPause.planUsedReactions(usedReactions)
   // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217).
   const react = castPause.imposeChildRollModes(reactionChildren)
   const reacted = react(prepared)
@@ -987,17 +982,13 @@ export async function planNativeLiveEncounterAction(
     binding: reacted.binding,
     afterTest: async () => undefined,
     // The target's held dice and the reactors' dice a save d20 is shown to (D168, D207), whichever
-    // answer starts the OUTCOME. A creature that already spent its reaction on a counter to this
-    // cast has none left to roll.
+    // answer starts the OUTCOME.
     saveWindow: targetSaveWindow(
       state.gameSystemId,
       heldOnTarget,
       prepared.attackWindowDice,
       async (answeredReactorActorIds: readonly string[]) =>
-        nextNativeRollReactionDice(rollReactions, [
-          ...answeredReactorActorIds,
-          ...usedReactions.map(({ reaction }) => reaction.reactorActorId)
-        ])
+        nextNativeRollReactionDice(rollReactions, answeredReactorActorIds)
     )
   }
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
@@ -1038,7 +1029,6 @@ export async function planNativeLiveEncounterAction(
           sceneContext: null,
           ...actionSources
         }),
-      reactionSpentActorIds: usedReactions.map(({ reaction }) => reaction.reactorActorId),
       // The answered attack keeps the decoy it was rolled against.
       prepareReactedAttack: async (reactedTargets: typeof movementTargets) =>
         react(await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions)),
@@ -1050,8 +1040,7 @@ export async function planNativeLiveEncounterAction(
       pauseAnswer,
       resume
     })
-  if (execution.kind === 'PENDING')
-    return { ...preflight(), kind: 'PENDING' as const, execution, usedReactions }
+  if (execution.kind === 'PENDING') return { ...preflight(), kind: 'PENDING' as const, execution }
   // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
@@ -1089,13 +1078,8 @@ export async function planNativeLiveEncounterAction(
     consumedGrants,
     dispositions
   )
-  // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
-  // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
-  const targetUsed = reactionSpends.find(
-    ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
-  )
   // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207);
-  // the target's rides its own mechanics, like a failed counter.
+  // the target's rides its own mechanics.
   const windowReactions = planNativeWindowReactions({
     reactions: rollReactions,
     execution,
@@ -1108,10 +1092,8 @@ export async function planNativeLiveEncounterAction(
   const windowTarget = windowReactions.find(
     ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
   )
-  const spentTargetEconomy = targetUsed?.economy ?? windowTarget?.economy ?? null
-  const targetReactorSpend = Boolean(
-    targetUsed?.spellConsumption || windowTarget?.resourceConsumption
-  )
+  const spentTargetEconomy = windowTarget?.economy ?? null
+  const targetReactorSpend = Boolean(windowTarget?.resourceConsumption)
   const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -1146,8 +1128,7 @@ export async function planNativeLiveEncounterAction(
     return {
       ...preflight(),
       kind: 'PENDING' as const,
-      execution: destination.held,
-      usedReactions
+      execution: destination.held
     }
   const forcedMovements = destination.movements
   // The temporary hit points the cast gives belong to the lasting effect that owns them (D156).
@@ -1461,7 +1442,6 @@ export async function planNativeLiveEncounterAction(
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: uses.spentUseGrants,
-    reactionSpends,
     windowReactions,
     forcedMovements,
     revisions,

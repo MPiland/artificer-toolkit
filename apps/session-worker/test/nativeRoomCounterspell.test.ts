@@ -1008,7 +1008,6 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'CAST_REACTION')
         throw new Error('Expected a pending cast reaction.')
       expect(context.rollerActorId).toBe(SECOND_REACTOR_ACTOR_ID)
-      expect(context.usedReactions ?? []).toEqual([])
       expect(context.pause.payload.declinedReactorActorIds).toEqual([])
       // The offer is the pause of the first holder's own cast, held above the Caster's (D219).
       expect(context.pause.payload).not.toHaveProperty('chain')

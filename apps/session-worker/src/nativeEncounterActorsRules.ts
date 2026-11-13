@@ -215,7 +215,6 @@ export async function planNativeLiveEncounterActorsAction(
     command,
     caster,
     occurredAt: window.occurredAt,
-    usedReactions: await window.pause.planUsedReactions(window.usedReactions),
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),
     lead,

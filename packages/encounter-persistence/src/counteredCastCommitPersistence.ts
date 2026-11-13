@@ -11,11 +11,9 @@ import {
   requireRuleOutputScope
 } from './actionCommitFences.js'
 import { completeActionOccurrence, recordActionCommit } from './actionCommitRecords.js'
-import { castCancelledByChildCarriesUsedReactions } from './actionPending.js'
-import { applyUsedReactionSpends, usedReactionSpends } from './usedReactionSpend.js'
+import { castCancelledByReactionChild } from './actionPending.js'
 import {
   applyActionSpendMechanics,
-  combineSpendMutations,
   requireSourceSpendReceipt,
   settleActionSourceSpend,
   sourceSpendMutation
@@ -80,9 +78,7 @@ export async function persistEncounterCounteredCastCommit(
     !resume.reactionChildren.some(
       (child) => child.commandId === resumedChild?.commandId && child.cancelsTriggeringEvent
     ) ||
-    !castCancelledByChildCarriesUsedReactions(resume.pending.context, {
-      usedReactions: input.usedReactions.map(({ receipt }) => receipt)
-    }) ||
+    !castCancelledByReactionChild(resume.pending.context) ||
     input.ruleOverrides.some((warning) => !command.acknowledgedWarnings.includes(warning.code))
   )
     throw new Error('Live Session countered cast offer mismatch.')
@@ -113,14 +109,6 @@ export async function persistEncounterCounteredCastCommit(
     spell: input.spellConsumption,
     receipts: root
   })
-  const reactionSpends = usedReactionSpends({
-    usedReactions: input.usedReactions,
-    actors,
-    source
-  })
-  // A reaction of the caster's own spends its slot in the caster's one mechanics call, after the
-  // cast's, so the Character advances once.
-  const sourceUsed = reactionSpends.find(({ reactor: other }) => other.id === source.id)
   // Each batch also carries the conditions its Character's cast ended effects released.
   const spend = {
     state,
@@ -136,43 +124,19 @@ export async function persistEncounterCounteredCastCommit(
           ...spend,
           actor: source,
           applications: root.sourceApplications,
-          mutation: combineSpendMutations(sourceMutation, sourceUsed?.mutation ?? {})
+          mutation: sourceMutation
         })
       : null
-  requireSourceSpendReceipt(sourceMechanics, root, sourceUsed)
+  requireSourceSpendReceipt(sourceMechanics, root)
 
-  const castSettledSource = await settleActionSourceSpend(ctx, {
+  const settledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
     source: sourceMechanics?.updatedActor ?? source,
     spend: root,
     economyOverridden: overridesActionEconomy(input.ruleOverrides)
   })
-  const settledSource = sourceUsed
-    ? await settleActionSourceSpend(ctx, {
-        encounterId: state.id,
-        source: castSettledSource,
-        spend: {
-          featureResourceConsumption: null,
-          actionEconomyTransition: sourceUsed.used.receipt.actionEconomyTransition,
-          attackActionTransition: undefined
-        },
-        economyOverridden: false
-      })
-    : castSettledSource
-  const settledReactors = await applyUsedReactionSpends(ctx, {
-    state,
-    occurrenceId: root.occurrenceId,
-    sourceCommandId: command.commandId,
-    occurredAt: input.occurredAt,
-    spends: reactionSpends,
-    exceptActorIds: [source.id],
-    applyMechanics: callbacks.applyMechanics,
-    currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
-  })
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
-  const nextActors = actors.map((actor) =>
-    actor.id === source.id ? settledSource : (settledReactors.get(actor.id) ?? actor)
-  )
+  const nextActors = actors.map((actor) => (actor.id === source.id ? settledSource : actor))
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -209,8 +173,7 @@ export async function persistEncounterCounteredCastCommit(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
-      turnUses: null,
-      usedReactions: input.usedReactions.map(({ receipt }) => receipt)
+      turnUses: null
     },
     occurredAt: input.occurredAt
   })

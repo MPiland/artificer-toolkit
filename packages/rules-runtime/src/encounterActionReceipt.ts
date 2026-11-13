@@ -1,11 +1,9 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import {
-  encounterUsedReactionReceiptDtoSchema,
   encounterWindowReactionReceiptDtoSchema,
   type EncounterReactionPinDto,
   type EncounterSettledIncomingGateDto,
-  type EncounterUsedReactionDto,
   type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
@@ -419,23 +417,6 @@ export function buildEncounterGatedActionStoredExecution(input: {
       lost: input.lost,
       gate: input.gate
     }
-  })
-}
-
-/** A reaction used at its own offer before the action executed, with what its reactor spends for it, as the action's terminal commit applies it. */
-export function buildEncounterUsedReactionReceipt(input: {
-  used: EncounterUsedReactionDto
-  spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
-  /** The reactor's Character version once its slot was spent; null when none was. */
-  characterStreamVersion: number | null
-  economy: EncounterActionEconomyConsumption
-}) {
-  return encounterUsedReactionReceiptDtoSchema.parse({
-    ...input.used,
-    spellCastConsumption: characterSpellConsumptionReceipt(input.spellConsumption),
-    applications: [],
-    characterStreamVersion: input.characterStreamVersion,
-    actionEconomyTransition: actionEconomyReceipt(input.economy)
   })
 }
 

@@ -14,7 +14,6 @@ import { isDamageRollWindow } from './ruleExecutionDamageRollWindow.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
   encounterSettledIncomingGateDtoSchema,
-  encounterUsedReactionDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
 import {
@@ -131,13 +130,6 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * carried by every later pause of the action so its replay does not ask for the roll again.
        */
       passedIncomingGate: z.optional(encounterSettledIncomingGateDtoSchema),
-      /**
-       * The counters reactors attempted and failed against this cast, carried by every pending of the
-       * cast to its terminal commit, which spends them with the cast (D127).
-       */
-      usedReactions: z.optional(
-        z.array(encounterUsedReactionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      ),
       /** The child actions of the reactions chosen against this action (D219). */
       reactionChildren: z.optional(encounterReactionChildrenDtoSchema),
       /**
@@ -258,7 +250,6 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 holdsActionD20 ||
                 value.twoPhase !== null ||
                 value.passedIncomingGate !== undefined ||
-                value.usedReactions !== undefined ||
                 pause.payload.gate.origin.holderActorId === value.rollerActorId ||
                 pause.payload.options.some(
                   ({ targetActorId }) => targetActorId === value.rollerActorId
@@ -311,19 +302,6 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
             }
           }
         }
-        const castReaction = pause?.kind === 'CAST_REACTION' ? pause.payload : undefined
-        const usedReactors = (value.usedReactions ?? []).map(
-          ({ reaction }) => reaction.reactorActorId
-        )
-        if (
-          new Set(usedReactors).size !== usedReactors.length ||
-          (castReaction && usedReactors.includes(value.rollerActorId))
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['usedReactions'],
-            message: 'Each reactor uses one reaction in an action and is not offered another.'
-          })
         if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({
             code: 'custom',
