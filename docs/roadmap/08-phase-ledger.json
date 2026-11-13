@@ -25767,19 +25767,32 @@
               "proof": "m728 (8f8393fda), fast path from slice tip ef773db88: Tests 43370158306, Live 43370158046, Browser journeys 43370158087 green. Red proof actionPendingOffers 4/35, reactionChildren 6/79, reaction-cast-contracts 1/10 RED. The one reaction offer gains an optional settled hit (HIT_BY_ATTACK) held on a TEST; pending validation and castPendingContinues accept a TEST-held hit offer and refuse a second offer after it; readReactionChildHitDamageTypeIds captures the trigger damage types for the child. Inert: nothing writes a hit offer yet. Restated: the rolled-offer refusal message now names a TEST held on its rolled d20 or its hit (exact full-string match kept). D196: optional fields only, no reset."
             },
             {
-              "id": "QUALITY-8.T1d2",
-              "status": "IN_PROGRESS",
+              "id": "QUALITY-8.T1d2a",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 8,
+                "after": ["QUALITY-8.T1d1", "QUALITY-9.T1d2"]
+              },
+              "note": "Split 2026-11-13 at the seam trace (5 to about 11); approved under the user standing approval for QUALITY growth (2026-11-13), net +8. Orchestrator ruling: under the child model a reaction effect that ends when ATTACKED is stored as the child's own effect and ended by the attack it answered, hit or miss.",
+              "text": "Character holder end to end: the attack graphs emit a HIT_BY_ATTACK CAST_REACTION pause on the held TEST; the held snapshot keeps twoPhase for a hit offer; the Worker host post-TEST stage records and launches the child and resumes the parent; a rules-runtime continue function declines from the original roll or rebinds the kept d20 against committed state; persistence continuity for a TEST-held offer. Shield proofs: child actor, target, parent and versions, raised AC, one undo, void cascade, decline, replay; the Shield block of nativeRoomReaction restated."
+            },
+            {
+              "id": "QUALITY-8.T1d2b",
+              "status": "TODO",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["QUALITY-8.T1d1"]
+                "after": ["QUALITY-8.T1d2a"]
               },
-              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
-              "text": "Worker host and room proofs: the hit offer through the shared offer, the child launched from the post-TEST pending, resume by REBIND_TEST against committed state; Shield and Absorb Elements as children (actor, target, parent, versions), raised AC and resistance applied, one undo, void cascade, creature holder (Parry), drawer; reactions needing rolls work, refusal tests restated with the user ruling.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split 2026-11-13 at the seam trace (5 to about 11); approved under the user standing approval for QUALITY growth (2026-11-13), net +8. Orchestrator ruling: under the child model a reaction effect that ends when ATTACKED is stored as the child's own effect and ended by the attack it answered, hit or miss.",
+              "text": "The other on-hit reactions: the child consumes triggerDamageTypeIds (Absorb Elements); the Shield plus Absorb menu; ATTACKED-ending effects (Parry, Uncanny Dodge) ended by the answered attack on a hit and on a rebind to a miss; creature holder (Parry, GM answers); reactions needing rolls allowed, pool- or charge-paid reactions refused; drawer proof; one parent read for the trigger context (ruling 11); docs. Remaining nativeRoomReaction blocks and nativeRoomParry restated."
             },
             {
               "id": "QUALITY-8.T1d3",
@@ -25790,7 +25803,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-8.T1d2"]
+                "after": ["QUALITY-8.T1d2b"]
               },
               "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
               "text": "Delete the inline on-hit path: the REACTION pause kind, EncounterReactionOfferDto, resolveNativeActionReaction, replayNativeActionReaction, applyNativeReactionEffect, createNativeCurrentReaction, the retained audit and receipt DTOs, the persistence spend, effect and revert arms, the outcome planner reaction fields and reactionCastEnded; docs updated."
@@ -25987,10 +26000,10 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 2,
+                "size": 5,
                 "after": ["QUALITY-9.T1d1", "QUALITY-9.T1c3"]
               },
-              "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between).",
+              "note": "Split 2026-11-12 at the seam trace (no size growth): TARGETED_SELF is offered only on the chosen-list host (nativeEncounterCastPause.ts:521-535), which cannot resume from a child until T1b3 (nativeAreaPreparation.ts:798,870); usedReactions has three writers and the inline-counter ones (nativeEncounterCastReaction.ts:501,561,565) live until T1b3 and T1c3, so its deletion moves last (D219: no host loses counter chains in between). Resized 2 to 5 on 2026-11-13 at the seam trace (about 30 files in 5 packages: wire schema, stored receipt, two commit fences, undo); user approved +3, one slice.",
               "text": "Delete usedReactions end to end (pending contexts, commit inputs, stored receipt, fences, undo, the usedReactionSpend arm; usedReactionSpend stays for window reactions until T1e3) and update docs; CAST_REACTION is then the one pre-roll offer whose options all run as children.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
@@ -26019,7 +26032,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d2"]
+                "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d2b"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
               "text": "Reaction die on the action host: the Worker offers it after the roller's own window, launches the child (which pauses for its die, manual entry kept), resumes the parent applying the die to the held d20, rebinds a reactor-is-target child through the QUALITY-8.T1d mechanism; the drawer; the room tests restated on the child path, including undo and void of the child."
@@ -26337,7 +26350,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 2,
-                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d2", "QUALITY-9.T1b3a"]
+                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d2b", "QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
               "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start."
@@ -26673,7 +26686,7 @@
             },
             {
               "id": "QUALITY-18.T2b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26684,11 +26697,12 @@
               },
               "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
               "text": "Action-host parity for opportunity attacks, mergeable alone with the inline tests green: the generic trigger-context capture (occasion, contact position, allowance policy) shared with triggerDamageTypeIds; attackOccasion OPPORTUNITY on the child; the action-economy consumption gains the allowance refresh boundary through plan, settle, revert and allowance return; Legendary Resistance STOP carried into the stopsTriggeringMovement adapter; revert refuses a REACTION child of a held move (ruling 2).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m729 (a12e82cdc), fast path from slice tip 9e27a3471: Tests 43436794002, Live 43436793661, Browser journeys 43436794098 green. Red proof reactionChildren 3/83, spentAllowanceReturn 1/2, effectOutcomeRegistry 1/78, encounterOfferedAllowance 3/4 RED. The action capture returns triggerMovement (attack occasion, offered allowance) beside triggerCastLevel and triggerDamageTypeIds; MOVEMENT_REACTION_ATTACK_OCCASION is the one occasion source; ActionEconomyInput.offeredAllowanceDefinitionId spends the offered allowance by its own maximum and refresh boundary; EncounterActionEconomyConsumption carries optional turnSequence for an EACH_TURN spend through plan, settle, revert and allowance return (user ruling); the stopsTriggeringMovement adapter honours a Legendary Resistance save on the authored path (ruling 14). Ruling 2: revert already refuses while the held move is PENDING; regression test added. Contact position needs no capture: the held move token already stands at the contact. Parity gaps recorded for T3: inline refuses item consumption and applies requireReactionTargetPolicy. Restated: none. D196: additive optional field, no reset."
             },
             {
               "id": "QUALITY-18.T2b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26698,7 +26712,8 @@
                 "after": ["QUALITY-18.T2b1"]
               },
               "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
-              "text": "Orchestration behind the choice: a member OPTION on a move CHOICE records the reaction child and raises it in one room transaction (rolled back on a refused child); the room issues the owner REACTION_CHILD_RESUME after the child commits and from the alarm; STOP or a mover at 0 HP ends the move at the contact point; child command ids include the parent occurrence version; decoys salt from the child occurrence; token at contact and the re-pin of the move Scene save verified (ruling 15). New room tests."
+              "text": "Orchestration behind the choice: a member OPTION on a move CHOICE records the reaction child and raises it in one room transaction (rolled back on a refused child); the room issues the owner REACTION_CHILD_RESUME after the child commits and from the alarm; STOP or a mover at 0 HP ends the move at the contact point; child command ids include the parent occurrence version; decoys salt from the child occurrence; token at contact and the re-pin of the move Scene save verified (ruling 15). New room tests.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T2b3",
