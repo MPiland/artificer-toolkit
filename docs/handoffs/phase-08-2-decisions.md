@@ -2187,4 +2187,13 @@ QUALITY-8's seam audit found the reaction paths settle their effects inline (Pro
 
   User ruling 4: **each move resume and release is a `resolutionCommands` entry of a new kind with a derived command id**, as system-trigger children derive theirs. This is additive to the persisted shape. It keeps the invariant `resolutionCommands.length === occurrence.version` at its twelve sites. It also gives the Scene geometry save, receipts and replay the command id they already need.
 
-  Orchestrator ruling 5: a child record keeps one resume marker for both parent kinds, under a neutral name. STOP joins that vocabulary in T2.
+  Orchestrator ruling 5: a child record keeps one resume marker for both parent kinds, under a neutral name. STOP joins that vocabulary in T2. T1a kept `rollMode`, and the rename moves to T2.
+
+  **T1b split (2026-11-12; user approved the D187 growth, +3).**
+  - **The trace:** T1b traced at 8. Release is persistence-only. A move resume needs Scene geometry, so it is a full movement response through the Scene geometry save.
+  - **The split:** T1b1 (3) delivers the history kinds and release. The resume folds into T2 (8 → 13), which records the first real move child and proves both through the room.
+  - **Orchestrator rulings for the resume:**
+    - 6. The carrier is a new resolution kind inside `RESOLVE_RULE_OCCURRENCE`. The client command schema refuses it, and it rides `commitMovementDecision` as the campaign owner, as `roomReactionTimeout.ts` does.
+    - 7. The resume continues the Kernel choice with the index of the option the child came from, drops that timeline entry and records no `completedReactionExecutions` entry. Then `continueMovement` runs.
+    - 8. A resume entry's `actorUserId` is the campaign owner. A release entry's is the voiding GM.
+  - **Command ids:** both entries derive their id with `reactionChildMoveCommandId` from the parent and child ids, the kind and the occurrence version. A reaction chosen again after a release therefore gets a fresh id.

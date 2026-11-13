@@ -371,6 +371,20 @@ export const movementPassageResolutionCommandDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The entries a paused move records for a reaction child chosen at its contact (D219): the resume
+ * from the child's commit, and the release when the GM voids the child while it is held. No client
+ * sends either: the command id is derived from the move's command and the child's, and each is one
+ * version of the occurrence like any answer.
+ */
+export const movementReactionChildCommandDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ...movementResolutionCommandBaseShape(),
+    kind: z.enum(['REACTION_CHILD_RESUME', 'REACTION_CHILD_RELEASE']),
+    childCommandId: uuidSchema
+  })
+)
+
+/**
  * One canonical version history for the complete movement occurrence. Spatial
  * evidence and reaction choices advance the same aggregate-owned occurrence;
  * neither creates a second workflow or receipt stream.
@@ -379,7 +393,8 @@ export const movementRuleResolutionCommandDtoSchema = lazySchema(() =>
   z.union([
     movementReactionActionEvidenceCommandDtoSchema,
     movementReactionResolutionCommandDtoSchema,
-    movementPassageResolutionCommandDtoSchema
+    movementPassageResolutionCommandDtoSchema,
+    movementReactionChildCommandDtoSchema
   ])
 )
 
