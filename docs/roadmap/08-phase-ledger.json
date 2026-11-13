@@ -25800,17 +25800,19 @@
             },
             {
               "id": "QUALITY-8.T1d3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
-                "after": ["QUALITY-8.T1d2b", "QUALITY-13.T1c2b"]
+                "size": 8,
+                "after": ["QUALITY-8.T1d2b"]
               },
-              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal. Sequenced after QUALITY-13.T1c2b on 2026-11-13 (no size change) so no ray host still reaches the inline on-hit path when it is deleted.",
-              "text": "Delete the inline on-hit path: the REACTION pause kind, EncounterReactionOfferDto, resolveNativeActionReaction, replayNativeActionReaction, applyNativeReactionEffect, createNativeCurrentReaction, the retained audit and receipt DTOs, the persistence spend, effect and revert arms, the outcome planner reaction fields and reactionCastEnded; docs updated."
+              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal. Sequenced after QUALITY-13.T1c2b on 2026-11-13 (no size change) so no ray host still reaches the inline on-hit path when it is deleted. The QUALITY-13.T1c2b sequencing was dropped the same day: the trace showed the ray host is not a caller of the inline path. Resized 3 to 8 at delivery (about 45 files in 5 packages; the deletion cascaded through the Worker pause, planner and outcome code); QUALITY growth is pre-approved by the user (2026-11-13).",
+              "text": "Delete the inline on-hit path: the REACTION pause kind, EncounterReactionOfferDto, resolveNativeActionReaction, replayNativeActionReaction, applyNativeReactionEffect, createNativeCurrentReaction, the retained audit and receipt DTOs, the persistence spend, effect and revert arms, the outcome planner reaction fields and reactionCastEnded; docs updated.",
+              "mergedAt": "2026-11-13",
+              "proof": "m733 (a9985a86c), fast path from slice tip 531911b30: Tests 43494546027 (red-proof job green; the 7 changed test files only remove tests or assertions on deleted code), Browser journeys 43494546142, Live 43497398880 green. Deleted: the REACTION pause kind, EncounterReactionOfferDto, the audit and receipt DTOs, batch reaction and reactionEffectTransitions, the OUTCOME and on-hit offer reaction, REACTION_UNSUPPORTED, reactionSpellConsumption, encounterActionReaction.ts (resolve and replay), applyNativeReactionEffect, createNativeCurrentReaction, reactionCastEnded, reactionConsumedGrants, encounterReactionEffectId, the persistence spend, effect and revert arms; childHitDamageTypeIds became non-null. The d20 window reaction die stays for QUALITY-9.T1e3. Restated with reasons: always-null batch.reaction, adjustedBinding and reaction assertions removed; tests of the deleted settleEncounterReactionChoice, encounterReactionEffectId and the REACTION menu removed (CAST_REACTION covers the menu). Net -1153 lines. D196: strict stored shapes lost keys; clear encounterRunCommands, encounterRuleOccurrences, encounterPendingSnapshotParts, encounterRuleReceipts, encounterReplayIndex (or reset encounter runs) when local is next used; build packages first."
             }
           ]
         },
@@ -26355,10 +26357,10 @@
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 2,
+                "size": 13,
                 "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d2b", "QUALITY-9.T1b3a"]
               },
-              "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
+              "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187). Resized 2 to 13 on 2026-11-13 at the seam trace (rays at a reactor held on a hit offer, replay against mid-list facts); user standing approval for QUALITY growth (2026-11-13). Orchestrator ruling option B: an optional persisted as-of test binding on area targets, so rays answered before a child commits replay against the binding they were sealed with; every unanswered entry is re-sealed at RESUME.",
               "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },

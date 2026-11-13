@@ -292,13 +292,7 @@ export type PendingNativeActionGraphs = {
   pause?: Extract<
     EncounterActionPauseDto,
     {
-      kind:
-        | 'ROLL_WINDOW'
-        | 'LEGENDARY_RESISTANCE'
-        | 'REACTION'
-        | 'CAST_REACTION'
-        | 'ON_HIT'
-        | 'FORCED_MOVEMENT'
+      kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'CAST_REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
     }
   >
 }
@@ -623,10 +617,6 @@ type NativeActionLegendaryResistanceAudit = NonNullable<
   Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['legendaryResistance']
 >
 
-type NativeActionReactionAudit = NonNullable<
-  Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['reaction']
->
-
 export const isHitPath = (resultPath: string | null | undefined) =>
   resultPath === 'ON_HIT' || resultPath === 'ON_CRIT'
 
@@ -636,7 +626,6 @@ export async function continueNativeActionAfterTest(
     boundary: NativeActionTestBoundary
     effectivePath?: string
     legendaryResistance?: NativeActionLegendaryResistanceAudit | null
-    reaction?: NativeActionReactionAudit | null
     /** The ways the attacker could pay for an optional on-hit rider; any found holds a hit for the attacker's choice. */
     onHitCandidates?: readonly EncounterOnHitCandidate[]
     /** The attacker's decision about those riders, once made. */
@@ -668,30 +657,12 @@ export async function continueNativeActionAfterTest(
     boundary: input.boundary
   })
   const audit = input.legendaryResistance ?? null
-  const reaction = input.reaction ?? null
   if (
     audit &&
     (audit.originalExecutionChecksum !== checksumRuleDocument(input.boundary.execution) ||
       checksumRuleDocument(audit.d20) !== checksumRuleDocument(input.boundary.d20Policy))
   )
     throw new Error('The Legendary Resistance outcome audit is stale.')
-  if (reaction && (audit || input.effectivePath !== undefined))
-    throw new Error('A reaction decision cannot share an attack TEST with a save-failure decision.')
-  if (reaction) {
-    const { adjustment } = reaction
-    const policy = input.boundary.d20Policy
-    const stale = adjustment
-      ? reaction.selection !== 'USE' ||
-        adjustment.adjustedBoundFactsChecksum !== current.factsChecksum ||
-        adjustment.defenseBefore !== reaction.d20.dc ||
-        adjustment.defenseAfter !== policy.dc ||
-        checksumRuleDocument({ ...reaction.d20, dc: adjustment.defenseAfter }) !==
-          checksumRuleDocument(policy)
-      : reaction.selection !== 'DECLINE' ||
-        reaction.originalExecutionChecksum !== checksumRuleDocument(input.boundary.execution) ||
-        checksumRuleDocument(reaction.d20) !== checksumRuleDocument(policy)
-    if (stale) throw new Error('The reaction outcome audit is stale.')
-  }
   if (input.effectivePath !== undefined && !audit)
     throw new Error('A native action effective path requires its sealed interstitial audit.')
   const effectivePath = audit
@@ -748,8 +719,7 @@ export async function continueNativeActionAfterTest(
       execution: input.boundary.execution,
       testD20: input.boundary.d20,
       d20: input.boundary.d20Policy,
-      gameSystemId: current.published.gameSystemId,
-      reaction
+      gameSystemId: current.published.gameSystemId
     })
 
   const published = outcome.outcome.published
@@ -772,7 +742,6 @@ export async function continueNativeActionAfterTest(
     nestedOutcomeD20: nestedPolicy,
     nestedOutcomeD20Evidence: null,
     legendaryResistance: audit,
-    reaction,
     onHit,
     testRollEvidence: {
       requestId: input.boundary.d20.requestId,
@@ -886,7 +855,6 @@ export async function continueNativeActionAfterTest(
       pending.twoPhase.testExecutionChecksum !== twoPhase.testExecutionChecksum ||
       checksumRuleDocument(pending.twoPhase.legendaryResistance) !==
         checksumRuleDocument(twoPhase.legendaryResistance) ||
-      checksumRuleDocument(pending.twoPhase.reaction) !== checksumRuleDocument(twoPhase.reaction) ||
       checksumRuleDocument(pending.twoPhase.onHit) !== checksumRuleDocument(twoPhase.onHit) ||
       checksumRuleDocument(pending.twoPhase.nestedOutcomeD20) !== checksumRuleDocument(nestedPolicy)
     )

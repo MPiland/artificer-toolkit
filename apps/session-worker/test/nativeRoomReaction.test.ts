@@ -217,7 +217,6 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     // Bite's batch records no reaction. The raised armor class is no longer an adjustment on that
     // record: the Bite's attack is bound again to the Character as the child left it, so the sealed
     // d20 carries the armor class it missed.
-    expect(batch.reaction).toBeNull()
     expect(batch.d20).toMatchObject({
       defenseOrDc: armorClass + SHIELD_BONUS,
       resultPath: 'ON_MISS'
@@ -411,7 +410,6 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     // Restated (QUALITY-8.T1d2a, D219): a declined offer of a reaction that would run as a child
     // leaves no record on the Bite's batch; the decline is the absence of any child action. That it
     // spent and applied nothing is read from the Character below and from the Bite's own batch.
-    expect(batch.reaction).toBeNull()
     expect(batch.spellCastConsumption).toBeNull()
     expect(batch.activeEffectTransitions).toEqual([])
     expect(committedActions(history).child).toBeNull()
@@ -507,7 +505,6 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     expect(hitPointsLost(batch)).toBe(1)
     // Restated (QUALITY-8.T1d2a, D219): the use is the child action the Character committed, not a
     // record on the Bite's batch; the Bite's sealed d20 still hit the armor class the child raised.
-    expect(batch.reaction).toBeNull()
     expect(batch.d20).toMatchObject({
       defenseOrDc: armorClass + SHIELD_BONUS,
       resultPath: 'ON_HIT'
@@ -521,7 +518,6 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     await strike(room, -1)
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-    expect(characterBatch(await readRoomHistory(room.room.base.stub)).reaction).toBeNull()
   })
 
   it('lets the player who controls the Character answer, and refuses the attacker’s player', async () => {
@@ -749,7 +745,6 @@ describe('room homebrew reaction authored from core options (ADR 0038)', () => {
     // Restated (QUALITY-8.T1d2a, D219): the homebrew reaction runs as the Character's child action,
     // so its slot is sealed on the child's batch and its bonus on the armor class the Bite's d20
     // was bound to after it, not on a reaction record of the Bite's batch.
-    expect(batch.reaction).toBeNull()
     expect(batch.d20).toMatchObject({ defenseOrDc: armorClass + 3, resultPath: 'ON_MISS' })
     expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({
       spellId: wardingFlash.id
@@ -807,7 +802,6 @@ describe('room homebrew reaction authored from core options (ADR 0038)', () => {
     })
     // The reaction raised no armor class, so the kept roll still hits the healed Character.
     const batch = characterBatch(history)
-    expect(batch.reaction).toBeNull()
     expect(batch.targetTransition.before.currentHitPoints).toBe(8)
     expect(hitPointsLost(batch)).toBe(1)
   })
@@ -955,7 +949,6 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
     // action too, so the Bite's batch records no reaction; the slot and the reaction are the child's
     // cost, sealed on the batch it committed on the Character. The trigger is no longer a field of a
     // reaction record: the child is the DAMAGE_TAKEN reaction's own cast, named by its spell.
-    expect(batch.reaction).toBeNull()
     expect(reactionChildBatch(history)).toMatchObject({
       spellCastConsumption: { spellId: absorbElements.id, afterUsed: 1 },
       actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
@@ -1051,7 +1044,6 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     const batch = characterBatch(await readRoomHistory(room.room.base.stub))
-    expect(batch.reaction).toBeNull()
     expect(hitPointsLost(batch)).toBe(10)
   })
 
@@ -1139,7 +1131,6 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
     // Restated (QUALITY-8.T1d2b, D219): the chosen reaction is the Character's child action, so the
     // Bite's batch records none and the child's batch names the spell it cast. The trigger chosen is
     // proved by that spell: of the menu, only Absorb Elements answers the damage taken.
-    expect(batch.reaction).toBeNull()
     expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({
       spellId: absorbElements.id
     })
@@ -1159,7 +1150,6 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
     expect(hitPointsLost(batch)).toBe(0)
     // Restated (QUALITY-8.T1d2b, D219): as above, the use is the child action's own batch, which
     // names Shield, the menu's only reaction to being attacked.
-    expect(batch.reaction).toBeNull()
     expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({ spellId: shield.id })
   })
 
@@ -1244,7 +1234,6 @@ describe('room Uncanny Dodge reaction to a hit (SPELLS-31.1)', () => {
     // Bite's batch records no reaction and the spent reaction is the child's cost. The halving is no
     // longer an adjustment the Bite applies from a reaction record: the child commits it as its own
     // effect, which lasts until the Character is attacked, and the Bite it answered ends it.
-    expect(batch.reaction).toBeNull()
     const reaction = reactionChildBatch(history)
     expect(reaction.actionEconomyTransition).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
     expect(reaction.activeEffectTransitions).toHaveLength(1)
@@ -1271,7 +1260,6 @@ describe('room Uncanny Dodge reaction to a hit (SPELLS-31.1)', () => {
     // Restated (QUALITY-8.T1d2b, D219): a declined offer of a reaction that would run as a child
     // leaves no record on the Bite's batch; the decline is the answer to the held offer, proved by
     // the whole hit above and by no child having run.
-    expect(batch.reaction).toBeNull()
     expect(committedActions(history).child).toBeNull()
   })
 
@@ -1346,7 +1334,6 @@ describe('room Deflect Missiles reaction to a ranged weapon hit (SPELLS-31.1)', 
     // Restated (QUALITY-8.T1d2b, D219): the used reaction is the Character's own child action, so the
     // Bite's batch records no reaction and the spent reaction is the child's cost. The reduction is
     // the child's own effect, which the ranged hit it answered reads and then ends.
-    expect(batch.reaction).toBeNull()
     const reaction = reactionChildBatch(history)
     expect(reaction.actionEconomyTransition).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
     expect(reaction.activeEffectTransitions).toHaveLength(1)
@@ -1423,7 +1410,6 @@ describe('a timed reaction offer (D207)', () => {
     const batch = characterBatch(history)
     // Restated (QUALITY-8.T1d2a, D219): a declined offer leaves no record on the Bite's batch; the
     // decline is the absence of a reaction child, and nothing of the reaction is spent.
-    expect(batch.reaction).toBeNull()
     expect(committedActions(history).child).toBeNull()
     expect(hitPointsLost(batch)).toBeGreaterThan(0)
     expect(await readSpellSlots(room)).toEqual([])
@@ -1445,7 +1431,6 @@ describe('a timed reaction offer (D207)', () => {
     // Restated (QUALITY-8.T1d2a, D219): the GM's use is the child action committed for the
     // Character, read from its command and batch instead of a reaction record on the Bite's batch.
     const history = await readRoomHistory(room.room.base.stub)
-    expect(characterBatch(history).reaction).toBeNull()
     expect(committedActions(history).child?.command.actorId).toBe(CHARACTER_ACTOR_ID)
     expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({ spellId: shield.id })
   })
@@ -1481,7 +1466,6 @@ describe('a timed reaction offer (D207)', () => {
     // absence of a reaction child, with the hit applied and no slot spent.
     const history = await readRoomHistory(room.room.base.stub)
     const batch = characterBatch(history)
-    expect(batch.reaction).toBeNull()
     expect(committedActions(history).child).toBeNull()
     expect(hitPointsLost(batch)).toBe(1)
     expect(await readSpellSlots(room)).toEqual([])

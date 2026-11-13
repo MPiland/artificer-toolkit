@@ -16,10 +16,6 @@ import {
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
-import {
-  encounterReactionOutcomeAuditDtoSchema,
-  type EncounterReactionOutcomeAuditDto
-} from './ruleExecutionReactionChoice.js'
 
 /**
  * One way the attacker may pay for an optional on-hit rider: the rider (its authored effect) and its
@@ -89,17 +85,14 @@ export function validateEncounterOnHitOption(
 }
 
 /**
- * A hit held for its attacker's choice to add an optional on-hit rider: the TEST execution that hit (as
- * it stands after any reaction), the reaction that preceded it, and every way the attacker may pay.
- * Declining declines them all.
+ * A hit held for its attacker's choice to add an optional on-hit rider: the TEST execution that hit and
+ * every way the attacker may pay. Declining declines them all.
  */
 export type EncounterOnHitOfferDto = {
   testExecution: ServerCompletedRuleExecutionDto
   testD20: ServerRuleExecutionD20EvidenceDto
   d20: ServerRuleExecutionD20PolicyDto
   testExecutionChecksum: string
-  /** The target's reaction decision this hit already passed through, when it had one. */
-  reaction: EncounterReactionOutcomeAuditDto | null
   options: EncounterOnHitOptionDto[]
 }
 
@@ -110,7 +103,6 @@ export const encounterOnHitOfferDtoSchema: z.ZodMiniType<EncounterOnHitOfferDto>
     testD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
     d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
     testExecutionChecksum: checksumSchema,
-    reaction: z.nullable(z.lazy(() => encounterReactionOutcomeAuditDtoSchema)),
     options: z.array(encounterOnHitOptionDtoSchema).check(z.minLength(1)).check(z.maxLength(64))
   })
 )

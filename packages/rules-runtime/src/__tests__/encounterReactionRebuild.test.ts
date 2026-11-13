@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '../encounterMovementReactionDecision.js'
 import {
-  encounterReactionEffectId,
   encounterReactionPin,
   type EncounterReactionCandidate
 } from '../encounterReactionChoice.js'
@@ -53,17 +52,12 @@ describe('rebuilding a reaction from its stored ids (REACTION-4.5)', () => {
     })
   })
 
-  it('names the effect it leaves on the reactor by the same id', () => {
-    expect(encounterReactionEffectId({ ...stored })).toBe(encounterReactionEffectId(stored))
-  })
-
-  it('ties both to the occurrence, so another pause derives other ids', () => {
+  it('ties it to the occurrence, so another pause derives other ids', () => {
     const other = { ...stored, occurrenceId: testUuid(0x7c6) }
 
     expect(planReaction(other).definition.origin).not.toEqual(
       planReaction(stored).definition.origin
     )
-    expect(encounterReactionEffectId(other)).not.toBe(encounterReactionEffectId(stored))
   })
 
   it('pins the offered reaction to the same decision receipt every time it is discovered', () => {

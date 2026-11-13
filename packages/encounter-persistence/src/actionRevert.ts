@@ -497,13 +497,10 @@ export async function revertLastEncounterAction(
         targetCharacterStreamVersion: characterBatch ? action.targetCharacterStreamVersion : null
       })
       actorsById.set(target.id, inverted.actor)
-      // A reaction the target used spent its slot and allowance and created its effect with this outcome.
-      const reaction = action.reaction
       if (inverted.sheet && action.kind === 'CHARACTER_MECHANICS_BATCH') {
         const inverse = characterInverse(inverted.sheet.characterId, inverted.sheet.streamVersion)
         inverse.hitPoints = inverted.sheet.hitPoints
         inverse.removedConditionIds = inverted.sheet.removedConditionIds
-        if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
         inverse.interceptionCharges.push(...interceptionChargesSpent(action.applications))
         if (action.targetItemUseStateTransition)
           inverse.unequipped = action.targetItemUseStateTransition
@@ -552,25 +549,10 @@ export async function revertLastEncounterAction(
         target.id,
         returnInterceptionCharges(actorsById.get(target.id)!, action.applications)
       )
-      const reactionEconomy = reaction?.actionEconomyTransition
-      if (reactionEconomy) {
-        const reactor = actorsById.get(target.id)!
-        if (encounterActionEconomyUsed(reactor, reactionEconomy) !== reactionEconomy.afterUsed)
-          revertUnavailable("The target's reactions changed after this action; adjust manually.")
-        updateActor(reactor.id, {
-          resources: withEncounterActionEconomyUsed(
-            reactor,
-            reactionEconomy,
-            reactionEconomy.beforeUsed
-          )
-        })
-      }
       // Created effects and the maintained state go away; their versions prove nothing touched them.
       const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
       for (const effect of [
         ...action.activeEffectTransitions,
-        ...(reaction?.activeEffectTransitions ?? []),
-        ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : []),
         ...action.grantEffectTransitions
       ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
         await store.deleteCas({

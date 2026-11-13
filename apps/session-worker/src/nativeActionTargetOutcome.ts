@@ -58,8 +58,6 @@ export function planNativeActionTargetOutcome(input: {
   recurringEffectId?: string
   /** The maintained state the outcome's lasting effect and maintained riders depend on. */
   maintainedState: { id: string } | null
-  /** The effect of a reaction the target used, which lands after the action's own effects. */
-  reactionEffect: PlannedEffect | null
   /** Timed grants the action gives the target beside those its damage triggers make. */
   grants: readonly PlannedEffect[]
   /** The creature the lasting effect turns the target into. */
@@ -123,19 +121,14 @@ export function planNativeActionTargetOutcome(input: {
   )
   const create = ({ id, plan }: PlannedEffect) =>
     createNativeActiveEffect(plan, { ...effectInput, id })
-  const reactionEffect = input.reactionEffect && create(input.reactionEffect)
   // The target's own passive damage triggers make timed grants on it after its other effects.
   const grantEffects = [
     ...damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
     ...input.grants
   ].map(create)
-  const createdEffects = [
-    stateEffect,
-    recurringEffect,
-    ...riderEffects,
-    reactionEffect,
-    ...grantEffects
-  ].flatMap((effect) => (effect ? [effect] : []))
+  const createdEffects = [stateEffect, recurringEffect, ...riderEffects, ...grantEffects].flatMap(
+    (effect) => (effect ? [effect] : [])
+  )
   const enterForm =
     recurringEffect && input.formCreature
       ? actorFormEntry(recurringEffect, input.formCreature)
@@ -159,7 +152,7 @@ export function planNativeActionTargetOutcome(input: {
     },
     input.userId
   )
-  // A Legendary Resistance the target used spends its own charge, and a reaction its allowance,
+  // A Legendary Resistance the target used spends its own charge, and a reaction die its allowance,
   // with the outcome.
   const { charge, reactionEconomy } = input
   const spent = (actor: EncounterRunActorState) => {
@@ -200,7 +193,6 @@ export function planNativeActionTargetOutcome(input: {
       riders: riderEffects,
       targetActorId: target.id
     }),
-    reactionEffectTransitions: transition(reactionEffect),
     grantEffectTransitions: grantEffects.flatMap(transition)
   }
 }
