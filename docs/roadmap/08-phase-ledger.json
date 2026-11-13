@@ -20049,7 +20049,7 @@
               "note": "Growth approved by the user on 2026-10-31. Merged in m582 (bf0940e8e)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-33.T8a",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -20059,7 +20059,9 @@
                 "size": 3,
                 "after": []
               },
-              "text": "Mimic Grappler and the Grappler feat's advantage against a creature you grapple from the existing actor-relationship attack-roll influence (ADVANTAGE); the Grappler feat's Pin (both creatures restrained) from core options. Authoring-parity proofs; delete CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET and GRAPPLER_PIN."
+              "text": "Mimic Grappler and the Grappler feat's advantage against a creature you grapple from the existing actor-relationship attack-roll influence (ADVANTAGE); the Grappler feat's Pin (both creatures restrained) from core options. Authoring-parity proofs; delete CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET and GRAPPLER_PIN.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Q30 answered 2026-11-13: all three recommendations (generic relationship advantage option; Pin description-only with a GM ruling plus a future-enhancements follow-up; Mimic Adhesive automated in both forms)."
             },
             {
               "status": "DONE",
@@ -26388,12 +26390,26 @@
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["QUALITY-13.T1c2b"]
               },
-              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
-              "text": "On-hit riders and the incoming gate per ray: the gate is passed per attack TEST; a ray lost at the gate offers ATTACK_RETARGET for that ray only (re-seals its own entry); a slot or pool spent on one ray is not offered on the next.",
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth). Split 2026-11-13 at delivery: the incoming gate and per-ray ATTACK_RETARGET moved to QUALITY-13.T1c5 (contract and lifecycle work: the root fingerprint and receipts are bound to the chosen list). Resized 5 to 8; QUALITY growth pre-approved by the user (2026-11-13).",
+              "text": "On-hit riders per ray: a ray that hits holds on the caster's ON_HIT offer in its own inner snapshot after its creature's reaction is answered; the answer is kept per ray and replayed from the retained TEST; a slot or pool rider chosen on one ray is not offered on the next; the commit folds the chosen riders into the cast's one spend.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-13.T1c5",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-13.T1c4"]
+              },
+              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape.",
+              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate offers ATTACK_RETARGET for that ray only and re-seals its own entry; per-entry gate and retarget evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source."
             },
             {
               "id": "QUALITY-13.T2c",
