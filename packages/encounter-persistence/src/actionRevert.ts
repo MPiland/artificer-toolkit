@@ -22,11 +22,13 @@ import { withCharacterTemporaryHitPoints } from '@artificer-toolkit/schema/share
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   featureChargeUsed,
-  encounterRuleUsageUsed,
   withEncounterActorIdleTurnMark,
-  withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  encounterActionEconomyUsed,
+  withEncounterActionEconomyUsed
+} from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import {
   readEncounterActorConditionState,
   targetTemporaryHitPoints
@@ -553,15 +555,12 @@ export async function revertLastEncounterAction(
       const reactionEconomy = reaction?.actionEconomyTransition
       if (reactionEconomy) {
         const reactor = actorsById.get(target.id)!
-        if (
-          encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !==
-          reactionEconomy.afterUsed
-        )
+        if (encounterActionEconomyUsed(reactor, reactionEconomy) !== reactionEconomy.afterUsed)
           revertUnavailable("The target's reactions changed after this action; adjust manually.")
         updateActor(reactor.id, {
-          resources: withEncounterRuleUsageUsed(
+          resources: withEncounterActionEconomyUsed(
             reactor,
-            reactionEconomy.definitionId,
+            reactionEconomy,
             reactionEconomy.beforeUsed
           )
         })
@@ -786,12 +785,12 @@ export async function revertLastEncounterAction(
         spend.characterStreamVersion
       )
       const reaction = spend.actionEconomyTransition
-      if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
+      if (encounterActionEconomyUsed(reactor, reaction) !== reaction.afterUsed)
         revertUnavailable(
           "The reacting creature's reactions changed after this action; adjust manually."
         )
       updateActor(reactor.id, {
-        resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
+        resources: withEncounterActionEconomyUsed(reactor, reaction, reaction.beforeUsed)
       })
     }
     for (const used of root.usedReactions) invertReactorSpend(used)

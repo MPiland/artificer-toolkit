@@ -61,6 +61,8 @@ export async function evaluateNativeLiveActionEconomy(input: {
    * use (`useKey`); any other spends its own allowance (`activation`, Frenzy's Bonus Action).
    */
   weaponAttackOffer?: GrantedAttackCharge | null
+  /** The allowance a reaction's option was offered under, spent in place of the activation's own. */
+  offeredAllowanceDefinitionId?: string | null
   /**
    * The current actor that commands this attack (DELEGATED_ATTACK, D156), its facts and its active
    * effects: the acting creature it summoned spends its reaction, and the commander one attack of
@@ -172,6 +174,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
   }
   const evaluated = await evaluateEncounterAttackAction({
     ...economyInput,
+    offeredAllowanceDefinitionId: input.offeredAllowanceDefinitionId,
     triggerCode: invocation.triggerCode,
     replacesAttack:
       prepared.source.kind === 'BASIC_ACTION' && prepared.source.capability.actionCost === 'ATTACK',

@@ -1,11 +1,13 @@
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
   LiveSessionReactionAncestor,
-  LiveSessionReactionChild
+  LiveSessionReactionChild,
+  LiveSessionTriggerMovement
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
+  MOVEMENT_REACTION_ATTACK_OCCASION,
   reactionChildMoveCommandId,
   reactionOfferOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
@@ -152,6 +154,29 @@ export async function readReactionChildHitDamageTypeIds(
   const held = await readRecordingParent(ctx, input)
   const pause = held?.context.kind === 'ENCOUNTER_ACTION' ? held.context.pause : undefined
   return pause?.kind === 'CAST_REACTION' ? (pause.payload.hit?.damageTypeIds ?? null) : null
+}
+
+/**
+ * What a reaction child reads of the Scene move it answers, from the option its reactor took at the
+ * held move's contact (D219): the occasion its attack is made on and the allowance the option was
+ * offered under. Null when the child answers no move, or no held move records it. The option is the
+ * one the contact offers that reactor for the child's action.
+ */
+export async function readReactionChildMovement(
+  ctx: EncounterReadContext,
+  input: ReactionChildLink & { reactorActorId: string; actionId: string }
+): Promise<LiveSessionTriggerMovement | null> {
+  const held = await readRecordingParent(ctx, input)
+  if (held?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION') return null
+  const option = held.context.reactionTimeline[0]?.group.options.find(
+    ({ candidate, actionId }) =>
+      candidate.reactorActorId === input.reactorActorId && actionId === input.actionId
+  )
+  if (!option) throw new Error('The reaction’s move no longer offers it.')
+  return {
+    attackOccasion: MOVEMENT_REACTION_ATTACK_OCCASION,
+    allowanceDefinitionId: option.policy.allowanceDefinitionId
+  }
 }
 
 /**

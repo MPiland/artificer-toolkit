@@ -11,6 +11,7 @@ import { revalidateEncounterMovementReactionOption } from './encounterMovementRe
 import type { PreparedEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import type { buildEncounterMovementReactionFacts } from './encounterMovementReactionFacts.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { MOVEMENT_REACTION_ATTACK_OCCASION } from './encounterSystemTrigger.js'
 import type { EncounterWieldConflictAcceptance } from './encounterWieldConflict.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
@@ -64,7 +65,6 @@ export async function prepareEncounterMovementReactionAction<
     campaignOwnerUserId: string
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-    /** A reaction attack provoked by movement is an opportunity attack. */
     attackOccasion: AttackOccasionCode
   }) => Promise<TPrepared>
   prepareMaintenance: (
@@ -92,7 +92,7 @@ export async function prepareEncounterMovementReactionAction<
     campaignOwnerUserId,
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     movementTargets: facts.targets,
-    attackOccasion: 'OPPORTUNITY'
+    attackOccasion: MOVEMENT_REACTION_ATTACK_OCCASION
   })
   // A reaction has no Action to spend a single-use item with (SPELLS-11); the option is stale.
   if (prepared.characterActionState?.itemConsumption)

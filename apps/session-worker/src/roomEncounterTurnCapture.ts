@@ -50,7 +50,8 @@ import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter
 import {
   readReactionChildAncestors,
   readReactionChildCastLevel,
-  readReactionChildHitDamageTypeIds
+  readReactionChildHitDamageTypeIds,
+  readReactionChildMovement
 } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
@@ -73,16 +74,24 @@ type SemanticResponse = {
 
 /**
  * What a reaction child's command reads from the held actions above it (D219): the level of the
- * cast it answers, the damage types of the hit it answers, and those actions themselves. Nothing for
- * any other command.
+ * cast it answers, the damage types of the hit it answers, what the Scene move it answers offered it
+ * under, and those actions themselves. Nothing for any other command.
  */
 async function readReactionChildHeldActions(
   ctx: EncounterReadTransaction,
   scope: { campaignId: string; encounterId: string },
-  command: Pick<ResolveEncounterActionInputDto, 'commandId' | 'actorId' | 'systemTrigger'>
+  command: Pick<
+    ResolveEncounterActionInputDto,
+    'commandId' | 'actorId' | 'actionId' | 'systemTrigger'
+  >
 ) {
   if (command.systemTrigger?.trigger !== 'REACTION')
-    return { triggerCastLevel: null, triggerDamageTypeIds: null, reactionAncestors: [] }
+    return {
+      triggerCastLevel: null,
+      triggerDamageTypeIds: null,
+      triggerMovement: null,
+      reactionAncestors: []
+    }
   const link = {
     campaignId: scope.campaignId,
     encounterId: scope.encounterId,
@@ -93,6 +102,7 @@ async function readReactionChildHeldActions(
   return {
     triggerCastLevel: await readReactionChildCastLevel(ctx, link),
     triggerDamageTypeIds: await readReactionChildHitDamageTypeIds(ctx, link),
+    triggerMovement: await readReactionChildMovement(ctx, { ...link, actionId: command.actionId }),
     reactionAncestors: await readReactionChildAncestors(ctx, link)
   }
 }

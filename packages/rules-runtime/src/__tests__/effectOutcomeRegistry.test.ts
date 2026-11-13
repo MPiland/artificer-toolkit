@@ -597,6 +597,27 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       })
     ).toBe(false)
   })
+
+  it('stops the triggering movement on the path Legendary Resistance left the failed save on (QUALITY-18.T2b1)', async () => {
+    const save = publish(saveGraph({ kind: 'MANUAL_ADJUDICATION' }, 'ON_SAVE_FAIL'))
+    // Both saves fail: one trigger stops the mover on a failure, the other on a success.
+    const { execution: onFail } = await run(
+      withMovementInterruption(save, 'ON_SAVE_FAIL').definition
+    )
+    const { execution: onSuccess } = await run(
+      withMovementInterruption(save, 'ON_SAVE_SUCCESS').definition
+    )
+    const committed = (test: Execution, use: boolean) => ({
+      ...test,
+      phaseReceipts: [{ phase: 'TEST', execution: test }],
+      applicationOutputs: { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH', legendaryResistance: { use } }
+    })
+    expect(executionStopsTriggeringMovement(committed(onFail, true))).toBe(false)
+    expect(executionStopsTriggeringMovement(committed(onSuccess, true))).toBe(true)
+    // A declined resistance leaves the save failed.
+    expect(executionStopsTriggeringMovement(committed(onFail, false))).toBe(true)
+    expect(executionStopsTriggeringMovement(committed(onSuccess, false))).toBe(false)
+  })
 })
 
 describe('a path-gated damage proposal (RULES-2.T6d2)', () => {
