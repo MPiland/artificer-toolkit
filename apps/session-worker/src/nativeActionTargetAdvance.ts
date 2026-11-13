@@ -169,9 +169,7 @@ export async function advanceNativeActionTarget(input: {
       attackSight: attack.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
-      ...(answeredHit
-        ? { heldHit: { offer: answeredHit.offer, answer: answeredHit.answer } }
-        : {}),
+      ...(answeredHit ? { heldHit: { offer: answeredHit.offer, answer: answeredHit.answer } } : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) => {

@@ -462,9 +462,15 @@ The reactor's decision is authorized as any cast offer's (the reactor is the pen
 total). The offer's `rolled`, its kind and `reactionChildren[].rolledDie` are persisted pending-context shape
 changes; refresh local data when next used (D196).
 
-The hit a child answers (current contracts, QUALITY-8.T1d-a, D219; inert until QUALITY-8.T1d-b wires the
-Worker, and the on-hit `REACTION` pause it replaces stays until QUALITY-8.T1d-c). Three contracts carry a
-reaction chosen by the creature an attack hit:
+The hit a child answers (current contracts, QUALITY-8.T1d1, D219). Transitional (QUALITY-8.T1d2a): the Worker
+makes this offer only when every reaction the hit Character can use is an `ATTACKED_SELF` spell paid with a
+spell slot (Shield); any other menu still uses the on-hit `REACTION` pause, until QUALITY-8.T1d2b moves the
+remaining holders and reactions and QUALITY-8.T1d3 deletes that pause. On a use the Worker records the child
+on the pending action and launches it; once it commits, the attack resumes with no stored roll result: it
+rebuilds its TEST from the roll the offer keeps and binds it again to the target as the child left it
+(`REBIND_TEST`), so the raised armor class is the sealed d20's `defenseOrDc` and the attack's own batch
+carries `reaction: null`. A decline rebuilds the same TEST against the unchanged target and proves it equal
+to the held one. Three contracts carry a reaction chosen by the creature an attack hit:
 
 - The offer. The `CAST_REACTION` pause's offer gains the kind `HIT_BY_ATTACK` and, for that kind only, `hit`:
   the settled hit the old `REACTION` pause keeps (the completed execution, its d20 and policy, and the two

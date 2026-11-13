@@ -1,5 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
-import { encounterReactionEffectId } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import {
   characterActor,
   creatureFeature,
@@ -10,6 +10,7 @@ import {
   srdDamageTypeId
 } from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
 import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltingGauntlet'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -107,14 +108,45 @@ async function offeredReaction(room: Room) {
   return { decision, pending: decision.pending }
 }
 
-/** The Bite's settled batch on the Character. */
-function characterBatch(history: Awaited<ReturnType<typeof readRoomHistory>>) {
+/** The settled batch the action of `sourceActorId` left on the Character. */
+function batchOnCharacter(
+  history: Awaited<ReturnType<typeof readRoomHistory>>,
+  sourceActorId: string
+) {
   const batch = areaReceipts(history).children.find(
     ({ outputs }) =>
-      outputs.kind === 'CHARACTER_MECHANICS_BATCH' && outputs.targetActorId === CHARACTER_ACTOR_ID
+      outputs.kind === 'CHARACTER_MECHANICS_BATCH' &&
+      outputs.sourceActorId === sourceActorId &&
+      outputs.targetActorId === CHARACTER_ACTOR_ID
   )?.outputs
-  if (batch?.kind !== 'CHARACTER_MECHANICS_BATCH') throw new Error('The Bite left no batch.')
+  if (batch?.kind !== 'CHARACTER_MECHANICS_BATCH')
+    throw new Error(`The action of ${sourceActorId} left no batch.`)
   return batch
+}
+
+/**
+ * The Bite's settled batch on the Character. It is picked by its attacker: a reaction the Character
+ * uses as a child action (D219) commits its own batch on the Character before the Bite's.
+ */
+const characterBatch = (history: Awaited<ReturnType<typeof readRoomHistory>>) =>
+  batchOnCharacter(history, WOLF_ID)
+
+/** The batch the Character's own reaction, run as a child of the Bite (D219), left on itself. */
+const reactionChildBatch = (history: Awaited<ReturnType<typeof readRoomHistory>>) =>
+  batchOnCharacter(history, CHARACTER_ACTOR_ID)
+
+/** The committed actions: the Bite, and the reaction that ran as its child when one was used. */
+function committedActions(history: Awaited<ReturnType<typeof readRoomHistory>>) {
+  const actions = history.commands
+    .filter((row) => row.commandType === 'RESOLVE_ACTION')
+    .map((row) => ({
+      version: row.version,
+      command: resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
+    }))
+  return {
+    child: actions.find(({ command }) => command.systemTrigger?.trigger === 'REACTION') ?? null,
+    parent: actions.find(({ command }) => !command.systemTrigger) ?? null
+  }
 }
 
 const hitPointsLost = (batch: ReturnType<typeof characterBatch>) =>
@@ -181,9 +213,21 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     const history = await readRoomHistory(room.room.base.stub)
     const batch = characterBatch(history)
     expect(hitPointsLost(batch)).toBe(0)
-    expect(batch.reaction).toMatchObject({
-      selection: 'USE',
-      adjustment: { defenseBefore: armorClass, defenseAfter: armorClass + SHIELD_BONUS },
+    // Restated (QUALITY-8.T1d2a, D219): the used reaction is the Character's own child action, so the
+    // Bite's batch records no reaction. The raised armor class is no longer an adjustment on that
+    // record: the Bite's attack is bound again to the Character as the child left it, so the sealed
+    // d20 carries the armor class it missed.
+    expect(batch.reaction).toBeNull()
+    expect(batch.d20).toMatchObject({
+      defenseOrDc: armorClass + SHIELD_BONUS,
+      resultPath: 'ON_MISS'
+    })
+    // Restated: the slot, the reaction and the effect are the child's own cost and effect, sealed on
+    // the batch it committed on the Character.
+    const reaction = reactionChildBatch(history)
+    expect(reaction).toMatchObject({
+      sourceActorId: CHARACTER_ACTOR_ID,
+      targetActorId: CHARACTER_ACTOR_ID,
       spellCastConsumption: {
         owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
         spellId: shield.id,
@@ -193,7 +237,7 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
       },
       actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
     })
-    expect(batch.reaction?.activeEffectTransitions).toHaveLength(1)
+    expect(reaction.activeEffectTransitions).toHaveLength(1)
     expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
     expect(history.characterEffects).toHaveLength(1)
 
@@ -255,7 +299,11 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     expect(await conditionIds()).toEqual([deafened])
   })
 
-  it('gives the reaction effect an id derived from the command and occurrence, so a replay mints the same one', async () => {
+  // Restated (QUALITY-8.T1d2a, D219): the reaction's effect is no longer minted by the Bite from its
+  // command and the offer's occurrence. It is the effect the child action created, and the child's
+  // command id is derived from the Bite's, its holder and the reaction, so a replay runs the same
+  // child and mints the same effect (the replay itself is the next test).
+  it('gives the reaction effect the id its child action minted, the child derived from the hit it answers', async () => {
     const room = await shieldRoom()
     const { commandId } = await strike(room, 0)
     const { decision, pending } = await offeredReaction(room)
@@ -265,10 +313,43 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
 
-    const { characterEffects } = await readRoomHistory(room.room.base.stub)
-    expect(characterEffects.map(({ id }) => id)).toEqual([
-      encounterReactionEffectId({ commandId, occurrenceId: decision.occurrence.id })
-    ])
+    const history = await readRoomHistory(room.room.base.stub)
+    const [effect] = history.characterEffects
+    expect(history.characterEffects).toHaveLength(1)
+    expect(JSON.stringify(reactionChildBatch(history).activeEffectTransitions)).toContain(
+      effect!.id
+    )
+    const { child } = committedActions(history)
+    expect(child?.command.systemTrigger).toMatchObject({
+      parentCommandId: commandId,
+      trigger: 'REACTION'
+    })
+    expect(child?.command.commandId).toBe(
+      systemTriggerCommandId(commandId, CHARACTER_ACTOR_ID, child!.command.actionId)
+    )
+  })
+
+  it('runs the used reaction as the Character’s own action on itself, committed before the hit it answers (D219)', async () => {
+    const room = await shieldRoom()
+    const { commandId } = await strike(room, 0)
+    const version = await room.version()
+    const { decision, pending } = await offeredReaction(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const { child, parent } = committedActions(await readRoomHistory(room.room.base.stub))
+    if (!child || !parent) throw new Error('The room ran no reaction child against the hit.')
+    expect(parent.command.commandId).toBe(commandId)
+    expect(child.command).toMatchObject({
+      actorId: CHARACTER_ACTOR_ID,
+      target: { kind: 'ACTOR', actorId: CHARACTER_ACTOR_ID },
+      systemTrigger: { parentCommandId: commandId, trigger: 'REACTION' }
+    })
+    expect(child.version).toBe(version + 1)
+    expect(parent.version).toBe(version + 2)
   })
 
   it('replays the answer without using the reaction again or minting a second effect', async () => {
@@ -327,20 +408,88 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     const history = await readRoomHistory(room.room.base.stub)
     const batch = characterBatch(history)
     expect(hitPointsLost(batch)).toBe(1)
-    expect(batch.reaction).toMatchObject({
-      selection: 'DECLINE',
-      adjustment: null,
-      spellCastConsumption: null,
-      actionEconomyTransition: null,
-      activeEffectTransitions: []
-    })
+    // Restated (QUALITY-8.T1d2a, D219): a declined offer of a reaction that would run as a child
+    // leaves no record on the Bite's batch; the decline is the absence of any child action. That it
+    // spent and applied nothing is read from the Character below and from the Bite's own batch.
+    expect(batch.reaction).toBeNull()
+    expect(batch.spellCastConsumption).toBeNull()
+    expect(batch.activeEffectTransitions).toEqual([])
+    expect(committedActions(history).child).toBeNull()
     expect(await readSpellSlots(room)).toEqual([])
     expect(history.characterEffects).toEqual([])
   })
 
+  it('gives back the used reaction’s slot and effect when the GM voids the Bite at its damage roll (D219)', async () => {
+    const rolledBite = creatureAuthoredDtoSchema.parse({
+      ...attackBite,
+      features: attackBite.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                paths: effect.paths.map((path) =>
+                  'resultBlock' in path
+                    ? {
+                        ...path,
+                        resultBlock: {
+                          ...path.resultBlock,
+                          outcomes: path.resultBlock.outcomes.map(
+                            ({ amount: _amount, ...outcome }) => ({
+                              ...outcome,
+                              valueKind: 'DICE' as const,
+                              diceConfig: '1d4'
+                            })
+                          )
+                        }
+                      }
+                    : path
+                )
+              }))
+            }
+      )
+    })
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: rolledBite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(rolledBite, 'Bite').id,
+      characterSpellcasting: { spells: [shield], prepared: [shield.id] }
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    // The roll beats the raised armor class, so the Bite goes on to its damage roll after the child.
+    await strike(room, SHIELD_BONUS)
+    const { decision, pending } = await offeredReaction(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+    const damageRoll = await room.pendingDecision()
+    expect(damageRoll.pending.kind).toBe('ACTION_OUTCOME_EVIDENCE')
+
+    const voided = await room.send({
+      type: 'VOID_RULE_OCCURRENCE',
+      commandId: crypto.randomUUID(),
+      encounterId: room.room.encounterId,
+      expectedVersion: await room.version(),
+      occurrenceId: damageRoll.occurrence.id,
+      expectedOccurrenceVersion: damageRoll.occurrence.version
+    })
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await readSpellSlots(room)).toEqual([])
+    const restored = await readRoomHistory(room.room.base.stub)
+    expect(restored.characterEffects).toEqual([])
+    expect(restored.actors).toEqual(before.actors)
+  })
+
   it('keeps the hit when the roll still beats the armor class the reaction raised', async () => {
     const room = await shieldRoom()
-    await strike(room, SHIELD_BONUS)
+    const { armorClass } = await strike(room, SHIELD_BONUS)
     const { decision, pending } = await offeredReaction(room)
 
     const used = await room.resolve(decision, {
@@ -348,9 +497,17 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
       optionId: pending.options[0].optionId
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
-    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = characterBatch(history)
     expect(hitPointsLost(batch)).toBe(1)
-    expect(batch.reaction).toMatchObject({ selection: 'USE' })
+    // Restated (QUALITY-8.T1d2a, D219): the use is the child action the Character committed, not a
+    // record on the Bite's batch; the Bite's sealed d20 still hit the armor class the child raised.
+    expect(batch.reaction).toBeNull()
+    expect(batch.d20).toMatchObject({
+      defenseOrDc: armorClass + SHIELD_BONUS,
+      resultPath: 'ON_HIT'
+    })
+    expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({ spellId: shield.id })
     expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
   })
 
@@ -547,11 +704,15 @@ describe('room homebrew reaction authored from core options (ADR 0038)', () => {
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
 
-    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
-    expect(batch.reaction).toMatchObject({
-      selection: 'USE',
-      adjustment: { defenseBefore: armorClass, defenseAfter: armorClass + 3 },
-      spellCastConsumption: { spellId: wardingFlash.id }
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = characterBatch(history)
+    // Restated (QUALITY-8.T1d2a, D219): the homebrew reaction runs as the Character's child action,
+    // so its slot is sealed on the child's batch and its bonus on the armor class the Bite's d20
+    // was bound to after it, not on a reaction record of the Bite's batch.
+    expect(batch.reaction).toBeNull()
+    expect(batch.d20).toMatchObject({ defenseOrDc: armorClass + 3, resultPath: 'ON_MISS' })
+    expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({
+      spellId: wardingFlash.id
     })
     // The roll beat the old armor class by 2, so +3 turns the hit into a miss.
     expect(hitPointsLost(batch)).toBe(0)
@@ -1140,8 +1301,12 @@ describe('a timed reaction offer (D207)', () => {
 
     await expireReactionOffer(room.room.base.stub)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
-    expect(batch.reaction).toMatchObject({ selection: 'DECLINE', spellCastConsumption: null })
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = characterBatch(history)
+    // Restated (QUALITY-8.T1d2a, D219): a declined offer leaves no record on the Bite's batch; the
+    // decline is the absence of a reaction child, and nothing of the reaction is spent.
+    expect(batch.reaction).toBeNull()
+    expect(committedActions(history).child).toBeNull()
     expect(hitPointsLost(batch)).toBeGreaterThan(0)
     expect(await readSpellSlots(room)).toEqual([])
   })
@@ -1159,9 +1324,12 @@ describe('a timed reaction offer (D207)', () => {
     const version = await room.version()
     await expireReactionOffer(room.room.base.stub)
     expect(await room.version()).toBe(version)
-    expect(characterBatch(await readRoomHistory(room.room.base.stub)).reaction).toMatchObject({
-      selection: 'USE'
-    })
+    // Restated (QUALITY-8.T1d2a, D219): the GM's use is the child action committed for the
+    // Character, read from its command and batch instead of a reaction record on the Bite's batch.
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(characterBatch(history).reaction).toBeNull()
+    expect(committedActions(history).child?.command.actorId).toBe(CHARACTER_ACTOR_ID)
+    expect(reactionChildBatch(history).spellCastConsumption).toMatchObject({ spellId: shield.id })
   })
 
   it('refuses the player’s answer after the offer declined itself, and a replayed expiry changes nothing', async () => {
@@ -1191,9 +1359,14 @@ describe('a timed reaction offer (D207)', () => {
       async () => expect(await readPendingActionDecision(room.room.base.stub)).toBeNull(),
       ROOM_REPLY_WAIT
     )
-    expect(characterBatch(await readRoomHistory(room.room.base.stub)).reaction).toMatchObject({
-      selection: 'DECLINE'
-    })
+    // Restated (QUALITY-8.T1d2a, D219): the decline leaves no record on the Bite's batch; it is the
+    // absence of a reaction child, with the hit applied and no slot spent.
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = characterBatch(history)
+    expect(batch.reaction).toBeNull()
+    expect(committedActions(history).child).toBeNull()
+    expect(hitPointsLost(batch)).toBe(1)
+    expect(await readSpellSlots(room)).toEqual([])
   })
 
   it('lets a player mark only themselves away and the GM anyone, but not while an offer waits', async () => {
