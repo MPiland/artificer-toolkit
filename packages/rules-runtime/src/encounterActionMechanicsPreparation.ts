@@ -240,6 +240,41 @@ export function withEncounterRollInfluences<
     }
   }
 }
+
+/**
+ * The attack as the dice its reactors' own actions rolled against its d20 leave it (D219): each die
+ * joins the dice the attack roll may total after its d20. Applied after preparation, like the roll
+ * modes above, so the attack's currentness does not change as reactions are used. An action that
+ * makes no attack roll, or one no reaction rolled against, is returned as it is.
+ */
+export function withEncounterReactionDice<
+  Prepared extends {
+    attackDomain: string | null
+    binding: {
+      sourceDerivedFacts: { attackAfterRollDice?: Record<string, readonly D20AddedDieDto[]> }
+    }
+  }
+>(prepared: Prepared, dice: readonly D20AddedDieDto[]): Prepared {
+  const { attackDomain } = prepared
+  if (attackDomain === null || dice.length === 0) return prepared
+  const { sourceDerivedFacts } = prepared.binding
+  return {
+    ...prepared,
+    binding: {
+      ...prepared.binding,
+      sourceDerivedFacts: {
+        ...sourceDerivedFacts,
+        attackAfterRollDice: {
+          ...sourceDerivedFacts.attackAfterRollDice,
+          [attackDomain]: [
+            ...(sourceDerivedFacts.attackAfterRollDice?.[attackDomain] ?? []),
+            ...dice.map(({ label, count, faces, sign }) => ({ label, count, faces, sign }))
+          ]
+        }
+      }
+    }
+  }
+}
 /** A capability source that runs `compiledEffect`: the option its actor picked (D148). */
 function withCompiledEffect<Source extends { capability: { compiledEffect: CompiledEffectGroup } }>(
   source: Source,
@@ -1089,6 +1124,7 @@ export async function prepareEncounterActionMechanics<
     adapter,
     targetPolicy,
     makesAttackRoll: attackKind !== null,
+    attackDomain,
     attackWindowDice,
     attackSight,
     /** The decoy the attack was rolled against, for the settlement to destroy when it hit. */

@@ -461,9 +461,10 @@ each committed child left behind, so `readLiveEncounterActionAdmission` fences t
 as it does an answer's or a resume's; the removal admission pins that version to the Run and the occurrence.
 One undo of an area commit or a countered area cast restores the root and every child (`actionRevertGroups.ts`).
 
-The die a child rolls against a rolled attack (current contracts, QUALITY-9.T1e1, D219 "Roll-window reaction
-die"; inert until QUALITY-9.T1e2 wires the Worker, and the window reaction-die path it replaces stays until
-QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is rolled:
+The die a child rolls against a rolled attack (current on the action host, QUALITY-9.T1e1 and T1e2, D219
+"Roll-window reaction die"). Transitional: the movement host keeps the window reaction die until QUALITY-9.T2,
+and the window fields it uses (`spentReaction`, `windowReactions`, `usedReactionSpend`) stay until
+QUALITY-9.T1e3. Four contracts carry a reaction chosen after the attack d20 is rolled:
 
 - The offer. The `CAST_REACTION` pause's offer gains the kind `ATTACK_ROLL_BY_OTHER` and, for that kind
   only, `rolled`: the action's TEST as it froze with the roll (`test`: the paused continuation, its bound
@@ -473,21 +474,28 @@ QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is 
 - The fence. `castPendingContinues` lets a rolled offer be followed only by an offer of the same roll or by
   the roll's settlement, and lets a reaction chosen from it leave the pause only by recording a child: it is
   never answered in place. Child recording, the room's resume
-  and the reactor's decline follow the rules of any cast offer. What may precede the first rolled offer is
-  not fenced here; T1e2 owns that entry.
+  and the reactor's decline follow the rules of any cast offer. The first rolled offer is a new moment, as a
+  hit's is: it follows whatever offer the action left, on a decline, with no reactor heard from yet, and never
+  follows a hit's offer.
 - The resolved child. `reactionChildren[].rolledDie` records the die the committed child rolled, with its
   faces, written by the same resume that writes `resumeOutcome` (a die on an unresolved child is refused, and so
   is a die that names a held effect or a window reaction as its spender: the child spent it).
   `reactionChildrenKept` keeps a resolved child's die as recorded, so a replay of the action reads the die
   and does not roll it again; a GM void that releases a later child keeps an earlier child's die.
-- The committed read. `readCommittedReactionChildren` returns `subtractsFromTriggeringRoll` and
-  `stopsTriggeringMovement` (QUALITY-18.T2a) beside `imposesRollMode` and `cancelsTriggeringEvent`, read by the
-  System adapter from the child's stored execution.
+- The committed read. `readCommittedReactionChildren` returns `triggeringRollSubtraction` (the size and
+  faces of the die the child's own graph rolled, or null) and `stopsTriggeringMovement` (QUALITY-18.T2a)
+  beside `imposesRollMode` and `cancelsTriggeringEvent`, read by the System adapter from the child's stored
+  execution. The child rolls its die as evidence of its own action, so a manually entered die is asked of the
+  reactor there and the held action never asks for it.
 
 The reactor's decision is authorized as any cast offer's (the reactor is the pending's roller), and its
 `REACTION_CHOICE` summary names the roll it decides on as `attackRoll` (the attacker, the kept face and the
-total). The offer's `rolled`, its kind and `reactionChildren[].rolledDie` are persisted pending-context shape
-changes; refresh local data when next used (D196).
+total less the dice earlier children rolled against it). The child is the reactor's action at the attacker;
+it spends its own reaction and resource. One undo reverts the action and its children, a GM void of the held
+action releases them, and a GM void of a child paused on its die returns the action to the same rolled offer.
+The offer's `rolled`, its kind, `reactionChildren[].rolledDie` and the committed read are persisted or
+published shape changes (a subtract action's graph now rolls its die); refresh local data when next used
+(D196).
 
 The hit a child answers (current, QUALITY-8.T1d1 to T1d2b, D219). The Worker makes this offer for every
 reaction to a hit, whatever its trigger (`ATTACKED_SELF`, `DAMAGE_TAKEN`), holder (a Character, or a creature

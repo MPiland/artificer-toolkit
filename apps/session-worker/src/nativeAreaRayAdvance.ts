@@ -93,6 +93,10 @@ export async function advanceAreaRay(
             pauseAnswer:
               step.kind === 'REACTION' ? { kind: 'CAST_REACTION', answer: step.answer } : null,
             resumedOffer: step.kind === 'RESUMED' ? step.offer : null,
+            // The dice the ray's own children rolled against its d20, as its snapshot records them.
+            rolledChildDice: (inner.reactionChildren ?? []).flatMap(({ rolledDie }) =>
+              rolledDie ? [rolledDie] : []
+            ),
             resume:
               step.kind === 'ROLL'
                 ? {

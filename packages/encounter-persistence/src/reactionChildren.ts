@@ -5,10 +5,12 @@ import type {
   LiveSessionTriggerMovement
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { triggeringRollSubtractionDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { z } from '@artificer-toolkit/schema/zod'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   MOVEMENT_REACTION_ATTACK_OCCASION,
@@ -598,9 +600,9 @@ export function reactionChildrenKept(
 
 /**
  * The committed child actions among those a pending action records, in recorded order: who reacted
- * with what, and whether the System reads a roll mode imposed on the action's roll, a die subtracted
- * from it, the action's cancellation, or the stop of the move it answered, from the child's stored
- * execution. A recorded child that has not committed is left out.
+ * with what, and whether the System reads a roll mode imposed on the action's roll, the action's
+ * cancellation, or the stop of the move it answered, and the die it rolled against the action's
+ * roll, from the child's stored execution. A recorded child that has not committed is left out.
  */
 export async function readCommittedReactionChildren(
   ctx: EncounterReadContext,
@@ -643,8 +645,9 @@ export async function readCommittedReactionChildren(
       reactorActorId: actorId,
       actionId,
       imposesRollMode: completed !== null && outcomes.imposesRollModeOnTriggeringRoll(completed),
-      subtractsFromTriggeringRoll:
-        completed !== null && outcomes.subtractsFromTriggeringRoll(completed),
+      triggeringRollSubtraction: z
+        .nullable(triggeringRollSubtractionDtoSchema)
+        .parse(completed === null ? null : outcomes.triggeringRollSubtraction(completed)),
       cancelsTriggeringEvent: completed !== null && outcomes.cancelsTriggeringEvent(completed),
       stopsTriggeringMovement: completed !== null && outcomes.stopsTriggeringMovement(completed),
       descendantReactorActorIds: [

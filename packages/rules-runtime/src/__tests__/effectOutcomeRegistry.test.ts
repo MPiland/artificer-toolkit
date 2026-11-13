@@ -25,7 +25,10 @@ import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { executionAddsSpeedToMovement } from '../systems/dnd5e/addSpeedToMovement.js'
 import { executionCancelsTriggeringEvent } from '../systems/dnd5e/cancelTriggeringEvent.js'
 import { dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
+import {
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  dnd5eResolvedProposalTrace
+} from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import {
   DND5E_CONDITION_IMMUNE_FACT_KEYS,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
@@ -49,10 +52,15 @@ import {
   dnd5ePathGatedTargetProposalOperations,
   dnd5eTestDamageProposalOperation
 } from '../systems/dnd5e/effectActionOperationRegistry.js'
+import { rolledDiceNodes } from '../systems/dnd5e/effectActionOutcomeNodes.js'
 import { withMovementInterruption } from '../systems/dnd5e/effectActionTestPhase.js'
 import { executionImposesRollModeOnTriggeringRoll } from '../systems/dnd5e/imposeRollModeOnTriggeringRoll.js'
 import { executionStopsTriggeringMovement } from '../systems/dnd5e/stopTriggeringMovement.js'
-import { executionSubtractsFromTriggeringRoll } from '../systems/dnd5e/subtractFromTriggeringRoll.js'
+import {
+  DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+  DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX,
+  executionTriggeringRollSubtraction
+} from '../systems/dnd5e/subtractFromTriggeringRoll.js'
 import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
 import {
   ACTION_EFFECT_ID,
@@ -541,6 +549,11 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
   })
 
   type Execution = Awaited<ReturnType<typeof run>>['execution']
+  /** The d6 a subtract outcome's graph rolls beside its proposal, as the compiler adds it (D219). */
+  const triggeringRollDie = rolledDiceNodes(
+    { count: 1, die: 6, modifier: 0 },
+    DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX
+  ).nodes
   it.each<[string, Dnd5eRegisteredOutcome, (execution: Execution) => boolean]>([
     ['ADD_SPEED_TO_MOVEMENT', { kind: 'ADD_SPEED_TO_MOVEMENT' }, executionAddsSpeedToMovement],
     [
@@ -548,10 +561,18 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       { kind: 'CANCEL_TRIGGERING_EVENT' },
       executionCancelsTriggeringEvent
     ],
+    // Restated reason (QUALITY-9.T1e2, D219): the committed read now returns the die the reaction
+    // rolled, not a flag, and a graph under a test has no place for that die (the compiler refuses
+    // the outcome there, above). The path claim is kept on the resolved proposal the read starts
+    // from; the die it then reads is the next test.
     [
       'SUBTRACT_FROM_TRIGGERING_ROLL',
       { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' },
-      executionSubtractsFromTriggeringRoll
+      (execution) =>
+        dnd5eResolvedProposalTrace(
+          execution.evidence.trace,
+          DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY
+        ) !== undefined
     ],
     [
       'IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL',
@@ -574,6 +595,17 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       expect(commits(other.execution)).toBe(false)
     }
   )
+
+  it('reads back the die a subtract outcome rolled, and none from a graph that rolled no die (QUALITY-9.T1e2)', async () => {
+    const outcome = { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' } as const
+    const graph = directGraph(outcome)
+    const rolled = await run({ ...graph, nodes: [...triggeringRollDie, ...graph.nodes] })
+    const read = executionTriggeringRollSubtraction(rolled.execution)
+    expect(read).toEqual({ faces: 6, rolledFaces: [expect.any(Number)] })
+    expect(read?.rolledFaces[0]).toBeGreaterThanOrEqual(1)
+    expect(read?.rolledFaces[0]).toBeLessThanOrEqual(6)
+    expect(executionTriggeringRollSubtraction((await run(graph)).execution)).toBeNull()
+  })
 
   it('stops the triggering movement only when the save resolves to the path its trigger authors (QUALITY-18.T2a)', async () => {
     const save = publish(saveGraph({ kind: 'MANUAL_ADJUDICATION' }, 'ON_SAVE_FAIL'))

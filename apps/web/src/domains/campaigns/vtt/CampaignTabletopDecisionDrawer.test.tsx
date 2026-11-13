@@ -799,6 +799,27 @@ describe('CampaignTabletopDecisionDrawer reaction to a hit (D219)', () => {
       expect.objectContaining({ resolution: { kind: 'DECLINE' } })
     )
   })
+
+  it('shows a reactor asked on a rolled attack the roll as it stands', async () => {
+    const attacker = tabletopGmEncounter.actors[1]!
+    const rolled = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      ...hitPending(menu.slice(0, 1)),
+      attackRoll: { attackerActorId: attacker.id, selectedNatural: 10, total: 11 }
+    })
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openHit(onResolve, rolled)
+
+    expect(screen.getByText(`${attacker.label} rolled 10, total 11`)).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Use reaction' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'OPTION', optionId: 'a'.repeat(64) } })
+    )
+  })
+
+  it('shows no roll on a reaction choice that follows none', async () => {
+    await openHit(vi.fn(async () => resolved()))
+    expect(screen.queryByText(/rolled \d+, total/)).toBeNull()
+  })
 })
 
 describe('CampaignTabletopDecisionDrawer reaction offer (D219)', () => {

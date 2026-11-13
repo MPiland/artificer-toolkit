@@ -45,13 +45,14 @@ export async function reconstructNativeActionTest(
   const pending = await prepareNativeActionTest(source)
   if (pending.kind !== 'PENDING' || pending.continuation.request.requestId !== input.d20.requestId)
     throw new Error('The retained TEST request is stale.')
-  // A window spent its dice after the roll; every other added die was rolled beside the d20 (D156).
-  const windowDice = (input.d20.addedDice ?? []).filter(
-    ({ spentEffectId, spentReaction }) => spentEffectId || spentReaction
-  )
-  const addedFaces = (input.d20.addedDice ?? []).flatMap((die) =>
-    windowDice.includes(die) ? [] : die.rolledFaces
-  )
+  // The policy's dice were rolled beside the d20 (D156) and are recorded first. Every other added die
+  // joined the roll after it: a window spent it, or a reaction's own action rolled it (D219).
+  const recorded = input.d20.addedDice ?? []
+  const besideDice = recorded
+    .filter(({ spentEffectId, spentReaction }) => !spentEffectId && !spentReaction)
+    .slice(0, pending.d20Policy?.addedDice?.length ?? 0)
+  const windowDice = recorded.filter((die) => !besideDice.includes(die))
+  const addedFaces = besideDice.flatMap((die) => die.rolledFaces)
   const boundary = await prepareNativeActionTest({
     ...source,
     windowDice,

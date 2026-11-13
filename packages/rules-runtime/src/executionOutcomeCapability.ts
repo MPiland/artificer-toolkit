@@ -4,7 +4,9 @@ import type { TeleportAllowanceDestinationKind } from '@artificer-toolkit/shared
 export type CommittedExecutionTrace = {
   evidence: {
     trace: readonly {
+      nodeId: string
       operation: { key: string }
+      inputs: Readonly<Record<string, unknown>>
       outputs: Readonly<Record<string, unknown>>
     }[]
   }
@@ -39,8 +41,13 @@ export interface ExecutionOutcomeCapabilityAdapter {
   cancelsTriggeringEvent(execution: CommittedExecutionTrace): boolean
   /** Whether a reaction resolved the roll-mode outcome (Protection), so the roll it answered takes that mode. */
   imposesRollModeOnTriggeringRoll(execution: CommittedExecutionTrace): boolean
-  /** Whether a reaction resolved the subtract outcome (Cutting Words), so the roll it answered loses its die. */
-  subtractsFromTriggeringRoll(execution: CommittedExecutionTrace): boolean
+  /**
+   * The die a reaction rolled when it resolved the subtract outcome (Cutting Words), which the roll it
+   * answered loses: its size and the faces it rolled. Null when it resolved none.
+   */
+  triggeringRollSubtraction(
+    execution: CommittedExecutionTrace
+  ): { faces: number; rolledFaces: number[] } | null
   /** Whether a reaction resolved the stop its movement trigger authors (Sentinel), so the move it answered ends there. */
   stopsTriggeringMovement(execution: CommittedExecutionOutputs): boolean
   /** Whether an action resolved the Dash outcome, so its commit adds the actor's speed to the turn. */

@@ -1667,6 +1667,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **Q30, Grappler rulings for SPELLS-33.T8a (user, 2026-11-13).** All three recommendations approved: (a) advantage against a creature you grapple is an attacker-side authored option, "advantage on attacks against creatures you hold in relationship kind X", read from the existing actor-relationship attack-roll influence, with no feature-specific code; (b) Pin is description-only with a GM ruling (D156/D198), with a fast follow for a mutual-condition outcome in [future enhancements](../roadmap/future-enhancements.md); (c) Mimic Adhesive is automated in object and true form from core options, and the GM ends it by editing state.
+
 - **Q23, rules continuation seal (PLATFORM-24, 2026-10-16).** The product owner chose removal. No client holds a continuation and Convex never verifies one; resume gains the graph validation executeFrozen already runs; the key, seal field, fixtures and env names go, with an ADR 0029 amendment. The earlier "user ruling 2026-09-24" for a dedicated key was never confirmed by the user.
 
 - **Q22, username moderation (ACCOUNTS-7.T1, 2026-10-15).** The substring profanity check refused ordinary names (Cassandra, Classic, Dickens, Essex, Glasshouse, Assassin) and random test names. The product owner approved the tiered policy:

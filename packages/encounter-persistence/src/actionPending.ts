@@ -4,6 +4,7 @@ import {
   type EscapeRelationshipInputDto,
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingApplication'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -247,8 +248,12 @@ export function castPendingContinues(
   if (!answer || roller === undefined) return false
   const spends = answer === 'SPEND'
   const declinedPrevious = castReaction.declinedReactorActorIds
-  // An attack's hit is a new moment: its offer follows whatever offer the action left, with no one heard from yet.
-  if (nextCastReaction?.hit && !castReaction.hit)
+  // An attack's rolled d20 and its hit are each a new moment: its offer follows whatever offer the
+  // action left, with no one heard from yet.
+  if (
+    (nextCastReaction?.hit && !castReaction.hit) ||
+    (nextCastReaction?.rolled && !castReaction.rolled && !castReaction.hit)
+  )
     return (
       answer === 'DECLINE' &&
       nextCastReaction.declinedReactorActorIds.length === 0 &&
@@ -391,13 +396,20 @@ export function projectNativeActionPending(
           optionId: useOptionId,
           actionId
         })),
-        // A reactor asked after the attack roll decides on the roll as it stands.
+        // A reactor asked after the attack roll decides on the roll as it stands: less the dice the
+        // reactions before it rolled against it.
         ...(pause.kind === 'CAST_REACTION' &&
           pause.payload.rolled && {
             attackRoll: {
               attackerActorId: command.actorId,
               selectedNatural: pause.payload.rolled.test.d20.selectedNatural,
-              total: pause.payload.rolled.test.d20.total
+              total:
+                pause.payload.rolled.test.d20.total +
+                d20AddedDiceTotal(
+                  context.reactionChildren?.flatMap(({ rolledDie }) =>
+                    rolledDie ? [rolledDie] : []
+                  )
+                )
             }
           }),
         allowedResponses: ['DECLINE', 'OPTION']

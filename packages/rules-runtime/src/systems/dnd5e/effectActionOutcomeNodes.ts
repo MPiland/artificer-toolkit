@@ -182,7 +182,8 @@ export function settledForcedMovementCollision(
  * One evidence node per die plus the running sums, and the output that holds the rolled subtotal.
  * With `enabled` the dice ask for no request (and settle at 1) unless that output is true. With
  * `rerollAtOrBelow` each die at or below that face is rolled once more and the new roll stands; the
- * original and the new roll both stay in the trace.
+ * original and the new roll both stay in the trace. With `facesFactKey` the dice are sized by that
+ * fact, so the graph's shape does not change with the size.
  */
 export function rolledDiceNodes(
   term: BoundedDiceTerm,
@@ -190,9 +191,11 @@ export function rolledDiceNodes(
   options: {
     enabled?: { kind: 'NODE_OUTPUT'; nodeId: string; port: string }
     rerollAtOrBelow?: number
+    /** The fact that sizes each die in place of `term.die`, for a die whose size its use binds. */
+    facesFactKey?: string
   } = {}
 ) {
-  const { enabled, rerollAtOrBelow } = options
+  const { enabled, rerollAtOrBelow, facesFactKey } = options
   const dieNodeId = (index: number) => `${prefix}die-${index + 1}`
   const rerollNodeId = (index: number) => `${prefix}die-${index + 1}-reroll`
   const keptNodeId = (index: number) => `${prefix}die-${index + 1}-kept`
@@ -210,7 +213,9 @@ export function rolledDiceNodes(
     },
     inputs: {
       min: { kind: 'LITERAL' as const, value: 1 },
-      max: { kind: 'LITERAL' as const, value: term.die },
+      max: facesFactKey
+        ? { kind: 'FACT' as const, factKey: facesFactKey }
+        : { kind: 'LITERAL' as const, value: term.die },
       ...(dieEnabled ? { enabled: dieEnabled } : {})
     }
   })
