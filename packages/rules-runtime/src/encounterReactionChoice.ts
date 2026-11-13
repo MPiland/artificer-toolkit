@@ -5,6 +5,7 @@ import {
   type EncounterCastReactionOfferDto,
   type EncounterReactionPinDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
