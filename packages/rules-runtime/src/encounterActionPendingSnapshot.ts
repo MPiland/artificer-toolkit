@@ -92,7 +92,9 @@ export function restoreEncounterActionPending(
   const { applicationContext: context, phaseReceipts } = snapshot
   if (context.kind !== 'ENCOUNTER_ACTION')
     throw new Error('The pending action snapshot is invalid.')
-  // A held cast, ward or retarget pauses before the graphs run, so the graphs resume none of them.
+  // A held cast, ward or retarget pauses before the graphs run, so the graphs resume none of them. A
+  // hit's reaction offer (D219) is not resumed either: its host answers it, and the graphs rebuild
+  // the TEST from the roll the offer keeps.
   const { pause } = context
   const graphPause =
     pause?.kind === 'ROLL_WINDOW' ||

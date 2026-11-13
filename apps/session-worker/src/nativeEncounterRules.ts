@@ -1015,7 +1015,7 @@ export async function planNativeLiveEncounterAction(
           resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
-  const { execution, resistance, reaction, reactionUse, chosenOnHit } =
+  const { execution, resistance, reaction, reactionChild, reactionUse, chosenOnHit } =
     await advanceNativeActionTarget({
       state,
       system,
@@ -1045,9 +1045,27 @@ export async function planNativeLiveEncounterAction(
       occurredAt,
       onHitNow,
       pauseAnswer,
+      resumedOffer:
+        resumeCommand && pendingContext?.pause?.kind === 'CAST_REACTION'
+          ? pendingContext.pause.payload
+          : null,
       resume
     })
-  if (execution.kind === 'PENDING') return { ...preflight(), kind: 'PENDING' as const, execution }
+  if (execution.kind === 'PENDING')
+    return {
+      ...preflight(),
+      kind: 'PENDING' as const,
+      execution,
+      // The reaction chosen against the hit answers its holder being hit, so its action is the
+      // holder's on itself; the attack stays held on the answered offer until it commits (D219).
+      ...(reactionChild
+        ? await castPause.launchReactionChild(
+            reactionChildren,
+            reactionChild,
+            reactionChild.holderActorId
+          )
+        : { reactionChild: null })
+    }
   // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
