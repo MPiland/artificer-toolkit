@@ -474,17 +474,16 @@ published shape changes (a subtract action's graph now rolls its die); refresh l
 The hit a child answers (current, QUALITY-8.T1d1 to T1d2b, D219). The Worker makes this offer for every
 reaction to a hit, whatever its trigger (`ATTACKED_SELF`, `DAMAGE_TAKEN`), holder (a Character, or a creature
 the GM answers for) and payment (a spell slot or none; a pool- or charge-paid reaction is still not offered).
-Transitional: the on-hit `REACTION` pause is no longer made and QUALITY-8.T1d3 deletes it and its inline
-settlement. The pending fence admits the reactor of a creature's pin (`characterId: null`) as the creature
+QUALITY-8.T1d3 deleted the inline on-hit settlement and its `REACTION` pause kind. The pending fence admits the reactor of a creature's pin (`characterId: null`) as the creature
 actor itself, and a Character's pin as that Character's actor. On a use the Worker records the child
 on the pending action and launches it; once it commits, the attack resumes with no stored roll result: it
 rebuilds its TEST from the roll the offer keeps and binds it again to the target as the child left it
 (`REBIND_TEST`), so the raised armor class is the sealed d20's `defenseOrDc` and the attack's own batch
-carries `reaction: null`. A decline rebuilds the same TEST against the unchanged target and proves it equal
+carries no `reaction` receipt (the field is gone). A decline rebuilds the same TEST against the unchanged target and proves it equal
 to the held one. Three contracts carry a reaction chosen by the creature an attack hit:
 
 - The offer. The `CAST_REACTION` pause's offer gains the kind `HIT_BY_ATTACK` and, for that kind only, `hit`:
-  the settled hit the old `REACTION` pause keeps (the completed execution, its d20 and policy, and the two
+  the settled hit (the completed execution, its d20 and policy, and the two
   checksums) and `damageTypeIds`, the damage types the hit deals. It is the one kind whose menu holds two
   triggers, `ATTACKED_SELF` and `DAMAGE_TAKEN`; every other kind still holds one. The pending context holds it
   on `twoPhase.phase === 'TEST'`, as it holds a rolled offer.
@@ -537,7 +536,10 @@ chain: the offer carries no `chain`, a used reaction no `check`, and `ENCOUNTER_
 (the countered-cast commit input no `reactionSpellConsumption`). These are persisted pending-context and
 receipt shape changes; refresh local data when next used (D196). QUALITY-9.T1d2 then removed the pending
 context's, area snapshot's, commit inputs' and stored receipt's `usedReactions` field outright (D196: clear the stored
-Encounter run command and pending-occurrence rows when next used).
+Encounter run command and pending-occurrence rows when next used). QUALITY-8.T1d3 removed the on-hit `REACTION`
+pause kind, the OUTCOME phase's and on-hit offer's `reaction`, the action batch's `reaction` and
+`reactionEffectTransitions`, and the commit input's `reactionSpellConsumption` (D196: clear the same rows when
+next used).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).

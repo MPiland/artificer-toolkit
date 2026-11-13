@@ -67,7 +67,6 @@ export async function holdForOnHitChoice(input: {
   testD20: ServerRuleExecutionD20EvidenceDto
   d20: ServerRuleExecutionD20PolicyDto
   gameSystemId: string
-  reaction: EncounterOnHitOfferDto['reaction']
 }): Promise<PendingNativeActionGraphs> {
   const testExecutionChecksum = checksumRuleDocument(input.execution)
   const options = encounterOnHitOptions(testExecutionChecksum, input.candidates)
@@ -89,7 +88,6 @@ export async function holdForOnHitChoice(input: {
         testD20: input.testD20,
         d20: input.d20,
         testExecutionChecksum,
-        reaction: input.reaction,
         options
       }
     }

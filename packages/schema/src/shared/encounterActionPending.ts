@@ -197,23 +197,6 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                   'A Legendary Resistance offer belongs to a TEST held for the resisting creature.'
                 )
               break
-            case 'REACTION':
-              for (const [index, reaction] of pause.payload.reactions.entries())
-                validateEncounterReactionPin(reaction, context, [
-                  'pause',
-                  'payload',
-                  'reactions',
-                  index
-                ])
-              if (
-                holdsActionD20 ||
-                !test ||
-                pause.payload.reactions.some(
-                  ({ reactorActorId }) => reactorActorId !== value.rollerActorId
-                )
-              )
-                issue('A reaction offer belongs to a TEST held for the reacting creature.')
-              break
             case 'CAST_REACTION':
               for (const [index, reaction] of pause.payload.reactions.entries())
                 validateEncounterReactionPin(reaction, context, [

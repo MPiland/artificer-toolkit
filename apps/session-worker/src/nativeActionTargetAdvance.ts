@@ -1,6 +1,5 @@
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionAdvance'
 import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
-import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
   chosenEncounterReaction,
@@ -12,25 +11,19 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
 import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
-import {
-  discoverNativeAttackReaction,
-  type applyNativeReactionEffect
-} from './nativeEncounterAttackReaction.js'
+import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
 import { settleNativePauseAnswer } from './nativePauseHandlers.js'
-import { createNativeCurrentReaction } from './nativePauseReaction.js'
 import type { NativePauseAnswer, NativePauseSettleContext } from './nativePauseTypes.js'
 
 type GraphsInput = Parameters<typeof advanceNativeActionGraphs>[0]
 type DiscoverReactionInput = Parameters<typeof discoverNativeAttackReaction>[0]
-type ApplyReactionInput = Parameters<typeof applyNativeReactionEffect>[0]
 
 /**
  * Advances an action against one target through what happens between its TEST and its OUTCOME: the
  * target's Legendary Resistance against a failed save, its reaction to a hit (chosen from the held
- * offer and run as its own child action, D219; the inline settlement stays until QUALITY-8.T1d3), and
- * the attacker's on-hit rider. A response that answers one of those is settled against the target as it stands now;
- * a decision an earlier answer kept is replayed and proved against it. Nothing is spent here: the
+ * offer and run as its own child action, D219), and the attacker's on-hit rider. A response that
+ * answers one of those is settled against the target as it stands now; a decision an earlier answer kept is replayed and proved against it. Nothing is spent here: the
  * returned records carry each cost for the action's commit.
  */
 export async function advanceNativeActionTarget(input: {
@@ -39,7 +32,7 @@ export async function advanceNativeActionTarget(input: {
   capture: DiscoverReactionInput['capture']
   /** The action as it was prepared against this target. */
   attack: DiscoverReactionInput['attack'] & Parameters<typeof discoverNativeLegendaryResistance>[1]
-  /** The prepared action's graphs, bound to the target as any reaction before its d20 left it. */
+  /** The prepared action's graphs, bound to the target. */
   actionSource: NativePauseSettleContext['actionSource'] &
     Omit<
       GraphsInput,
@@ -49,11 +42,6 @@ export async function advanceNativeActionTarget(input: {
   /** Prepares a reaction the target holds, as the target's own action. */
   prepareReaction: DiscoverReactionInput['prepareReaction']
   /** Prepares the action again against the target's facts once a reaction has changed them. */
-  prepareReactedAttack: ApplyReactionInput['prepareAttack']
-  loadTarget: ApplyReactionInput['loadTarget']
-  activeEffectsByActorId: ApplyReactionInput['activeEffectsByActorId']
-  commandId: string
-  occurredAt: string
   onHitNow: NativePauseSettleContext['onHitNow']
   pauseAnswer: NativePauseAnswer | null
   /** The answered offer the action resumes past, its reactor's child action committed (D219). */
@@ -86,22 +74,9 @@ export async function advanceNativeActionTarget(input: {
     prepareReaction: input.prepareReaction,
     capture
   })
-  const currentReaction = createNativeCurrentReaction({
-    discoverReaction,
-    runtime: actionSource.runtime,
-    occurrenceId: actionSource.occurrenceId,
-    commandId: input.commandId,
-    occurredAt: input.occurredAt,
-    activeEffectsByActorId: input.activeEffectsByActorId,
-    prepareAttack: input.prepareReactedAttack,
-    loadTarget: input.loadTarget,
-    targetStateChecksum,
-    binding: actionSource.binding
-  })
   const settled = await settleNativePauseAnswer(input.pauseAnswer, {
     actionSource,
     currentResistance,
-    currentReaction,
     onHitNow
   })
   const retained =
@@ -109,19 +84,6 @@ export async function advanceNativeActionTarget(input: {
     (input.pauseAnswer?.kind === 'FORCED_MOVEMENT'
       ? input.pauseAnswer.answer.outcomePhase
       : undefined)
-  const heldReaction = settled?.heldReaction ?? null
-  const retainedReaction = settled?.reaction
-    ? null
-    : (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
-  const replayedReaction =
-    settled?.heldReactionNow ??
-    (retainedReaction
-      ? await currentReaction(
-          retainedReaction.reaction!.selection === 'USE',
-          retainedReaction.reaction!.reaction.actionId,
-          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
-        )
-      : null)
   const castAnswer = input.pauseAnswer?.kind === 'CAST_REACTION' ? input.pauseAnswer.answer : null
   const hitOffer = castAnswer?.offer ?? input.resumedOffer
   /**
@@ -205,8 +167,6 @@ export async function advanceNativeActionTarget(input: {
     settled?.execution ??
     (await advanceNativeActionGraphs({
       ...actionSource,
-      // A paused OUTCOME resumes against the hit as the reaction it kept left it.
-      ...(replayedReaction ? { binding: replayedReaction.adjustedBinding } : {}),
       attackSight: attack.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
@@ -243,24 +203,9 @@ export async function advanceNativeActionTarget(input: {
           ...(await currentResistance())
         })
       : null)
-  const reaction =
-    execution.kind === 'PENDING'
-      ? null
-      : (settled?.reaction ??
-        (retainedReaction && replayedReaction
-          ? {
-              ...replayedReaction,
-              audit: await replayNativeActionReaction({
-                ...actionSource,
-                outcome: retainedReaction,
-                ...replayedReaction
-              })
-            }
-          : null))
   return {
     execution,
     resistance,
-    reaction,
     /**
      * The reaction chosen from the held offer, which runs as its holder's own action (D219): one to
      * the rolled d20 at the attacker, one to the hit at its holder, the attack's target.
@@ -270,15 +215,6 @@ export async function advanceNativeActionTarget(input: {
       (answeredHit?.child
         ? { ...answeredHit.child, targetActorId: answeredHit.child.holderActorId }
         : null),
-    /** What the reaction the target used does and costs; null when it used none. */
-    reactionUse:
-      reaction?.audit.selection === 'USE' && reaction.applied
-        ? {
-            applied: reaction.applied,
-            prepared: reaction.found.prepared,
-            economy: reaction.found.economy.consumption
-          }
-        : null,
     /** The on-hit rider the attacker chose, by this answer or one the OUTCOME kept. */
     chosenOnHit:
       settled?.onHit?.audit.option ??

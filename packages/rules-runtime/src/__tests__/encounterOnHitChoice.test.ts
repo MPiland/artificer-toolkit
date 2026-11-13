@@ -73,7 +73,6 @@ function longswordAttack(rolls: readonly number[], character?: SrdCharacter) {
       return resolveNativeActionOnHit({
         ...source,
         candidates,
-        adjustedBinding: null,
         offer: held.pause.payload,
         selection
       })
@@ -99,7 +98,6 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
       pause: {
         kind: 'ON_HIT',
         payload: {
-          reaction: null,
           options: [
             { riderId: OPTIONAL_SMITE_EFFECT_ID, riderLabel: 'Optional Smite', slotLevel: 1 },
             { riderId: OPTIONAL_SMITE_EFFECT_ID, riderLabel: 'Optional Smite', slotLevel: 2 }
@@ -210,7 +208,6 @@ describe('an answer to the OUTCOME of a hit whose rider was decided (QUALITY-13)
       ...attack.source,
       autoRoll: { SOURCE: false, TARGET: true },
       candidates: [smiteAt(2)],
-      adjustedBinding: null,
       offer: held.pause.payload,
       selection: { kind: 'OPTION', optionId: held.pause.payload.options[0]!.useOptionId }
     })

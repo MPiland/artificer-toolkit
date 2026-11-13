@@ -71,11 +71,6 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   const outputs = actionOutputs(input)
   const stateTransition = outputs.stateEffectTransitions
   const activeTransition = outputs.activeEffectTransitions
-  // The effect of a reaction the target used lands on the target beside the action's own effects.
-  const reactionTransition =
-    outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-      ? [...(outputs.reaction?.activeEffectTransitions ?? []), ...outputs.reactionEffectTransitions]
-      : []
   // Rules met by the attack create timed effects on the target beside the action's effects: its own
   // damage-trigger grants, the immunity a passed ward leaves on its holder, and a mark the attacker
   // gives it.
@@ -85,13 +80,9 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     input.createdEffects.length > 7 + MAX_ACTION_RIDERS ||
     stateTransition.length > 1 ||
     activeTransition.length > 1 + MAX_ACTION_RIDERS ||
-    reactionTransition.length > 1 ||
     grantTransition.length > 4 ||
     input.createdEffects.length !==
-      stateTransition.length +
-        activeTransition.length +
-        reactionTransition.length +
-        grantTransition.length
+      stateTransition.length + activeTransition.length + grantTransition.length
   )
     throw new Error('Completed action effects do not match the stored receipt.')
   const ids = input.createdEffects.map((effect) => effect.id)
@@ -109,10 +100,6 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     const effect = input.createdEffects.find(({ id }) => id === transition.activeEffectId)
     return effect ? [effect] : []
   })
-  const reaction = reactionTransition.length
-    ? (input.createdEffects.find((effect) => effect.id === reactionTransition[0]!.activeEffectId) ??
-      null)
-    : null
   const grants = grantTransition.flatMap((transition) => {
     const effect = input.createdEffects.find(
       (candidate) => candidate.id === transition.activeEffectId
@@ -124,12 +111,10 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     (stateTransition.length > 0 && !state) ||
     (activeTransition.length > 0 && !recurring) ||
     riders.length !== Math.max(activeTransition.length - 1, 0) ||
-    (reactionTransition.length > 0 && !reaction) ||
-    (state && recurring && state.id === recurring.id) ||
-    (reaction && (reaction.id === state?.id || reaction.id === recurring?.id))
+    (state && recurring && state.id === recurring.id)
   )
     throw new Error('Completed action effects do not match the stored receipt.')
-  return { state, recurring, riders, reaction, grants, outputs }
+  return { state, recurring, riders, grants, outputs }
 }
 
 /**
@@ -354,7 +339,7 @@ export async function persistEncounterActionEffects(
     occurredAt: string
   }
 ): Promise<EncounterRunActorState[]> {
-  const { state, recurring, riders, reaction, grants, outputs } = classifyCreatedEffects(input)
+  const { state, recurring, riders, grants, outputs } = classifyCreatedEffects(input)
   const target = input.actors.find(
     (actor) => actor.id === actionTargetActorId(input.command.target)
   )
@@ -382,12 +367,11 @@ export async function persistEncounterActionEffects(
       checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
       origin.kind !== 'ENCOUNTER' ||
       origin.sourceAggregateId !== input.state.id ||
-      // A reaction's effect comes from the target itself. A grant names its giver: the target's own
-      // rule, or the attacker (the immunity a passed ward frees it from, a mark it gives).
+      // A grant names its giver: the target's own rule, or the attacker (the immunity a passed ward
+      // frees it from, a mark it gives).
       (grants.some((grant) => grant.id === effect.id)
         ? origin.sourceActorId !== target.id && origin.sourceActorId !== input.command.actorId
-        : origin.sourceActorId !==
-          (effect.id === reaction?.id ? target.id : input.command.actorId)) ||
+        : origin.sourceActorId !== input.command.actorId) ||
       origin.sourceOccurrenceId !== input.execution.occurrenceId ||
       origin.rootCommandId !== input.command.commandId ||
       effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
@@ -420,14 +404,6 @@ export async function persistEncounterActionEffects(
           maintainedEffectStateId
         }))
       : transitions
-  const reactionReceipts = characterReceipts(
-    projectNativeActionEffectTransitions({
-      state: null,
-      recurring: reaction,
-      targetActorId: target.id
-    }).activeEffectTransitions,
-    null
-  )
   const grantReceipts = characterReceipts(
     grants.flatMap(
       (grant) =>
@@ -446,16 +422,7 @@ export async function persistEncounterActionEffects(
       checksumCanonicalJson(outputs.stateEffectTransitions) ||
     checksumCanonicalJson(
       characterReceipts(projected.activeEffectTransitions, input.maintainedState?.id ?? null)
-    ) !== checksumCanonicalJson(outputs.activeEffectTransitions) ||
-    checksumCanonicalJson(reactionReceipts) !==
-      checksumCanonicalJson(
-        outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-          ? [
-              ...(outputs.reaction?.activeEffectTransitions ?? []),
-              ...outputs.reactionEffectTransitions
-            ]
-          : []
-      )
+    ) !== checksumCanonicalJson(outputs.activeEffectTransitions)
   )
     throw new Error('Completed action effect receipts changed before settlement.')
   const supplied = input.maintainedState

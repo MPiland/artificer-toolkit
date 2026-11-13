@@ -112,11 +112,8 @@ export async function advanceNativeActionGraphs(input: {
   reaction?: {
     discover(critical: boolean): Promise<{
       candidates: readonly EncounterReactionCandidate[]
-      /**
-       * The damage types the hit deals, when the reactions found run as their holder's own actions
-       * (D219). No caller passes null any more; QUALITY-8.T1d3 deletes it with the inline offer.
-       */
-      childHitDamageTypeIds: readonly string[] | null
+      /** The damage types the hit deals, which the reactions found run as their holder's own actions against (D219). */
+      childHitDamageTypeIds: readonly string[]
     }>
     targetStateChecksum: string
   }
@@ -212,7 +209,6 @@ export async function advanceNativeActionGraphs(input: {
           d20: outcome.testRollEvidence
         }),
         legendaryResistance: outcome.legendaryResistance,
-        reaction: outcome.reaction,
         onHit: outcome.onHit,
         saveWindow,
         damageRerolls,
@@ -354,18 +350,15 @@ export async function advanceNativeActionGraphs(input: {
         d20Policy: null,
         twoPhase: test.twoPhase,
         roller: 'TARGET',
-        pause: found.childHitDamageTypeIds
-          ? {
-              kind: 'CAST_REACTION',
-              payload: {
-                kind: 'HIT_BY_ATTACK',
-                reactions,
-                declinedReactorActorIds: [],
-                hit: { ...hit, damageTypeIds: [...found.childHitDamageTypeIds] }
-              }
-            }
-          : // Transitional: the inline offer, which no caller makes any more and QUALITY-8.T1d3 deletes.
-            { kind: 'REACTION', payload: { ...hit, reactions } }
+        pause: {
+          kind: 'CAST_REACTION',
+          payload: {
+            kind: 'HIT_BY_ATTACK',
+            reactions,
+            declinedReactorActorIds: [],
+            hit: { ...hit, damageTypeIds: [...found.childHitDamageTypeIds] }
+          }
+        }
       }
     }
     // The rider is offered before the OUTCOME is selected, since the choice can change which one runs.
@@ -378,8 +371,7 @@ export async function advanceNativeActionGraphs(input: {
         execution: test.execution,
         testD20: test.d20,
         d20: test.d20Policy,
-        gameSystemId: test.published.gameSystemId,
-        reaction: null
+        gameSystemId: test.published.gameSystemId
       })
     return continueNativeActionAfterTest({
       ...action,

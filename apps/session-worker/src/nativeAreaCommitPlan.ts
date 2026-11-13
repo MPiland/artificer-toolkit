@@ -241,7 +241,6 @@ export async function planAreaOutcomes(args: {
       dispositions,
       currentEffects: targetEffects,
       maintainedState: joined,
-      reactionEffect: null,
       grants: [],
       formCreature: formCreature ?? null,
       targetSpends: false,
@@ -294,7 +293,6 @@ export async function planAreaOutcomes(args: {
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
-        reactionEffectTransitions: outcome.reactionEffectTransitions,
         grantEffectTransitions: outcome.grantEffectTransitions
       })
     })

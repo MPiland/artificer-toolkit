@@ -1,4 +1,3 @@
-import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -9,7 +8,6 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import {
   combineSpendMutations,
   settleActionSourceSpend,
-  sourceSpendMutation,
   type SpendMutation
 } from './actionSourceSpend.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -41,8 +39,6 @@ export async function settleActionTargetOutcome(
     commandId: string
     occurredAt: string
     forceVersionAdvance: boolean
-    /** The slot the reaction the target used against the outcome spends. */
-    reactionSpell: LiveSessionEncounterActionCommitInput['reactionSpellConsumption']
     /** The reaction the target rolled against the attack roll before the outcome. */
     used?: UsedReactionSpend
     /** The source's own spend, when the source is this target. */
@@ -58,32 +54,6 @@ export async function settleActionTargetOutcome(
   }
 ) {
   const { state, target, batch, used } = input
-  // A reaction the target used spends its own slot and allowance with the outcome it answered.
-  const reaction = batch.reaction
-  if (
-    reaction &&
-    (reaction.reaction.reactorActorId !== target.id ||
-      reaction.reaction.characterId !== (target.kind === 'CHARACTER' ? target.sourceId : null))
-  )
-    throw new Error('Live Session reaction scope mismatch.')
-  if (!reaction && input.reactionSpell)
-    throw new Error('Live Session reaction spell slot has no reaction.')
-  const reactionSpend = sourceSpendMutation({
-    source: target,
-    command: { acceptedWieldConflict: null },
-    resource: null,
-    item: null,
-    spell: input.reactionSpell,
-    receipts: {
-      resourceConsumption: null,
-      sourceItemConsumption: null,
-      spellCastConsumption: reaction?.spellCastConsumption ?? null
-    }
-  })
-  // The target pays the reaction it already spent in this one mechanics call; a Shield-like reaction
-  // would be a second spend of the same reaction.
-  if (used && reaction)
-    throw new Error('Live Session used reaction and reaction spend the same reaction.')
   const mechanics = await input.applyMechanics({
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -101,7 +71,7 @@ export async function settleActionTargetOutcome(
     grantedMaximumHitPoints: batch.targetTransition.grantedMaximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     forceVersionAdvance: input.forceVersionAdvance,
-    ...combineSpendMutations(input.sourceMutation, reactionSpend.mutation, used?.mutation ?? {})
+    ...combineSpendMutations(input.sourceMutation, used?.mutation ?? {})
   })
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
@@ -117,8 +87,7 @@ export async function settleActionTargetOutcome(
     batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? batch.targetFeatureResourceConsumption : null
   if (charge && charge.ownerActorId !== target.id)
     throw new Error(`Live Session ${input.label} charge scope mismatch.`)
-  const reactionEconomy =
-    reaction?.actionEconomyTransition ?? used?.used.receipt.actionEconomyTransition ?? null
+  const reactionEconomy = used?.used.receipt.actionEconomyTransition ?? null
   return {
     mechanics,
     target:

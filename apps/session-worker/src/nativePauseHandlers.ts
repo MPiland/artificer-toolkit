@@ -4,7 +4,7 @@ import { d20WindowPause } from './nativePauseD20Window.js'
 import { forcedMovementPause } from './nativePauseForcedMovement.js'
 import { incomingGatePause } from './nativePauseIncomingGate.js'
 import { legendaryResistancePause } from './nativePauseLegendaryResistance.js'
-import { onHitPause, reactionPause } from './nativePauseReaction.js'
+import { onHitPause } from './nativePauseReaction.js'
 import type {
   NativePauseAnswer,
   NativePauseHandler,
@@ -21,7 +21,6 @@ import type {
 const nativePauseHandlers = {
   ROLL_WINDOW: d20WindowPause,
   LEGENDARY_RESISTANCE: legendaryResistancePause,
-  REACTION: reactionPause,
   CAST_REACTION: castReactionPause,
   INCOMING_GATE: incomingGatePause,
   ATTACK_RETARGET: attackRetargetPause,

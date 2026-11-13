@@ -20,8 +20,6 @@ import type {
   planNativeEncounterAreaSourceSpend
 } from './encounterActionMechanicsPlan.js'
 import type { encounterTargetLegendaryResistance } from './encounterAreaLegendaryResistance.js'
-import { characterSpellConsumptionReceipt } from './encounterActionMechanicsPlan.js'
-import type { encounterReactionAudit } from './encounterReactionChoice.js'
 
 /** Recorded so a GM undo restores the allowance exactly; an override may exceed the maximum. */
 export function actionEconomyReceipt(consumption: EncounterActionEconomyConsumption | null) {
@@ -64,23 +62,8 @@ export function buildEncounterActionStoredExecution(input: {
   area?: { parentOccurrenceId: string }
   /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
   resistance?: ReturnType<typeof encounterTargetLegendaryResistance> | null
-  /** The target's decided reaction to the hit and what using it spent and created. */
-  reaction?: {
-    audit: ReturnType<typeof encounterReactionAudit>
-    spent: {
-      spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
-      economy: EncounterActionEconomyConsumption
-      activeEffectTransitions: ReturnType<
-        typeof projectNativeActionEffectTransitions
-      >['activeEffectTransitions']
-    } | null
-  } | null
   /** The target also spent a reaction another way (a failed counter, D127, or a die against the attack roll, D207), so its spend rides in this batch. */
   targetReactorSpend?: boolean
-  /** The effects of reactions the target used on being chosen as this cast's target, which land with its outcome. */
-  reactionEffectTransitions?: ReturnType<
-    typeof projectNativeActionEffectTransitions
-  >['activeEffectTransitions']
   /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
   meleeRetaliation?: MeleeRetaliationEvidenceDto | null
   /** The timed effects the target's own rules made from this action: damage-trigger grants, a passed ward's immunity. */
@@ -119,25 +102,6 @@ export function buildEncounterActionStoredExecution(input: {
       maintainedEffectStateId
     }
   }
-  const reactionReceipt = <Receipt>(
-    effectReceipt: (transition: (typeof activeEffectTransitions)[number]) => Receipt
-  ) =>
-    input.reaction
-      ? {
-          selection: input.reaction.audit.selection,
-          reaction: input.reaction.audit.reaction,
-          choiceExecution: input.reaction.audit.choiceExecution,
-          originalExecutionChecksum: input.reaction.audit.originalExecutionChecksum,
-          adjustment: input.reaction.audit.adjustment,
-          spellCastConsumption: characterSpellConsumptionReceipt(
-            input.reaction.spent?.spellConsumption
-          ),
-          actionEconomyTransition: actionEconomyReceipt(input.reaction.spent?.economy ?? null),
-          activeEffectTransitions: (input.reaction.spent?.activeEffectTransitions ?? []).map(
-            effectReceipt
-          )
-        }
-      : null
   const parentOccurrenceId = input.area ? { parentOccurrenceId: input.area.parentOccurrenceId } : {}
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
@@ -182,14 +146,10 @@ export function buildEncounterActionStoredExecution(input: {
             activeEffectTransitions: activeEffectTransitions.map((transition) =>
               characterEffectReceipt(transition, input.maintainedState?.id ?? null)
             ),
-            reactionEffectTransitions: (input.reactionEffectTransitions ?? []).map((transition) =>
-              characterEffectReceipt(transition, null)
-            ),
             grantEffectTransitions: (input.grantEffectTransitions ?? []).map((transition) =>
               characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,
-            reaction: reactionReceipt((transition) => characterEffectReceipt(transition, null)),
             targetReactorSpend: input.targetReactorSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
@@ -227,7 +187,6 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: input.resistance?.charge ?? null,
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
-            reaction: reactionReceipt((transition) => transition),
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemDraw: settled.sourceItemDraw,
             sourceItemDegradation: settled.sourceItemDegradation,
