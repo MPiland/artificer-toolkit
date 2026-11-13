@@ -8,7 +8,6 @@ import type {
   EncounterCastReactionOfferDto,
   EncounterUsedReactionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type {
   LiveSessionReactionAncestor,
   LiveSessionReactionChild
@@ -25,7 +24,6 @@ import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encount
 import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { REACTION_TRIGGERS } from '@artificer-toolkit/rules-runtime/events/reactionTriggers'
-import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
   authoredImposedRollMode,
@@ -61,14 +59,11 @@ type LoadAttackPerception = NonNullable<
  */
 export function createNativeCastPause(input: {
   runtime: RulesRuntimeService
-  random?: (maximum: number) => number
   state: EncounterRunState
-  system: SystemAuthoredDto
   actors: readonly EncounterRunActorState[]
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   loadTarget: (actor: EncounterRunActorState) => Promise<MovementTargets>
   capture: Parameters<typeof discoverNativeCastReactions>[0]['capture']
-  requireAutoRoll: (actorId: string) => boolean
   command: Pick<ResolveEncounterActionInputDto, 'commandId'>
   /** The caster's preparation of the cast; an area or a list uses its lead creature's. */
   prepared: Prepared
@@ -449,10 +444,7 @@ export function createNativeCastPause(input: {
     }
     // An answer to an offer the action resumes from was made after every counter offer was heard, and
     // one to an attack aimed at another after every offer the cast made.
-    const resumeAnswer =
-      input.answer?.kind === 'SELECTION' && input.answer.offer.kind !== 'COUNTER'
-        ? input.answer
-        : null
+    const resumeAnswer = input.answer && input.answer.offer.kind !== 'COUNTER' ? input.answer : null
     const aimedAnswer = resumeAnswer?.offer.kind === 'ATTACK_ON_OTHER' ? resumeAnswer : null
     const targetedAnswer = aimedAnswer ? null : resumeAnswer
     if (input.answer && !aimedAnswer && triggerLevel === null)
@@ -470,7 +462,6 @@ export function createNativeCastPause(input: {
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,
         gameSystemId: state.gameSystemId,
-        system: input.system,
         casterActorId: prepared.actor.id,
         triggerLevel,
         answer: input.answer,
@@ -479,9 +470,6 @@ export function createNativeCastPause(input: {
         declinedReactorActorIds: counterResume
           ? [...counterResume.declinedReactorActorIds, counterResume.reactorActorId]
           : [],
-        runsAsChild: true,
-        autoRoll: input.requireAutoRoll,
-        rollD20: () => (input.random ?? nextRollInt)(20) + 1,
         discover: await discoverCast(triggerLevel)
       })
       if (advanced.kind === 'COUNTERED')
@@ -495,7 +483,7 @@ export function createNativeCastPause(input: {
           advanced.usedReactions
         )
       if (advanced.kind === 'CHILD') return awaitChild(advanced)
-      if (advanced.kind === 'OFFER' || advanced.kind === 'CHECK')
+      if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,
           continuation: advanced.continuation,

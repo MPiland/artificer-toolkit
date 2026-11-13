@@ -136,7 +136,6 @@ type CastPendingContext = {
           declinedReactorActorIds: readonly string[]
           /** The attack d20 an offer made after the roll keeps (D219). */
           rolled?: object
-          check?: unknown
           chain?: {
             counters: readonly PendingCounter[]
             castDeclinedReactorActorIds: readonly string[]
@@ -204,27 +203,19 @@ const sameMembers = (left: readonly string[], right: readonly string[]) => {
   )
 }
 
-/**
- * How a cast's pause is answered: a decline, a counter chosen (an OPTION), or, while the pause waits on
- * the check a chosen counter owes, the roll of that check. Anything else does not answer it.
- */
+/** How a cast's pause is answered: a decline or a counter chosen (an OPTION). Anything else does not answer it. */
 function castAnswer(
-  previous: CastPendingContext,
   response: { resolution: { kind: string } } | null | undefined
 ): 'DECLINE' | 'SPEND' | null {
   const kind = response?.resolution.kind
-  if (kind === undefined) return null
-  if (castReactionOf(previous)?.check)
-    return kind === 'DECLINE' || kind === 'OPTION' ? null : 'SPEND'
   return kind === 'DECLINE' ? 'DECLINE' : kind === 'OPTION' ? 'SPEND' : null
 }
 
 /**
- * How a cast's pending may continue (D127). A held cast leaves its pause by a decline, or by choosing a
- * counter that owes a check, which pauses on that roll. Every counter the answer uses is carried to the
- * cast's terminal commit, which spends it: the answerer is stood as the next counter in the chain (a
- * counter is itself a cast the next holders may counter, opening a fresh level of offers that keeps the
- * outer level's declines), or, when its check failed, recorded as failed and declined at its level. A
+ * How a cast's pending may continue (D127). A held cast leaves its pause by a decline or by choosing a
+ * counter. Every counter the answer uses is carried to the cast's terminal commit, which spends it: the
+ * answerer is stood as the next counter in the chain (a counter is itself a cast the next holders may
+ * counter, opening a fresh level of offers that keeps the outer level's declines). A
  * chain with nobody left to ask resolves: an even chain is spent and the cast is offered again at its
  * own level with that level's declines restored; an odd chain counters the cast, which commits instead.
  *
@@ -272,7 +263,7 @@ export function castPendingContinues(
     ? response
       ? null
       : 'DECLINE'
-    : castAnswer(previous, response)
+    : castAnswer(response)
   const roller = previous.rollerActorId
   if (!answer || roller === undefined) return false
   const spends = answer === 'SPEND'
@@ -296,24 +287,13 @@ export function castPendingContinues(
   if (recordsChild)
     return (
       spends &&
-      !castReaction.check &&
       !castReaction.chain &&
       nextCastReaction != null &&
-      !nextCastReaction.check &&
       !nextCastReaction.chain &&
       next.rollerActorId === roller &&
       sameMembers(usedNext, usedPrevious) &&
       sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
       awaitsReactionChild(next)
-    )
-  // The counter owes a check: the cast stays held for the same reactor, now on that roll.
-  if (spends && !castReaction.check && nextCastReaction?.check !== undefined)
-    return (
-      next.rollerActorId === roller &&
-      sameMembers(usedNext, usedPrevious) &&
-      sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
-      sameIds(chainNext, chainPrevious) &&
-      sameMembers(nextCastReaction.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
     )
   const pushed = spends && sameIds(chainNext, [...chainPrevious, roller])
   const unchanged = sameIds(chainNext, chainPrevious)
@@ -398,13 +378,14 @@ export function castCounteredCarriesUsedReactions(
   next: CastPendingContext
 ): boolean {
   if (!castReactionOf(previous)) return false
-  const answer = castAnswer(previous, response)
+  const answer = castAnswer(response)
   const roller = previous.rollerActorId
   if (!answer || (answer === 'SPEND' && roller === undefined)) return false
   const spends = answer === 'SPEND' && roller !== undefined
   const chainPrevious = chainReactorIds(previous)
-  const chain =
-    spends && chainPrevious.length % 2 === 0 ? [...chainPrevious, roller] : chainPrevious
+  // A counter chosen against the standing counter saves the cast, so it never commits it countered.
+  if (spends && chainPrevious.length % 2 === 1) return false
+  const chain = spends ? [...chainPrevious, roller] : chainPrevious
   const usedNext = usedReactorIds(next)
   return (
     chain.length % 2 === 1 &&
@@ -419,7 +400,7 @@ export function castCounteredCarriesUsedReactions(
 
 /**
  * Whether a cast lost to the reaction child it resumes from (D219) carries exactly the failed counters
- * it held: the child spent its own counter, which owed no check and stood in no chain, so the cast's
+ * it held: the child spent its own counter, which stood in no chain, so the cast's
  * commit spends no other.
  */
 export function castCancelledByChildCarriesUsedReactions(
@@ -429,7 +410,6 @@ export function castCancelledByChildCarriesUsedReactions(
   const castReaction = castReactionOf(previous)
   return (
     castReaction != null &&
-    !castReaction.check &&
     !castReaction.chain &&
     awaitsReactionChild(previous) &&
     sameMembers(usedReactorIds(next), usedReactorIds(previous))
@@ -442,7 +422,7 @@ export function offeredDecisionOptionIds(context: {
     | { kind: 'LEGENDARY_RESISTANCE'; payload: { resistance: { useOptionId: string } } }
     | {
         kind: 'REACTION' | 'CAST_REACTION'
-        payload: { reactions: readonly { useOptionId: string }[]; check?: unknown }
+        payload: { reactions: readonly { useOptionId: string }[] }
       }
     | {
         kind: 'ON_HIT' | 'ATTACK_RETARGET'
@@ -460,9 +440,7 @@ export function offeredDecisionOptionIds(context: {
       return pause.payload.options.map((option) => option.useOptionId)
     case 'REACTION':
     case 'CAST_REACTION':
-      return pause.payload.check
-        ? []
-        : pause.payload.reactions.map((reaction) => reaction.useOptionId)
+      return pause.payload.reactions.map((reaction) => reaction.useOptionId)
     default:
       return []
   }
@@ -493,8 +471,6 @@ export function projectNativeActionPending(
       }
     case 'REACTION':
     case 'CAST_REACTION':
-      // A cast held on its counter's check asks for that roll instead.
-      if (pause.kind === 'CAST_REACTION' && pause.payload.check) break
       return {
         kind: 'REACTION_CHOICE',
         occurrenceId: occurrence.id,
@@ -631,7 +607,6 @@ export function projectNativeActionPending(
         ? contestDefenderPolicy(context.contest.defender, null)
         : null
     : (context.d20Policy ??
-      (pause?.kind === 'CAST_REACTION' ? pause.payload.check?.d20 : undefined) ??
       (pause?.kind === 'INCOMING_GATE' ? pause.payload.d20 : undefined) ??
       null)
   // A won contest's outcome asks its initiator for dice, outside the contest's d20 nodes (D173).
