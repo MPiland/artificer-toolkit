@@ -10,6 +10,15 @@ export type CommittedExecutionTrace = {
   }
 }
 
+/** A committed rules execution's graph outputs, with those of each phase it ran in. */
+export type CommittedExecutionOutputs = {
+  outputs: Readonly<Record<string, unknown>>
+  phaseReceipts?: readonly {
+    phase: string
+    execution: { outputs: Readonly<Record<string, unknown>> }
+  }[]
+}
+
 /**
  * The outcomes a committed execution resolved that its commit applies outside the graph: the System
  * that compiled an outcome to its own operation is the one that reads it back.
@@ -22,6 +31,8 @@ export interface ExecutionOutcomeCapabilityAdapter {
   imposesRollModeOnTriggeringRoll(execution: CommittedExecutionTrace): boolean
   /** Whether a reaction resolved the subtract outcome (Cutting Words), so the roll it answered loses its die. */
   subtractsFromTriggeringRoll(execution: CommittedExecutionTrace): boolean
+  /** Whether a reaction resolved the stop its movement trigger authors (Sentinel), so the move it answered ends there. */
+  stopsTriggeringMovement(execution: CommittedExecutionOutputs): boolean
   /** Whether an action resolved the Dash outcome, so its commit adds the actor's speed to the turn. */
   addsSpeedToMovement(execution: CommittedExecutionTrace): boolean
   /** Whether an action resolved the end-effects outcome (Lesser Restoration), so its commit ends the effects. */

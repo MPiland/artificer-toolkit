@@ -25,12 +25,12 @@ export type PendingReactionChildren = NonNullable<
 
 /**
  * Whether one of the given creatures reacted under a reaction child the pending action still awaits
- * (D219): one whose mode the resume that follows its commit has not written yet. Such a creature
+ * (D219): one whose outcome the resume that follows its commit has not written yet. Such a creature
  * stands as that child's tree left it: the Run moved only by those actions, each of which held its
  * own creatures to its own currentness until it committed.
  */
 export const reactedUnderAwaitedChild = (
-  recorded: readonly { commandId: string; rollMode?: unknown }[] | undefined,
+  recorded: readonly { commandId: string; resumeOutcome?: unknown }[] | undefined,
   committed: readonly {
     commandId: string
     reactorActorId: string
@@ -41,7 +41,8 @@ export const reactedUnderAwaitedChild = (
   committed.some(
     (child) =>
       recorded?.some(
-        ({ commandId, rollMode }) => commandId === child.commandId && rollMode === undefined
+        ({ commandId, resumeOutcome }) =>
+          commandId === child.commandId && resumeOutcome === undefined
       ) &&
       [child.reactorActorId, ...child.descendantReactorActorIds].some((actorId) =>
         actorIds.includes(actorId)

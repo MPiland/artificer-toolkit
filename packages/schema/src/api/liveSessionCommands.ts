@@ -29,6 +29,8 @@ export const liveSessionSequenceDtoSchema = lazySchema(() =>
  * the room's native SQLite transaction (D47).
  * Campaign chat and rolls execute in the room while it holds authority (D69).
  * Held Character play commands identify their active Run; rests and structural edits stay outside this lane.
+ * A move's resume from a reaction chosen against it is raised by the room alone, so the Encounter
+ * scope refuses that resolution from a client (D219).
  */
 export const liveSessionCommandDtoSchema = lazySchema(() =>
   z.discriminatedUnion('scope', [
@@ -36,13 +38,27 @@ export const liveSessionCommandDtoSchema = lazySchema(() =>
       scope: z.literal('SCENE'),
       command: z.union([sceneCommandInputDtoSchema, sceneFogPublishCommandInputSchema])
     }),
-    z.strictObject({
-      scope: z.literal('ENCOUNTER'),
-      command: z.union([
-        encounterCommandInputDtoSchema,
-        encounterActorTokenBindingCommandInputDtoSchema
-      ])
-    }),
+    z
+      .strictObject({
+        scope: z.literal('ENCOUNTER'),
+        command: z.union([
+          encounterCommandInputDtoSchema,
+          encounterActorTokenBindingCommandInputDtoSchema
+        ])
+      })
+      .check(
+        z.superRefine(({ command }, context) => {
+          if (
+            command.type === 'RESOLVE_RULE_OCCURRENCE' &&
+            command.resolution.kind === 'REACTION_CHILD_RESUME'
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['command', 'resolution', 'kind'],
+              message: 'Only the room resumes a move from a reaction.'
+            })
+        })
+      ),
     z.strictObject({
       scope: z.literal('CHARACTER_SHEET'),
       characterId: uuidSchema,
