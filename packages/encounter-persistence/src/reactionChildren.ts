@@ -5,7 +5,10 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { reactionOfferOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import {
+  reactionChildMoveCommandId,
+  reactionOfferOccurrenceId
+} from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
@@ -239,37 +242,75 @@ export async function repinReactionChildParent(
 /**
  * Returns the suspended action to pending when the GM voids the paused child it waited on: the
  * child is dropped from its record, so its answered offer stands open again, pinned to the Run
- * version the void produced. The suspended actions above it move with it.
+ * version the void produced. The suspended actions above it move with it. A Scene move's version
+ * counts the entries of its history, so its release is one more entry there, made by the GM.
  */
 export async function releaseReactionChildParent(
   ctx: EncounterWriteContext,
-  input: ReactionChildLink & { reactorActorId: string; version: number }
+  input: ReactionChildLink & { reactorActorId: string; actorUserId: string; version: number }
 ) {
   if (await readReactionOfferChild(ctx, input)) return
   const recording = await readRecordingParent(ctx, input)
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')
   const { parent, snapshot } = recording
-  // A move's version counts its recorded answers, so its release is a recorded answer of its own.
-  if (recording.context.kind !== 'ENCOUNTER_ACTION')
-    throw new Error('A Scene move does not release a reaction child here.')
-  // The cast is recorded with the children, so it goes when the last of them does.
-  const { reactionChildren = [], castLevel, castSlotKey, ...context } = recording.context
-  const kept = reactionChildren.filter(({ commandId }) => commandId !== input.childCommandId)
+  const kept = <Child extends { commandId: string }>(children: readonly Child[] = []) =>
+    children.filter(({ commandId }) => commandId !== input.childCommandId)
+  let applicationContext: RecordingParent['context']
+  if (recording.context.kind === 'ENCOUNTER_ACTION') {
+    // The cast is recorded with the children, so it goes when the last of them does.
+    const { reactionChildren, castLevel, castSlotKey, ...context } = recording.context
+    const children = kept(reactionChildren)
+    applicationContext = {
+      ...context,
+      ...(children.length > 0 && {
+        reactionChildren: children,
+        ...(castLevel !== undefined && { castLevel }),
+        ...(castSlotKey !== undefined && { castSlotKey })
+      })
+    }
+  } else {
+    const { root, phase } = recording.context
+    if (phase.kind !== 'CHOICE') throw new Error('The reaction’s pending action is gone.')
+    const { reactionChildren, ...choice } = phase
+    const children = kept(reactionChildren)
+    const release = {
+      kind: 'REACTION_CHILD_RELEASE' as const,
+      childCommandId: input.childCommandId
+    }
+    applicationContext = {
+      ...recording.context,
+      root: {
+        ...root,
+        resolutionCommands: [
+          ...root.resolutionCommands,
+          {
+            ...release,
+            commandId: reactionChildMoveCommandId({
+              ...release,
+              parentCommandId: root.commandId,
+              occurrenceVersion: root.resolutionCommands.length
+            }),
+            commandFingerprint: checksumCanonicalJson({
+              ...release,
+              parentCommandId: root.commandId
+            }),
+            actorUserId: input.actorUserId,
+            correlationId: null,
+            expectedOccurrenceVersion: root.resolutionCommands.length
+          }
+        ]
+      },
+      phase: { ...choice, ...(children.length > 0 && { reactionChildren: children }) }
+    }
+  }
   await ctx.db.patch(parent._id, {
     state: 'PENDING',
     version: parent.version + 1,
     expectedEncounterVersion: input.version,
     pendingSnapshotChecksum: await writePendingSnapshot(ctx, parent, {
       ...snapshot,
-      applicationContext: {
-        ...context,
-        ...(kept.length > 0 && {
-          reactionChildren: kept,
-          ...(castLevel !== undefined && { castLevel }),
-          ...(castSlotKey !== undefined && { castSlotKey })
-        })
-      }
+      applicationContext
     }),
     updatedAt: new Date().toISOString()
   })
