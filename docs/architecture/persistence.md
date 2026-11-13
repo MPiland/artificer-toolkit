@@ -336,14 +336,25 @@ GM voided (which has no command) through the void's occurrence. Every commit or 
 Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
 action above the one they return to `PENDING`.
 
-A Scene move as the parent (transitional, QUALITY-18.T1a, T1b1 and T2a; target QUALITY-18.T2b). A paused move's
+A Scene move as the parent (current, QUALITY-18.T1a to T2b2). A paused move's
 `ENCOUNTER_MOVEMENT_REACTION` pending context can record reaction children too: `reactionChildren` on its
 `CHOICE` phase, the same child shape as the action's (`encounterReactionChildrenDtoSchema`), and on no other
 phase. `reactionChildren.ts` reads either parent: a recorded child is admitted against the move
 (`readReactionChildParent`), its ancestors name the mover (the moving actor of the open reaction choice, with
 no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
-`awaitsReactionChild` treat the move as they treat an action. Nothing records a child on a move yet
-(QUALITY-18.T2b does), so no stored move carries the field.
+`awaitsReactionChild` treat the move as they treat an action.
+
+A member's `OPTION` answer to a move's choice records the child (`recordMovementReactionChild`,
+`movementReactionChild.ts`): it appends the `OPTION` entry to the move's history, one occurrence version on,
+sets `reactionChildren` to the one child and leaves the Run version alone. The child's command id
+(`movementReactionChildCommandId`) names the move's command, the option and that occurrence version, so a
+reaction chosen again after a release never reuses an id. The room runs the child's action in the same
+transaction (`executeRoomMovementReactionChild`), so a refused child takes the record back with it and the
+choice stays open. While a child is recorded the choice is answered: the decision summary shows no choice, so
+nobody is asked again and no timeout declines it, and `readMovementResponseAuthority` admits only the campaign
+owner's `REACTION_CHILD_RESUME` naming that child. The option the child came from is the last `OPTION` entry
+of the history, which also names the allowance the option was offered under when one contact offers the same
+action twice (`readReactionChildMovement`).
 
 The move's fence on the Run is its pin, not a count (QUALITY-18.T2a). `readMovementResponseAuthority` takes
 an answer only while the move is `PENDING` and `expectedEncounterVersion` equals the Run version. A move's own
@@ -365,9 +376,17 @@ release entry when the GM voids the held child, with the GM as `actorUserId`: it
 `CHOICE` phase, returns the move to `PENDING` one version on and pins it to the Run version the void
 produced, so the next answer is fenced on that version like any other. The resume is carried by a
 `RESOLVE_RULE_OCCURRENCE` resolution of kind `REACTION_CHILD_RESUME` with the `childCommandId`
-(QUALITY-18.T2a): the live-session command frame refuses it from every client, and no movement response
-path accepts it yet. QUALITY-18.T2b raises it in the room and writes the entry through the Scene geometry
-response path. The field and the two kinds are additive, so stored rows stay valid (D196: no local refresh).
+(QUALITY-18.T2a): the live-session command frame refuses it from every client. The room raises it
+(QUALITY-18.T2b2): after any commit, and from its alarm, the reaction-timeout sweep
+(`settleRoomReactionTimeouts`) reads a move whose recorded child has a committed Run command
+(`readMovementReactionChildResume`) and sends the resume through the Scene geometry response path as the
+campaign owner, with the owner as the entry's `actorUserId`. A resume that fails is logged and tried again
+after the alarm's retry delay, because nobody else can send it. The child may have changed the Scene, so the
+resume's staging first moves the move's `root.currentSceneVersion` to the Scene's version
+(`repinMovementReactionChildScene`); the mover's token must still stand at `root.currentPosition`. The resume
+continues the Kernel choice with the option the child came from, or ends the move at `root.currentPosition`
+when the child stops it or the mover is at 0 Hit Points. The field and the two kinds are additive, so stored
+rows stay valid (D196: no local refresh).
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
@@ -375,7 +394,8 @@ reaction (its own economy charge; the parent records no used reaction for it); t
 (`ACTION_RESUME` admission, room-internal) then reads the committed child and records what it imposes on its
 parent as `reactionChildren[].resumeOutcome`: `null` for nothing, `{ kind: 'ROLL_MODE', rollMode }` for a
 roll mode on the triggering roll (`imposesRollModeOnTriggeringRoll`), or `{ kind: 'STOP' }` for a move ended
-at its contact (`stopsTriggeringMovement`; no host writes it before QUALITY-18.T2b). The System adapter
+at its contact (`stopsTriggeringMovement`; a move's own resume reads the adapter directly and records no
+`resumeOutcome`). The System adapter
 resolves each. A child without `resumeOutcome` is unresolved (`awaitsReactionChild`), and
 until it resolves the parent takes no other answer. The rename from `rollMode` (QUALITY-18.T2a) changes the
 JSON of a held decision's pending snapshot only (`encounterPendingSnapshotParts`), not a Convex validator or

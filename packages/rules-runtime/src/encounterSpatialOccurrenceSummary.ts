@@ -198,7 +198,12 @@ export function projectEncounterSpatialOccurrenceSummary(
       }
     }
     const currentEntry = context.reactionTimeline[0] ?? null
-    const choice = context.phase.kind === 'CHOICE' ? (currentEntry?.group ?? null) : null
+    // A choice that records a reaction child is answered (D219): the move waits for the room's
+    // resume, so nobody is asked again and no timeout declines it.
+    const choice =
+      context.phase.kind === 'CHOICE' && !context.phase.reactionChildren?.length
+        ? (currentEntry?.group ?? null)
+        : null
     const actionEvidenceOptionId =
       context.phase.kind === 'ACTION_EVIDENCE' ? context.phase.selectedOptionId : null
     const actionEvidenceOption = actionEvidenceOptionId

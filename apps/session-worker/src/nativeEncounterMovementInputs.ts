@@ -340,13 +340,24 @@ export async function readNativeLiveMovementInputs(input: {
           expectedOccurrenceVersion: command.expectedOccurrenceVersion,
           kind: command.resolution.kind,
           ...('requestId' in command.resolution ? { requestId: command.resolution.requestId } : {}),
-          ...('optionId' in command.resolution ? { optionId: command.resolution.optionId } : {})
+          ...('optionId' in command.resolution ? { optionId: command.resolution.optionId } : {}),
+          ...('childCommandId' in command.resolution
+            ? { childCommandId: command.resolution.childCommandId }
+            : {})
         })
         if (root.resolutionCommands.some((entry) => entry.commandId === responseCommand.commandId))
           throw new Error('Movement response command was already used.')
         // An app roll settles with the faces Convex recorded for it, never client-supplied values.
         const answer = withEncounterAppRoll(command.resolution, movement.appRoll)
-        return { command, answer, snapshot, context, root, responseCommand }
+        return {
+          command,
+          answer,
+          snapshot,
+          context,
+          root,
+          responseCommand,
+          reactionChildren: movement.reactionChildren
+        }
       })()
     : null
   // Manual automation runs no rules but the mover's own passage, which walls still answer to.

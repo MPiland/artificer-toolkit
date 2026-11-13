@@ -137,6 +137,12 @@ export type FrozenMovementReactionRemainder = Pick<
         { kind: 'SPATIAL_EVIDENCE' }
       >['currentCandidate']
     | null
+  /**
+   * The move resumes from a committed reaction child (D219). That child's own commit moved the Run
+   * and its creatures since the move froze them, so the continuation takes the currentness facts as
+   * it locks them instead of holding them to the frozen checksum.
+   */
+  resumedFromReactionChild?: true
 }
 
 /** A mover leaving the area of a zone that holds a condition on it until it does (D146). */
@@ -517,6 +523,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     })
     if (
       frozenReactionRemainder &&
+      !frozenReactionRemainder.resumedFromReactionChild &&
       frozenReactionRemainder.spatialCurrentnessChecksum !== currentnessChecksum
     )
       throw new EncounterConflictError('The frozen spatial currentness facts are stale.')
@@ -616,6 +623,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   })
   if (
     frozenReactionRemainder &&
+    !frozenReactionRemainder.resumedFromReactionChild &&
     frozenReactionRemainder.appliedSpatialPrefix === null &&
     frozenReactionRemainder.spatialCurrentnessChecksum !== currentnessChecksum
   )

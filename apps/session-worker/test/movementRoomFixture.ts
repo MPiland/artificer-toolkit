@@ -869,26 +869,69 @@ export async function movementRoom(config: MovementRoomConfig) {
       ) {
         return moveToken('TELEPORT', path, expectedEncounterVersion, expectedSceneVersion, tokenId)
       },
-      /** Answers the PENDING movement decision with `resolution`. */
+      /**
+       * Answers the PENDING movement decision with `resolution`. A chosen reaction is answered with
+       * its own action's commit (D219); the room then resumes the move by itself, and this waits
+       * for that resume, so the caller reads the move as the room left it.
+       */
       async respond(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {
-        const decision = await pending()
-        if (!decision) throw new Error('No movement decision is pending.')
-        const commandId = crypto.randomUUID()
-        return send(commandId, {
-          scope: 'ENCOUNTER',
-          command: {
-            type: 'RESOLVE_RULE_OCCURRENCE',
-            encounterId,
-            commandId,
-            expectedVersion: decision.encounterVersion,
-            occurrenceId: decision.occurrence.id,
-            expectedOccurrenceVersion: expectedOccurrenceVersion ?? decision.occurrence.version,
-            correlationId: null,
-            resolution
-          }
-        })
+        const answer = await answerDecision(send, resolution, expectedOccurrenceVersion)
+        if (answer.type === 'COMMAND_COMMITTED') await moveResumed()
+        return answer
+      },
+      /** Answers as `respond` does, without waiting for the room's own resume of the move. */
+      respondOnly(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {
+        return answerDecision(send, resolution, expectedOccurrenceVersion)
       }
     }
+  }
+
+  async function answerDecision(
+    send: (commandId: string, command: Record<string, unknown>) => ReturnType<typeof sendOn>,
+    resolution: Record<string, unknown>,
+    expectedOccurrenceVersion?: number
+  ) {
+    const decision = await pending()
+    if (!decision) throw new Error('No movement decision is pending.')
+    const commandId = crypto.randomUUID()
+    return send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId,
+        commandId,
+        expectedVersion: decision.encounterVersion,
+        occurrenceId: decision.occurrence.id,
+        expectedOccurrenceVersion: expectedOccurrenceVersion ?? decision.occurrence.version,
+        correlationId: null,
+        resolution
+      }
+    })
+  }
+
+  /** Whether a paused move records a reaction child whose resume the room has still to commit. */
+  function moveAwaitsResume() {
+    return runInDurableObject(base.stub, async (_instance, context) => {
+      const room = new RoomEncounterStore(context.storage)
+      for (const occurrence of room.documents('encounterRuleOccurrences')) {
+        if (occurrence.state !== 'PENDING') continue
+        const held = (await readPendingSnapshot({ db: room.store }, occurrence))?.applicationContext
+        if (
+          held?.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+          held.phase.kind === 'CHOICE' &&
+          held.phase.reactionChildren?.length
+        )
+          return true
+      }
+      return false
+    })
+  }
+
+  /** Waits until the room has resumed the move whose reaction child committed (D219). */
+  function moveResumed() {
+    return vi.waitFor(async () => {
+      if (await moveAwaitsResume()) throw new Error('The room has not resumed the move.')
+    }, ROOM_REPLY_WAIT)
   }
 
   return {

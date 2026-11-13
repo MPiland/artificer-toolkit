@@ -39,7 +39,10 @@ import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
-import { executeRoomReactionOfferAnswer } from './roomEncounterReactionOffers.js'
+import {
+  executeRoomMovementReactionChild,
+  executeRoomReactionOfferAnswer
+} from './roomEncounterReactionOffers.js'
 import { recordRoomZoneSightings } from './roomZoneSightings.js'
 import { settleRoomEncounterAfterCommit } from './roomEncounterAfterCommit.js'
 import { actorIdsOutOfPlayByEffect } from './roomEncounterReturnsToPlay.js'
@@ -643,6 +646,13 @@ export async function executeRoomEncounterCommand(input: {
     if (route === 'CONTEST') return executeContest(command)
     if (route === 'REACTION_OFFER')
       return executeRoomReactionOfferAnswer({ ctx: context, transaction, command, executeAction })
+    if (route === 'MOVEMENT_REACTION_CHILD')
+      return executeRoomMovementReactionChild({
+        ctx: context,
+        transaction,
+        command,
+        executeAction
+      })
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
       route === 'CLEAVING'

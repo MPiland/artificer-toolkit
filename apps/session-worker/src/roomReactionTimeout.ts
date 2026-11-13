@@ -1,3 +1,4 @@
+import { readMovementReactionChildResume } from '@artificer-toolkit/encounter-persistence/movementReactionChild'
 import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { v5 as uuidV5 } from 'uuid'
@@ -8,6 +9,7 @@ import {
   type RoomEncounterExecutionHost
 } from './roomEncounterExecution.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
+import { ROOM_LIMITS } from './roomLimits.js'
 import { readRoomEncounterResponseRoute } from './roomEncounterResponseRouting.js'
 import { commitMovementDecision } from './roomSceneCommit.js'
 
@@ -21,6 +23,8 @@ export type RoomReactionTimeoutHost = RoomEncounterExecutionHost &
  * Declines each reaction offer of the room's ACTIVE Runs whose time ran out (D207), as the GM and
  * through the path a member's answer takes, and returns when the next one runs out. The decline's
  * command ID names the offer's version, so an answer that settled the offer first makes it stale.
+ * It also resumes a paused Scene move whose reaction child has committed (D219), the same way; a
+ * failed resume is due again after the alarm's retry delay.
  */
 export async function settleRoomReactionTimeouts(
   host: RoomReactionTimeoutHost,
@@ -37,14 +41,25 @@ export async function settleRoomReactionTimeouts(
     value: { authorityEpoch: epoch, campaignId }
   } as const
   const fingerprint = roomEncounterCommandFingerprint(timeout.command)
-  if ((await readRoomEncounterResponseRoute(host.store, timeout.command)) === 'MOVEMENT')
-    await commitMovementDecision(host, issuer, timeout.command, fingerprint)
-  else await commitRoomEncounterCommand(host, issuer, timeout.command, fingerprint)
+  try {
+    if ((await readRoomEncounterResponseRoute(host.store, timeout.command)) === 'MOVEMENT')
+      await commitMovementDecision(host, issuer, timeout.command, fingerprint)
+    else await commitRoomEncounterCommand(host, issuer, timeout.command, fingerprint)
+  } catch (error) {
+    if (timeout.command.resolution.kind !== 'REACTION_CHILD_RESUME') throw error
+    // Nobody but the room can resume a move, so its alarm tries again.
+    console.error('Live Session move resume failed.', error)
+    return now + ROOM_LIMITS.alarmRetryMs
+  }
   // The commit queues the room's post-commit steps, which settle the next offer it opened.
   return null
 }
 
-/** The reaction offer that runs out first, with the decline it issues; null when none is pending. */
+/**
+ * The room's next answer with when it is due; null when none is pending. A paused Scene move whose
+ * reaction child has committed is resumed at once (D219); otherwise it is the decline of the
+ * reaction offer that runs out first.
+ */
 async function readRoomReactionTimeout(host: RoomReactionTimeoutHost, epoch: string) {
   const pendingRuns = []
   for (const run of host.store.documents('encounterRuns'))
@@ -81,6 +96,8 @@ async function readRoomReactionTimeout(host: RoomReactionTimeoutHost, epoch: str
     command: ResolveRuleOccurrenceInputDto
   } | null = null
   for (const run of pendingRuns) {
+    const resume = await readMovementReactionChildResume(ctx, run)
+    if (resume) return { answerBy: 0, ownerUserId, command: resume }
     const pending = await readPendingRunDecision(ctx, run, campaign, membership)
     if (!pending || !('answerBy' in pending) || !pending.answerBy) continue
     const answerBy = Date.parse(pending.answerBy)

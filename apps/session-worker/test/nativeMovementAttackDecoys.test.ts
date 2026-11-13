@@ -19,9 +19,9 @@ import { readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-4.T2k2b: an opportunity attack against the holder of a Mirror Image (`ATTACK_DECOYS`) takes
- * the same decoy planner as an action attack. The decoy d20 is derived from the move's occurrence id
- * salted with the reactor, so the room is made to mint ids whose salted derivation does (or does not)
- * reach the minimum for the decoys left.
+ * the same decoy planner as an action attack. The attack runs as the reactor's own action (D219), so
+ * the decoy d20 is derived from that action's occurrence id, and the room is made to mint ids whose
+ * derivation does (or does not) reach the minimum for the decoys left.
  */
 
 const FIGHTER_ACTOR_ID = testUuid(0xe50)
@@ -106,7 +106,10 @@ async function decoyReactionRoom(remaining: number, moverConditionIds: string[] 
       for (;;) {
         const occurrenceId = mint()
         const decoy = attackDecoyFor({
-          occurrenceId: `${occurrenceId}:${FIGHTER_ACTOR_ID}`,
+          // Restated (QUALITY-18.T2b3, ruling 12): the attack is the reactor's own action, so its
+          // decoy d20 derives from that action's occurrence id, as any action attack's does. It was
+          // the move's occurrence id salted with the reactor while the move ran the attack inline.
+          occurrenceId,
           effects: [held],
           scalarValues: {},
           system: { id: SRD_SYSTEM_ID, abilities: [] },

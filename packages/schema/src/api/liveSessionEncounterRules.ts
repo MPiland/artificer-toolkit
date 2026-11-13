@@ -347,6 +347,8 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       /** The app roll a movement response settles with; null for any other answer. */
       appRoll: z.nullable(encounterSettledAppRollDtoSchema),
+      /** The committed children of the reaction choice a movement response resumes (D219). */
+      reactionChildren: liveSessionReactionChildrenSchema,
       save: sceneStoredGeometrySaveSchema,
       header: sceneLiveStateHeaderSchema,
       bindings: z

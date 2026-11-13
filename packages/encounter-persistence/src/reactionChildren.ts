@@ -160,7 +160,8 @@ export async function readReactionChildHitDamageTypeIds(
  * What a reaction child reads of the Scene move it answers, from the option its reactor took at the
  * held move's contact (D219): the occasion its attack is made on and the allowance the option was
  * offered under. Null when the child answers no move, or no held move records it. The option is the
- * one the contact offers that reactor for the child's action.
+ * one the move's history last recorded as chosen, so a contact that offers one action twice still
+ * names the allowance that was taken; it must be that reactor's, for the child's action.
  */
 export async function readReactionChildMovement(
   ctx: EncounterReadContext,
@@ -168,11 +169,17 @@ export async function readReactionChildMovement(
 ): Promise<LiveSessionTriggerMovement | null> {
   const held = await readRecordingParent(ctx, input)
   if (held?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION') return null
+  const chosenOptionId = held.context.root.resolutionCommands
+    .flatMap((entry) => (entry.kind === 'OPTION' ? [entry.optionId] : []))
+    .at(-1)
   const option = held.context.reactionTimeline[0]?.group.options.find(
-    ({ candidate, actionId }) =>
-      candidate.reactorActorId === input.reactorActorId && actionId === input.actionId
+    ({ optionId }) => optionId === chosenOptionId
   )
-  if (!option) throw new Error('The reaction’s move no longer offers it.')
+  if (
+    option?.candidate.reactorActorId !== input.reactorActorId ||
+    option.actionId !== input.actionId
+  )
+    throw new Error('The reaction’s move no longer offers it.')
   return {
     attackOccasion: MOVEMENT_REACTION_ATTACK_OCCASION,
     allowanceDefinitionId: option.policy.allowanceDefinitionId
