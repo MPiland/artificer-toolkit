@@ -1659,8 +1659,7 @@ resistance and reaction records, the used reaction's effect and cost, and the ch
 single-target planner calls it. Target (QUALITY-13.T1c2b, after QUALITY-8.T1d and QUALITY-9.T1b3): each ray of a
 chosen list calls it too; until then a ray offers no hit reaction (`advanceEncounterListAttacks`).
 
-A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
-below (T3d).
+A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction.
 
 **Counter as the holder's own action (current, QUALITY-9.T1a; area and chosen-list casts since
 QUALITY-9.T1b3a; D219 amendment).** A counter chosen against a cast, whether it names one creature, a chosen
@@ -1668,8 +1667,8 @@ list or an area, runs as a reaction child (see persistence.md, "Reaction arm"; `
 returns `CHILD`); a check it owes is the child's own incoming gate (QUALITY-9.T1b2). The child is
 the holder's own cast at the caster: its commit spends the holder's slot and reaction at the choice. The room
 then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by the System adapter from the
-child's stored execution) makes the resume commit the cast as lost with `counter: null`
-(`ENCOUNTER_COUNTERED_CAST`), spending only the caster and the failed counters already recorded. A child that
+child's stored execution) makes the resume commit the cast as lost (`ENCOUNTER_COUNTERED_CAST`, which records no counter of its
+own), spending only the caster and the used reactions already recorded. A child that
 did not cancel leaves its holder heard, like a decline, and the offers continue. The cast records its level
 beside the child (`castLevel`, see persistence.md, "The cast a child answers"; QUALITY-9.T1b1), which is where
 the child reads the DC of its check from.
@@ -1691,9 +1690,11 @@ slot there than the offer counted (the slot a held cast owes) is not offered; th
 that is left is (`prepareReaction` in `nativeEncounterCastPause.ts`). An area or chosen-list cast
 resumes from its child in `openReachCastWindow` (`nativeAreaPreparation.ts`), and goes on to its next offer, its
 saves, its commit or its loss. On a chosen list the creatures a cast names are offered their own reaction
-(`TARGETED_SELF`) after a counter that did not cancel it. Transitional (until QUALITY-9.T1c3): the
-inline chain described below (the offer's `chain`, a non-null `counter` receipt) is still in
-the code and the contracts, but no host raises it.
+(`TARGETED_SELF`) after a counter that did not cancel it. QUALITY-9.T1c3 deleted the inline chain this
+replaced (REACTION-4.T3d): the offer's `chain`, the parity resolution in `advanceNativeCastReactions`, the
+countered cast's `counter` receipt with its reactor spend, and the used reaction's `check`. Transitional
+(until QUALITY-9.T1d1): `usedReactions` still carries a `TARGETED_SELF` reaction spent at its own offer to
+the action's terminal commit.
 
 **Currentness across a reaction child (current, QUALITY-9.T1a; widened by QUALITY-9.T1c2).** A held action's
 sealed currentness checksum covers its source's and its target's facts. When a creature that reacted in the
@@ -1716,18 +1717,6 @@ uses it only to decide whether the reactor can be offered the reaction (`castRea
 itself is rolled by the reaction's own child action as its `TRIGGER` incoming gate (see "Trigger-check gate" in
 [persistence](persistence.md)). The inline check at the parent's pause (the offer's `check`, the pause's roll and
 its failed-counter bookkeeping) was deleted by QUALITY-9.T1b3c.
-
-**Counterspell chain (transitional inline path, REACTION-4.T3d; raised by no host since QUALITY-9.T1b3a).** A counter that stands is
-itself a cast: the offer's `chain` (`counters`, `castDeclinedReactorActorIds`, `castLevel`) holds the standing counters
-in order, and the next level offers the other Characters, except the creature whose cast it answers and any reactor that
-already used a counter in this cast, a counter to the last one. The original caster is therefore offered a counter to a
-Counterspell cast against its spell (never to its own cast), planned against the slots its cast leaves. Range, check level and target are measured against that counter's
-caster (`discoverNativeCastReactions` `against`). Each answer adds one counter, so depth needs no cap in code. When a
-level has nobody left to ask the chain resolves by parity (`advanceNativeCastReactions`): odd, the first counter stands
-and the cast is countered; even, the chain is spent without effect and the cast is offered again at its own level with
-its declines restored. `usedReactions` holds every counter used that did not counter the cast (one that was
-itself countered; `againstActorId` records the cast it answered), all spent with the cast's terminal commit. The
-persistence validators (`actionPending.ts`) check this bookkeeping by set equality.
 
 A creature that makes several spell spends in one terminal commit (the cast's caster: the cast, then its counter)
 commits them as one mechanics batch: `EncounterMechanicsBatchInput.characterSpellConsumptions` is an ordered list, each

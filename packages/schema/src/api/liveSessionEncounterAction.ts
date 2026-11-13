@@ -228,7 +228,7 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The spell slot the attacked Character's reaction spent, with the Character version it was planned at. */
   reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
-  /** The reactions other creatures used before this action executed (a counter that failed, a reaction to its aim), each spent with this commit (D127). */
+  /** The reactions other creatures used at their own offer before this action executed (a reaction to being named a target), each spent with this commit. */
   usedReactions: LiveSessionUsedReaction[]
   /** The reactions other creatures used against the attack roll, each spent with this commit (D207). */
   windowReactions: LiveSessionWindowReaction[]
@@ -326,13 +326,15 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
   )
 
 /**
- * The terminal outcome of a cast that another creature countered: the caster's one spend and the
- * reactor's, recorded on one root. Nothing of the spell applies, so it creates no effect, damage or
- * Concentration. Casting it still uses up the caster's grants that end on a cast.
+ * The terminal outcome of a cast that another creature countered: the caster's one spend, recorded on
+ * one root (the counter's own action recorded the reactor's, D219). Nothing of the spell applies, so it
+ * creates no effect, damage or Concentration. Casting it still uses up the caster's grants that end on
+ * a cast.
  */
 export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
   | 'maintenanceOwners'
+  | 'reactionSpellConsumption'
   | 'createdEffects'
   | 'maintainedState'
   | 'concentration'
@@ -373,7 +375,6 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
   lazySchema(() =>
     z.extend(lostActionCommitBase(), {
       ...lostActionCommitFields(),
-      reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       usedReactions: liveSessionUsedReactionsSchema
     })
   )
@@ -385,7 +386,7 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
  */
 export type LiveSessionEncounterGatedActionCommitInput = Omit<
   LiveSessionEncounterCounteredCastCommitInput,
-  'reactionSpellConsumption' | 'usedReactions'
+  'usedReactions'
 > & {
   /** The facts the gated action was prepared against; its receipt names them, as no graph ran. */
   currentnessChecksum: string

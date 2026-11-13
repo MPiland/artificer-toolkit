@@ -297,24 +297,17 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
           }
         }
         const castReaction = pause?.kind === 'CAST_REACTION' ? pause.payload : undefined
-        const chain = castReaction?.chain?.counters ?? []
-        const failedReactors = (value.usedReactions ?? []).map(
+        const usedReactors = (value.usedReactions ?? []).map(
           ({ reaction }) => reaction.reactorActorId
         )
-        const chainReactors = chain.map(({ reaction }) => reaction.reactorActorId)
-        const usedReactors = [...failedReactors, ...chainReactors]
         if (
           new Set(usedReactors).size !== usedReactors.length ||
-          (castReaction && usedReactors.includes(value.rollerActorId)) ||
-          chain.some(
-            ({ againstActorId }, index) => index > 0 && againstActorId !== chainReactors[index - 1]
-          )
+          (castReaction && usedReactors.includes(value.rollerActorId))
         )
           context.addIssue({
             code: 'custom',
             path: ['usedReactions'],
-            message:
-              'Each reactor uses one counter in a cast, is not offered it again, and each standing counter answers the one before it.'
+            message: 'Each reactor uses one reaction in an action and is not offered another.'
           })
         if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({

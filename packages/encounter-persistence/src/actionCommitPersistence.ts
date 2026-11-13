@@ -513,10 +513,7 @@ export async function persistEncounterActionCommit(
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: [
-      ...(batch.passedGate ? [{ reactor: source, check: batch.passedGate }] : []),
-      ...reactionSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : []))
-    ],
+    checks: batch.passedGate ? [{ reactor: source, check: batch.passedGate }] : [],
     response: input.response,
     responderUserId: userId,
     initiatorUserId,
