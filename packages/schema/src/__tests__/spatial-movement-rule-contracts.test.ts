@@ -1826,6 +1826,31 @@ describe('spatial movement rule contracts', () => {
     ).toBe(false)
   })
 
+  it('records reaction children only on a movement reaction choice (QUALITY-18.T1a, D219)', () => {
+    const action = movementReactionActionPendingContext()
+    const parse = (phase: object) =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({ ...action, phase })
+    const child = { commandId: ids.commandTwo }
+
+    const open = parse({ kind: 'CHOICE' })
+    expect(open.success && open.data).toMatchObject({ phase: { kind: 'CHOICE' } })
+    expect(open.success && open.data).not.toHaveProperty('phase.reactionChildren')
+    for (const reactionChildren of [[child], [{ ...child, rollMode: null }]]) {
+      const recorded = parse({ kind: 'CHOICE', reactionChildren })
+      expect(recorded.success && recorded.data).toMatchObject({
+        phase: { kind: 'CHOICE', reactionChildren }
+      })
+    }
+
+    expect(parse({ ...action.phase, reactionChildren: [child] }).success).toBe(false)
+    expect(parse({ kind: 'CHOICE', reactionChildren: [{ commandId: 'child' }] }).success).toBe(
+      false
+    )
+    expect(parse({ kind: 'CHOICE', reactionChildren: [{ ...child, resumed: true }] }).success).toBe(
+      false
+    )
+  })
+
   it('retains only the committed spatial prefix while later spatial evidence is pending', () => {
     const pending = lastReactionSpatialEvidenceContext()
     pending.completedSpatialExecutions.push(completedExecution(1, 7, ids.effectTwo))

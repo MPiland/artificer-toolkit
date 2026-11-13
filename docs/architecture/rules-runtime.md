@@ -1709,6 +1709,12 @@ excused: the child and the resume run in one room turn, the Run moves only by th
 held (`repinReactionChildParent`), and a child that paused held the same two creatures (its own source and
 target) to its own checksum until it committed. A resume from a bystander's child keeps the full comparison.
 
+**A Scene move as a reaction child's parent (transitional, QUALITY-18.T1a).** The movement reaction pending
+context (`ENCOUNTER_MOVEMENT_REACTION`) accepts `reactionChildren` on its `CHOICE` phase, in the shape the
+action context uses, and the persistence module reads a move as a parent (persistence.md, "Reaction arm").
+No host records a child on a move yet: movement reactions still resolve inline under `MOVE_SCENE_TOKEN`.
+QUALITY-18.T1b adds the move's resume and release, and QUALITY-18.T2 moves the reaction itself to a child.
+
 **Higher-level check (transitional inline path, REACTION-4.T3c; D127; raised by no host since
 QUALITY-9.T1b3a, deleted by QUALITY-9.T1b3c).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level

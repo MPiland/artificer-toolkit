@@ -336,6 +336,18 @@ GM voided (which has no command) through the void's occurrence. Every commit or 
 Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
 action above the one they return to `PENDING`.
 
+A Scene move as the parent (transitional, QUALITY-18.T1a; target QUALITY-18.T1b and T2). A paused move's
+`ENCOUNTER_MOVEMENT_REACTION` pending context can record reaction children too: `reactionChildren` on its
+`CHOICE` phase, the same child shape as the action's (`encounterReactionChildrenDtoSchema`), and on no other
+phase. `reactionChildren.ts` reads either parent: a recorded child is admitted against the move
+(`readReactionChildParent`), its ancestors name the mover (the moving actor of the open reaction choice, with
+no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
+`awaitsReactionChild` treat the move as they treat an action. Nothing records a child on a move yet
+(QUALITY-18.T2 does), so no stored move carries the field. Release and resume of a move are QUALITY-18.T1b:
+until then `releaseReactionChildParent` throws for a move parent, because a move's version must still equal
+its `resolutionCommands` count. The field is optional and additive, so stored rows stay valid (D196: no
+local refresh).
+
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
 reaction (its own economy charge; the parent records no used reaction for it); the room's `RESUME_ACTION`
