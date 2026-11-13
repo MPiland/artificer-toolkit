@@ -136,9 +136,9 @@ export function createNativeCastPause(input: {
   const resolveReactionChildren = () =>
     Promise.all(
       children.recorded.map(async (recorded) => {
-        if (recorded.rollMode !== undefined) return recorded
+        if (recorded.resumeOutcome !== undefined) return recorded
         const { reactorActorId, actionId, imposesRollMode } = committedChild(recorded.commandId)
-        if (!imposesRollMode) return { ...recorded, rollMode: null }
+        if (!imposesRollMode) return { ...recorded, resumeOutcome: null }
         const reactor = input.actors.find((actor) => actor.id === reactorActorId)
         const held = reactor
           ? characterReactionCandidates(
@@ -147,7 +147,7 @@ export function createNativeCastPause(input: {
           : undefined
         const rollMode = held && authoredImposedRollMode(held)
         if (!rollMode) throw new Error('Reaction evidence is stale.')
-        return { ...recorded, rollMode }
+        return { ...recorded, resumeOutcome: { kind: 'ROLL_MODE' as const, rollMode } }
       })
     )
   /**
@@ -160,9 +160,14 @@ export function createNativeCastPause(input: {
     <Attack extends Parameters<typeof withEncounterRollInfluences>[0]>(attack: Attack) =>
       withEncounterRollInfluences(
         attack,
-        children.flatMap(({ commandId, rollMode }) =>
-          rollMode
-            ? [{ reaction: { reactorActorId: committedChild(commandId).reactorActorId }, rollMode }]
+        children.flatMap(({ commandId, resumeOutcome }) =>
+          resumeOutcome?.kind === 'ROLL_MODE'
+            ? [
+                {
+                  reaction: { reactorActorId: committedChild(commandId).reactorActorId },
+                  rollMode: resumeOutcome.rollMode
+                }
+              ]
             : []
         )
       )
@@ -365,8 +370,8 @@ export function createNativeCastPause(input: {
     if (
       counterResume &&
       children.recorded.some(
-        ({ commandId, rollMode }) =>
-          rollMode === undefined && committedChild(commandId).cancelsTriggeringEvent
+        ({ commandId, resumeOutcome }) =>
+          resumeOutcome === undefined && committedChild(commandId).cancelsTriggeringEvent
       )
     )
       return {

@@ -106,9 +106,10 @@ export const liveSessionEncounterTurnCommandSchema = lazySchema(() =>
 /**
  * The committed child actions of the reactions chosen against a pending action (D219), in the order
  * the action records them: who reacted with what, and whether the child's committed execution
- * imposes a roll mode on the action's roll, subtracts a die from it, or cancels the action itself. `descendantReactorActorIds`
- * are the creatures whose own reactions committed under the child, down its tree: with the child's
- * reactor, the creatures the Run changed while the action waited on that child.
+ * imposes a roll mode on the action's roll, subtracts a die from it, cancels the action itself, or
+ * stops the move it answered. `descendantReactorActorIds` are the creatures whose own reactions
+ * committed under the child, down its tree: with the child's reactor, the creatures the Run changed
+ * while the action waited on that child.
  */
 const liveSessionReactionChildrenSchema = lazySchema(() =>
   z
@@ -120,6 +121,7 @@ const liveSessionReactionChildrenSchema = lazySchema(() =>
         imposesRollMode: z.boolean(),
         subtractsFromTriggeringRoll: z.boolean(),
         cancelsTriggeringEvent: z.boolean(),
+        stopsTriggeringMovement: z.boolean(),
         descendantReactorActorIds: z
           .array(postgresUuidSchema)
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

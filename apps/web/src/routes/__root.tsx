@@ -113,16 +113,25 @@ function SessionConvergence() {
     if (!snapshot) return
     const identityChanged =
       snapshot.user?.userId !== user?.userId || snapshot.user?.role !== user?.role
-    if (identityChanged) {
+    const dropPrivateCache = () => {
       queryClient.clear()
       void clearPrivateContentSnapshots()
     }
-    if (!identityChanged && snapshot.user?.authoringExperience === user?.authoringExperience) return
     // Concurrent invalidation can clear a still-rendered pending match's load promise and leave the
     // router pending, so a running load (hydration after sign-in) resolves first. Rendered route
     // state can lag a load that just started; the live router state decides.
-    if (!router.state.isLoading && router.state.status !== 'pending') {
-      void router.invalidate()
+    const routerIdle = !router.state.isLoading && router.state.status !== 'pending'
+    // Clearing the cache under a mounted suspense query rebuilds it with no data, re-subscribes as
+    // the revoked identity and throws to the route boundary. The `_authed` redirect must unmount
+    // the signed-in tree first.
+    const leaveSignedInTreeFirst = identityChanged && routerIdle && Boolean(user) && !snapshot.user
+    if (identityChanged && !leaveSignedInTreeFirst) dropPrivateCache()
+    if (!identityChanged && snapshot.user?.authoringExperience === user?.authoringExperience) return
+    if (routerIdle) {
+      void (async () => {
+        await router.invalidate()
+        if (leaveSignedInTreeFirst) dropPrivateCache()
+      })()
       return
     }
     const unsubscribe = router.subscribe('onResolved', () => {

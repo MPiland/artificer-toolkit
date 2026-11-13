@@ -51,8 +51,9 @@ export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD
  * The child actions of the reactions chosen against a held parent, in the order they were chosen
  * (D219): a pending action, or a Scene move paused on a reaction choice. Only a child recorded here
  * is admitted while the parent is held, and each one that commits moves the parent's occurrence one
- * Run version on. `rollMode` is the mode the committed child imposes on the parent's roll, null when
- * it imposes none; it is absent until the room resumes the parent after the child. `rolledDie` is the
+ * Run version on. `resumeOutcome` is what the committed child does to the parent it answered: the
+ * mode it imposes on the parent's roll, or the stop it puts to the parent's move, and null when it
+ * does neither; it is absent until the room resumes the parent after the child. `rolledDie` is the
  * die the committed child rolled against the parent's roll, with its faces, recorded by that same
  * resume: a replay of the parent reads the die from here and does not roll it again.
  */
@@ -62,14 +63,21 @@ export const encounterReactionChildrenDtoSchema = lazySchema(() =>
       z
         .strictObject({
           commandId: ruleExecutionUuidSchema,
-          rollMode: z.optional(z.nullable(systemCoreCodeSchema)),
+          resumeOutcome: z.optional(
+            z.nullable(
+              z.discriminatedUnion('kind', [
+                z.strictObject({ kind: z.literal('ROLL_MODE'), rollMode: systemCoreCodeSchema }),
+                z.strictObject({ kind: z.literal('STOP') })
+              ])
+            )
+          ),
           rolledDie: z.optional(d20RolledAddedDieDtoSchema)
         })
         .check(
           z.superRefine((child, context) => {
             if (
               child.rolledDie &&
-              (child.rollMode === undefined ||
+              (child.resumeOutcome === undefined ||
                 child.rolledDie.spentEffectId !== undefined ||
                 child.rolledDie.spentReaction !== undefined)
             )
@@ -232,7 +240,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 pause.payload.declinedReactorActorIds.includes(value.rollerActorId)
               )
                 issue(
-                  'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'
+                  'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20 or its hit.'
                 )
               break
             case 'INCOMING_GATE':

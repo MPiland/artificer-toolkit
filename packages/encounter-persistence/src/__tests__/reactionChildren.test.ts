@@ -38,6 +38,7 @@ import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolk
 import { projectNativeActionPending, readNativeActionPending } from '../actionPending.js'
 import { insertRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
+import { readMovementResponseAuthority } from '../movementResolutionDocuments.js'
 import { readPendingSnapshot, writePendingSnapshot } from '../pendingSnapshots.js'
 import {
   awaitsReactionChild,
@@ -122,6 +123,8 @@ const SETTLED_HIT = {
   targetStateChecksum: checksum('d'),
   damageTypeIds: [FIRE_ID, COLD_ID]
 }
+/** What a resume records for a committed child that imposed disadvantage on the parent's roll. */
+const DISADVANTAGE = { kind: 'ROLL_MODE', rollMode: 'DISADVANTAGE' } as const
 
 /** The protector's reaction as an offer of `trigger` pins it. */
 const reactionPin = (trigger: EncounterReactionPinDto['trigger']) => {
@@ -195,7 +198,7 @@ async function pausedAttack(
   input: {
     reactionChildren?: {
       commandId: string
-      rollMode?: 'DISADVANTAGE' | null
+      resumeOutcome?: typeof DISADVANTAGE | { kind: 'STOP' } | null
       rolledDie?: object
     }[]
     /** The level the paused action casts its spell at, when it casts one. */
@@ -646,7 +649,7 @@ describe('the cast a reaction child answers (QUALITY-9.T1b1, D219)', () => {
   it('never rewrites the level from one context to the next', () => {
     const child = { commandId: testUuid(0x8a10) }
     const waiting = { reactionChildren: [child], castLevel: 4 }
-    const resumed = { reactionChildren: [{ ...child, rollMode: null }] }
+    const resumed = { reactionChildren: [{ ...child, resumeOutcome: null }] }
     expect(reactionChildrenKept(waiting, { ...resumed, castLevel: 4 })).toBe(true)
     expect(reactionChildrenKept(waiting, { ...resumed, castLevel: 5 })).toBe(false)
     expect(reactionChildrenKept(waiting, resumed)).toBe(false)
@@ -748,7 +751,7 @@ describe('the reaction children a pending action keeps from one context to the n
   const second = { commandId: testUuid(0x8a11) }
   const resolved = (child: { commandId: string }, rollMode: string | null = 'DISADVANTAGE') => ({
     ...child,
-    rollMode
+    resumeOutcome: rollMode === null ? null : { kind: 'ROLL_MODE', rollMode }
   })
 
   it('waits on a child only while one is recorded without its resolved mode', () => {
@@ -842,8 +845,9 @@ describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219
       )
     )
   }
+  // Restated (QUALITY-8.T1d1): the TEST such an offer is held on may now be the attack's hit, so the message names both.
   const refusal =
-    'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'
+    'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20 or its hit.'
 
   it('is held on the attack’s TEST with the rolled d20, for the reactor to decide on the roll as it stands', async () => {
     const paused = await pausedAttack({
@@ -902,11 +906,11 @@ describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219
     expect(await readReactionChildParent(raised.ctx, link)).toEqual(raised.occurrence())
     const resumed = await pausedAttack({
       offer,
-      reactionChildren: [{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }]
+      reactionChildren: [{ commandId: child, resumeOutcome: null, rolledDie: ROLLED_DIE }]
     })
     expect(
       (await readNativeActionPending(resumed.ctx, resumed.occurrence())).context.reactionChildren
-    ).toEqual([{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }])
+    ).toEqual([{ commandId: child, resumeOutcome: null, rolledDie: ROLLED_DIE }])
   })
 })
 
@@ -964,7 +968,7 @@ describe('an offer of reactions made to the creature an attack hit (QUALITY-8.T1
     const unkept = 'Only an offer made to the creature an attack hit keeps that hit.'
     await expect(pausedAttack({ offer: { ...offer, hit: false } })).rejects.toThrow(unkept)
     await expect(pausedAttack({ offer: { ...offer, test: false } })).rejects.toThrow(
-      'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'
+      'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20 or its hit.'
     )
   })
 
@@ -993,7 +997,7 @@ describe('the die a pending action records for a child it resumed from (QUALITY-
   const child = reactionChild().commandId
 
   it('is stored with the child’s resolved mode and read back as recorded', async () => {
-    const reactionChildren = [{ commandId: child, rollMode: null, rolledDie: ROLLED_DIE }]
+    const reactionChildren = [{ commandId: child, resumeOutcome: null, rolledDie: ROLLED_DIE }]
     const { ctx, occurrence } = await pausedAttack({ reactionChildren })
     expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual(
       reactionChildren
@@ -1016,7 +1020,7 @@ describe('the die a pending action records for a child it resumed from (QUALITY-
       await expect(
         pausedAttack({
           reactionChildren: [
-            { commandId: child, rollMode: null, rolledDie: { ...ROLLED_DIE, ...spent } }
+            { commandId: child, resumeOutcome: null, rolledDie: { ...ROLLED_DIE, ...spent } }
           ]
         })
       ).rejects.toThrow(
@@ -1029,7 +1033,7 @@ describe('the die a pending action records for a child it resumed from (QUALITY-
       await expect(
         pausedAttack({
           reactionChildren: [
-            { commandId: child, rollMode: null, rolledDie: { ...ROLLED_DIE, rolledFaces } }
+            { commandId: child, resumeOutcome: null, rolledDie: { ...ROLLED_DIE, rolledFaces } }
           ]
         })
       ).rejects.toThrow('An added die records one face per die, each within its size.')
@@ -1062,7 +1066,7 @@ describe('admitting the room’s resume of a pending action (D219)', () => {
 
   it('refuses a second resume from a child the action already resumed from', async () => {
     const paused = await pausedAttack({
-      reactionChildren: [{ commandId: reactionChild().commandId, rollMode: 'DISADVANTAGE' }]
+      reactionChildren: [{ commandId: reactionChild().commandId, resumeOutcome: DISADVANTAGE }]
     })
     await expect(resumeOf(paused)).rejects.toThrow('DECISION_NOT_PENDING')
   })
@@ -1140,7 +1144,7 @@ describe('suspending the pending action while its reaction child is the pending 
     expect(reopened.context.reactionChildren).toBeUndefined()
     expect(reopened.context.castLevel).toBeUndefined()
 
-    const earlier = { commandId: testUuid(0x8a13), rollMode: 'DISADVANTAGE' as const }
+    const earlier = { commandId: testUuid(0x8a13), resumeOutcome: DISADVANTAGE }
     const later = await pausedAttack({
       reactionChildren: [earlier, ...recorded.reactionChildren],
       castLevel: 4
@@ -1160,7 +1164,7 @@ describe('suspending the pending action while its reaction child is the pending 
     const earlier = testUuid(0x8a13)
     const { ctx, memory, occurrence } = await pausedAttack({
       reactionChildren: [
-        { commandId: earlier, rollMode: 'DISADVANTAGE' },
+        { commandId: earlier, resumeOutcome: DISADVANTAGE },
         ...recorded.reactionChildren
       ]
     })
@@ -1169,12 +1173,12 @@ describe('suspending the pending action while its reaction child is the pending 
     await insertVoid(memory, ROOT_VERSION + 2)
     await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 2 })
     expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual([
-      { commandId: earlier, rollMode: 'DISADVANTAGE' }
+      { commandId: earlier, resumeOutcome: DISADVANTAGE }
     ])
   })
 
   it('keeps the die an earlier child rolled when a later one is voided (QUALITY-9.T1e1)', async () => {
-    const earlier = { commandId: testUuid(0x8a13), rollMode: null, rolledDie: ROLLED_DIE }
+    const earlier = { commandId: testUuid(0x8a13), resumeOutcome: null, rolledDie: ROLLED_DIE }
     const { ctx, memory, occurrence } = await pausedAttack({
       reactionChildren: [earlier, ...recorded.reactionChildren]
     })
@@ -1519,6 +1523,7 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
         imposesRollMode: false,
         subtractsFromTriggeringRoll: false,
         cancelsTriggeringEvent: false,
+        stopsTriggeringMovement: false,
         // The reaction that countered it committed under it, so its creature reacted in the child's tree.
         descendantReactorActorIds: [ATTACKER_ID]
       }
@@ -1574,6 +1579,7 @@ describe('a committed child that takes a die from the roll it answered (QUALITY-
         imposesRollMode: false,
         subtractsFromTriggeringRoll: true,
         cancelsTriggeringEvent: false,
+        stopsTriggeringMovement: false,
         descendantReactorActorIds: []
       }
     ])
@@ -1626,7 +1632,7 @@ describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () =>
     )
     const child = { commandId: testUuid(0x8a10) }
     const waiting = { reactionChildren: [child], castLevel: 3, castSlotKey: SLOT_KEY }
-    const resumed = { reactionChildren: [{ ...child, rollMode: null }], castLevel: 3 }
+    const resumed = { reactionChildren: [{ ...child, resumeOutcome: null }], castLevel: 3 }
     expect(reactionChildrenKept(waiting, { ...resumed, castSlotKey: SLOT_KEY })).toBe(true)
     expect(reactionChildrenKept(waiting, { ...resumed, castSlotKey: 'STANDARD:4' })).toBe(false)
     expect(reactionChildrenKept(waiting, resumed)).toBe(false)
@@ -1644,7 +1650,7 @@ describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () =>
 
     const later = await pausedAttack({
       reactionChildren: [
-        { commandId: testUuid(0x8a13), rollMode: 'DISADVANTAGE' },
+        { commandId: testUuid(0x8a13), resumeOutcome: DISADVANTAGE },
         ...recorded.reactionChildren
       ],
       castLevel: 3,
@@ -1662,14 +1668,21 @@ describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () =>
   })
 })
 
+/** The Scene the move is made on, which the Run is bound to when its answers are read. */
+const MOVE_SCENE_ID = testUuid(0x8a43)
+
 /**
  * A Run at `ROOT_VERSION` whose Scene move, the attacker's, is paused on the protector's reaction
  * choice at its contact, the choice recording `reactionChildren`. Nothing has answered the move yet,
  * so its history is empty and its occurrence at version 0. Returns that choice and the move's root
  * with the Run.
  */
-async function pausedMove(reactionChildren?: { commandId: string; rollMode?: null }[]) {
-  const paused = await pausedAttack()
+async function pausedMove(
+  reactionChildren?: { commandId: string; resumeOutcome?: null }[],
+  /** The Run to make the move on, when its child is already held against it. */
+  held?: Awaited<ReturnType<typeof pausedAttack>>
+) {
+  const paused = held ?? (await pausedAttack())
   const { ctx, memory, occurrence } = paused
   const { _id, _creationTime, ...root } = occurrence()
   const snapshot = await readPendingSnapshot(ctx, root)
@@ -1731,6 +1744,7 @@ async function pausedMove(reactionChildren?: { commandId: string; rollMode?: nul
       root,
       serverRuleExecutionPendingSnapshotDtoSchema.parse({
         ...snapshot,
+        optionalCombatSnapshotChecksum: paused.state.optionalCombatSnapshotChecksum,
         applicationContext: {
           kind: 'ENCOUNTER_MOVEMENT_REACTION',
           schemaVersion: 1,
@@ -1740,7 +1754,7 @@ async function pausedMove(reactionChildren?: { commandId: string; rollMode?: nul
             initiatorUserId: USER_ID,
             correlationId: null,
             encounterId: ENCOUNTER_ID,
-            sceneId: testUuid(0x8a43),
+            sceneId: MOVE_SCENE_ID,
             tokenId: testUuid(0x8a44),
             expectedEncounterVersion: ROOT_VERSION,
             expectedSceneVersion: 3,
@@ -1844,14 +1858,14 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
   it('waits on a recorded child until the move resumes from it', async () => {
     const waiting = await pausedMove(recorded.reactionChildren)
     expect(awaitsReactionChild(await waiting.choice())).toBe(true)
-    const resumed = await pausedMove([{ ...recorded.reactionChildren[0]!, rollMode: null }])
+    const resumed = await pausedMove([{ ...recorded.reactionChildren[0]!, resumeOutcome: null }])
     expect(awaitsReactionChild(await resumed.choice())).toBe(false)
     expect(awaitsReactionChild(await (await pausedMove()).choice())).toBe(false)
   })
 })
 
 describe('releasing a Scene move from a voided reaction child (QUALITY-18.T1b1, D219)', () => {
-  const RESUMED_CHILD = { commandId: testUuid(0x8a0c), rollMode: null }
+  const RESUMED_CHILD = { commandId: testUuid(0x8a0c), resumeOutcome: null }
 
   it('records the release as the next entry of the move’s history, made by the GM', async () => {
     const { ctx, occurrence, move } = await pausedMove(recorded.reactionChildren)
@@ -1941,5 +1955,131 @@ describe('releasing a Scene move from a voided reaction child (QUALITY-18.T1b1, 
         }
       }).applicationContext
     ).toMatchObject({ root: { resolutionCommands } })
+  })
+})
+
+describe('the Run version a held Scene move takes its next answer at (QUALITY-18.T2a, D219)', () => {
+  type Held = Awaited<ReturnType<typeof pausedMove>>
+
+  /** Moves the Run to `version`, as the commit or void that produced it stores it. */
+  async function advanceRun({ memory, state }: Held, version: number) {
+    const next = { ...state, version }
+    await memory.store.patch(memory.documents('encounterRuns')[0]!._id, {
+      version,
+      stateJson: JSON.stringify(next),
+      stateChecksum: checksumCanonicalJson(next)
+    })
+  }
+
+  /** The GM's answer to the move's open choice, read through the move's own response fence. */
+  async function answer(held: Held, expectedVersion: number, expectedOccurrenceVersion: number) {
+    const { memory, ctx, state } = held
+    if (memory.documents('encounterSceneBindings').length === 0)
+      await memory.store.insert('encounterSceneBindings', {
+        encounterId: ENCOUNTER_ID,
+        campaignId: CAMPAIGN_ID,
+        sceneId: MOVE_SCENE_ID,
+        commandId: testUuid(0x8a47),
+        commandFingerprint: checksum('a'),
+        createdAt: TIMESTAMP
+      })
+    // Only the platform is faked: who is signed in and their Campaign membership.
+    const gm = {
+      db: ctx.db,
+      ports: {
+        ...ctx.ports,
+        requireIdentity: async () => ({ userId: GM_USER_ID }),
+        requireCampaignAuthority: async () => ({
+          campaign: {
+            id: CAMPAIGN_ID,
+            ownerUserId: GM_USER_ID,
+            status: 'ACTIVE',
+            gameSystemId: state.gameSystemId
+          },
+          membership: {
+            campaignId: CAMPAIGN_ID,
+            userId: GM_USER_ID,
+            role: 'OWNER',
+            status: 'ACTIVE'
+          }
+        }),
+        readAssignedCharacter: async () => null
+      }
+    } as unknown as Parameters<typeof readMovementResponseAuthority>[0]
+    return readMovementResponseAuthority(gm, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: ENCOUNTER_ID,
+      commandId: testUuid(0x8a48),
+      expectedVersion,
+      correlationId: null,
+      occurrenceId: OCCURRENCE_ID,
+      expectedOccurrenceVersion,
+      resolution: { kind: 'DECLINE' }
+    })
+  }
+
+  it('is the version its committed child left, once the child’s commit re-pinned it', async () => {
+    const held = await pausedMove(recorded.reactionChildren)
+    const { ctx, memory, state, occurrence } = held
+    await expect(answer(held, ROOT_VERSION, 0)).resolves.toMatchObject({
+      occurrence: occurrence()
+    })
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+    await advanceRun(held, ROOT_VERSION + 1)
+    // A Run that moved without re-pinning the move is not the Run the move was held on.
+    await expect(answer(held, ROOT_VERSION + 1, 0)).rejects.toThrow(
+      'Movement response occurrence is stale.'
+    )
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    await expect(answer(held, ROOT_VERSION + 1, 0)).resolves.toMatchObject({
+      occurrence: occurrence(),
+      root: { resolutionCommands: [] }
+    })
+    await expect(answer(held, ROOT_VERSION, 0)).rejects.toThrow('VERSION_STALE')
+  })
+
+  it('follows the reaction that commits under its held child and the GM void that takes both back', async () => {
+    const attack = await pausedAttack(recorded)
+    const child = await holdReactionChild(attack, nested.reactionChildren)
+    const held = await pausedMove(recorded.reactionChildren, attack)
+    const { ctx, memory, state, occurrence } = held
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    await advanceRun(held, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    // The move takes no answer while its child is the Run's pending decision.
+    await expect(answer(held, ROOT_VERSION + 1, 0)).rejects.toThrow(
+      'Movement response occurrence is stale.'
+    )
+
+    // The void takes the committed nested reaction back as one undo, then records itself.
+    await insertGmCommand(memory, ROOT_VERSION + 2, {
+      commandType: 'REVERT_LAST_ACTION',
+      revertedCommandId: nestedChild().commandId
+    })
+    await memory.store.patch(child()._id, {
+      state: 'VOIDED',
+      completedAt: TIMESTAMP,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: CHILD_OCCURRENCE_ID, encounterId: ENCOUNTER_ID },
+        null
+      )
+    })
+    await insertVoid(memory, ROOT_VERSION + 3, CHILD_OCCURRENCE_ID)
+    await advanceRun(held, ROOT_VERSION + 3)
+    await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 3 })
+
+    const current = await answer(held, ROOT_VERSION + 3, 1)
+    expect(current.occurrence).toEqual(occurrence())
+    expect(current.root.resolutionCommands.map(({ kind }) => kind)).toEqual([
+      'REACTION_CHILD_RELEASE'
+    ])
+    // Neither the Run version before the void nor the move's version before its release answers it.
+    await expect(answer(held, ROOT_VERSION + 2, 1)).rejects.toThrow('VERSION_STALE')
+    await expect(answer(held, ROOT_VERSION + 3, 0)).rejects.toThrow('VERSION_STALE')
   })
 })

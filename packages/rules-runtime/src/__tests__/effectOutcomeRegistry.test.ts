@@ -49,7 +49,9 @@ import {
   dnd5ePathGatedTargetProposalOperations,
   dnd5eTestDamageProposalOperation
 } from '../systems/dnd5e/effectActionOperationRegistry.js'
+import { withMovementInterruption } from '../systems/dnd5e/effectActionTestPhase.js'
 import { executionImposesRollModeOnTriggeringRoll } from '../systems/dnd5e/imposeRollModeOnTriggeringRoll.js'
+import { executionStopsTriggeringMovement } from '../systems/dnd5e/stopTriggeringMovement.js'
 import { executionSubtractsFromTriggeringRoll } from '../systems/dnd5e/subtractFromTriggeringRoll.js'
 import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
 import {
@@ -572,6 +574,29 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       expect(commits(other.execution)).toBe(false)
     }
   )
+
+  it('stops the triggering movement only when the save resolves to the path its trigger authors (QUALITY-18.T2a)', async () => {
+    const save = publish(saveGraph({ kind: 'MANUAL_ADJUDICATION' }, 'ON_SAVE_FAIL'))
+    const stopping = await run(withMovementInterruption(save, 'ON_SAVE_FAIL').definition)
+    const moving = await run(withMovementInterruption(save, 'ON_SAVE_SUCCESS').definition)
+    const unbound = await run(save.definition)
+    expect(executionStopsTriggeringMovement(stopping.execution)).toBe(true)
+    expect(executionStopsTriggeringMovement(moving.execution)).toBe(false)
+    expect(executionStopsTriggeringMovement(unbound.execution)).toBe(false)
+    // An action with a TEST phase binds the stop to that phase, whatever its outcome graph returns.
+    expect(
+      executionStopsTriggeringMovement({
+        ...unbound.execution,
+        phaseReceipts: [{ phase: 'TEST', execution: stopping.execution }]
+      })
+    ).toBe(true)
+    expect(
+      executionStopsTriggeringMovement({
+        ...stopping.execution,
+        phaseReceipts: [{ phase: 'TEST', execution: moving.execution }]
+      })
+    ).toBe(false)
+  })
 })
 
 describe('a path-gated damage proposal (RULES-2.T6d2)', () => {

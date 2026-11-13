@@ -23875,7 +23875,7 @@
         {
           "id": "RELIABILITY-24",
           "title": "A session whose account is gone leaves the signed-in pages without an error",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "origin": [
@@ -23891,19 +23891,20 @@
           "acs": [
             {
               "id": "RELIABILITY-24.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [
                 "User approval 2026-11-13 (D187 exception: CI flake): account-deletion-browser failed on the m723 batch (43350651093) with an Unauthenticated console error from accountEntitlements:get in the deleted account's second session; user ruled a client fix. Investigation: SessionConvergence clears the query cache while the signed-in tree is mounted, so the account route's useSuspenseQuery re-subscribes as the revoked identity and throws to the route error boundary."
               ],
               "text": "When a session loses its identity (account deleted, signed out elsewhere, banned, expired), it leaves the signed-in route tree before the private query cache is dropped, so no suspense query throws to an error boundary or logs an Unauthenticated console error; a regression test against the real query client fails before the fix, and account-deletion-browser passes with zero unexpected diagnostics.",
-              "proof": []
+              "proof": [
+                "RELIABILITY-24.T1 (m727): -sessionRevocation.test.tsx RED before the fix; account-deletion-browser 43358760140 green."
+              ]
             }
           ],
           "tasks": [
             {
               "id": "RELIABILITY-24.T1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["RELIABILITY-24.1"],
               "wsjf": {
                 "bv": 3,
@@ -23912,7 +23913,9 @@
                 "size": 2,
                 "after": []
               },
-              "text": "In SessionConvergence (and the test router copy), on identity loss leave the signed-in tree before clearing the query cache and private content snapshots; sign-in and identity switches keep today's order. Regression test with the real ConvexQueryClient plus the account-deletion-browser proof."
+              "text": "In SessionConvergence (and the test router copy), on identity loss leave the signed-in tree before clearing the query cache and private content snapshots; sign-in and identity switches keep today's order. Regression test with the real ConvexQueryClient plus the account-deletion-browser proof.",
+              "mergedAt": "2026-11-13",
+              "proof": "m727 (aa5539037), batch with QUALITY-18.T2a and RELIABILITY-24.T1 (first batch m726 failed on a liveSessions/authority.test.ts rate-limit timing flake, green on rerun), from slice tip c10958de7: Tests 43359934287, Browser journeys 43359934200 green; account-deletion-browser proof 43358760140 green on the same production code. Red proof -sessionRevocation.test.tsx RED 1/1. SessionConvergence on identity loss (a user was set, the snapshot has none, router idle) invalidates the router so the _authed redirect unmounts the signed-in tree, then clears the query cache and private content snapshots; sign-in and identity switches keep clear-first. @convex-dev/react-query keeps data on a pushed error, so the push alone never throws. D196: none."
             }
           ],
           "internalReason": "Fixes a brief error flash in another open session of a deleted or signed-out account, and the CI flake it causes."
@@ -25748,8 +25751,8 @@
               "proof": "m712 (f8bb63044) from slice tip 5802ca872: Tests 43282180285, Live 43282180095, Browser journeys 43282180040 green. CampaignTabletopDecisionDrawer shows REACTION_OFFER (\"Reaction available\", \"<attacker> attacked <reactor>. Use a reaction?\", one \"Use <option>\" per option plus Decline, untimed), answered through RESOLVE_RULE_OCCURRENCE by the reactor's controller or the GM; drawer unit and model tests, a ReactionOffer Storybook play story, and a GM-answer room test. Docs: live-sessions, persistence, rules-runtime and the reactionTriggers note. The live-stack browser journey moved to SPELLS-31.T4k1c (no size change)."
             },
             {
-              "id": "QUALITY-8.T1d",
-              "status": "TODO",
+              "id": "QUALITY-8.T1d1",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25758,8 +25761,37 @@
                 "size": 3,
                 "after": ["QUALITY-9.T1d1", "QUALITY-8.T1c2b3"]
               },
-              "note": "Registered 2026-11-12 at the QUALITY-9.T1 seam trace (D219): AC QUALITY-8.1 requires every chosen reaction to run as a child; no new scope.",
-              "text": "On-hit reactions (the REACTION pause: Shield, Absorb Elements) run as reaction children resuming by REBIND_TEST; the inline on-hit reaction path is deleted and REACTION merges into the one reaction offer."
+              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
+              "text": "Inert contracts and persistence: the one reaction offer gains kind HIT_BY_ATTACK holding the settled hit and trigger damage type ids, with ATTACKED_SELF and DAMAGE_TAKEN in one menu; pending validation and castPendingContinues for a TEST-held hit offer; triggerDamageTypeIds captured for the child.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-8.T1d2",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-8.T1d1"]
+              },
+              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
+              "text": "Worker host and room proofs: the hit offer through the shared offer, the child launched from the post-TEST pending, resume by REBIND_TEST against committed state; Shield and Absorb Elements as children (actor, target, parent, versions), raised AC and resistance applied, one undo, void cascade, creature holder (Parry), drawer; reactions needing rolls work, refusal tests restated with the user ruling."
+            },
+            {
+              "id": "QUALITY-8.T1d3",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-8.T1d2"]
+              },
+              "note": "Split 2026-11-13 at the seam trace (3 to 8-13); user approved T1d1 3, T1d2 5, T1d3 3, net +8. User ruling: on-hit reactions needing their own rolls are allowed as children; pool- or charge-paid reactions keep the refusal.",
+              "text": "Delete the inline on-hit path: the REACTION pause kind, EncounterReactionOfferDto, resolveNativeActionReaction, replayNativeActionReaction, applyNativeReactionEffect, createNativeCurrentReaction, the retained audit and receipt DTOs, the persistence spend, effect and revert arms, the outcome planner reaction fields and reactionCastEnded; docs updated."
             }
           ]
         },
@@ -25984,7 +26016,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d"]
+                "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d2"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
               "text": "Reaction die on the action host: the Worker offers it after the roller's own window, launches the child (which pauses for its die, manual entry kept), resumes the parent applying the die to the held d20, rebinds a reactor-is-target child through the QUALITY-8.T1d mechanism; the drawer; the room tests restated on the child path, including undo and void of the child."
@@ -26302,7 +26334,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 2,
-                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d", "QUALITY-9.T1b3a"]
+                "after": ["QUALITY-13.T1c2a", "QUALITY-8.T1d2", "QUALITY-9.T1b3a"]
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187).",
               "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start."
@@ -26622,7 +26654,7 @@
             },
             {
               "id": "QUALITY-18.T2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26633,11 +26665,12 @@
               },
               "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
               "text": "Inert groundwork for opportunity attacks as children: rename the rollMode resume marker to a neutral name that includes STOP; add the stopsTriggeringMovement System adapter beside cancelsTriggeringEvent; add the room-internal move-resume resolution kind inside RESOLVE_RULE_OCCURRENCE with its client-schema refusal; a void of a held move takes back its recorded children; the movement fences allow committed descendants and voids, proved at persistence level.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m727 (aa5539037), batch with QUALITY-18.T2a and RELIABILITY-24.T1 (first batch m726 failed on a liveSessions/authority.test.ts rate-limit timing flake, green on rerun), from slice tip 8bc21d313: Tests 43359014787, Live 43359014925, Browser journeys 43359014816 green. Red proof nativeRoomProtection 1/10, nativeRoomReactionSave 3/7, actionPendingOffers 4/30, reactionChildren 18/74, live-session-contracts 1/17, spatial-movement-rule-contracts 1/24 RED; effectOutcomeRegistry RED-IMPORT. reactionChildren[].rollMode became resumeOutcome (ROLL_MODE or STOP); stopsTriggeringMovement adapter (dnd5e/stopTriggeringMovement.ts); REACTION_CHILD_RESUME resolution kind refused on the client frame. The move fences stay equality on the pin, proved through child commit, nested reaction and void with release (ruling 10). Void of a held move taking back children stays with T4 (ruling 9). Restated: rollMode to resumeOutcome renames only. D196: pending-snapshot JSON only, no reset; clear any local Run held on an already-resumed child."
             },
             {
               "id": "QUALITY-18.T2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26647,7 +26680,8 @@
                 "after": ["QUALITY-18.T2a"]
               },
               "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
-              "text": "The flip: a chosen opportunity-attack option records a reaction child and the room raises it; the room-internal resume (rulings 1-3 and 6-8, id from reactionChildMoveCommandId); STOP or a mover at 0 HP ends the move at the contact point; economy, turn uses and retaliation from the action host; the fences proved through the room. Every room and Convex movement-reaction test restated in the same slice. The inline engine stays, unreachable from a choice and labelled transitional."
+              "text": "The flip: a chosen opportunity-attack option records a reaction child and the room raises it; the room-internal resume (rulings 1-3 and 6-8, id from reactionChildMoveCommandId); STOP or a mover at 0 HP ends the move at the contact point; economy, turn uses and retaliation from the action host; the fences proved through the room. Every room and Convex movement-reaction test restated in the same slice. The inline engine stays, unreachable from a choice and labelled transitional.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T2c",

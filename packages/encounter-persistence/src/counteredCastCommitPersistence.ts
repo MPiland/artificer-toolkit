@@ -70,7 +70,7 @@ export async function persistEncounterCounteredCastCommit(
   const { pause } = resume.pending.context
   const offered = pause?.kind === 'CAST_REACTION' ? pause.payload : null
   const resumedChild = resume.pending.context.reactionChildren?.find(
-    ({ rollMode }) => rollMode === undefined
+    ({ resumeOutcome }) => resumeOutcome === undefined
   )
   if (
     // The room resumes the cast from the counter's committed child, and the cast is lost because
