@@ -435,13 +435,18 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
                         ...path,
                         resultBlock: {
                           ...path.resultBlock,
-                          outcomes: path.resultBlock.outcomes.map(
-                            ({ amount: _amount, ...outcome }) => ({
-                              ...outcome,
+                          outcomes: path.resultBlock.outcomes.map((outcome) => {
+                            if (outcome.effectKind !== 'DAMAGE')
+                              throw new Error('Expected Bite damage.')
+                            return {
+                              id: outcome.id,
+                              effectKind: 'DAMAGE' as const,
+                              damageTypeId: outcome.damageTypeId,
                               valueKind: 'DICE' as const,
+                              scalingKind: 'NONE' as const,
                               diceConfig: '1d4'
-                            })
-                          )
+                            }
+                          })
                         }
                       }
                     : path
