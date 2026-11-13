@@ -622,7 +622,13 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
         optionId: checksumSchema,
         targetActorId: uuidSchema,
         aim: z.optional(areaAimDtoSchema)
-      })
+      }),
+      /**
+       * A held move goes on from the committed reaction chosen against it (D219). Only the room
+       * raises it, with the Campaign owner as its actor: the live-session command frame refuses it
+       * from every client.
+       */
+      z.strictObject({ kind: z.literal('REACTION_CHILD_RESUME'), childCommandId: uuidSchema })
     ])
   })
 )

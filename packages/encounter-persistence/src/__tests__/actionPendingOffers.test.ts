@@ -227,7 +227,11 @@ describe('castPendingContinues', () => {
   describe('a chosen reaction that runs as its own action (D219)', () => {
     const child = { commandId: 'child' }
     const raised = { ...held, reactionChildren: [child] }
-    const resumed = { reactionChildren: [{ ...child, rollMode: 'DISADVANTAGE' }] }
+    const resumed = {
+      reactionChildren: [
+        { ...child, resumeOutcome: { kind: 'ROLL_MODE', rollMode: 'DISADVANTAGE' } }
+      ]
+    }
 
     it('keeps the same offer held for the same reactor, recording the child unresolved', () => {
       expect(castPendingContinues(held, option, raised)).toBe(true)
@@ -338,7 +342,7 @@ describe('castPendingContinues', () => {
     })
 
     it('moves on from the child by the room’s resume, to the settlement or the next offer of the roll', () => {
-      const resumed = { reactionChildren: [{ ...child, rollMode: null }] }
+      const resumed = { reactionChildren: [{ ...child, resumeOutcome: null }] }
       expect(castPendingContinues(raised, null, resumed)).toBe(true)
       expect(
         castPendingContinues(raised, null, { ...resumed, pause: offer(['first', 'second']) })
@@ -361,11 +365,13 @@ describe('castPendingContinues', () => {
 })
 
 describe('heldActionContinues', () => {
-  const offer = (currentnessChecksum: string, rollMode?: 'NORMAL') => ({
+  const offer = (currentnessChecksum: string, resumeOutcome?: null) => ({
     currentnessChecksum,
     rollerActorId: 'next',
     pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['holder'] } },
-    reactionChildren: [{ commandId: 'child', ...(rollMode && { rollMode }) }]
+    reactionChildren: [
+      { commandId: 'child', ...(resumeOutcome !== undefined && { resumeOutcome }) }
+    ]
   })
   /** A cast held on the child `reactor` committed, resumed to its next offer on `checksum`. */
   const resumed = (reactor: string, checksum: string, descendants: string[] = []) =>
@@ -385,7 +391,7 @@ describe('heldActionContinues', () => {
       },
       response: null,
       occurrenceId: 'occurrence',
-      next: offer(checksum, 'NORMAL'),
+      next: offer(checksum, null),
       endpointActorIds: ['caster', 'chosen']
     })
 

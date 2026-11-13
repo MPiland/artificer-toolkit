@@ -147,7 +147,7 @@ type CastPendingContext = {
         payload: unknown
       }
   usedReactions?: readonly PendingCounter[]
-  reactionChildren?: readonly { commandId: string; rollMode?: string | null }[]
+  reactionChildren?: readonly { commandId: string; resumeOutcome?: object | null }[]
   /** The gate the action's source already passed. */
   passedIncomingGate?: PendingGate
 }

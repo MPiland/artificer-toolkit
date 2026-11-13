@@ -232,7 +232,10 @@ describe('a reaction that needs its own save, chosen against an attack on anothe
     expect(states).toEqual(['PENDING', 'COMPLETED'])
     expect(request.rollMode).toBe('DISADVANTAGE')
     expect((await readPendingActionContext(room.room.base.stub)).reactionChildren).toEqual([
-      { commandId: await childCommandId(room), rollMode: 'DISADVANTAGE' }
+      {
+        commandId: await childCommandId(room),
+        resumeOutcome: { kind: 'ROLL_MODE', rollMode: 'DISADVANTAGE' }
+      }
     ])
     expect(await reactionUsed(room)).toBe(1)
   })
@@ -246,7 +249,7 @@ describe('a reaction that needs its own save, chosen against an attack on anothe
     expect((await occurrenceStates(room, biteCommandId)).states).toEqual(['PENDING', 'COMPLETED'])
     expect(request.rollMode).toBe('NORMAL')
     expect((await readPendingActionContext(room.room.base.stub)).reactionChildren).toEqual([
-      { commandId: await childCommandId(room), rollMode: null }
+      { commandId: await childCommandId(room), resumeOutcome: null }
     ])
     expect(await reactionUsed(room)).toBe(1)
   })
@@ -258,7 +261,7 @@ describe('a reaction that needs its own save, chosen against an attack on anothe
     await d20Prompt(cast)
     const context = await readPendingActionContext(cast.room.base.stub)
     expect(context.reactionChildren).toEqual([
-      { commandId: await childCommandId(cast), rollMode: null }
+      { commandId: await childCommandId(cast), resumeOutcome: null }
     ])
     expect(context.castLevel).toBe(4)
 

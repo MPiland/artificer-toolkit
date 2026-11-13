@@ -25,6 +25,7 @@ import {
 } from '../api/liveSessionCommandScopes.js'
 import {
   resolveEncounterActionInputDtoSchema,
+  resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema
 } from '../api/encounterRuleCommands.js'
 
@@ -833,5 +834,32 @@ describe('Encounter rule overrides and undo', () => {
       expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(frame(command)).success).toBe(
         false
       )
+  })
+
+  it("carries no resume of a move from a reaction from a client: it is the room's own resolution (QUALITY-18.T2a)", () => {
+    const answer = {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: ids.encounter,
+      commandId: ids.command,
+      expectedVersion: 3,
+      occurrenceId: ids.token,
+      expectedOccurrenceVersion: 1
+    }
+    const resume = {
+      ...answer,
+      resolution: { kind: 'REACTION_CHILD_RESUME', childCommandId: ids.user }
+    }
+    expect(resolveRuleOccurrenceInputDtoSchema.parse(resume)).toMatchObject(resume)
+    const frame = (command: Record<string, unknown>) => ({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: { scope: 'ENCOUNTER', command }
+    })
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse(
+        frame({ ...answer, resolution: { kind: 'DECLINE' } })
+      ).success
+    ).toBe(true)
+    expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(frame(resume)).success).toBe(false)
   })
 })

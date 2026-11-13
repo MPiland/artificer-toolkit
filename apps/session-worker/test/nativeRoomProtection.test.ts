@@ -249,7 +249,10 @@ describe('Protection against an attack on another creature in the room (SPELLS-3
     await attackPrompt(room)
     const context = await readPendingActionContext(room.room.base.stub)
     expect(context.reactionChildren).toEqual([
-      { commandId: child!.commandId, rollMode: 'DISADVANTAGE' }
+      {
+        commandId: child!.commandId,
+        resumeOutcome: { kind: 'ROLL_MODE', rollMode: 'DISADVANTAGE' }
+      }
     ])
     expect(context.usedReactions ?? []).toEqual([])
   })

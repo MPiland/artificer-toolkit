@@ -1725,10 +1725,15 @@ shape the action context uses, and the persistence module reads a move as a pare
 "Reaction arm"). The move's history takes two entry kinds for a child, `REACTION_CHILD_RESUME` and
 `REACTION_CHILD_RELEASE`, with ids from `reactionChildMoveCommandId`; the GM's void of a held child records
 the release. No host records a child on a move yet: movement reactions still resolve inline under
-`MOVE_SCENE_TOKEN`. QUALITY-18.T2 moves the reaction itself to a child and adds the room's resume: a
-resolution inside `RESOLVE_RULE_OCCURRENCE` that the client command schema refuses, committed by the room as
-the campaign owner, which resumes the Kernel choice with the index of the option the child came from, drops
-that timeline entry and continues the move.
+`MOVE_SCENE_TOKEN`. QUALITY-18.T2a adds the inert pieces. The resume's carrier is the
+`REACTION_CHILD_RESUME` resolution of `RESOLVE_RULE_OCCURRENCE`, which `liveSessionCommandDtoSchema` refuses
+from a client. The outcome capability adapter gains `stopsTriggeringMovement(execution)` beside
+`cancelsTriggeringEvent`: the D&D adapter (`systems/dnd5e/stopTriggeringMovement.ts`) reads the graph output
+`movementInterruption` from the child's TEST phase receipt, or from its outputs when it ran no TEST. It does
+not read the inline engine's Legendary Resistance override of that path, which T2b must carry or retire.
+QUALITY-18.T2b moves the reaction itself to a child and raises the resume in the room as the campaign owner:
+it resumes the Kernel choice with the index of the option the child came from, drops that timeline entry and
+continues the move, or ends it at the contact when the child stops it.
 
 **Higher-level check (current, D127; the child's incoming gate since QUALITY-9.T1b2).**
 `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`) makes a reaction cast below the triggering cast's
