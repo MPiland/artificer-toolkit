@@ -248,6 +248,7 @@ import {
 } from './effectActionScalingFacts.js'
 
 import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
+import { triggeringRollDiceNodes, triggeringRollDieFacts } from './triggeringRollDice.js'
 import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
@@ -3149,6 +3150,7 @@ function compileEffectActionGraph(
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
+      ...triggeringRollDiceNodes(action.compiledEffect),
       effectOutcomeProposalNode({
         id: nodeId,
         definition: outcomeDefinition,
@@ -3174,10 +3176,7 @@ function compileEffectActionGraph(
         }
       : {})
   }
-  return bindMovementInterruptionOutput({
-    action,
-    published: publishedGraph(definition)
-  })
+  return bindMovementInterruptionOutput({ action, published: publishedGraph(definition) })
 }
 
 /**
@@ -3692,6 +3691,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...resolvedHealModifierFacts,
       ...recurringHealFacts,
       ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic),
+      ...triggeringRollDieFacts(published, actionOutcomes, classLevels),
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),

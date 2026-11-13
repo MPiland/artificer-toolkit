@@ -6,6 +6,7 @@ import {
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { triggeringRollSubtractionDtoSchema } from '../shared/d20AddedDice.js'
 import { attackOccasionCodeSchema } from '../shared/enums.js'
 import { sceneActorLightSchema } from './characterMechanicsRead.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
@@ -107,8 +108,8 @@ export const liveSessionEncounterTurnCommandSchema = lazySchema(() =>
 /**
  * The committed child actions of the reactions chosen against a pending action (D219), in the order
  * the action records them: who reacted with what, and whether the child's committed execution
- * imposes a roll mode on the action's roll, subtracts a die from it, cancels the action itself, or
- * stops the move it answered. `descendantReactorActorIds` are the creatures whose own reactions
+ * imposes a roll mode on the action's roll, cancels the action itself, or stops the move it
+ * answered, and the die it rolled against the action's roll, null when it rolled none. `descendantReactorActorIds` are the creatures whose own reactions
  * committed under the child, down its tree: with the child's reactor, the creatures the Run changed
  * while the action waited on that child.
  */
@@ -120,7 +121,7 @@ const liveSessionReactionChildrenSchema = lazySchema(() =>
         reactorActorId: postgresUuidSchema,
         actionId: encounterActionIdSchema,
         imposesRollMode: z.boolean(),
-        subtractsFromTriggeringRoll: z.boolean(),
+        triggeringRollSubtraction: z.nullable(triggeringRollSubtractionDtoSchema),
         cancelsTriggeringEvent: z.boolean(),
         stopsTriggeringMovement: z.boolean(),
         descendantReactorActorIds: z

@@ -18,7 +18,7 @@ import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
-import { selectScalingRow } from './scalingRowSelection.js'
+import { scaledRolledDieFaces } from './scalingRowSelection.js'
 import { sizeInRange } from './systemSizes.js'
 import {
   installedGameSystemRuleOperations,
@@ -363,12 +363,11 @@ function bindFacesScaling(
   const { payload } = modifier
   if (payload === undefined || !('facesScaling' in payload) || payload.facesScaling === undefined)
     return modifier
-  const { facesScaling, ...die } = payload
-  const row = selectScalingRow(
-    facesScaling.levels.map((level) => ({ ...level, order: 0 })),
-    sourceClassLevels[facesScaling.classId] ?? 0
-  )
-  return { ...modifier, payload: row ? { ...die, faces: row.faces } : die }
+  const { facesScaling: _facesScaling, ...die } = payload
+  return {
+    ...modifier,
+    payload: { ...die, faces: scaledRolledDieFaces(payload, sourceClassLevels) }
+  }
 }
 
 /** An action's lasting effect on one creature, from its plan alone; null when the plan yields none. */

@@ -106,6 +106,20 @@ export const d20RolledAddedDiceDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The die a committed reaction rolled against the roll it answered (D219): its size and one face per
+ * die. The action that resumes from the reaction records it as a subtracted `D20RolledAddedDieDto`.
+ */
+export const triggeringRollSubtractionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    faces: z.literal(ROLLED_DIE_FACES),
+    rolledFaces: z
+      .array(z.number().check(z.int()).check(z.gte(1)))
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ROLLED_DIE_COUNT))
+  })
+)
+
+/**
  * The faces of a request's added dice, die by die in the request's order: what a roller enters and
  * what an app roll records. The server checks their count and sizes against the request.
  */

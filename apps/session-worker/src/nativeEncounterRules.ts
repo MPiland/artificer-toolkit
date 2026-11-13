@@ -81,9 +81,7 @@ import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
 import {
   discoverNativeRollReactions,
-  nextNativeRollReactionDice,
-  planNativeWindowReactions,
-  type NativeRollReaction
+  planNativeWindowReactions
 } from './nativeEncounterRollReaction.js'
 import {
   readNativePendingActionAnswer,
@@ -542,8 +540,7 @@ export async function planNativeLiveEncounterAction(
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
-    attackDecoy: EncounterAttackDecoy | null,
-    rollReactions: readonly NativeRollReaction[]
+    attackDecoy: EncounterAttackDecoy | null
   ) =>
     prepareCasterActionOnTarget(
       { state, system, actors, activeEffectsByActorId, capture, command },
@@ -556,7 +553,6 @@ export async function planNativeLiveEncounterAction(
         attack: {
           attackDecoy,
           attackOccasion: triggerMovement?.attackOccasion,
-          windowReactionDice: rollReactions.map(({ die }) => die),
           ...attackSceneLoaders(targets),
           loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
             readNativeLiveEnemyProximity({
@@ -585,23 +581,24 @@ export async function planNativeLiveEncounterAction(
   const occurrenceId = continued ? continued.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = continued ? continued.expectedOccurrenceVersion + 1 : 0
   // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
-  const unwindowed = await prepareAttackBehindDecoys({
+  const prepared = await prepareAttackBehindDecoys({
     occurrenceId,
     effects: activeEffectsByActorId.get(targetActorId) ?? [],
     system,
-    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy, [])
+    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
   })
-  // The creatures that may roll a die against the attack roll by a reaction (D207); their dice join
-  // the windows the roll opens, so the attack is prepared again with them. Range is read from the
-  // Scene, so an attack made without one offers no such reaction.
+  // The creatures that may roll a die against the attack roll by a reaction (D219): the rolled d20 is
+  // held for each in turn, and the reaction one uses runs as its own action, whose die joins the roll
+  // when the attack resumes. Range is read from the Scene, so an attack made without one offers no
+  // such reaction.
   const actionSceneRef = command.sceneContext
   const rollReactions =
-    unwindowed.makesAttackRoll && actionSceneRef
+    prepared.makesAttackRoll && actionSceneRef
       ? await discoverNativeRollReactions({
           state,
           actors,
           system,
-          roller: unwindowed.actor,
+          roller: prepared.actor,
           movementTargets,
           loadTarget,
           loadScene: async () => {
@@ -613,10 +610,6 @@ export async function planNativeLiveEncounterAction(
           capture
         })
       : []
-  const prepared =
-    rollReactions.length > 0
-      ? await prepareAttackAs(movementTargets, unwindowed.attackDecoy, rollReactions)
-      : unwindowed
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS') throw targetNotPermitted()
   refuseActionOutsideItsWindow(prepared, command)
@@ -995,9 +988,14 @@ export async function planNativeLiveEncounterAction(
   const cast = await castPause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
   reactionChildren = cast.reactionChildren
-  // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217).
-  const react = castPause.imposeChildRollModes(reactionChildren)
+  // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217), and
+  // one used on the rolled d20 adds the die its own action rolled (D219).
+  const react = castPause.applyReactionChildren(reactionChildren)
   const reacted = react(prepared)
+  // A creature whose reaction a held action above this one spent has been heard, like one that declined.
+  const heardAbove = reactionChildWindow.ancestors.flatMap(({ actorId, reaction }) =>
+    reaction ? [actorId] : []
+  )
   const actionSource = {
     runtime: executionOptions.runtime,
     damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
@@ -1011,15 +1009,21 @@ export async function planNativeLiveEncounterAction(
     },
     binding: reacted.binding,
     afterTest: async () => undefined,
-    // The target's held dice and the reactors' dice a save d20 is shown to (D168, D207), whichever
-    // answer starts the OUTCOME.
-    saveWindow: targetSaveWindow(
-      state.gameSystemId,
-      heldOnTarget,
-      prepared.attackWindowDice,
-      async (answeredReactorActorIds: readonly string[]) =>
-        nextNativeRollReactionDice(rollReactions, answeredReactorActorIds)
-    )
+    // The target's held dice a save d20 is shown to, and the attacker's an attack d20 is (D168),
+    // whichever answer starts the OUTCOME.
+    saveWindow: targetSaveWindow(state.gameSystemId, heldOnTarget, prepared.attackWindowDice),
+    // The rolled attack d20 is then held for each reactor in turn, by actor id (D219).
+    rollReaction: {
+      discover: async (heardReactorActorIds: readonly string[]) => {
+        const heard = [...heardReactorActorIds, ...heardAbove]
+        const next = rollReactions.find(
+          ({ candidate }) => !heard.includes(candidate.reactorActorId)
+        )?.candidate.reactorActorId
+        return rollReactions
+          .filter(({ candidate }) => candidate.reactorActorId === next)
+          .map(({ candidate }) => candidate)
+      }
+    }
   }
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
   // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
@@ -1064,6 +1068,7 @@ export async function planNativeLiveEncounterAction(
       resumeCommand && pendingContext?.pause?.kind === 'CAST_REACTION'
         ? pendingContext.pause.payload
         : null,
+    rolledChildDice: reactionChildren.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : [])),
     resume
   })
   if (execution.kind === 'PENDING')
@@ -1071,13 +1076,14 @@ export async function planNativeLiveEncounterAction(
       ...preflight(),
       kind: 'PENDING' as const,
       execution,
-      // The reaction chosen against the hit answers its holder being hit, so its action is the
-      // holder's on itself; the attack stays held on the answered offer until it commits (D219).
+      // The reaction chosen from the held offer runs as its holder's own action: at the attacker when
+      // it answers the rolled d20, at its holder when it answers being hit. The attack stays held on
+      // the answered offer until that action commits (D219).
       ...(reactionChild
         ? await castPause.launchReactionChild(
             reactionChildren,
-            reactionChild,
-            reactionChild.holderActorId
+            { holderActorId: reactionChild.holderActorId, actionId: reactionChild.actionId },
+            reactionChild.targetActorId
           )
         : { reactionChild: null })
     }

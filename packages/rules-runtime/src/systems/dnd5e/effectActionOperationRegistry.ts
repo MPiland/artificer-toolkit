@@ -48,7 +48,10 @@ import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedTo
 import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
 import { isTeleportAllowanceDestinationKind } from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
-import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './subtractFromTriggeringRoll.js'
+import {
+  DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+  DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY
+} from './subtractFromTriggeringRoll.js'
 import { DND5E_IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './imposeRollModeOnTriggeringRoll.js'
 import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
@@ -1423,6 +1426,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
+    { key: DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
     {
       key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
