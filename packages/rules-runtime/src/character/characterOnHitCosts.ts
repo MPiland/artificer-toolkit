@@ -62,7 +62,9 @@ export function offerableOnHitRiders<
 
 /**
  * Every way the attacker could pay for each of the action's offerable optional on-hit riders now:
- * `offerableOnHitRiders` against the open offers, the settled spend and the capacity bonus use.
+ * `offerableOnHitRiders` against the open offers, the settled spend and the capacity bonus use. A
+ * slot or pool an earlier attack roll of the same action chose to spend (`chosenBefore`, a list's
+ * earlier rays) counts as settled: an action settles one slot and one pool.
  */
 export function onHitCandidates(input: {
   riders: readonly {
@@ -74,13 +76,19 @@ export function onHitCandidates(input: {
   openOfferEffectIds?: readonly string[]
   settled?: { spellConsumption?: unknown; resourceConsumption?: unknown } | null | undefined
   capacityUse?: unknown
+  chosenBefore?: readonly EncounterOnHitCandidate[]
   spellSlots: SpellSlots
   resources: Resources
 }): EncounterOnHitCandidate[] {
   const choices = onHitSlotChoices(input.spellSlots)
   const offerable = offerableOnHitRiders(input.riders, input.openOfferEffectIds ?? [], {
-    spellConsumption: input.settled?.spellConsumption,
-    resourceConsumption: input.settled?.resourceConsumption ?? input.capacityUse
+    spellConsumption:
+      input.settled?.spellConsumption ??
+      input.chosenBefore?.some(({ kind }) => kind === 'SPELL_SLOT'),
+    resourceConsumption:
+      input.settled?.resourceConsumption ??
+      input.capacityUse ??
+      input.chosenBefore?.some(({ kind }) => kind === 'RESOURCE_POOL')
   })
   return offerable.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
     if (cost.kind === 'FREE') return [{ kind: 'FREE', riderId, riderLabel }]

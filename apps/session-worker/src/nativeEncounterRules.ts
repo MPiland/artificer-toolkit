@@ -124,7 +124,7 @@ import {
   planNativeLiveEncounterAreaAnswer,
   planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
-  planNativeLiveEncounterAreaRayReaction,
+  planNativeLiveEncounterAreaRayOffer,
   planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
 import { prepareCasterActionOnTarget, type ForcedMovementPick } from './nativeAreaPreparation.js'
@@ -392,20 +392,20 @@ export async function planNativeLiveEncounterAction(
         revisions
       }
     }
-    const heldRayOffer =
-      areaSnapshot && pendingContext?.pause?.kind === 'CAST_REACTION'
-        ? pendingContext.pause.payload
-        : null
-    const rayContinuation = !heldRayOffer
-      ? null
-      : resumeCommand
-        ? { resume: resumeCommand, offer: heldRayOffer }
-        : responseCommand && castAnswer
-          ? { response: responseCommand, answer: castAnswer }
+    // A ray list holds one ray at a time on an offer its hit raised: its creature's reaction, which
+    // the room may resume from, then its caster's on-hit rider.
+    const heldRayPause = areaSnapshot ? pendingContext?.pause : null
+    const rayContinuation =
+      resumeCommand && heldRayPause?.kind === 'CAST_REACTION'
+        ? { resume: resumeCommand, offer: heldRayPause.payload }
+        : responseCommand &&
+            (pauseAnswer?.kind === 'CAST_REACTION' || pauseAnswer?.kind === 'ON_HIT') &&
+            pauseAnswer.kind === heldRayPause?.kind
+          ? { response: responseCommand, answer: pauseAnswer }
           : null
     if (areaSnapshot && rayContinuation) {
       return {
-        ...(await planNativeLiveEncounterAreaRayReaction({
+        ...(await planNativeLiveEncounterAreaRayOffer({
           ...areaInput,
           areaSnapshot,
           continuation: rayContinuation

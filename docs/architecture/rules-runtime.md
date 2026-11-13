@@ -831,12 +831,24 @@ through the per-target function every attack uses (`advanceAreaRay` drives `adva
 `advanceNativeActionTarget` as its host), so a ray that hits a creature holding a `HIT_BY_ATTACK` reaction
 stops on that offer in its own snapshot, and the drawer asks the reactor before any later ray is rolled. A
 decline settles the ray with the d20 the offer kept. A chosen reaction launches the holder's child; the resume
-(`planNativeLiveEncounterAreaRayReaction`) seals every unanswered ray again from the room as the child left
+(`planNativeLiveEncounterAreaRayOffer`) seals every unanswered ray again from the room as the child left
 it, then rebinds the held ray's kept d20, so the reaction's effect counts for that ray and every later one,
 and a reaction already spent is not offered again. Rays answered before the reaction keep the binding they
 were rolled against (`testBindingJson`) and the commit replays them with it, so an earlier hit stays a hit.
 After a reaction step the remaining rays of an automatic roller are rolled in the same command. The
 [persistence guide](persistence.md) describes the stored shape and its fence.
+
+**A ray's hit offers its caster's on-hit riders per ray (current, QUALITY-13.T1c4, D123, D219):** the same
+per-target function raises the caster's optional on-hit riders at each ray that hits, once its creature's
+reaction is answered, and the ray stops on that `ON_HIT` offer in its own snapshot. The caster's answer goes
+through the same continuation as a reaction answer (`planNativeLiveEncounterAreaRayOffer`) and is kept with
+the ray as its `onHit` audit; a later ray at the same creature and the commit replay the hit from the offer's
+retained TEST and that audit (`heldOnHit` on `advanceNativeActionGraphs`), so the rider's dice are rolled once
+and kept in the ray's roll tape. A cast settles one slot and one pool: `onHitCandidates` withholds a slot or
+pool rider once an earlier ray chose such a one (`chosenBefore`), and the commit folds the chosen riders into
+the cast's one Character spend. Riders an open weapon-attack offer grants (`grantedByEffectId`) are not offered
+on a list. **Not yet per ray (target, QUALITY-13 follow-up):** the incoming gate and `ATTACK_RETARGET` are not
+run for a ray; a list of chosen creatures is admitted as today.
 
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 

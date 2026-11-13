@@ -90,11 +90,11 @@ export async function readNativeEncounterActionResponseAdmission(
             : answer.kind === 'AREA_LEGENDARY_RESISTANCE'
               ? target.actorId === answer.actorId
               : answer.kind === 'DECLINE' || answer.kind === 'OPTION'
-                ? // A reaction choice names no request: it answers the ray held on its hit's offer.
+                ? // A choice names no request: it answers the ray held on an offer its hit raised.
                   encounterAreaSaveAwaiting(
                     { casterActorId: area.context.casterActorId, targets: area.targets },
                     target
-                  ) === 'REACTION'
+                  ) === 'DECISION'
                 : answer.kind !== 'FORCED_MOVEMENT' &&
                   'requestId' in answer &&
                   target.snapshot.request.requestId === answer.requestId
@@ -228,9 +228,9 @@ export async function readNativeEncounterActionResponseAdmission(
   else {
     // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
     // its answer.
-    // So does a ray held on the reaction to its hit; no other area answer is a decision.
+    // So does a ray held on an offer its hit raised; no other area answer is a decision.
     const offeredOptionIds =
-      areaAnswer && awaiting !== 'REACTION' ? [] : offeredDecisionOptionIds(pending.context)
+      areaAnswer && awaiting !== 'DECISION' ? [] : offeredDecisionOptionIds(pending.context)
     if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
       if (!offeredOptionIds.length) rejectDomain('DECISION_NOT_PENDING')
       if (answer.kind === 'OPTION' && !offeredOptionIds.includes(answer.optionId))
