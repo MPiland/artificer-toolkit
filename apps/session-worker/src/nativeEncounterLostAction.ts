@@ -35,10 +35,6 @@ export function planNativeLostSourceAction(input: {
   commandId: string
   occurredAt: string
   userId: string
-  /** Counters the source cast against a counter of its own cast, spent in the source's one batch. */
-  counterSpellConsumptions?: Parameters<
-    typeof planNativeEncounterAreaSourceSpend
-  >[0]['counterSpellConsumptions']
 }) {
   const { state, prepared, actionEconomy } = input
   const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
@@ -62,8 +58,7 @@ export function planNativeLostSourceAction(input: {
       sourceCommandId: input.commandId,
       commandId: input.commandId,
       occurredAt: input.occurredAt,
-      sourceReleases,
-      counterSpellConsumptions: input.counterSpellConsumptions ?? []
+      sourceReleases
     },
     input.userId
   )

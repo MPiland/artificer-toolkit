@@ -1668,7 +1668,7 @@ caster's slot and action and the reactor's slot and reaction are spent, nothing 
 Concentration starts. Undo restores both creatures. Character ACTORS-target and area casts hold the same
 `CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
 each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
-that occurrence; the area commit input carries `usedReactions` and spends them like the single-target commit.
+that occurrence.
 
 **One Worker per-target outcome planner (QUALITY-13.T2c, current).** `planNativeActionTargetOutcome`
 (`apps/session-worker/src/nativeActionTargetOutcome.ts`) plans what one target's outcome leaves on it, for the
@@ -1696,7 +1696,7 @@ returns `CHILD`); a check it owes is the child's own incoming gate (QUALITY-9.T1
 the holder's own cast at the caster: its commit spends the holder's slot and reaction at the choice. The room
 then resumes the cast; the committed child's `cancelsTriggeringEvent` (read by the System adapter from the
 child's stored execution) makes the resume commit the cast as lost (`ENCOUNTER_COUNTERED_CAST`, which records no counter of its
-own), spending only the caster and the used reactions already recorded. A child that
+own), spending only the caster. A child that
 did not cancel leaves its holder heard, like a decline, and the offers continue. The cast records its level
 beside the child (`castLevel`, see persistence.md, "The cast a child answers"; QUALITY-9.T1b1), which is where
 the child reads the DC of its check from.
@@ -1722,8 +1722,7 @@ saves, its commit or its loss. On a chosen list the creatures a cast names are o
 replaced (REACTION-4.T3d): the offer's `chain`, the parity resolution in `advanceNativeCastReactions`, the
 countered cast's `counter` receipt with its reactor spend, and the used reaction's `check`. QUALITY-9.T1d1
 moved `TARGETED_SELF` onto the same child path and deleted the spend at the offer, so no cast pause adds a
-used reaction any more (`castPendingContinues` refuses one). Transitional (until QUALITY-9.T1d2): the
-`usedReactions` field and its commit plumbing remain, always empty for a cast.
+used reaction any more. QUALITY-9.T1d2 deleted the `usedReactions` field and its commit plumbing end to end.
 
 **Currentness across a reaction child (current, QUALITY-9.T1a; widened by QUALITY-9.T1c2).** A held action's
 sealed currentness checksum covers its source's and its target's facts. When a creature that reacted in the
@@ -1836,11 +1835,9 @@ target requirements refuse is not offered. The four callers differ only in the m
 Every sealed offer pins its reactions with one schema, `encounterReactionPinDtoSchema`
 (`packages/schema/src/shared/ruleExecutionReactionChoice.ts`): the reactor, the action, the preparation checksums and
 the `trigger`, which is any `reactionTrigger` kind. The former per-trigger pin schemas (hit, cast and roll window) are
-removed. A reaction used before its action did anything is carried on the pending context in `usedReactions`
-(`triggerLevel` is null when the action is not a spell cast) and is spent by the action's terminal commit
-(`usedReactionSpend.ts`). Transitional (until QUALITY-9.T1d2): no cast pause fills the list since QUALITY-9.T1d1,
-because every chosen cast reaction (a counter, a reaction to being named a target, a reaction to an attack aimed at
-another) runs as its holder's own child action (D219).
+removed. Every chosen cast reaction (a counter, a reaction to being named a target, a reaction to an attack aimed at
+another) runs as its holder's own child action (D219), which spends its own slot and reaction there, so a pending
+context carries no used reactions. `usedReactionSpend.ts` spends only the reactions to an attack roll's d20 window.
 
 The offer's `kind` names what it holds: `COUNTER` for counters to a cast (`SPELL_CAST` pins), otherwise the trigger of
 its pins, `TARGETED_SELF` or `ATTACK_ON_OTHER`. The schema refuses an offer whose pins do not match its kind.

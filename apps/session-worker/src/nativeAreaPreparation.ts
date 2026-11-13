@@ -10,7 +10,6 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import type { EncounterUsedReactionDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { type LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
@@ -122,8 +121,6 @@ export type ReachCastResume = {
   answer: NativeCastReactionAnswer | null
   initiatorUserId: string
   currentnessChecksum: string
-  /** The reactions used against the cast before this answer (D127). */
-  usedReactions: readonly EncounterUsedReactionDto[]
 }
 
 /**
@@ -765,7 +762,6 @@ export function reachCastPause(
     occurrenceId: string
     occurredAt: string
     answer: NativeCastReactionAnswer | null
-    usedReactions: readonly EncounterUsedReactionDto[]
   }
 ) {
   const { scene } = cast.reach
@@ -800,8 +796,7 @@ export function reachCastPause(
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,
     answer: cast.answer,
-    resumed: input.castResume !== undefined,
-    usedReactions: cast.usedReactions
+    resumed: input.castResume !== undefined
   })
 }
 
@@ -816,14 +811,13 @@ export type ReachCastWindow = {
    */
   response: ResolveRuleOccurrenceInputDto | null
   initiatorUserId: string
-  usedReactions: readonly EncounterUsedReactionDto[]
   pause: ReturnType<typeof reachCastPause>
 }
 
 /**
  * Opens a multi-creature cast to the reactions of other Characters before any creature is touched
  * (D127). The cast is either ended or held for a reaction, which is the plan to return, or goes on
- * under the occurrence it runs under, with the reactions it still owes a spend for. A reaction that
+ * under the occurrence it runs under. A reaction that
  * runs as its holder's own action (D219) holds the cast until the room resumes it from that child.
  */
 export async function openReachCastWindow(
@@ -868,8 +862,7 @@ export async function openReachCastWindow(
     chosenActorIds: cast.chosenActorIds,
     occurrenceId,
     occurredAt,
-    answer: castResume?.answer ?? null,
-    usedReactions: castResume?.usedReactions ?? []
+    answer: castResume?.answer ?? null
   })
   const advanced = await pause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
   if (advanced.kind !== 'NONE')
@@ -899,7 +892,6 @@ export async function openReachCastWindow(
       occurredAt,
       response,
       initiatorUserId,
-      usedReactions: advanced.usedReactions,
       pause
     } satisfies ReachCastWindow
   }

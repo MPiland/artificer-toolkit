@@ -25,7 +25,6 @@ import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/e
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
 import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
-import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
 import type { AreaPlanBase, AreaPrepared } from './nativeAreaPreparation.js'
 import type {
   StruckSaves,
@@ -93,8 +92,6 @@ export async function planAreaOutcomes(args: {
   dispositions: ReadonlyMap<string, EncounterRunActorState['disposition']>
   consumedGrants: ReturnType<typeof actionEndedEffects>['consumedGrants']
   sourceReleases: ReturnType<typeof actionEndedEffects>['sourceReleases']
-  casterCounterConsumptions: ReturnType<typeof counterConsumptionsOf>
-  usedReactorSlots: ReadonlySet<string>
   discoverResistance: (
     prepared: AreaPrepared
   ) => ReturnType<typeof discoverNativeLegendaryResistance>
@@ -120,8 +117,6 @@ export async function planAreaOutcomes(args: {
     dispositions,
     consumedGrants,
     sourceReleases,
-    casterCounterConsumptions,
-    usedReactorSlots,
     discoverResistance
   } = args
   const { state } = input
@@ -214,12 +209,9 @@ export async function planAreaOutcomes(args: {
         currentFeatureResource: resource
       })
     }
-    const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
-    const carriesUsedReactionSpend =
-      actor.id !== caster.id && usedReactorSlots.has(actor.id) && firstEntry
     const outcome = planNativeActionTargetOutcome({
       // The caster's own outcome pays what the cast settled, a damage reroll included (D208).
       prepared: carriesSpend
@@ -252,15 +244,11 @@ export async function planAreaOutcomes(args: {
       reactionEffect: null,
       grants: [],
       formCreature: formCreature ?? null,
-      targetSpends: carriesUsedReactionSpend,
+      targetSpends: false,
       charge: resistance?.charge ?? null,
       reactionEconomy: null,
       mechanics: carriesSpend
-        ? {
-            sourceSpend: 'WITH_OUTCOME',
-            sourceReleases,
-            counterSpellConsumptions: casterCounterConsumptions
-          }
+        ? { sourceSpend: 'WITH_OUTCOME', sourceReleases }
         : { sourceSpend: 'NONE' }
     })
     const { mechanics, createdEffects: created, effectTransitions } = outcome
@@ -306,7 +294,6 @@ export async function planAreaOutcomes(args: {
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
-        targetReactorSpend: carriesUsedReactionSpend,
         reactionEffectTransitions: outcome.reactionEffectTransitions,
         grantEffectTransitions: outcome.grantEffectTransitions
       })

@@ -43,8 +43,8 @@ export async function settleActionTargetOutcome(
     forceVersionAdvance: boolean
     /** The slot the reaction the target used against the outcome spends. */
     reactionSpell: LiveSessionEncounterActionCommitInput['reactionSpellConsumption']
-    /** The reaction the target spent before the outcome: a failed counter or one rolled against the attack roll. */
-    used: UsedReactionSpend | undefined
+    /** The reaction the target rolled against the attack roll before the outcome. */
+    used?: UsedReactionSpend
     /** The source's own spend, when the source is this target. */
     sourceMutation: SpendMutation
     /** What else the outcome does to the target in the same batch. */

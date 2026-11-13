@@ -191,8 +191,7 @@ export async function persistEncounterGatedActionCommit(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
-      turnUses: null,
-      usedReactions: []
+      turnUses: null
     },
     occurredAt: input.occurredAt
   })

@@ -166,7 +166,6 @@ export async function recordActionCommit(
           >,
           | 'issuerLines'
           | 'gmLines'
-          | 'usedReactions'
           | 'windowReactions'
           | 'idleTurnMarkChanges'
           | 'clearedDamageTypes'

@@ -77,7 +77,6 @@ export function planNativeActionTargetOutcome(input: {
     | 'sourceReleases'
     | 'targetReleases'
     | 'damageReleases'
-    | 'counterSpellConsumptions'
     | 'releaseTargetItemInstanceId'
     | 'degradeTargetItem'
     | 'degradeSourceItem'

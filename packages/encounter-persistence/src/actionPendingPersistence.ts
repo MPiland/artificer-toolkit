@@ -158,8 +158,7 @@ export async function persistEncounterActionPending(
           })
         )
     } else {
-      // The cast went through its pause; the area it opens continues the same occurrence, carrying
-      // the counters that failed against it.
+      // The cast went through its pause; the area it opens continues the same occurrence.
       const area = await requireAreaActionPendingRoot(
         {
           snapshot,
@@ -170,7 +169,6 @@ export async function persistEncounterActionPending(
         },
         callbacks.readAreaSceneInputs
       )
-      const usedReactions = area.usedReactions ?? []
       // An area whose saves all settled as it opened may hold its first push pick or the saves of the
       // creatures its movers struck, nothing picked, or before either its damage window (D208),
       // unanswered.
@@ -182,10 +180,9 @@ export async function persistEncounterActionPending(
             !encounterAreaCaughtSettled(snapshot))) ||
         (opened && (opened.landed.length > 0 || damageRoll)) ||
         (damageRoll && (!damageRoll.window || damageRoll.reroll)) ||
-        (resume
-          ? snapshot.occurrenceId !== resume.occurrence.id ||
-            !castPendingContinues(resume.pending.context, input.response, { usedReactions })
-          : usedReactions.length > 0)
+        (resume &&
+          (snapshot.occurrenceId !== resume.occurrence.id ||
+            !castPendingContinues(resume.pending.context, input.response, {})))
       )
         throw new Error('Live Session pending area action root mismatch.')
     }

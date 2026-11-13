@@ -23,10 +23,6 @@ import {
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
 import {
-  encounterUsedReactionDtoSchema,
-  type EncounterUsedReactionDto
-} from './ruleExecutionReactionChoice.js'
-import {
   encounterReactionOfferPendingContextDtoSchema,
   type EncounterReactionOfferPendingContextDto
 } from './ruleExecutionReactionOffer.js'
@@ -548,8 +544,6 @@ export type EncounterAreaActionPendingContextDto = {
    * source's use of it (D156), or of a creature type it excludes.
    */
   unaffectedActorIds?: string[]
-  /** The counters reactors attempted and failed against this cast, which the area's commit spends (D127). */
-  usedReactions?: EncounterUsedReactionDto[]
   /**
    * Once every save settled, the pushes whose source picks where each creature lands (D157): the
    * landings picked so far, farthest creature first, and the pick owed next. The area commits once
@@ -696,9 +690,6 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       caughtChecksum: checksumSchema,
       removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       unaffectedActorIds: z.optional(z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))),
-      usedReactions: z.optional(
-        z.array(encounterUsedReactionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      ),
       forcedMovement: z.optional(
         z.strictObject({
           landed: z

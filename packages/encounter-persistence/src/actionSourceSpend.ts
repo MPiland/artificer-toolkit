@@ -218,18 +218,14 @@ export async function applyActionSpendMechanics(
 
 /**
  * Throws unless the source's own mechanics batch left exactly what the root recorded: its Character
- * version, the conditions its ended effects released and the item it stowed. `sourceUsed` is the
- * source's counter to a counter against its cast, which rides in the same batch.
+ * version, the conditions its ended effects released and the item it stowed.
  */
 export function requireSourceSpendReceipt(
   mechanics: EncounterMechanicsBatchResult | null,
-  receipts: SourceMechanicsReceipts,
-  sourceUsed?: { used: { receipt: { characterStreamVersion: number | null } } }
+  receipts: SourceMechanicsReceipts
 ) {
   if (
     (mechanics?.characterStreamVersion ?? null) !== receipts.sourceCharacterStreamVersion ||
-    (sourceUsed &&
-      sourceUsed.used.receipt.characterStreamVersion !== mechanics?.characterStreamVersion) ||
     checksumCanonicalJson(mechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(receipts.sourceApplications) ||
     checksumCanonicalJson(mechanics?.itemUseStateTransition ?? null) !==

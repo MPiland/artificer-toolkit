@@ -104,7 +104,6 @@ import {
   prepareAreaScene,
   prepareAreaTarget,
   prepareReach,
-  reachCastPause,
   reachRuleOverrides
 } from './nativeAreaPreparation.js'
 import {
@@ -305,7 +304,6 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       command,
       caster,
       occurredAt: window.occurredAt,
-      usedReactions: await window.pause.planUsedReactions(window.usedReactions),
       movementTargets,
       kept: reached.map(({ actor, prepared }) => ({ actor, target: { prepared } })),
       lead: lead.prepared,
@@ -449,7 +447,6 @@ export async function sealReachSaves(
     placesSummon: Boolean(reach.summon),
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
-    ...(window.usedReactions.length > 0 ? { usedReactions: [...window.usedReactions] } : {}),
     ...(unaffectedActorIds.length > 0 ? { unaffectedActorIds: [...unaffectedActorIds] } : {}),
     targets
   })
@@ -1160,21 +1157,11 @@ export async function planNativeLiveEncounterAreaCommit(
   // moved on.
   const resumed = input.response ?? input.removal ?? input.castResume?.continuation
   const occurredAt = new Date().toISOString()
-  const sealedUsedReactions = context.usedReactions ?? []
   const plan = await completeAreaCommit({
     input,
     command,
     caster,
     occurredAt,
-    usedReactions: await reachCastPause(input, {
-      reach: base,
-      lead,
-      chosenActorIds: command.target.kind === 'ACTORS' ? command.target.actorIds : null,
-      occurrenceId: areaOccurrenceId,
-      occurredAt,
-      answer: null,
-      usedReactions: sealedUsedReactions
-    }).planUsedReactions(sealedUsedReactions),
     movementTargets: base.movementTargets,
     kept,
     lead,

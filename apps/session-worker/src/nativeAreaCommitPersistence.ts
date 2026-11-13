@@ -47,13 +47,11 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
-import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
 import type {
   AreaPlanBase,
   AreaPrepared,
   AreaReach,
   MovementTargets,
-  ReachCastWindow,
   reachRuleOverrides
 } from './nativeAreaPreparation.js'
 import type { prepareAreaCommitMaintenance } from './nativeAreaCommitMaintenance.js'
@@ -83,9 +81,6 @@ export async function settleAreaCommit(args: {
   removal: RemoveAreaTargetInputDto | null
   rollsPerTarget: boolean
   ruleOverrides: ReturnType<typeof reachRuleOverrides>
-  usedReactions: readonly Awaited<
-    ReturnType<ReachCastWindow['pause']['planUsedReactions']>
-  >[number][]
   actionEconomy:
     | NonNullable<
         Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['economy']
@@ -93,7 +88,6 @@ export async function settleAreaCommit(args: {
     | null
   attackAction: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['attackAction']
   forcedMovements: readonly LiveSessionForcedMovement[]
-  casterCounterConsumptions: ReturnType<typeof counterConsumptionsOf>
   consumedGrants: ReturnType<typeof actionEndedEffects>['consumedGrants']
   sourceReleases: ReturnType<typeof actionEndedEffects>['sourceReleases']
   maintenance: Awaited<ReturnType<typeof prepareAreaCommitMaintenance>>['maintenance']
@@ -122,11 +116,9 @@ export async function settleAreaCommit(args: {
     removal,
     rollsPerTarget,
     ruleOverrides,
-    usedReactions,
     actionEconomy,
     attackAction,
     forcedMovements,
-    casterCounterConsumptions,
     consumedGrants,
     sourceReleases,
     maintenance,
@@ -144,8 +136,7 @@ export async function settleAreaCommit(args: {
     resourceState?.resourceConsumption ||
     resourceState?.itemConsumption ||
     resourceState?.spellConsumption ||
-    lead.acceptedWieldConflict ||
-    casterCounterConsumptions.length > 0
+    lead.acceptedWieldConflict
   )
   const sourceSpend = merged
     ? null
@@ -158,8 +149,7 @@ export async function settleAreaCommit(args: {
           sourceCommandId: command.commandId,
           commandId: command.commandId,
           occurredAt,
-          sourceReleases,
-          counterSpellConsumptions: casterCounterConsumptions
+          sourceReleases
         },
         userId
       )
@@ -246,20 +236,6 @@ export async function settleAreaCommit(args: {
     settledActors.set(caster.id, sourceSpend.sourceResourcePlan.updatedActor)
   for (const child of children) {
     settledActors.set(child.actorId, child.mechanics.mechanics.updatedActor)
-  }
-  // A creature that failed to counter the cast has spent its reaction. A kept creature pays it in its
-  // own outcome; the caster's and any other creature's are paid by persistence.
-  for (const { receipt, economy } of usedReactions) {
-    const reactor = settledActors.get(receipt.reaction.reactorActorId)
-    if (
-      reactor &&
-      reactor.id !== caster.id &&
-      children.some((child) => child.actorId === reactor.id)
-    )
-      settledActors.set(
-        reactor.id,
-        consumeEncounterActionEconomy({ actor: reactor, consumption: economy, overridden: false })
-      )
   }
   let settledCaster = settledActors.get(caster.id)!
   if (spend.featureResourceReceipt)
@@ -445,7 +421,6 @@ export async function settleAreaCommit(args: {
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
-    usedReactions,
     consumedGrants: [...consumedGrants, ...damageEndedEffects.values()],
     label: sourceLabel,
     ruleOverrides,
