@@ -387,7 +387,10 @@ describe('room movement response publication', () => {
                 value: pending.request.max
               }
       if (resolution.kind === 'OPTION') selected = true
-      const contenders = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
+      // Annotated so the race's result type does not depend on the decision it answers.
+      const contenders: (Parameters<typeof executeInRoom>[1] & {
+        command: { commandId: string }
+      })[] = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE' as const,
           commandId,
