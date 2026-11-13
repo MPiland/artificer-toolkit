@@ -776,14 +776,11 @@ export function reachCastPause(
   const { scene } = cast.reach
   return createNativeCastPause({
     runtime: input.runtime,
-    random: input.random,
     state: input.state,
-    system: input.system,
     actors: input.actors,
     activeEffectsByActorId: input.activeEffectsByActorId,
     loadTarget: input.loadTarget,
     capture: input.capture,
-    requireAutoRoll: input.requireAutoRoll,
     command: input.command,
     prepared: cast.lead,
     movementTargets: cast.reach.movementTargets,

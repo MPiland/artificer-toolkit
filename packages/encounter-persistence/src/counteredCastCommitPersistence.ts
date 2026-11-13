@@ -90,20 +90,15 @@ export async function persistEncounterCounteredCastCommit(
     (counter
       ? // The counter is the answer to the pause that offered it. The first counter of a chain
         // stands: it was chosen at an earlier pause and nobody countered it. Otherwise the counter
-        // was chosen at this offer, or its check was rolled at the pause that chose it.
+        // was chosen at this offer.
         !response ||
         (standing
           ? !sameCounter(standing.reaction, counter.reaction) ||
             !sameCounter(standing.choiceExecution, counter.choiceExecution) ||
             !sameCounter(standing.check, counter.check) ||
             standing.triggerLevel !== counter.triggerLevel
-          : (offered.check
-              ? (response.resolution.kind !== 'ENTER_DICE' &&
-                  response.resolution.kind !== 'SYSTEM_ROLL') ||
-                counter.check === null ||
-                !sameCounter(offered.check.choiceExecution, counter.choiceExecution)
-              : response.resolution.kind !== 'OPTION' ||
-                response.resolution.optionId !== counter.reaction.useOptionId) ||
+          : response.resolution.kind !== 'OPTION' ||
+            response.resolution.optionId !== counter.reaction.useOptionId ||
             !offered.reactions.some((pin) => sameCounter(pin, counter.reaction))) ||
         !castCounteredCarriesUsedReactions(
           resume.pending.context,
