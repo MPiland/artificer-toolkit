@@ -81,7 +81,7 @@ describe('the allowance a reaction’s option was offered under', () => {
     const spent = consumeEncounterActionEconomy({ actor, consumption, overridden: false })
     // The reaction itself is untouched: the free allowance is kept with its turn.
     expect(spent.resources).toEqual({
-      ...actor.resources,
+      ...(actor.resources as object),
       turnUsage: {
         [SRD_FREE_REACTION_ALLOWANCE_DEFINITION_ID]: { turnSequence: 4, used: 1 }
       }
