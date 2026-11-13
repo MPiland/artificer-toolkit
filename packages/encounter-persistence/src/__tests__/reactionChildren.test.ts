@@ -977,9 +977,15 @@ describe('an offer of reactions made to the creature an attack hit (QUALITY-8.T1
   it('records the chosen reaction as a child of the held attack, which reads the hit’s damage types from the offer', async () => {
     const raised = await pausedAttack({ offer, reactionChildren: [{ commandId: child }] })
     expect(await readReactionChildParent(raised.ctx, link)).toEqual(raised.occurrence())
-    expect((await readReactionChildTrigger(raised.ctx, answered)).triggerDamageTypeIds).toEqual([FIRE_ID, COLD_ID])
+    expect((await readReactionChildTrigger(raised.ctx, answered)).triggerDamageTypeIds).toEqual([
+      FIRE_ID,
+      COLD_ID
+    ])
     await suspendReactionChildParent(raised.ctx, link)
-    expect((await readReactionChildTrigger(raised.ctx, answered)).triggerDamageTypeIds).toEqual([FIRE_ID, COLD_ID])
+    expect((await readReactionChildTrigger(raised.ctx, answered)).triggerDamageTypeIds).toEqual([
+      FIRE_ID,
+      COLD_ID
+    ])
   })
 
   it('reads no damage types for a child that answers no hit, or that the attack does not record', async () => {

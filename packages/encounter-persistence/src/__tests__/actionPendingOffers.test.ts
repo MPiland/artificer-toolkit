@@ -466,7 +466,10 @@ describe('heldActionContinues', () => {
   describe('an attack held on its hit for the creature it hit (QUALITY-8.T1d2b, D219)', () => {
     const child = { commandId: 'child' }
     const hit = { originalExecutionChecksum: 'hit', damageTypeIds: ['fire'] }
-    const hitOffer = { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: [], hit } }
+    const hitOffer = {
+      kind: 'CAST_REACTION' as const,
+      payload: { declinedReactorActorIds: [], hit }
+    }
     const rolling = { currentnessChecksum: 'sealed' }
     const held = { ...rolling, rollerActorId: 'target', pause: hitOffer }
     const awaiting = { ...held, reactionChildren: [child] }
