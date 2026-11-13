@@ -48,9 +48,7 @@ import {
   readCommittedReactionChildren,
   readCommittedReactionDescendants,
   readReactionChildAncestors,
-  readReactionChildCastLevel,
-  readReactionChildHitDamageTypeIds,
-  readReactionChildMovement,
+  readReactionChildTrigger,
   readReactionChildParent,
   readTrailingReactionDescendants,
   releaseReactionChildParent,
@@ -191,6 +189,8 @@ const link = {
   reactorActorId: PROTECTOR_ID,
   actorUserId: GM_USER_ID
 }
+/** The recorded child with the action its reactor was offered, as its trigger is read. */
+const answered = { ...link, actionId: REACTION_ACTION_ID }
 
 /**
  * A Run at `ROOT_VERSION` whose attack on the ally is paused, its pending context recording
@@ -621,25 +621,25 @@ describe('the pending action a reaction child answers (D219)', () => {
 describe('the cast a reaction child answers (QUALITY-9.T1b1, D219)', () => {
   it('is read at the level the pending action recorded beside the child', async () => {
     const { ctx } = await pausedAttack({ ...recorded, castLevel: 4 })
-    expect(await readReactionChildCastLevel(ctx, link)).toBe(4)
+    expect((await readReactionChildTrigger(ctx, answered)).triggerCastLevel).toBe(4)
     const cantrip = await pausedAttack({ ...recorded, castLevel: 0 })
-    expect(await readReactionChildCastLevel(cantrip.ctx, link)).toBe(0)
+    expect((await readReactionChildTrigger(cantrip.ctx, answered)).triggerCastLevel).toBe(0)
   })
 
   it('still reads while the action is suspended for the child’s own evidence', async () => {
     const { ctx } = await pausedAttack({ ...recorded, castLevel: 4 })
     await suspendReactionChildParent(ctx, link)
-    expect(await readReactionChildCastLevel(ctx, link)).toBe(4)
+    expect((await readReactionChildTrigger(ctx, answered)).triggerCastLevel).toBe(4)
   })
 
   it('is none for an action that casts no spell, and for a child the action does not record', async () => {
     const attack = await pausedAttack(recorded)
-    expect(await readReactionChildCastLevel(attack.ctx, link)).toBeNull()
+    expect((await readReactionChildTrigger(attack.ctx, answered)).triggerCastLevel).toBeNull()
     const other = await pausedAttack({
       reactionChildren: [{ commandId: testUuid(0x8a0b) }],
       castLevel: 4
     })
-    expect(await readReactionChildCastLevel(other.ctx, link)).toBeNull()
+    expect((await readReactionChildTrigger(other.ctx, answered)).triggerCastLevel).toBeNull()
   })
 
   it('refuses a cast level on a pending action that records no reaction child', async () => {
@@ -977,9 +977,15 @@ describe('an offer of reactions made to the creature an attack hit (QUALITY-8.T1
   it('records the chosen reaction as a child of the held attack, which reads the hit’s damage types from the offer', async () => {
     const raised = await pausedAttack({ offer, reactionChildren: [{ commandId: child }] })
     expect(await readReactionChildParent(raised.ctx, link)).toEqual(raised.occurrence())
-    expect(await readReactionChildHitDamageTypeIds(raised.ctx, link)).toEqual([FIRE_ID, COLD_ID])
+    expect((await readReactionChildTrigger(raised.ctx, answered)).triggerDamageTypeIds).toEqual([
+      FIRE_ID,
+      COLD_ID
+    ])
     await suspendReactionChildParent(raised.ctx, link)
-    expect(await readReactionChildHitDamageTypeIds(raised.ctx, link)).toEqual([FIRE_ID, COLD_ID])
+    expect((await readReactionChildTrigger(raised.ctx, answered)).triggerDamageTypeIds).toEqual([
+      FIRE_ID,
+      COLD_ID
+    ])
   })
 
   it('reads no damage types for a child that answers no hit, or that the attack does not record', async () => {
@@ -987,11 +993,11 @@ describe('an offer of reactions made to the creature an attack hit (QUALITY-8.T1
       offer: { kind: 'ATTACK_ON_OTHER' },
       reactionChildren: [{ commandId: child }]
     })
-    expect(await readReactionChildHitDamageTypeIds(aimed.ctx, link)).toBeNull()
+    expect((await readReactionChildTrigger(aimed.ctx, answered)).triggerDamageTypeIds).toBeNull()
     const unheld = await pausedAttack({ reactionChildren: [{ commandId: child }] })
-    expect(await readReactionChildHitDamageTypeIds(unheld.ctx, link)).toBeNull()
+    expect((await readReactionChildTrigger(unheld.ctx, answered)).triggerDamageTypeIds).toBeNull()
     const other = await pausedAttack({ offer, reactionChildren: [{ commandId: testUuid(0x8a0b) }] })
-    expect(await readReactionChildHitDamageTypeIds(other.ctx, link)).toBeNull()
+    expect((await readReactionChildTrigger(other.ctx, answered)).triggerDamageTypeIds).toBeNull()
   })
 })
 
@@ -1824,19 +1830,19 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
     expect(await readReactionChildAncestors(ctx, link)).toEqual([
       { actorId: ATTACKER_ID, reaction: false, castSlotKey: null }
     ])
-    expect(await readReactionChildCastLevel(ctx, link)).toBeNull()
+    expect((await readReactionChildTrigger(ctx, answered)).triggerCastLevel).toBeNull()
   })
 
   it('reads the child’s attack as an opportunity attack under the allowance its option was offered (QUALITY-18.T2b1)', async () => {
     const { ctx } = await pausedMove(recorded.reactionChildren)
     const child = { ...link, actionId: REACTION_ACTION_ID }
-    expect(await readReactionChildMovement(ctx, child)).toEqual({
+    expect((await readReactionChildTrigger(ctx, child)).triggerMovement).toEqual({
       attackOccasion: 'OPPORTUNITY',
       allowanceDefinitionId: testUuid(0x8a31)
     })
     // Still read while the move is suspended for the child's own evidence.
     await suspendReactionChildParent(ctx, link)
-    expect(await readReactionChildMovement(ctx, child)).toMatchObject({
+    expect((await readReactionChildTrigger(ctx, child)).triggerMovement).toMatchObject({
       allowanceDefinitionId: testUuid(0x8a31)
     })
   })
@@ -1844,18 +1850,18 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
   it('reads no move for a child a held attack records, or one the move does not record (QUALITY-18.T2b1)', async () => {
     const child = { ...link, actionId: REACTION_ACTION_ID }
     const attack = await pausedAttack(recorded)
-    expect(await readReactionChildMovement(attack.ctx, child)).toBeNull()
+    expect((await readReactionChildTrigger(attack.ctx, child)).triggerMovement).toBeNull()
     const open = await pausedMove()
-    expect(await readReactionChildMovement(open.ctx, child)).toBeNull()
+    expect((await readReactionChildTrigger(open.ctx, child)).triggerMovement).toBeNull()
   })
 
   it('refuses a recorded child whose action the contact never offered its reactor (QUALITY-18.T2b1)', async () => {
     const { ctx } = await pausedMove(recorded.reactionChildren)
     await expect(
-      readReactionChildMovement(ctx, { ...link, actionId: 'creature-bandit:scimitar' })
+      readReactionChildTrigger(ctx, { ...link, actionId: 'creature-bandit:scimitar' })
     ).rejects.toThrow('The reaction’s move no longer offers it.')
     await expect(
-      readReactionChildMovement(ctx, {
+      readReactionChildTrigger(ctx, {
         ...link,
         actionId: REACTION_ACTION_ID,
         reactorActorId: ALLY_ID

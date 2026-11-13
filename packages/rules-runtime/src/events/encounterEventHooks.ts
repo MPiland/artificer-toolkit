@@ -231,6 +231,19 @@ function subscriptionMet(
 type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
 
 /**
+ * The damage types a reaction to a hit answers: of those the hit deals, the ones its trigger names.
+ * None for a trigger that names no damage type (a reaction to the attack itself).
+ */
+export function reactionTriggerDamageTypeIds(
+  trigger: ReactionCandidate['mechanicFacts']['invocation']['reactionTrigger'],
+  dealt: ReadonlySet<string>
+): string[] {
+  return trigger?.kind === 'DAMAGE_TAKEN'
+    ? trigger.damageTypeIds.filter((damageTypeId) => dealt.has(damageTypeId))
+    : []
+}
+
+/**
  * The hook an event meets in a held reaction: an authored reaction whose trigger the event meets with
  * the qualifiers it adds (a melee or ranged attack, a weapon attack, an attacker the holder sees, a damage type the hit deals, a
  * cast of a listed spell). The trigger registry names the event that announces each trigger's moment
@@ -264,9 +277,7 @@ function reactionHookMet(
         : null
     case 'DAMAGE_TAKEN': {
       if (event.kind !== 'HIT_BY_ATTACK') return null
-      const triggerDamageTypeIds = trigger.damageTypeIds.filter((damageTypeId) =>
-        event.damageTypeIds.has(damageTypeId)
-      )
+      const triggerDamageTypeIds = reactionTriggerDamageTypeIds(trigger, event.damageTypeIds)
       return triggerDamageTypeIds.length > 0
         ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds }
         : null

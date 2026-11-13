@@ -107,7 +107,7 @@ export async function advanceNativeActionGraphs(input: {
       candidates: readonly EncounterReactionCandidate[]
       /**
        * The damage types the hit deals, when the reactions found run as their holder's own actions
-       * (D219); null while they still run inline, which QUALITY-8.T1d2b ends.
+       * (D219). No caller passes null any more; QUALITY-8.T1d3 deletes it with the inline offer.
        */
       childHitDamageTypeIds: readonly string[] | null
     }>
@@ -294,7 +294,7 @@ export async function advanceNativeActionGraphs(input: {
                 hit: { ...hit, damageTypeIds: [...found.childHitDamageTypeIds] }
               }
             }
-          : // Transitional: the inline offer, which QUALITY-8.T1d2b stops making and T1d3 deletes.
+          : // Transitional: the inline offer, which no caller makes any more and QUALITY-8.T1d3 deletes.
             { kind: 'REACTION', payload: { ...hit, reactions } }
       }
     }

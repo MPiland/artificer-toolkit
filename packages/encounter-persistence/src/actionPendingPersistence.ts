@@ -260,8 +260,10 @@ export async function persistEncounterActionPending(
           actor.id === reaction.reactorActorId &&
           // The caster never reacts to its own action; it counters a counter in that counter's own action.
           actor.id !== admission.input.actorId &&
-          actor.kind === 'CHARACTER' &&
-          actor.sourceId === reaction.characterId
+          // A pin names its Character; a creature's reaction is its own authored action, so it names none.
+          (reaction.characterId === null
+            ? actor.kind === 'CREATURE'
+            : actor.kind === 'CHARACTER' && actor.sourceId === reaction.characterId)
       )
     )
   )
