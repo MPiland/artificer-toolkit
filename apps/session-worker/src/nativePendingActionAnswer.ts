@@ -1,6 +1,5 @@
 import {
   resolveEncounterActionInputDtoSchema,
-  type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
@@ -68,12 +67,11 @@ export function readNativePendingActionAnswer(input: {
 /**
  * The reaction offer the room resumes a pending action from, once the child action of the reaction
  * chosen at it committed (D219): its moment, who was offered it and who declined before. The action must be an
- * ordinary single-target action still held at that offer.
+ * ordinary action still held at that offer, whether it is at one creature, a chosen list or an area.
  */
 export function readNativeResumedReactionOffer(input: {
   resume: LiveSessionEncounterActionResume
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto | null
-  command: ResolveEncounterActionInputDto
   fingerprint: string
 }) {
   const { resume, snapshot } = input
@@ -83,7 +81,6 @@ export function readNativeResumedReactionOffer(input: {
     snapshot?.occurrenceId !== resume.occurrenceId ||
     context.commandFingerprint !== input.fingerprint ||
     context.pause?.kind !== 'CAST_REACTION' ||
-    input.command.target.kind !== 'ACTOR' ||
     context.contest ||
     snapshot.deferredCleaving
   )

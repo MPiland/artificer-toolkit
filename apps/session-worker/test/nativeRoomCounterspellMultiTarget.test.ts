@@ -3,11 +3,14 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
+import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { massHealingWord } from '@artificer-toolkit/source-data/srd/spells/mass-healing-word.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -16,12 +19,17 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readPendingActionDecision,
+  readRoomHistory
+} from './roomHistoryReads.js'
 
 /**
  * REACTION-4.T3e-a (D127): a Character's cast on chosen creatures and its area cast offer a held
  * Counterspell before they do anything, as a single-target cast does. A countered cast spends its
- * slot and action and has no effect; a failed counter is spent with the cast's terminal commit.
+ * slot and action and has no effect. The counter is its holder's own action (D219): it spends the
+ * holder's slot and reaction when it commits, whether or not it cancels the cast it answers.
  */
 
 const CASTER_ACTOR_ID = testUuid(0x7f0)
@@ -29,6 +37,8 @@ const CASTER_ID = testUuid(0x7f1)
 const REACTOR_ACTOR_ID = testUuid(0x7f2)
 const REACTOR_ID = testUuid(0x7f3)
 const WOLF_IDS = [testUuid(0x7f4), testUuid(0x7f5)]
+const SHIELD_ACTOR_ID = testUuid(0x7f6)
+const SHIELD_ID = testUuid(0x7f7)
 const SLOT_SPENT = (level: number) => [{ slotKey: `STANDARD:${level}`, used: 1 }]
 
 afterEach(() => {
@@ -99,11 +109,13 @@ async function offered(room: Room) {
 /** The holder counters with its lowest slot. */
 async function counterWithLowestSlot(room: Room) {
   const { decision, pending } = await offered(room)
-  const used = await room.resolve(decision, {
+  const answer = room.resolveCommand(decision, {
     kind: 'OPTION',
     optionId: pending.options[0].optionId
   })
+  const used = await room.send(answer)
   expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+  return answer
 }
 
 async function decline(room: Room) {
@@ -112,17 +124,48 @@ async function decline(room: Room) {
   expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
 }
 
-/** The holder's spellcasting check against a cast above its slot, answered with one natural d20. */
+/** The holder’s spellcasting check against a cast above its slot, answered with one natural d20. */
 async function rollTheCheck(room: Room, face: number) {
   const decision = await room.pendingDecision()
   if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the counter check.')
-  const rolled = await room.resolve(decision, {
+  const answer = room.resolveCommand(decision, {
     kind: 'ENTER_DICE',
     requestId: decision.pending.request.requestId,
     rawFaces: [face],
     rollMode: decision.pending.request.rollMode
   })
+  const rolled = await room.send(answer)
   expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+  return answer
+}
+
+/**
+ * The Counterspell the room ran as its holder's own action against the Caster's cast, that cast, the
+ * Run version each committed at and each one's receipt.
+ */
+async function readChildAndCast(room: Room) {
+  const history = await readRoomHistory(room.room.base.stub)
+  const rows = history.commands.filter((row) => row.commandType === 'RESOLVE_ACTION')
+  const actions = rows.map((row) =>
+    resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
+  )
+  const child = actions.find((command) => command.systemTrigger?.trigger === 'REACTION')
+  const cast = actions.find((command) => !command.systemTrigger)
+  if (!child || !cast) throw new Error('The room ran no reaction child against a cast.')
+  const executionOf = (commandId: string) => {
+    const receipt = history.receipts.find((candidate) => candidate.commandId === commandId)
+    if (!receipt) throw new Error('The action left no receipt.')
+    return parseReceiptExecution(receipt)
+  }
+  return {
+    child,
+    cast,
+    versions: Object.fromEntries(
+      rows.map((row, index) => [actions[index]!.commandId, row.version])
+    ),
+    childExecution: executionOf(child.commandId),
+    castExecution: executionOf(cast.commandId)
+  }
 }
 
 /** Answers every save and outcome die the cast still waits on with its lowest face. */
@@ -160,6 +203,17 @@ async function undoLastAction(room: Room) {
     expectedVersion: await room.version()
   })
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+}
+
+async function voidOccurrence(room: Room, occurrence: { id: string; version: number }) {
+  return room.send({
+    type: 'VOID_RULE_OCCURRENCE',
+    commandId: crypto.randomUUID(),
+    encounterId: room.room.encounterId,
+    expectedVersion: await room.version(),
+    occurrenceId: occurrence.id,
+    expectedOccurrenceVersion: occurrence.version
+  })
 }
 
 const castOnWolves = async (room: Room, targets: readonly string[] = WOLF_IDS) => {
@@ -236,7 +290,141 @@ describe('room Counterspell against a Character’s cast on chosen creatures (RE
     expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(3))
   })
 
-  it('spends a failing holder’s slot with the cast, which goes on; one undo restores all', async () => {
+  it('runs the counter as the holder’s own action and commits the cast it cancelled as lost, with no counter receipt (D219)', async () => {
+    const room = await healRoom()
+    await castOnWolves(room)
+    const version = await room.version()
+    await counterWithLowestSlot(room)
+
+    const { child, cast, versions, childExecution, castExecution } = await readChildAndCast(room)
+    expect(child).toMatchObject({
+      actorId: REACTOR_ACTOR_ID,
+      target: { kind: 'ACTOR', actorId: CASTER_ACTOR_ID },
+      systemTrigger: { parentCommandId: cast.commandId, trigger: 'REACTION' }
+    })
+    // The child commits first, on the Run version the choice was made at; the cast it cancelled follows.
+    expect(versions[child.commandId]).toBe(version + 1)
+    expect(versions[cast.commandId]).toBe(version + 2)
+    expect(childExecution.status).toBe('COMPLETE')
+    if (
+      castExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+      castExecution.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST'
+    )
+      throw new Error(`Expected a countered cast, got ${castExecution.status}.`)
+    expect(castExecution.applicationOutputs.counter).toBeNull()
+    expect(castExecution.applicationOutputs.spellCastConsumption).not.toBeNull()
+  })
+
+  it('replays the counter, its check and the cast without spending or casting a second time', async () => {
+    const room = await healRoom('4th')
+    const { command, answer } = await room.startActorsAction(WOLF_IDS)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const choice = await counterWithLowestSlot(room)
+    const check = await rollTheCheck(room, 1)
+    await settle(room)
+    const version = await room.version()
+    const vitals = await creatureVitals(room)
+
+    for (const replayed of [choice, check, command]) {
+      const again = await room.send(replayed)
+      expect(again.type, JSON.stringify(again)).toBe('COMMAND_COMMITTED')
+    }
+    expect(await room.version()).toBe(version)
+    expect(await creatureVitals(room)).toEqual(vitals)
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+  })
+
+  it('resumes the cast past the reaction its first chosen creature spent on a failed counter', async () => {
+    const room = await healRoom('4th', true)
+    const holderHitPoints = await hitPointsOf(room, REACTOR_ID)
+    await castOnWolves(room, [REACTOR_ACTOR_ID, WOLF_IDS[0]!])
+    await counterWithLowestSlot(room)
+    await rollTheCheck(room, 1)
+
+    // The holder paid in its own action, which changed the facts the held cast was sealed on.
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    await settle(room)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await hitPointsOf(room, REACTOR_ID)).toBeGreaterThan(holderHitPoints)
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+  })
+
+  /** A 4th-level Magic Missile throws six darts, all at the Shield holder, past a failed counter. */
+  const shieldOfferedAfterFailedCounter = async () => {
+    const room = await actionRoom({
+      sceneGrid: {
+        kind: 'SQUARE',
+        origin: { x: 0, y: 0 },
+        cellSize: 100,
+        distancePerCell: 10,
+        diagonalPolicy: 'EQUAL',
+        unit: 'FEET'
+      },
+      actors: [
+        characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+        characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID }),
+        characterActor({ id: SHIELD_ACTOR_ID, characterId: SHIELD_ID })
+      ],
+      characterSpellcasting: { spells: [magicMissile], prepared: [magicMissile.id] },
+      secondCharacter: {
+        characterId: REACTOR_ID,
+        spellcasting: { spells: [counterspell], prepared: [counterspell.id] }
+      },
+      thirdCharacter: {
+        characterId: SHIELD_ID,
+        play: { currentHitPoints: 8 },
+        spellcasting: { spells: [shield], prepared: [shield.id] }
+      },
+      characterAction: (action) => action.label === 'Magic Missile (4th level)'
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    await castOnWolves(
+      room,
+      Array.from({ length: 6 }, () => SHIELD_ACTOR_ID)
+    )
+    await counterWithLowestSlot(room)
+    await rollTheCheck(room, 1)
+    return { room, before }
+  }
+
+  it('offers a chosen creature its Shield after a counter failed, the counter already paid for', async () => {
+    const { room } = await shieldOfferedAfterFailedCounter()
+
+    const { decision, pending } = await offered(room)
+    expect(pending.targetActorId).toBe(SHIELD_ACTOR_ID)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    expect(await slotsOf(room, SHIELD_ID)).toEqual([])
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await hitPointsOf(room, SHIELD_ID)).toBe(8)
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    expect(await slotsOf(room, SHIELD_ID)).toEqual(SLOT_SPENT(1))
+  })
+
+  it('gives back a failed counter’s slot and reaction when the GM voids the cast held at a chosen creature’s Shield', async () => {
+    const { room, before } = await shieldOfferedAfterFailedCounter()
+    const { decision } = await offered(room)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+
+    const voided = await voidOccurrence(room, decision.occurrence)
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await slotsOf(room, SHIELD_ID)).toEqual([])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  })
+
+  it('spends a failing holder’s slot in its own action, and the cast goes on; one undo restores all', async () => {
     const room = await healRoom('4th')
     const before = await readRoomHistory(room.room.base.stub)
     const vitals = await creatureVitals(room)
@@ -336,7 +524,7 @@ describe('room Counterspell against a Character’s area cast (REACTION-4.T3e)',
     expect(await slotsOf(room, REACTOR_ID)).toEqual([])
   })
 
-  it('spends a failing holder’s slot with the area’s commit, the holder caught by it, and one undo restores all', async () => {
+  it('spends a failing holder’s slot in its own gated action before the saves, the holder caught by the area, and one undo restores all', async () => {
     const room = await fireballRoom('4th')
     const before = await readRoomHistory(room.room.base.stub)
     const holderHitPoints = await hitPointsOf(room, REACTOR_ID)
@@ -344,11 +532,23 @@ describe('room Counterspell against a Character’s area cast (REACTION-4.T3e)',
     await counterWithLowestSlot(room)
     await rollTheCheck(room, 1)
 
-    // The failed counter waits with the cast's saves: nothing is spent yet.
+    // The failed counter committed as the holder's own action: it has paid before the saves are rolled.
     const decision = await room.pendingDecision()
     expect(decision.pending.kind).toBe('AREA_SAVES')
-    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
     await settle(room)
+
+    const { child, cast, childExecution } = await readChildAndCast(room)
+    expect(child.systemTrigger).toMatchObject({
+      parentCommandId: cast.commandId,
+      trigger: 'REACTION'
+    })
+    if (
+      childExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+      childExecution.applicationOutputs.kind !== 'ENCOUNTER_GATED_ACTION'
+    )
+      throw new Error(`Expected a gated Counterspell, got ${childExecution.status}.`)
+    expect(childExecution.applicationOutputs.lost).toBe('SPELL')
 
     expect(await hitPointsOf(room, REACTOR_ID)).toBeLessThan(holderHitPoints)
     expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
@@ -362,7 +562,27 @@ describe('room Counterspell against a Character’s area cast (REACTION-4.T3e)',
     expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
   })
 
-  it('spends a failing holder’s slot with the area’s commit when the area does not catch the holder', async () => {
+  it('replays the counter, its check and the area cast without spending or casting a second time', async () => {
+    const room = await fireballRoom('4th')
+    const { command, answer } = await room.startAreaAction({ x: 400, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const choice = await counterWithLowestSlot(room)
+    const check = await rollTheCheck(room, 1)
+    await settle(room)
+    const version = await room.version()
+    const history = await readRoomHistory(room.room.base.stub)
+
+    for (const replayed of [choice, check, command]) {
+      const again = await room.send(replayed)
+      expect(again.type, JSON.stringify(again)).toBe('COMMAND_COMMITTED')
+    }
+    expect(await room.version()).toBe(version)
+    expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(vitalsOf(history))
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+  })
+
+  it('spends a failing holder’s slot in its own action when the area does not catch the holder', async () => {
     const room = await fireballRoom('4th', { x: 150, y: 650 })
     const before = await readRoomHistory(room.room.base.stub)
     await castFireball(room)
@@ -374,6 +594,83 @@ describe('room Counterspell against a Character’s area cast (REACTION-4.T3e)',
     expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
 
     await undoLastAction(room)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  })
+
+  it('gives back a failed counter’s slot and reaction when the GM voids the area at its saves', async () => {
+    const room = await fireballRoom('4th')
+    const before = await readRoomHistory(room.room.base.stub)
+    await castFireball(room)
+    await counterWithLowestSlot(room)
+    await rollTheCheck(room, 1)
+    const saves = await room.pendingDecision()
+    expect(saves.pending.kind).toBe('AREA_SAVES')
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+
+    const voided = await voidOccurrence(room, saves.occurrence)
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+
+    // The reaction is back: the same cast offers it again.
+    await castFireball(room)
+    await offered(room)
+  })
+
+  it('gives back a failed counter when the GM voids the area after a save was answered', async () => {
+    const room = await fireballRoom('4th')
+    const before = await readRoomHistory(room.room.base.stub)
+    await castFireball(room)
+    await counterWithLowestSlot(room)
+    await rollTheCheck(room, 1)
+    const first = await room.pendingDecision()
+    if (first.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const [save] = first.pending.saves
+    const answered = await room.resolve(first, {
+      kind: 'ENTER_DICE',
+      requestId: save!.request.requestId,
+      rawFaces: [1],
+      rollMode: save!.request.rollMode
+    })
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+
+    const voided = await voidOccurrence(room, (await room.pendingDecision()).occurrence)
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  })
+
+  it('commits the area as the casters’ spends alone when the GM removes every creature it caught after a failed counter; one undo restores all', async () => {
+    const room = await fireballRoom('4th', { x: 150, y: 650 })
+    const before = await readRoomHistory(room.room.base.stub)
+    const vitals = await creatureVitals(room)
+    const { command, answer } = await room.startAreaAction({ x: 400, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await counterWithLowestSlot(room)
+    await rollTheCheck(room, 1)
+    for (const wolfId of WOLF_IDS) {
+      const removed = await room.send(
+        room.removeAreaTargetCommand(await room.pendingDecision(), wolfId)
+      )
+      expect(removed.type, JSON.stringify(removed)).toBe('COMMAND_COMMITTED')
+    }
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots.map(({ receipt }) => receipt.commandId)).toEqual([command.commandId])
+    expect([...(roots[0]?.outputs.removedActorIds ?? [])].sort()).toEqual([...WOLF_IDS].sort())
+    expect(children).toEqual([])
+    expect(await creatureVitals(room)).toEqual(vitals)
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+
+    await undoLastAction(room)
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
     expect(await slotsOf(room, REACTOR_ID)).toEqual([])
     expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
   })

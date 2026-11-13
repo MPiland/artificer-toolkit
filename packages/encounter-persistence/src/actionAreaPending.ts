@@ -42,6 +42,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectNativeActionPending } from './actionPending.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
+import { heldRootVersionAccounted } from './reactionChildren.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 type AreaSceneContext = Extract<
@@ -146,7 +147,13 @@ export async function readNativeAreaActionPending(
     command.target.kind === 'ACTOR' ||
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
-    command.expectedVersion !== occurrence.expectedEncounterVersion ||
+    // The saves open at the Run version the reactions to the cast left (D219): one past the root
+    // for each that committed while the cast was held.
+    !(await heldRootVersionAccounted(ctx, {
+      occurrence,
+      rootExpectedVersion: command.expectedVersion,
+      recorded: []
+    })) ||
     checksumCanonicalJson(command) !== context.commandFingerprint
   )
     throw new Error('Stored Encounter area action root mismatch.')

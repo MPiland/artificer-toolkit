@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   castCounteredCarriesUsedReactions,
   castPendingContinues,
+  heldActionContinues,
   offeredDecisionOptionIds,
   passedGateAfter
 } from '../actionPending.js'
@@ -544,6 +545,65 @@ describe('castPendingContinues', () => {
         )
       ).toBe(false)
     })
+  })
+})
+
+describe('heldActionContinues', () => {
+  const offer = (currentnessChecksum: string, rollMode?: 'NORMAL') => ({
+    currentnessChecksum,
+    rollerActorId: 'next',
+    pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['holder'] } },
+    reactionChildren: [{ commandId: 'child', ...(rollMode && { rollMode }) }]
+  })
+  /** A cast held on the child `reactor` committed, resumed to its next offer on `checksum`. */
+  const resumed = (reactor: string, checksum: string, descendants: string[] = []) =>
+    heldActionContinues({
+      resume: {
+        occurrence: { id: 'occurrence' },
+        pending: {
+          context: {
+            ...offer('sealed'),
+            rollerActorId: 'holder',
+            pause: { kind: 'CAST_REACTION', payload: { declinedReactorActorIds: [] } }
+          }
+        },
+        reactionChildren: [
+          { commandId: 'child', reactorActorId: reactor, descendantReactorActorIds: descendants }
+        ]
+      },
+      response: null,
+      occurrenceId: 'occurrence',
+      next: offer(checksum, 'NORMAL'),
+      endpointActorIds: ['caster', 'chosen']
+    })
+
+  it('resumes on the facts the cast was sealed on', () => {
+    expect(resumed('bystander', 'sealed')).toBe(true)
+  })
+
+  it('refuses changed facts when the awaited child’s tree holds none of the cast’s creatures', () => {
+    expect(resumed('bystander', 'changed')).toBe(false)
+    expect(resumed('bystander', 'changed', ['other'])).toBe(false)
+  })
+
+  it('takes changed facts when a creature the cast names reacted in the awaited child’s tree', () => {
+    expect(resumed('chosen', 'changed')).toBe(true)
+    expect(resumed('bystander', 'changed', ['caster'])).toBe(true)
+  })
+
+  it('records no child on an action that resumes nothing', () => {
+    const fresh = { resume: null, response: null, occurrenceId: 'occurrence' }
+    const { reactionChildren, ...unrecorded } = offer('sealed')
+    expect(heldActionContinues({ ...fresh, next: unrecorded, endpointActorIds: ['caster'] })).toBe(
+      true
+    )
+    expect(
+      heldActionContinues({
+        ...fresh,
+        next: { ...unrecorded, reactionChildren },
+        endpointActorIds: ['caster']
+      })
+    ).toBe(false)
   })
 })
 
