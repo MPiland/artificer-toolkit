@@ -101,13 +101,14 @@ describe('a room ADVANCE_TURN that begins a regenerating creature’s turn (SPEL
     const room = await onionRoom(WOUNDED)
     await advance(room)
     const oni = srdCreatureActor({ id: ONI_ID, creature: srdByLabel(SRD.creatures, 'Oni') })
-    const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
+    const { raisedActions } = discoverEncounterFeatureActions({
       actor: oni,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code })),
       spells: new Map()
     })
-    const actionId = passiveStartOfTurnEffects[0]?.capability.actionId
+    const actionId = raisedActions.find(({ hook }) => hook.subscription.event === 'TURN_STARTED')
+      ?.capability.actionId
     if (!actionId) throw new Error('The Oni has no start-of-turn trait.')
     const hitPoints = await hitPointsOf(room, ONI_ID)
     const answer = await room.send({

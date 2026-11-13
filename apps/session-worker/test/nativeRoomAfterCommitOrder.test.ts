@@ -50,17 +50,21 @@ afterEach(() => {
 const hitPointsOf = (history: RoomHistory, id: string) =>
   vitalsOf(history).find((vitals) => vitals.id === id)?.currentHitPoints
 
-/** The root the room raises for `actor`'s death burst under the command that defeated it. */
-function burstCommandId(parentCommandId: string, actor: EncounterRunActorState) {
+/** The action the event table raises for `actor` when it is defeated: its death burst. */
+function burstActionId(actor: EncounterRunActorState) {
   const [burst] = discoverEncounterFeatureActions({
     spells: new Map(),
     actor,
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-  }).passiveHpZeroEffects
+  }).raisedActions.filter(({ hook }) => hook.subscription.event === 'DEFEATED')
   if (!burst) throw new Error('The Wolf carries no death burst.')
-  return systemTriggerCommandId(parentCommandId, actor.id, burst.capability.actionId)
+  return burst.capability.actionId
 }
+
+/** The root the room raises for `actor`'s death burst under the command that defeated it. */
+const burstCommandId = (parentCommandId: string, actor: EncounterRunActorState) =>
+  systemTriggerCommandId(parentCommandId, actor.id, burstActionId(actor))
 
 describe('what one room command raises after it commits (QUALITY-11.T1a)', () => {
   it('settles a mirror kill, then raises the killed source’s burst under the same command', async () => {
@@ -119,6 +123,36 @@ describe('what one room command raises after it commits (QUALITY-11.T1a)', () =>
     ])
     // The burst reaches the attacker, who stands within 30 feet of the source.
     expect(hitPointsOf(after, ATTACKER_ID)).toBe((hitPointsOf(before, ATTACKER_ID) ?? 0) - 1)
+  }, 120000)
+
+  it('refuses a submitted action that names a standing creature’s burst (QUALITY-11.T1b)', async () => {
+    const room = await actionRoom({
+      autoRoll: 'GAME_MASTER',
+      fallbackRoll: 0,
+      actors: [srdCreatureActor({ id: ATTACKER_ID, creature: attacker }), source],
+      ownerFeatureId: attacker.features?.find((feature) => feature.label === 'Bite')?.id
+    })
+    const stub = room.room.base.stub
+    const before = await readRoomHistory(stub)
+    const answer = await room.send({
+      type: 'RESOLVE_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: SOURCE_ID,
+      actionId: burstActionId(source),
+      target: { kind: 'ACTOR', actorId: ATTACKER_ID },
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
+      sceneContext: null
+    })
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET'
+    })
+    const after = await readRoomHistory(stub)
+    expect(after.commands).toHaveLength(before.commands.length)
+    expect(hitPointsOf(after, ATTACKER_ID)).toBe(hitPointsOf(before, ATTACKER_ID))
   }, 120000)
 })
 

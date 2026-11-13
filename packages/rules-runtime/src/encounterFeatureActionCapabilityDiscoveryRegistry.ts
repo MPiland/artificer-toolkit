@@ -7,7 +7,6 @@ import type { EffectActionCapabilityDescriptor } from './characterActionCapabili
 import {
   CharacterRuleActionUnsupportedCompilationError,
   type CharacterRuleActionActiveEffectPlan,
-  type CharacterRuleActionExecutionPlan,
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
 import { compileEncounterFeatureActionPlan } from './encounterActionEntryPointCompiler.js'
@@ -33,17 +32,6 @@ export interface EncounterPassiveDamageGrant {
   plan: CharacterRuleActionActiveEffectPlan
 }
 
-/** An effect a Creature's passive feature runs where it stands when it is reduced to 0 hit points. */
-export interface EncounterPassiveHpZeroEffect {
-  capability: EncounterFeatureActionCapabilityDescriptor
-  plan: CharacterRuleActionExecutionPlan
-}
-
-/** An effect a Creature's passive feature runs on itself at the start of its turn. */
-export interface EncounterPassiveStartOfTurnEffect {
-  capability: EncounterFeatureActionCapabilityDescriptor
-}
-
 /** A passive feature that wears down the weapon of whoever hits its Creature with one. */
 export interface EncounterPassiveWeaponHit {
   capability: EncounterFeatureActionCapabilityDescriptor
@@ -60,25 +48,26 @@ export function discoverEncounterFeatureActions(
   EncounterFeatureActionDiscovery,
   | 'passiveZoneCapabilities'
   | 'passiveDamageGrantCapabilities'
-  | 'passiveHpZeroCapabilities'
   | 'passiveWeaponHitCapabilities'
-  | 'passiveStartOfTurnCapabilities'
+  | 'raisedActionCapabilities'
   | 'passiveStandingCapabilities'
 > & {
   passiveZones: readonly EncounterPassiveZone[]
   passiveDamageGrants: readonly EncounterPassiveDamageGrant[]
-  passiveHpZeroEffects: readonly EncounterPassiveHpZeroEffect[]
   passiveWeaponHits: readonly EncounterPassiveWeaponHit[]
-  passiveStartOfTurnEffects: readonly EncounterPassiveStartOfTurnEffect[]
+  /**
+   * The actions the Encounter raises as the Creature's own when an event meets their hook: where it
+   * stands when it is defeated, or on itself when its turn starts. Never offered as actions.
+   */
+  raisedActions: EncounterFeatureActionDiscovery['raisedActionCapabilities']
   standingEffects: readonly StandingEffect[]
 } {
   const discovered = discoverUncompiledEncounterFeatureActions(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveZones: EncounterPassiveZone[] = []
   const passiveDamageGrants: EncounterPassiveDamageGrant[] = []
-  const passiveHpZeroEffects: EncounterPassiveHpZeroEffect[] = []
   const passiveWeaponHits: EncounterPassiveWeaponHit[] = []
-  const passiveStartOfTurnEffects: EncounterPassiveStartOfTurnEffect[] = []
+  const raisedActions: EncounterFeatureActionDiscovery['raisedActionCapabilities'][number][] = []
   const standingEffects: StandingEffect[] = []
   const unavailable = [...discovered.unavailable]
   const compiles = (
@@ -111,23 +100,17 @@ export function discoverEncounterFeatureActions(
     compiles(capability, (adapter) => {
       passiveDamageGrants.push(compilePassiveDamageGrant(adapter, capability))
     })
-  for (const capability of discovered.passiveHpZeroCapabilities)
-    compiles(capability, (adapter) => {
-      passiveHpZeroEffects.push({
-        capability,
-        plan: compileEncounterFeatureActionPlan(adapter, capability)
-      })
-    })
   for (const capability of discovered.passiveWeaponHitCapabilities)
     compiles(capability, () => {
       assertWeaponHitDegradationOnly(capability)
       passiveWeaponHits.push({ capability })
     })
-  for (const capability of discovered.passiveStartOfTurnCapabilities)
-    compiles(capability, (adapter) => {
-      assertStartOfTurnHealOnly(capability)
-      compileEncounterFeatureActionPlan(adapter, capability)
-      passiveStartOfTurnEffects.push({ capability })
+  for (const raised of discovered.raisedActionCapabilities)
+    compiles(raised.capability, (adapter) => {
+      if (raised.hook.subscription.event === 'TURN_STARTED')
+        assertTurnStartHealOnly(raised.capability)
+      compileEncounterFeatureActionPlan(adapter, raised.capability)
+      raisedActions.push(raised)
     })
   for (const capability of discovered.passiveStandingCapabilities)
     compiles(capability, (adapter) => {
@@ -138,9 +121,8 @@ export function discoverEncounterFeatureActions(
     unavailable,
     passiveZones,
     passiveDamageGrants,
-    passiveHpZeroEffects,
     passiveWeaponHits,
-    passiveStartOfTurnEffects,
+    raisedActions,
     standingEffects
   }
 }
@@ -199,8 +181,8 @@ function assertWeaponHitDegradationOnly(capability: EffectActionCapabilityDescri
     )
 }
 
-/** A start-of-turn passive heals its holder and does nothing else; any other outcome is unsupported. */
-function assertStartOfTurnHealOnly(capability: EffectActionCapabilityDescriptor) {
+/** An action the start of its holder's turn raises heals the holder and does nothing else; any other outcome is unsupported. */
+function assertTurnStartHealOnly(capability: EffectActionCapabilityDescriptor) {
   const { entries } = capability.compiledEffect
   if (
     entries.length === 0 ||

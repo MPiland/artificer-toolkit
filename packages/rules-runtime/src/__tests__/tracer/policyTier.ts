@@ -118,6 +118,7 @@ const tracerEventVocabularyAdapter: EventVocabularyCapabilityAdapter = {
         : [])
     ]
   },
+  raiseActionHook: () => null,
   zoneSubscription: () => null
 }
 

@@ -14,7 +14,11 @@ import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spell
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import { standingEffectReturnsOn } from './standingEffects.js'
-import { attackRestrictionCapabilityRegistry } from './platformPolicyModules.js'
+import type { EncounterRaiseActionHook } from './events/encounterEventTable.js'
+import {
+  attackRestrictionCapabilityRegistry,
+  eventVocabularyCapabilityRegistry
+} from './platformPolicyModules.js'
 import { snapshotAbilityScores } from './encounterActorState.js'
 import {
   attackProfileCapabilityRegistry,
@@ -98,11 +102,15 @@ export interface EncounterFeatureActionDiscovery {
   passiveZoneCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   /** The passive features that give their holder a timed grant when it takes damage, never offered as actions. */
   passiveDamageGrantCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
-  /** The passive features that fire when their holder is reduced to 0 hit points, never offered as actions. */
-  passiveHpZeroCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   passiveWeaponHitCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
-  /** The passive features that fire at the start of their holder's turn, never offered as actions. */
-  passiveStartOfTurnCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  /**
+   * The passive features the Encounter raises as their holder's action when an event meets their
+   * hook (the holder is defeated, or its turn starts), never offered as actions.
+   */
+  raisedActionCapabilities: readonly {
+    capability: EncounterFeatureActionCapabilityDescriptor
+    hook: EncounterRaiseActionHook
+  }[]
   /** The passive features whose always-on effect a rest turns back on, never offered as actions. */
   passiveStandingCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
 }
@@ -740,12 +748,15 @@ function creatureActionEffect(
       null
     )
   const { invocation } = compiled
-  // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
-  // for its holder, so it compiles and plans like any other area save. A passive start-of-turn
-  // effect runs as the activated self-action the System fires for its holder, so it spends none of
-  // the holder's action economy (activation FREE).
+  // A passive save effect its holder's defeat raises runs as the save action the Encounter raises
+  // for its holder, so it compiles and plans like any other area save. A passive effect the start
+  // of its holder's turn raises runs as the activated self-action the Encounter raises for its
+  // holder, so it spends none of the holder's action economy (activation FREE).
   if (invocation.kind !== 'PASSIVE') return compiled
-  if (invocation.triggerCode === 'HP_ZERO')
+  const raisedOn = eventVocabularyCapabilityRegistry
+    .require(gameSystemId)
+    .raiseActionHook(invocation.triggerCode)?.subscription.event
+  if (raisedOn === 'DEFEATED')
     return {
       ...compiled,
       invocation: {
@@ -755,7 +766,7 @@ function creatureActionEffect(
         activation: { code: 'ACTION', amount: 1 }
       }
     }
-  return invocation.triggerCode === 'START_OF_TURN'
+  return raisedOn === 'TURN_STARTED'
     ? {
         ...compiled,
         entries: compiled.entries.map((entry) => ({ ...entry, pathCode: 'ON_USE' as const })),
@@ -878,9 +889,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
       unavailable: [],
       passiveZoneCapabilities: [],
       passiveDamageGrantCapabilities: [],
-      passiveHpZeroCapabilities: [],
       passiveWeaponHitCapabilities: [],
-      passiveStartOfTurnCapabilities: [],
+      raisedActionCapabilities: [],
       passiveStandingCapabilities: []
     }
   const provenance = snapshotProvenance(input.actor)
@@ -890,10 +900,11 @@ export function discoverUncompiledEncounterFeatureActions(input: {
   const unavailable: EncounterFeatureActionUnavailable[] = []
   const passiveZoneCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveDamageGrantCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-  const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-  const passiveStartOfTurnCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const raisedActionCapabilities: EncounterFeatureActionDiscovery['raisedActionCapabilities'][number][] =
+    []
   const passiveStandingCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const vocabulary = eventVocabularyCapabilityRegistry.require(gameSystemId)
   const actionIds = new Set<string>()
   const profile = attackProfileCapabilityRegistry.require(gameSystemId)
   const features = snapshotFeatures(input.actor)
@@ -924,17 +935,16 @@ export function discoverUncompiledEncounterFeatureActions(input: {
       try {
         const compiledEffect = creatureActionEffect(gameSystemId, entry, features)
         const damageGrant = passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
-        const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
         const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'
-        const startOfTurn = passive && effect.invocation.triggerCode === 'START_OF_TURN'
         const standing = standingEffectReturnsOn(compiledEffect) !== null
+        const raiseHook =
+          passive && !standing ? vocabulary.raiseActionHook(effect.invocation.triggerCode) : null
         if (
           passive &&
           !standing &&
           !damageGrant &&
-          !hpZero &&
+          !raiseHook &&
           !weaponHit &&
-          !startOfTurn &&
           !placedSpaceManifest(compiledEffect) &&
           !passiveMeleeRetaliationZone(compiledEffect, label, profile.attackKind)
         )
@@ -947,20 +957,7 @@ export function discoverUncompiledEncounterFeatureActions(input: {
           abilityDefinitions: input.abilityDefinitions ?? []
         })
         if (normalized === null) continue
-        ;(standing
-          ? passiveStandingCapabilities
-          : damageGrant
-            ? passiveDamageGrantCapabilities
-            : hpZero
-              ? passiveHpZeroCapabilities
-              : weaponHit
-                ? passiveWeaponHitCapabilities
-                : startOfTurn
-                  ? passiveStartOfTurnCapabilities
-                  : passive
-                    ? passiveZoneCapabilities
-                    : available
-        ).push({
+        const capability: EncounterFeatureActionCapabilityDescriptor = {
           kind: 'ENCOUNTER_FEATURE',
           gameSystemId,
           authoredRootKind: 'effect',
@@ -996,7 +993,20 @@ export function discoverUncompiledEncounterFeatureActions(input: {
             equipmentBinding
           ),
           ...provenance
-        })
+        }
+        if (raiseHook && !damageGrant)
+          raisedActionCapabilities.push({ capability, hook: raiseHook })
+        else
+          (standing
+            ? passiveStandingCapabilities
+            : damageGrant
+              ? passiveDamageGrantCapabilities
+              : weaponHit
+                ? passiveWeaponHitCapabilities
+                : passive
+                  ? passiveZoneCapabilities
+                  : available
+          ).push(capability)
       } catch (error) {
         if (passive) continue
         unavailable.push({
@@ -1069,9 +1079,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
     unavailable,
     passiveZoneCapabilities,
     passiveDamageGrantCapabilities,
-    passiveHpZeroCapabilities,
     passiveWeaponHitCapabilities,
-    passiveStartOfTurnCapabilities,
+    raisedActionCapabilities,
     passiveStandingCapabilities
   }
 }

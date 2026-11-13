@@ -16,6 +16,8 @@ import {
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { encounterRuleActionId } from './encounterRuleAction.js'
+import type { EncounterRaiseActionHook } from './events/encounterEventTable.js'
 import type {
   MassiveDamageRule,
   OptionalCombatPolicyInput
@@ -33,6 +35,35 @@ export function encounterMassiveDamageRule(input: OptionalCombatPolicyInput) {
     optionalCombatPolicyCapabilityRegistry.find(input.gameSystemId)?.massiveDamageRule(input) ??
     null
   )
+}
+
+/**
+ * The actions the Encounter's optional combat rules raise as `actorId`'s own, each with the hook
+ * that raises it: the Effect the active massive-damage rule names for a failed save, subscribed to
+ * the failed save of that exact definition. A rule that is off or names no Effect raises none.
+ */
+export function encounterRuleRaisedActions(
+  input: OptionalCombatPolicyInput,
+  actorId: string
+): { actionId: string; hook: EncounterRaiseActionHook }[] {
+  const rule = encounterMassiveDamageRule(input)
+  if (!rule || rule.failedSaveEffectId === null) return []
+  return [
+    {
+      actionId: encounterRuleActionId(actorId, rule.pin.definitionId, rule.failedSaveEffectId),
+      hook: {
+        hook: 'RAISE_ACTION',
+        subscription: {
+          event: 'SAVE_FAILED',
+          definition: {
+            id: rule.pin.definitionId,
+            version: rule.pin.definitionVersion,
+            checksum: rule.pin.definitionChecksum
+          }
+        }
+      }
+    }
+  ]
 }
 
 /**

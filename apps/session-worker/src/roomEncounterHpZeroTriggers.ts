@@ -3,13 +3,14 @@ import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-per
 import { systemTriggerAreaCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { raiseRoomChild } from './roomEncounterChildRaise.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
 
 /**
- * Raises the passive effects creatures carry for reaching 0 hit points, once per committed command:
+ * Raises the actions the event table subscribes to their holder's defeat, once per committed command:
  * the one place that sees every transition to defeated, whichever root caused it. Each effect runs as
  * its own rule-raised root after the parent, so it reads the hit points the parent left. The roots
  * it raises never raise further effects, and a holder with no token in a Scene, or an Encounter that
@@ -35,13 +36,16 @@ export async function raiseRoomHpZeroEffects(input: {
   const raised = []
   for (const actor of await readRunActors(ctx, firstState)) {
     if (actor.kind !== 'CREATURE' || !actor.defeated || input.defeatedBefore.has(actor.id)) continue
-    const { passiveHpZeroEffects } = discoverEncounterFeatureActions({
+    const { raisedActions } = discoverEncounterFeatureActions({
       actor,
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: systemAbilityDefinitions(system),
       spells: new Map()
     })
-    for (const { capability } of passiveHpZeroEffects)
+    for (const { capability } of discoverEncounterEventHooks({
+      raisedActions,
+      events: [{ kind: 'DEFEATED' }]
+    }).raisedActions)
       raised.push({ holderActorId: actor.id, actionId: capability.actionId })
   }
   let committed = false

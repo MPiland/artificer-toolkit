@@ -831,8 +831,10 @@ cost land at Commit, the effect with the reactor's first outcome.
 
 An authored Effect with invocation `{ kind: PASSIVE, triggerCode: HP_ZERO }` and a saving throw is a creature
 trait that fires when the holder is defeated (Balor Death Throes). Discovery normalizes it to a
-`SAVING_THROW` area action but lists it in `passiveHpZeroEffects`, never in `available`, so it is not an
-ordinary action. After a command commits, `raiseRoomHpZeroEffects` (`roomEncounterHpZeroTriggers.ts`, called
+`SAVING_THROW` area action but lists it in `raisedActions` under a `DEFEATED` raise-action hook (see
+[Event hooks](#event-hooks-current-rules-2t5a-c-adr-0039-decision-4)), never in `available`, so it is not an
+ordinary action: a submitted `RESOLVE_ACTION` that names it is refused, and only a defeated holder's raised root
+resolves it. After a command commits, `raiseRoomHpZeroEffects` (`roomEncounterHpZeroTriggers.ts`, called
 once per command by the room's after-commit step `settleRoomEncounterAfterCommit`, not per root) diffs the newly defeated creatures and
 raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admission described in
 [persistence](persistence.md). Auto-roll victims settle in the commit that raised it; a manual roller gets an
@@ -853,7 +855,7 @@ spends none of the holder's action economy, and a second passive on one holder i
 
 An authored Effect with invocation `{ kind: PASSIVE, triggerCode: START_OF_TURN }` is a creature trait that
 heals its holder as its turn begins (Oni and Shield Guardian Regeneration: a `HEAL` outcome behind a
-`TARGET_HIT_POINTS_AT_LEAST` result-block gate). Discovery lists it in `passiveStartOfTurnEffects`, never in
+`TARGET_HIT_POINTS_AT_LEAST` result-block gate). Discovery lists it in `raisedActions` under a `TURN_STARTED` raise-action hook, never in
 `available`, and refuses any outcome but `HEAL` as unavailable with a clear reason. The gate compiles to the
 same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a gated heal is a version 2
 `dnd5e.heal-proposal` operation. After a START or ADVANCE_TURN commits, `raiseRoomStartOfTurnEffects`
@@ -1439,6 +1441,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (`AFTER` it lands: damager,
   damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
   `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT`, and the events a reaction answers:
+  `TURN_STARTED` and `SAVE_FAILED` (a rule definition's failed save), which with `DEFEATED` raise actions (below),
   `HIT_BY_ATTACK` (melee or not, attacker seen or not, the damage types the hit deals), `SPELL_CAST_BY_OTHER` and
   `TARGETED_BY_CAST` (with the spell cast), and the events an intercept answers before they resolve: the `BEFORE`-phase
   `DAMAGED`, `KILLED` (an outright kill) and `HARMFUL_ACTION_AIMED` (an attack or harmful spell, by an attacker of a
@@ -1555,6 +1558,23 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
   one, so no Concentration or incoming-gate importer reaches into `systems/dnd5e`.
+- **Raised actions** (current, QUALITY-11.T1b). An action the rules run by themselves is a subscription too:
+  `EncounterRaiseActionHook` (`hook: 'RAISE_ACTION'`) subscribes an action to `DEFEATED`, `TURN_STARTED` or
+  `SAVE_FAILED` (the failed save of one rule definition, by id, version and checksum). The System's vocabulary binds
+  its authored passive trigger codes to those events (`raiseActionHook(triggerCode)`; 5e: `HP_ZERO` is `DEFEATED`,
+  `START_OF_TURN` is `TURN_STARTED`, any other code is null and stays an ordinary passive). Feature discovery
+  (`discoverEncounterFeatureActions`) returns a Creature's bound passives as `raisedActions`, each with its hook, and
+  normalizes the action by the event bound, never by the code; `encounterRuleRaisedActions`
+  (`encounterMassiveDamage.ts`) returns the action an active rule raises on its failed save, pinned to the Run's rule
+  definition. Given `raisedActions` and the events, `discoverEncounterEventHooks` returns the ones raised, in the
+  order given. Every consumer asks it: the room's three raise modules (`roomEncounterHpZeroTriggers.ts`,
+  `roomEncounterStartOfTurnTriggers.ts`, `roomEncounterRuleTriggers.ts`, which raises the `SAVE_FAILED` event a rule
+  receipt records, `ruleSaveFailedEvent`), the RULE arm of the SYSTEM admission, and action admission, which refuses
+  a submitted action that names any raised action. A new raised trigger is a vocabulary row plus the site that
+  raises its event. The delegated Legendary Action is not a raised action: it stays a subscriber of the Run's
+  delegation state (`roomEncounterDelegatedLegendaryAction.ts`), because a recorded choice, not an event, raises it.
+  Known limit: the SYSTEM admission proves an HP-zero or START_OF_TURN child by its parent command and the holder's
+  state, and the action it names by source resolution, not by a second discovery.
 
 **One dispatch per event** means one subscription-reading dispatch per event kind, not one raise site. Callers state
 facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decides what fires; the release helpers in

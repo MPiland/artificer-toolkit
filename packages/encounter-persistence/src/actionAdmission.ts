@@ -263,20 +263,18 @@ export async function readNativeEncounterActionAdmission(
         )
     }
     if (actor.kind === 'CREATURE') {
-      // A start-of-turn trait runs by itself; naming it as an action would be a free use.
+      // An action the event table raises runs by itself; naming it as an action would be a free use.
       const system = await ctx.ports.requireSystem(state.gameSystemId)
-      const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
+      const { raisedActions } = discoverEncounterFeatureActions({
         actor,
         conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
         abilityDefinitions: systemAbilityDefinitions(system),
         spells: await readEncounterSpellPins(ctx, state.id)
       })
-      if (
-        passiveStartOfTurnEffects.some(({ capability }) => capability.actionId === input.actionId)
-      )
+      if (raisedActions.some(({ capability }) => capability.actionId === input.actionId))
         rejectDomain(
           'SOURCE_REQUIREMENTS_NOT_MET',
-          'A start-of-turn trait runs by itself at the start of the creature’s turn.'
+          'This trait runs by itself when its trigger happens.'
         )
     }
     // An area names no creature: the Scene decides whom it catches. A player's own save still

@@ -77,7 +77,9 @@ async function regenerate(
   targetDamageTypesTaken: string[] = [],
   maximumHitPoints = 100
 ) {
-  const capability = found.passiveStartOfTurnEffects[0]?.capability
+  const capability = found.raisedActions.find(
+    ({ hook }) => hook.subscription.event === 'TURN_STARTED'
+  )?.capability
   if (!capability) throw new Error('No start-of-turn effect was discovered.')
   const plan = compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
   return executeNativeActionGraphs({
@@ -148,7 +150,7 @@ describe('start-of-turn regeneration authored from core options (SPELLS-33.T4i1a
     const found = discoverRegeneration('Oni', (outcomes) =>
       outcomes.map((outcome) => ({ ...outcome, effectKind: 'KILL' }) as Outcome)
     )
-    expect(found.passiveStartOfTurnEffects).toEqual([])
+    expect(found.raisedActions).toEqual([])
     expect(found.unavailable.filter(({ label }) => label === 'Regeneration')).toMatchObject([
       {
         label: 'Regeneration',

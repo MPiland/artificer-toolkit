@@ -18,7 +18,10 @@ import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPrep
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
-import { encounterMassiveDamageRule } from '../encounterMassiveDamage.js'
+import {
+  encounterMassiveDamageRule,
+  encounterRuleRaisedActions
+} from '../encounterMassiveDamage.js'
 import { encounterRuleActionId, parseEncounterRuleActionId } from '../encounterRuleAction.js'
 import { prepareFixtureSheet, readyFighterFixture } from '../testing/characterContextFixtures.js'
 import {
@@ -29,6 +32,8 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
+import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { srdConditionId } from './encounterCreatureAction.js'
 import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
@@ -405,6 +410,75 @@ describe('a rule’s failed-save action (ATTACK-16.T1c2b)', () => {
     expect(
       encounterMassiveDamageRule(policy(homebrewRuleSnapshot().snapshot))?.failedSaveEffectId
     ).toBeNull()
+  })
+
+  it('is raised from the event table by the failed save of the exact pinned rule (QUALITY-11.T1b)', () => {
+    const document = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse(seed.document)
+    if (document.parameters.kind !== 'MASSIVE_DAMAGE' || !document.parameters.failedSaveEffectId)
+      throw new Error('The SRD Massive Damage rule raises no failed-save effect.')
+    const policy = (snapshot: ReturnType<typeof encounterOptionalCombatSnapshotDtoSchema.parse>) => ({
+      ...srdEncounterState({ actors: [], currentActorId: null }),
+      optionalCombatSnapshot: snapshot,
+      optionalCombatSnapshotChecksum: checksumRuleDocument(snapshot)
+    })
+    const state = policy(
+      encounterOptionalCombatSnapshotDtoSchema.parse({
+        schemaVersion: 1,
+        gameSystemId: SRD_SYSTEM_ID,
+        definitions: [
+          {
+            definitionId: seed.id,
+            contentSourceId: SRD_CONTENT_SOURCE.id,
+            definitionVersion: 1,
+            definitionChecksum: checksumRuleDocument(document),
+            contractVersion: 1,
+            label: seed.label,
+            document
+          }
+        ]
+      })
+    )
+    const raisedActions = encounterRuleRaisedActions(state, CREATURE_ID)
+    const raisedBy = (event: EncounterEvent) =>
+      discoverEncounterEventHooks({ raisedActions, events: [event] }).raisedActions.map(
+        ({ actionId }) => actionId
+      )
+    // The save's receipt records the pin of the rule that asked for it.
+    const pin = encounterMassiveDamageRule(state)?.pin
+    if (!pin) throw new Error('The Massive Damage rule is not active.')
+    const definition = {
+      id: pin.definitionId,
+      version: pin.definitionVersion,
+      checksum: pin.definitionChecksum
+    }
+    expect(definition.id).toBe(seed.id)
+    expect(raisedBy({ kind: 'SAVE_FAILED', definition })).toEqual([
+      encounterRuleActionId(CREATURE_ID, seed.id, document.parameters.failedSaveEffectId)
+    ])
+    // A save an edited or other rule asked for raises nothing, and neither does any other event.
+    expect(
+      raisedBy({
+        kind: 'SAVE_FAILED',
+        definition: { ...definition, version: definition.version + 1 }
+      })
+    ).toEqual([])
+    expect(
+      raisedBy({ kind: 'SAVE_FAILED', definition: { ...definition, checksum: 'f'.repeat(64) } })
+    ).toEqual([])
+    expect(raisedBy({ kind: 'SAVE_FAILED', definition: { ...definition, id: RULE_ID } })).toEqual(
+      []
+    )
+    expect(raisedBy({ kind: 'DEFEATED' })).toEqual([])
+    // A rule that names no failed-save effect, an inactive rule and a MANUAL Run raise none.
+    expect(
+      encounterRuleRaisedActions(policy(homebrewRuleSnapshot().snapshot), CREATURE_ID)
+    ).toEqual([])
+    expect(
+      encounterRuleRaisedActions(srdEncounterState({ actors: [], currentActorId: null }), CREATURE_ID)
+    ).toEqual([])
+    expect(
+      encounterRuleRaisedActions({ ...state, automationMode: 'MANUAL' as const }, CREATURE_ID)
+    ).toEqual([])
   })
 
   it('raises the SRD seed’s System Shock d10 table on a failed save (ATTACK-16.T1d)', () => {

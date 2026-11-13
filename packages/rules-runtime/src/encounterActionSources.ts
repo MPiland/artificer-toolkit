@@ -257,19 +257,15 @@ export function resolveEncounterActionSource(
     abilityDefinitions: systemAbilityDefinitions(system),
     spells: input.spells
   })
-  // A passive effect that fires on reaching 0 hit points is a source only for the creature it
-  // defeated; admission lets only a rule-raised root name a defeated actor. A start-of-turn trait
-  // is a source for its holder; admission lets only a rule-raised root name it.
+  // An action the rules raise is a source for its holder, and the one its defeat raises only for a
+  // defeated holder; admission lets only a rule-raised root name either.
   const capability =
     actions.available.find((value) => value.actionId === input.actionId) ??
-    (creature.defeated
-      ? actions.passiveHpZeroEffects
-          .map((effect) => effect.capability)
-          .find((value) => value.actionId === input.actionId)
-      : undefined) ??
-    actions.passiveStartOfTurnEffects
-      .map((effect) => effect.capability)
-      .find((value) => value.actionId === input.actionId)
+    actions.raisedActions.find(
+      (raised) =>
+        raised.capability.actionId === input.actionId &&
+        (creature.defeated || raised.hook.subscription.event !== 'DEFEATED')
+    )?.capability
   if (!capability) {
     const unavailable = actions.unavailable.find((value) => value.actionId === input.actionId)
     if (unavailable) throw new UnavailableCreatureActionError(unavailable.label, unavailable.reason)

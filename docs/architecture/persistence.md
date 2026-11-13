@@ -294,7 +294,7 @@ Rule arm (current, ATTACK-16.T1c2b). An optional combat rule's failed save raise
 (`systemTrigger.trigger: RULE`). The parent is the save's `encounterRuleReceipts` row, read by command id
 (an answered save also has a Run command row, so receipts alone are read): it must record a COMPLETE
 massive-damage `DAMAGE_SAVE_CHECK` with `SAVE_FAILURE` for this holder under the Run's pinned rule
-(`ruleFailedSaveAction`), and the command must be the holder's self-targeted `ACTOR` root naming
+(`ruleSaveFailedEvent`, the `SAVE_FAILED` event the rule's raise-action hook subscribes to), and the command must be the holder's self-targeted `ACTOR` root naming
 `encounterRuleActionId(holder, rule, failedSaveEffectId)`. A fresh root needs a standing holder. One
 command can fail several holders' saves, and each raised root advances the version, so the rule arm
 refines D161's version equality to a window: the parent's version must lie between the version of the
