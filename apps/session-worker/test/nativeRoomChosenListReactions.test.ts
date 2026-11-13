@@ -3,11 +3,13 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { scorchingRay } from '@artificer-toolkit/source-data/srd/spells/scorching-ray.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -258,6 +260,129 @@ describe('a chosen creature answers being chosen before the ray at it (QUALITY-1
     expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS)
     expect(await slotsOf(room, REACTOR_ID)).toEqual(SHIELD_SLOT)
     expect(await effectIds(room)).toHaveLength(1)
+  }, 120000)
+})
+
+describe('a creature reacts to the ray that hits it, as its own action (QUALITY-13.T1c2b, D219)', () => {
+  // A natural face that hits the Character's Armor Class as it stands and misses it five higher,
+  // and one that hits it either way.
+  const NARROW_HIT = 12
+  const SURE_HIT = 19
+  // Shield as authored answers a hit, and a cast only when that cast is Magic Missile: a ray offers
+  // it at its hit alone. Each ray rolls the same 2d6.
+  const rayRoom = () =>
+    reactorRoom({
+      spell: scorchingRay,
+      label: 'Scorching Ray (2nd level)',
+      rolls: [0, 1, 0, 1],
+      reactorSpell: shield
+    })
+  const TWO_RAYS = [REACTOR_ACTOR_ID, REACTOR_ACTOR_ID]
+
+  /** The committed casts: the rays, and the reaction that ran as their child. */
+  async function committedActions(room: Room) {
+    const actions = (await readRoomHistory(room.room.base.stub)).commands
+      .filter((row) => row.commandType === 'RESOLVE_ACTION')
+      .map((row) => ({
+        version: row.version,
+        command: resolveEncounterActionInputDtoSchema.parse(JSON.parse(row.commandJson))
+      }))
+    return {
+      children: actions.filter(({ command }) => command.systemTrigger?.trigger === 'REACTION'),
+      root: actions.find(({ command }) => !command.systemTrigger) ?? null
+    }
+  }
+
+  it('holds the ray that hit on its creature’s choice, applying and spending nothing', async () => {
+    const room = await rayRoom()
+    await cast(room, TWO_RAYS)
+    await answerRoll(room, NARROW_HIT)
+
+    const { pending } = await offered(room)
+    expect(pending.targetActorId).toBe(REACTOR_ACTOR_ID)
+    expect(pending.allowedResponses).toEqual(['DECLINE', 'OPTION'])
+    expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await effectIds(room)).toEqual([])
+  }, 120000)
+
+  it('offers nothing at a ray that misses, and asks the next ray', async () => {
+    const room = await rayRoom()
+    await cast(room, TWO_RAYS)
+    await answerRoll(room, FAIL)
+
+    const { pending } = await pendingRolls(room)
+    expect(pending.saves).toHaveLength(1)
+  }, 120000)
+
+  it('turns the ray it answers into a miss, holds for the next ray with no second offer, and undoes with the cast', async () => {
+    const room = await rayRoom()
+    await cast(room, TWO_RAYS)
+    await answerRoll(room, NARROW_HIT)
+    await useReaction(room)
+
+    // The reaction committed as the Character's own action under the cast, which then went on.
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SHIELD_SLOT)
+    expect(await effectIds(room)).toHaveLength(1)
+    const { pending } = await pendingRolls(room)
+    expect(pending.saves.map(({ targetActorId }) => targetActorId)).toEqual([REACTOR_ACTOR_ID])
+
+    // The second ray hits the raised Armor Class: the reaction is spent, so nothing is offered.
+    await answerRoll(room, SURE_HIT)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS - RAY_DAMAGE)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SHIELD_SLOT)
+    const { root, children } = await committedActions(room)
+    expect(children).toHaveLength(1)
+    expect(children[0]?.command.actorId).toBe(REACTOR_ACTOR_ID)
+    expect(children[0]?.command.systemTrigger).toMatchObject({
+      trigger: 'REACTION',
+      parentCommandId: root?.command.commandId
+    })
+
+    await undoLastAction(room)
+    expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    expect(await effectIds(room)).toEqual([])
+  }, 120000)
+
+  it('keeps an earlier ray’s hit when the reaction declined at it is used at a later ray', async () => {
+    const room = await rayRoom()
+    await cast(room, TWO_RAYS)
+    await answerRoll(room, NARROW_HIT)
+    const first = await offered(room)
+    const declined = await room.resolve(first.decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+
+    // The second ray hits too, and offers the reaction the Character still holds.
+    await answerRoll(room, NARROW_HIT)
+    await useReaction(room)
+
+    // The first ray was rolled against the Armor Class before the reaction: it stays a hit. The
+    // second meets the raised Armor Class and misses.
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS - RAY_DAMAGE)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SHIELD_SLOT)
+    expect((await committedActions(room)).children).toHaveLength(1)
+  }, 120000)
+
+  it('runs both hits when the reaction is declined at each', async () => {
+    const room = await rayRoom()
+    await cast(room, TWO_RAYS)
+    for (const _ray of TWO_RAYS) {
+      await answerRoll(room, NARROW_HIT)
+      const { decision } = await offered(room)
+      const declined = await room.resolve(decision, { kind: 'DECLINE' })
+      expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    }
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactorHitPoints(room)).toBe(REACTOR_HIT_POINTS - 2 * RAY_DAMAGE)
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+    expect(await effectIds(room)).toEqual([])
+    expect((await committedActions(room)).children).toEqual([])
   }, 120000)
 })
 
