@@ -359,7 +359,7 @@ describe('room movement response publication', () => {
     const choice = root?.occurrence?.pending
     if (choice?.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the issued reaction choice.')
-    let pending: NonNullable<NonNullable<typeof root>['occurrence']>['pending'] = choice
+    let pending = root?.occurrence?.pending ?? null
     while (pending) {
       if (
         pending.kind !== 'MOVEMENT_REACTION' &&
