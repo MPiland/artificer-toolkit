@@ -51,7 +51,9 @@ describe('a held-creature attack advantage through the creature node map (SPELLS
       const { domain } = grant
       if (!domain || !('attackDomain' in domain))
         throw new Error('Grappler grants must author an attack domain.')
-      expect(domain.againstHeldConditionTypeId).toBe(GRAPPLED_CONDITION_ID)
+      expect('againstHeldConditionTypeId' in domain && domain.againstHeldConditionTypeId).toBe(
+        GRAPPLED_CONDITION_ID
+      )
       grant.domain = { ...domain, againstHeldConditionTypeId: restrained.id }
     }
     const result = await normalize(authored)

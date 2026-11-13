@@ -781,5 +781,5 @@ Four closed kinds deleted (D156), authored from generic options (D187a). Proof: 
 - Q30 (c): the Pseudopod hit grapples a Huge or smaller target at escape DC 13 through weaponAttack({ grapple }), replacing T4s3's ruling. The object-form gate, adhesion on contact and the escape-check disadvantage stay description (no escape-check roll influence exists; future-enhancements).
 - Closed-rule kinds deleted: CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET, GRAPPLER_PIN.
 - Limit: no Character grapple relationship is authored yet, so the feat's advantage fires only against holds the Character applies through other authored relationships.
-- Proofs: srdHeldCreatureAttackAdvantage.test.ts (Creature and Character paths, SRD and homebrew), creatureHeldAttackAdvantageAuthoringParity.test.ts, 
-ativeHeldCreatureAttackAdvantage.test.ts (room), eatPublication.test.ts, SRD effect compile golden. D196: stored shape changed (Mimic, Grappler feat); refresh local.
+- Proofs: srdHeldCreatureAttackAdvantage.test.ts (Creature and Character paths, SRD and homebrew), creatureHeldAttackAdvantageAuthoringParity.test.ts,
+  ativeHeldCreatureAttackAdvantage.test.ts (room), eatPublication.test.ts, SRD effect compile golden. D196: stored shape changed (Mimic, Grappler feat); refresh local.
