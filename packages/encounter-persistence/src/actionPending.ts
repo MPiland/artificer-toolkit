@@ -136,6 +136,8 @@ type CastPendingContext = {
           declinedReactorActorIds: readonly string[]
           /** The attack d20 an offer made after the roll keeps (D219). */
           rolled?: object
+          /** The settled hit an offer made to the creature it hit keeps (D219). */
+          hit?: object
         }
       }
     /** The gate whose roll the action's source owes; the pause is held on that roll. */
@@ -208,6 +210,8 @@ function castAnswer(
  *
  * An offer made after the action's attack roll keeps the rolled d20: it is left by a decline, to the
  * next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction.
+ * An offer made to the creature an attack hit keeps that hit the same way, while its chosen reaction
+ * runs as a child.
  */
 export function castPendingContinues(
   previous: CastPendingContext,
@@ -253,12 +257,20 @@ export function castPendingContinues(
   if (!answer || roller === undefined) return false
   const spends = answer === 'SPEND'
   const declinedPrevious = castReaction.declinedReactorActorIds
-  // Once an offer holds the action's rolled d20, every offer that follows it holds the same roll.
+  // An attack's hit is a new moment: its offer follows whatever offer the action left, with no one heard from yet.
+  if (nextCastReaction?.hit && !castReaction.hit)
+    return (
+      answer === 'DECLINE' &&
+      nextCastReaction.declinedReactorActorIds.length === 0 &&
+      sameMembers(usedNext, usedPrevious) &&
+      (next.reactionChildren?.length ?? 0) === (previous.reactionChildren?.length ?? 0)
+    )
+  // Once an offer holds the action's rolled d20 or its hit, every offer that follows it holds the same one.
   if (
-    castReaction.rolled &&
+    (castReaction.rolled || castReaction.hit) &&
     nextCastReaction &&
-    checksumCanonicalJson(nextCastReaction.rolled ?? null) !==
-      checksumCanonicalJson(castReaction.rolled)
+    checksumCanonicalJson([nextCastReaction.rolled ?? null, nextCastReaction.hit ?? null]) !==
+      checksumCanonicalJson([castReaction.rolled ?? null, castReaction.hit ?? null])
   )
     return false
   const recordsChild =
@@ -274,9 +286,11 @@ export function castPendingContinues(
       sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
       awaitsReactionChild(next)
     )
+  // A hit is offered to the one creature it hit, so no other offer of it follows.
   return (
     !nextCastReaction ||
-    sameMembers(nextCastReaction.declinedReactorActorIds, [...declinedPrevious, roller])
+    (!castReaction.hit &&
+      sameMembers(nextCastReaction.declinedReactorActorIds, [...declinedPrevious, roller]))
   )
 }
 

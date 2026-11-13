@@ -49,7 +49,8 @@ import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-pers
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
 import {
   readReactionChildAncestors,
-  readReactionChildCastLevel
+  readReactionChildCastLevel,
+  readReactionChildHitDamageTypeIds
 } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
@@ -72,7 +73,8 @@ type SemanticResponse = {
 
 /**
  * What a reaction child's command reads from the held actions above it (D219): the level of the
- * cast it answers, and those actions themselves. Nothing for any other command.
+ * cast it answers, the damage types of the hit it answers, and those actions themselves. Nothing for
+ * any other command.
  */
 async function readReactionChildHeldActions(
   ctx: EncounterReadTransaction,
@@ -80,7 +82,7 @@ async function readReactionChildHeldActions(
   command: Pick<ResolveEncounterActionInputDto, 'commandId' | 'actorId' | 'systemTrigger'>
 ) {
   if (command.systemTrigger?.trigger !== 'REACTION')
-    return { triggerCastLevel: null, reactionAncestors: [] }
+    return { triggerCastLevel: null, triggerDamageTypeIds: null, reactionAncestors: [] }
   const link = {
     campaignId: scope.campaignId,
     encounterId: scope.encounterId,
@@ -90,6 +92,7 @@ async function readReactionChildHeldActions(
   }
   return {
     triggerCastLevel: await readReactionChildCastLevel(ctx, link),
+    triggerDamageTypeIds: await readReactionChildHitDamageTypeIds(ctx, link),
     reactionAncestors: await readReactionChildAncestors(ctx, link)
   }
 }

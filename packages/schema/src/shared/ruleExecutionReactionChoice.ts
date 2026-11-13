@@ -1,6 +1,10 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { z, lazySchema } from '../zod.js'
-import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
+import {
+  AUTHORED_LIMITS,
+  MAX_ENCOUNTER_ACTORS,
+  MAX_ENCOUNTER_REACTION_OPTIONS
+} from './authoredLimits.js'
 import {
   spellSlotConsumptionReceiptDtoSchema,
   spellSlotOwnedBySource,
@@ -145,24 +149,35 @@ export function validateEncounterReactionPin(
  * one reactor, who has one reaction a round: choosing an option uses that reaction, and declining
  * declines them all.
  */
-export type EncounterReactionOfferDto = {
+export type EncounterReactionOfferDto = EncounterSettledHitDto & {
+  reactions: EncounterReactionPinDto[]
+}
+
+/**
+ * An attack's hit as its offer to the creature it hit keeps it: the TEST execution and its d20, the
+ * exact TEST policy a later sealed OUTCOME continues from, and the target as it stood when it was hit.
+ */
+export type EncounterSettledHitDto = {
   originalExecution: ServerCompletedRuleExecutionDto
   originalD20: ServerRuleExecutionD20EvidenceDto
   d20: ServerRuleExecutionD20PolicyDto
   originalExecutionChecksum: string
   targetStateChecksum: string
-  reactions: EncounterReactionPinDto[]
 }
+
+const settledHitShape = () => ({
+  originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+  originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+  d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+  originalExecutionChecksum: checksumSchema,
+  targetStateChecksum: checksumSchema
+})
 
 // Explicitly typed so the pending-context declarations stay within the compiler's size limit (TS7056).
 export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOfferDto> = lazySchema(
   () =>
     z.strictObject({
-      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-      originalExecutionChecksum: checksumSchema,
-      targetStateChecksum: checksumSchema,
+      ...settledHitShape(),
       reactions: z
         .array(encounterReactionPinDtoSchema)
         .check(z.minLength(1))
@@ -182,12 +197,14 @@ export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOff
  * Missile), and the cast then resolves against the reactor as the reaction leaves it; `ATTACK_ON_OTHER`
  * offers a creature beside an attack aimed at another its reactions, which adjust the roll the attack
  * then makes; `ATTACK_ROLL_BY_OTHER` offers a creature that sees an attack roll its reactions after the
- * d20 is rolled (D219, "Roll-window reaction die"). That last offer is the only one made after the
- * action's roll: it keeps the rolled d20 as `rolled`, every offer of the same roll carries the same
- * one.
+ * d20 is rolled (D219, "Roll-window reaction die"). That offer is made after the action's roll: it
+ * keeps the rolled d20 as `rolled`, every offer of the same roll carries the same one.
+ * `HIT_BY_ATTACK` offers the creature an attack hit its reactions to the hit and to the damage it
+ * deals (`ATTACKED_SELF` and `DAMAGE_TAKEN` reactions, one menu), after the attack's TEST settled: it
+ * keeps that hit as `hit`, which the action tests again against the reactor as a used reaction leaves it.
  */
 export type EncounterCastReactionOfferDto = {
-  kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER'
+  kind: 'COUNTER' | 'TARGETED_SELF' | 'ATTACK_ON_OTHER' | 'ATTACK_ROLL_BY_OTHER' | 'HIT_BY_ATTACK'
   reactions: EncounterReactionPinDto[]
   declinedReactorActorIds: string[]
   /**
@@ -195,13 +212,36 @@ export type EncounterCastReactionOfferDto = {
    * settlement resumes, and the app roll it settled with (null for an entered die).
    */
   rolled?: { test: D20RolledSaveDto; appRollId: string | null }
+  /**
+   * The hit a `HIT_BY_ATTACK` offer follows, and the damage types that hit deals: a reaction to the
+   * damage reads the types it answers from here, in its own action (D219).
+   */
+  hit?: EncounterSettledHitDto & { damageTypeIds: string[] }
 }
+
+/** The reaction triggers an offer of each kind holds. */
+const OFFERED_TRIGGERS = {
+  COUNTER: ['SPELL_CAST'],
+  TARGETED_SELF: ['TARGETED_SELF'],
+  ATTACK_ON_OTHER: ['ATTACK_ON_OTHER'],
+  ATTACK_ROLL_BY_OTHER: ['ATTACK_ROLL_BY_OTHER'],
+  HIT_BY_ATTACK: ['ATTACKED_SELF', 'DAMAGE_TAKEN']
+} as const satisfies Record<
+  EncounterCastReactionOfferDto['kind'],
+  readonly EncounterReactionPinDto['trigger'][]
+>
 
 export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastReactionOfferDto> =
   lazySchema(() =>
     z
       .strictObject({
-        kind: z.enum(['COUNTER', 'TARGETED_SELF', 'ATTACK_ON_OTHER', 'ATTACK_ROLL_BY_OTHER']),
+        kind: z.enum([
+          'COUNTER',
+          'TARGETED_SELF',
+          'ATTACK_ON_OTHER',
+          'ATTACK_ROLL_BY_OTHER',
+          'HIT_BY_ATTACK'
+        ]),
         reactions: z
           .array(encounterReactionPinDtoSchema)
           .check(z.minLength(1))
@@ -212,20 +252,31 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
             test: z.lazy(() => d20RolledSaveDtoSchema),
             appRollId: z.nullable(uuidSchema)
           })
+        ),
+        hit: z.optional(
+          z.strictObject({
+            ...settledHitShape(),
+            damageTypeIds: z
+              .array(uuidSchema)
+              .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+          })
         )
       })
       .check(
         z.superRefine((value, context) => {
-          const [first] = value.reactions
-          if (
-            value.reactions.some((reaction) => reaction.trigger !== first?.trigger) ||
-            value.kind !== (first?.trigger === 'SPELL_CAST' ? 'COUNTER' : first?.trigger)
-          )
+          const offered: readonly string[] = OFFERED_TRIGGERS[value.kind]
+          if (value.reactions.some(({ trigger }) => !offered.includes(trigger)))
             context.addIssue({
               code: 'custom',
               path: ['reactions'],
               message:
-                'An offer holds reactions of one trigger: counters to a cast, or the trigger its kind names.'
+                'An offer holds the reactions its kind names: counters to a cast, one trigger, or a hit’s reactions.'
+            })
+          if ((value.kind === 'HIT_BY_ATTACK') !== (value.hit !== undefined))
+            context.addIssue({
+              code: 'custom',
+              path: ['hit'],
+              message: 'Only an offer made to the creature an attack hit keeps that hit.'
             })
           if ((value.kind === 'ATTACK_ROLL_BY_OTHER') !== (value.rolled !== undefined))
             context.addIssue({
