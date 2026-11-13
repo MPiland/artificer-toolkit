@@ -751,39 +751,19 @@ export async function revertLastEncounterAction(
       if (marked)
         updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
     }
-    // Each creature that used a reaction at its own offer spent its own slot and reaction; each that
-    // reacted to the attack roll spent its reaction and charge (D207). A reaction that ran as its
-    // holder's own action is undone as that action, not here (D219).
-    const invertReactorSpend = (
-      spend: Pick<
-        (typeof root.usedReactions)[number],
-        | 'spellCastConsumption'
-        | 'applications'
-        | 'characterStreamVersion'
-        | 'actionEconomyTransition'
-      > & {
-        reaction: { reactorActorId: string }
-        resourceConsumption?: ActionBatch['resourceConsumption']
-      }
-    ) => {
+    // Each creature that reacted to the attack roll spent its reaction and charge (D207). A reaction
+    // that ran as its holder's own action is undone as that action, not here (D219).
+    for (const spend of root.windowReactions) {
       const reactor = actorsById.get(spend.reaction.reactorActorId)
       if (reactor?.kind !== 'CHARACTER')
         throw new Error('Stored Encounter action actors are unavailable.')
-      if (spend.spellCastConsumption || spend.resourceConsumption) {
+      if (spend.resourceConsumption) {
         if (spend.characterStreamVersion === null)
           throw new Error('Stored reactor Character version is missing.')
         const inverse = characterInverse(reactor.sourceId, spend.characterStreamVersion)
-        if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
-        if (spend.resourceConsumption) {
-          if (inverse.resource) throw new Error('Stored reactor resource spends collide.')
-          inverse.resource = spend.resourceConsumption
-        }
+        if (inverse.resource) throw new Error('Stored reactor resource spends collide.')
+        inverse.resource = spend.resourceConsumption
       }
-      restoreReleasedConditions(
-        reactor,
-        endedConditionReleases(spend.applications),
-        spend.characterStreamVersion
-      )
       const reaction = spend.actionEconomyTransition
       if (encounterActionEconomyUsed(reactor, reaction) !== reaction.afterUsed)
         revertUnavailable(
@@ -793,10 +773,6 @@ export async function revertLastEncounterAction(
         resources: withEncounterActionEconomyUsed(reactor, reaction, reaction.beforeUsed)
       })
     }
-    for (const used of root.usedReactions) invertReactorSpend(used)
-    for (const reacted of root.windowReactions)
-      invertReactorSpend({ ...reacted, spellCastConsumption: null, applications: [] })
-
     // A Dash's speed bonus leaves the turn's movement record.
     if (root.speedBonusTurn)
       await removeTurnSpeedBonus(ctx, {

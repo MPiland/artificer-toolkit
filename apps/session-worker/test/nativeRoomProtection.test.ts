@@ -254,7 +254,6 @@ describe('Protection against an attack on another creature in the room (SPELLS-3
         resumeOutcome: { kind: 'ROLL_MODE', rollMode: 'DISADVANTAGE' }
       }
     ])
-    expect(context.usedReactions ?? []).toEqual([])
   })
 
   it('gives the reaction back when the GM voids the Bite it was used against (D219)', async () => {

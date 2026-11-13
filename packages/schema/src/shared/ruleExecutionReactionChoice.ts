@@ -7,7 +7,6 @@ import {
 } from './authoredLimits.js'
 import {
   spellSlotConsumptionReceiptDtoSchema,
-  spellSlotOwnedBySource,
   encounterActionEconomyTransitionDtoSchema,
   ruleCheckD20EvidenceDtoSchema,
   sourceSpendReceiptShape,
@@ -25,9 +24,7 @@ import {
 import {
   characterMechanicsResourceReceiptDtoSchema,
   characterActiveEffectCreateReceiptDtoSchema,
-  encounterActorActiveEffectCreateReceiptDtoSchema,
-  sourceApplicationsChangeState,
-  sourceApplicationsDtoSchema
+  encounterActorActiveEffectCreateReceiptDtoSchema
 } from './ruleExecutionMechanics.js'
 import { d20RolledSaveDtoSchema, type D20RolledSaveDto } from './ruleExecutionD20WindowOffer.js'
 import {
@@ -286,96 +283,6 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
             })
         })
       )
-  )
-
-/**
- * A reaction a reactor used at its own offer, before the action executed, and that did not cancel it:
- * a reaction to being named a target. It is part of the action's own occurrence: carried by every
- * pending of the action, it is spent with whatever terminal commit the action reaches.
- * `againstActorId` is the creature whose action it was offered against, which is where its range and
- * target are measured from; `triggerLevel` is null when the action it answered is not a cast.
- */
-export type EncounterUsedReactionDto = {
-  reaction: EncounterReactionPinDto
-  choiceExecution: ServerCompletedRuleExecutionDto
-  triggerLevel: number | null
-  againstActorId: string
-}
-
-const usedReactionShape = () => ({
-  reaction: encounterReactionPinDtoSchema,
-  choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-  triggerLevel: z.nullable(nonNegativeIntegerSchema),
-  againstActorId: uuidSchema
-})
-
-export const encounterUsedReactionDtoSchema: z.ZodMiniType<EncounterUsedReactionDto> = lazySchema(
-  () =>
-    z.strictObject(usedReactionShape()).check(
-      z.superRefine((value, context) => {
-        validateEncounterReactionPin(value.reaction, context, ['reaction'])
-      })
-    )
-)
-
-/** What a reactor spent for a counter, countered or failed: its slot and its reaction allowance. */
-type CounterSpendDto = {
-  reaction: EncounterReactionPinDto
-  spellCastConsumption: SpellSlotConsumptionReceiptDto | null
-  /** The reactor's own conditions released by effects its cast ended; empty when none. */
-  applications: z.infer<typeof sourceApplicationsDtoSchema>
-  /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
-  characterStreamVersion: number | null
-  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema>
-}
-
-const counterSpendShape = () => ({
-  spellCastConsumption: z.nullable(spellSlotConsumptionReceiptDtoSchema),
-  applications: sourceApplicationsDtoSchema,
-  characterStreamVersion: z.nullable(aggregateVersionSchema),
-  actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
-})
-
-function validateCounterSpend(value: CounterSpendDto, context: z.core.$RefinementCtx) {
-  validateEncounterReactionPin(value.reaction, context, ['reaction'])
-  if (
-    (value.characterStreamVersion === null) !==
-      !(
-        value.spellCastConsumption?.owner.kind === 'CHARACTER' ||
-        sourceApplicationsChangeState(value.applications, value.reaction.characterId)
-      ) ||
-    (value.spellCastConsumption &&
-      !spellSlotOwnedBySource(value.spellCastConsumption, {
-        sourceActorId: value.reaction.reactorActorId,
-        sourceCharacterId: value.reaction.characterId
-      }))
-  )
-    context.addIssue({
-      code: 'custom',
-      path: ['spellCastConsumption'],
-      message: 'The reactor slot receipt must match its Character and stream version.'
-    })
-  const economy = value.actionEconomyTransition
-  if (
-    economy.definitionId !== value.reaction.allowanceDefinitionId ||
-    economy.beforeUsed !== value.reaction.allowanceBeforeUsed ||
-    economy.maximum !== value.reaction.allowanceMaximum
-  )
-    context.addIssue({
-      code: 'custom',
-      path: ['actionEconomyTransition'],
-      message: 'The reactor allowance spend must be the one the reaction pinned.'
-    })
-}
-
-/** A used reaction once its spend is settled with the action's terminal commit. */
-export type EncounterUsedReactionReceiptDto = EncounterUsedReactionDto & CounterSpendDto
-
-export const encounterUsedReactionReceiptDtoSchema: z.ZodMiniType<EncounterUsedReactionReceiptDto> =
-  lazySchema(() =>
-    z
-      .strictObject({ ...usedReactionShape(), ...counterSpendShape() })
-      .check(z.superRefine(validateCounterSpend))
   )
 
 /**

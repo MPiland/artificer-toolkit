@@ -1,9 +1,6 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
-import type {
-  EncounterSettledIncomingGateDto,
-  EncounterUsedReactionDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -131,7 +128,6 @@ export function buildEncounterActionPendingSnapshot(
     sourceActorId: string
     targetActorId: string
     currentnessChecksum: string
-    usedReactions?: readonly EncounterUsedReactionDto[]
     passedIncomingGate?: EncounterSettledIncomingGateDto
     reactionChildren?: PendingReactionChildren
   }
@@ -159,7 +155,6 @@ export function buildEncounterActionPendingSnapshot(
       ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
       ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
       ...(execution.pause ? { pause: execution.pause } : {}),
-      ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
       ...recordedReactionChildren(input)
     },
@@ -186,7 +181,6 @@ export function buildEncounterHeldActionPendingSnapshot(
     commandFingerprint: string
     initiatorUserId: string
     currentnessChecksum: string
-    usedReactions?: readonly EncounterUsedReactionDto[]
     passedIncomingGate?: EncounterSettledIncomingGateDto
     reactionChildren?: PendingReactionChildren
   }
@@ -206,7 +200,6 @@ export function buildEncounterHeldActionPendingSnapshot(
       d20Policy: null,
       twoPhase: null,
       pause: input.pause,
-      ...(input.usedReactions?.length ? { usedReactions: [...input.usedReactions] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
       ...recordedReactionChildren(input)
     }

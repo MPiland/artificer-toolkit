@@ -61,8 +61,6 @@ export function discoverNativeAttackReaction(input: {
   /** The Run's pinned Spells (D163). */
   spells: ReadonlyMap<string, CompiledSpell>
   prepareReaction: Parameters<typeof offerNativeReactions>[0]['prepare']
-  /** Creatures whose reaction this action already spent (a failed counter), though the run still shows it unspent. */
-  reactionSpentActorIds: readonly string[]
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
@@ -75,7 +73,6 @@ export function discoverNativeAttackReaction(input: {
     const reactor = movementTargets.get(target.id)
     if (
       target.id === actor.id ||
-      input.reactionSpentActorIds.includes(target.id) ||
       !reactor ||
       isEncounterActorDefeated(target, deadCharacterIdsOfTargets(movementTargets.values()))
     )

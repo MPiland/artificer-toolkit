@@ -125,8 +125,6 @@ export async function canControlEvidenceRoller(
   return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
 }
 
-type PendingCounter = { reaction: { reactorActorId: string } }
-
 type CastPendingContext = {
   rollerActorId?: string
   pause?:
@@ -148,7 +146,6 @@ type CastPendingContext = {
         kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
         payload: unknown
       }
-  usedReactions?: readonly PendingCounter[]
   reactionChildren?: readonly { commandId: string; resumeOutcome?: object | null }[]
   /** The gate the action's source already passed. */
   passedIncomingGate?: PendingGate
@@ -179,9 +176,6 @@ const incomingGateOf = ({ pause }: CastPendingContext) =>
 const attackRetargetOf = ({ pause }: CastPendingContext) =>
   pause?.kind === 'ATTACK_RETARGET' ? pause.payload : null
 
-const usedReactorIds = ({ usedReactions = [] }: CastPendingContext) =>
-  usedReactions.map(({ reaction }) => reaction.reactorActorId)
-
 /** The same unique ids in any order. */
 const sameMembers = (left: readonly string[], right: readonly string[]) => {
   const members = new Set(left)
@@ -206,7 +200,7 @@ function castAnswer(
  * choosing a reaction. A chosen reaction always runs as its holder's own action, recorded as a child:
  * the same offer stays held until the room resumes it, which moves the cast on as the reactor's
  * decline would. Either way the creature heard from joins the offer's declines and is not asked
- * again, and no pause adds a used reaction.
+ * again.
  *
  * An offer made after the action's attack roll keeps the rolled d20: it is left by a decline, to the
  * next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction.
@@ -222,14 +216,11 @@ export function castPendingContinues(
   const previousGate = incomingGateOf(previous)
   const nextCastReaction = castReactionOf(next)
   const nextRetarget = attackRetargetOf(next)
-  const usedPrevious = usedReactorIds(previous)
-  const usedNext = usedReactorIds(next)
   // A ward the attacker failed offers a retarget: from the roll that failed it, or from a retargeted
   // action's own ward. Nothing else is carried.
   if (nextRetarget)
     return (
       next.passedIncomingGate === undefined &&
-      usedNext.length === 0 &&
       (previousGate
         ? sameGate(previousGate, nextRetarget.gate)
         : attackRetargetOf(previous) != null && response?.resolution.kind === 'OPTION')
@@ -238,14 +229,13 @@ export function castPendingContinues(
   if (attackRetargetOf(previous))
     return (
       response?.resolution.kind === 'OPTION' &&
-      usedNext.length === 0 &&
       (nextCastReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
       !(incomingGateOf(next) && next.passedIncomingGate !== undefined)
     )
   // A passed gate stays passed for the rest of the action, and only the gate's own answer passes it.
   if (incomingGateOf(next) || !sameGate(next.passedIncomingGate, passedGateAfter(previous)))
     return false
-  if (!castReaction) return sameMembers(usedNext, usedPrevious)
+  if (!castReaction) return true
   // An action whose chosen reaction ran as a child takes no answer: the room's resume moves it on as
   // the reactor's decline would, since the child, not this action, spent the reaction (D219).
   const answer = awaitsReactionChild(previous)
@@ -262,7 +252,6 @@ export function castPendingContinues(
     return (
       answer === 'DECLINE' &&
       nextCastReaction.declinedReactorActorIds.length === 0 &&
-      sameMembers(usedNext, usedPrevious) &&
       (next.reactionChildren?.length ?? 0) === (previous.reactionChildren?.length ?? 0)
     )
   // Once an offer holds the action's rolled d20 or its hit, every offer that follows it holds the same one.
@@ -275,7 +264,6 @@ export function castPendingContinues(
     return false
   const recordsChild =
     (next.reactionChildren?.length ?? 0) > (previous.reactionChildren?.length ?? 0)
-  if (!sameMembers(usedNext, usedPrevious)) return false
   // The chosen reaction runs as a child action: the same offer stays held until the room resumes it.
   if (spends || recordsChild)
     return (
@@ -336,21 +324,9 @@ export function heldActionContinues(input: {
   )
 }
 
-/**
- * Whether a cast lost to the reaction child it resumes from (D219) carries exactly the used reactions
- * it held: the child spent its own counter, so the cast's commit spends no other.
- */
-export function castCancelledByChildCarriesUsedReactions(
-  previous: CastPendingContext,
-  next: CastPendingContext
-): boolean {
-  const castReaction = castReactionOf(previous)
-  return (
-    castReaction != null &&
-    awaitsReactionChild(previous) &&
-    sameMembers(usedReactorIds(next), usedReactorIds(previous))
-  )
-}
+/** Whether a cast held at an offer whose chosen reaction ran as a child is the one that child cancelled (D219). */
+export const castCancelledByReactionChild = (previous: CastPendingContext) =>
+  castReactionOf(previous) != null && awaitsReactionChild(previous)
 
 /** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {

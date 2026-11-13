@@ -36,7 +36,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { interpretForcedMovements } from './nativeEncounterActionInputs.js'
-import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
 import { settleAreaCommit } from './nativeAreaCommitPersistence.js'
 import { planAreaOutcomes } from './nativeAreaCommitPlan.js'
 import {
@@ -48,7 +47,6 @@ import {
   type AreaPrepared,
   type AreaReach,
   type MovementTargets,
-  type ReachCastWindow,
   prepareCasterActionOnTarget,
   reachRuleOverrides
 } from './nativeAreaPreparation.js'
@@ -206,8 +204,6 @@ export async function completeAreaCommit(args: {
   command: ResolveEncounterActionInputDto
   caster: EncounterRunActorState
   occurredAt: string
-  /** What each reaction used against the cast before it executed spends with this commit (D127). */
-  usedReactions: Awaited<ReturnType<ReachCastWindow['pause']['planUsedReactions']>>
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -249,7 +245,6 @@ export async function completeAreaCommit(args: {
     command,
     caster,
     occurredAt,
-    usedReactions,
     movementTargets,
     kept: caughtKept,
     lead,
@@ -309,14 +304,6 @@ export async function completeAreaCommit(args: {
   const kept = [...caughtKept, ...collisions.kept, ...collisions.struck.kept]
   const settled = [...caughtSettled, ...collisions.settled, ...collisions.struck.settled]
   const struckStart = caughtKept.length + collisions.kept.length
-  // The caster's counters to a counter cast against its cast spend in the caster's one batch with the cast;
-  // a kept creature that countered pays its slot in its own first outcome.
-  const casterCounterConsumptions = counterConsumptionsOf(usedReactions, caster.id)
-  const usedReactorSlots = new Set(
-    usedReactions.flatMap(({ receipt, spellConsumption }) =>
-      spellConsumption ? [receipt.reaction.reactorActorId] : []
-    )
-  )
   // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
   // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
   const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
@@ -369,8 +356,6 @@ export async function completeAreaCommit(args: {
     dispositions,
     consumedGrants,
     sourceReleases,
-    casterCounterConsumptions,
-    usedReactorSlots,
     discoverResistance: (prepared) => discoverNativeLegendaryResistance(input, prepared)
   })
   const { maintainedState, zoneMaintenanceTransition } = openZoneOnlyMaintenance({
@@ -403,11 +388,9 @@ export async function completeAreaCommit(args: {
     removal,
     rollsPerTarget,
     ruleOverrides,
-    usedReactions,
     actionEconomy,
     attackAction,
     forcedMovements,
-    casterCounterConsumptions,
     consumedGrants,
     sourceReleases,
     maintenance,
@@ -463,10 +446,6 @@ export function buildNativeLiveEncounterAreaCommitInput(
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
     spellConsumption: plan.spellConsumption,
-    usedReactions: plan.usedReactions.map(({ receipt, spellConsumption }) => ({
-      receipt,
-      spellConsumption
-    })),
     consumedGrants: plan.consumedGrants,
     label: plan.label,
     ruleOverrides: plan.ruleOverrides,

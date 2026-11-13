@@ -254,8 +254,7 @@ only the checks and writes that are its own between the steps.
   `requireActionCommitFence` runs the read fence and refuses an occurrence id already used by any
   occurrence other than the pending one the commit resumes.
 - Source spend (`actionSourceSpend.ts`): `applyActionSpendMechanics` makes the one
-  `DIRECT_ACTION_RESOURCE` mechanics batch an actor's own spend needs (the source's, a countering reactor's,
-  and each used reaction's through `applyUsedReactionSpends`); `requireSourceSpendReceipt` compares it with
+  `DIRECT_ACTION_RESOURCE` mechanics batch an actor's own spend needs (the source's); `requireSourceSpendReceipt` compares it with
   the receipt the room planned. The single-target commit checks its source inside its own mechanics
   receipt check, because a source that targets itself spends in the target's batch.
 - Target outcome (`actionTargetOutcomeSettlement.ts`, QUALITY-13.T2b): `settleActionTargetOutcome` settles
@@ -446,7 +445,7 @@ QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is 
   before any phase.
 - The fence. `castPendingContinues` lets a rolled offer be followed only by an offer of the same roll or by
   the roll's settlement, and lets a reaction chosen from it leave the pause only by recording a child: it is
-  never carried as a used reaction for the action's own commit to spend. Child recording, the room's resume
+  never answered in place. Child recording, the room's resume
   and the reactor's decline follow the rules of any cast offer. What may precede the first rolled offer is
   not fenced here; T1e2 owns that entry.
 - The resolved child. `reactionChildren[].rolledDie` records the die the committed child rolled, with its
@@ -473,7 +472,7 @@ reaction chosen by the creature an attack hit:
   triggers, `ATTACKED_SELF` and `DAMAGE_TAKEN`; every other kind still holds one. The pending context holds it
   on `twoPhase.phase === 'TEST'`, as it holds a rolled offer.
 - The fence. `castPendingContinues` treats the hit as a new moment: its offer may follow the action's own roll,
-  a declined earlier offer or a child's resume, with no reactor yet declined and no used reaction or child
+  a declined earlier offer or a child's resume, with no reactor yet declined and no child
   added. Once held, the hit is kept unchanged; a decline leaves it only for the outcome, never for another
   offer (it is made to the one creature hit), and a chosen reaction leaves it only by recording a child.
 - The child's read. The action capture returns the offer's `damageTypeIds` as `triggerDamageTypeIds` on the
@@ -514,14 +513,15 @@ QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offe
 pause takes only a decline or a chosen reaction (`castPendingContinues`). QUALITY-9.T1c3 deleted the inline
 chain: the offer carries no `chain`, a used reaction no `check`, and `ENCOUNTER_COUNTERED_CAST` no `counter`
 (the countered-cast commit input no `reactionSpellConsumption`). These are persisted pending-context and
-receipt shape changes; refresh local data when next used (D196).
+receipt shape changes; refresh local data when next used (D196). QUALITY-9.T1d2 then removed the pending
+context's, area snapshot's, commit inputs' and stored receipt's `usedReactions` field outright (D196: clear the stored
+Encounter run command and pending-occurrence rows when next used).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).
 A cast held at a `COUNTER` offer whose unresolved child cancelled it commits through
-`persistEncounterCounteredCastCommit` from the resume, with no response: no reactor is spent, no evidence
-receipt is written, and the used reactions the pending context held are spent unchanged
-(`castCancelledByChildCarriesUsedReactions`). This is the only way a cast commits as countered: an answer
+`persistEncounterCounteredCastCommit` from the resume, with no response: no reactor is spent and no evidence
+receipt is written (`castCancelledByReactionChild`). This is the only way a cast commits as countered: an answer
 never does (QUALITY-9.T1c3).
 
 A child that pauses (current, QUALITY-8.T1b, D219 amendment). A reaction's own action may need evidence of

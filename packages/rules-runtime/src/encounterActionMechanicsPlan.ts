@@ -17,7 +17,6 @@ import type {
   EncounterMechanicsBatchPlan
 } from './encounterMechanicsBatchPlan.js'
 import type { CharacterMovementFacts } from './encounterMovementTargets.js'
-import type { NativeCharacterSpellConsumption } from './character/characterNativeActionResources.js'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { SpellSlotConsumptionReceiptDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
@@ -75,11 +74,6 @@ export type NativeEncounterActionMechanicsInput = {
   }
   ordinal?: number
   /**
-   * The slots the source spends countering a Counterspell cast against this cast (D127), applied on the
-   * source's one batch after the cast's own, so the Character advances once.
-   */
-  counterSpellConsumptions?: readonly NativeCharacterSpellConsumption[]
-  /**
    * Whether this plan settles the source's one spend (resource, item, stow, feature charge) with the
    * outcome. An area action settles it once on its root, so each creature it catches plans with `NONE`.
    */
@@ -120,10 +114,7 @@ function prepareNativeActionMechanicsBatches(
   const itemConsumption =
     spend === 'NONE' ? undefined : prepared.characterActionState?.itemConsumption
   const castConsumption = prepared.characterActionState?.spellConsumption
-  const spellConsumptions =
-    spend === 'NONE'
-      ? []
-      : [...(castConsumption ? [castConsumption] : []), ...(input.counterSpellConsumptions ?? [])]
+  const spellConsumptions = spend === 'NONE' || !castConsumption ? [] : [castConsumption]
   const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
   const sourceDegradation = spend === 'NONE' ? undefined : input.degradeSourceItem
   const draw = spend === 'NONE' ? undefined : prepared.weaponDraw

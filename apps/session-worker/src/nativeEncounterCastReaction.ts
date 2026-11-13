@@ -15,22 +15,13 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type {
-  EncounterCastReactionOfferDto,
-  EncounterUsedReactionDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterCastReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import {
-  planNativeEncounterAreaSourceSpend,
-  type NativeEncounterActionMechanicsInput
-} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import {
-  buildEncounterCounteredCastStoredExecution,
-  buildEncounterUsedReactionReceipt
-} from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
+import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { buildEncounterCounteredCastStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -46,7 +37,6 @@ import {
   chosenEncounterReaction,
   encounterReactionPin,
   openEncounterReactionChoice,
-  sameEncounterReactionCandidate,
   settleEncounterCastReactionUse,
   type EncounterReactionCandidate
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
@@ -344,69 +334,6 @@ async function findNativeCastReaction<Found extends NativeCastResponse>(
 }
 
 /**
- * What each reaction used before this action executed spends with the action's terminal commit: the
- * reactor's slot and reaction, planned against the reactor as it stands now. A reactor that changed
- * since it reacted leaves the action stale.
- */
-export async function planNativeUsedReactions(input: {
-  usedReactions: readonly EncounterUsedReactionDto[]
-  /** The discovery that finds a spent reaction of this trigger again. */
-  discover(
-    trigger: EncounterUsedReactionDto['reaction']['trigger']
-  ): Promise<CastReactionDiscovery<NativeCastResponse>>
-  state: EncounterRunState
-  occurrenceId: string
-  commandId: string
-  occurredAt: string
-  userId: string
-}) {
-  const planned = []
-  for (const used of input.usedReactions) {
-    const { found } = await findNativeCastReaction(
-      await input.discover(used.reaction.trigger),
-      used.reaction
-    )
-    if (!sameEncounterReactionCandidate(used.reaction, found.candidate))
-      throw new Error('Reaction evidence is stale.')
-    const spend = planNativeEncounterAreaSourceSpend(
-      {
-        prepared: found.prepared,
-        encounterId: input.state.id,
-        expectedEncounterVersion: input.state.version,
-        occurrenceId: input.occurrenceId,
-        sourceCommandId: input.commandId,
-        commandId: input.commandId,
-        occurredAt: input.occurredAt
-      },
-      input.userId
-    )
-    const spellConsumption = found.prepared.characterActionState?.spellConsumption
-    planned.push({
-      receipt: buildEncounterUsedReactionReceipt({
-        used,
-        spellConsumption,
-        characterStreamVersion: spend.sourceCharacterStreamVersion,
-        economy: found.economy.consumption
-      }),
-      spellConsumption: spellConsumption ?? null,
-      economy: found.economy.consumption,
-      found
-    })
-  }
-  return planned
-}
-
-/** The slots the failed counters of one actor spend, for the batch its own cast spends in. */
-export function counterConsumptionsOf(
-  planned: Awaited<ReturnType<typeof planNativeUsedReactions>>,
-  actorId: string
-) {
-  return planned.flatMap(({ receipt, spellConsumption }) =>
-    receipt.reaction.reactorActorId === actorId && spellConsumption ? [spellConsumption] : []
-  )
-}
-
-/**
  * The countered cast: the caster spends its slot and action and nothing the spell would have done
  * happens. The counter ran as its holder's own action (D219), which spent its slot and reaction there.
  * Nothing is stored; the commit applies the spends and the sealed record.
@@ -424,11 +351,9 @@ export function planNativeCounteredCast(input: {
   commandId: string
   occurredAt: string
   userId: string
-  usedReactions: Awaited<ReturnType<typeof planNativeUsedReactions>>
 }) {
   const { state, prepared, actionEconomy } = input
-  // A countered cast makes no attack roll, but it is still a cast, aimed at the cast's target. A
-  // reaction of the caster's own spends in the caster's one batch with the cast.
+  // A countered cast makes no attack roll, but it is still a cast, aimed at the cast's target.
   const caster = planNativeLostSourceAction({
     state,
     actors: input.actors,
@@ -441,8 +366,7 @@ export function planNativeCounteredCast(input: {
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
     occurredAt: input.occurredAt,
-    userId: input.userId,
-    counterSpellConsumptions: counterConsumptionsOf(input.usedReactions, prepared.actor.id)
+    userId: input.userId
   })
   const facts = buildEncounterActorRuleFacts({
     actors: input.actors.map((actor) =>
@@ -463,7 +387,6 @@ export function planNativeCounteredCast(input: {
       facts,
       { output: prepared.actorRules }
     ),
-    usedReactions: input.usedReactions,
     consumedGrants: caster.consumedGrants
   }
 }
@@ -500,10 +423,6 @@ export function buildNativeLiveEncounterCounteredCastCommitInput(
     resourceConsumption: prepared.characterActionState?.resourceConsumption ?? null,
     itemConsumption: prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: prepared.characterActionState?.spellConsumption ?? null,
-    usedReactions: countered.usedReactions.map(({ receipt, spellConsumption }) => ({
-      receipt,
-      spellConsumption
-    })),
     consumedGrants: countered.consumedGrants,
     label: encounterActionSourceLabel(prepared.source),
     ruleOverrides: plan.ruleOverrides

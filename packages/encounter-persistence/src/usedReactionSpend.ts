@@ -1,7 +1,4 @@
-import type {
-  LiveSessionUsedReaction,
-  LiveSessionWindowReaction
-} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type { LiveSessionWindowReaction } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -16,27 +13,22 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterWriteContext } from './store.js'
 
 /**
- * Checks each reaction another creature spends with the action: one used at its own offer before the
- * action executed (a reaction to being named a target), or a reaction rolled against the attack roll
- * (D207). Its reactor is a Character of the run, named once, and the slot or charge it spends is the
- * one its receipt recorded. The action's own source never reacts to its own action or attack roll.
+ * Checks each reaction another creature rolled against the attack roll (D207) and spends with the
+ * action. Its reactor is a Character of the run, named once, and the slot or charge it spends is the
+ * one its receipt recorded. The action's own source never reacts to its own attack roll.
  * Returns what each reactor's mechanics apply.
  */
 export function usedReactionSpends(input: {
-  usedReactions?: readonly LiveSessionUsedReaction[]
   windowReactions?: readonly LiveSessionWindowReaction[]
   actors: readonly EncounterRunActorState[]
   source: EncounterRunActorState
 }) {
   const seen = new Set<string>()
-  const reactorOf = (
-    reaction: { reactorActorId: string; characterId: string | null },
-    ownAction: boolean
-  ) => {
+  const reactorOf = (reaction: { reactorActorId: string; characterId: string | null }) => {
     const reactor = input.actors.find((actor) => actor.id === reaction.reactorActorId)
     if (
       reactor?.kind !== 'CHARACTER' ||
-      ownAction ||
+      reaction.reactorActorId === input.source.id ||
       reactor.sourceId !== reaction.characterId ||
       seen.has(reactor.id)
     )
@@ -54,46 +46,23 @@ export function usedReactionSpends(input: {
       item: null,
       ...request
     })
-  return [
-    ...(input.usedReactions ?? []).map((used) => {
-      const { reaction } = used.receipt
-      const reactor = reactorOf(
-        reaction,
-        reaction.reactorActorId === input.source.id &&
-          used.receipt.againstActorId === input.source.id
-      )
-      return {
-        used,
-        reactor,
-        ...spend(reactor, {
-          resource: null,
-          spell: used.spellConsumption,
-          receipts: {
-            resourceConsumption: null,
-            sourceItemConsumption: null,
-            spellCastConsumption: used.receipt.spellCastConsumption
-          }
-        })
-      }
-    }),
-    ...(input.windowReactions ?? []).map((used) => {
-      const { reaction } = used.receipt
-      const reactor = reactorOf(reaction, reaction.reactorActorId === input.source.id)
-      return {
-        used,
-        reactor,
-        ...spend(reactor, {
-          resource: used.resourceConsumption,
-          spell: null,
-          receipts: {
-            resourceConsumption: used.receipt.resourceConsumption,
-            sourceItemConsumption: null,
-            spellCastConsumption: null
-          }
-        })
-      }
-    })
-  ]
+  return (input.windowReactions ?? []).map((used) => {
+    const { reaction } = used.receipt
+    const reactor = reactorOf(reaction)
+    return {
+      used,
+      reactor,
+      ...spend(reactor, {
+        resource: used.resourceConsumption,
+        spell: null,
+        receipts: {
+          resourceConsumption: used.receipt.resourceConsumption,
+          sourceItemConsumption: null,
+          spellCastConsumption: null
+        }
+      })
+    }
+  })
 }
 
 export type UsedReactionSpend = ReturnType<typeof usedReactionSpends>[number]
