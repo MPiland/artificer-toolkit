@@ -1529,7 +1529,8 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
         reactorActorId: PROTECTOR_ID,
         actionId: REACTION_ACTION_ID,
         imposesRollMode: false,
-        subtractsFromTriggeringRoll: false,
+        // Restated (QUALITY-9.T1e2): the read carries the die rolled, not a flag; no die here.
+        triggeringRollSubtraction: null,
         cancelsTriggeringEvent: false,
         stopsTriggeringMovement: false,
         // The reaction that countered it committed under it, so its creature reacted in the child's tree.
@@ -1560,6 +1561,12 @@ describe('a committed child that takes a die from the roll it answered (QUALITY-
         facts: {},
         trace: [
           {
+            nodeId: 'triggering-roll-die-1',
+            operation: { key: 'evidence.integer-range', contractVersion: 1 },
+            inputs: { min: 1, max: 6 },
+            outputs: { value: 4 }
+          },
+          {
             nodeId: 'subtract',
             operation: {
               key: DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
@@ -1585,7 +1592,9 @@ describe('a committed child that takes a die from the roll it answered (QUALITY-
         reactorActorId: PROTECTOR_ID,
         actionId: REACTION_ACTION_ID,
         imposesRollMode: false,
-        subtractsFromTriggeringRoll: true,
+        // Restated (QUALITY-9.T1e2, D219): "subtracts" is now the die the child rolled, read back
+        // from its own graph, so the held roll needs no second die request.
+        triggeringRollSubtraction: { faces: 6, rolledFaces: [4] },
         cancelsTriggeringEvent: false,
         stopsTriggeringMovement: false,
         descendantReactorActorIds: []

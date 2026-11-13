@@ -390,6 +390,14 @@ export function CampaignTabletopDecisionDrawer({
             </Stack>
           ) : pending.kind === 'REACTION_CHOICE' ? (
             <Stack gap='xs'>
+              {/* A reactor sees the attacker's roll as it stands, never whether it hits (D207, D219). */}
+              {pending.attackRoll ? (
+                <Text size='sm'>
+                  {encounter.actors.find((actor) => actor.id === pending.attackRoll?.attackerActorId)
+                    ?.label ?? 'A hidden combatant'}{' '}
+                  rolled {pending.attackRoll.selectedNatural}, total {pending.attackRoll.total}
+                </Text>
+              ) : null}
               {pending.options.map((option) => (
                 <Button
                   disabled={disabled}
