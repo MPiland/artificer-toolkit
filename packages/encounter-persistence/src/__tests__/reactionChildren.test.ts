@@ -1845,7 +1845,11 @@ async function raiseChildCheck(paused: Awaited<ReturnType<typeof pausedAttack>>,
     const check = memory
       .documents('encounterRuleOccurrences')
       .find(({ id }) => id === CHECK_OCCURRENCE_ID)!
-    await memory.store.patch(check._id, { state, completedAt: TIMESTAMP })
+    await memory.store.patch(check._id, {
+      state,
+      pendingSnapshotChecksum: null,
+      completedAt: TIMESTAMP
+    })
     await memory.store.patch(memory.documents('encounterRuns')[0]!._id, {
       version: settledVersion
     })
