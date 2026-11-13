@@ -2,10 +2,11 @@ import { readEncounterActorDefeated } from '@artificer-toolkit/encounter-persist
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import {
-  ruleFailedSaveAction,
+  ruleSaveFailedEvent,
   ruleTriggerWindowStart
 } from '@artificer-toolkit/encounter-persistence/systemTriggerAdmission'
-import { encounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
+import { encounterRuleRaisedActions } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import {
   systemTriggerCommandId,
   systemTriggerSelfCommand
@@ -17,7 +18,7 @@ import { raiseRoomChild } from './roomEncounterChildRaise.js'
 const RULE_RECEIPT_SCAN_LIMIT = 256
 
 /**
- * Raises the action an optional combat rule names for a failed save, once per committed command:
+ * Raises the rule actions the event table subscribes to a failed save, once per committed command:
  * every failed save recorded since the command that opened the window, whether rolled inside an
  * action or answered later, whose holder still stands and whose action has not run. Each runs as its
  * own rule-raised root on the holder, after the hit-point and turn-start effects. An Encounter that
@@ -46,46 +47,46 @@ export async function raiseRoomRuleEffects(input: {
     .take(RULE_RECEIPT_SCAN_LIMIT)
   let committed = false
   for (const receipt of receipts) {
-    const failedSave = ruleFailedSaveAction(firstState, receipt)
+    const failedSave = ruleSaveFailedEvent(receipt)
     if (!failedSave) continue
-    const actionId = encounterRuleActionId(
-      failedSave.holderActorId,
-      failedSave.definitionId,
-      failedSave.effectId
-    )
-    const raisedCommandId = systemTriggerCommandId(
-      receipt.commandId,
-      failedSave.holderActorId,
-      actionId
-    )
-    const outcome = await raiseRoomChild({
-      ctx,
-      encounterId,
-      execute: input.execute,
-      command: async (run) => {
-        if (run.status !== 'ACTIVE') return null
-        const raised = await ctx.db
-          .query('encounterRunCommands')
-          .withIndex('by_campaignId_commandId', (query) =>
-            query.eq('campaignId', run.campaignId).eq('commandId', raisedCommandId)
-          )
-          .unique()
-        const holder = await readRunActor(ctx, readRunState(run), failedSave.holderActorId)
-        return raised || (await readEncounterActorDefeated(ctx, holder))
-          ? null
-          : systemTriggerSelfCommand({
-              encounterId,
-              expectedVersion: run.version,
-              parentCommandId: receipt.commandId,
-              holderActorId: failedSave.holderActorId,
-              actionId,
-              trigger: 'RULE'
-            })
-      }
-    })
-    // Unlike the hit-point and turn-start effects, a Run that waits on a decision stops the scan.
-    if (outcome === 'WAITING') return committed
-    if (outcome === 'RAISED') committed = true
+    for (const { actionId } of discoverEncounterEventHooks({
+      raisedActions: encounterRuleRaisedActions(firstState, failedSave.holderActorId),
+      events: [failedSave.event]
+    }).raisedActions) {
+      const raisedCommandId = systemTriggerCommandId(
+        receipt.commandId,
+        failedSave.holderActorId,
+        actionId
+      )
+      const outcome = await raiseRoomChild({
+        ctx,
+        encounterId,
+        execute: input.execute,
+        command: async (run) => {
+          if (run.status !== 'ACTIVE') return null
+          const raised = await ctx.db
+            .query('encounterRunCommands')
+            .withIndex('by_campaignId_commandId', (query) =>
+              query.eq('campaignId', run.campaignId).eq('commandId', raisedCommandId)
+            )
+            .unique()
+          const holder = await readRunActor(ctx, readRunState(run), failedSave.holderActorId)
+          return raised || (await readEncounterActorDefeated(ctx, holder))
+            ? null
+            : systemTriggerSelfCommand({
+                encounterId,
+                expectedVersion: run.version,
+                parentCommandId: receipt.commandId,
+                holderActorId: failedSave.holderActorId,
+                actionId,
+                trigger: 'RULE'
+              })
+        }
+      })
+      // Unlike the hit-point and turn-start effects, a Run that waits on a decision stops the scan.
+      if (outcome === 'WAITING') return committed
+      if (outcome === 'RAISED') committed = true
+    }
   }
   return committed
 }

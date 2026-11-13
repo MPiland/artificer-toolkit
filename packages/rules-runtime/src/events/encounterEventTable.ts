@@ -76,6 +76,10 @@ export type EncounterEvent =
   | { kind: 'HIT_POINTS_REGAINED' }
   /** The holder is defeated (dead, or at 0 hit points as its kind defeats). */
   | { kind: 'DEFEATED' }
+  /** The holder's turn begins. */
+  | { kind: 'TURN_STARTED' }
+  /** The holder fails a saving throw this exact rule definition asked for. */
+  | { kind: 'SAVE_FAILED'; definition: { id: string; version: number; checksum: string } }
   /** A held effect bars the holder from maintaining a link (the System's casting lock). */
   | { kind: 'MAINTENANCE_BARRED' }
   /** The holder is incapacitated or defeated, or the sources named are. */
@@ -165,12 +169,15 @@ export type EncounterEventSubscription =
   | { event: 'CONDITION_HELD'; conditionIds: readonly string[] }
   | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: readonly string[] }
   | { event: 'REST'; restKind: 'SHORT' | 'LONG' }
+  /** The failed save of the rule definition pinned at exactly this version and checksum. */
+  | { event: 'SAVE_FAILED'; definition: { id: string; version: number; checksum: string } }
   | {
       event:
         | 'ATTACKED'
         | 'HIT'
         | 'HIT_POINTS_REGAINED'
         | 'DEFEATED'
+        | 'TURN_STARTED'
         | 'MAINTENANCE_BARRED'
         | 'ITEM_RELEASED'
         | 'IDLE_TURN'
@@ -198,6 +205,18 @@ export type MaintenanceLinkHook =
       subscription: EncounterEventSubscription
     }
   | { hook: 'SAVE'; subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }> }
+
+/**
+ * What an action the rules raise does when an event meets its subscription: the Encounter runs it as
+ * its holder's own action, once the command that raised the event has committed. The holder is
+ * defeated, its turn begins, or it fails the save a rule asked for.
+ */
+export type EncounterRaiseActionHook = {
+  hook: 'RAISE_ACTION'
+  subscription:
+    | { event: 'DEFEATED' | 'TURN_STARTED' }
+    | Extract<EncounterEventSubscription, { event: 'SAVE_FAILED' }>
+}
 
 /**
  * A reaction an event offers its holder, by the event and the authored trigger it met. A damage-type
@@ -258,6 +277,11 @@ export interface EventVocabularyCapabilityAdapter {
   readonly gameSystemId: string
   /** The hooks an effect's recurrence authors, in authored order; a code the System lacks throws. */
   effectHooks(recurrence: EncounterEffectRecurrence): readonly EncounterEffectHook[]
+  /**
+   * The hook a passive Effect's authored trigger code subscribes, so the Encounter raises the Effect
+   * as its holder's action; null for a trigger that raises no action.
+   */
+  raiseActionHook(triggerCode: string): EncounterRaiseActionHook | null
   /**
    * The subscription a zone component's authored interactions compile to, in canonical order; null
    * when it names none, or one the System does not model.

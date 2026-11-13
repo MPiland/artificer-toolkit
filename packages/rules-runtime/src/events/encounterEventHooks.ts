@@ -17,6 +17,7 @@ import type {
   EncounterEffectHook,
   EncounterEvent,
   EncounterEventSubscription,
+  EncounterRaiseActionHook,
   EncounterReactionHook,
   IncomingGateSubscription,
   MaintenanceLinkHook,
@@ -214,6 +215,13 @@ function subscriptionMet(
     case 'SEPARATED':
       // Separation is measured on the Scene by the relationship sweep, not raised as an event.
       return false
+    case 'SAVE_FAILED':
+      return (
+        event.kind === 'SAVE_FAILED' &&
+        event.definition.id === subscription.definition.id &&
+        event.definition.version === subscription.definition.version &&
+        event.definition.checksum === subscription.definition.checksum
+      )
     default:
       return event.kind === subscription.event
   }
@@ -399,7 +407,8 @@ function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
  * with the first hook met; whether one is affordable is decided when it is prepared.
  * `damageInterceptions` and `incomingGates` are the held intercepts an event meets before it resolves,
  * in the order given (their spend order); the caller spends the first. `zones` are the zones a
- * creature's contact event (a `ZONE_*` event) sets off, in the order given.
+ * creature's contact event (a `ZONE_*` event) sets off, in the order given. `raisedActions` are the
+ * holder's actions an event raises as its own, in the order given.
  */
 export function discoverEncounterEventHooks<
   Event extends EncounterEvent,
@@ -408,8 +417,10 @@ export function discoverEncounterEventHooks<
   Reaction extends ReactionCandidate = never,
   Interception extends DamageInterceptionSubscription = never,
   Gate extends IncomingGateSubscription = never,
-  Zone extends ZoneEventSubscription = never
+  Zone extends ZoneEventSubscription = never,
+  Raised extends { hook: EncounterRaiseActionHook } = never
 >(input: {
+  raisedActions?: readonly Raised[]
   effects?: readonly Effect[]
   zones?: readonly Zone[]
   reactions?: readonly Reaction[]
@@ -458,7 +469,12 @@ export function discoverEncounterEventHooks<
     input.events.some((event) => subscriptionMet(null, hook.subscription, event))
   const maintenanceBreak = maintenance.find((hook) => hook.hook === 'BREAK' && maintenanceMet(hook))
   const maintenanceSave = maintenance.some((hook) => hook.hook === 'SAVE' && maintenanceMet(hook))
+  // A raised action is its holder's own, so its hook meets an event with no effect scope.
+  const raisedActions = (input.raisedActions ?? []).filter((raised) =>
+    input.events.some((event) => subscriptionMet(null, raised.hook.subscription, event))
+  )
   return {
+    raisedActions,
     ended,
     repeatSaves,
     grants,

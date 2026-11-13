@@ -3,11 +3,8 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
-import {
-  encounterMassiveDamageRule,
-  massiveDamageRulePinned
-} from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
-import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
+import { encounterRuleRaisedActions } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorDefeated } from './characterStates.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -44,28 +41,23 @@ export async function ruleTriggerWindowStart(ctx: EncounterReadContext, encounte
 }
 
 /**
- * The failed rule save a rule receipt records, with its holder and the action the rule raises for
- * it: today a massive-damage save whose pinned rule names a `failedSaveEffectId`. Null otherwise.
+ * The event-table event a rule receipt records, with its holder: the failed save a rule definition
+ * asked for (today a massive-damage save). Null for any other receipt.
  */
-export function ruleFailedSaveAction(
-  state: EncounterRunState,
+export function ruleSaveFailedEvent(
   receipt: Pick<EncounterDocument<'encounterRuleReceipts'>, 'resultJson'>
 ) {
   const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
   const output = result.status === 'COMPLETE' ? result.applicationOutputs : null
-  const rule = encounterMassiveDamageRule(state)
   if (
     output?.kind !== 'DAMAGE_SAVE_CHECK' ||
     output.source !== 'MASSIVE_DAMAGE' ||
-    output.outcome !== 'SAVE_FAILURE' ||
-    !massiveDamageRulePinned(rule, output) ||
-    rule.failedSaveEffectId === null
+    output.outcome !== 'SAVE_FAILURE'
   )
     return null
   return {
     holderActorId: output.application.targetActorId,
-    definitionId: rule.pin.definitionId,
-    effectId: rule.failedSaveEffectId
+    event: { kind: 'SAVE_FAILED' as const, definition: output.optionalCombatDefinition }
   }
 }
 
@@ -108,8 +100,8 @@ export async function countCommittedSystemSiblings(
  * parent's receipt must belong to this Run, and a fresh root runs on the version the parent produced
  * for a holder that is still at 0 hit points. A start-of-turn root instead targets its holder, is
  * raised by the command that began the holder's turn, and runs while it is the holder's turn. A rule
- * root targets its holder too, and names the rule action the parent receipt's failed save raises for
- * that holder; it runs while the holder stands, within the window the save fell in, so the rule
+ * root targets its holder too, and names a rule action the event table raises for that holder on the
+ * parent receipt's failed save; it runs while the holder stands, within the window the save fell in, so the rule
  * actions of several saves one command failed each run. A resume skips the version and holder tests,
  * as the answers arrive in later commands. A Legendary Action root is the area option a turn end
  * delegated: its parent is that ADVANCE_TURN, and it runs while the Run still holds the delegation
@@ -189,8 +181,7 @@ export async function requireSystemTriggerAdmission(
             query.eq('campaignId', run.campaignId).eq('commandId', parentCommandId)
           )
           .unique()) ?? (await readReceipt()))
-  const failedSave = ruleParent ? ruleFailedSaveAction(state, ruleParent) : null
-  const ruleAction = parseEncounterRuleActionId(command.actorId, command.actionId)
+  const failedSave = ruleParent ? ruleSaveFailedEvent(ruleParent) : null
   const selfTargeted =
     command.target.kind === 'ACTOR' && command.target.actorId.toLowerCase() === holderActorId
   if (
@@ -204,8 +195,10 @@ export async function requireSystemTriggerAdmission(
       : trigger === 'RULE'
         ? !selfTargeted ||
           failedSave?.holderActorId !== holderActorId ||
-          ruleAction?.definitionId !== failedSave.definitionId ||
-          ruleAction.effectId !== failedSave.effectId
+          !discoverEncounterEventHooks({
+            raisedActions: encounterRuleRaisedActions(state, command.actorId),
+            events: [failedSave.event]
+          }).raisedActions.some((raised) => raised.actionId === command.actionId)
         : trigger === 'LEGENDARY_ACTION'
           ? !['CASTER_CENTERED', 'POINT', 'DIRECTED'].includes(command.target.kind) ||
             !(parent && 'commandType' in parent && parent.commandType === 'ADVANCE_TURN')

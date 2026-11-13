@@ -32,6 +32,15 @@ const ZONE_TURN_SUBSCRIPTIONS: Readonly<
   START_OF_SOURCE_TURN: 'START_OF_SOURCE_TURN'
 }
 
+/** The event each 5e passive trigger code raises its Effect on, as its holder's action. */
+const RAISE_ACTION_EVENTS: ReadonlyMap<string, 'DEFEATED' | 'TURN_STARTED'> = new Map<
+  string,
+  'DEFEATED' | 'TURN_STARTED'
+>([
+  ['HP_ZERO', 'DEFEATED'],
+  ['START_OF_TURN', 'TURN_STARTED']
+])
+
 function lifecycleSubscription(
   timing: 'CONSUME' | 'END',
   code: string
@@ -90,6 +99,10 @@ export const dnd5eEventVocabularyCapabilityAdapter: EventVocabularyCapabilityAda
         trigger
       }))
     ]
+  },
+  raiseActionHook(triggerCode) {
+    const event = RAISE_ACTION_EVENTS.get(triggerCode)
+    return event ? { hook: 'RAISE_ACTION', subscription: { event } } : null
   },
   zoneSubscription(kinds) {
     if (!kinds?.length) return null

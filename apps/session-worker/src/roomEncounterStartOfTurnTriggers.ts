@@ -5,12 +5,13 @@ import { readTurnStartedBy } from '@artificer-toolkit/encounter-persistence/turn
 import { systemTriggerSelfCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { raiseRoomChild } from './roomEncounterChildRaise.js'
 
 /**
- * Raises the passive effects the creature whose turn just began carries for the start of its turn,
- * after the START or ADVANCE_TURN that began it. Each effect runs as its own rule-raised root, so it
+ * Raises the actions the event table subscribes to the turn start of the creature whose turn just
+ * began, after the START or ADVANCE_TURN that began it. Each effect runs as its own rule-raised root, so it
  * reads the hit points the turn start left. An Encounter that already waits on a decision raises
  * nothing yet. Returns whether any root committed.
  */
@@ -39,14 +40,17 @@ export async function raiseRoomStartOfTurnEffects(input: {
   })
   if (startedBy?.toLowerCase() !== input.parentCommandId.toLowerCase()) return false
   const system = await ctx.ports.requireSystem(firstState.gameSystemId)
-  const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
+  const { raisedActions } = discoverEncounterFeatureActions({
     actor: holder,
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: systemAbilityDefinitions(system),
     spells: await readEncounterSpellPins(ctx, firstState.id)
   })
   let committed = false
-  for (const { capability } of passiveStartOfTurnEffects) {
+  for (const { capability } of discoverEncounterEventHooks({
+    raisedActions,
+    events: [{ kind: 'TURN_STARTED' }]
+  }).raisedActions) {
     const outcome = await raiseRoomChild({
       ctx,
       encounterId,
