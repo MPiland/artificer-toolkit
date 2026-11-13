@@ -25822,7 +25822,7 @@
             },
             {
               "id": "QUALITY-9.T1b3c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25833,7 +25833,8 @@
               },
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth 5 to 10. See the D219 amendment \"Area and chosen-list counters as children\".",
               "text": "Delete the inline counter check path, the CHECK answer and EncounterCastReactionCheckDto across schema, Worker and persistence (encounterCastReactionCheck stays for the trigger gate); update rules-runtime.md and persistence.md.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-12",
+              "proof": "m719 (40bf8f436) fast path from slice tip 27000f8e1: Tests 43335315742, Live 43335315816, Browser journeys 43335315875 green. Red proof actionPendingOffers.test.ts RED 1/35 and reactionChildren.test.ts RED against the merge-base. The inline counter check (CHECK answer, EncounterCastReactionCheckDto, the offer's check field) is deleted; the higher-level check gates only the child. Check-pause tests deleted or restated (a roll never answers or counters a cast). D196: the CAST_REACTION offer no longer accepts check; no host wrote it since T1b3a; refresh local data when next used."
             },
             {
               "id": "QUALITY-9.T1c1",
@@ -25869,7 +25870,7 @@
             },
             {
               "id": "QUALITY-9.T1c3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -25879,7 +25880,8 @@
                 "after": ["QUALITY-9.T1b3a"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1c at the seam trace; the inline chain is deleted after T1b3 so no host loses counter chains in between.",
-              "text": "Delete the inline counter chain from advanceNativeCastReactions and the chain field from the offer DTO; restate the chain tests as nested children; docs."
+              "text": "Delete the inline counter chain from advanceNativeCastReactions and the chain field from the offer DTO; restate the chain tests as nested children; docs.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-9.T1d1",
