@@ -490,7 +490,10 @@ export function requireAreaActionAnswer(input: {
   const at =
     stored?.targets.findIndex((target) => target.snapshot.request.requestId === input.requestId) ??
     -1
-  if (hitReactionOf(stored?.targets[at]) || (next?.targets[at] && heldOnHitReaction(next.targets[at])))
+  if (
+    hitReactionOf(stored?.targets[at]) ||
+    (next?.targets[at] && heldOnHitReaction(next.targets[at]))
+  )
     return requireAreaActionRayReaction({ ...input, at })
   // An answer that opens the next d20 window swaps that save's snapshot, so the answered creature is
   // found by its place in the stored area.

@@ -664,7 +664,10 @@ async function advanceAreaRay(
             resume:
               step.kind === 'ROLL'
                 ? {
-                    pending: { ...restoreEncounterActionPending(sealed.snapshot), roller: 'TARGET' },
+                    pending: {
+                      ...restoreEncounterActionPending(sealed.snapshot),
+                      roller: 'TARGET'
+                    },
                     resolution: step.resolution
                   }
                 : null
@@ -1081,8 +1084,7 @@ export async function planNativeLiveEncounterAreaRayReaction(
   }
   const sealedAt = (index: number) => {
     const current = snapshot.applicationContext
-    const sealed =
-      current.kind === 'ENCOUNTER_AREA_ACTION' ? current.targets[index] : undefined
+    const sealed = current.kind === 'ENCOUNTER_AREA_ACTION' ? current.targets[index] : undefined
     if (!sealed) throw new Error('The pending action evidence is invalid.')
     return sealed
   }
@@ -1462,8 +1464,7 @@ export async function planNativeLiveEncounterAreaCommit(
 
   // The area settles under the occurrence the answer, the removal or a reaction's child resume (D219)
   // moved on.
-  const resumed =
-    input.response ?? input.removal ?? input.resume ?? input.castResume?.continuation
+  const resumed = input.response ?? input.removal ?? input.resume ?? input.castResume?.continuation
   const occurredAt = new Date().toISOString()
   const plan = await completeAreaCommit({
     input,

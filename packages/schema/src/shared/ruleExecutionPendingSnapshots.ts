@@ -818,7 +818,8 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           const casterRolls =
             inner.kind === 'ENCOUNTER_ACTION' &&
             (inner.rollerActorId === value.casterActorId ||
-              (inner.pause?.kind === 'CAST_REACTION' && inner.pause.payload.kind === 'HIT_BY_ATTACK'))
+              (inner.pause?.kind === 'CAST_REACTION' &&
+                inner.pause.payload.kind === 'HIT_BY_ATTACK'))
           // A creature a mover struck makes its own save besides any the area caught it for, and may
           // be one the area never kept.
           const struck = target.collision !== undefined

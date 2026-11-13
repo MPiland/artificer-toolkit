@@ -357,7 +357,9 @@ export async function planNativeLiveEncounterAction(
     // An answer to a reaction offered before the cast did anything, or the resume from that reaction's
     // child action (D219), replays the cast itself. A ray list is past its cast: the offer it holds
     // is one ray's hit.
-    const continuation = areaSnapshot ? null : (resumeCommand ?? (castAnswer ? responseCommand : null))
+    const continuation = areaSnapshot
+      ? null
+      : (resumeCommand ?? (castAnswer ? responseCommand : null))
     const castResume =
       continuation && pendingContext
         ? {
