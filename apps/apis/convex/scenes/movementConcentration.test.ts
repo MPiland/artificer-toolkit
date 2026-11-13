@@ -559,7 +559,11 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
   expect(await records(value)).toEqual(after)
 }, 60_000)
 
-it('keeps the Assisted Concentration child sealed under one movement root', async () => {
+/**
+ * An Assisted move whose used reaction damaged its concentrating mover, walked to the mover's
+ * pending Concentration check, with Convex's rows at that point.
+ */
+async function stageReactionConcentrationCheck() {
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
   const seeded = await installConcentration(value)
   await setAutoRollDice(value.base.t, value.base.owner.userId, false)
@@ -582,42 +586,86 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
   })
   await expect(executeInRoom(value.player.caller, { command: action })).rejects.toThrow()
   let answer = action
-  let pending: PendingEncounterRuleOccurrenceSummaryDto | null | undefined
+  let answered: Awaited<ReturnType<typeof executeInRoom>>
   for (;;) {
-    pending = (await executeInRoom(value.owner.caller, { command: answer })).occurrence?.pending
+    answered = await executeInRoom(value.owner.caller, { command: answer })
+    const next = answered.occurrence?.pending
     // The GM enters the reaction's damage before its target's Concentration check.
-    if (pending?.kind !== 'ACTION_OUTCOME_EVIDENCE') break
+    if (next?.kind !== 'ACTION_OUTCOME_EVIDENCE') break
     answer = response({
       encounterId: value.base.run.id,
-      pending,
+      pending: next,
       resolution: {
         kind: 'ENTER_INTEGER',
-        requestId: pending.request.requestId,
-        value: pending.request.min
+        requestId: next.request.requestId,
+        value: next.request.min
       }
     })
   }
+  // Restated (QUALITY-18.T2b3): the damage answer returned the Concentration evidence as the
+  // movement root's next request. The reaction is its own action (D219), so that answer completes
+  // the action, and the check it raised is an occurrence of its own, read as the Run's decision.
+  expect(answered.occurrence).toMatchObject({
+    occurrenceId: actionEvidence.occurrenceId,
+    status: 'COMPLETE',
+    pending: null
+  })
+  const staged = await records(value)
+  const pending = await value.owner.caller.query(pendingOccurrence, {
+    encounterId: value.base.run.id
+  })
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected the sealed Concentration evidence.')
-  const staged = await records(value)
-  expect(staged.occurrences).toHaveLength(1)
-  const root = staged.occurrences[0]
-  if (!root) throw new Error('Movement Concentration root is unavailable.')
+  return { value, seeded, reactionOccurrenceId: actionEvidence.occurrenceId, pending, staged }
+}
+
+it('keeps the Assisted Concentration check sealed under the reaction’s own action while the move waits', async () => {
+  const { value, seeded, reactionOccurrenceId, pending, staged } =
+    await stageReactionConcentrationCheck()
+  // Restated (QUALITY-18.T2b3): this was one occurrence, the movement root. A reaction is its own
+  // action (D219), and its check is not complete until answered (ruling 17), so the Run holds
+  // three: the check is its one pending decision, the reaction's action is complete, and the move
+  // waits suspended.
+  const root = staged.occurrences.find((occurrence) => occurrence.id === pending.occurrenceId)
+  const move = staged.occurrences.find(
+    (occurrence) => occurrence.id !== pending.occurrenceId && occurrence.id !== reactionOccurrenceId
+  )
+  if (!root || !move) throw new Error('Movement Concentration root is unavailable.')
+  expect(staged.occurrences.map(({ id, state }) => ({ id, state }))).toEqual(
+    expect.arrayContaining([
+      { id: move.id, state: 'SUSPENDED' },
+      { id: reactionOccurrenceId, state: 'COMPLETED' },
+      { id: root.id, state: 'PENDING' }
+    ])
+  )
+  expect(staged.occurrences).toHaveLength(3)
   const snapshot = await value.base.t.run((ctx) =>
     readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, root)
   )
   if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
     throw new Error('Movement Concentration root is unavailable.')
   const context = snapshot.applicationContext
-  if (
-    context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-    context.phase.kind !== 'CONCENTRATION_EVIDENCE'
-  )
-    throw new Error('Expected a movement-root Concentration phase.')
+  // Restated (QUALITY-18.T2b3): the check was the movement root's CONCENTRATION_EVIDENCE phase; it
+  // is the damage-triggered check of the reaction's action, as any action's is.
+  if (context.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' || context.source !== 'CONCENTRATION')
+    throw new Error('Expected the reaction action’s Concentration check.')
   expect(root.id).toBe(pending.occurrenceId)
   expect(root.version).toBe(pending.occurrenceVersion)
-  expect(context.root.commandId).toBe(value.rootInput.commandId)
-  expect(context.phase.concentration).toMatchObject({
+  expect(context.parentOccurrenceId).toBe(reactionOccurrenceId)
+  // Restated (QUALITY-18.T2b3): the root command is read from the move's own snapshot, which is
+  // still paused on the reaction choice and pinned to the Run as the reaction's action left it.
+  const held = await value.base.t.run((ctx) =>
+    readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, move)
+  )
+  if (
+    held?.snapshotKind !== 'KERNEL_EVIDENCE' ||
+    held.applicationContext.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
+    held.applicationContext.phase.kind !== 'CHOICE'
+  )
+    throw new Error('Expected the move paused on its reaction choice.')
+  expect(held.applicationContext.root.commandId).toBe(value.rootInput.commandId)
+  expect(move.expectedEncounterVersion).toBe(root.expectedEncounterVersion)
+  expect(context).toMatchObject({
     maintainedState: { id: seeded.state.id },
     application: { targetActorId: value.base.mover.id }
   })
@@ -673,17 +721,66 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
   expect(departedActor?.kind === 'CHARACTER' && departedActor.frozenState).toBeTruthy()
   expect(await moverHitPoints()).toBe(damagedHitPoints)
   expect(departed.occurrences).toEqual(staged.occurrences)
+  // Restated (QUALITY-18.T2b3): the binding is read from the check's own context, where the
+  // movement root's phase held it; the refused answer still raised no check under the pending one.
   expect(departed.occurrences.map((occurrence) => occurrence.id)).not.toContain(
     concentrationOccurrenceId(root.id, {
-      ...context.phase.concentration.application,
-      maintainedStateId: context.phase.concentration.maintainedState.id,
-      castAt: context.phase.concentration.maintainedState.createdAt
+      ...context.application,
+      maintainedStateId: context.maintainedState.id,
+      castAt: context.maintainedState.createdAt
     })
   )
   expect(departed.maintained).toEqual(staged.maintained)
   expect(departed.receiptLedgers).toEqual(staged.receiptLedgers)
   expect(departed.receiptLedgerParts).toEqual(staged.receiptLedgerParts)
   expect(departed.sceneStates).toEqual(staged.sceneStates)
+}, 120_000)
+
+it('returns the move to pending once the reaction’s Concentration check is answered, and the room completes it (ruling 17)', async () => {
+  const { value, seeded, reactionOccurrenceId, pending, staged } =
+    await stageReactionConcentrationCheck()
+  const move = staged.occurrences.find(
+    (occurrence) => occurrence.id !== pending.occurrenceId && occurrence.id !== reactionOccurrenceId
+  )
+  if (!move) throw new Error('Movement Concentration root is unavailable.')
+  expect(move.state).toBe('SUSPENDED')
+  // The mover's controller fails the check.
+  const checked = await executeInRoom(value.player.caller, {
+    command: response({
+      encounterId: value.base.run.id,
+      pending,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: pending.request.rollMode
+      }
+    })
+  })
+  expect(checked.occurrence).toMatchObject({
+    occurrenceId: pending.occurrenceId,
+    status: 'COMPLETE',
+    pending: null
+  })
+  // The room resumes only a move that is the Run's pending decision again, so a completed move
+  // proves the return. The stored move's version counted its Use, so the choice was one before it.
+  const resumed = await readResumedMovement(value.owner.caller, value.base.campaign.id, {
+    occurrenceId: move.id,
+    occurrenceVersion: move.version - 1
+  })
+  expect(resumed).toMatchObject({ occurrenceId: move.id, status: 'COMPLETE', pending: null })
+  const after = await records(value)
+  expect(after.occurrences.map(({ id, state }) => ({ id, state }))).toEqual(
+    expect.arrayContaining([
+      { id: move.id, state: 'COMPLETED' },
+      { id: reactionOccurrenceId, state: 'COMPLETED' },
+      { id: pending.occurrenceId, state: 'COMPLETED' }
+    ])
+  )
+  expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
+  expect(
+    await value.owner.caller.query(pendingOccurrence, { encounterId: value.base.run.id })
+  ).toBeNull()
 }, 120_000)
 
 it('ends Concentration without a check when a movement reaction defeats the holder (D95)', async () => {
