@@ -1,7 +1,9 @@
 import { rolledDiePayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 import { scaledRolledDieFaces } from '../../scalingRowSelection.js'
 import { dnd5eResolvedProposalTrace } from './dnd5eTestOperationKeys.js'
+import { rolledDiceNodes } from './effectActionOutcomeNodes.js'
 
 /** The D&D operation a `SUBTRACT_FROM_TRIGGERING_ROLL` outcome (Cutting Words) compiles to. */
 export const DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY =
@@ -12,6 +14,29 @@ export const DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY = 'dnd5e.triggering-roll-d
 
 /** The prefix of the graph nodes that roll the outcome's die, one evidence request per die. */
 export const DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX = 'triggering-roll-'
+
+/**
+ * The nodes that roll the die a reaction takes from the roll it answers (D219): the reactor is asked
+ * for each die like any roll, and the room reads the faces back from the committed execution. None
+ * for an Effect whose outcome is another.
+ */
+export function triggeringRollDiceNodes(compiledEffect: Pick<CompiledEffectGroup, 'entries'>) {
+  const [entry] = compiledEffect.entries
+  if (
+    !entry ||
+    !('outcome' in entry) ||
+    entry.outcome.effectKind !== 'SUBTRACT_FROM_TRIGGERING_ROLL'
+  )
+    return []
+  const { count, faces } = entry.outcome.die
+  return rolledDiceNodes(
+    { count, die: faces, modifier: 0 },
+    DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX,
+    {
+      facesFactKey: DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY
+    }
+  ).nodes
+}
 
 /**
  * The die-size fact of a graph that rolls the outcome's die: the die the action's resolved outcome

@@ -247,16 +247,8 @@ import {
   type Dnd5eEffectScalingFacts
 } from './effectActionScalingFacts.js'
 
-import {
-  DND5E_OUTCOME_TARGET,
-  damageMultiplier,
-  rolledDiceNodes
-} from './effectActionOutcomeNodes.js'
-import {
-  DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX,
-  DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY,
-  triggeringRollDieFacts
-} from './subtractFromTriggeringRoll.js'
+import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
+import { triggeringRollDiceNodes, triggeringRollDieFacts } from './subtractFromTriggeringRoll.js'
 import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
@@ -3152,26 +3144,13 @@ function compileEffectActionGraph(
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   // The save the target repeats (Power Word Stun) is pinned to the DC this cast settles.
   const repeatsSave = outcome.kind === 'CONDITION_APPLY' && repeatPlan !== null
-  // The die a reaction rolls against the roll it answers (D219): the reactor is asked for each die
-  // like any roll, and the room reads the faces back from the committed execution.
-  const authored = action.compiledEffect.entries[0]
-  const triggeringRollDice =
-    authored &&
-    'outcome' in authored &&
-    authored.outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL'
-      ? rolledDiceNodes(
-          { count: authored.outcome.die.count, die: authored.outcome.die.faces, modifier: 0 },
-          DND5E_TRIGGERING_ROLL_DICE_NODE_PREFIX,
-          { facesFactKey: DND5E_TRIGGERING_ROLL_DIE_FACES_FACT_KEY }
-        ).nodes
-      : []
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: action.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      ...triggeringRollDice,
+      ...triggeringRollDiceNodes(action.compiledEffect),
       effectOutcomeProposalNode({
         id: nodeId,
         definition: outcomeDefinition,
@@ -3197,10 +3176,7 @@ function compileEffectActionGraph(
         }
       : {})
   }
-  return bindMovementInterruptionOutput({
-    action,
-    published: publishedGraph(definition)
-  })
+  return bindMovementInterruptionOutput({ action, published: publishedGraph(definition) })
 }
 
 /**
