@@ -248,7 +248,7 @@ import {
 } from './effectActionScalingFacts.js'
 
 import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
-import { triggeringRollDiceNodes, triggeringRollDieFacts } from './subtractFromTriggeringRoll.js'
+import { triggeringRollDiceNodes, triggeringRollDieFacts } from './triggeringRollDice.js'
 import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
