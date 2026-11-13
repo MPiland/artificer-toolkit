@@ -28,7 +28,7 @@ type ApplyReactionInput = Parameters<typeof applyNativeReactionEffect>[0]
 /**
  * Advances an action against one target through what happens between its TEST and its OUTCOME: the
  * target's Legendary Resistance against a failed save, its reaction to a hit (chosen from the held
- * offer and run as its own child action, D219; or, transitionally until QUALITY-8.T1d3, inline), and
+ * offer and run as its own child action, D219; the inline settlement stays until QUALITY-8.T1d3), and
  * the attacker's on-hit rider. A response that answers one of those is settled against the target as it stands now;
  * a decision an earlier answer kept is replayed and proved against it. Nothing is spent here: the
  * returned records carry each cost for the action's commit.

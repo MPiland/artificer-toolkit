@@ -386,7 +386,8 @@ level it is cast at as `castLevel` in the same pending context, beside `reaction
 a child is recorded, never rewritten while one is (`reactionChildrenKept`), and dropped with the last child a
 GM void releases. A child reads the cast it answers from there, not from its own command: the action capture
 returns it as `triggerCastLevel` on the child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions
-(`readReactionChildCastLevel`), null for any other command and for a parent that casts no spell.
+(`readReactionChildTrigger`, the one read of what a child answers; see "The hit a child answers"), null for
+any other command and for a parent that casts no spell.
 This is a persisted pending-context shape change; refresh local data when next used (D196).
 
 The held actions above a child (current, QUALITY-9.T1c2, D219). The same pending context records the slot the
@@ -462,10 +463,12 @@ The reactor's decision is authorized as any cast offer's (the reactor is the pen
 total). The offer's `rolled`, its kind and `reactionChildren[].rolledDie` are persisted pending-context shape
 changes; refresh local data when next used (D196).
 
-The hit a child answers (current contracts, QUALITY-8.T1d1, D219). Transitional (QUALITY-8.T1d2a): the Worker
-makes this offer only when every reaction the hit Character can use is an `ATTACKED_SELF` spell paid with a
-spell slot (Shield); any other menu still uses the on-hit `REACTION` pause, until QUALITY-8.T1d2b moves the
-remaining holders and reactions and QUALITY-8.T1d3 deletes that pause. On a use the Worker records the child
+The hit a child answers (current, QUALITY-8.T1d1 to T1d2b, D219). The Worker makes this offer for every
+reaction to a hit, whatever its trigger (`ATTACKED_SELF`, `DAMAGE_TAKEN`), holder (a Character, or a creature
+the GM answers for) and payment (a spell slot or none; a pool- or charge-paid reaction is still not offered).
+Transitional: the on-hit `REACTION` pause is no longer made and QUALITY-8.T1d3 deletes it and its inline
+settlement. The pending fence admits the reactor of a creature's pin (`characterId: null`) as the creature
+actor itself, and a Character's pin as that Character's actor. On a use the Worker records the child
 on the pending action and launches it; once it commits, the attack resumes with no stored roll result: it
 rebuilds its TEST from the roll the offer keeps and binds it again to the target as the child left it
 (`REBIND_TEST`), so the raised armor class is the sealed d20's `defenseOrDc` and the attack's own batch
@@ -483,11 +486,16 @@ to the held one. Three contracts carry a reaction chosen by the creature an atta
   offer (it is made to the one creature hit), and a chosen reaction leaves it only by recording a child.
 - The child's read. The action capture returns the offer's `damageTypeIds` as `triggerDamageTypeIds` on the
   child's `ACTION_COMMAND` and `ACTION_RESPONSE` admissions and on the `ACTION_RESUME` of a held child
-  (`readReactionChildHitDamageTypeIds`), null for any other command and for a parent that holds no hit.
+  (`readReactionChildTrigger`), null for any other command and for a parent that holds no hit.
+
+One read of the trigger (current, QUALITY-8.T1d2b). `readReactionChildTrigger` (`reactionChildren.ts`) reads
+the parent that records the child once and returns one shape, `{ triggerCastLevel, triggerDamageTypeIds,
+triggerMovement }`, which the capture spreads onto the three admissions; a fact the parent does not hold is
+null.
 
 The move a child answers (current contract, QUALITY-18.T2b1, D219; inert until QUALITY-18.T2b2 records a
 child on a move). The same three admissions return `triggerMovement`, null unless a held Scene move records
-the child: `readReactionChildMovement` finds the option the move's contact offers the child's reactor for the
+the child: `readReactionChildTrigger` finds the option the move's contact offers the child's reactor for the
 child's action and returns its attack occasion and `policy.allowanceDefinitionId`, and throws when the move
 offers that reactor no such action. The child's economy transition (`encounterActionEconomyTransitionDtoSchema`)
 gains optional `turnSequence`, set when the spent allowance refreshes `EACH_TURN`; the undo

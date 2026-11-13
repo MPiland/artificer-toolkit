@@ -462,4 +462,57 @@ describe('heldActionContinues', () => {
       })
     ).toBe(false)
   })
+
+  describe('an attack held on its hit for the creature it hit (QUALITY-8.T1d2b, D219)', () => {
+    const child = { commandId: 'child' }
+    const hit = { originalExecutionChecksum: 'hit', damageTypeIds: ['fire'] }
+    const hitOffer = { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: [], hit } }
+    const rolling = { currentnessChecksum: 'sealed' }
+    const held = { ...rolling, rollerActorId: 'target', pause: hitOffer }
+    const awaiting = { ...held, reactionChildren: [child] }
+    /** The attack's outcome as it pauses once the child committed, on the facts named by `checksum`. */
+    const outcome = (checksum: string) => ({
+      currentnessChecksum: checksum,
+      reactionChildren: [{ ...child, resumeOutcome: null }]
+    })
+    const step = (
+      previous: Parameters<typeof heldActionContinues>[0]['next'],
+      kind: string | null,
+      next: Parameters<typeof heldActionContinues>[0]['next'],
+      reactorActorId = 'target'
+    ) =>
+      heldActionContinues({
+        resume: {
+          occurrence: { id: 'occurrence' },
+          pending: { context: previous },
+          reactionChildren: (previous.reactionChildren ?? []).map(({ commandId }) => ({
+            commandId,
+            reactorActorId,
+            descendantReactorActorIds: []
+          }))
+        },
+        response: kind ? { resolution: { kind } } : null,
+        occurrenceId: 'occurrence',
+        next,
+        endpointActorIds: ['attacker', 'target']
+      })
+
+    it('is stored from the attack’s roll, kept while its reaction runs, and left for the outcome', () => {
+      expect(step(rolling, 'ENTER_DICE', held)).toBe(true)
+      expect(step(held, 'OPTION', awaiting)).toBe(true)
+      expect(step(awaiting, null, outcome('sealed'))).toBe(true)
+      expect(step(held, 'DECLINE', rolling)).toBe(true)
+    })
+
+    it('resumes on the facts the hit creature’s own reaction changed, and on no other creature’s', () => {
+      expect(step(awaiting, null, outcome('raised'))).toBe(true)
+      expect(step(awaiting, null, outcome('raised'), 'bystander')).toBe(false)
+    })
+
+    it('refuses a hit stored on changed facts, a use that records no child and a resume that drops it', () => {
+      expect(step(rolling, 'ENTER_DICE', { ...held, currentnessChecksum: 'changed' })).toBe(false)
+      expect(step(held, 'OPTION', held)).toBe(false)
+      expect(step(awaiting, null, rolling)).toBe(false)
+    })
+  })
 })
