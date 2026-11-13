@@ -41,7 +41,11 @@ class BoundaryProbe extends Component<{ children: ReactNode }, { failure?: Error
 }
 
 function SettingsRoute() {
-  const { data } = useSuspenseQuery(convexQuery(api.accountEntitlements.get, {}))
+  // The app default retries once after a second; the test reads the first rejection.
+  const { data } = useSuspenseQuery({
+    ...convexQuery(api.accountEntitlements.get, {}),
+    retry: false
+  })
   return <p>tier: {String(data)}</p>
 }
 
@@ -112,7 +116,9 @@ describe('session revocation convergence', () => {
     view.rerender(tree())
     await waitFor(() => expect(mocks.invalidate).toHaveBeenCalledOnce())
 
-    await act(async () => {})
+    // The router invalidation re-renders the still-mounted route while navigation is in flight.
+    view.rerender(tree())
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
     expect(screen.queryByText(/^boundary:/)).toBeNull()
     expect(screen.getByText('tier: FREE')).toBeTruthy()
 
