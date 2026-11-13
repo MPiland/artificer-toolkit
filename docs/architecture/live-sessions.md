@@ -530,7 +530,9 @@ internal error.
 ([roomRelationshipEnds.ts](../../apps/session-worker/src/roomRelationshipEnds.ts)) on the journal head. For
 each ACTIVE Run, an actor relationship ends when its source can't act (DEFEATED or INCAPACITATED, as
 Concentration reads it) or when the held creature's bound token stands beyond the reach the relationship
-sealed (`encounterEndedRelationships`). A first read outside any transaction finds nothing to end in the
+sealed (`encounterEndedRelationships`). A Run awaiting a decision ends none (QUALITY-18.T2b2): a pending
+decision is pinned to one Run version, and a Scene move paused for its reaction child (D219) is such a
+decision, so the hold ends in the sweep after the commit that settles the decision. A first read outside any transaction finds nothing to end in the
 usual case and journals nothing. Otherwise one `RoomEncounterStore` transaction (a journal entry,
 `delta: null`) ends each broken relationship as the Campaign owner and records one `RELATIONSHIPS_ENDED`
 command per Run ("Hold ended", receipt `relationshipEnds`)

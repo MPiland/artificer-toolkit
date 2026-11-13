@@ -288,8 +288,19 @@ export async function evaluateEncounterMovementActionResponse<
       pendingSnapshot: snapshot,
       selection: { kind: 'OPTION', optionId: chosenOptionId }
     })
+    const prefix = context.appliedSpatialPrefix
     remainder = {
       ...movementReactionRemainderAfterCurrentChoice({ context, resolutionCommands }),
+      // The child's receipt proves what it changed, so the spatial receipt marks where it committed.
+      appliedSpatialPrefix:
+        prefix?.status === 'BATCH_COMPLETE' && prefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+          ? {
+              ...prefix,
+              reactionChildBoundaries: [
+                ...new Set([...(prefix.reactionChildBoundaries ?? []), prefix.executions.length])
+              ]
+            }
+          : prefix,
       resumedFromReactionChild: true
     }
     const moverActorId = input.actorIdByTokenId.get(root.tokenId)

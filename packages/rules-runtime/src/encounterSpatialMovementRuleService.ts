@@ -713,7 +713,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         if (!expected || !sameRemainingPendingCandidate(currentCandidate, expected))
           throw new EncounterConflictError('The remaining spatial contacts changed.')
       }
-    } else if (frozenReactionRemainder) {
+    } else if (frozenReactionRemainder && !frozenReactionRemainder.resumedFromReactionChild) {
+      // A resume from a committed reaction child plans the rest of the walk against the Run as
+      // the child left it (D219), so the suffix frozen before the child is not compared.
       const expected =
         frozenReactionRemainder.remainingSpatialCandidates[candidateIndex - completedPrefix.length]
       if (!expected || !sameRemainingPendingCandidate(currentCandidate, expected))

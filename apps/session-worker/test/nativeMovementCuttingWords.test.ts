@@ -20,7 +20,7 @@ import { reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-31.T4c3b2: an opportunity attack a walk provokes opens the same d20 window for a Character
@@ -104,24 +104,26 @@ function walkRoom(input: {
 }
 type Room = Awaited<ReturnType<typeof walkRoom>>
 
-/** Walks into the Wolf's opportunity attack and has it attack. */
+/** Walks into the Wolf's opportunity attack and has it attack; returns the Use (see `useReaction`). */
 async function provokeAttack(room: Room) {
   await room.move([MOVER_START, { x: 450, y: 150 }])
-  const choice = await room.pending()
-  if (choice?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-    throw new Error(`Expected a reaction decision, got ${choice?.context.kind}.`)
-  const option = choice.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
-  const used = await room.respond({ kind: 'OPTION', optionId: option.optionId })
-  expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+  const used = await room.useReaction()
+  expect(used.answer.type, JSON.stringify(used.answer)).toBe('COMMAND_COMMITTED')
+  return used
 }
 
-/** Provokes the attack and returns the d20 window its roll opens, as a viewer of the reactor reads it. */
+/**
+ * Provokes the attack and returns the d20 window its roll opens, as a viewer of the reactor reads
+ * it, with the command id of the attack's action.
+ *
+ * Restated (QUALITY-18.T2b3): the attack is the Wolf's own action (D219), so the window is that
+ * action's decision, read while the move is SUSPENDED, where it was a phase of the move's.
+ */
 async function openWindow(room: Room) {
-  await provokeAttack(room)
-  const shown = await room.pendingFor(false)
+  const { childCommandId } = await provokeAttack(room)
+  const shown = (await readPendingActionDecision(room.base.stub, false))?.pending
   if (shown?.kind !== 'ROLL_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
-  return shown
+  return { shown, attackCommandId: childCommandId }
 }
 
 const inspirationUsed = (room: Room, characterId: string) =>
@@ -144,24 +146,29 @@ async function reactionUsed(room: Room, actorId: string) {
   return encounterRuleUsageUsed(readStoredRunActor(row), DND5E_REACTION_ALLOWANCE_DEFINITION_ID)
 }
 
-/** `attacker`'s settled opportunity attack d20, from the receipt the answer committed. */
-async function settledAttack(room: Room, commandId: string, attacker = WOLF_ID) {
-  const receipt = (await room.receipts()).find((entry) => entry.commandId === commandId)
-  if (!receipt) throw new Error('The window answer left no receipt.')
+/**
+ * A settled opportunity attack's d20 and its attacker.
+ *
+ * Restated (QUALITY-18.T2b3): the attack settles as its own action (D219), so its d20 is in the
+ * receipt of that action's command, where it was in a reaction execution of the move's terminal.
+ */
+async function settledAttack(room: Room, attackCommandId: string) {
+  const receipt = (await room.receipts()).find((entry) => entry.commandId === attackCommandId)
+  if (!receipt) throw new Error('The attack left no receipt.')
   const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
-  if (result.status !== 'MOVEMENT_COMPLETE') throw new Error(`Got ${result.status}.`)
-  const reaction = result.reactionExecutions.find(
-    ({ option }) => option.candidate.reactorActorId === attacker
-  )
-  if (reaction?.application.kind !== 'CHARACTER_MECHANICS_BATCH')
+  if (result.status !== 'COMPLETE') throw new Error(`Got ${result.status}.`)
+  if (result.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH')
     throw new Error('Expected a Character movement reaction target.')
-  return reaction.application.d20
+  return {
+    d20: result.applicationOutputs.d20,
+    attackerActorId: result.applicationOutputs.sourceActorId
+  }
 }
 
 describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () => {
   it('asks a Lore Bard beside the walk, naming the Wolf, and takes its die off the roll', async () => {
     const room = await walkRoom({ bard: 'BYSTANDER' })
-    const shown = await openWindow(room)
+    const { shown, attackCommandId } = await openWindow(room)
     expect(shown).toMatchObject({
       rollerActorId: BARD_ACTOR_ID,
       attackerActorId: WOLF_ID,
@@ -171,7 +178,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     expect(await inspirationUsed(room, BARD_CHARACTER_ID)).toBe(0)
     expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
 
-    const used = await room.respond({
+    const used = await room.respondToChild({
       kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: shown.options[0]!.optionId,
@@ -179,7 +186,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     expect(await room.pending()).toBeNull()
-    const d20 = await settledAttack(room, used.commandId)
+    const { d20 } = await settledAttack(room, attackCommandId)
     expect(d20?.total).toBe((d20?.selectedNatural ?? 0) + (d20?.modifier ?? 0) - 5)
     expect(await inspirationUsed(room, BARD_CHARACTER_ID)).toBe(1)
     expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(1)
@@ -189,10 +196,10 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
 
   it('asks the mover itself when it is the Lore Bard the Wolf attacks', async () => {
     const room = await walkRoom({ bard: 'MOVER' })
-    const shown = await openWindow(room)
+    const { shown, attackCommandId } = await openWindow(room)
     expect(shown).toMatchObject({ rollerActorId: MOVER_ID, attackerActorId: WOLF_ID })
 
-    const used = await room.respond({
+    const used = await room.respondToChild({
       kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: shown.options[0]!.optionId,
@@ -200,7 +207,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     expect(await room.pending()).toBeNull()
-    const d20 = await settledAttack(room, used.commandId)
+    const { d20 } = await settledAttack(room, attackCommandId)
     expect(d20?.total).toBe((d20?.selectedNatural ?? 0) + (d20?.modifier ?? 0) - 5)
     expect(await inspirationUsed(room, MOVER_CHARACTER_ID)).toBe(1)
     expect(await reactionUsed(room, MOVER_ID)).toBe(1)
@@ -208,21 +215,27 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
 
   it('leaves the roll and spends nothing when the Bard declines', async () => {
     const room = await walkRoom({ bard: 'BYSTANDER' })
-    const shown = await openWindow(room)
-    const declined = await room.respond({ kind: 'ROLL_WINDOW_DECLINE', requestId: shown.requestId })
+    const { shown, attackCommandId } = await openWindow(room)
+    const declined = await room.respondToChild({
+      kind: 'ROLL_WINDOW_DECLINE',
+      requestId: shown.requestId
+    })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
     expect(await room.pending()).toBeNull()
-    const d20 = await settledAttack(room, declined.commandId)
+    const { d20 } = await settledAttack(room, attackCommandId)
     expect(d20?.addedDice).toBeUndefined()
     expect(await inspirationUsed(room, BARD_CHARACTER_ID)).toBe(0)
     expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
   }, 120_000)
 
-  it('replays the used die when a later opportunity attack is answered', async () => {
+  // Restated (QUALITY-18.T2b3), renamed from 'replays the used die when a later opportunity attack
+  // is answered': each attack is an action of its own (D219), so answering the second Wolf replays
+  // nothing. The first attack's receipt keeps the Bard's die, and the second attack's has none.
+  it('keeps the used die on its attack when a later opportunity attack is answered', async () => {
     const room = await walkRoom({ bard: 'BYSTANDER', secondWolf: true })
-    const shown = await openWindow(room)
+    const { shown, attackCommandId } = await openWindow(room)
     expect(shown).toMatchObject({ rollerActorId: BARD_ACTOR_ID, attackerActorId: WOLF_ID })
-    const used = await room.respond({
+    const used = await room.respondToChild({
       kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: shown.options[0]!.optionId,
@@ -230,22 +243,23 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
 
-    // Answering the second Wolf replays the first Wolf's completed attack, the Bard's die included;
-    // the Bard's reaction is spent, so the second attack opens no window.
+    // The Bard's reaction is spent, so the second attack opens no window.
     const second = await room.pending()
     if (second?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
       throw new Error(`Expected the second Wolf's decision, got ${second?.context.kind}.`)
     expect(second.context.reactionTimeline[0]?.group.reactorActorId).toBe(SECOND_WOLF_ID)
-    const option = second.context.reactionTimeline[0]?.group.options[0]
-    if (!option) throw new Error('The second reaction decision offers no option.')
-    const attacked = await room.respond({ kind: 'OPTION', optionId: option.optionId })
-    expect(attacked.type, JSON.stringify(attacked)).toBe('COMMAND_COMMITTED')
+    const attacked = await room.useReaction()
+    expect(attacked.answer.type, JSON.stringify(attacked.answer)).toBe('COMMAND_COMMITTED')
     expect(await room.pending()).toBeNull()
 
-    const d20 = await settledAttack(room, attacked.commandId)
-    expect(d20?.total).toBe((d20?.selectedNatural ?? 0) + (d20?.modifier ?? 0) - 5)
-    const secondAttack = await settledAttack(room, attacked.commandId, SECOND_WOLF_ID)
-    expect(secondAttack?.addedDice).toBeUndefined()
+    const first = await settledAttack(room, attackCommandId)
+    expect(first.attackerActorId).toBe(WOLF_ID)
+    expect(first.d20?.total).toBe(
+      (first.d20?.selectedNatural ?? 0) + (first.d20?.modifier ?? 0) - 5
+    )
+    const secondAttack = await settledAttack(room, attacked.childCommandId)
+    expect(secondAttack.attackerActorId).toBe(SECOND_WOLF_ID)
+    expect(secondAttack.d20?.addedDice).toBeUndefined()
     expect(await inspirationUsed(room, BARD_CHARACTER_ID)).toBe(1)
     expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(1)
   }, 120_000)
@@ -266,7 +280,9 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     async ({ bardPlay, bardAt }) => {
       const room = await walkRoom({ bard: 'BYSTANDER', bardPlay, ...(bardAt ? { bardAt } : {}) })
       await provokeAttack(room)
-      expect((await room.pendingFor(true))?.kind).not.toBe('ROLL_WINDOW')
+      // Restated (QUALITY-18.T2b3): a window would be the attack action's decision (D219), so no
+      // decision of any kind may wait once the attack has run and the room has resumed the move.
+      expect(await readPendingActionDecision(room.base.stub)).toBeNull()
       expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
     },
     120_000

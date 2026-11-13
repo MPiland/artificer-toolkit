@@ -2,6 +2,8 @@ import { makeFunctionReference } from 'convex/server'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
+import { vi } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -14,7 +16,8 @@ import {
   attachFixtureRoom,
   checkpointLiveRoom,
   executeInRoom,
-  executeSceneInRoom
+  executeSceneInRoom,
+  readRoomEncounterSession
 } from './localRoomWorker'
 import { readTestActor } from './storedActors'
 
@@ -269,10 +272,50 @@ export async function readCheckpointedHitPoints(
 }
 
 /**
+ * The move as the GM reads it from the real room once the room has resumed it after a committed
+ * reaction child (D219). A Use answer returns the child action's result; the room then resumes the
+ * move itself, as the Campaign owner, in a command of its own. `choice` is the pending choice the
+ * Use answered: the Use records the child on it (one occurrence version) and the resume is the
+ * next. The room sends a member nothing about a resume that leaves no decision, so a move with no
+ * decision left reads as complete.
+ */
+export function readResumedMovement(
+  caller: Parameters<typeof readRoomEncounterSession>[0],
+  campaignId: string,
+  choice: { occurrenceId: string; occurrenceVersion: number }
+): Promise<EncounterRuleOccurrenceSummaryDto> {
+  return vi.waitFor(
+    async (): Promise<EncounterRuleOccurrenceSummaryDto> => {
+      const session = await readRoomEncounterSession(caller, campaignId, { timeline: false })
+      if (!session.held) throw new Error('The room does not hold the Run.')
+      const { pending } = session.state
+      if (pending?.occurrenceId !== choice.occurrenceId)
+        return {
+          occurrenceId: choice.occurrenceId,
+          occurrenceVersion: choice.occurrenceVersion + 2,
+          status: 'COMPLETE',
+          pending: null
+        }
+      if (pending.occurrenceVersion === choice.occurrenceVersion + 1)
+        throw new Error('The room has not resumed the move.')
+      return {
+        occurrenceId: pending.occurrenceId,
+        occurrenceVersion: pending.occurrenceVersion,
+        status: 'PENDING',
+        pending
+      }
+    },
+    { timeout: 10_000, interval: 25 }
+  )
+}
+
+/**
  * Assisted play offers every authored reaction to its controller as a Use/Decline choice (it needs
  * `useLocalRoomWorker`). The real room plans and commits a move in one step: the move commits
  * through `executeSceneInRoom`, then each Use/Decline choice is answered Use with the first option
- * as the GM through `executeInRoom`. Stops after `maxUses` Uses or at the first result whose pending
+ * as the GM through `executeInRoom`. A Use runs the reaction as a child action of the move (D219):
+ * one that commits is followed to the move as the room resumed it, and one that pauses on evidence
+ * of its own returns that evidence. Stops after `maxUses` Uses or at the first result whose pending
  * request is not a reaction choice, and returns that result's occurrence. `afterDecision` continues
  * from an answer the test already sent instead of committing the root move.
  */
@@ -304,7 +347,10 @@ export async function useMovementReactionsInRoom(
         resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
       }
     })
-    occurrence = answered.occurrence
+    occurrence =
+      answered.occurrence?.status === 'PENDING'
+        ? answered.occurrence
+        : await readResumedMovement(owner.caller, value.base.campaign.id, pending)
   }
   return { occurrence, responseCommandId }
 }

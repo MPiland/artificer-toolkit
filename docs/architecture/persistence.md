@@ -510,6 +510,14 @@ has passed. The field is additive, so stored receipts stay valid (D196: no refre
 `REVERT_LAST_ACTION` of a committed child is refused while its move is held: the move is the Run's pending
 decision (`PENDING_DECISION`).
 
+The move's spatial receipt across a child (current contract, QUALITY-18.T2b2, D219). A move's resume keeps
+no execution of its reaction child, so the spatial batch result (`ENCOUNTER_SPATIAL_MOVEMENT`) cannot chain a
+target's state across the child's commit. The resume records on the applied prefix how many spatial executions
+had settled (`reactionChildBoundaries`), and the batch's timeline proof starts again at the execution with that
+ordinal; the child's own receipt proves what it changed. A resume also plans the remaining contacts against the
+Run as the child left it, so it compares neither the frozen contact suffix nor the frozen currentness checksum.
+The field is additive and optional, so stored receipts stay valid (D196: no refresh needed).
+
 The resolved child records nothing new: the parent keeps its TEST and the kept d20, so its resume tests that
 d20 again against the committed state. The offer's `hit` and kind are persisted pending-context shape changes;
 refresh local data when next used (D196).
