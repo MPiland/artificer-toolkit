@@ -17,11 +17,8 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   EncounterCastReactionOfferDto,
-  EncounterCounterCheckEvidenceDto,
   EncounterUsedReactionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import {
   deadCharacterIdsOfTargets,
@@ -46,18 +43,11 @@ import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/enc
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
-  evaluateEncounterBasicActionCheck,
-  startEncounterBasicActionCheck
-} from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
-import {
   castReactionCheckAbility,
-  castReactionCheckRequirement,
-  prepareEncounterCastReactionCheck,
-  type CastReactionCheckRequirement
+  castReactionCheckRequirement
 } from '@artificer-toolkit/rules-runtime/encounterCastReactionCheck'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import { characterReactionCandidates } from '@artificer-toolkit/rules-runtime/encounterReactors'
-import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
   chosenEncounterReaction,
   encounterReactionPin,
@@ -95,14 +85,6 @@ export type CastScene = Extract<
  * stands now.
  */
 export type NativeCastResponse = NativeReaction<EncounterReactionCandidate, Prepared>
-
-/** A reaction its holder could use to counter the cast being resolved, prepared as it stands now. */
-export type NativeCastReaction = NativeCastResponse & {
-  /** The check its holder must pass first, because the cast is above the level it counters at. */
-  check: CastReactionCheckRequirement | null
-  /** The level its holder casts it at. */
-  level: number
-}
 
 /** Which reactor and reaction a discovery looks for, and whom it has already heard from. */
 type CastReactionFilter = {
@@ -183,7 +165,7 @@ export function discoverNativeCastReactions(input: {
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
-}): CastReactionDiscovery<NativeCastReaction> {
+}): CastReactionDiscovery<NativeCastResponse> {
   const { state, caster, scene } = input
   const grid = resolveEncounterSceneGrid({
     encounter: state,
@@ -227,7 +209,7 @@ export function discoverNativeCastReactions(input: {
             if (level < triggerLevel && !check) return null
             // A reactor with no ability to roll cannot answer the check, so the slot is not on offer.
             if (check && castReactionCheckAbility(check, reactorTarget) === undefined) return null
-            return { check, level }
+            return {}
           },
           range: { grid, sourceToken: tokenOf(reactor.id)!, targetToken: againstToken },
           targetIds: [againstActorId],
@@ -288,46 +270,30 @@ export function discoverNativeTargetedReactions(input: {
     })
 }
 
-/** What a held cast was last asked: a reactor's choice to counter, or the roll of the check that choice owes. */
-export type NativeCastReactionAnswer =
-  | {
-      kind: 'SELECTION'
-      offer: EncounterCastReactionOfferDto
-      selection: EncounterSealedChoiceSelection
-    }
-  | {
-      kind: 'CHECK'
-      offer: EncounterCastReactionOfferDto & {
-        check: NonNullable<EncounterCastReactionOfferDto['check']>
-      }
-      continuation: ServerRuleExecutionContinuationDto
-      evidence: EncounterEvidenceAnswer
-    }
+/** What a held cast was last asked: a reactor's choice among the reactions offered. */
+export type NativeCastReactionAnswer = {
+  offer: EncounterCastReactionOfferDto
+  selection: EncounterSealedChoiceSelection
+}
 
 /**
- * Where the offers to counter a cast stand once an answer, if any, is taken in: the counter a creature
- * used, the roll its counter waits on, the next creature to ask, or nobody left to ask. A decline hands
- * the cast to the next creature in turn; so does a failed check, which also keeps the failed attempt for
- * the cast's terminal commit (D127). The cast itself is never held; it replays from its command with the
- * declines recorded.
+ * Where the offers to counter a cast stand once an answer, if any, is taken in: the child action of
+ * the counter a creature chose, the next creature to ask, or nobody left to ask. A decline hands the
+ * cast to the next creature in turn. The cast itself is never held; it replays from its command with
+ * the declines recorded.
  *
- * A counter that stands is itself a cast, so the other creatures are offered a counter to it in turn: the
- * chain grows by one counter per answer, a fresh level of offers for each, and resolves innermost first
- * once nobody is left to ask. An odd chain leaves its first counter standing, which counters the cast;
- * an even one is spent without effect and the cast is offered again at its own level. Every counter in
- * the chain but the one that stands is kept for the terminal commit to spend.
+ * A counter runs as its holder's own action (D219): this names that child and keeps the answered
+ * offer, and the cast resumes once the child has committed, lost if the child cancelled it. The child
+ * is itself a cast, which offers its own counters and owes the counter's check as its own incoming
+ * gate, so no chain forms and no check is rolled here.
  *
- * On a host that resumes the cast from a reaction's child, a counter instead runs as its holder's own
- * action (D219): this names that child and keeps the answered offer, and the cast resumes once the
- * child has committed, lost if the child cancelled it. The child is itself a cast, which offers its
- * own counters and owes the counter's check as its own incoming gate, so no chain forms and no check
- * is rolled here.
+ * Transitional (deleted by QUALITY-9.T1c3): the chain a stored offer may still carry is resolved as it
+ * was, innermost first; no answer adds to it.
  */
 export async function advanceNativeCastReactions(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
   gameSystemId: string
-  system: SystemAuthoredDto
   /** The creature casting the spell, whose own offers are measured from it. */
   casterActorId: string
   /** The level the cast is cast at. */
@@ -341,11 +307,6 @@ export async function advanceNativeCastReactions(input: {
    * declined, and the one whose counter ran as its own action without cancelling the cast.
    */
   declinedReactorActorIds: readonly string[]
-  /** Whether a counter runs as its holder's own action (D219), not as a link of a chain here. */
-  runsAsChild: boolean
-  /** Whether a reactor's player has the app roll their dice, so its check settles without a pause. */
-  autoRoll: (actorId: string) => boolean
-  rollD20: () => number
 }) {
   const { runtime, occurrenceId, answer } = input
   const usedReactions = [...input.usedReactions]
@@ -372,141 +333,31 @@ export async function advanceNativeCastReactions(input: {
           }
         }
       : {}
-  /** A counter that stands against the cast the offers answer; the next level counters it. */
-  const stand = (
-    found: NativeCastReaction,
-    pin: EncounterUsedReactionDto['reaction'],
-    choiceExecution: EncounterUsedReactionDto['choiceExecution'],
-    check: EncounterCounterCheckEvidenceDto | null
-  ) => {
-    chain.push({
-      reaction: pin,
-      choiceExecution,
-      triggerLevel: castLevel,
-      againstActorId: against().actorId,
-      check
-    })
-    castDeclinedReactorActorIds ??= declinedReactorActorIds
-    declinedReactorActorIds = []
-    castLevel = found.level
-  }
-  /** The reaction as the offer pinned it, still as affordable and as prepared as it was. */
-  const current = (pin: { reactorActorId: string; actionId: string }) =>
-    findNativeCastReaction(input.discover, pin, against())
-  let rolling: {
-    found: NativeCastReaction
-    pin: EncounterUsedReactionDto['reaction']
-    check: NonNullable<EncounterCastReactionOfferDto['check']>
-    continuation: ServerRuleExecutionContinuationDto
-    evidence: EncounterEvidenceAnswer
-  } | null = null
-  if (answer?.kind === 'CHECK') {
-    const pin = answer.offer.reactions[0]!
-    const { found } = await current(pin)
-    if (
-      !sameEncounterReactionCandidate(pin, found.candidate) ||
-      found.check?.dc !== answer.offer.check.dc
-    )
-      throw new Error('Reaction evidence is stale.')
-    rolling = {
-      found,
-      pin,
-      check: answer.offer.check,
-      continuation: answer.continuation,
-      evidence: answer.evidence
-    }
-  } else if (answer) {
+  if (answer) {
     const chosen = chosenEncounterReaction(answer.offer, answer.selection)
-    if (answer.selection.kind === 'DECLINE')
-      declinedReactorActorIds = [...declinedReactorActorIds, chosen.reactorActorId]
-    else {
-      const { found, target } = await current(chosen)
-      const { reaction, choice } = await settleEncounterCastReactionUse({
+    if (answer.selection.kind === 'OPTION') {
+      const { found } = await findNativeCastReaction(input.discover, chosen, against())
+      await settleEncounterCastReactionUse({
         runtime,
         occurrenceId,
         offer: answer.offer,
         candidate: found.candidate,
         optionId: answer.selection.optionId
       })
-      if (input.runsAsChild)
-        return {
-          kind: 'CHILD' as const,
-          child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
-          // The offer stays as it was answered until the cast resumes from the child.
-          continuation: await openEncounterReactionChoice({
-            runtime,
-            occurrenceId,
-            candidate: found.candidate
-          }),
-          offer: answer.offer,
-          usedReactions
-        }
-      if (found.check) {
-        const prepared = prepareEncounterCastReactionCheck({
-          requirement: found.check,
-          gameSystemId: input.gameSystemId,
-          system: input.system,
-          reactor: target
-        })
-        const check = {
-          choiceExecution: choice,
-          triggerLevel: castLevel,
-          checkDefinitionId: prepared.checkDefinitionId,
-          dc: found.check.dc,
-          d20: prepared.d20
-        }
-        const continuation = await startEncounterBasicActionCheck({
+      return {
+        kind: 'CHILD' as const,
+        child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId },
+        // The offer stays as it was answered until the cast resumes from the child.
+        continuation: await openEncounterReactionChoice({
           runtime,
-          gameSystemId: input.gameSystemId,
-          occurrenceId
-        })
-        if (!input.autoRoll(chosen.reactorActorId))
-          return {
-            kind: 'CHECK' as const,
-            reactor: found.prepared.actor,
-            continuation,
-            offer: {
-              kind: 'COUNTER' as const,
-              reactions: [reaction],
-              declinedReactorActorIds,
-              check,
-              ...chainOffer()
-            },
-            usedReactions
-          }
-        rolling = {
-          found,
-          pin: reaction,
-          check,
-          continuation,
-          evidence: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId }
-        }
-      } else stand(found, reaction, choice, null)
+          occurrenceId,
+          candidate: found.candidate
+        }),
+        offer: answer.offer,
+        usedReactions
+      }
     }
-  }
-  if (rolling) {
-    const evaluated = await evaluateEncounterBasicActionCheck({
-      gameSystemId: input.gameSystemId,
-      runtime,
-      context: { d20: rolling.check.d20, check: { dc: rolling.check.dc } },
-      continuation: rolling.continuation,
-      answer: rolling.evidence,
-      rollD20: input.rollD20,
-      expectedOccurrenceId: occurrenceId
-    })
-    const evidence = { checkDefinitionId: rolling.check.checkDefinitionId, d20: evaluated.d20 }
-    if (evaluated.reachesDc)
-      stand(rolling.found, rolling.pin, rolling.check.choiceExecution, evidence)
-    else {
-      usedReactions.push({
-        reaction: rolling.pin,
-        choiceExecution: rolling.check.choiceExecution,
-        triggerLevel: rolling.check.triggerLevel,
-        againstActorId: against().actorId,
-        check: evidence
-      })
-      declinedReactorActorIds = [...declinedReactorActorIds, rolling.pin.reactorActorId]
-    }
+    declinedReactorActorIds = [...declinedReactorActorIds, chosen.reactorActorId]
   }
   for (;;) {
     const next = await input.discover({
@@ -588,7 +439,7 @@ export async function advanceNativeTargetedReactions(input: {
   /** The level the cast is cast at; null when the action casts no spell. */
   triggerLevel: number | null
   discover: CastReactionDiscovery<NativeCastResponse>
-  answer: Extract<NativeCastReactionAnswer, { kind: 'SELECTION' }> | null
+  answer: NativeCastReactionAnswer | null
   /** The reactions already spent against this cast. */
   usedReactions: readonly EncounterUsedReactionDto[]
   /** The creatures the counter offers already heard from, which the first targeted offer carries on. */
@@ -933,7 +784,7 @@ export function buildNativeLiveEncounterCounteredCastCommitInput(
  * Nothing is stored; the commit spends what the counter cost.
  */
 export async function applyNativeCastReaction(input: {
-  reaction: NativeCastReaction
+  reaction: NativeCastResponse
   runtime: RulesRuntimeService
   occurrenceId: string
   gameSystemId: string

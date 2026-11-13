@@ -452,9 +452,10 @@ gated child as one that did not cancel, so the cast goes on. Either way the chec
 reactor's `Counter` check on the child's occurrence (`recordCounterCheckRollCards`), and the cancelled cast
 commits with `counter: null`: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
 runs as a child since QUALITY-9.T1b3a (area and chosen-list casts) and QUALITY-9.T1c2 (single-target casts).
-Transitional (until QUALITY-9.T1b3c): the inline check on the parent (`CAST_REACTION.check`) is still
-accepted by the contracts, but no host raises it. These are persisted pending-context and receipt shape
-changes; refresh local data when next used (D196).
+QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offer carries no `check`, its
+pause takes only a decline or a chosen reaction (`castPendingContinues`), and a cast is never committed as
+countered by a failed roll against the counter standing (`castCounteredCarriesUsedReactions`). These are persisted
+pending-context and receipt shape changes; refresh local data when next used (D196).
 
 A child that cancels its parent (current, QUALITY-9.T1a, D219 amendment). The resume also reads whether the
 committed child cancelled the event it answered (`cancelsTriggeringEvent`, from the child's stored execution).

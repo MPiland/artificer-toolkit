@@ -229,8 +229,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 pause.payload.reactions.some(
                   ({ reactorActorId }) => reactorActorId !== value.rollerActorId
                 ) ||
-                pause.payload.declinedReactorActorIds.includes(value.rollerActorId) ||
-                (pause.payload.check !== undefined && pause.payload.reactions.length !== 1)
+                pause.payload.declinedReactorActorIds.includes(value.rollerActorId)
               )
                 issue(
                   'A cast reaction offer belongs to a cast held before it executes, or to a TEST held on its rolled d20.'

@@ -1691,8 +1691,8 @@ slot there than the offer counted (the slot a held cast owes) is not offered; th
 that is left is (`prepareReaction` in `nativeEncounterCastPause.ts`). An area or chosen-list cast
 resumes from its child in `openReachCastWindow` (`nativeAreaPreparation.ts`), and goes on to its next offer, its
 saves, its commit or its loss. On a chosen list the creatures a cast names are offered their own reaction
-(`TARGETED_SELF`) after a counter that did not cancel it. Transitional (until QUALITY-9.T1b3c and T1c3): the
-inline resolution described below (the offer's `check` and `chain`, a non-null `counter` receipt) is still in
+(`TARGETED_SELF`) after a counter that did not cancel it. Transitional (until QUALITY-9.T1c3): the
+inline chain described below (the offer's `chain`, a non-null `counter` receipt) is still in
 the code and the contracts, but no host raises it.
 
 **Currentness across a reaction child (current, QUALITY-9.T1a; widened by QUALITY-9.T1c2).** A held action's
@@ -1715,19 +1715,15 @@ action context uses, and the persistence module reads a move as a parent (persis
 No host records a child on a move yet: movement reactions still resolve inline under `MOVE_SCENE_TOKEN`.
 QUALITY-18.T1b adds the move's resume and release, and QUALITY-18.T2 moves the reaction itself to a child.
 
-**Higher-level check (transitional inline path, REACTION-4.T3c; D127; raised by no host since
-QUALITY-9.T1b3a, deleted by QUALITY-9.T1b3c).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
-makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
-(`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
-and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules
-(`ENTER_DICE`/`SYSTEM_ROLL`, or the app roll for an auto-rolling player). A pass is a countered cast whose
-`counter.check` seals the d20. A fail is a _failed counter_ (recorded in `usedReactions` on the pending context): the reactor
-joins the declined set and is not offered again, and the cast's terminal commit (normal or countered) spends every
-failed reactor's slot and reaction atomically with the cast (`usedReactionSpend.ts`), so one undo reverses them all.
-Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
-is the cast's target spends through the target's own mechanics call.
+**Higher-level check (current, D127; the child's incoming gate since QUALITY-9.T1b2).**
+`reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`) makes a reaction cast below the triggering cast's
+level owe an ability check at DC `baseDc` + the cast's level (`castReactionCheckRequirement`). The parent's offer
+uses it only to decide whether the reactor can be offered the reaction (`castReactionCheckAbility`); the check
+itself is rolled by the reaction's own child action as its `TRIGGER` incoming gate (see "Trigger-check gate" in
+[persistence](persistence.md)). The inline check at the parent's pause (the offer's `check`, the pause's roll and
+its failed-counter bookkeeping) was deleted by QUALITY-9.T1b3c.
 
-**Counterspell chain (transitional inline path, REACTION-4.T3d; raised by no host since QUALITY-9.T1b3a).** A counter that stands (its check passed or none was owed) is
+**Counterspell chain (transitional inline path, REACTION-4.T3d; raised by no host since QUALITY-9.T1b3a).** A counter that stands is
 itself a cast: the offer's `chain` (`counters`, `castDeclinedReactorActorIds`, `castLevel`) holds the standing counters
 in order, and the next level offers the other Characters, except the creature whose cast it answers and any reactor that
 already used a counter in this cast, a counter to the last one. The original caster is therefore offered a counter to a
@@ -1735,7 +1731,7 @@ Counterspell cast against its spell (never to its own cast), planned against the
 caster (`discoverNativeCastReactions` `against`). Each answer adds one counter, so depth needs no cap in code. When a
 level has nobody left to ask the chain resolves by parity (`advanceNativeCastReactions`): odd, the first counter stands
 and the cast is countered; even, the chain is spent without effect and the cast is offered again at its own level with
-its declines restored. `usedReactions` holds every counter used that did not counter the cast (a failed check, or
+its declines restored. `usedReactions` holds every counter used that did not counter the cast (one that was
 itself countered; `againstActorId` records the cast it answered), all spent with the cast's terminal commit. The
 persistence validators (`actionPending.ts`) check this bookkeeping by set equality.
 

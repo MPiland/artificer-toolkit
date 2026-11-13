@@ -817,7 +817,7 @@ describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219
 
   it('keeps the rolled d20 exactly when it is the offer after the roll', async () => {
     const unkept =
-      'Only an offer made after the attack roll keeps the rolled d20, and its reaction owes no check and stands in no chain.'
+      'Only an offer made after the attack roll keeps the rolled d20, and its reaction stands in no chain.'
     await expect(
       pausedAttack({ offer: { kind: 'ATTACK_ROLL_BY_OTHER', test: true } })
     ).rejects.toThrow(unkept)

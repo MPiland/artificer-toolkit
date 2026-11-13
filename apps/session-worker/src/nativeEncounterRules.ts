@@ -939,14 +939,11 @@ export async function planNativeLiveEncounterAction(
     }
   const castPause = createNativeCastPause({
     runtime: executionOptions.runtime,
-    random: executionOptions.random,
     state,
-    system,
     actors,
     activeEffectsByActorId,
     loadTarget,
     capture,
-    requireAutoRoll,
     command,
     prepared,
     movementTargets,

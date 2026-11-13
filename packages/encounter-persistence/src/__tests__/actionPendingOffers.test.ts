@@ -33,17 +33,6 @@ describe('offeredDecisionOptionIds', () => {
     ).toEqual(['low', 'high'])
   })
 
-  it('offers no option while a cast waits on the roll of the check its counter owes', () => {
-    expect(
-      offeredDecisionOptionIds({
-        pause: {
-          kind: 'CAST_REACTION' as const,
-          payload: { reactions: [{ useOptionId: 'low' }], check: {} }
-        }
-      })
-    ).toEqual([])
-  })
-
   it('offers a Legendary Resistance option alone', () => {
     expect(
       offeredDecisionOptionIds({
@@ -91,14 +80,6 @@ describe('castPendingContinues', () => {
   const option = { resolution: { kind: 'OPTION' } }
   const dice = { resolution: { kind: 'ENTER_DICE' } }
   const failedBy = (reactorActorId: string) => ({ reaction: { reactorActorId } })
-  const checking = {
-    rollerActorId: 'second',
-    pause: {
-      kind: 'CAST_REACTION' as const,
-      payload: { declinedReactorActorIds: ['first'], check: {} }
-    },
-    usedReactions: [failedBy('first')]
-  }
 
   it('lets an unrelated pause continue on any answer', () => {
     expect(castPendingContinues({}, option, {})).toBe(true)
@@ -203,11 +184,35 @@ describe('castPendingContinues', () => {
     })
   })
 
-  it('lets a held cast leave its pause only by a decline or by a counter that owes a check', () => {
+  it('lets a held cast leave its pause only by a decline', () => {
     expect(castPendingContinues(held, decline, {})).toBe(true)
     expect(castPendingContinues(held, option, {})).toBe(false)
     expect(castPendingContinues(held, null, {})).toBe(false)
     expect(castPendingContinues(held, dice, {})).toBe(false)
+  })
+
+  it('lets a reaction spent at its own offer leave the cast as a decline does, carried as used', () => {
+    const settled = (overrides: object) => ({
+      pause: {
+        kind: 'CAST_REACTION' as const,
+        payload: { declinedReactorActorIds: ['first', 'second'] }
+      },
+      usedReactions: [failedBy('second')],
+      ...overrides
+    })
+    expect(castPendingContinues(held, option, settled({}))).toBe(true)
+    expect(castPendingContinues(held, option, settled({ usedReactions: [] }))).toBe(false)
+    expect(
+      castPendingContinues(
+        held,
+        option,
+        settled({
+          pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['first'] } }
+        })
+      )
+    ).toBe(false)
+    // A roll never answers the offer.
+    expect(castPendingContinues(held, dice, settled({}))).toBe(false)
   })
 
   it('offers the next reactor only with every earlier decline and the answerer recorded', () => {
@@ -296,18 +301,11 @@ describe('castPendingContinues', () => {
 
     it('runs a chosen reaction only as its holder’s own action, on the same offer and roll', () => {
       expect(castPendingContinues(rolledHeld, option, raised)).toBe(true)
-      // Never spent with the action's own commit, as a pre-roll counter that owes a check is.
+      // Never spent with the action's own commit, and never held on without its child recorded.
       expect(castPendingContinues(rolledHeld, option, {})).toBe(false)
-      expect(
-        castPendingContinues(rolledHeld, option, {
-          rollerActorId: 'second',
-          pause: {
-            kind: 'CAST_REACTION' as const,
-            payload: { declinedReactorActorIds: ['first'], rolled, check: {} }
-          },
-          usedReactions: []
-        })
-      ).toBe(false)
+      expect(castPendingContinues(rolledHeld, option, { ...rolledHeld, usedReactions: [] })).toBe(
+        false
+      )
       expect(
         castPendingContinues(rolledHeld, option, { ...raised, pause: offer(['first'], null) })
       ).toBe(false)
@@ -330,64 +328,6 @@ describe('castPendingContinues', () => {
     })
   })
 
-  it('holds the cast for the same reactor on its check when the counter owes one', () => {
-    const toCheck = (overrides: Partial<typeof checking>) => ({ ...checking, ...overrides })
-    expect(castPendingContinues(held, option, toCheck({ usedReactions: [] }))).toBe(true)
-    expect(
-      castPendingContinues(held, option, toCheck({ usedReactions: [], rollerActorId: 'third' }))
-    ).toBe(false)
-    expect(castPendingContinues(held, option, { rollerActorId: 'second' })).toBe(false)
-    expect(
-      castPendingContinues(held, option, {
-        ...toCheck({ usedReactions: [] }),
-        pause: {
-          kind: 'CAST_REACTION' as const,
-          payload: { declinedReactorActorIds: [], check: {} }
-        }
-      })
-    ).toBe(false)
-  })
-
-  it('lets a choice whose check the app rolled leave the cast as a failed roll does', () => {
-    const settled = (overrides: object) => ({
-      pause: {
-        kind: 'CAST_REACTION' as const,
-        payload: { declinedReactorActorIds: ['first', 'second'] }
-      },
-      usedReactions: [failedBy('second')],
-      ...overrides
-    })
-    expect(castPendingContinues(held, option, settled({}))).toBe(true)
-    expect(castPendingContinues(held, option, settled({ usedReactions: [] }))).toBe(false)
-    expect(
-      castPendingContinues(
-        held,
-        option,
-        settled({
-          pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['first'] } }
-        })
-      )
-    ).toBe(false)
-    expect(castPendingContinues(checking, option, settled({}))).toBe(false)
-  })
-
-  it('records a failed check as a failed counter and a decline of the reactor', () => {
-    const failedBoth = [failedBy('first'), failedBy('second')]
-    expect(castPendingContinues(checking, dice, { usedReactions: failedBoth })).toBe(true)
-    expect(
-      castPendingContinues(checking, dice, {
-        pause: {
-          kind: 'CAST_REACTION' as const,
-          payload: { declinedReactorActorIds: ['first', 'second'] }
-        },
-        usedReactions: failedBoth
-      })
-    ).toBe(true)
-    expect(castPendingContinues(checking, dice, { usedReactions: [failedBy('first')] })).toBe(false)
-    expect(castPendingContinues(checking, decline, { usedReactions: failedBoth })).toBe(false)
-    expect(castPendingContinues(checking, option, { usedReactions: failedBoth })).toBe(false)
-  })
-
   it('carries earlier failed counters through every later pause of the cast', () => {
     const carrying = { usedReactions: [failedBy('first')] }
     expect(castPendingContinues(carrying, dice, { usedReactions: [failedBy('first')] })).toBe(true)
@@ -406,10 +346,6 @@ describe('castPendingContinues', () => {
         kind: 'CAST_REACTION' as const,
         payload: { declinedReactorActorIds: ['other'], chain: standing('first') }
       }
-    }
-    const nestedChecking = {
-      ...nested,
-      pause: { kind: 'CAST_REACTION' as const, payload: { ...nested.pause.payload, check: {} } }
     }
 
     it('stands the answerer as the first counter, opening a fresh level that keeps the cast’s declines', () => {
@@ -499,50 +435,6 @@ describe('castPendingContinues', () => {
       ).toBe(false)
       expect(
         castPendingContinues(nested, option, resolved({ usedReactions: [failedBy('first')] }))
-      ).toBe(false)
-    })
-
-    it('fails the answerer on a failed roll without ending the counters standing', () => {
-      const failedAt = (overrides: object = {}) => ({
-        pause: {
-          kind: 'CAST_REACTION' as const,
-          payload: { declinedReactorActorIds: ['other', 'second'], chain: standing('first') }
-        },
-        usedReactions: [failedBy('second')],
-        ...overrides
-      })
-      expect(castPendingContinues(nestedChecking, dice, failedAt())).toBe(true)
-      expect(castPendingContinues(nestedChecking, dice, failedAt({ usedReactions: [] }))).toBe(
-        false
-      )
-      // A failed roll leaves one counter standing, which counters the cast.
-      expect(
-        castPendingContinues(nestedChecking, dice, { usedReactions: [failedBy('second')] })
-      ).toBe(false)
-    })
-
-    it('holds the cast for the same reactor on a check owed against the counter', () => {
-      const toCheck = (overrides: object = {}) => ({
-        rollerActorId: 'second',
-        pause: { kind: 'CAST_REACTION' as const, payload: { ...nested.pause.payload, check: {} } },
-        ...overrides
-      })
-      expect(castPendingContinues(nested, option, toCheck())).toBe(true)
-      expect(
-        castPendingContinues(
-          nested,
-          option,
-          toCheck({
-            pause: {
-              kind: 'CAST_REACTION' as const,
-              payload: {
-                declinedReactorActorIds: ['other'],
-                chain: standing('second'),
-                check: {}
-              }
-            }
-          })
-        )
       ).toBe(false)
     })
   })
@@ -636,7 +528,7 @@ describe('castCounteredCarriesUsedReactions', () => {
         usedReactions: [failedBy('earlier')]
       })
     ).toBe(false)
-    // A decline never counters; nor does a failed roll when no counter stands.
+    // A decline never counters when no counter stands.
     expect(
       castCounteredCarriesUsedReactions(paused, decline, 'first', {
         usedReactions: [failedBy('earlier')]
@@ -667,19 +559,11 @@ describe('castCounteredCarriesUsedReactions', () => {
       expect(castCounteredCarriesUsedReactions(lone, decline, 'other', {})).toBe(false)
     })
 
-    it('spends a failed roll at the counter’s level with the cast that is still countered', () => {
-      const lone = nested(standing('first'), {
-        pause: {
-          kind: 'CAST_REACTION' as const,
-          payload: { declinedReactorActorIds: [], chain: standing('first'), check: {} }
-        }
-      })
-      expect(
-        castCounteredCarriesUsedReactions(lone, dice, 'first', {
-          usedReactions: [failedBy('last')]
-        })
-      ).toBe(true)
-      expect(castCounteredCarriesUsedReactions(lone, dice, 'first', {})).toBe(false)
+    it('never counters the cast by a counter chosen against the one standing, or by a roll', () => {
+      const lone = nested(standing('first'))
+      const failed = { usedReactions: [failedBy('last')] }
+      expect(castCounteredCarriesUsedReactions(lone, option, 'first', failed)).toBe(false)
+      expect(castCounteredCarriesUsedReactions(lone, dice, 'first', failed)).toBe(false)
     })
 
     it('counters when the answerer stands a third counter, and spends the second', () => {
