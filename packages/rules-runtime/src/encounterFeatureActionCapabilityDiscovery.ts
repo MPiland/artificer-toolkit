@@ -742,7 +742,8 @@ function creatureActionEffect(
   const { invocation } = compiled
   // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
   // for its holder, so it compiles and plans like any other area save. A passive start-of-turn
-  // effect runs as the activated self-action the System fires for its holder.
+  // effect runs as the activated self-action the System fires for its holder, so it spends none of
+  // the holder's action economy (activation FREE).
   if (invocation.kind !== 'PASSIVE') return compiled
   if (invocation.triggerCode === 'HP_ZERO')
     return {
@@ -762,7 +763,7 @@ function creatureActionEffect(
           ...invocation,
           kind: 'ACTION',
           triggerCode: 'ACTIVATED',
-          activation: { code: 'ACTION', amount: 1 }
+          activation: { code: 'FREE' }
         }
       }
     : compiled
