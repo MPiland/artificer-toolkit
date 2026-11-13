@@ -338,7 +338,10 @@ type EncounterListAttack = Pick<
          * The sealed roll resumed with its answer, or rebuilt from the hit a reaction offer kept (D219)
          * or from the hit an on-hit offer kept with its decision.
          */
-        settle: Pick<GraphsInput, 'resume'> | Pick<GraphsInput, 'heldHit'> | Pick<GraphsInput, 'heldOnHit'>
+        settle:
+          | Pick<GraphsInput, 'resume'>
+          | Pick<GraphsInput, 'heldHit'>
+          | Pick<GraphsInput, 'heldOnHit'>
       }
     | {
         /**

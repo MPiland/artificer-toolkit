@@ -285,24 +285,24 @@ export function sealedListAttack(
     settle: heldOnHit
       ? { heldOnHit }
       : offer?.hit
-      ? {
-          heldHit: {
-            offer: { ...offer, hit: offer.hit },
-            answer:
-              context.kind === 'ENCOUNTER_ACTION' && context.reactionChildren?.length
-                ? { kind: 'RESUMED' as const }
-                : { kind: 'DECLINE' as const }
+        ? {
+            heldHit: {
+              offer: { ...offer, hit: offer.hit },
+              answer:
+                context.kind === 'ENCOUNTER_ACTION' && context.reactionChildren?.length
+                  ? { kind: 'RESUMED' as const }
+                  : { kind: 'DECLINE' as const }
+            }
           }
-        }
-      : {
-          resume: {
-            pending: {
-              ...restoreEncounterActionPending(sealed.snapshot),
-              roller: 'TARGET' as const
-            },
-            resolution
+        : {
+            resume: {
+              pending: {
+                ...restoreEncounterActionPending(sealed.snapshot),
+                roller: 'TARGET' as const
+              },
+              resolution
+            }
           }
-        }
   }
 }
 

@@ -495,7 +495,7 @@ null.
 The hit of one ray of a list (current, QUALITY-13.T1c2b, D219). A list its caster rolls one attack at a time
 (`ENCOUNTER_AREA_ACTION` with `resolution: 'ATTACK'`) holds the same offer per ray: the ray that hit keeps the
 `CAST_REACTION`/`HIT_BY_ATTACK` snapshot as its own sealed snapshot, unanswered, and no later ray is asked while
-it is held (`encounterAreaSaveAwaiting` returns `'REACTION'` for it, and nothing for it while its child is
+it is held (`encounterAreaSaveAwaiting` returns `'DECISION'` for it, and nothing for it while its child is
 awaited). The held ray's own context records the child, so every D219 read and write goes through
 `readRecordingParent`, which returns that ray's context and seals a changed one back into the list's snapshot:
 the child's trigger read, its ancestors, suspend, re-pin and the GM-void release need no list-specific path.
@@ -503,7 +503,7 @@ the child's trigger read, its ancestors, suspend, re-pin and the GM-void release
 - Admission. A reactor's `DECLINE` or `OPTION` names the held ray's request; the response admission offers it
   the options of that ray's pause. `ACTION_RESUME` on a list returns the held ray's snapshot as `snapshot` and
   the list as `areaSnapshot` (nullable, transport only).
-- The fence. `requireAreaActionAnswer` hands a step about a ray's hit reaction to `requireAreaActionRayReaction`:
+- The fence. `requireAreaActionAnswer` hands a step about a ray's hit offer to `requireAreaActionRayHit`:
   a roll may leave its ray held; a decline answers the ray with the d20 its offer kept and changes nothing else
   of it; a chosen reaction keeps it held and records one child (`heldActionContinues` on the ray's contexts);
   the resume answers it and writes the child's outcome. Only a ray behind one that left its offer may go on,
@@ -517,6 +517,28 @@ the child's trigger read, its ancestors, suspend, re-pin and the GM-void release
   reacted under an awaited child (`reactedUnderAwaitedChild`).
 - Projection. While a ray is held on its offer, the list's one decision is the reactor's reaction choice
   (`projectNativeAreaActionPending`), as its damage window and push pick are.
+
+The on-hit rider of one ray of a list (current, QUALITY-13.T1c4, D123, D219). A ray that hits also holds for
+its caster's optional on-hit riders, after its creature's reaction: the ray keeps the `ON_HIT` snapshot an
+attack at one creature holds, as its own sealed snapshot, unanswered, and no later ray is asked meanwhile
+(`encounterAreaSaveAwaiting` returns `'DECISION'`; the list's one decision is the caster's `ON_HIT_CHOICE`).
+
+- `onHit` (additive, optional, per target). The caster's answer is kept with the ray as the audit an attack
+  at one creature seals into its OUTCOME (`EncounterOnHitAuditDto`: `DECLINE`, or `USE` with the option).
+  The schema accepts it only on an answered ray whose own snapshot holds the offer, for that offer's hit and,
+  when used, one of that offer's options. The ray's snapshot keeps the offer, so the commit and every later
+  ray at the same creature replay the hit from the offer's retained TEST and the audit, rolling no attack
+  again. The field is optional and absent on every stored list, so no reset or migration is needed (D196).
+- The fence (`requireAreaActionRayHit`). A roll, a declined reaction or a resumed reaction may leave the ray
+  held on the rider offer for the same hit (the d20 the reaction offer kept); a ray never returns from the
+  rider offer to a reaction offer. The caster's `DECLINE` or `OPTION` answers the ray with the d20 the offer
+  kept, writes `onHit` matching that response and changes nothing else of the ray; no other step writes
+  `onHit`, and an unanswered ray never carries it.
+- One slot and one pool per cast. A rider that spends a slot or a pool is not offered at a ray once an earlier
+  ray of the list chose such a one (`onHitCandidates` with `chosenBefore`), nor a slot rider when the cast
+  spends a slot itself. The commit folds the chosen riders' costs into the cast's one Character spend
+  (`settledCharacterActionSpend`), so nothing is spent before the last ray is answered and a GM void spends
+  nothing.
 
 The move a child answers (current contract, QUALITY-18.T2b1, D219; inert until QUALITY-18.T2b2 records a
 child on a move). The same three admissions return `triggerMovement`, null unless a held Scene move records
