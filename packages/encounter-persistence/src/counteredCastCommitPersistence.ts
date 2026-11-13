@@ -3,7 +3,6 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import {
@@ -12,11 +11,7 @@ import {
   requireRuleOutputScope
 } from './actionCommitFences.js'
 import { completeActionOccurrence, recordActionCommit } from './actionCommitRecords.js'
-import {
-  castCancelledByChildCarriesUsedReactions,
-  castCounteredCarriesUsedReactions
-} from './actionPending.js'
-import { recordCounterCheckRollCards } from './actionRollCards.js'
+import { castCancelledByChildCarriesUsedReactions } from './actionPending.js'
 import { applyUsedReactionSpends, usedReactionSpends } from './usedReactionSpend.js'
 import {
   applyActionSpendMechanics,
@@ -32,12 +27,9 @@ import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 
 /**
- * Commits a cast that another creature countered, in the transaction of the answer that used the
- * counter: the root with the caster's one spend and the reactor's own (its slot and its reaction),
- * and nothing of the spell. The sealed offer the answer resumed must be the one the counter used.
- *
- * A counter that ran as its holder's own action (D219) spent itself there: the room's resume from
- * that committed child commits the cast it cancelled with the caster's spend alone.
+ * Commits a cast that another creature countered: the root with the caster's one spend and nothing of
+ * the spell. The counter ran as its holder's own action (D219), which spent it: the room's resume from
+ * that committed child commits the cast it cancelled.
  */
 export async function persistEncounterCounteredCastCommit(
   ctx: EncounterCharacterWriteTransaction & {
@@ -59,7 +51,7 @@ export async function persistEncounterCounteredCastCommit(
   const admission = await admitActionCommit(ctx, input)
   if (admission.kind === 'REPLAY') return admission.result
   const userId = input.expectedUserId
-  const { state, campaign, resume, initiatorUserId } = admission
+  const { state, resume } = admission
   const command = admission.input
   const rootExecution = input.execution
   const { response } = input
@@ -75,68 +67,34 @@ export async function persistEncounterCounteredCastCommit(
   )
     throw new Error('Live Session terminal action is not an ordinary countered cast.')
   const root = rootExecution.applicationOutputs
-  const { counter } = root
   const { pause } = resume.pending.context
   const offered = pause?.kind === 'CAST_REACTION' ? pause.payload : null
-  const standing = offered?.chain?.counters[0]
-  const sameCounter = (left: unknown, right: unknown) =>
-    checksumCanonicalJson(left) === checksumCanonicalJson(right)
-  const carried = { usedReactions: input.usedReactions.map(({ receipt }) => receipt) }
   const resumedChild = resume.pending.context.reactionChildren?.find(
     ({ rollMode }) => rollMode === undefined
   )
   if (
-    !offered ||
-    (counter
-      ? // The counter is the answer to the pause that offered it. The first counter of a chain
-        // stands: it was chosen at an earlier pause and nobody countered it. Otherwise the counter
-        // was chosen at this offer.
-        !response ||
-        (standing
-          ? !sameCounter(standing.reaction, counter.reaction) ||
-            !sameCounter(standing.choiceExecution, counter.choiceExecution) ||
-            !sameCounter(standing.check, counter.check) ||
-            standing.triggerLevel !== counter.triggerLevel
-          : response.resolution.kind !== 'OPTION' ||
-            response.resolution.optionId !== counter.reaction.useOptionId ||
-            !offered.reactions.some((pin) => sameCounter(pin, counter.reaction))) ||
-        !castCounteredCarriesUsedReactions(
-          resume.pending.context,
-          response,
-          counter.reaction.reactorActorId,
-          carried
-        )
-      : // The counter ran as its holder's own action, which spent it (D219): the room resumes the
-        // cast from that committed child, and the cast is lost because the child cancelled it.
-        response ||
-        offered.kind !== 'COUNTER' ||
-        input.reactionSpellConsumption !== null ||
-        !resume.reactionChildren.some(
-          (child) => child.commandId === resumedChild?.commandId && child.cancelsTriggeringEvent
-        ) ||
-        !castCancelledByChildCarriesUsedReactions(resume.pending.context, carried)) ||
+    // The room resumes the cast from the counter's committed child, and the cast is lost because
+    // that child cancelled it.
+    response ||
+    offered?.kind !== 'COUNTER' ||
+    !resume.reactionChildren.some(
+      (child) => child.commandId === resumedChild?.commandId && child.cancelsTriggeringEvent
+    ) ||
+    !castCancelledByChildCarriesUsedReactions(resume.pending.context, {
+      usedReactions: input.usedReactions.map(({ receipt }) => receipt)
+    }) ||
     input.ruleOverrides.some((warning) => !command.acknowledgedWarnings.includes(warning.code))
   )
     throw new Error('Live Session countered cast offer mismatch.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
-  const counterReactor = counter
-    ? actors.find((actor) => actor.id === counter.reaction.reactorActorId)
-    : null
   if (
     !source ||
     source.kind !== 'CHARACTER' ||
     root.sourceActorId !== source.id ||
-    root.sourceCharacterId !== source.sourceId ||
-    (counter &&
-      (counterReactor?.kind !== 'CHARACTER' ||
-        counterReactor.id === source.id ||
-        counterReactor.sourceId !== counter.reaction.characterId))
+    root.sourceCharacterId !== source.sourceId
   )
     throw new Error('Live Session countered cast actor scope mismatch.')
-  /** The counter this commit spends with its reactor; none when the counter ran as its own action. */
-  const countering =
-    counter && counterReactor?.kind === 'CHARACTER' ? { counter, reactor: counterReactor } : null
   requireRuleOutputScope(actors, input.rules, 'countered cast')
   await requireActionCommitFence(ctx, {
     state,
@@ -155,29 +113,13 @@ export async function persistEncounterCounteredCastCommit(
     spell: input.spellConsumption,
     receipts: root
   })
-  const reactorSpend =
-    countering &&
-    sourceSpendMutation({
-      source: countering.reactor,
-      command: { acceptedWieldConflict: null },
-      resource: null,
-      item: null,
-      spell: input.reactionSpellConsumption,
-      receipts: {
-        resourceConsumption: null,
-        sourceItemConsumption: null,
-        spellCastConsumption: countering.counter.spellCastConsumption
-      }
-    })
   const reactionSpends = usedReactionSpends({
     usedReactions: input.usedReactions,
     actors,
     source
   })
-  if (reactionSpends.some(({ reactor: other }) => other.id === countering?.reactor.id))
-    throw new Error('Live Session used reaction reactor countered the cast.')
-  // The caster's counter to a counter cast against its cast spends its slot in the caster's one
-  // mechanics call, after the cast's, so the Character advances once.
+  // A reaction of the caster's own spends its slot in the caster's one mechanics call, after the
+  // cast's, so the Character advances once.
   const sourceUsed = reactionSpends.find(({ reactor: other }) => other.id === source.id)
   // Each batch also carries the conditions its Character's cast ended effects released.
   const spend = {
@@ -198,23 +140,6 @@ export async function persistEncounterCounteredCastCommit(
         })
       : null
   requireSourceSpendReceipt(sourceMechanics, root, sourceUsed)
-  const reactorMechanics =
-    countering && reactorSpend && (reactorSpend.spends || countering.counter.applications.length)
-      ? await applyActionSpendMechanics(ctx, {
-          ...spend,
-          actor: countering.reactor,
-          applications: countering.counter.applications,
-          mutation: reactorSpend.mutation
-        })
-      : null
-  if (
-    countering &&
-    ((reactorMechanics?.characterStreamVersion ?? null) !==
-      countering.counter.characterStreamVersion ||
-      checksumCanonicalJson(reactorMechanics?.receiptApplications ?? []) !==
-        checksumCanonicalJson(countering.counter.applications))
-  )
-    throw new Error('Live Session reactor Character receipt mismatch.')
 
   const castSettledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
@@ -234,19 +159,6 @@ export async function persistEncounterCounteredCastCommit(
         economyOverridden: false
       })
     : castSettledSource
-  const settledCounterReactor = countering && {
-    id: countering.reactor.id,
-    actor: await settleActionSourceSpend(ctx, {
-      encounterId: state.id,
-      source: reactorMechanics?.updatedActor ?? countering.reactor,
-      spend: {
-        featureResourceConsumption: null,
-        actionEconomyTransition: countering.counter.actionEconomyTransition,
-        attackActionTransition: undefined
-      },
-      economyOverridden: false
-    })
-  }
   const settledReactors = await applyUsedReactionSpends(ctx, {
     state,
     occurrenceId: root.occurrenceId,
@@ -259,11 +171,7 @@ export async function persistEncounterCounteredCastCommit(
   })
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
   const nextActors = actors.map((actor) =>
-    actor.id === source.id
-      ? settledSource
-      : actor.id === settledCounterReactor?.id
-        ? settledCounterReactor.actor
-        : (settledReactors.get(actor.id) ?? actor)
+    actor.id === source.id ? settledSource : (settledReactors.get(actor.id) ?? actor)
   )
   const nextState = encounterRunStateSchema.parse({
     ...state,
@@ -280,25 +188,6 @@ export async function persistEncounterCounteredCastCommit(
     occurredAt: input.occurredAt
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
-  await recordCounterCheckRollCards(ctx, {
-    campaign,
-    encounterId: state.id,
-    gameSystemId: state.gameSystemId,
-    occurrenceId: root.occurrenceId,
-    checks: [
-      ...reactionSpends.flatMap(({ check, reactor: checkedReactor }) =>
-        check ? [{ reactor: checkedReactor, check }] : []
-      ),
-      ...(countering?.counter.check
-        ? [{ reactor: countering.reactor, check: countering.counter.check }]
-        : [])
-    ],
-    response,
-    responderUserId: userId,
-    initiatorUserId,
-    visibility: command.visibility,
-    createdAt: input.occurredAt
-  })
   return recordActionCommit(ctx, {
     admission,
     command,

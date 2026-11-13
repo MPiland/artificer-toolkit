@@ -363,27 +363,6 @@ export function createNativeCastPause(input: {
         reactionChildren: children.recorded
       }
     const counterResume = resumedOffer?.kind === 'COUNTER' ? resumedOffer : null
-    const counteredCast = async (
-      counter: Parameters<typeof planNativeCounteredCast>[0]['counter'],
-      counters: readonly EncounterUsedReactionDto[]
-    ) => ({
-      kind: 'COUNTERED' as const,
-      countered: planNativeCounteredCast({
-        state,
-        actors: input.actors,
-        prepared,
-        casterEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
-        counter,
-        actionEconomy: cast.actionEconomy,
-        ruleOverrides: cast.ruleOverrides,
-        occurrenceId: input.occurrenceId,
-        occurrenceVersion: cast.occurrenceVersion,
-        commandId: command.commandId,
-        occurredAt: input.occurredAt,
-        userId: input.userId,
-        usedReactions: await planUsedReactions(counters)
-      })
-    })
     // The counter the cast resumes from ran as its holder's own action, which spent it: when that
     // action cancelled the cast, the cast is lost with no counter of its own to spend (D219).
     if (
@@ -393,7 +372,23 @@ export function createNativeCastPause(input: {
           rollMode === undefined && committedChild(commandId).cancelsTriggeringEvent
       )
     )
-      return counteredCast(null, input.usedReactions)
+      return {
+        kind: 'COUNTERED' as const,
+        countered: planNativeCounteredCast({
+          state,
+          actors: input.actors,
+          prepared,
+          casterEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
+          actionEconomy: cast.actionEconomy,
+          ruleOverrides: cast.ruleOverrides,
+          occurrenceId: input.occurrenceId,
+          occurrenceVersion: cast.occurrenceVersion,
+          commandId: command.commandId,
+          occurredAt: input.occurredAt,
+          userId: input.userId,
+          usedReactions: await planUsedReactions(input.usedReactions)
+        })
+      }
     const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
     /**
      * The reaction chosen at any moment runs as its holder's own action at the creature acting: the
@@ -461,7 +456,6 @@ export function createNativeCastPause(input: {
       const advanced = await advanceNativeCastReactions({
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,
-        gameSystemId: state.gameSystemId,
         casterActorId: prepared.actor.id,
         triggerLevel,
         answer: input.answer,
@@ -472,16 +466,6 @@ export function createNativeCastPause(input: {
           : [],
         discover: await discoverCast(triggerLevel)
       })
-      if (advanced.kind === 'COUNTERED')
-        return counteredCast(
-          {
-            countered: advanced,
-            reactorEffects:
-              input.activeEffectsByActorId.get(advanced.found.prepared.actor.id) ?? [],
-            triggerLevel
-          },
-          advanced.usedReactions
-        )
       if (advanced.kind === 'CHILD') return awaitChild(advanced)
       if (advanced.kind === 'OFFER')
         return {

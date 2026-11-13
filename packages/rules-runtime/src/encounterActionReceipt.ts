@@ -4,14 +4,12 @@ import {
   encounterUsedReactionReceiptDtoSchema,
   encounterWindowReactionReceiptDtoSchema,
   type EncounterReactionPinDto,
-  type EncounterCounterCheckEvidenceDto,
   type EncounterSettledIncomingGateDto,
   type EncounterUsedReactionDto,
   type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
@@ -329,8 +327,8 @@ export function buildEncounterAreaStoredExecution(input: {
 
 /**
  * Builds the stored root of a countered cast. The caster still spends its slot and action; nothing the
- * spell would have done is applied. The counter records what the reactor spent with this commit; it is
- * null when the counter ran as its holder's own action, which spent it (D219).
+ * spell would have done is applied. The counter ran as its holder's own action, which recorded what
+ * the reactor spent (D219).
  */
 export function buildEncounterCounteredCastStoredExecution(input: {
   occurrenceId: string
@@ -348,22 +346,8 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     | 'sourceApplications'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
-  counter: {
-    reaction: EncounterReactionPinDto
-    choiceExecution: ServerCompletedRuleExecutionDto
-    counterExecution: ServerCompletedRuleExecutionDto
-    triggerLevel: number
-    /** The check that earned the counter; null when the cast was not above the counter's level. */
-    check: EncounterCounterCheckEvidenceDto | null
-    spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
-    /** The reactor's conditions released by effects its cast ended. */
-    applications: ReturnType<typeof planNativeEncounterAreaSourceSpend>['sourceApplications']
-    /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
-    characterStreamVersion: number | null
-    economy: EncounterActionEconomyConsumption
-  } | null
 }) {
-  const { spend, counter } = input
+  const { spend } = input
   return storedRuleExecutionResultDtoSchema.parse({
     status: 'AGGREGATE_CHOICE_COMPLETE',
     schemaVersion: 1,
@@ -382,18 +366,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
       sourceItemConsumption: spend.itemConsumptionReceipt,
       spellCastConsumption: spend.spellConsumptionReceipt,
       sourceApplications: spend.sourceApplications,
-      actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
-      counter: counter && {
-        reaction: counter.reaction,
-        choiceExecution: counter.choiceExecution,
-        counterExecution: counter.counterExecution,
-        triggerLevel: counter.triggerLevel,
-        check: counter.check,
-        spellCastConsumption: characterSpellConsumptionReceipt(counter.spellConsumption),
-        applications: counter.applications,
-        characterStreamVersion: counter.characterStreamVersion,
-        actionEconomyTransition: actionEconomyReceipt(counter.economy)
-      }
+      actionEconomyTransition: actionEconomyReceipt(input.actionEconomy)
     }
   })
 }
@@ -449,7 +422,7 @@ export function buildEncounterGatedActionStoredExecution(input: {
   })
 }
 
-/** A reaction used before the action executed with what its reactor spends for it, as the action's terminal commit applies it (D127). */
+/** A reaction used at its own offer before the action executed, with what its reactor spends for it, as the action's terminal commit applies it. */
 export function buildEncounterUsedReactionReceipt(input: {
   used: EncounterUsedReactionDto
   spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
@@ -460,7 +433,6 @@ export function buildEncounterUsedReactionReceipt(input: {
   return encounterUsedReactionReceiptDtoSchema.parse({
     ...input.used,
     spellCastConsumption: characterSpellConsumptionReceipt(input.spellConsumption),
-    // A failed counter does not yet end its reactor's cast-ended effects (future-enhancements: Deferred edge cases).
     applications: [],
     characterStreamVersion: input.characterStreamVersion,
     actionEconomyTransition: actionEconomyReceipt(input.economy)

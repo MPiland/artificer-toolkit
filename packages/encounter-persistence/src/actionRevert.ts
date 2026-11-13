@@ -404,7 +404,6 @@ export async function revertLastEncounterAction(
     root,
     batch,
     areaRoot,
-    lostRoot,
     cleaving,
     retaliation,
     targetBatches,
@@ -753,11 +752,12 @@ export async function revertLastEncounterAction(
       if (marked)
         updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
     }
-    // The creature that countered the cast, and each that failed to, spent its own slot and reaction;
-    // each that reacted to the attack roll spent its reaction and charge (D207).
+    // Each creature that used a reaction at its own offer spent its own slot and reaction; each that
+    // reacted to the attack roll spent its reaction and charge (D207). A reaction that ran as its
+    // holder's own action is undone as that action, not here (D219).
     const invertReactorSpend = (
       spend: Pick<
-        NonNullable<CounteredRoot['counter']>,
+        (typeof root.usedReactions)[number],
         | 'spellCastConsumption'
         | 'applications'
         | 'characterStreamVersion'
@@ -794,8 +794,6 @@ export async function revertLastEncounterAction(
         resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
       })
     }
-    // A counter that ran as its holder's own action is undone as that action, not here (D219).
-    if (lostRoot && 'counter' in lostRoot && lostRoot.counter) invertReactorSpend(lostRoot.counter)
     for (const used of root.usedReactions) invertReactorSpend(used)
     for (const reacted of root.windowReactions)
       invertReactorSpend({ ...reacted, spellCastConsumption: null, applications: [] })
@@ -1093,7 +1091,6 @@ function planRevertRoot({
     root,
     batch,
     areaRoot,
-    lostRoot,
     cleaving,
     retaliation,
     targetBatches,

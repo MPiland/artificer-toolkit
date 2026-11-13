@@ -136,10 +136,6 @@ type CastPendingContext = {
           declinedReactorActorIds: readonly string[]
           /** The attack d20 an offer made after the roll keeps (D219). */
           rolled?: object
-          chain?: {
-            counters: readonly PendingCounter[]
-            castDeclinedReactorActorIds: readonly string[]
-          }
         }
       }
     /** The gate whose roll the action's source owes; the pause is held on that roll. */
@@ -181,16 +177,8 @@ const incomingGateOf = ({ pause }: CastPendingContext) =>
 const attackRetargetOf = ({ pause }: CastPendingContext) =>
   pause?.kind === 'ATTACK_RETARGET' ? pause.payload : null
 
-const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
-  counters.map(({ reaction }) => reaction.reactorActorId)
-
-const usedReactorIds = ({ usedReactions }: CastPendingContext) => counterReactorIds(usedReactions)
-
-const chainReactorIds = (context: CastPendingContext) =>
-  counterReactorIds(castReactionOf(context)?.chain?.counters)
-
-const sameIds = (left: readonly string[], right: readonly string[]) =>
-  left.length === right.length && left.every((id, index) => id === right[index])
+const usedReactorIds = ({ usedReactions = [] }: CastPendingContext) =>
+  usedReactions.map(({ reaction }) => reaction.reactorActorId)
 
 /** The same unique ids in any order. */
 const sameMembers = (left: readonly string[], right: readonly string[]) => {
@@ -203,7 +191,7 @@ const sameMembers = (left: readonly string[], right: readonly string[]) => {
   )
 }
 
-/** How a cast's pause is answered: a decline or a counter chosen (an OPTION). Anything else does not answer it. */
+/** How a cast's pause is answered: a decline or a reaction chosen (an OPTION). Anything else does not answer it. */
 function castAnswer(
   response: { resolution: { kind: string } } | null | undefined
 ): 'DECLINE' | 'SPEND' | null {
@@ -212,15 +200,14 @@ function castAnswer(
 }
 
 /**
- * How a cast's pending may continue (D127). A held cast leaves its pause by a decline or by choosing a
- * counter. Every counter the answer uses is carried to the cast's terminal commit, which spends it: the
- * answerer is stood as the next counter in the chain (a counter is itself a cast the next holders may
- * counter, opening a fresh level of offers that keeps the outer level's declines). A
- * chain with nobody left to ask resolves: an even chain is spent and the cast is offered again at its
- * own level with that level's declines restored; an odd chain counters the cast, which commits instead.
+ * How a cast's pending may continue (D127, D219). A held cast leaves its pause by a decline or by
+ * choosing a reaction. A reaction that runs as its holder's own action is recorded as a child: the same
+ * offer stays held until the room resumes it, which moves the cast on as the reactor's decline would.
+ * A reaction spent at its own offer is carried as used to the cast's terminal commit, which spends it.
+ * Either way the creature heard from joins the offer's declines and is not asked again.
  *
- * An offer made after the action's attack roll (D219) keeps the rolled d20: it is left by a decline, to
- * the next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction,
+ * An offer made after the action's attack roll keeps the rolled d20: it is left by a decline, to the
+ * next reactor's offer of the same roll or to the roll's own settlement, or by choosing a reaction,
  * which is recorded as a child action and never carried as a used reaction.
  */
 export function castPendingContinues(
@@ -249,7 +236,6 @@ export function castPendingContinues(
     return (
       response?.resolution.kind === 'OPTION' &&
       usedNext.length === 0 &&
-      chainReactorIds(next).length === 0 &&
       (nextCastReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
       !(incomingGateOf(next) && next.passedIncomingGate !== undefined)
     )
@@ -268,9 +254,6 @@ export function castPendingContinues(
   if (!answer || roller === undefined) return false
   const spends = answer === 'SPEND'
   const declinedPrevious = castReaction.declinedReactorActorIds
-  const castDeclinedPrevious = castReaction.chain?.castDeclinedReactorActorIds ?? []
-  const chainPrevious = chainReactorIds(previous)
-  const chainNext = chainReactorIds(next)
   // Once an offer holds the action's rolled d20, every offer that follows it holds the same roll.
   if (
     castReaction.rolled &&
@@ -287,40 +270,16 @@ export function castPendingContinues(
   if (recordsChild)
     return (
       spends &&
-      !castReaction.chain &&
       nextCastReaction != null &&
-      !nextCastReaction.chain &&
       next.rollerActorId === roller &&
       sameMembers(usedNext, usedPrevious) &&
       sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
       awaitsReactionChild(next)
     )
-  const pushed = spends && sameIds(chainNext, [...chainPrevious, roller])
-  const unchanged = sameIds(chainNext, chainPrevious)
-  const resolved =
-    chainNext.length === 0 && chainPrevious.length > 0 && (chainPrevious.length % 2 === 0 || spends)
-  if (!pushed && !unchanged && !resolved) return false
-  if (
-    !sameMembers(
-      [...usedNext, ...chainNext],
-      [...usedPrevious, ...chainPrevious, ...(spends ? [roller] : [])]
-    )
-  )
-    return false
-  const offered = nextCastReaction
-  if (!offered) return true
-  if (pushed)
-    return (
-      offered.declinedReactorActorIds.length === 0 &&
-      sameMembers(
-        offered.chain?.castDeclinedReactorActorIds ?? [],
-        chainPrevious.length === 0 ? declinedPrevious : castDeclinedPrevious
-      )
-    )
-  if (resolved) return sameMembers(offered.declinedReactorActorIds, castDeclinedPrevious)
   return (
-    sameMembers(offered.declinedReactorActorIds, [...declinedPrevious, roller]) &&
-    sameMembers(offered.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
+    sameMembers(usedNext, [...usedPrevious, ...(spends ? [roller] : [])]) &&
+    (!nextCastReaction ||
+      sameMembers(nextCastReaction.declinedReactorActorIds, [...declinedPrevious, roller]))
   )
 }
 
@@ -367,41 +326,8 @@ export function heldActionContinues(input: {
 }
 
 /**
- * Whether a cast countered at its pause carries exactly the failed counters its chain left (D127). The
- * counters standing with the answer's own use of one are the chain; the first of them counters the cast
- * (an odd chain leaves it standing) and every other counter used is spent with it.
- */
-export function castCounteredCarriesUsedReactions(
-  previous: CastPendingContext,
-  response: { resolution: { kind: string } } | null | undefined,
-  counterReactorActorId: string,
-  next: CastPendingContext
-): boolean {
-  if (!castReactionOf(previous)) return false
-  const answer = castAnswer(response)
-  const roller = previous.rollerActorId
-  if (!answer || (answer === 'SPEND' && roller === undefined)) return false
-  const spends = answer === 'SPEND' && roller !== undefined
-  const chainPrevious = chainReactorIds(previous)
-  // A counter chosen against the standing counter saves the cast, so it never commits it countered.
-  if (spends && chainPrevious.length % 2 === 1) return false
-  const chain = spends ? [...chainPrevious, roller] : chainPrevious
-  const usedNext = usedReactorIds(next)
-  return (
-    chain.length % 2 === 1 &&
-    chain[0] === counterReactorActorId &&
-    !usedNext.includes(counterReactorActorId) &&
-    sameMembers(
-      [...usedNext, counterReactorActorId],
-      [...usedReactorIds(previous), ...chainPrevious, ...(spends ? [roller] : [])]
-    )
-  )
-}
-
-/**
- * Whether a cast lost to the reaction child it resumes from (D219) carries exactly the failed counters
- * it held: the child spent its own counter, which stood in no chain, so the cast's
- * commit spends no other.
+ * Whether a cast lost to the reaction child it resumes from (D219) carries exactly the used reactions
+ * it held: the child spent its own counter, so the cast's commit spends no other.
  */
 export function castCancelledByChildCarriesUsedReactions(
   previous: CastPendingContext,
@@ -410,7 +336,6 @@ export function castCancelledByChildCarriesUsedReactions(
   const castReaction = castReactionOf(previous)
   return (
     castReaction != null &&
-    !castReaction.chain &&
     awaitsReactionChild(previous) &&
     sameMembers(usedReactorIds(next), usedReactorIds(previous))
   )

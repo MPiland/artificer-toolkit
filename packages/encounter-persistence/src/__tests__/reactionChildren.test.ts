@@ -816,8 +816,7 @@ describe('an offer of reactions made after the attack roll (QUALITY-9.T1e1, D219
   })
 
   it('keeps the rolled d20 exactly when it is the offer after the roll', async () => {
-    const unkept =
-      'Only an offer made after the attack roll keeps the rolled d20, and its reaction stands in no chain.'
+    const unkept = 'Only an offer made after the attack roll keeps the rolled d20.'
     await expect(
       pausedAttack({ offer: { kind: 'ATTACK_ROLL_BY_OTHER', test: true } })
     ).rejects.toThrow(unkept)
@@ -1354,8 +1353,7 @@ describe('a committed child whose own cast a nested reaction countered (QUALITY-
         spellConsumptionReceipt: null,
         sourceApplications: []
       },
-      actionEconomy: null,
-      counter: null
+      actionEconomy: null
     })
     await insertChildReceipt(memory, command, execution, ROOT_VERSION + 2)
     expect(
