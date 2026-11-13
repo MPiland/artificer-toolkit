@@ -336,14 +336,24 @@ GM voided (which has no command) through the void's occurrence. Every commit or 
 Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
 action above the one they return to `PENDING`.
 
-A Scene move as the parent (transitional, QUALITY-18.T1a and T1b1; target QUALITY-18.T2). A paused move's
+A Scene move as the parent (transitional, QUALITY-18.T1a, T1b1 and T2a; target QUALITY-18.T2b). A paused move's
 `ENCOUNTER_MOVEMENT_REACTION` pending context can record reaction children too: `reactionChildren` on its
 `CHOICE` phase, the same child shape as the action's (`encounterReactionChildrenDtoSchema`), and on no other
 phase. `reactionChildren.ts` reads either parent: a recorded child is admitted against the move
 (`readReactionChildParent`), its ancestors name the mover (the moving actor of the open reaction choice, with
 no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
 `awaitsReactionChild` treat the move as they treat an action. Nothing records a child on a move yet
-(QUALITY-18.T2 does), so no stored move carries the field.
+(QUALITY-18.T2b does), so no stored move carries the field.
+
+The move's fence on the Run is its pin, not a count (QUALITY-18.T2a). `readMovementResponseAuthority` takes
+an answer only while the move is `PENDING` and `expectedEncounterVersion` equals the Run version. A move's own
+answers advance the Run and re-pin it, so the action's count of descendants and voids past the root
+(`heldRootVersionAccounted`) does not describe a move. The child seam moves the pin instead: a child's commit
+and a reaction that commits under a held child re-pin the move (`repinReactionChildParent`), and a GM void of
+the held child, with the undo of what committed under it, releases the move on the void's version. A Run that
+moved any other way leaves the pin behind, and the move takes no answer. The root command's replay at version
+0 (`spatialPendingPublication.ts`) still requires the publication version: a child is recorded by an answer,
+which is version 1 or later.
 
 A move's occurrence version must equal its `root.resolutionCommands` count, so what a reaction child does to
 the move is an entry of that history (`movementReactionChildCommandDtoSchema`): kind `REACTION_CHILD_RELEASE`
@@ -353,17 +363,23 @@ kind and the occurrence version it is recorded at), its fingerprint is the check
 command ids, and its `correlationId` is null. `releaseReactionChildParent` (QUALITY-18.T1b1) appends the
 release entry when the GM voids the held child, with the GM as `actorUserId`: it drops the child from the
 `CHOICE` phase, returns the move to `PENDING` one version on and pins it to the Run version the void
-produced, so the next answer is fenced on that version like any other. The resume entry has a schema only:
-QUALITY-18.T2 writes it through the Scene geometry response path. The field and the two kinds are additive,
-so stored rows stay valid (D196: no local refresh).
+produced, so the next answer is fenced on that version like any other. The resume is carried by a
+`RESOLVE_RULE_OCCURRENCE` resolution of kind `REACTION_CHILD_RESUME` with the `childCommandId`
+(QUALITY-18.T2a): the live-session command frame refuses it from every client, and no movement response
+path accepts it yet. QUALITY-18.T2b raises it in the room and writes the entry through the Scene geometry
+response path. The field and the two kinds are additive, so stored rows stay valid (D196: no local refresh).
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
 reaction (its own economy charge; the parent records no used reaction for it); the room's `RESUME_ACTION`
-(`ACTION_RESUME` admission, room-internal) then reads the committed child and records what it imposes on the
-triggering roll as `reactionChildren[].rollMode`, resolved by the System adapter
-(`imposesRollModeOnTriggeringRoll`). A child without `rollMode` is unresolved (`awaitsReactionChild`), and
-until it resolves the parent takes no other answer. The child command names the Scene tokens the reaction
+(`ACTION_RESUME` admission, room-internal) then reads the committed child and records what it imposes on its
+parent as `reactionChildren[].resumeOutcome`: `null` for nothing, `{ kind: 'ROLL_MODE', rollMode }` for a
+roll mode on the triggering roll (`imposesRollModeOnTriggeringRoll`), or `{ kind: 'STOP' }` for a move ended
+at its contact (`stopsTriggeringMovement`; no host writes it before QUALITY-18.T2b). The System adapter
+resolves each. A child without `resumeOutcome` is unresolved (`awaitsReactionChild`), and
+until it resolves the parent takes no other answer. The rename from `rollMode` (QUALITY-18.T2a) changes the
+JSON of a held decision's pending snapshot only (`encounterPendingSnapshotParts`), not a Convex validator or
+source data (D196: no reseed; a local Run held on a resumed child is finished or cleared before use). The child command names the Scene tokens the reaction
 was offered on (the holder's and the acting creature's), so its range is judged there like any action's.
 
 The cast a child answers (current, QUALITY-9.T1b1, D219). A pending action that casts a spell records the
@@ -434,12 +450,13 @@ QUALITY-9.T1e3). Four contracts carry a reaction chosen after the attack d20 is 
   and the reactor's decline follow the rules of any cast offer. What may precede the first rolled offer is
   not fenced here; T1e2 owns that entry.
 - The resolved child. `reactionChildren[].rolledDie` records the die the committed child rolled, with its
-  faces, written by the same resume that writes `rollMode` (a die on an unresolved child is refused, and so
+  faces, written by the same resume that writes `resumeOutcome` (a die on an unresolved child is refused, and so
   is a die that names a held effect or a window reaction as its spender: the child spent it).
   `reactionChildrenKept` keeps a resolved child's die as recorded, so a replay of the action reads the die
   and does not roll it again; a GM void that releases a later child keeps an earlier child's die.
-- The committed read. `readCommittedReactionChildren` returns `subtractsFromTriggeringRoll` beside
-  `imposesRollMode` and `cancelsTriggeringEvent`, read by the System adapter from the child's stored execution.
+- The committed read. `readCommittedReactionChildren` returns `subtractsFromTriggeringRoll` and
+  `stopsTriggeringMovement` (QUALITY-18.T2a) beside `imposesRollMode` and `cancelsTriggeringEvent`, read by the
+  System adapter from the child's stored execution.
 
 The reactor's decision is authorized as any cast offer's (the reactor is the pending's roller), and its
 `REACTION_CHOICE` summary names the roll it decides on as `attackRoll` (the attacker, the kept face and the

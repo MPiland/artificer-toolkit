@@ -1835,7 +1835,12 @@ describe('spatial movement rule contracts', () => {
     const open = parse({ kind: 'CHOICE' })
     expect(open.success && open.data).toMatchObject({ phase: { kind: 'CHOICE' } })
     expect(open.success && open.data).not.toHaveProperty('phase.reactionChildren')
-    for (const reactionChildren of [[child], [{ ...child, rollMode: null }]]) {
+    for (const reactionChildren of [
+      [child],
+      [{ ...child, resumeOutcome: null }],
+      [{ ...child, resumeOutcome: { kind: 'ROLL_MODE', rollMode: 'DISADVANTAGE' } }],
+      [{ ...child, resumeOutcome: { kind: 'STOP' } }]
+    ]) {
       const recorded = parse({ kind: 'CHOICE', reactionChildren })
       expect(recorded.success && recorded.data).toMatchObject({
         phase: { kind: 'CHOICE', reactionChildren }
@@ -1846,9 +1851,15 @@ describe('spatial movement rule contracts', () => {
     expect(parse({ kind: 'CHOICE', reactionChildren: [{ commandId: 'child' }] }).success).toBe(
       false
     )
-    expect(parse({ kind: 'CHOICE', reactionChildren: [{ ...child, resumed: true }] }).success).toBe(
-      false
-    )
+    for (const malformed of [
+      { resumed: true },
+      { rollMode: null },
+      { resumeOutcome: { kind: 'STOP', rollMode: 'DISADVANTAGE' } },
+      { resumeOutcome: { kind: 'ROLL_MODE' } }
+    ])
+      expect(
+        parse({ kind: 'CHOICE', reactionChildren: [{ ...child, ...malformed }] }).success
+      ).toBe(false)
   })
 
   it('keeps a reaction child’s resume and release as entries of the move’s history (QUALITY-18.T1b1, D219)', () => {
