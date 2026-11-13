@@ -16,7 +16,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { readCheckpointedTokenPosition } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readCheckpointedTokenPosition,
+  readResumedMovement
+} from '../../tests/fixtures/automaticSceneMovement'
 import {
   attachFixtureRoom,
   checkpointLiveRoom,
@@ -291,6 +294,14 @@ describe('room movement response publication', () => {
       }
       lastCommand = command
       result = await executeInRoom(owner.caller, { command })
+      // Restated (QUALITY-18.T2b3): the reaction's evidence belongs to its own action (D219), so
+      // the last evidence answer completes that action, not the move. The move is then read as the
+      // room resumed it, which is where the next reactor's choice appears.
+      if (pending.kind !== 'MOVEMENT_REACTION' && result.occurrence?.status === 'COMPLETE')
+        result = {
+          ...result,
+          occurrence: await readResumedMovement(owner.caller, value.base.campaign.id, choice)
+        }
       // Declining the last reactor completes the move; evidence and Use answers leave it pending.
       expect(result.occurrence?.status).toBe(
         pending.kind === 'MOVEMENT_REACTION' ? 'COMPLETE' : 'PENDING'
@@ -345,7 +356,10 @@ describe('room movement response publication', () => {
     const reactionStart = await stored(value)
     const losers: string[] = []
     let selected = false
-    let pending = root?.occurrence?.pending ?? null
+    const choice = root?.occurrence?.pending
+    if (choice?.kind !== 'MOVEMENT_REACTION')
+      throw new Error('Expected the issued reaction choice.')
+    let pending: NonNullable<NonNullable<typeof root>['occurrence']>['pending'] = choice
     while (pending) {
       if (
         pending.kind !== 'MOVEMENT_REACTION' &&
@@ -396,9 +410,20 @@ describe('room movement response publication', () => {
         throw new Error('Reaction response contention needs one winner and one stale loser.')
       // A stale answer is a domain rejection whether the winner completed the occurrence (moving
       // the Encounter version) or only advanced the occurrence: neither logs a cause.
+      // Restated (QUALITY-18.T2b3): a reaction's evidence is its own action's decision (D219), so
+      // a stale evidence answer is refused in that action's words; a stale answer to the move's own
+      // choice keeps the move's.
+      const staleMessages =
+        current.kind === 'MOVEMENT_REACTION'
+          ? ['Encounter version is stale.']
+          : [
+              'Encounter version is stale.',
+              'The action occurrence version is stale.',
+              'The action occurrence is no longer pending.'
+            ]
       const expectStaleRefusal = (failure: unknown, causes: readonly string[]) => {
         expect(failure).toMatchObject({
-          data: { ...versionStale, message: 'Encounter version is stale.' }
+          data: { ...versionStale, message: expect.toBeOneOf(staleMessages) }
         })
         expect(causes).toEqual([])
       }
@@ -419,14 +444,17 @@ describe('room movement response publication', () => {
       )
       expectStaleRefusal(retried, roomErrorLogs().slice(logsBeforeRetry))
       expect(await stored(value)).toEqual(settled)
+      // Restated (QUALITY-18.T2b3): the answer that completes the reaction's own action no longer
+      // carries the move (D219), so the next decision is read from the move as the room resumed it.
       pending =
-        winner.value.occurrence?.status === 'PENDING' ? winner.value.occurrence.pending : null
+        winner.value.occurrence?.status === 'PENDING'
+          ? winner.value.occurrence.pending
+          : current.kind === 'MOVEMENT_REACTION'
+            ? null
+            : (await readResumedMovement(owner.caller, campaign.id, choice)).pending
     }
     expect(selected).toBe(true)
     const final = await stored(value)
-    const choice = root?.occurrence?.pending
-    if (choice?.kind !== 'MOVEMENT_REACTION')
-      throw new Error('Expected the issued reaction choice.')
     const reactor = final.actors.find((actor) => actor.id === choice.choice.reactorActorId)
     if (!reactor) throw new Error('Expected the selected reactor.')
     expect(readStoredRunActor(reactor).resources).toMatchObject({

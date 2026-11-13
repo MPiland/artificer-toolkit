@@ -2,7 +2,10 @@ import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/act
 // @vitest-environment node
 import { expect, it } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readResumedMovement,
+  setupAutomaticSceneMovement
+} from '../../tests/fixtures/automaticSceneMovement'
 import { readRoomPendingSnapshot } from '../../tests/fixtures/roomPendingSnapshots'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
@@ -102,12 +105,18 @@ it('settles sealed movement responses through the room without replaying the cro
     resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
   }
   const committed = await executeInRoom(value.owner.caller, { command })
+  // Restated (QUALITY-18.T2b3): the Use answer is the reaction's own completed action (D219), and
+  // the next choice is read from the move as the room resumed it. That resume settles nothing at
+  // the shared contact, so the Run and its timeline still advance once, for the reaction.
+  expect(committed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+  expect(committed.occurrence?.occurrenceId).not.toBe(choice.occurrenceId)
+  const resumed = await readResumedMovement(value.owner.caller, value.base.campaign.id, choice)
   const after = await records()
-  expect(committed.occurrence).toMatchObject({ status: 'PENDING' })
+  expect(resumed).toMatchObject({ status: 'PENDING' })
   expect(after.run?.version).toBe(baseline.run!.version + 1)
   expect(after.effects).toEqual(baseline.effects)
   expect(after.timeline).toHaveLength(baseline.timeline.length + 1)
-  const secondChoice = committed.occurrence?.pending
+  const secondChoice = resumed.pending
   if (!secondChoice || secondChoice.kind !== 'MOVEMENT_REACTION')
     throw new Error('Expected the next issued movement choice.')
   const terminal = await executeInRoom(value.owner.caller, {

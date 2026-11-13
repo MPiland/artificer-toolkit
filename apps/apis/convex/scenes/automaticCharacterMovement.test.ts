@@ -2,6 +2,7 @@ import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import { joinCharacterPlay, readCharacterRow } from '../characters/stateDocuments'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import { readResumedMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
@@ -101,8 +102,13 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     const beforeRun = before.runs.find((row) => row.id === value.base.run.id)!
     const commandsBefore = (await readRoomTimeline(value.owner.caller, value.base.campaign.id))
       .length
-    const result = await respond('USE')
-    expect(result.occurrence?.pending?.kind).toBe('MOVEMENT_REACTION')
+    const offered = current?.occurrence?.pending
+    if (!offered) throw new Error('Expected the offered automatic reaction.')
+    await respond('USE')
+    // Restated (QUALITY-18.T2b3): a Use answers with its reaction's own action (D219), so the next
+    // choice is read from the move as the room resumed it, not from the Use answer.
+    const resumed = await readResumedMovement(value.owner.caller, value.base.campaign.id, offered)
+    expect(resumed.pending?.kind).toBe('MOVEMENT_REACTION')
     const after = await snapshot(value)
     // The Use is exactly one more command on the room's timeline.
     expect((await readRoomTimeline(value.owner.caller, value.base.campaign.id)).length).toBe(

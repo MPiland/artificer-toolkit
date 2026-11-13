@@ -152,5 +152,8 @@ it('settles a spatial prefix between a used automatic reaction and later control
   expect(occurrence).toMatchObject({ status: 'PENDING' })
   const effects = await readCheckpointedEffects(value)
   expect(effects.find((entry) => entry.id === effect.id)).toBeUndefined()
-  expect(await readRunVersion(value)).toBe((before ?? 0) + 1)
+  // Restated (QUALITY-18.T2b3): the used reaction commits as the reactor's own action and the
+  // room's resume of the move then settles the crossed effect (D219), so the Run advances twice
+  // where the Use answer committed both at once.
+  expect(await readRunVersion(value)).toBe((before ?? 0) + 2)
 }, 60_000)

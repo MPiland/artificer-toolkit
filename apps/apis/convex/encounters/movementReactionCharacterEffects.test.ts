@@ -2,6 +2,7 @@ import { expect, it } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import { readResumedMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { setupMovementReactionCharacterEffects } from '../../tests/fixtures/movementReactionCharacterEffects'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
@@ -122,7 +123,10 @@ it('creates one Character reaction effect after the public choice and preserves 
     beforeSettlement.character.play.streamVersion + 1
   )
   expect(afterSettlement.characterReceipts).toHaveLength(beforeSettlement.characterReceipts.length)
-  expect(afterSettlement.run.version).toBe(beforeSettlement.run.version + 1)
+  // Restated (QUALITY-18.T2b3): the reaction commits as the reactor's own action and the room's
+  // resume then completes the move (D219), so the Run advances twice where the Use answer
+  // committed both at once.
+  expect(afterSettlement.run.version).toBe(beforeSettlement.run.version + 2)
   expect(conditionSources(afterSettlement)).toEqual(conditionSources(beforeSettlement))
 
   const retried = await executeInRoom(value.owner.caller, { command: reaction })
@@ -145,9 +149,14 @@ it('projects the first used automatic Character reaction into the second reactio
   const beforeRoot = await snapshot(value)
   // Each Use draws its own attack: a natural 20, then minimal damage dice.
   await queueRoomRolls(value.base.campaign.id, hitThenMinimumDice)
-  // The first Use's result is the second reaction's pending choice (the planner's PENDING outcome).
-  const pendingRoot = await executeInRoom(value.owner.caller, { command: first })
-  const pending = pendingRoot.occurrence?.pending
+  // Restated (QUALITY-18.T2b3): the first Use's result is its reaction's own completed action
+  // (D219), so the second reaction's pending choice is read from the move as the room resumed it.
+  const firstUse = await executeInRoom(value.owner.caller, { command: first })
+  expect(firstUse.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+  const pendingRoot = {
+    occurrence: await readResumedMovement(value.owner.caller, value.base.campaign.id, automatic)
+  }
+  const pending = pendingRoot.occurrence.pending
   if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
     throw new Error('Expected second movement reaction choice.')
   const afterFirstReaction = await snapshot(value)
@@ -166,9 +175,12 @@ it('projects the first used automatic Character reaction into the second reactio
   expect(afterFirstReaction.run.version).toBe(beforeRoot.run.version + 1)
   expect(conditionSources(afterFirstReaction)).toEqual(conditionSources(beforeRoot))
   const retriedFirst = await executeInRoom(value.owner.caller, { command: first })
+  // Restated (QUALITY-18.T2b3): a retried Use replays the result it first returned, which is now
+  // the reaction's completed action rather than the move's next choice.
   expect(retriedFirst.occurrence).toMatchObject({
-    occurrenceId: pendingRoot.occurrence?.occurrenceId,
-    status: 'PENDING'
+    occurrenceId: firstUse.occurrence?.occurrenceId,
+    status: 'COMPLETE',
+    pending: null
   })
   expect(await snapshot(value)).toEqual(afterFirstReaction)
 
@@ -187,7 +199,9 @@ it('projects the first used automatic Character reaction into the second reactio
     beforeRoot.character.play.streamVersion + 2
   )
   expect(afterSecondReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length)
-  expect(afterSecondReaction.run.version).toBe(afterFirstReaction.run.version + 1)
+  // Restated (QUALITY-18.T2b3): the second reaction commits as its own action and the room's
+  // resume then completes the move (D219), so the Run advances twice.
+  expect(afterSecondReaction.run.version).toBe(afterFirstReaction.run.version + 2)
   // The second hit drops the Character to 0, so it falls unconscious (D63).
   const beforeSources = conditionSources(beforeRoot)
   expect(conditionSources(afterSecondReaction)).toEqual({

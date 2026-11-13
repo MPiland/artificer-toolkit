@@ -50,6 +50,7 @@ import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { readResumedMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { reactionBinding } from '../../tests/fixtures/reactionBinding'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import {
@@ -99,6 +100,10 @@ async function addPlayer(base: Awaited<ReturnType<typeof readyCharacterFixture>>
         data: {
           name: 'Unrelated',
           email: 'unrelated@example.invalid',
+          // Registered accounts always have a username; a reaction's own action posts its roll to
+          // the table chat under it (D219).
+          username: 'unrelated',
+          displayUsername: 'Unrelated',
           emailVerified: true,
           createdAt: Date.now(),
           updatedAt: Date.now()
@@ -682,8 +687,15 @@ describe('native Character movement-decision authority', () => {
       if (natural === 20) expect(evidenceKinds).toContain('ACTION_OUTCOME_EVIDENCE')
       else expect(evidenceKinds).toEqual(['D20_EVIDENCE'])
       expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+      // Restated (QUALITY-18.T2b3): the completed result is the reaction's own action (D219). The
+      // room then resumes and completes the move in a command of its own, so the Run advances
+      // twice where the last evidence answer committed the reaction and the move at once.
+      expect(await readResumedMovement(value.gm.caller, value.campaign.id, choice)).toMatchObject({
+        status: 'COMPLETE',
+        pending: null
+      })
       const completed = await reactionMechanics(value)
-      expect(completed.runs[0]?.version).toBe(beforePreparation.runs[0]!.version + 1)
+      expect(completed.runs[0]?.version).toBe(beforePreparation.runs[0]!.version + 2)
       expect(completed.characters).not.toEqual(beforePreparation.characters)
       expect(completed.actors).not.toEqual(beforePreparation.actors)
       if (stop) {
@@ -781,13 +793,21 @@ describe('native Character movement-decision authority', () => {
       pending = result.occurrence.pending
     }
     expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    // Restated (QUALITY-18.T2b3): the completed result is the reaction's own action (D219); the
+    // room then resumes the move, which ends at its contact, in a command of its own.
+    expect(await readResumedMovement(value.gm.caller, value.campaign.id, choice)).toMatchObject({
+      status: 'COMPLETE',
+      pending: null
+    })
     const after = await gameplayRows(value)
     if (!before) throw new Error('Expected a pre-settlement read.')
     expect(after.liveEntities).toEqual(before.liveEntities)
     expect(after.liveEntities).toMatchObject([
       { entityId: value.tokens.at(-1)?.id, value: { entity: { position: expectedContact } } }
     ])
-    expect(after.runs[0]?.version).toBe(before.runs[0]!.version + 1)
+    // Restated (QUALITY-18.T2b3): the reaction's action commits, then the room's resume ends the
+    // move at the contact (D219), so the Run advances twice where one answer committed both.
+    expect(after.runs[0]?.version).toBe(before.runs[0]!.version + 2)
     expect(after.characters).not.toEqual(before.characters)
     expect(after.actors).not.toEqual(before.actors)
     expect(after.timeline).not.toEqual(before.timeline)
@@ -923,13 +943,22 @@ describe('native Character movement-decision authority', () => {
         resolution: { kind: 'OPTION', optionId: option.optionId }
       }
     })
-    expect(chosen.occurrence).toMatchObject({ occurrenceId: futurePending.occurrenceId })
+    // Restated (QUALITY-18.T2b3): choosing the option answers with the reaction's own action
+    // (D219), paused on its attack roll, where it answered with the move's occurrence before.
+    expect(chosen.occurrence).toMatchObject({
+      status: 'PENDING',
+      pending: { kind: 'D20_EVIDENCE' }
+    })
+    expect(chosen.occurrence?.occurrenceId).not.toBe(futurePending.occurrenceId)
   }, 30000)
 
-  // Coverage for the producer's refusal (`revalidateEncounterMovementReactionOption`): it needs the
-  // room's locked Characters and Scene, so it is proved through the real room rather than a
-  // rules-runtime fixture.
-  it('refuses a selected reaction whose Character source changed after its choice was prepared as VERSION_STALE', async () => {
+  // Restated (QUALITY-18.T2b3): this test pinned a VERSION_STALE refusal ('This reaction changed;
+  // refresh and choose again.') of an option whose Character source changed after the choice was
+  // prepared, because the move then ran the reaction from what the choice had prepared. A chosen
+  // reaction now runs as the reactor's own action (D219), admitted and prepared from the
+  // Character's current Sheet, so nothing prepared is run and the choice is not refused. The
+  // source change here (1 damage) leaves the reaction available.
+  it('runs a selected reaction from the current Sheet when its Character source changed after its choice was prepared', async () => {
     const value = await setup(false, false, true)
     const root = await startPending(value)
     const choice = root.pending
@@ -937,28 +966,23 @@ describe('native Character movement-decision authority', () => {
     const option = choice.choice.options[0]
     if (!option) throw new Error('Expected Character reaction option.')
     await advanceCharacterSource(value, value.first, value.player)
-    const afterSourceChange = await gameplayRows(value)
-    await expect(
-      executeInRoom(value.player.caller, {
-        command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          commandId: crypto.randomUUID(),
-          encounterId: value.run.id,
-          expectedVersion: choice.encounterVersion,
-          occurrenceId: choice.occurrenceId,
-          expectedOccurrenceVersion: choice.occurrenceVersion,
-          correlationId: null,
-          resolution: { kind: 'OPTION', optionId: option.optionId }
-        }
-      })
-    ).rejects.toMatchObject({
-      data: {
-        code: 'DOMAIN_REJECTED',
-        reason: 'VERSION_STALE',
-        message: 'This reaction changed; refresh and choose again.'
+    const chosen = await executeInRoom(value.player.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        commandId: crypto.randomUUID(),
+        encounterId: value.run.id,
+        expectedVersion: choice.encounterVersion,
+        occurrenceId: choice.occurrenceId,
+        expectedOccurrenceVersion: choice.occurrenceVersion,
+        correlationId: null,
+        resolution: { kind: 'OPTION', optionId: option.optionId }
       }
     })
-    expect(await gameplayRows(value)).toEqual(afterSourceChange)
+    expect(chosen.occurrence).toMatchObject({
+      status: 'PENDING',
+      pending: { kind: 'D20_EVIDENCE', rollerActorId: choice.choice.reactorActorId }
+    })
+    expect(chosen.occurrence?.occurrenceId).not.toBe(choice.occurrenceId)
   }, 30000)
 
   it('continues unchanged two-boundary Character reactions from the first decline to the second choice', async () => {

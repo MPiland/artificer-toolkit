@@ -35,6 +35,7 @@ import { joinCharacterPlay, readCharacterRecord } from '../characters/stateDocum
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import {
+  readResumedMovement,
   setupReactionMovementScene,
   useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
@@ -427,6 +428,11 @@ it('settles present and detached Character maintenance once per used automatic c
   // Characters' stream versions and hit points below.
   const published = await executeInRoom(value.owner.caller, { command: lastUse })
   expect(published.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+  // Restated (QUALITY-18.T2b3): the completed result is the last reaction's own action (D219);
+  // the room then resumes and completes the move in a command of its own, which the totals span.
+  expect(
+    await readResumedMovement(value.owner.caller, value.campaign.id, secondChoice)
+  ).toMatchObject({ status: 'COMPLETE', pending: null })
   const after = await snapshot(value)
   const presentAfter = after.characters.find((row) => row.id === value.character.id)!
   const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
@@ -451,7 +457,9 @@ it('settles present and detached Character maintenance once per used automatic c
   expect(after.characterReceipts.length).toBe(origin.characterReceipts.length)
   // A retry is answered from the room's journal with the Run as it now stands, and changes nothing.
   const retry = await executeInRoom(value.owner.caller, { command: lastUse })
-  expect(retry.projection.version).toBe(published.projection.version)
+  // Restated (QUALITY-18.T2b3): the Run as it now stands is one version past the reaction's own
+  // commit, because the room's resume completed the move after it (D219).
+  expect(retry.projection.version).toBe(published.projection.version + 1)
   expect(await snapshot(value)).toEqual(after)
 }, 60_000)
 

@@ -78,8 +78,11 @@ it.each([false, true])(
     expect(
       after.characters.find((row) => row.id === value.base.character.id)?.play.streamVersion
     ).toBe(beforeCharacter.play.streamVersion + (withSpatialPrefix ? 2 : 1))
+    // Restated (QUALITY-18.T2b3): the used reaction commits as the reactor's own action and the
+    // room's resume then ends the move at the contact (D219), so the Run advances once more than
+    // when the Use answer committed both at once.
     expect(after.runs.find((row) => row.id === value.base.run.id)?.version).toBe(
-      beforeRun.version + (withSpatialPrefix ? 2 : 1)
+      beforeRun.version + (withSpatialPrefix ? 3 : 2)
     )
     expect(after.spatialEffects.map((effect) => effect.id)).toEqual(suffix ? [suffix.id] : [])
     expect(after.entities).toMatchObject([

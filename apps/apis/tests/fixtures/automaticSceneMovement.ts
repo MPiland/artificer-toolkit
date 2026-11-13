@@ -276,8 +276,8 @@ export async function readCheckpointedHitPoints(
  * reaction child (D219). A Use answer returns the child action's result; the room then resumes the
  * move itself, as the Campaign owner, in a command of its own. `choice` is the pending choice the
  * Use answered: the Use records the child on it (one occurrence version) and the resume is the
- * next. The room sends a member nothing about a resume that leaves no decision, so a move with no
- * decision left reads as complete.
+ * next. The room sends a member nothing about a resume that leaves no decision, so a move the room
+ * no longer shows is read from its checkpointed row.
  */
 export function readResumedMovement(
   caller: Parameters<typeof readRoomEncounterSession>[0],
@@ -289,13 +289,24 @@ export function readResumedMovement(
       const session = await readRoomEncounterSession(caller, campaignId, { timeline: false })
       if (!session.held) throw new Error('The room does not hold the Run.')
       const { pending } = session.state
-      if (pending?.occurrenceId !== choice.occurrenceId)
+      if (pending?.occurrenceId !== choice.occurrenceId) {
+        // The room hides a move that awaits its resume just as it shows none for a finished one, so
+        // the move's own row, once checkpointed, tells the two apart.
+        await checkpointLiveRoom(campaignId)
+        const row = await caller.run((ctx) =>
+          ctx.db
+            .query('encounterRuleOccurrences')
+            .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
+            .unique()
+        )
+        if (row?.state !== 'COMPLETED') throw new Error('The room has not resumed the move.')
         return {
-          occurrenceId: choice.occurrenceId,
-          occurrenceVersion: choice.occurrenceVersion + 2,
+          occurrenceId: row.id,
+          occurrenceVersion: row.version,
           status: 'COMPLETE',
           pending: null
         }
+      }
       if (pending.occurrenceVersion === choice.occurrenceVersion + 1)
         throw new Error('The room has not resumed the move.')
       return {
