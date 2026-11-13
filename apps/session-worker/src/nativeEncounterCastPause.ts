@@ -553,7 +553,13 @@ export function createNativeCastPause(input: {
     }
     return { kind: 'NONE' as const, reactionChildren }
   }
-  return { advance, applyReactionChildren, planResolvedOffers, launchReactionChild }
+  return {
+    advance,
+    applyReactionChildren,
+    planResolvedOffers,
+    launchReactionChild,
+    resolveReactionChildren
+  }
 }
 
 export type NativeCastPause = ReturnType<typeof createNativeCastPause>

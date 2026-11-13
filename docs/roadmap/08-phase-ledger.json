@@ -26351,7 +26351,7 @@
             },
             {
               "id": "QUALITY-13.T1c2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26362,7 +26362,8 @@
               },
               "note": "Split 2026-11-12 at the seam trace (no size growth): rays have no hit reaction today and on-hit reactions are not D219 children until QUALITY-8.T1d, nor can area/list parents resume from children until QUALITY-9.T1b3; building the inline ray reaction now would be deleted by T1d. T1c2b is re-traced after both land; any growth then goes to the user (D187). Resized 2 to 13 on 2026-11-13 at the seam trace (rays at a reactor held on a hit offer, replay against mid-list facts); user standing approval for QUALITY growth (2026-11-13). Orchestrator ruling option B: an optional persisted as-of test binding on area targets, so rays answered before a child commits replay against the binding they were sealed with; every unanswered entry is re-sealed at RESUME.",
               "text": "Hit reactions per ray as D219 children through the per-target function: a ray pauses on its hit reaction in its own inner snapshot, the drawer answers it, the reaction effect holds for later rays (no second offer), and its cost commits in the child receipt under the root; undo restores it. Re-trace before start.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m734 (a08dda83e), fast path from slice tip 667df6a85: Tests 43503853870, Live 43503854235, Browser journeys 43503854093 green. Red proof nativeRoomChosenListReactions RED (the ray describe; \"offers nothing at a ray that misses\" passes without the slice, as expected). A ray that hits a creature holding a HIT_BY_ATTACK reaction is held on that offer in its own inner snapshot inside the ENCOUNTER_AREA_ACTION aggregate; decline settles with the kept d20; a use launches the holder's child under the root, and the resume re-seals every unanswered ray and rebinds the held one; a spent reaction is not offered again; decline-then-use keeps earlier hits through the as-of testBindingJson (ruling 16); one undo restores slot, effect and hit points; GM void while a ray is held or after its child committed leaves nothing orphaned. Real SRD Shield and Scorching Ray. Restated: none. Unproved, accepted as rare: void while a ray child is awaited (no SRD reaction reaches it), two reactors on a manual-roller list. D196: additive optional testBindingJson on an area target, no reset."
             },
             {
               "id": "QUALITY-13.T1c3",
@@ -26777,7 +26778,7 @@
                 "size": 5,
                 "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Parity items from QUALITY-18.T2b2-T2b4 (2026-11-13): a resumed move re-prices its remaining path against the mover's current state (a reaction that knocked it Prone means crawl or stand cost) and ends at contact if it no longer fits; plus the parity gaps listed in the T2b report (retried OPTION beyond the journal, a child moving the mover's token, OPTION or resume on an unpresented Scene, frozen spatialCurrentnessChecksum at a TERMINAL stop, single-use item and target policy refusals, sweep early return, member OPTION source revalidation, transient parent CHOICE read).",
               "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed."
             },
             {

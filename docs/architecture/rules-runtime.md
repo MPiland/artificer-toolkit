@@ -826,6 +826,18 @@ against the reactor as its reaction leaves it; no planner derives or holds a rea
 commit carries none. Undoing the list undoes its reaction children with it, and voiding the held list voids
 them.
 
+**A ray's hit is answered per ray (current, QUALITY-13.T1c2b, D219):** each ray of a sealed list is rolled
+through the per-target function every attack uses (`advanceAreaRay` drives `advanceEncounterListAttacks` with
+`advanceNativeActionTarget` as its host), so a ray that hits a creature holding a `HIT_BY_ATTACK` reaction
+stops on that offer in its own snapshot, and the drawer asks the reactor before any later ray is rolled. A
+decline settles the ray with the d20 the offer kept. A chosen reaction launches the holder's child; the resume
+(`planNativeLiveEncounterAreaRayReaction`) seals every unanswered ray again from the room as the child left
+it, then rebinds the held ray's kept d20, so the reaction's effect counts for that ray and every later one,
+and a reaction already spent is not offered again. Rays answered before the reaction keep the binding they
+were rolled against (`testBindingJson`) and the commit replays them with it, so an earlier hit stays a hit.
+After a reaction step the remaining rays of an automatic roller are rolled in the same command. The
+[persistence guide](persistence.md) describes the stored shape and its fence.
+
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 
 An authored Effect with invocation `{ kind: PASSIVE, triggerCode: HP_ZERO }` and a saving throw is a creature

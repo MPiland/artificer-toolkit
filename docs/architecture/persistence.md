@@ -500,6 +500,32 @@ the parent that records the child once and returns one shape, `{ triggerCastLeve
 triggerMovement }`, which the capture spreads onto the three admissions; a fact the parent does not hold is
 null.
 
+The hit of one ray of a list (current, QUALITY-13.T1c2b, D219). A list its caster rolls one attack at a time
+(`ENCOUNTER_AREA_ACTION` with `resolution: 'ATTACK'`) holds the same offer per ray: the ray that hit keeps the
+`CAST_REACTION`/`HIT_BY_ATTACK` snapshot as its own sealed snapshot, unanswered, and no later ray is asked while
+it is held (`encounterAreaSaveAwaiting` returns `'REACTION'` for it, and nothing for it while its child is
+awaited). The held ray's own context records the child, so every D219 read and write goes through
+`readRecordingParent`, which returns that ray's context and seals a changed one back into the list's snapshot:
+the child's trigger read, its ancestors, suspend, re-pin and the GM-void release need no list-specific path.
+
+- Admission. A reactor's `DECLINE` or `OPTION` names the held ray's request; the response admission offers it
+  the options of that ray's pause. `ACTION_RESUME` on a list returns the held ray's snapshot as `snapshot` and
+  the list as `areaSnapshot` (nullable, transport only).
+- The fence. `requireAreaActionAnswer` hands a step about a ray's hit reaction to `requireAreaActionRayReaction`:
+  a roll may leave its ray held; a decline answers the ray with the d20 its offer kept and changes nothing else
+  of it; a chosen reaction keeps it held and records one child (`heldActionContinues` on the ray's contexts);
+  the resume answers it and writes the child's outcome. Only a ray behind one that left its offer may go on,
+  an answer is written once, and only the resume, which follows a committed child, seals rays again.
+- `testBindingJson` (additive, optional, per target). When a reaction is chosen, every ray answered so far
+  keeps the binding its roll was sealed against. The commit replays those rays with it as their test binding,
+  so a hit rolled before the reaction stays a hit though its creature's armor class rose afterwards. It is
+  written once, only at that step, and never rewritten.
+- The resume re-seals every unanswered ray against the creatures as the child left them and refreshes each
+  ray's `currentnessChecksum`; until then `revalidateAreaTarget` tolerates a changed creature only while it
+  reacted under an awaited child (`reactedUnderAwaitedChild`).
+- Projection. While a ray is held on its offer, the list's one decision is the reactor's reaction choice
+  (`projectNativeAreaActionPending`), as its damage window and push pick are.
+
 The move a child answers (current contract, QUALITY-18.T2b1, D219; inert until QUALITY-18.T2b2 records a
 child on a move). The same three admissions return `triggerMovement`, null unless a held Scene move records
 the child: `readReactionChildTrigger` finds the option the move's contact offers the child's reactor for the

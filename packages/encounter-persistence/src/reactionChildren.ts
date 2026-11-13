@@ -6,6 +6,10 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { triggeringRollSubtractionDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type {
+  ServerKernelRuleExecutionPendingSnapshotDto,
+  ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { z } from '@artificer-toolkit/schema/zod'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
@@ -27,8 +31,9 @@ type ReactionChildLink = {
 }
 
 /**
- * The held parent that records a reaction child, with the sealed snapshot that records it: a
- * pending action, or a Scene move paused on a reaction choice.
+ * The held parent that records a reaction child, with the context that records it and how to seal
+ * that context back into the parent's snapshot: a pending action, the ray of a pending list held on
+ * its hit's reaction, or a Scene move paused on a reaction choice.
  */
 async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChildLink) {
   const parent = await ctx.db
@@ -43,19 +48,66 @@ async function readRecordingParent(ctx: EncounterReadContext, input: ReactionChi
   )
     return null
   const snapshot = await readPendingSnapshot(ctx, parent)
-  if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE') return null
+  if (!snapshot) return null
+  const records = (children: readonly { commandId: string }[] | undefined) =>
+    children?.some(({ commandId }) => commandId === input.childCommandId) ?? false
+  if (snapshot.snapshotKind === 'AGGREGATE_CHOICE') {
+    // A list of rays records the child in the ray its reaction answers: that ray's own snapshot.
+    const area = snapshot.applicationContext
+    if (area.kind !== 'ENCOUNTER_AREA_ACTION') return null
+    for (const [index, target] of area.targets.entries()) {
+      const context = target.snapshot.applicationContext
+      if (context.kind === 'ENCOUNTER_ACTION' && records(context.reactionChildren))
+        return {
+          parent,
+          context,
+          seal: (applicationContext: RecordingContext): ServerRuleExecutionPendingSnapshotDto => {
+            if (applicationContext.kind !== 'ENCOUNTER_ACTION')
+              throw new Error('The reaction’s pending action is gone.')
+            return {
+              ...snapshot,
+              applicationContext: {
+                ...area,
+                targets: area.targets.map((sealed, at) =>
+                  at === index
+                    ? { ...sealed, snapshot: { ...sealed.snapshot, applicationContext } }
+                    : sealed
+                )
+              }
+            }
+          }
+        }
+    }
+    return null
+  }
   const context = snapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_ACTION' && context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
     return null
-  const recorded =
-    context.kind === 'ENCOUNTER_ACTION'
-      ? context.reactionChildren
-      : context.phase.kind === 'CHOICE'
-        ? context.phase.reactionChildren
-        : undefined
-  if (!recorded?.some(({ commandId }) => commandId === input.childCommandId)) return null
-  return { parent, snapshot, context }
+  if (
+    !records(
+      context.kind === 'ENCOUNTER_ACTION'
+        ? context.reactionChildren
+        : context.phase.kind === 'CHOICE'
+          ? context.phase.reactionChildren
+          : undefined
+    )
+  )
+    return null
+  return {
+    parent,
+    context,
+    seal: (applicationContext: RecordingContext): ServerRuleExecutionPendingSnapshotDto => ({
+      ...snapshot,
+      applicationContext
+    })
+  }
 }
+
+/** What a held parent's sealed snapshot records its reaction children in. */
+type RecordingContext = Extract<
+  ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
+  { kind: 'ENCOUNTER_ACTION' | 'ENCOUNTER_MOVEMENT_REACTION' }
+>
 
 type RecordingParent = NonNullable<Awaited<ReturnType<typeof readRecordingParent>>>
 
@@ -288,7 +340,7 @@ export async function releaseReactionChildParent(
   const recording = await readRecordingParent(ctx, input)
   if (recording?.parent.state !== 'SUSPENDED')
     throw new Error('The reaction’s pending action is gone.')
-  const { parent, snapshot } = recording
+  const { parent } = recording
   const kept = <Child extends { commandId: string }>(children: readonly Child[] = []) =>
     children.filter(({ commandId }) => commandId !== input.childCommandId)
   let applicationContext: RecordingParent['context']
@@ -343,10 +395,11 @@ export async function releaseReactionChildParent(
     state: 'PENDING',
     version: parent.version + 1,
     expectedEncounterVersion: input.version,
-    pendingSnapshotChecksum: await writePendingSnapshot(ctx, parent, {
-      ...snapshot,
-      applicationContext
-    }),
+    pendingSnapshotChecksum: await writePendingSnapshot(
+      ctx,
+      parent,
+      recording.seal(applicationContext)
+    ),
     updatedAt: new Date().toISOString()
   })
   await repinSuspendedAncestors(ctx, recording, input.version)

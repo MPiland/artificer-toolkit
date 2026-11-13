@@ -124,6 +124,7 @@ import {
   planNativeLiveEncounterAreaAnswer,
   planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
+  planNativeLiveEncounterAreaRayReaction,
   planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
 import { prepareCasterActionOnTarget, type ForcedMovementPick } from './nativeAreaPreparation.js'
@@ -244,13 +245,16 @@ export async function planNativeLiveEncounterAction(
   const pendingContext =
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' ? snapshot.applicationContext : null
   const areaSnapshot =
-    admission.kind === 'ACTION_RESPONSE' || admission.kind === 'AREA_REMOVAL'
+    admission.kind === 'ACTION_RESPONSE' ||
+    admission.kind === 'ACTION_RESUME' ||
+    admission.kind === 'AREA_REMOVAL'
       ? admission.areaSnapshot
       : null
   const resumedOffer = resumeCommand
     ? readNativeResumedReactionOffer({
         resume: resumeCommand,
         snapshot,
+        areaSnapshot,
         fingerprint: admission.fingerprint
       })
     : null
@@ -343,8 +347,11 @@ export async function planNativeLiveEncounterAction(
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
     // An answer to a reaction offered before the cast did anything, or the resume from that reaction's
-    // child action (D219), replays the cast itself.
-    const continuation = resumeCommand ?? (castAnswer ? responseCommand : null)
+    // child action (D219), replays the cast itself. A ray list is past its cast: the offer it holds
+    // is one ray's hit.
+    const continuation = areaSnapshot
+      ? null
+      : (resumeCommand ?? (castAnswer ? responseCommand : null))
     const castResume =
       continuation && pendingContext
         ? {
@@ -381,6 +388,29 @@ export async function planNativeLiveEncounterAction(
           removal: removalCommand,
           areaSnapshot
         })),
+        dependencies,
+        revisions
+      }
+    }
+    const heldRayOffer =
+      areaSnapshot && pendingContext?.pause?.kind === 'CAST_REACTION'
+        ? pendingContext.pause.payload
+        : null
+    const rayContinuation = !heldRayOffer
+      ? null
+      : resumeCommand
+        ? { resume: resumeCommand, offer: heldRayOffer }
+        : responseCommand && castAnswer
+          ? { response: responseCommand, answer: castAnswer }
+          : null
+    if (areaSnapshot && rayContinuation) {
+      return {
+        ...(await planNativeLiveEncounterAreaRayReaction({
+          ...areaInput,
+          areaSnapshot,
+          continuation: rayContinuation
+        })),
+        resume: resumeCommand,
         dependencies,
         revisions
       }
