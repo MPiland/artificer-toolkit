@@ -26708,11 +26708,25 @@
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 28,
+                "size": 20,
                 "after": ["QUALITY-18.T2b2"]
               },
-              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
-              "text": "Restate every movement-reaction flow for the flip (worker nativeMovement* and nativeRoom*, Convex scenes and encounters, encounter-persistence reactionChildren), each restated assertion with its reason; the web client shows a child prompt while its move is SUSPENDED; browser journeys green. Built on the T2b2 branch and merged with it."
+              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together. The 28 is held as T2b3 20 (test restatement) plus T2b4 8 (web), since 20 is the largest size.",
+              "text": "Restate every movement-reaction flow for the flip (worker nativeMovement* and nativeRoom*, Convex scenes and encounters, encounter-persistence reactionChildren), each restated assertion with its reason. Built on the T2b2 branch and merged with it."
+            },
+            {
+              "id": "QUALITY-18.T2b4",
+              "status": "TODO",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-18.T2b2"]
+              },
+              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together. The 28 is held as T2b3 20 (test restatement) plus T2b4 8 (web), since 20 is the largest size.",
+              "text": "The web client shows a child reaction prompt while its move is SUSPENDED and no longer expects the option answer to return the movement result; browser journeys green. Built on the T2b2 branch and merged with T2b2 and T2b3."
             },
             {
               "id": "QUALITY-18.T2c",
@@ -26723,7 +26737,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-18.T2b3"]
+                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
               "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
               "text": "Delete the inline movement reaction engine: the ACTION_EVIDENCE, LEGENDARY_RESISTANCE_CHOICE and reaction-sourced CONCENTRATION_EVIDENCE phases, completedReactionExecutions, the move receipt reactionExecutions, the replay code, the web drawer stories and tests, and the regenerated Convex files."
@@ -26737,7 +26751,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-18.T2b3"]
+                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed."
@@ -26751,7 +26765,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2b3"]
+                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move."
@@ -26765,7 +26779,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2b3"]
+                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Web and timer: the movement offer is REACTION_CHOICE in the decision drawer and the token badge; timed decline through the encounter path; stories and the movement journey."
