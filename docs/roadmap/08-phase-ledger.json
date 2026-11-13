@@ -25768,7 +25768,7 @@
             },
             {
               "id": "QUALITY-8.T1d2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25779,11 +25779,12 @@
               },
               "note": "Split 2026-11-13 at the seam trace (5 to about 11); approved under the user standing approval for QUALITY growth (2026-11-13), net +8. Orchestrator ruling: under the child model a reaction effect that ends when ATTACKED is stored as the child's own effect and ended by the attack it answered, hit or miss.",
               "text": "Character holder end to end: the attack graphs emit a HIT_BY_ATTACK CAST_REACTION pause on the held TEST; the held snapshot keeps twoPhase for a hit offer; the Worker host post-TEST stage records and launches the child and resumes the parent; a rules-runtime continue function declines from the original roll or rebinds the kept d20 against committed state; persistence continuity for a TEST-held offer. Shield proofs: child actor, target, parent and versions, raised AC, one undo, void cascade, decline, replay; the Shield block of nativeRoomReaction restated.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m731 (6fc33b686), fast path from slice tip 497b4b4d4: Tests 43473273819, Browser journeys 43473273613, Live 43476452204 green. Red proof nativeRoomReaction 10/46 RED. A hit on a Character whose usable reactions are all slot-paid ATTACKED_SELF spells pauses with a HIT_BY_ATTACK CAST_REACTION offer held on the TEST; a use records and launches the child on the holder, and the attack resumes by rebuilding its TEST from the offer roll rebound against the committed target; a decline rebuilds the same TEST. Other on-hit menus stay on the inline REACTION pause behind a generic transitional gate that T1d2b ends. Restated in nativeRoomReaction (9 tests, reasons in the file): batch.reaction USE/DECLINE records become null with the raised AC read from the sealed d20 defenseOrDc, and the slot, economy and effect assertions move unchanged to the child batch. New proofs: child actor, target, parent and versions; void cascade at the damage roll. D196: no persisted shape change."
             },
             {
               "id": "QUALITY-8.T1d2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -25793,7 +25794,8 @@
                 "after": ["QUALITY-8.T1d2a"]
               },
               "note": "Split 2026-11-13 at the seam trace (5 to about 11); approved under the user standing approval for QUALITY growth (2026-11-13), net +8. Orchestrator ruling: under the child model a reaction effect that ends when ATTACKED is stored as the child's own effect and ended by the attack it answered, hit or miss.",
-              "text": "The other on-hit reactions: the child consumes triggerDamageTypeIds (Absorb Elements); the Shield plus Absorb menu; ATTACKED-ending effects (Parry, Uncanny Dodge) ended by the answered attack on a hit and on a rebind to a miss; creature holder (Parry, GM answers); reactions needing rolls allowed, pool- or charge-paid reactions refused; drawer proof; one parent read for the trigger context (ruling 11); docs. Remaining nativeRoomReaction blocks and nativeRoomParry restated."
+              "text": "The other on-hit reactions: the child consumes triggerDamageTypeIds (Absorb Elements); the Shield plus Absorb menu; ATTACKED-ending effects (Parry, Uncanny Dodge) ended by the answered attack on a hit and on a rebind to a miss; creature holder (Parry, GM answers); reactions needing rolls allowed, pool- or charge-paid reactions refused; drawer proof; one parent read for the trigger context (ruling 11); docs. Remaining nativeRoomReaction blocks and nativeRoomParry restated.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-8.T1d3",
