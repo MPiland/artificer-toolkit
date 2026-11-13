@@ -99,7 +99,6 @@ export function restoreEncounterActionPending(
   const graphPause =
     pause?.kind === 'ROLL_WINDOW' ||
     pause?.kind === 'LEGENDARY_RESISTANCE' ||
-    pause?.kind === 'REACTION' ||
     pause?.kind === 'ON_HIT' ||
     pause?.kind === 'FORCED_MOVEMENT'
       ? pause

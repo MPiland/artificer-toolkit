@@ -11,17 +11,6 @@ import {
 const ward = (effectId: string) => ({ origin: { kind: 'WARD', effectId } })
 
 describe('offeredDecisionOptionIds', () => {
-  it('offers every reaction the pause carries as a menu', () => {
-    expect(
-      offeredDecisionOptionIds({
-        pause: {
-          kind: 'REACTION' as const,
-          payload: { reactions: [{ useOptionId: 'inner' }, { useOptionId: 'outer' }] }
-        }
-      })
-    ).toEqual(['inner', 'outer'])
-  })
-
   it('offers every reaction a cast waits on as a menu', () => {
     expect(
       offeredDecisionOptionIds({

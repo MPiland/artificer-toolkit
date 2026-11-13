@@ -45,7 +45,6 @@ import {
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
 import {
-  encounterActionReactionReceiptDtoSchema,
   encounterCounteredCastApplicationOutputDtoSchema,
   encounterGatedActionApplicationOutputDtoSchema,
   encounterSettledIncomingGateDtoSchema
@@ -107,19 +106,12 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       /** Present when the source attacked in place of an attack of its commanding actor's Attack action. */
       delegatingActorSpend: z.optional(encounterDelegatingActorSpendDtoSchema),
-      /** The target's reaction decision on this attack; its spend belongs to the target, not the source. */
-      reaction: z._default(z.nullable(encounterActionReactionReceiptDtoSchema), null),
       /** The target also spent its reaction on a failed counter (D127) or a die against the attack roll (D207): that spend rides in this batch's Character write. */
       targetReactorSpend: z._default(z.boolean(), false),
       /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
         .check(z.maxLength(2)),
-      /** The effect of a reaction the target used on being chosen as this cast's target; it lands on the target. */
-      reactionEffectTransitions: z._default(
-        z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
-        []
-      ),
       /** Timed effects the target's own rules created on it from this action (a successful attacker's immunity to its ward); undo deletes them. */
       grantEffectTransitions: z._default(
         z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
@@ -451,10 +443,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Item consumption must match the source Character.'
           })
         const hasActiveEffectCreation =
-          value.activeEffectTransitions.length > 0 ||
-          value.reactionEffectTransitions.length > 0 ||
-          value.grantEffectTransitions.length > 0
-        const reaction = value.reaction
+          value.activeEffectTransitions.length > 0 || value.grantEffectTransitions.length > 0
         const release = value.targetItemUseStateTransition
         if (
           release &&
@@ -473,27 +462,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['targetItemDegradation'],
             message: 'Target item degradation must match the target Character.'
           })
-        // A used reaction writes its spend and effect onto the Character even when it leaves its
-        // hit points unchanged (a halved 1 deals nothing).
-        const hasReactionMutation =
-          reaction?.selection === 'USE' ||
-          value.targetReactorSpend ||
-          release !== null ||
-          degradation !== null
-        if (
-          reaction &&
-          (reaction.reaction.reactorActorId !== value.targetActorId ||
-            (reaction.spellCastConsumption &&
-              !spellSlotOwnedBySource(reaction.spellCastConsumption, {
-                sourceActorId: reaction.reaction.reactorActorId,
-                sourceCharacterId: reaction.reaction.characterId
-              })))
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['reaction'],
-            message: 'A reaction belongs to the attacked Character.'
-          })
+        const hasTargetMutation =
+          value.targetReactorSpend || release !== null || degradation !== null
         if (
           stow &&
           (value.sourceCharacterId === null ||
@@ -528,7 +498,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           transitionChanged ||
           (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
           hasActiveEffectCreation ||
-          hasReactionMutation
+          hasTargetMutation
         if (
           value.targetCharacterStreamVersion === null
             ? targetVersionRequired

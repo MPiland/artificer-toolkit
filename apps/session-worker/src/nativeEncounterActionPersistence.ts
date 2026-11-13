@@ -84,8 +84,6 @@ export function buildNativeLiveEncounterActionCommitInput(
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
     itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
-    reactionSpellConsumption:
-      plan.reactionUse?.prepared.characterActionState?.spellConsumption ?? null,
     windowReactions: plan.windowReactions.map(({ receipt, resourceConsumption }) => ({
       receipt,
       resourceConsumption
@@ -100,7 +98,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
     spellCheck: plan.spellCheck ?? undefined,
-    consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
+    consumedGrants: plan.consumedGrants,
     spentUseGrants: plan.spentUseGrants,
     turnUses: plan.turnUses,
     forcedMovements: plan.forcedMovements,

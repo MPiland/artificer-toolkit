@@ -104,7 +104,6 @@ function monkStrike(rolls: readonly number[]) {
       return resolveNativeActionOnHit({
         ...source,
         candidates,
-        adjustedBinding: null,
         offer: held.pause.payload,
         selection
       })

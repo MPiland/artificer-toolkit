@@ -6,12 +6,10 @@ import {
   MAX_ENCOUNTER_REACTION_OPTIONS
 } from './authoredLimits.js'
 import {
-  spellSlotConsumptionReceiptDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
   ruleCheckD20EvidenceDtoSchema,
   sourceSpendReceiptShape,
   validateSourceSpendReceipts,
-  type SpellSlotConsumptionReceiptDto,
   type SourceSpendReceipts
 } from './ruleExecutionEncounterApplications.js'
 import {
@@ -21,11 +19,7 @@ import {
   type ServerRuleExecutionD20EvidenceDto,
   type ServerRuleExecutionD20PolicyDto
 } from './ruleExecutionEvidence.js'
-import {
-  characterMechanicsResourceReceiptDtoSchema,
-  characterActiveEffectCreateReceiptDtoSchema,
-  encounterActorActiveEffectCreateReceiptDtoSchema
-} from './ruleExecutionMechanics.js'
+import { characterMechanicsResourceReceiptDtoSchema } from './ruleExecutionMechanics.js'
 import { d20RolledSaveDtoSchema, type D20RolledSaveDto } from './ruleExecutionD20WindowOffer.js'
 import {
   serverCompletedRuleExecutionDtoSchema,
@@ -34,7 +28,6 @@ import {
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionChecksumSchema as checksumSchema,
-  ruleExecutionIntegerSchema as integerSchema,
   ruleExecutionNonNegativeIntegerSchema as nonNegativeIntegerSchema,
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
@@ -141,16 +134,6 @@ export function validateEncounterReactionPin(
 }
 
 /**
- * A hit attack held for the target's reaction decision: the TEST execution and its d20, the exact TEST
- * policy a later sealed OUTCOME continues from, and the reactions offered. The reactions are a menu for
- * one reactor, who has one reaction a round: choosing an option uses that reaction, and declining
- * declines them all.
- */
-export type EncounterReactionOfferDto = EncounterSettledHitDto & {
-  reactions: EncounterReactionPinDto[]
-}
-
-/**
  * An attack's hit as its offer to the creature it hit keeps it: the TEST execution and its d20, the
  * exact TEST policy a later sealed OUTCOME continues from, and the target as it stood when it was hit.
  */
@@ -170,17 +153,6 @@ const settledHitShape = () => ({
   targetStateChecksum: checksumSchema
 })
 
-// Explicitly typed so the pending-context declarations stay within the compiler's size limit (TS7056).
-export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOfferDto> = lazySchema(
-  () =>
-    z.strictObject({
-      ...settledHitShape(),
-      reactions: z
-        .array(encounterReactionPinDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS))
-    })
-)
 /**
  * A cast held before it executes for one creature's chance to counter it. The reactions are that
  * reactor's menu (one reaction a round); the reactors already heard from are recorded so that a replay
@@ -569,126 +541,3 @@ export const encounterGatedActionApplicationOutputDtoSchema: z.ZodMiniType<
     propValues: z.core.util.PropValues
   }
 > = encounterGatedActionApplicationOutputImplSchema
-
-/**
- * The defense the reaction changed for the triggering attack, sealed in the evidence: the re-evaluated
- * TEST is bound to the defense after the reaction, never silently rebound.
- */
-export const encounterReactionAdjustmentDtoSchema = lazySchema(() =>
-  z.strictObject({
-    defenseBefore: integerSchema,
-    defenseAfter: integerSchema,
-    adjustedBoundFactsChecksum: checksumSchema
-  })
-)
-
-export type EncounterReactionAdjustmentDto = {
-  defenseBefore: number
-  defenseAfter: number
-  adjustedBoundFactsChecksum: string
-}
-
-export type EncounterReactionOutcomeAuditDto = {
-  choiceExecution: ServerCompletedRuleExecutionDto
-  selection: 'DECLINE' | 'USE'
-  originalExecutionChecksum: string
-  targetStateChecksum: string
-  reaction: EncounterReactionPinDto
-  d20: ServerRuleExecutionD20PolicyDto
-  adjustment: EncounterReactionAdjustmentDto | null
-}
-
-/** Server-only interstitial control evidence retained when a hit attack offered a reaction. */
-export const encounterReactionOutcomeAuditDtoSchema: z.ZodMiniType<EncounterReactionOutcomeAuditDto> =
-  lazySchema(() =>
-    z.strictObject({
-      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      selection: z.enum(['DECLINE', 'USE']),
-      originalExecutionChecksum: checksumSchema,
-      targetStateChecksum: checksumSchema,
-      reaction: encounterReactionPinDtoSchema,
-      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-      /** Present exactly when the reaction was used. */
-      adjustment: z.nullable(encounterReactionAdjustmentDtoSchema)
-    })
-  )
-
-/** What a settled reaction spent and sealed, recorded with the outcome of the attack it answered. */
-export type EncounterActionReactionReceiptDto = {
-  selection: 'DECLINE' | 'USE'
-  reaction: EncounterReactionPinDto
-  choiceExecution: ServerCompletedRuleExecutionDto
-  originalExecutionChecksum: string
-  adjustment: EncounterReactionAdjustmentDto | null
-  spellCastConsumption: SpellSlotConsumptionReceiptDto | null
-  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema> | null
-  /** The reactor's own effect the reaction created; it is what changed the defense. */
-  activeEffectTransitions: z.infer<typeof characterActiveEffectCreateReceiptDtoSchema>[]
-}
-
-/** A creature's reaction receipt: the same, with the effect it created on the creature itself. */
-export type EncounterActorReactionReceiptDto = Omit<
-  EncounterActionReactionReceiptDto,
-  'activeEffectTransitions'
-> & {
-  activeEffectTransitions: z.infer<typeof encounterActorActiveEffectCreateReceiptDtoSchema>[]
-}
-
-function reactionReceiptSchema<EffectReceipt extends z.ZodMiniType>(effectReceipt: EffectReceipt) {
-  return z
-    .strictObject({
-      selection: z.enum(['DECLINE', 'USE']),
-      reaction: encounterReactionPinDtoSchema,
-      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      originalExecutionChecksum: checksumSchema,
-      adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
-      spellCastConsumption: z.nullable(spellSlotConsumptionReceiptDtoSchema),
-      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
-      /** The reactor's own effect the reaction created; it is what changed the defense. */
-      activeEffectTransitions: z.array(effectReceipt).check(z.maxLength(1))
-    })
-    .check(
-      z.superRefine((value, context) => {
-        validateEncounterReactionPin(value.reaction, context, ['reaction'])
-        const used = value.selection === 'USE'
-        if (
-          used !== (value.adjustment !== null) ||
-          used !== (value.actionEconomyTransition !== null) ||
-          (!used &&
-            (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
-        )
-          context.addIssue({
-            code: 'custom',
-            message: 'Reaction receipt does not match its selection.'
-          })
-      })
-    )
-}
-
-// Named so the receipt unions that embed it stay under the compiler's declaration size limit (TS7056).
-export const encounterActionReactionReceiptDtoSchema: z.ZodMiniType<EncounterActionReactionReceiptDto> =
-  lazySchema(() =>
-    reactionReceiptSchema(characterActiveEffectCreateReceiptDtoSchema).check(
-      z.superRefine((value, context) => {
-        if (value.reaction.characterId === null)
-          context.addIssue({
-            code: 'custom',
-            message: 'A Character reaction receipt names its Character.'
-          })
-      })
-    )
-  )
-
-/** A creature's reaction carries no Character identity and spends no spell slot. */
-export const encounterActorReactionReceiptDtoSchema: z.ZodMiniType<EncounterActorReactionReceiptDto> =
-  lazySchema(() =>
-    reactionReceiptSchema(encounterActorActiveEffectCreateReceiptDtoSchema).check(
-      z.superRefine((value, context) => {
-        if (value.reaction.characterId !== null || value.spellCastConsumption !== null)
-          context.addIssue({
-            code: 'custom',
-            message: 'A creature reaction receipt names no Character spend.'
-          })
-      })
-    )
-  )

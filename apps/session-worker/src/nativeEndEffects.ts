@@ -4,17 +4,12 @@ import {
   isEncounterBasicActionId
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  actionEndedEffects,
   actionUsedOnHolderEndedEffects,
-  actsAgainstEnemy,
   actorCreatureTypeIdsOf,
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import {
-  preparedCastsSpell,
-  preparedSpellCastLevel
-} from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import type { CommittedExecutionTrace } from '@artificer-toolkit/rules-runtime/executionOutcomeCapability'
 import {
   encounterBasicActionCheckPendingSnapshot,
@@ -131,38 +126,6 @@ export function endedByAction(
         chosenEffectId: offer.pick?.kind === 'CHOSEN' ? offer.pick.effectId : undefined
       })
     : null
-}
-
-/**
- * A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
- * reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
- */
-export function reactionCastEnded(
-  reactionUse: {
-    prepared: Parameters<typeof preparedCastsSpell>[0] & {
-      actor: { id: string }
-      target: { id: string }
-    }
-  } | null,
-  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>,
-  consumedGrants: readonly { id: string }[],
-  dispositions: Parameters<typeof actsAgainstEnemy>[0]['dispositions']
-) {
-  if (!reactionUse || !preparedCastsSpell(reactionUse.prepared)) return null
-  const { actor, target } = reactionUse.prepared
-  return actionEndedEffects({
-    holderActorId: actor.id,
-    held: (activeEffectsByActorId.get(actor.id) ?? []).filter(
-      (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
-    ),
-    makesAttackRoll: false,
-    castsSpell: true,
-    againstEnemy: actsAgainstEnemy({
-      actorId: actor.id,
-      targetActorIds: [target.id],
-      dispositions
-    })
-  })
 }
 
 /**

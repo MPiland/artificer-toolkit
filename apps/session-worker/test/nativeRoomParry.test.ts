@@ -184,7 +184,6 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
     expect(hitPointsLost(batch)).toBe(0)
     // Restated: the Bite's batch records no reaction; its attack is bound again to the Knight as the
     // child left it, so the sealed d20 carries the armor class it missed.
-    expect(batch.reaction).toBeNull()
     expect(batch.d20).toMatchObject({
       defenseOrDc: armorClass + KNIGHT_PARRY_BONUS,
       resultPath: 'ON_MISS'
@@ -221,7 +220,6 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
     // Restated (QUALITY-8.T1d2b, D219): a declined offer of a reaction that would run as a child
     // leaves no record on the Bite's batch. That no reaction was spent is proved by no child having
     // committed a batch on the Knight as the Knight's own action.
-    expect(batch.reaction).toBeNull()
     expect(() => parryChildBatch(history)).toThrow('left no batch')
   })
 
@@ -277,7 +275,6 @@ describe('room Parry against a melee hit (SPELLS-33.T4k1)', () => {
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     const batch = knightBatch(await readRoomHistory(room.room.base.stub))
     expect(hitPointsLost(batch)).toBe(1)
-    expect(batch.reaction).toBeNull()
   })
 
   it('offers nothing to a Knight who cannot see the attacker', async () => {

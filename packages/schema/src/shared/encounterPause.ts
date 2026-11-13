@@ -23,11 +23,9 @@ import {
   encounterAttackRetargetOfferDtoSchema,
   encounterCastReactionOfferDtoSchema,
   encounterIncomingGateOfferDtoSchema,
-  encounterReactionOfferDtoSchema,
   type EncounterAttackRetargetOfferDto,
   type EncounterCastReactionOfferDto,
-  type EncounterIncomingGateOfferDto,
-  type EncounterReactionOfferDto
+  type EncounterIncomingGateOfferDto
 } from './ruleExecutionReactionChoice.js'
 
 /**
@@ -37,7 +35,6 @@ import {
  */
 export type EncounterPauseDto =
   | { kind: 'LEGENDARY_RESISTANCE'; payload: EncounterLegendaryResistanceOfferDto }
-  | { kind: 'REACTION'; payload: EncounterReactionOfferDto }
   | { kind: 'CAST_REACTION'; payload: EncounterCastReactionOfferDto }
   | { kind: 'INCOMING_GATE'; payload: EncounterIncomingGateOfferDto }
   | { kind: 'ATTACK_RETARGET'; payload: EncounterAttackRetargetOfferDto }
@@ -72,7 +69,6 @@ export const encounterPauseVariants = lazySchemaParts(() => ({
     'LEGENDARY_RESISTANCE',
     encounterLegendaryResistanceOfferDtoSchema
   ),
-  REACTION: pauseVariant('REACTION', encounterReactionOfferDtoSchema),
   CAST_REACTION: pauseVariant('CAST_REACTION', encounterCastReactionOfferDtoSchema),
   INCOMING_GATE: pauseVariant('INCOMING_GATE', encounterIncomingGateOfferDtoSchema),
   ATTACK_RETARGET: pauseVariant('ATTACK_RETARGET', encounterAttackRetargetOfferDtoSchema),
@@ -87,7 +83,6 @@ export const encounterActionPauseDtoSchema: z.ZodMiniType<EncounterActionPauseDt
     const variants = encounterPauseVariants()
     return z.discriminatedUnion('kind', [
       variants.LEGENDARY_RESISTANCE,
-      variants.REACTION,
       variants.CAST_REACTION,
       variants.INCOMING_GATE,
       variants.ATTACK_RETARGET,
