@@ -16,22 +16,26 @@ useLocalRoomWorker()
 type Setup = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
 
 /**
- * The next used reaction's dice: an attack d20 (14, a hit), two damage dice (the minimum) and the
- * mover's save against the Bite's knock-prone rider (a success).
+ * The next used reaction's dice: an attack d20 (14, a hit) and two damage dice (the minimum).
  *
- * Restated (QUALITY-18.T2b3): a Use runs the reaction as the reactor's own action (D219), which
- * rolls that save where the inline engine never drew it, so each Use queues its own dice instead
- * of every reaction sharing one queue of three dice each.
+ * Restated (QUALITY-18.T2b3): a Use runs the reaction as the reactor's own action (D219), so the
+ * Bite's authored rider knocks the mover Prone as that action commits, where the inline engine
+ * left the mover standing through the move. The attack on a mover an earlier Bite knocked Prone
+ * rolls two d20s, so each Use queues its own dice instead of every reaction sharing one queue of
+ * three dice each.
  */
-function queueReactionHit(value: Setup) {
-  return queueRoomRolls(value.base.campaign.id, { rolls: [14, 0, 0, 14], repeat: 0 })
+function queueReactionHit(value: Setup, moverProne = false) {
+  return queueRoomRolls(value.base.campaign.id, {
+    rolls: moverProne ? [14, 14, 0, 0] : [14, 0, 0],
+    repeat: 0
+  })
 }
 
 /** Commits the move and uses its two offered reactions, each a hit. */
 async function useTwoReactionHits(value: Setup) {
   await queueReactionHit(value)
   const first = await useMovementReactionsInRoom(value, 1)
-  await queueReactionHit(value)
+  await queueReactionHit(value, true)
   return useMovementReactionsInRoom(value, 1, first)
 }
 
