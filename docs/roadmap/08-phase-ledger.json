@@ -26032,18 +26032,19 @@
             },
             {
               "id": "QUALITY-9.T1e2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 13,
                 "after": ["QUALITY-9.T1e1", "QUALITY-8.T1d2b"]
               },
-              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll). Resized 5 to 13 at delivery (the die moved into the child's own graph, the committed-read shape, the drawer, and the m733/m734 merge resolution); QUALITY growth pre-approved by the user (2026-11-13).",
               "text": "Reaction die on the action host: the Worker offers it after the roller's own window, launches the child (which pauses for its die, manual entry kept), resumes the parent applying the die to the held d20, rebinds a reactor-is-target child through the QUALITY-8.T1d mechanism; the drawer; the room tests restated on the child path, including undo and void of the child.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m735 (e074840f0), fast path from slice tip 90a47da60: Tests 43511375227, Live 43511375086, Browser journeys 43511375310 green. Red proof (run 43507125226 on the pre-merge tip): nativeRoomCuttingWords 12/13, CampaignTabletopDecisionDrawer 1/37, reactionChildren 2/83, effectOutcomeRegistry 1/79 RED. The action host offers the d20-window reaction die after the roller's own window as a rolled CAST_REACTION (ATTACK_ROLL_BY_OTHER) offer, launches the holder's child, and resumes the parent with the die applied to the held d20; the child pauses for its die (triggering-roll-die-N evidence nodes keep manual entry); readCommittedReactionChildren returns triggeringRollSubtraction and the parent pending records rolledDie; a reactor-is-target child rebinds through the T1d mechanism; the drawer shows the attacker's roll. The movement host keeps the window die until T1e3/QUALITY-9.T2. Restated with reasons: all 13 nativeRoomCuttingWords room tests moved from the window die to the child path; the effectOutcomeRegistry SUBTRACT row asserts the resolved proposal; reactionChildren gains triggeringRollSubtraction; golden Cutting Words line; conformance snapshot gains dnd5e.triggering-roll-die-faces. D196: refresh local data when next used (Cutting Words graph checksum, new fact contract, pending rolledDie, committed-read shape); build packages first."
             },
             {
               "id": "QUALITY-9.T1e3",
@@ -26056,7 +26057,7 @@
                 "size": 3,
                 "after": ["QUALITY-9.T1e2", "QUALITY-18.T6"]
               },
-              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll).",
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll). Carried from T1e2 (2026-11-13): fix the golden harness so the Cutting Words facts column binds a resolved die instead of pinning a refusal; path-gated subtract rolls no die and the compiler still refuses it; a sight-governed d20 offers no rolled-offer die; beside-roll versus after-roll die split on the child path; legendary-action retained replay with child dice; ray hosts pass child dice but no ray source supplies rollReaction (no ray die test); delete planNativeWindowReactions and the movement-only targetSaveWindow dice parameter with the window fields once the movement host and opportunity attacks no longer need them.",
               "text": "Delete the window reaction die: spentReaction, windowReactions, EncounterWindowReactionReceiptDto, the reaction-die option, planNativeWindowReactions and the movement step field; ROLL_WINDOW stays for held dice and damage rerolls; docs."
             }
           ]
@@ -26374,14 +26375,14 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-13.T1c2b", "QUALITY-9.T1e2"]
+                "after": ["QUALITY-13.T1c2b", "QUALITY-9.T1e2", "QUALITY-13.T1c4"]
               },
-              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth). Sequenced after QUALITY-13.T1c4 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts.",
               "text": "Protection, bystander reaction children and roll reactions per ray, with their spends in the commit."
             },
             {
               "id": "QUALITY-13.T1c4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26391,7 +26392,8 @@
                 "after": ["QUALITY-13.T1c2b"]
               },
               "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth).",
-              "text": "On-hit riders and the incoming gate per ray: the gate is passed per attack TEST; a ray lost at the gate offers ATTACK_RETARGET for that ray only (re-seals its own entry); a slot or pool spent on one ray is not offered on the next."
+              "text": "On-hit riders and the incoming gate per ray: the gate is passed per attack TEST; a ray lost at the gate offers ATTACK_RETARGET for that ray only (re-seals its own entry); a slot or pool spent on one ray is not offered on the next.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T2c",

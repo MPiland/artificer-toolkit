@@ -7,6 +7,7 @@ import type {
 import {
   d20WindowReactorActorId,
   isD20RolledCheck,
+  type D20RolledSaveDto,
   type D20WindowPausePayloadDto,
   type D20WindowReactionDieDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
@@ -142,6 +143,34 @@ export function heldWindowedSave(
 }
 
 /**
+ * An action's TEST as it froze with the d20 just rolled: what a window or a reaction offer made after
+ * the roll keeps of it. Null for a roll with no d20 faces, which neither can show.
+ */
+export function rolledActionTest(input: {
+  continuation: ServerRuleExecutionContinuationDto
+  policy: ServerRuleExecutionD20PolicyDto
+  response: SettledActionResponse
+}): D20RolledSaveDto | null {
+  const { continuation, response } = input
+  if (!response.faces || !response.rollMode || !response.keep) return null
+  return {
+    continuation,
+    initialFactsChecksum: checksumRuleDocument(continuation.facts),
+    d20: damageSaveRolledD20({
+      requestId: continuation.request.requestId,
+      save: input.policy,
+      roll: {
+        rawFaces: response.faces,
+        rollMode: response.rollMode,
+        keep: response.keep,
+        natural: response.value,
+        addedDice: response.addedDice
+      }
+    })
+  }
+}
+
+/**
  * Pauses a rolled TEST for its next decider to spend a die on it (D168), or null when the roll is not
  * one a window can show. The window freezes the TEST's continuation with the roll: as rolled (a
  * `response`), or as the window before settled it (`previous` and its `d20`), for the next reactor.
@@ -169,23 +198,9 @@ export async function openActionSaveWindow(
     rolled = { ...input.previous.rolled, d20: input.d20 }
     appRollId = input.previous.appRollId
   } else {
-    const { response } = input
-    if (!response.faces || !response.rollMode || !response.keep) return null
-    rolled = {
-      continuation: input.continuation,
-      initialFactsChecksum: checksumRuleDocument(input.continuation.facts),
-      d20: damageSaveRolledD20({
-        requestId: input.continuation.request.requestId,
-        save: input.policy,
-        roll: {
-          rawFaces: response.faces,
-          rollMode: response.rollMode,
-          keep: response.keep,
-          natural: response.value,
-          addedDice: response.addedDice
-        }
-      })
-    }
+    const test = rolledActionTest(input)
+    if (!test) return null
+    rolled = test
     appRollId = input.appRollId
   }
   const window = await openEncounterD20WindowPause({

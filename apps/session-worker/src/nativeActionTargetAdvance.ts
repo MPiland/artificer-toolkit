@@ -36,7 +36,7 @@ export async function advanceNativeActionTarget(input: {
   actionSource: NativePauseSettleContext['actionSource'] &
     Omit<
       GraphsInput,
-      'attackSight' | 'onHitCandidates' | 'resume' | 'legendaryResistance' | 'reaction'
+      'attackSight' | 'onHitCandidates' | 'resume' | 'legendaryResistance' | 'reaction' | 'heldRoll'
     >
   targetStateChecksum: string
   /** Prepares a reaction the target holds, as the target's own action. */
@@ -46,6 +46,8 @@ export async function advanceNativeActionTarget(input: {
   pauseAnswer: NativePauseAnswer | null
   /** The answered offer the action resumes past, its reactor's child action committed (D219). */
   resumedOffer: EncounterCastReactionOfferDto | null
+  /** The dice the reactions used on the rolled attack d20 rolled against it, as their actions committed. */
+  rolledChildDice: NonNullable<GraphsInput['heldRoll']>['childDice']
   resume: GraphsInput['resume'] | null
 }) {
   const { state, capture, attack, actionSource, targetStateChecksum, onHitNow, resume } = input
@@ -116,8 +118,47 @@ export async function advanceNativeActionTarget(input: {
       child: { holderActorId: chosen.reactorActorId, actionId: chosen.actionId }
     }
   }
+  /**
+   * The held offer of the rolled attack d20 this call answers or resumes past (D219). A chosen
+   * reaction is found again as it stands now and its sealed choice settled; it then runs as its
+   * holder's own child action against the attacker.
+   */
+  const heldRoll = async (
+    offer: NonNullable<GraphsInput['heldRoll']>['offer']
+  ): Promise<{
+    answer: NonNullable<GraphsInput['heldRoll']>['answer']
+    child: { holderActorId: string; actionId: string; targetActorId: string } | null
+  }> => {
+    if (!castAnswer) return { answer: { kind: 'RESUMED' }, child: null }
+    const chosen = chosenEncounterReaction(offer, castAnswer.selection)
+    if (castAnswer.selection.kind !== 'OPTION') return { answer: { kind: 'DECLINE' }, child: null }
+    const candidate = (
+      await actionSource.rollReaction?.discover(offer.declinedReactorActorIds)
+    )?.find(
+      ({ reactorActorId, actionId }) =>
+        reactorActorId === chosen.reactorActorId && actionId === chosen.actionId
+    )
+    if (!candidate) throw new Error('Reaction evidence is stale.')
+    await settleEncounterCastReactionUse({
+      runtime: actionSource.runtime,
+      occurrenceId: actionSource.occurrenceId,
+      offer,
+      candidate,
+      optionId: castAnswer.selection.optionId
+    })
+    return {
+      answer: { kind: 'USE', candidate },
+      child: {
+        holderActorId: chosen.reactorActorId,
+        actionId: chosen.actionId,
+        targetActorId: attack.actor.id
+      }
+    }
+  }
   const heldOffer = hitOffer?.hit ? { ...hitOffer, hit: hitOffer.hit } : null
   const answeredHit = heldOffer ? { offer: heldOffer, ...(await heldHit(heldOffer)) } : null
+  const rolledOffer = hitOffer?.rolled ? { ...hitOffer, rolled: hitOffer.rolled } : null
+  const answeredRoll = rolledOffer ? { offer: rolledOffer, ...(await heldRoll(rolledOffer)) } : null
   const attackFacts =
     attack.source.kind === 'CHARACTER_ACTION'
       ? attack.source.candidate.mechanicFacts
@@ -130,6 +171,15 @@ export async function advanceNativeActionTarget(input: {
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
       ...(answeredHit ? { heldHit: { offer: answeredHit.offer, answer: answeredHit.answer } } : {}),
+      ...(answeredRoll
+        ? {
+            heldRoll: {
+              offer: answeredRoll.offer,
+              answer: answeredRoll.answer,
+              childDice: input.rolledChildDice
+            }
+          }
+        : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) => {
@@ -156,8 +206,15 @@ export async function advanceNativeActionTarget(input: {
   return {
     execution,
     resistance,
-    /** The reaction chosen against the held hit, which runs as its holder's own action (D219). */
-    reactionChild: answeredHit?.child ?? null,
+    /**
+     * The reaction chosen from the held offer, which runs as its holder's own action (D219): one to
+     * the rolled d20 at the attacker, one to the hit at its holder, the attack's target.
+     */
+    reactionChild:
+      answeredRoll?.child ??
+      (answeredHit?.child
+        ? { ...answeredHit.child, targetActorId: answeredHit.child.holderActorId }
+        : null),
     /** The on-hit rider the attacker chose, by this answer or one the OUTCOME kept. */
     chosenOnHit:
       settled?.onHit?.audit.option ??
