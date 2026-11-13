@@ -1,7 +1,7 @@
 import type { NativeEncounterActionMechanicsInput } from './encounterActionMechanicsPlan.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { characterClassLevels } from './encounterMovementTargets.js'
-import { selectScalingRow } from './scalingRowSelection.js'
+import { scaledRolledDieFaces } from './scalingRowSelection.js'
 
 /**
  * The die a prepared reaction rolls against another creature's roll (D207): the die its
@@ -17,17 +17,10 @@ export function encounterWindowReactionDie(
     'rolledDie' in outcome && outcome.rolledDie ? [outcome.rolledDie] : []
   )
   if (!rolled) return null
-  const scaling = rolled.facesScaling
-  const row = scaling
-    ? selectScalingRow(
-        scaling.levels.map((level) => ({ ...level, order: 0 })),
-        characterClassLevels(prepared.sourceFacts.characterFacts)[scaling.classId] ?? 0
-      )
-    : null
   return {
     label: encounterActionSourceLabel(source),
     count: rolled.count,
-    faces: row?.faces ?? rolled.faces,
+    faces: scaledRolledDieFaces(rolled, characterClassLevels(prepared.sourceFacts.characterFacts)),
     sign: rolled.sign
   }
 }
