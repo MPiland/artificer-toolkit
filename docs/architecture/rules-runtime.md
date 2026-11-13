@@ -1612,19 +1612,15 @@ paths share `decideEncounterLegendaryResistance`. The decision is [D104](../hand
 ### Reaction to a hit (current, REACTION-4.T1)
 
 A reaction authored with `reactionTrigger: { kind: 'ATTACKED_SELF' }` (Shield) is offered to the attacked
-Character when a single-target `RESOLVE_ACTION` TEST resolves `ON_HIT` or `ON_CRIT`, before the OUTCOME. The
-`ENCOUNTER_ACTION` pending context keeps a sealed `REACTION` pause (a stack so Counterspell chains can nest later) with the Character as roller; nothing is spent while it
-waits and the Scene is held (D26, text "Waiting on a reaction decision"). The answer is `DECLINE` or
-`OPTION`, read as the `REACTION_CHOICE` summary; the room re-opens the choice graph by occurrence id, as
-Legendary Resistance does.
-
-DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeReactionEffect`),
-prices the reaction through the action economy and the slot through Character mechanics, builds the effect
-it creates on its reactor, and re-evaluates the TEST: `reconstructNativeActionTest` rebinds the recorded
-dice to the attack's defense as the effect leaves it. That rebinding is a sealed `adjustment`
-(`defenseBefore`, `defenseAfter`, adjusted-facts checksum) in the OUTCOME's `reaction` audit and the
-receipt; the "TEST evidence is stale" guard stays intact for everything else. The batch receipt's `reaction`
-carries the spend and the effect; GM undo returns the slot and the allowance and deletes the effect.
+creature when a single-target `RESOLVE_ACTION` TEST resolves `ON_HIT` or `ON_CRIT`, before the OUTCOME. The
+`ENCOUNTER_ACTION` pending context keeps a sealed `CAST_REACTION` pause (kind `HIT_BY_ATTACK`) with the
+creature as roller; nothing is spent while it waits and the Scene is held (D26, text "Waiting on a reaction
+decision"). The answer is `DECLINE` or `OPTION`, read as the `REACTION_CHOICE` summary. A use runs the chosen
+reaction as its holder's own child action (D219, see "DAMAGE_TAKEN" below and "The hit a child answers" in
+[persistence](persistence.md)), which spends its own slot and reaction and creates its own effect; the attack then
+rebuilds its TEST from the roll the offer keeps, bound again to the target as the child left it. The inline
+settlement that once ran the reaction inside the attack (the `REACTION` pause, its adjusted binding and audit,
+and the batch's `reaction` receipt) was deleted by QUALITY-8.T1d3.
 
 Order on one attack: TEST, then the reaction choice (`ON_HIT`/`ON_CRIT` only), then the OUTCOME. It cannot
 meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE_FAIL` and a TEST has
@@ -1637,9 +1633,7 @@ shares with `LEGENDARY_WINDOW_ONLY` (which exempts the rule-raised root of a del
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
 option was chosen (`chosenEncounterReaction`; a decline answers the innermost), and the Worker re-discovers
 that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary lists every offered option (`REACTION_CHOICE.options`, 1 to 8) and the Decision drawer shows a
-button for each; every pin names the same reactor. The reaction's effect id is derived from the command and occurrence ids
-(`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
-create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
+button for each; every pin names the same reactor.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
 #### Creature reactors and `ATTACKED_SELF` qualifiers (current, SPELLS-33.T4k1)
@@ -1808,18 +1802,14 @@ is attacked), and the resumed attack is prepared again against the target as the
 effect counts as any active effect does and the attack's own `ATTACKED` event ends it, on a hit or on a miss
 (`targetEndedEffects`). The child binds a `TRIGGER` resistance to the types the reaction's trigger names
 among those the offer keeps (`reactionTriggerDamageTypeIds`, the same rule discovery offers it by). A
-reaction paid from a pool or a charge is still not offered. The paragraphs below also describe the inline
-settlement (the adjusted binding at the outcome phase's `REACTION` pause), which no hit reaches any more and
-QUALITY-8.T1d3 deletes.
+reaction paid from a pool or a charge is still not offered.
 
 `reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds }` (a user-authored Absorb Elements) rides the same
 pause as `ATTACKED_SELF`: discovery (a `HIT_BY_ATTACK` event, see "Event hooks") offers it when one of `damageTypeIds`
 is a damage type of the hit attack's `ON_HIT`/`ON_CRIT` outcomes (`attackHitDamageTypeIds`). The candidate and
 the sealed pin carry their `trigger`, so a changed trigger is a different offer. The reaction's effect carries
-a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense of the reactor; the
-re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
-is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
-defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
+a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense of the reactor, so the
+damage is resisted before it applies. The follow-up benefit is an ordinary grant in the same effect (a melee
 `DAMAGE` bonus until the end of the caster's next turn, scaled by the slot level the reaction was cast with).
 
 The resistance names the triggering damage type rather than a fixed one (`damageTypeSource: 'TRIGGER'` on a
@@ -3138,7 +3128,7 @@ passive weapon-attack invocation is merged into the weapon's compiled effect lik
 `optionalRider`, and the OUTCOME specialization keeps it only when its effect id is in the bound fact
 `dnd5e.selected-optional-riders`; its level-keyed rows read the paid slot from `dnd5e.spell-cast-level`
 (`selectScalingRow` clamps above the authored rows, which is how Divine Smite caps at 5d8). After a hit, and after
-any `REACTION` pause has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
+any `CAST_REACTION` pause has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
 `ON_HIT` pause (`ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
 a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
 `optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries

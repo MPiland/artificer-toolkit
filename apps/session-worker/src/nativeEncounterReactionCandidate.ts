@@ -16,7 +16,6 @@ import type {
 } from '@artificer-toolkit/rules-runtime/events/encounterEventTable'
 import { createReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/reactionChoiceDefinition'
 
-import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 
 type Prepared = NativeEncounterActionMechanicsInput['prepared']
@@ -152,11 +151,3 @@ function nativeReactionCandidate(input: {
     })
   }
 }
-
-/** The user-safe refusal of a reaction this System cannot resolve inline. */
-export const unsupportedReaction = (message: string) =>
-  new LiveSessionDomainRejectionError(422, {
-    code: 'DOMAIN_REJECTED',
-    reason: 'REACTION_UNSUPPORTED',
-    message
-  })

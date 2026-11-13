@@ -260,11 +260,7 @@ export async function persistEncounterActionCommit(
     sourceCommandId: command.commandId,
     commandId: command.commandId,
     occurredAt: input.occurredAt,
-    // A used reaction versions its Character even when it leaves no effect behind (Uncanny Dodge).
-    forceVersionAdvance:
-      target.kind === 'CHARACTER' &&
-      (input.createdEffects.length > 0 || batch.reaction?.selection === 'USE'),
-    reactionSpell: input.reactionSpellConsumption,
+    forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
     used: targetUsed,
     sourceMutation: source.id === target.id ? sourceMutation : {},
     extra: {

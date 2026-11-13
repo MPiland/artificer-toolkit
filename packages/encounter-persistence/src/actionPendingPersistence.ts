@@ -225,8 +225,6 @@ export async function persistEncounterActionPending(
       snapshot.applicationContext.contest !== undefined ||
       (pause?.kind === 'LEGENDARY_RESISTANCE' &&
         pause.payload.resistance.targetActorId !== target.actorId) ||
-      (pause?.kind === 'REACTION' &&
-        pause.payload.reactions.some(({ reactorActorId }) => reactorActorId !== target.actorId)) ||
       ((pause?.kind === 'ON_HIT' || pause?.kind === 'FORCED_MOVEMENT') &&
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
       !heldActionContinues({

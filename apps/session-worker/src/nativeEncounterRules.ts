@@ -68,12 +68,7 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { requireChosenItemInstance } from './nativeChosenItem.js'
-import {
-  endedByAction,
-  planEndEffects,
-  planEndEffectsChecks,
-  reactionCastEnded
-} from './nativeEndEffects.js'
+import { endedByAction, planEndEffects, planEndEffectsChecks } from './nativeEndEffects.js'
 import {
   payableCharacterDamageRerolls,
   prepareNativeLiveActionMaintenance,
@@ -106,7 +101,6 @@ import {
   retargetEncounterAction,
   settleEncounterAttackRetarget
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
-import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
 import { reactionTriggerDamageTypeIds } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -1044,42 +1038,34 @@ export async function planNativeLiveEncounterAction(
           resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
-  const { execution, resistance, reaction, reactionChild, reactionUse, chosenOnHit } =
-    await advanceNativeActionTarget({
-      state,
-      system,
-      capture,
-      attack: prepared,
-      actionSource,
-      targetStateChecksum,
-      prepareReaction: (actionId) =>
-        prepareEncounterActionMechanics({
-          state,
-          actor: prepared.target,
-          target: prepared.target,
-          actors,
-          actionId,
-          wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-          overridable: false,
-          movementTargets,
-          sceneContext: null,
-          ...actionSources
-        }),
-      // The answered attack keeps the decoy it was rolled against.
-      prepareReactedAttack: async (reactedTargets: typeof movementTargets) =>
-        react(await prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions)),
-      loadTarget,
-      activeEffectsByActorId,
-      commandId: command.commandId,
-      occurredAt,
-      onHitNow,
-      pauseAnswer,
-      resumedOffer:
-        resumeCommand && pendingContext?.pause?.kind === 'CAST_REACTION'
-          ? pendingContext.pause.payload
-          : null,
-      resume
-    })
+  const { execution, resistance, reactionChild, chosenOnHit } = await advanceNativeActionTarget({
+    state,
+    system,
+    capture,
+    attack: prepared,
+    actionSource,
+    targetStateChecksum,
+    prepareReaction: (actionId) =>
+      prepareEncounterActionMechanics({
+        state,
+        actor: prepared.target,
+        target: prepared.target,
+        actors,
+        actionId,
+        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: false,
+        movementTargets,
+        sceneContext: null,
+        ...actionSources
+      }),
+    onHitNow,
+    pauseAnswer,
+    resumedOffer:
+      resumeCommand && pendingContext?.pause?.kind === 'CAST_REACTION'
+        ? pendingContext.pause.payload
+        : null,
+    resume
+  })
   if (execution.kind === 'PENDING')
     return {
       ...preflight(),
@@ -1135,14 +1121,6 @@ export async function planNativeLiveEncounterAction(
           }).passiveWeaponHits
         : []
   })
-  // A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
-  // reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
-  const reactionEnded = reactionCastEnded(
-    reactionUse,
-    activeEffectsByActorId,
-    consumedGrants,
-    dispositions
-  )
   // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207);
   // the target's rides its own mechanics.
   const windowReactions = planNativeWindowReactions({
@@ -1218,11 +1196,6 @@ export async function planNativeLiveEncounterAction(
   // A hit on a decoy destroys it, and a repeat spends one of its carrier's counted uses; the last
   // decoy or use ends its effect.
   const uses = settledCountedUseSpend(prepared, execution.d20?.resultPath, activeEffectsByActorId)
-  // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
-  // that end on damage; the conditions only they held are released in the target's own batch.
-  const targetHeld = heldOnTarget.filter(
-    ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
-  )
   const meleeAttack = isMeleeAttackSource(state.gameSystemId, prepared.source)
   const grantTriggers = prepareAttackTargetGrantTriggers({
     encounter: settledPrepared.state,
@@ -1233,7 +1206,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
-  const actionEnded = endedByAction(endPlan, command, execution.execution, targetHeld, prepared)
+  const actionEnded = endedByAction(endPlan, command, execution.execution, heldOnTarget, prepared)
   // A cast that may end higher-level effects pends one roller prompt per candidate (D182).
   const spellCheck = actionEnded
     ? await planEndEffectsChecks({
@@ -1286,31 +1259,20 @@ export async function planNativeLiveEncounterAction(
     userId: initial.expectedUserId,
     effects: preparedEffects,
     applications,
-    held: targetHeld,
+    held: heldOnTarget,
     grantTriggers,
     damagerActorId: prepared.actor.id,
     dispositions,
     currentEffects: targetEffects,
     recurringEffectId,
     maintainedState,
-    // A reaction effect the answered attack uses up (`ON_ATTACKED`: a bonus against that one attack)
-    // applied to its roll alone, so it is never kept.
-    reactionEffect:
-      reactionUse &&
-      !(
-        prepared.makesAttackRoll &&
-        endSubscriptions(reactionUse.applied.pendingEffect).some((s) => s.event === 'ATTACKED')
-      )
-        ? reactionUse.applied.reactionEffect
-        : null,
     grants: gateImmunityGrant ? [gateImmunityGrant] : [],
     formCreature: null,
-    targetSpends: reactionUse !== null || targetReactorSpend,
+    targetSpends: targetReactorSpend,
     charge: resistance?.charge ?? null,
-    reactionEconomy: reactionUse?.economy ?? spentTargetEconomy,
+    reactionEconomy: spentTargetEconomy,
     mechanics: {
       sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
-      targetReleases: reactionEnded?.sourceReleases,
       damageReleases: actionEnded?.releases,
       releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
       degradeTargetItem: preparedEffects.degradedItem,
@@ -1432,14 +1394,6 @@ export async function planNativeLiveEncounterAction(
     attackAction: settledAttackAction,
     delegation: settledDelegation,
     resistance,
-    reaction: reaction && {
-      audit: reaction.audit,
-      spent: reactionUse && {
-        spellConsumption: reactionUse.prepared.characterActionState?.spellConsumption,
-        economy: reactionUse.economy,
-        activeEffectTransitions: outcome.reactionEffectTransitions
-      }
-    },
     targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
     grantEffectTransitions: outcome.grantEffectTransitions,
@@ -1504,8 +1458,6 @@ export async function planNativeLiveEncounterAction(
       storedExecution.status === 'COMPLETE' && hit !== null
         ? await castPause.planResolvedOffers(hit)
         : [],
-    reactionUse,
-    reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: uses.spentUseGrants,
     windowReactions,
     forcedMovements,

@@ -3,16 +3,10 @@ import {
   encounterReactionSelectionIdentity,
   encounterReactionUseOptionId,
   type EncounterCastReactionOfferDto,
-  type EncounterReactionOfferDto,
   type EncounterReactionPinDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import type {
-  ServerCompletedRuleExecutionDto,
-  ServerRuleExecutionContinuationDto,
-  ServerRuleExecutionD20PolicyDto
-} from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { v5 as uuidv5 } from 'uuid'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -62,7 +56,7 @@ export function encounterReactionPin(
 }
 
 /** Whether the freshly discovered candidate is still the one the pin was sealed against. */
-export function sameEncounterReactionCandidate(
+function sameEncounterReactionCandidate(
   reaction: Pick<
     EncounterReactionPinDto,
     'selectionChecksum' | 'useOptionId' | 'allowanceBeforeUsed' | 'allowanceMaximum'
@@ -76,49 +70,6 @@ export function sameEncounterReactionCandidate(
     current.allowanceBeforeUsed === reaction.allowanceBeforeUsed &&
     current.allowanceMaximum === reaction.allowanceMaximum
   )
-}
-
-const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
-
-/**
- * The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same
- * one. A cast several creatures react to names each `reactorActorId`, so each leaves its own.
- */
-export function encounterReactionEffectId(input: {
-  commandId: string
-  occurrenceId: string
-  reactorActorId?: string
-}) {
-  return uuidv5(
-    [input.commandId, input.occurrenceId, input.reactorActorId].filter(Boolean).join(':'),
-    reactionEffectNamespace
-  )
-}
-
-/** The interstitial audit a decided offer hands the sealed OUTCOME it selects. */
-export function encounterReactionAudit(input: {
-  offer: Pick<
-    EncounterReactionOfferDto,
-    'originalExecutionChecksum' | 'targetStateChecksum' | 'd20'
-  >
-  reaction: EncounterReactionPinDto
-  selection: 'DECLINE' | 'USE'
-  choiceExecution: ServerCompletedRuleExecutionDto
-  adjustment: {
-    defenseBefore: number
-    defenseAfter: number
-    adjustedBoundFactsChecksum: string
-  } | null
-}) {
-  return {
-    choiceExecution: input.choiceExecution,
-    selection: input.selection,
-    originalExecutionChecksum: input.offer.originalExecutionChecksum,
-    targetStateChecksum: input.offer.targetStateChecksum,
-    reaction: input.reaction,
-    d20: input.offer.d20,
-    adjustment: input.adjustment
-  }
 }
 
 /** Starts the sealed two-option choice; nothing is published until a decision settles it. */
@@ -153,45 +104,6 @@ export function chosenEncounterReaction<Pin extends { useOptionId: string }>(
     }) ?? offer.reactions[0]
   if (!chosen) throw new Error('Reaction selection was not issued.')
   return chosen
-}
-
-/**
- * Settles a sealed choice against its pin. The offer, the hit and the reactor's facts must all still be
- * the ones it was made against; using the reaction spends nothing here, the caller's commit does.
- */
-export async function settleEncounterReactionChoice(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  boundary: {
-    execution: ServerCompletedRuleExecutionDto
-    d20Policy: ServerRuleExecutionD20PolicyDto
-  }
-  offer: Pick<
-    EncounterReactionOfferDto,
-    'reactions' | 'targetStateChecksum' | 'originalExecutionChecksum' | 'd20'
-  >
-  candidate: EncounterReactionCandidate
-  targetStateChecksum: string
-  selection: EncounterSealedChoiceSelection
-}) {
-  const { boundary, offer } = input
-  const reaction = chosenEncounterReaction(offer, input.selection)
-  if (
-    input.targetStateChecksum !== offer.targetStateChecksum ||
-    checksumRuleDocument(boundary.execution) !== offer.originalExecutionChecksum ||
-    checksumRuleDocument(boundary.d20Policy) !== checksumRuleDocument(offer.d20) ||
-    !sameEncounterReactionCandidate(reaction, input.candidate)
-  )
-    throw new Error('Reaction evidence is stale.')
-  if (
-    boundary.execution.status !== 'COMPLETE' ||
-    (boundary.execution.outputs.resultPath !== 'ON_HIT' &&
-      boundary.execution.outputs.resultPath !== 'ON_CRIT')
-  )
-    throw new Error('A reaction to an attack requires sealed hit evidence.')
-  const use = input.selection.kind === 'OPTION'
-  const choice = await settleSealedReactionChoice({ ...input, reaction, use })
-  return { use, reaction, choice }
 }
 
 /** Opens the sealed two-option choice a pin names and answers it, refusing anything but that exact pin. */
