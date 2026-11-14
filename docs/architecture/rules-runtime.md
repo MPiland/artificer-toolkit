@@ -594,7 +594,7 @@ exactly as for action damage.
 **Movement repeat saves (current, QUALITY-14.T2c, D167).** A contact's damage also owes the effect repeat
 saves its holder's effects offer on damage, like action damage: the movement chain passes every target's
 effects as `effectSaves.holders`, so `planDamageSaveChain` orders Concentration checks and repeat saves
-in one chain. `massiveRule` stays null on movement (QUALITY-14.T2d). `prepareEncounterMovementConcentration`
+in one chain, with the Run's massive-damage rule as `massiveRule` (see below). `prepareEncounterMovementConcentration`
 settles a repeat save with the effect's own frozen save (the same `effectRepeatSaveExecutionInput`,
 `createEffectRepeatSaveContext` and `evaluateEffectRepeatSaveEvidence` as `settleEffectRepeatSave`); a made
 save releases the effect in the cumulative projection (`projectRelease`, `projectEncounterMovementEffectRelease`),
@@ -608,6 +608,21 @@ settlement through `persistLiveMovementRepeatSave`, which reads the committed ef
 version, requires it to offer a repeat save for damage from this contact's zone source and type
 (`damagedHitRepeatTrigger`), and releases a made save through `releaseEffectRepeatSave`. Movement saves
 carry no source label, no D168 window and no spent dice.
+
+**Movement massive-damage saves (current, QUALITY-14.T2d).** A contact's damage owes the massive-damage
+save (ATTACK-16) under the Run's pinned rule like action damage: the movement chain passes
+`encounterMassiveDamageRule(state)` to `planDamageSaveChain`, so the same per-application threshold (each
+contact measured alone, none for a holder the damage defeated) decides it. `prepareEncounterMovementConcentration`
+settles it with the action path's pieces (`createMassiveDamageSaveContext`, `evaluateMassiveDamageSaveEvidence`,
+`completeMassiveDamageSaveResult`); a manual roll pauses the move on the `MASSIVE_DAMAGE_SAVE_EVIDENCE` phase.
+The contact retains each save as `massiveDamageSaves` (`movementMassiveDamageSaveExecutionDtoSchema`; no
+release and no owner transitions, since the save changes no Run state), read back in chain order by
+`movementDamageSaveChildren`. With the rule on, every damaged actor may owe a save, so the room interrupts
+the move for each (`determineConcentrationActorIds`). Each save settles as a `MASSIVE_DAMAGE_SAVE` movement
+settlement through `persistLiveMovementMassiveDamageSave`, which requires the save's scope (non-MANUAL Run,
+the pinned rule's definition and checksum, the source command, the child id under the move's occurrence),
+an unchanged target, the save owed by its damage (`bindEncounterDamageSaveChain`) and no existing child
+occurrence, then records it like the action path's child.
 
 **Movement damage ends (current, QUALITY-14.T2b).** The damage a move's zones deal ends the effects the
 damaged creatures hold until damaged (`DAMAGE_TAKEN` end triggers), like action damage. They end once the
@@ -629,7 +644,7 @@ never from the facts captured before the move. An effect a made repeat save rele
 listed nor counted as still holding a condition, and persistence refuses a `DAMAGE_END` step for it
 ('Movement release differs from its holder effect.'). Not covered yet (transitional): a move left PENDING
 ends nothing until it finishes; the temporary hit points and incoming-damage grants an action's ends stage
-also releases; massive-damage saves on movement damage (QUALITY-14.T2d); and the save
+also releases (`movementDamageEndedEffects` keeps only the ended effects; QUALITY-14.T2d split); and the save
 chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
 effect and owes a save raises twice.
 
@@ -3950,7 +3965,8 @@ adapter fact `dnd5e.active-effect-repeat-save-triggers-only`; the turn tick refu
 no request, only the duration counts down) and the damage hook passes `onTrigger: true` so the attempt is allowed.
 Movement (zone contact) damage settles its Concentration saves through `MovementConcentrationSettlement`, a
 separate per-step stack, and its damage-taken effect ends as `DAMAGE_END` steps (QUALITY-14.T2b, see "Movement
-damage ends"); its effect repeat saves and massive-damage saves are not in the chain yet.
+damage ends"); its effect repeat saves (QUALITY-14.T2c) and massive-damage saves (QUALITY-14.T2d) settle in
+the same chain as `REPEAT_SAVE` and `MASSIVE_DAMAGE_SAVE` steps.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`

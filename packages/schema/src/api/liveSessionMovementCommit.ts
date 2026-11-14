@@ -1,3 +1,4 @@
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema } from '../zod.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import { liveSessionMovementCaptureScopeSchema } from './liveSessionEncounterMovement.js'
@@ -19,6 +20,7 @@ import {
 import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema,
+  movementMassiveDamageSaveExecutionDtoSchema,
   movementRepeatSaveExecutionDtoSchema
 } from '../shared/ruleExecutionMovementConcentration.js'
 import { movementPassageContestReceiptDtoSchema } from '../shared/ruleExecutionSpatial.js'
@@ -49,6 +51,11 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('REPEAT_SAVE'),
       execution: movementRepeatSaveExecutionDtoSchema
+    }),
+    /** A massive-damage save a contact's damage owed its holder (ATTACK-16); it changes no Run state. */
+    z.strictObject({
+      kind: z.literal('MASSIVE_DAMAGE_SAVE'),
+      execution: movementMassiveDamageSaveExecutionDtoSchema
     }),
     /** The Concentration a contact ended with no check (D95); it settles before that contact's checks. */
     z.strictObject({
@@ -150,14 +157,16 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     rules: z.nullable(encounterActorRuleOutputSchema),
     /**
      * At most one batch, one Concentration outcome, one zone departure and one damage end for each
-     * spatial candidate, one repeat save for each effect its target holds, and one passage and one
-     * move end for each actor. A reaction settles in its own child action's commit (D219), never here.
+     * spatial candidate, one repeat save for each effect its target holds, one massive-damage save
+     * for each damage source of its graph, and one passage and one move end for each actor. A
+     * reaction settles in its own child action's commit (D219), never here.
      */
     settlements: z
       .array(liveSessionMovementSettlementSchema)
       .check(
         z.maxLength(
-          (4 + MAX_ACTIVE_RULE_EFFECTS_PER_OWNER) * MAX_SPATIAL_CANDIDATES +
+          (4 + MAX_ACTIVE_RULE_EFFECTS_PER_OWNER + RULE_GRAPH_LIMITS.NODES) *
+            MAX_SPATIAL_CANDIDATES +
             2 * MAX_ENCOUNTER_ACTORS
         )
       )

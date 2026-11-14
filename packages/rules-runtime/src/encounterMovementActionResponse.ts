@@ -15,6 +15,7 @@ import type {
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import type {
   MovementConcentrationExecutionDto,
+  MovementMassiveDamageSaveExecutionDto,
   MovementRepeatSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
@@ -118,6 +119,7 @@ export async function evaluateEncounterMovementActionResponse<
       retainedSaves?: {
         concentrationChecks?: readonly MovementConcentrationExecutionDto[]
         repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
+        massiveDamageSaves?: readonly MovementMassiveDamageSaveExecutionDto[]
       }
       resume?: {
         snapshot: ServerKernelRuleExecutionPendingSnapshotDto
@@ -239,7 +241,8 @@ export async function evaluateEncounterMovementActionResponse<
     })
   } else if (
     context.phase.kind === 'CONCENTRATION_EVIDENCE' ||
-    context.phase.kind === 'REPEAT_SAVE_EVIDENCE'
+    context.phase.kind === 'REPEAT_SAVE_EVIDENCE' ||
+    context.phase.kind === 'MASSIVE_DAMAGE_SAVE_EVIDENCE'
   ) {
     if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
       throw new Error('Movement response does not match the issued damage-save evidence.')
@@ -300,7 +303,8 @@ export async function evaluateEncounterMovementActionResponse<
       source: concentrationSource,
       ...(input.retained ? { retainedSaves: retainedSource ?? {} } : {}),
       ...((context.phase.kind === 'CONCENTRATION_EVIDENCE' ||
-        context.phase.kind === 'REPEAT_SAVE_EVIDENCE') &&
+        context.phase.kind === 'REPEAT_SAVE_EVIDENCE' ||
+        context.phase.kind === 'MASSIVE_DAMAGE_SAVE_EVIDENCE') &&
       (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL')
         ? { resume: { snapshot, resolution } }
         : {})

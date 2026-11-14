@@ -2,6 +2,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import {
   movementDamageSaveChildren,
   type MovementConcentrationExecutionDto,
+  type MovementMassiveDamageSaveExecutionDto,
   type MovementRepeatSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -28,6 +29,7 @@ type MovementContactChildren = {
   concentrationEnds?: readonly ConcentrationChild[]
   concentrationChecks?: readonly MovementConcentrationExecutionDto[]
   repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
+  massiveDamageSaves?: readonly MovementMassiveDamageSaveExecutionDto[]
 }
 
 /** A contact's children advance Character versions in order: its ends, then its damage saves. */
@@ -162,7 +164,8 @@ export function movementPendingCharacterAggregateVersions(
     if (
       execution.concentrationEnds !== undefined ||
       execution.concentrationChecks !== undefined ||
-      execution.repeatSaves !== undefined
+      execution.repeatSaves !== undefined ||
+      execution.massiveDamageSaves !== undefined
     ) {
       finishSpatialGroups()
       for (const release of contactChildReleases(execution))

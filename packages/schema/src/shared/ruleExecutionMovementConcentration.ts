@@ -1,3 +1,4 @@
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema } from '../zod.js'
 import {
   MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
@@ -14,7 +15,8 @@ import {
 import {
   concentrationCheckApplicationOutputDtoSchema,
   damageSaveCheckBoundApplication,
-  effectRepeatSaveApplicationOutputDtoSchema
+  effectRepeatSaveApplicationOutputDtoSchema,
+  massiveDamageSaveApplicationOutputDtoSchema
 } from './ruleExecutionDamageSaveOutputs.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
@@ -240,32 +242,83 @@ export const movementRepeatSaveExecutionDtoSchema = lazySchema(() =>
     )
 )
 
+/** One source's saves at a contact keep unique child identities and the chain's canonical order. */
+function refineMovementDamageSaveOrder(
+  values: readonly {
+    result: {
+      occurrenceId: string
+      applicationOutputs: Parameters<typeof damageSaveCheckBoundApplication>[0]
+    }
+  }[],
+  context: z.core.$RefinementCtx
+) {
+  const ids = new Set<string>()
+  let prior: DamageSaveApplicationDto | null = null
+  for (const [index, value] of values.entries()) {
+    const bound = damageSaveCheckBoundApplication(value.result.applicationOutputs)
+    if (
+      ids.has(value.result.occurrenceId) ||
+      (prior !== null && compareDamageSaveApplications(prior, bound) >= 0)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: [index],
+        message:
+          'Movement damage saves must have unique child identities and canonical chain order.'
+      })
+    ids.add(value.result.occurrenceId)
+    prior = bound
+  }
+}
+
 /** Every repeat save a contact's damage owed, one per effect and damage source, in chain order. */
 export const movementRepeatSavesDtoSchema = lazySchema(() =>
   z
     .array(movementRepeatSaveExecutionDtoSchema)
     .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+    .check(z.superRefine(refineMovementDamageSaveOrder))
+)
+
+/**
+ * A damaged holder's massive-damage save (ATTACK-16), settled at the movement contact whose damage
+ * owed it. The save records its outcome and changes no Run state, so it retains no owner versions.
+ */
+export const movementMassiveDamageSaveExecutionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      sourceCommandId: ruleExecutionUuidSchema,
+      result: z.strictObject({
+        status: z.literal('COMPLETE'),
+        occurrenceId: ruleExecutionUuidSchema,
+        occurrenceVersion: z.literal(1),
+        initialFactsChecksum: ruleExecutionChecksumSchema,
+        outputs: serverCompletedRuleExecutionDtoSchema.shape.outputs,
+        evidence: serverCompletedRuleExecutionDtoSchema.shape.evidence,
+        applicationOutputs: massiveDamageSaveApplicationOutputDtoSchema
+      })
+    })
     .check(
-      z.superRefine((values, context) => {
-        const ids = new Set<string>()
-        let prior: DamageSaveApplicationDto | null = null
-        for (const [index, value] of values.entries()) {
-          const bound = damageSaveCheckBoundApplication(value.result.applicationOutputs)
-          if (
-            ids.has(value.result.occurrenceId) ||
-            (prior !== null && compareDamageSaveApplications(prior, bound) >= 0)
-          )
-            context.addIssue({
-              code: 'custom',
-              path: [index],
-              message:
-                'Movement repeat saves must have unique child identities and canonical chain order.'
-            })
-          ids.add(value.result.occurrenceId)
-          prior = bound
-        }
+      z.superRefine((value, context) => {
+        const output = value.result.applicationOutputs
+        if (
+          value.result.occurrenceId !== output.occurrenceId ||
+          value.result.occurrenceId === output.parentOccurrenceId
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['result', 'applicationOutputs'],
+            message: 'A movement massive-damage save must retain its exact child identity.'
+          })
       })
     )
+)
+
+/** Every massive-damage save a contact's damage owed, one per damage source, in chain order. */
+export const movementMassiveDamageSavesDtoSchema = lazySchema(() =>
+  z
+    .array(movementMassiveDamageSaveExecutionDtoSchema)
+    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    .check(z.superRefine(refineMovementDamageSaveOrder))
 )
 
 export type MovementConcentrationExecutionDto = z.infer<
@@ -276,28 +329,64 @@ export type MovementConcentrationEndDto = z.infer<typeof movementConcentrationEn
 
 export type MovementRepeatSaveExecutionDto = z.infer<typeof movementRepeatSaveExecutionDtoSchema>
 
-/**
- * A contact's damage saves in the order its damage owed them (the chain order they settled in): its
- * Concentration checks and its effect repeat saves, each with the Character versions it advanced.
- */
-export function movementDamageSaveChildren(contact: {
+export type MovementMassiveDamageSaveExecutionDto = z.infer<
+  typeof movementMassiveDamageSaveExecutionDtoSchema
+>
+
+/** The child receipts a movement contact retains beside its damage. */
+export type MovementContactChildren = {
+  concentrationEnds?: readonly MovementConcentrationEndDto[]
   concentrationChecks?: readonly MovementConcentrationExecutionDto[]
   repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
-}) {
+  massiveDamageSaves?: readonly MovementMassiveDamageSaveExecutionDto[]
+}
+
+/** A contact without its child receipts: they do not change the identity of the damage that caused them. */
+export function movementContactDamageEnvelope<T extends MovementContactChildren>(
+  contact: T
+): Omit<T, keyof MovementContactChildren> {
+  const {
+    concentrationEnds: _ends,
+    concentrationChecks: _checks,
+    repeatSaves: _repeatSaves,
+    massiveDamageSaves: _massiveDamageSaves,
+    ...envelope
+  } = contact
+  return envelope
+}
+
+/**
+ * A contact's damage saves in the order its damage owed them (the chain order they settled in): its
+ * Concentration checks, its effect repeat saves and its massive-damage saves, each with the Character
+ * versions it advanced (a massive-damage save advances none).
+ */
+export function movementDamageSaveChildren(
+  contact: Omit<MovementContactChildren, 'concentrationEnds'>
+) {
   return [
     ...(contact.concentrationChecks ?? []).map((execution, index) => ({
       kind: 'CONCENTRATION' as const,
       field: 'concentrationChecks' as const,
       index,
       execution,
-      release: execution.result.applicationOutputs.cleanup
+      release: execution.result.applicationOutputs.cleanup,
+      ownerTransitions: execution.ownerTransitions
     })),
     ...(contact.repeatSaves ?? []).map((execution, index) => ({
       kind: 'REPEAT_SAVE' as const,
       field: 'repeatSaves' as const,
       index,
       execution,
-      release: execution.release
+      release: execution.release,
+      ownerTransitions: execution.ownerTransitions
+    })),
+    ...(contact.massiveDamageSaves ?? []).map((execution, index) => ({
+      kind: 'MASSIVE_DAMAGE_SAVE' as const,
+      field: 'massiveDamageSaves' as const,
+      index,
+      execution,
+      release: null,
+      ownerTransitions: [] as MovementRepeatSaveExecutionDto['ownerTransitions']
     }))
   ].sort((left, right) =>
     compareDamageSaveApplications(

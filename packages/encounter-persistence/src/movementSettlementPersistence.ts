@@ -8,10 +8,10 @@ import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projecti
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import {
+  movementContactDamageEnvelope,
   movementDamageSaveChildren,
   type MovementConcentrationEndDto,
-  type MovementConcentrationExecutionDto,
-  type MovementRepeatSaveExecutionDto
+  type MovementContactChildren
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { retainedMovementSpatialExecutions } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementResult'
@@ -44,25 +44,9 @@ import type {
 import type {
   persistLiveMovementConcentration,
   persistLiveMovementConcentrationEnd,
+  persistLiveMovementMassiveDamageSave,
   persistLiveMovementRepeatSave
 } from './liveMovementConcentrationPersistence.js'
-
-/** A contact's Concentration ends and damage saves, which a response may append to but never rewrite. */
-type ContactChildren = {
-  concentrationEnds?: MovementConcentrationEndDto[]
-  concentrationChecks?: MovementConcentrationExecutionDto[]
-  repeatSaves?: MovementRepeatSaveExecutionDto[]
-}
-
-function contactEvidence<T extends ContactChildren>(value: T) {
-  const {
-    concentrationChecks: _checks,
-    concentrationEnds: _ends,
-    repeatSaves: _saves,
-    ...contact
-  } = value
-  return contact
-}
 
 /** Checksums of values a commit never mutates, each computed once per object. */
 const checksums = new WeakMap<object, string>()
@@ -77,10 +61,10 @@ function checksumOnce(value: object): string {
 
 /** A retained contact's evidence, without its children, checksummed once. */
 const evidenceChecksums = new WeakMap<object, string>()
-function evidenceChecksum(value: object & ContactChildren): string {
+function evidenceChecksum(value: object & MovementContactChildren): string {
   let checksum = evidenceChecksums.get(value)
   if (checksum === undefined) {
-    checksum = checksumCanonicalJson(contactEvidence(value))
+    checksum = checksumCanonicalJson(movementContactDamageEnvelope(value))
     evidenceChecksums.set(value, checksum)
   }
   return checksum
@@ -130,12 +114,13 @@ function appendedChildren<T extends object>(previous: readonly T[] = [], next: r
   return next.slice(previous.length)
 }
 
-type DamagingContact = ContactChildren & {
+/** A contact's Concentration ends and damage saves, which a response may append to but never rewrite. */
+type DamagingContact = MovementContactChildren & {
   candidate: { candidate: { sourceActorId: string | null } }
 }
 
 /** A contact's damage saves in chain order, each with the zone source that dealt its damage. */
-function contactDamageSaves(contact: DamagingContact, children: ContactChildren = contact) {
+function contactDamageSaves(contact: DamagingContact, children: MovementContactChildren = contact) {
   return movementDamageSaveChildren(children).map((save) => ({
     ...save,
     damagerActorId: contact.candidate.candidate.sourceActorId
@@ -161,7 +146,8 @@ function retainedContactChildren<T extends DamagingContact>(
         entry.concentrationChecks,
         appended.concentrationChecks
       ),
-      repeatSaves: appendedChildren(entry.repeatSaves, appended.repeatSaves)
+      repeatSaves: appendedChildren(entry.repeatSaves, appended.repeatSaves),
+      massiveDamageSaves: appendedChildren(entry.massiveDamageSaves, appended.massiveDamageSaves)
     })
   })
   return { ends, saves }
@@ -177,6 +163,9 @@ type MovementSettlementCallbacks = {
   persistRepeatSave: (
     input: Parameters<typeof persistLiveMovementRepeatSave>[1]
   ) => ReturnType<typeof persistLiveMovementRepeatSave>
+  persistMassiveDamageSave: (
+    input: Parameters<typeof persistLiveMovementMassiveDamageSave>[1]
+  ) => ReturnType<typeof persistLiveMovementMassiveDamageSave>
   persistConcentrationEnd: (
     input: Parameters<typeof persistLiveMovementConcentrationEnd>[1]
   ) => ReturnType<typeof persistLiveMovementConcentrationEnd>
@@ -328,10 +317,13 @@ export async function persistMovementContacts(
       : undefined
   let passageSettled = false
   const damagedActorIds = new Set<string>()
+  // A damage save that kept its Concentration or effect, and any massive-damage save, changes nothing.
   const mechanicsChanged = input.settlements.some((step) =>
     step.kind === 'CONCENTRATION'
       ? step.execution.result.applicationOutputs.cleanup !== null
-      : step.kind !== 'REPEAT_SAVE' || step.execution.release !== null
+      : step.kind === 'REPEAT_SAVE'
+        ? step.execution.release !== null
+        : step.kind !== 'MASSIVE_DAMAGE_SAVE'
   )
   const effectOriginals = new Map<string, EncounterSpatialRuleEffectRecord>()
   if (spatial.length) {
@@ -389,6 +381,7 @@ export async function persistMovementContacts(
       step.kind !== 'CONCENTRATION' &&
       step.kind !== 'CONCENTRATION_END' &&
       step.kind !== 'REPEAT_SAVE' &&
+      step.kind !== 'MASSIVE_DAMAGE_SAVE' &&
       (saves.length || ends.length)
     )
       throw new Error('Movement Concentration must settle before the next contact.')
@@ -606,6 +599,8 @@ export async function persistMovementContacts(
           damagerActorId: expected.damagerActorId
         })
         transitions.push({ kind: 'REPEAT_SAVE', execution: step.execution })
+      } else if (step.kind === 'MASSIVE_DAMAGE_SAVE') {
+        await callbacks.persistMassiveDamageSave({ ...child, execution: step.execution })
       } else {
         actors = await callbacks.persistConcentration({ ...child, execution: step.execution })
         transitions.push({ kind: 'CONCENTRATION', execution: step.execution })

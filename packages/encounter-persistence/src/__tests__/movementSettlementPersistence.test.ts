@@ -48,6 +48,7 @@ function settle(settlements: unknown[], automationMode?: 'MANUAL', executed: obj
     persistConcentrationEnd: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     persistConcentration: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     persistRepeatSave: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
+    persistMassiveDamageSave: vi.fn(async () => {}),
     endHolderGrants: vi.fn(async () => {})
   }
   const persisted = persistMovementSettlements(
@@ -205,6 +206,85 @@ describe('persistMovementSettlements damage saves', () => {
     {
       name: 'a repeat save the contact did not retain',
       settlements: [spatial, checkStep, saveStep, saveStep],
+      error: 'Movement Concentration differs from its retained contact.'
+    }
+  ])('refuses $name', async ({ settlements, error }) => {
+    const { persisted } = settle(settlements, undefined, damaged)
+
+    await expect(persisted).rejects.toThrow(error)
+  })
+})
+
+/**
+ * QUALITY-14.T2d: a contact's massive-damage save settles through its own step, and only the save
+ * the contact retained can.
+ */
+describe('persistMovementSettlements massive-damage saves', () => {
+  const massiveSave = {
+    sourceCommandId: COMMAND_ID,
+    result: {
+      occurrenceId: 'massive-save',
+      applicationOutputs: {
+        source: 'MASSIVE_DAMAGE',
+        application: {
+          ordinal: 0,
+          sourceNodeId: 'damage',
+          sourceOperationKey: 'damage',
+          targetActorId: 'mover',
+          appliedAmount: 1,
+          damageTypeId: null
+        }
+      }
+    }
+  }
+  const damaged = {
+    candidate: {
+      candidate: { pathDistance: 1, targetActorId: 'mover', sourceActorId: 'zone-source' },
+      effect: { effectId: 'effect' }
+    },
+    massiveDamageSaves: [massiveSave]
+  }
+  const { massiveDamageSaves: _saves, ...evidence } = damaged
+  const spatial = { kind: 'SPATIAL', executions: [evidence], transitions: [] }
+  const saveStep = { kind: 'MASSIVE_DAMAGE_SAVE', execution: massiveSave }
+
+  it('settles the retained save under the move', async () => {
+    const { persisted, callbacks } = settle([spatial, saveStep], undefined, damaged)
+
+    await expect(persisted).resolves.toMatchObject({ mechanicsChanged: true })
+    expect(callbacks.persistMassiveDamageSave).toHaveBeenCalledOnce()
+    expect(callbacks.persistMassiveDamageSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution: massiveSave,
+        parentOccurrenceId: OCCURRENCE_ID,
+        sourceCommandId: COMMAND_ID
+      })
+    )
+  })
+
+  it.each([
+    {
+      name: 'a settlement list that omits the retained save',
+      settlements: [spatial],
+      error: 'Movement settlement is incomplete.'
+    },
+    {
+      name: 'a save that differs from the retained one',
+      settlements: [
+        spatial,
+        {
+          ...saveStep,
+          execution: {
+            ...massiveSave,
+            result: { ...massiveSave.result, occurrenceId: 'forged-save' }
+          }
+        }
+      ],
+      error: 'Movement Concentration differs from its retained contact.'
+    },
+    {
+      name: 'a save the contact did not retain',
+      settlements: [spatial, saveStep, saveStep],
       error: 'Movement Concentration differs from its retained contact.'
     }
   ])('refuses $name', async ({ settlements, error }) => {
