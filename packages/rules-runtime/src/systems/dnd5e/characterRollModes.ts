@@ -3,7 +3,12 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { modifierRollInfluence, type AttackDomainCode } from '@artificer-toolkit/shared/core'
+import {
+  NO_HELD_CONDITIONS,
+  modifierHeldTargetApplies,
+  modifierRollInfluence,
+  type AttackDomainCode
+} from '@artificer-toolkit/shared/core'
 import {
   compareCanonicalD20Contributors,
   rollModeContributorSourceOfMechanicSource
@@ -29,7 +34,6 @@ function keyedRecord<Key extends string, Value>(
 }
 
 type RollContributor = CharacterRulePolicyOutput['rollContributorEvidence']['initiative'][number]
-
 /**
  * Advantage and disadvantage contributors of one modifier domain that apply to a target. Suppressed
  * duplicate grants still supply evidence for qualified roll resolution.
@@ -42,7 +46,8 @@ function dnd5eRollContributors(
       'contributions'
     >[]
   },
-  target: Dnd5eModifierTarget
+  target: Dnd5eModifierTarget,
+  heldConditionTypeIds: ReadonlySet<string> = NO_HELD_CONDITIONS
 ) {
   return policy.modifierGroups.flatMap((group) =>
     group.contributions.flatMap((contribution) => {
@@ -56,6 +61,7 @@ function dnd5eRollContributors(
         influence === null ||
         dnd5eSaveRequiresSourceSight(modifier) ||
         dnd5eAttackRequiresEffectSource(modifier) ||
+        !modifierHeldTargetApplies(modifier, heldConditionTypeIds) ||
         !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
       )
         return []
@@ -91,9 +97,10 @@ function dnd5eRollContributors(
 export function dnd5eAttackRollContributors(
   policy: Parameters<typeof dnd5eRollContributors>[0],
   attackKind: AttackDomainCode,
-  target: Dnd5eModifierTarget
+  target: Dnd5eModifierTarget,
+  heldConditionTypeIds: ReadonlySet<string> = NO_HELD_CONDITIONS
 ): RollContributor[] {
-  return dnd5eRollContributors(policy, target)
+  return dnd5eRollContributors(policy, target, heldConditionTypeIds)
     .filter(
       (entry) =>
         entry.valueDomainCode === 'ATTACK_ROLL' &&

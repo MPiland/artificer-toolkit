@@ -60,6 +60,22 @@ export function encounterHeldActorIds(
 }
 
 /**
+ * The conditions the source holds the target with: every condition imposed by a relationship the
+ * source applied to the target (Grappler's "a creature you are grappling").
+ */
+export function encounterHeldConditionTypeIds(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
+  sourceActorId: string,
+  targetActorId: string
+): ReadonlySet<string> {
+  return new Set(
+    encounterSourceRelationships(activeEffectsByActorId, sourceActorId)
+      .filter(({ actorId }) => actorId === targetActorId)
+      .flatMap(({ contribution }) => contribution.conditionIds)
+  )
+}
+
+/**
  * The relationships whose source follows the creature holding them (`SOURCE_FOLLOWS_TARGET`): the
  * source moves with that creature and within its space.
  */

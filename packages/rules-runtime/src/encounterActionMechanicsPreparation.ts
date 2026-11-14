@@ -81,6 +81,7 @@ import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscove
 import { isInEffectEventScope } from './events/encounterEventHooks.js'
 import {
   encounterHeldActorIds,
+  encounterHeldConditionTypeIds,
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
@@ -1042,15 +1043,22 @@ export async function prepareEncounterActionMechanics<
           } as const)
         : null
   const foldedBonuses = coveredTest ? coverFoldedBonuses(cover, coveredTest) : []
+  const activeEffectsByActorId = new Map(
+    [...currentTargets].map(([id, value]) => [id, value.activeEffects])
+  )
+  // The conditions the attacker holds its target with, which its held-creature roll grants read.
+  const heldConditionTypeIds = encounterHeldConditionTypeIds(
+    activeEffectsByActorId,
+    actor.id,
+    target.id
+  )
   const contributors = mergeCanonicalD20Contributors(
     await input.loadRelationshipFacts({
       state,
       actors,
       sourceActorId: actor.id,
       targetActorId: target.id,
-      activeEffectsByActorId: new Map(
-        [...currentTargets].map(([id, value]) => [id, value.activeEffects])
-      ),
+      activeEffectsByActorId,
       actionEffectId:
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
@@ -1189,7 +1197,8 @@ export async function prepareEncounterActionMechanics<
                     profile.characterAttackRollContributors(
                       source.effectivePolicyOutput,
                       attackKind,
-                      characterAttack(source.candidate)
+                      characterAttack(source.candidate),
+                      heldConditionTypeIds
                     ),
                     contributors
                   )
@@ -1198,7 +1207,8 @@ export async function prepareEncounterActionMechanics<
                       actor.id,
                       attackKind,
                       creatureAttackAbility(source.capability.mechanicFacts.outcomes),
-                      sourceFacts.activeEffects
+                      sourceFacts.activeEffects,
+                      heldConditionTypeIds
                     ).concat(
                       creatureFeatureAttackContributors(
                         actor.id,
@@ -1207,7 +1217,8 @@ export async function prepareEncounterActionMechanics<
                         sourceFacts.featureModifiers,
                         enemyProximity?.nearestFeet ?? null,
                         targetHasNotTakenTurn,
-                        holderLight
+                        holderLight,
+                        heldConditionTypeIds
                       )
                     ),
                     contributors

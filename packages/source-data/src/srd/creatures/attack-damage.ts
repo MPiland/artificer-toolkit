@@ -607,7 +607,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-01f9-0070-00c400000000', [['2d6+4', 'PIERCING']]], // Merrow: Harpoon
   ['00000000-0002-0203-0070-00c400000000', [['2d6+4', 'PIERCING']]], // Merrow: Harpoon
   ['00000000-0002-0003-0070-00c500000000', [['1d8+3', 'BLUDGEONING']]], // Mimic: Pseudopod
-  ['00000000-0002-01f9-0070-00c500000000', []], // Mimic: Pseudopod (a sibling Effect deals the hit damage)
   [
     '00000000-0002-0008-0070-00c500000000',
     [

@@ -943,6 +943,15 @@ supplier serves opportunity attacks. Limitation: a Creature reinforced into a la
 yet to take a turn, and the attacker's own first-turn clause is not gated. The automatic critical hit against a
 surprised Creature and the Bugbear's Surprise Attack stay description-only (the engine has no surprise step).
 
+**Against a creature the holder holds (SPELLS-33.T8a, Q30a, current).** An ATTACK_ROLL `ROLL_INFLUENCE` domain may name
+`againstHeldConditionTypeId`: the grant applies only to attacks against a creature the holder holds through an actor
+relationship it applied that imposes that condition (Mimic Grappler and the Grappler feat author "a creature you are
+grappling" as Grappled). Preparation reads `encounterHeldConditionTypeIds` from the Run's active effects and passes the set to
+both contributor paths (`creatureFeatureAttackContributors`, `creatureActiveGrantAttackContributors` and the
+profile's `characterAttackRollContributors`) through `modifierHeldTargetApplies`. The Sheet policy never receives a
+held set, so a flagged grant stays out of Sheet roll modes. Nothing is feature-specific. The escape-check penalty of
+Mimic Adhesive and the feat's Pin are not automated (see future-enhancements, "Held-creature riders").
+
 **Holder in bright light (SPELLS-33.T6d1, D189).** Sunlight Sensitivity (Drider, Drow, Duergar, Specter, Wight,
 Wraith), the Vampire's Sunlight Hypersensitivity and the Cloaker's Light Sensitivity author `lightSensitivityGrants`: an `ATTACK_ROLL` disadvantage per attack
 domain plus one Wisdom `ABILITY_CHECK` disadvantage, each gated by one `HOLDER_IN_BRIGHT_LIGHT { requiresDaylight }`

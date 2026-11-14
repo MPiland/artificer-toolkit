@@ -161,7 +161,7 @@ export const CR = {
   CR_30: vocabularyId(SRD_CHALLENGE_RATINGS, 'CR_30')
 } as const
 
-const GRAPPLED_CONDITION_ID = vocabularyId(SRD_CONDITION_TYPES, 'GRAPPLED')
+export const GRAPPLED_CONDITION_ID = vocabularyId(SRD_CONDITION_TYPES, 'GRAPPLED')
 const WALK_SPEED_ID = vocabularyId(SRD_SPEEDS, 'WALK')
 const SWIM_SPEED_ID = vocabularyId(SRD_SPEEDS, 'SWIM')
 const CLIMB_SPEED_ID = vocabularyId(SRD_SPEEDS, 'CLIMB')
