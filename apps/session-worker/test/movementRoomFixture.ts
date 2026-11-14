@@ -184,6 +184,10 @@ interface SeatedCharacter {
   characterId: string
   spellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
   play?: CharacterPlayOverrides
+  /** Features the Character's Class carries. */
+  classFeatures?: readonly ClassFeature[]
+  /** Further SRD Equipment the Character carries, equipped. */
+  equipment?: readonly EquipmentAuthored[]
 }
 
 export interface MovementRoomConfig {
@@ -455,7 +459,9 @@ export async function movementRoom(config: MovementRoomConfig) {
           characterId: seated.characterId,
           ownerUserId,
           play: seated.play,
-          spellcasting: seated.spellcasting
+          spellcasting: seated.spellcasting,
+          classFeatures: seated.classFeatures,
+          equipment: seated.equipment
         })
       : null
   const secondCharacterPage = await seatedPage(config.secondCharacter, base.otherPlayerId)

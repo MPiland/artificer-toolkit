@@ -2,10 +2,8 @@ import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { type EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  encounterActionCurrentnessChecksum,
-  withEncounterReactionDice
-} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { LiveSessionReactionChild } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterAreaLegendaryResistanceAudits } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { answerEncounterAreaTest } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
@@ -16,6 +14,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
+import { applyNativeReactionChildren } from './nativeEncounterCastPause.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import {
   type AreaPlanInput,
@@ -262,6 +261,8 @@ export async function rollAreaTargetSave(
 export function sealedListAttack(
   sealed: AreaTargetRecord,
   prepared: AreaPrepared,
+  /** The committed child actions of the reactions chosen against the list's rays (D219). */
+  committed: readonly LiveSessionReactionChild[],
   answer?: EncounterEvidenceAnswer
 ) {
   const kept: EncounterEvidenceAnswer | null =
@@ -272,10 +273,12 @@ export function sealedListAttack(
   const pause = context.kind === 'ENCOUNTER_ACTION' ? context.pause : null
   const offer = pause?.kind === 'CAST_REACTION' ? pause.payload : null
   const children = (context.kind === 'ENCOUNTER_ACTION' && context.reactionChildren) || []
-  // The dice the ray's reactors rolled against its d20 join the dice its roll may total (D219).
   const childDice = children.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : []))
+  // The ray's own reactions change its roll as they did when it was made: the mode one imposed
+  // before its d20 (D217) and the dice its reactors rolled against it (D219).
+  const react = applyNativeReactionChildren(committed, children)
   const withChildDice = (binding: AreaPrepared['binding']) =>
-    withEncounterReactionDice({ attackDomain: prepared.attackDomain, binding }, childDice).binding
+    react({ ...prepared, binding }).binding
   // A ray answered at its on-hit offer is rebuilt from the d20 the offer kept, with the decision made there.
   const heldOnHit =
     pause?.kind === 'ON_HIT' && sealed.onHit ? { offer: pause.payload, audit: sealed.onHit } : null

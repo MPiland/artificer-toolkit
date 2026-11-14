@@ -795,6 +795,23 @@ export const prepareReachReaction =
       ...reachReactionSources(input)
     })
 
+/** The sight of the Scene a multi-creature cast is aimed on, which the reactions to its attack rolls read. */
+const reachAttackPerception =
+  (
+    input: Pick<AreaPlanBase, 'state' | 'system' | 'capture'>,
+    scene: NonNullable<AreaReach['scene']>
+  ): NonNullable<ActionMechanicsInput['loadAttackPerception']> =>
+  ({ sourceFacts, targetFacts, roller }) =>
+    readNativeLiveAttackPerception({
+      state: input.state,
+      system: input.system,
+      attacker: sourceFacts,
+      target: targetFacts,
+      roller,
+      sceneContext: scene,
+      capture: input.capture
+    })
+
 /**
  * The creatures that may roll a die against an attack roll the caster makes at one creature of a
  * multi-creature cast, each in turn (D219), as for an attack at one creature. Range is read from the
@@ -815,16 +832,7 @@ export async function reachRollReactions(
       movementTargets: reach.movementTargets,
       loadTarget: input.loadTarget,
       loadScene: async () => ({ ...scene, rollerToken: scene.sourceToken }),
-      loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
-        readNativeLiveAttackPerception({
-          state: input.state,
-          system: input.system,
-          attacker: sourceFacts,
-          target: targetFacts,
-          roller,
-          sceneContext: scene,
-          capture: input.capture
-        }),
+      loadAttackPerception: reachAttackPerception(input, scene),
       actionSources: reachReactionSources(input),
       capture: input.capture
     }),
@@ -832,7 +840,10 @@ export async function reachRollReactions(
   )
 }
 
-/** The reaction window of a multi-creature cast, held over the caster's lead preparation of the action. */
+/**
+ * The reaction window of a multi-creature cast, held over the caster's lead preparation of the
+ * action, or the window of one ray of its list, held over that ray's own preparation.
+ */
 export function reachCastPause(
   input: ReachPlanInput,
   cast: {
@@ -842,6 +853,11 @@ export function reachCastPause(
     occurrenceId: string
     occurredAt: string
     answer: NativeCastReactionAnswer | null
+    /**
+     * The ray's own reaction children when the window is one ray's, whose aim at its creature is
+     * heard before its d20 (D217); the whole cast's window names no ray and hears no aim.
+     */
+    ray?: Pick<ReachPlanInput['reactionChildren'], 'recorded' | 'resumedOffer'>
   }
 ) {
   const { scene } = cast.reach
@@ -860,9 +876,9 @@ export function reachCastPause(
     // Range is read from the Scene, so a cast aimed at none offers no reaction.
     readScene: scene ? async () => scene : null,
     chosenActorIds: cast.chosenActorIds,
-    // An attack at one creature is the single-target path's; a multi-creature action offers none.
-    aimedAttackPerception: null,
-    reactionChildren: input.reactionChildren,
+    // A list's attack is aimed ray by ray, so only a ray's own window reads the Scene's sight.
+    aimedAttackPerception: cast.ray && scene ? reachAttackPerception(input, scene) : null,
+    reactionChildren: { ...input.reactionChildren, ...cast.ray },
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,

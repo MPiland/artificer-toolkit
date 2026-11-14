@@ -78,7 +78,7 @@ import {
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { advanceNativeActionTarget } from './nativeActionTargetAdvance.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
-import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import { applyNativeReactionChildren, createNativeCastPause } from './nativeEncounterCastPause.js'
 import {
   discoverNativeRollReactions,
   nativeRollReactionTurns,
@@ -993,7 +993,7 @@ export async function planNativeLiveEncounterAction(
   reactionChildren = cast.reactionChildren
   // A reaction a bystander used before the attack's d20 imposes its roll mode on that roll (D217), and
   // one used on the rolled d20 adds the die its own action rolled (D219).
-  const react = castPause.applyReactionChildren(reactionChildren)
+  const react = applyNativeReactionChildren(reactionChildWindow.committed, reactionChildren)
   const reacted = react(prepared)
   const actionSource = {
     runtime: executionOptions.runtime,

@@ -32,6 +32,7 @@ import {
   encounterAreaSaveAwaiting,
   markEncounterAreaSaveRolled,
   markEncounterAreaSaveTested,
+  holdEncounterAreaRay,
   openEncounterAreaSaveWindow,
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
@@ -331,8 +332,9 @@ function withOpenedHold(
 type SealedAreaTarget = EncounterAreaActionPendingContextDto['targets'][number]
 
 /**
- * The reaction offer a ray's own snapshot holds its roll on, if it holds one (D219): of its rolled
- * d20, made to each creature that may react to it, or of its hit, made to the creature it hit.
+ * The reaction offer a ray's own snapshot holds its roll on, if it holds one: of its aim at its
+ * creature, made before its d20 to each creature that may react to it (D217), of its rolled d20,
+ * made to each of those in turn, or of its hit, made to the creature it hit (D219).
  */
 const reactionOfferOf = (target: SealedAreaTarget | undefined) => {
   const context = target?.snapshot.applicationContext
@@ -340,10 +342,26 @@ const reactionOfferOf = (target: SealedAreaTarget | undefined) => {
     context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
       ? context.pause.payload
       : null
-  return offer?.rolled || offer?.hit ? offer : null
+  return offer?.kind === 'ATTACK_ON_OTHER' || offer?.rolled || offer?.hit ? offer : null
 }
 
 type RayReactionOffer = ReturnType<typeof reactionOfferOf>
+
+/** Whether a ray's reaction offer is of its aim: made before its d20, so it keeps no roll. */
+const aimOffer = (offer: RayReactionOffer) => offer != null && !offer.rolled && !offer.hit
+
+/** Whether a ray is held on the first offer of its aim: nobody heard yet, no child recorded. */
+const heldOnFreshAim = (target: SealedAreaTarget) => {
+  const offer = reactionOfferOf(target)
+  const context = target.snapshot.applicationContext
+  return (
+    target.testedJson === undefined &&
+    aimOffer(offer) &&
+    offer?.declinedReactorActorIds.length === 0 &&
+    context.kind === 'ENCOUNTER_ACTION' &&
+    context.reactionChildren === undefined
+  )
+}
 
 /** What a ray's reaction offer keeps of its roll: the rolled d20 or the hit. */
 const keptRollOf = (offer: RayReactionOffer) => [offer?.rolled ?? null, offer?.hit ?? null]
@@ -383,8 +401,9 @@ const rayIdentity = ({
 
 /**
  * Verifies the list a ray's step stores when that step is about an offer its roll raised: the
- * reaction of each creature that may react to its rolled d20, then of the creature it hit (D219), then
- * its caster's on-hit rider. The ray's roll raised an offer; the creature asked declined, so the ray
+ * reaction of each creature that may react to its aim before its d20 (D217), of each that may react
+ * to its rolled d20, then of the creature it hit (D219), then its caster's on-hit rider. A ray that
+ * leaves its aim's offers is sealed again for its caster's roll, which may be made in the same step. The ray's roll raised an offer; the creature asked declined, so the ray
  * is answered with the d20 the offer kept; it chose a reaction, so the ray stays held and records that
  * reaction's child; or the room resumed from the committed child, so the ray is answered and the
  * child's outcome is written. A decline or a resume of a rolled d20's offer may instead leave the ray
@@ -433,6 +452,7 @@ function requireAreaActionRayHit(
   const held = heldOnHitReaction(after)
   const riderOffer = onHitOfferOf(before)
   const riderHeld = heldOnHitRider(after) ? onHitOfferOf(after) : null
+  const aimed = aimOffer(offer)
   // The ray's own step: its roll raises an offer, a decline or the resume leaves the reaction offer
   // (for the rider offer, if the hit raises one), a chosen reaction stays on it with its child
   // recorded, and the caster's decision leaves the rider offer.
@@ -447,22 +467,27 @@ function requireAreaActionRayHit(
       throw mismatch()
   } else if (after.onHit) throw mismatch()
   else if (!offer) {
+    // The ray's roll raised the offer. The children its aim recorded before that roll stay as they
+    // resolved, and the roll is past its aim.
     if (
       !(held || riderHeld) ||
       before.testedJson !== undefined ||
-      context.reactionChildren !== undefined
+      !reactionChildrenKept(previous, context) ||
+      awaitsReactionChild(context) ||
+      aimOffer(reactionOfferOf(after))
     )
       throw mismatch()
   } else if (riderHeld) {
     // The ray left its reaction offer for its rider offer: by a decline, on the hit as it was
     // tested (a rolled d20 is tested only once everyone was heard), or by the resume, on the same
-    // d20 tested against the creature as the child left it.
+    // d20 tested against the creature as the child left it. An offer of its aim kept no d20.
     if (
       before.testedJson !== undefined ||
       !reactionChildrenKept(previous, context) ||
       awaitsReactionChild(context) ||
-      checksumCanonicalJson(riderHeld.testD20.rawFaces) !==
-        checksumCanonicalJson(keptFacesOf(offer)) ||
+      (!aimed &&
+        checksumCanonicalJson(riderHeld.testD20.rawFaces) !==
+          checksumCanonicalJson(keptFacesOf(offer))) ||
       (!resumed &&
         (kind !== 'DECLINE' ||
           awaitsReactionChild(previous) ||
@@ -484,16 +509,24 @@ function requireAreaActionRayHit(
           next: context,
           endpointActorIds: [stored.casterActorId, before.actorId]
         }) ||
-        checksumCanonicalJson(keptFacesOf(reactionOfferOf(after))) !==
-          checksumCanonicalJson(keptFacesOf(offer))
+        // An offer of the ray's aim kept no d20: the roll made past it holds the one it rolled.
+        (!aimed &&
+          checksumCanonicalJson(keptFacesOf(reactionOfferOf(after))) !==
+            checksumCanonicalJson(keptFacesOf(offer)))
       : checksumCanonicalJson(keptRollOf(reactionOfferOf(after))) !==
           checksumCanonicalJson(keptRollOf(offer)) ||
         awaitsReactionChild(context) ||
+        // A ray past its aim's offers is sealed again for its caster's roll, on the creatures as
+        // they stood unless a child changed them.
+        (aimed &&
+          (context.pause !== undefined || context.rollerActorId !== stored.casterActorId)) ||
         (resumed
           ? false
           : kind !== 'DECLINE' ||
             awaitsReactionChild(previous) ||
-            checksumCanonicalJson(after.snapshot) !== checksumCanonicalJson(before.snapshot)))
+            (aimed
+              ? context.currentnessChecksum !== previous.currentnessChecksum
+              : checksumCanonicalJson(after.snapshot) !== checksumCanonicalJson(before.snapshot))))
   )
     throw mismatch()
   for (const [index, target] of stored.targets.entries()) {
@@ -516,10 +549,13 @@ function requireAreaActionRayHit(
         ? sealed.testBindingJson !== target.testBindingJson
         : sealed.testBindingJson !== undefined &&
           !(answeredBefore && offer && held && kind === 'OPTION')) ||
-      // Only the rays behind a ray that left its offers go on, in order.
+      // Only the rays behind a ray that left its offers go on, in order, the next of them held on
+      // an offer nobody answered yet.
       (!answeredBefore &&
         (sealed.testedJson !== undefined || heldOnHit(sealed)) &&
-        (index < at || heldOnHit(after))) ||
+        (index < at ||
+          heldOnHit(after) ||
+          (aimOffer(reactionOfferOf(sealed)) && !heldOnFreshAim(sealed)))) ||
       // Only the resume seals a ray again.
       (!resumed &&
         (answeredBefore || (sealed.testedJson === undefined && !heldOnHit(sealed))) &&
@@ -618,7 +654,11 @@ export function requireAreaActionAnswer(input: {
         withOpenedHold(
           opened < 0
             ? settled
-            : openEncounterAreaSaveWindow(
+            : // A caster's answered ray hands the turn to the next, which is held on the first offer
+              // of its aim when a creature may react to it (D217).
+              (heldOnFreshAim(next.targets[opened]!)
+                ? holdEncounterAreaRay
+                : openEncounterAreaSaveWindow)(
                 settled,
                 settledTargets[opened]!.snapshot.request.requestId,
                 next.targets[opened]!.snapshot
