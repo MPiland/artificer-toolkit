@@ -2,6 +2,7 @@ import type { LiveSessionMovementSettlement } from '@artificer-toolkit/schema/ap
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterEscapeEndedConditionIds } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { endsOnLeavingZone } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
+import { movementDamageEndedEffects } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -73,7 +74,8 @@ export function persistLiveMovementAreaDeparture(
   return persistLiveMovementHeldEffectEnd(ctx, {
     ...input,
     holderActorId: input.step.departure.holderActorId,
-    isHeld: (effect) => endsOnLeavingZone(effect, input.step.departure.zoneEffectId)
+    find: (held) =>
+      held.find((effect) => endsOnLeavingZone(effect, input.step.departure.zoneEffectId))
   })
 }
 
@@ -93,7 +95,40 @@ export function persistLiveMovementMoveEnd(
   return persistLiveMovementHeldEffectEnd(ctx, {
     ...input,
     holderActorId: input.step.moveEnd.holderActorId,
-    isHeld: (effect) => effect.id === input.step.moveEnd.effectId
+    find: (held) => held.find((effect) => effect.id === input.step.moveEnd.effectId)
+  })
+}
+
+/**
+ * Settles an effect a move's zone damage ended on its holder: re-derives what that damage ends from
+ * the holder's current rows and the move's applied contacts, requires the step's effect to be among
+ * them, and ends it like an escape.
+ */
+export function persistLiveMovementDamageEnd(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: { id: string; currentActorId: string | null }
+    actors: EncounterRunActorState[]
+    step: Extract<LiveSessionMovementSettlement, { kind: 'DAMAGE_END' }>
+    /** Every contact the move applied. */
+    executions: Parameters<typeof movementDamageEndedEffects>[0]['executions']
+    occurrenceId: string
+    occurredAt: string
+  }
+) {
+  const { holderActorId, effectId } = input.step.damageEnd
+  return persistLiveMovementHeldEffectEnd(ctx, {
+    ...input,
+    holderActorId,
+    find: (held) =>
+      movementDamageEndedEffects({
+        holderActorId,
+        held,
+        executions: input.executions,
+        occurrenceId: input.occurrenceId,
+        turnActorId: input.state.currentActorId,
+        dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
+      }).find((effect) => effect.id === effectId)
   })
 }
 
@@ -102,9 +137,13 @@ async function persistLiveMovementHeldEffectEnd(
   input: {
     state: { id: string }
     actors: EncounterRunActorState[]
-    step: Extract<LiveSessionMovementSettlement, { kind: 'AREA_DEPARTURE' | 'MOVE_END' }>
+    step: Extract<
+      LiveSessionMovementSettlement,
+      { kind: 'AREA_DEPARTURE' | 'MOVE_END' | 'DAMAGE_END' }
+    >
     holderActorId: string
-    isHeld: (effect: ActiveRuleEffectRecord) => boolean
+    /** The effect the step ends, among the holder's current rows. */
+    find: (held: readonly ActiveRuleEffectRecord[]) => ActiveRuleEffectRecord | undefined
     occurredAt: string
   }
 ) {
@@ -112,7 +151,7 @@ async function persistLiveMovementHeldEffectEnd(
   const holder = input.actors.find((actor) => actor.id === input.holderActorId)
   if (!holder) throw new Error('Movement release holder is unavailable.')
   const owner = turnEffectOwner(holder, state.id)
-  const held = (await createActiveRuleEffectStore(ctx).list(owner)).find(input.isHeld)
+  const held = input.find(await createActiveRuleEffectStore(ctx).list(owner))
   if (!held || checksumCanonicalJson(held) !== checksumCanonicalJson(step.endedEffect))
     throw new Error('Movement release differs from its holder effect.')
   const streamVersion = async () =>
