@@ -42,8 +42,13 @@ import {
 } from './ruleExecutionTurnPhaseEvidence.js'
 import { serverUuidIdentityDtoSchema } from './serverUuidIdentity.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { installedReceiptBindings } from '../systems/installedSystemSchemas.js'
 
 const MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS = MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2
+
+// A timed effect's counted turn, in an installed System's duration operation.
+const isDurationOperationKey = (operationKey: string) =>
+  installedReceiptBindings.some(({ durationOperationKey }) => durationOperationKey === operationKey)
 export const maintenanceCompleteRuleExecutionResultDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -396,12 +401,16 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           // rulings its failure proposes: they change nothing in the holder, so no application binds them.
           const [repeatRequest, repeatAddedDice, repeatResult, ...repeatRulings] =
             execution.execution.evidence.trace
+          const repeatSave = installedReceiptBindings.find(
+            (binding) => binding.repeatSave.testOperationKey === repeatResult?.operation.key
+          )?.repeatSave
           const repeatSaveShape =
+            repeatSave !== undefined &&
             execution.execution.evidence.trace.length >= 3 &&
             repeatRulings.every(
               (trace) =>
                 /^manual_adjudication-\d+$/.test(trace.nodeId) &&
-                trace.operation.key === 'dnd5e.test-manual-adjudication-proposal' &&
+                trace.operation.key === repeatSave.rulingOperationKey &&
                 trace.outputs.changesTargetState === false
             ) &&
             execution.execution.evidence.sourceEntryBindings?.length === 1 + repeatRulings.length &&
@@ -411,8 +420,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             repeatAddedDice?.nodeId === 'repeat-save-d20-added-dice' &&
             repeatAddedDice.operation.key === 'evidence.added-dice-total' &&
             repeatResult?.nodeId === execution.definition.frozenGraphNodeId &&
-            repeatResult.operation.key === 'dnd5e.save-test-resolution' &&
-            repeatResult.operation.contractVersion === 3 &&
+            repeatResult.operation.contractVersion === repeatSave.testContractVersion &&
             repeatResult.inputs.targetActorId === execution.targetActorId
           // A perception-gated repeat save whose gate refused this turn's attempt: its d20 settled
           // without a request, so the turn rolls nothing and its save result is not applied.
@@ -422,7 +430,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             repeatRequest.operation.key === 'evidence.optional-integer-range' &&
             repeatRequest.inputs.enabled === false &&
             repeatRequest.evidence === undefined &&
-            execution.execution.evidence.facts['dnd5e.repeat-save-attempt-allowed'] === false
+            execution.execution.evidence.facts[repeatSave.attemptAllowedFactKey] === false
           const unchanged =
             JSON.stringify(execution.targetTransition.before) ===
             JSON.stringify(execution.targetTransition.after)
@@ -434,7 +442,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             refusedRemoval?.kind === 'CONDITION_REMOVE' &&
             refusedRemoval.sourceActiveEffectId === execution.activeEffectId &&
             refusedRemoval.sourceNodeId === execution.definition.frozenGraphNodeId &&
-            refusedRemoval.sourceOperationKey === 'dnd5e.save-test-resolution' &&
+            refusedRemoval.sourceOperationKey === repeatSave.testOperationKey &&
             refusedRemoval.authoredPath === null &&
             refusedRemoval.resolvedPath === null &&
             execution.lifecycle.kind === 'EXPIRE' &&
@@ -465,16 +473,16 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             (repeatRequest.operation.key === 'evidence.integer-range' ||
               (repeatRequest.operation.key === 'evidence.optional-integer-range' &&
                 repeatRequest.inputs.enabled === true &&
-                execution.execution.evidence.facts['dnd5e.repeat-save-attempt-allowed'] ===
-                  true)) &&
+                execution.execution.evidence.facts[repeatSave.attemptAllowedFactKey] === true)) &&
             execution.d20?.requestId === `${batch.occurrenceId}:0:repeat-save-d20` &&
             repeatResult === d20ResultTraces[0] &&
             repeatResult.inputs.outcomeRule ===
-              execution.execution.evidence.facts['dnd5e.test-outcome-rule'] &&
+              execution.execution.evidence.facts[repeatSave.outcomeRuleFactKey] &&
             repeatResult.outputs.targetActorId === execution.targetActorId &&
             repeatResult.outputs.naturalD20 === execution.d20.selectedNatural &&
-            execution.execution.evidence.facts['dnd5e.save-modifier'] === execution.d20.modifier &&
-            execution.execution.evidence.facts['dnd5e.roll-contributor-checksum'] ===
+            execution.execution.evidence.facts[repeatSave.saveModifierFactKey] ===
+              execution.d20.modifier &&
+            execution.execution.evidence.facts[repeatSave.contributorChecksumFactKey] ===
               execution.d20.contributorChecksum &&
             // A condition that fails the save unrolled (D94) fails it whatever the total.
             execution.d20.resultPath ===
@@ -488,9 +496,10 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           const removalWithOptionalEscalation =
             execution.applications.length === 1 ||
             (execution.applications.length === 2 &&
+              repeatSave !== undefined &&
               escalation?.kind === 'CONDITION_APPLY' &&
               escalation.sourceNodeId === execution.definition.frozenGraphNodeId &&
-              escalation.sourceOperationKey === 'dnd5e.save-test-resolution' &&
+              escalation.sourceOperationKey === repeatSave.testOperationKey &&
               escalation.authoredPath === 'ON_SAVE_FAIL' &&
               escalation.resolvedPath === 'ON_SAVE_FAIL' &&
               execution.d20?.resultPath === 'ON_SAVE_FAIL')
@@ -500,7 +509,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             removal?.kind === 'CONDITION_REMOVE' &&
             removal.sourceActiveEffectId === execution.activeEffectId &&
             removal.sourceNodeId === execution.definition.frozenGraphNodeId &&
-            removal.sourceOperationKey === 'dnd5e.save-test-resolution' &&
+            removal.sourceOperationKey === repeatSave.testOperationKey &&
             removal.authoredPath === execution.d20?.resultPath &&
             removal.resolvedPath === execution.d20?.resultPath &&
             execution.lifecycle.kind === 'EXPIRE' &&
@@ -523,7 +532,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           // result leaves the holder unchanged, and the effect lasts out its duration.
           const turnEndRoll =
             repeatedSaveTrace &&
-            execution.execution.evidence.facts['dnd5e.active-effect-save-ability-definition-id'] ===
+            execution.execution.evidence.facts[repeatSave.saveAbilityDefinitionFactKey] ===
               undefined &&
             execution.applications.length === 0 &&
             unchanged &&
@@ -533,7 +542,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           const durationTick =
             execution.applications.length === 0 &&
             sourceTraces.length === 1 &&
-            sourceTraces[0]!.operation.key === 'dnd5e.condition-duration' &&
+            isDurationOperationKey(sourceTraces[0]!.operation.key) &&
             unchanged
           const unauthorizedSourceOutcome =
             execution.applications.length === 0 &&
@@ -705,7 +714,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 })
               continue
             }
-            if (application.sourceOperationKey === 'dnd5e.condition-duration') {
+            if (isDurationOperationKey(application.sourceOperationKey)) {
               // A timed condition's last counted turn removes the conditions its effect owns (D62.2):
               // the removal follows from the expiry, not from a trace candidate.
               if (
@@ -715,7 +724,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 application.authoredPath !== null ||
                 application.resolvedPath !== null ||
                 execution.lifecycle.kind !== 'EXPIRE' ||
-                sourceTraces[0]?.operation.key !== 'dnd5e.condition-duration'
+                sourceTraces[0]?.operation.key !== application.sourceOperationKey
               )
                 context.addIssue({
                   code: 'custom',

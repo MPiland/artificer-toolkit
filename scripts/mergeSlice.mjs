@@ -18,7 +18,7 @@ import { spawnSync } from 'node:child_process'
 import { appendFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ratchetProblems, shrunkCaps, SIZE_BUDGET } from './sourceRatchets.mjs'
+import { SIZE_BUDGET } from './sourceRatchets.mjs'
 
 export const WORKFLOWS = {
   Tests: 'tests.yml',
@@ -283,8 +283,9 @@ export function mergeSizeBudgets(base, ours, theirs) {
 
 // Every slice that shrinks a listed file lowers its cap line, so concurrent slices conflict there.
 // Only that conflict resolves, and only into a tree that passes the ratchets: growth past a resolved
-// cap, or any other ratchet problem, refuses.
-function resolveBudgetConflict(tools, other, message) {
+// cap, or any other ratchet problem, refuses. The ratchets are the merged tree's own, not the copy this
+// script loaded from the phase checkout: a slice that changes them is judged by its change.
+async function resolveBudgetConflict(tools, other, message) {
   const conflicts = lines(git(tools, 'diff', '--name-only', '--diff-filter=U'))
   if (conflicts.length !== 1 || conflicts[0] !== SIZE_BUDGET)
     throw new MergeRefused(`Merging ${other} conflicts:\n${conflicts.join('\n')}`)
@@ -295,6 +296,10 @@ function resolveBudgetConflict(tools, other, message) {
   if (!ours || !theirs)
     throw new MergeRefused(`Merging ${other} deletes ${SIZE_BUDGET} on one side.`)
   const root = git(tools, 'rev-parse', '--show-toplevel')
+  const ratchets = join(root, 'scripts', 'sourceRatchets.mjs')
+  const { ratchetProblems, shrunkCaps } = await import(
+    `${pathToFileURL(ratchets).href}?${git(tools, 'hash-object', ratchets)}`
+  )
   const lowerCaps = mergeSizeBudgets(base, ours, theirs)
   // Both sides' deletions can leave a module under both caps; its cap comes down to the merged size.
   const lowered = shrunkCaps(root, lowerCaps)
@@ -315,7 +320,7 @@ function resolveBudgetConflict(tools, other, message) {
   tools.log(`Resolved the ${SIZE_BUDGET} conflict with ${other} to the lower caps${loweredNote}.`)
 }
 
-function commitMerge(tools, other, message) {
+async function commitMerge(tools, other, message) {
   const result = tools.run('git', [
     'merge',
     '--no-ff',
@@ -326,7 +331,7 @@ function commitMerge(tools, other, message) {
     TRAILER,
     other
   ])
-  if (result.status !== 0) resolveBudgetConflict(tools, other, message)
+  if (result.status !== 0) await resolveBudgetConflict(tools, other, message)
   return git(tools, 'rev-parse', 'HEAD')
 }
 
@@ -345,7 +350,7 @@ function nextBatchNumber(tools, batchPrefix) {
 
 // The batch is green: the phase branch fast-forwards to it, or takes one more --no-ff merge when it
 // moved meanwhile by docs/ only.
-function landBatch(tools, { merge, batch, phaseTip, target, number }) {
+async function landBatch(tools, { merge, batch, phaseTip, target, number }) {
   git(tools, 'fetch', '--quiet', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`)
   const phaseNow = git(tools, 'rev-parse', `origin/${target}`)
   if (phaseNow === phaseTip) {
@@ -355,7 +360,7 @@ function landBatch(tools, { merge, batch, phaseTip, target, number }) {
   const moved = lines(git(tools, 'diff', '--name-only', '--no-renames', phaseTip, phaseNow))
   if (!docsOnly(moved))
     throw new MergeRefused(`${target} moved outside docs/ while ${batch} ran: ${moved.join(', ')}.`)
-  const docsMerge = commitMerge(tools, phaseNow, `Merge ${target} docs into m${number}`)
+  const docsMerge = await commitMerge(tools, phaseNow, `Merge ${target} docs into m${number}`)
   push(tools, docsMerge, target)
   tools.log(`Batch ${batch} green; merged into ${target} as ${docsMerge} over its docs-only move.`)
 }
@@ -414,7 +419,7 @@ export async function mergeSlice(
     git(tools, 'checkout', '--quiet', '--detach', phaseTip)
     for (const slice of slices) {
       try {
-        commitMerge(tools, slice.sha, message)
+        await commitMerge(tools, slice.sha, message)
       } catch (error) {
         if (error instanceof MergeRefused) {
           git(tools, 'merge', '--abort')
@@ -435,7 +440,7 @@ export async function mergeSlice(
 
   if (docsOnly(phaseChanges)) {
     git(tools, 'checkout', '--quiet', '--detach', phaseTip)
-    const merge = commitMerge(tools, tip, message)
+    const merge = await commitMerge(tools, tip, message)
     const outsideSlice = lines(git(tools, 'diff', '--name-only', '--no-renames', tip, merge))
     if (!docsOnly(outsideSlice))
       throw new MergeRefused(
@@ -450,10 +455,10 @@ export async function mergeSlice(
   }
 
   git(tools, 'checkout', '--quiet', '--detach', tip)
-  const merge = commitMerge(tools, phaseTip, message)
+  const merge = await commitMerge(tools, phaseTip, message)
   push(tools, merge, batchBranch)
   await waitForBatch(merge)
-  landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
+  await landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

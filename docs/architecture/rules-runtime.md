@@ -554,7 +554,11 @@ Legendary discovery matches the eligibility adapter's `lifecycleDefinitionFamily
 relationship's conditions read the rule-action adapter's `actorRelationship` fact and operation keys,
 a maintenance barring grant is the maintenance-link adapter's `barringDomain` (null when none), and the
 idle-turn exemption reads the event vocabulary's `lifecycleEndCodes('IDLE_TURN')`, and the range and
-sight contributors are the roll-mode adapter's `ruleContributors` (QUALITY-16.T2).
+sight contributors are the roll-mode adapter's `ruleContributors` (QUALITY-16.T2). The schema's own
+System content (a System's modifier grant kinds, definition families and receipt bindings) is declared
+under `packages/schema/src/systems/<id>/` and read by neutral schema modules through the installed
+lists `systems/installedSystemSchemas.ts` and `systems/installedSystemDefinitionDocuments.ts`; the
+rules-runtime System imports its persisted keys from there (QUALITY-16.T3, ADR 0042 amendment).
 Each composition root builds its registries from one installed-Systems list per load tier (D195,
 RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
 (`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`

@@ -49,3 +49,15 @@ The tracer Vitest project keeps aliasing the installed lists (now per capability
 - **Lazy registry through dynamic `import()`:** rejected (see Context).
 - **Keep tier objects and split the tiers further:** each new tier is a guess about which capabilities travel together; per-capability lists make that question disappear.
 - **`sideEffects: false` on the workspace packages:** worth −222 KB on the step, but it changes how every package bundles; out of scope here and the next lever.
+
+## Amendment 2026-11-14: System schema extensions (QUALITY-16.T3)
+
+The persisted contracts in `packages/schema` named D&D content directly: the `SPELLCASTING_LOCK` modifier grant kind, the `dnd5e-encounter-lifecycle` and `dnd5e-optional-combat` definition families with their document schemas, and the D&D operation and fact keys that the stored rule receipt refinements check. The schema cannot read a rules-runtime registry, because rules-runtime depends on it. Decision 1 applies to the schema too:
+
+- A System declares what it adds to the persisted contracts under `packages/schema/src/systems/<id>/`, typed by the neutral contract in `shared/systemSchemaExtension.ts`: bare-flag modifier grant kinds, definition families (key, document kinds, document schema) and receipt bindings (the relationship-state, duration and repeat-save operation and fact keys).
+- `systems/installedSystemSchemas.ts` (light: grant kinds, family keys, receipt bindings) and `systems/installedSystemDefinitionDocuments.ts` (heavy: document schemas) keep one list per capability. They are the only schema modules that name a System. Storage identity reads only the light list, so it does not load the document schemas.
+- Neutral schema modules build their unions and refinements from these lists: the modifier grant union, the authored family keys and document union, and the relationship, repeat-save and duration checks of the stored results.
+- The System's persisted keys live in its schema extension, and the rules-runtime System imports them from there, so every key has one home.
+- The source ratchet treats `packages/schema/src/systems/<id>/` as System code, exempt from the content fence like rules-runtime `systems/`. No neutral schema module and no fenced consumer may import a System's schema extension. Only the installed lists may.
+
+Persisted values are unchanged, so no data migration is needed. Authoring still validates the two D&D definition families by name, which is outside this fence.

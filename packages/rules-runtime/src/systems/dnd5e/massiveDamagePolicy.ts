@@ -1,3 +1,8 @@
+import {
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 
 import type {
@@ -7,12 +12,9 @@ import type {
 } from '../../optionalCombatPolicyCapability.js'
 import { dnd5eConcentrationHolderSaves, resolveDnd5eHolderSave } from './concentrationPolicy.js'
 import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY
 } from './effectActionContracts.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'

@@ -1,3 +1,10 @@
+import {
+  DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
   reviveTraceMatches,
@@ -22,10 +29,7 @@ import type {
 import { isCharacterRuleActionForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
 import { requireDnd5eAddedDiceTotal } from './d20AddedDiceGraph.js'
 import { damageDerivedHealApplication } from './effectActionDamageDerivedHeal.js'
-import {
-  DND5E_ATTACK_TEST_OPERATION_KEY,
-  DND5E_SAVE_TEST_OPERATION_KEY
-} from './dnd5eTestOperationKeys.js'
+import { DND5E_ATTACK_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
@@ -41,14 +45,10 @@ import {
   DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
-  DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_ATTACK_MODIFIER_FACT_KEY,
   DND5E_TARGET_DEFENSE_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,

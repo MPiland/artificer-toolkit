@@ -1,7 +1,7 @@
+import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 import { wish } from '@artificer-toolkit/source-data/srd/spells/wish.js'
 
-import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureActor,

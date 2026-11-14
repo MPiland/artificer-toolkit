@@ -1,3 +1,4 @@
+import { DND5E_CONDITION_DURATION_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type { CompiledDuration, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
@@ -6,8 +7,7 @@ import {
   uuid,
   UUID,
   DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-  DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_CONDITION_DURATION_OPERATION_KEY
+  DND5E_EFFECT_ACTION_FAMILY_KEY
 } from './effectActionContracts.js'
 import { conditionDurationTurns } from './effectActionFollowUp.js'
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'

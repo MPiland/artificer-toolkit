@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   docsOnly,
@@ -649,14 +650,25 @@ describe('mergeSlice waiting on dispatched runs', () => {
     }
     // The phase branch lists two 1700-line modules; ci/slice-a, synced with it, and then the phase
     // branch each commit one change, as two concurrently merged slices do.
+    // The merged tree carries the real ratchet scripts, as the phase branch does; they resolve their
+    // dependencies through this checkout's node_modules.
+    const ratchetScript = readFileSync(new URL('./sourceRatchets.mjs', import.meta.url), 'utf8')
     const diverge = (sliceFiles, phaseFiles) => {
       const { work, origin } = repo()
       sh(work, 'switch', '-q', '-c', 'phase-work', `origin/${PHASE}`)
       mkdirSync(join(work, 'apps'))
       mkdirSync(join(work, 'scripts'))
+      symlinkSync(
+        fileURLToPath(new URL('../node_modules', import.meta.url)),
+        join(work, 'node_modules'),
+        'junction'
+      )
       commit(
         work,
         {
+          '.gitignore': 'node_modules\n',
+          'scripts/sourceRatchets.mjs': ratchetScript,
+          'scripts/redProof.mjs': readFileSync(new URL('./redProof.mjs', import.meta.url), 'utf8'),
           'apps/a.ts': module('a', 0, 1700),
           'apps/b.ts': module('b', 0, 1700),
           'other.txt': 'base\n',
@@ -720,6 +732,30 @@ describe('mergeSlice waiting on dispatched runs', () => {
         'apps/a.ts': 1550,
         'apps/b.ts': 1700
       })
+    })
+
+    it('judges the merged tree by its own ratchets, not the copy loaded from the phase checkout (QUALITY-16.T3)', async () => {
+      // The slice raises the size limit to 1560 and adds an unbudgeted 1550-line module: only its own
+      // ratchets accept that, and the merged tree carries them.
+      const { work, origin, tip, before } = diverge(
+        {
+          ...shrinkA,
+          'apps/c.ts': module('c', 0, 1550),
+          'scripts/sourceRatchets.mjs': ratchetScript.replace(
+            'export const SIZE_LIMIT = 1500',
+            'export const SIZE_LIMIT = 1560'
+          )
+        },
+        {
+          'apps/b.ts': module('b', 0, 1650),
+          [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1650 })
+        }
+      )
+      const { tools } = platform(work)
+      const logs = []
+      await mergeSlice(input(tip), { ...tools, log: (message) => logs.push(message) })
+      expect(logs).toContain(`Resolved the ${BUDGET} conflict with ${before} to the lower caps.`)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(sh(origin, 'rev-parse', 'ci/merge-m1'))
     })
 
     it('refuses a merged module that grew past its resolved cap, pushing nothing', async () => {
