@@ -660,4 +660,32 @@ describe('void and undo of a movement reaction child (QUALITY-18.T4)', () => {
     expect(await moverHitPoints(room)).toBe(afterChild)
     expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
   }, 60_000)
+
+  it('refuses the GM’s void of a move whose child committed, and the alarm still resumes it', async () => {
+    const room = await contactRoom({
+      spatialEffects: [{ center: { x: 475, y: 150 }, radius: 5, save: true }]
+    })
+    const { contact, held } = await holdCommittedChild(room)
+    const afterChild = await moverHitPoints(room)
+
+    const voided = await voidDecision(room, held, crypto.randomUUID())
+
+    expect(voided).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'DECISION_REQUIRES_ANSWER' })
+    expect(await moverHitPoints(room)).toBe(afterChild)
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
+    expect(await openOccurrences(room)).toEqual([{ id: contact.occurrence.id, state: 'PENDING' }])
+
+    await runInDurableObject(room.base.stub, async (instance) => {
+      const clock = vi
+        .spyOn(Date, 'now')
+        .mockReturnValue(Date.now() + ROOM_LIMITS.alarmRetryMs + 1_000)
+      try {
+        await instance.alarm()
+      } finally {
+        clock.mockRestore()
+      }
+    })
+    await vi.waitFor(async () => expect(await openOccurrences(room)).toEqual([]), 10_000)
+    expect(await moverPosition(room)).toEqual(DESTINATION)
+  }, 60_000)
 })
