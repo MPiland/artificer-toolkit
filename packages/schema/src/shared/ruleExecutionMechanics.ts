@@ -540,6 +540,15 @@ export function sourceApplicationsChangeState(
   )
 }
 
+/**
+ * The one hit rule every damaged-holder check reads (D132, D220): a damage row reaches its holder
+ * when damage survives resistance, vulnerability and immunity, however much of it the overflow
+ * past 0 or an interception (Death Ward) then kept off the holder's hit points.
+ */
+export function damageRowHits(row: { resolvedAmount: number }): boolean {
+  return row.resolvedAmount > 0
+}
+
 export const stateEffectCreateReceiptDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CREATE'),

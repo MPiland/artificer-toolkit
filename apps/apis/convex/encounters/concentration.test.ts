@@ -2,6 +2,7 @@
 import { expect, it } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   concentrationAction,
   concentrationRecords,
@@ -23,6 +24,8 @@ import {
 } from '../../tests/fixtures/localRoomWorker'
 
 useLocalRoomWorker()
+
+const UNCONSCIOUS = srdSystemRecord.conditionTypes.find(({ code }) => code === 'UNCONSCIOUS')!.id
 
 async function roomFixture(rolls: FixtureRolls) {
   const fixture = await setupConcentration(rolls)
@@ -182,18 +185,20 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
     expect(await pendingFor(fixture, member)).toBeNull()
 }, 60_000)
 
-it('does not create a concentration child when finalized applied damage is zero', async () => {
+it('creates no concentration child for a holder at 0 hit points, whose incapacitation ends it (D95)', async () => {
   const { fixture, seeded } = await roomFixture('PROMPT')
   await fixture.t.run(async (ctx) => {
     const characterRow = await readCharacterRow(ctx, fixture.character.id)
     if (!characterRow) throw new Error('Concentration target is unavailable.')
     const character = readCharacterRecord(characterRow)
+    // At 0 hit points the Character carries the System's zero-hit-point condition (D63).
     const encoded = encodeCharacterRecord(characterRow, {
       document: {
         ...character,
         state: {
           ...character.state,
-          hitpoints: { ...character.state.hitpoints, current: 0 }
+          hitpoints: { ...character.state.hitpoints, current: 0 },
+          conditions: [{ conditionTypeId: UNCONSCIOUS }]
         }
       },
       streamVersion: characterRow.play.streamVersion,
@@ -207,11 +212,12 @@ it('does not create a concentration child when finalized applied damage is zero'
   const settled = await executeInRoom(fixture.owner.caller, {
     command: concentrationAction(fixture)
   })
-  // No concentration child was raised: the action completed and nothing is waiting on a roll.
+  // The holder cannot act, so the hit ends its Concentration instead of owing a check: the action
+  // completed and nothing is waiting on a roll.
   expect(settled.occurrence?.status).toBe('COMPLETE')
   expect(await pendingFor(fixture, fixture.owner)).toBeNull()
   const after = await records(fixture)
-  expect(after.states.map((state) => state.id)).toContain(seeded.state.id)
+  expect(after.states.map((state) => state.id)).not.toContain(seeded.state.id)
 }, 60_000)
 
 it.each([

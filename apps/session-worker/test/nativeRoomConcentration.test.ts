@@ -7,6 +7,7 @@ import {
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { giantApe } from '@artificer-toolkit/source-data/srd/creatures/giant-ape.js'
+import { deathWard } from '@artificer-toolkit/source-data/srd/spells/death-ward.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import {
   SRD_CONDITION_TYPES,
@@ -38,6 +39,7 @@ const DEPENDENT_HOLDER_ID = testUuid(0x803)
 const INDEPENDENT_EFFECT_ID = testUuid(0x5300)
 const HOLDER_ID = testUuid(0x804)
 const HELD_DIE_ID = testUuid(0x5301)
+const WARD_ID = testUuid(0x5302)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -48,13 +50,17 @@ afterEach(() => {
  * A Wolf hits the Character, who maintains Concentration (the maintained state, with one dependent
  * effect on another Wolf and one independent effect that outlives it). `autoRoll` BOTH makes the
  * Character's player roll its Constitution save on the server; GAME_MASTER leaves it a prompt. With
- * `form`, the Character wears that form, its holding effect seeded with the rest.
+ * `form`, the Character wears that form, its holding effect seeded with the rest. With `deathWard`,
+ * the Character also holds the SRD Death Ward.
  */
 function concentratingRoom(
-  options: Pick<
+  {
+    deathWard: warded = false,
+    ...options
+  }: Pick<
     Parameters<typeof actionRoom>[0],
     'autoRoll' | 'automationMode' | 'rolls' | 'characterPlay'
-  >,
+  > & { deathWard?: boolean },
   form?: ReturnType<typeof characterInForm>
 ) {
   const attacker = biteWolf('ATTACK')
@@ -72,6 +78,25 @@ function concentratingRoom(
     seed: async (input) => {
       const { effects, encounterId, occurredAt } = input
       await form?.seed(input)
+      if (warded) {
+        const [wardEffect] = deathWard.effects ?? []
+        if (!wardEffect) throw new Error('The SRD Death Ward has no effect.')
+        const planned = plannedModifierGrant({
+          encounterId,
+          sourceActorId: CHARACTER_ACTOR_ID,
+          holderActorId: CHARACTER_ACTOR_ID,
+          lifecycle: {},
+          effect: wardEffect,
+          sourceLabel: deathWard.label
+        })
+        await effects.create({
+          id: WARD_ID,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: CHARACTER_ACTOR_ID },
+          definition: planned.definition,
+          lifecycle: { ...planned.lifecycle, remainingUses: 1 },
+          occurredAt
+        })
+      }
       await effects.create({
         id: INDEPENDENT_EFFECT_ID,
         owner: {
@@ -219,22 +244,59 @@ describe('room Concentration checks', () => {
     }
   )
 
-  it('raises no Concentration check when the finalized applied damage is zero', async () => {
-    // The Character is already at 0 hit points, so the Wolf's hit applies no damage.
+  it('raises no Concentration check for a holder already at 0 hit points, whose incapacitation ends it (D95)', async () => {
+    // At 0 hit points the Character carries the System's zero-hit-point condition (D63), which
+    // stops it acting, so the Wolf's hit ends its Concentration instead of owing a check.
     const room = await concentratingRoom({
       autoRoll: 'GAME_MASTER',
       rolls: [18],
-      characterPlay: { currentHitPoints: 0 }
+      characterPlay: {
+        currentHitPoints: 0,
+        conditions: [{ conditionTypeId: conditionId('UNCONSCIOUS'), label: 'Unconscious' }]
+      }
     })
-    const before = await readRoomHistory(room.room.base.stub)
     await startedBite(room)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     const after = await readRoomHistory(room.room.base.stub)
     expect(concentrationChecks(after)).toEqual([])
-    expect(after.maintainedStates.map((state) => state.id)).toEqual(
-      before.maintainedStates.map((state) => state.id)
-    )
+    expect(after.maintainedStates).toEqual([])
+    expect(concentrationEnds(after).map(({ output }) => output.reason)).toEqual(['INCAPACITATED'])
   })
+
+  it.each([
+    {
+      holder: 'a Death Ward holds at 1 hit point, owing the check (D132)',
+      deathWard: true,
+      checkPending: true,
+      maintained: 1,
+      endReasons: []
+    },
+    {
+      holder: 'the hit drops to 0 hit points, ending its Concentration (D63, D95)',
+      deathWard: false,
+      checkPending: false,
+      maintained: 0,
+      endReasons: ['INCAPACITATED']
+    }
+  ])(
+    'owes a Concentration check only while its holder can keep Concentration: $holder',
+    async ({ deathWard: warded, checkPending, maintained, endReasons }) => {
+      // The Wolf's 1-damage hit takes a 1-hit-point Character to 0, unless its Death Ward holds it
+      // at 1; the bite itself settles, so a pending decision is the Concentration save.
+      const room = await concentratingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        characterPlay: { currentHitPoints: 1 },
+        deathWard: warded
+      })
+      await startedBite(room)
+      expect((await readPendingActionDecision(room.room.base.stub)) !== null).toBe(checkPending)
+      const after = await readRoomHistory(room.room.base.stub)
+      expect(concentrationChecks(after)).toEqual([])
+      expect(after.maintainedStates).toHaveLength(maintained)
+      expect(concentrationEnds(after).map(({ output }) => output.reason)).toEqual(endReasons)
+    }
+  )
 
   it('raises no Concentration prompt in a Manual Run, where the damaging action is refused whole', async () => {
     const room = await concentratingRoom({ automationMode: 'MANUAL' })
