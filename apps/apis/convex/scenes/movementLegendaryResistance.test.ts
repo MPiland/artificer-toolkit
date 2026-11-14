@@ -70,13 +70,13 @@ it.each(['USE', 'DECLINE'] as const)(
     )
     const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     const choice = initial?.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+    if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
       throw new Error('Expected a movement reaction choice.')
     const resisted = await executeInRoom(value.owner.caller, {
       command: command({
         encounterId: base.run.id,
         pending: choice,
-        resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+        resolution: { kind: 'OPTION', optionId: choice.options[0].optionId }
       })
     })
     const pending = resisted.occurrence?.pending
@@ -143,13 +143,13 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
   await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
   const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
   const choice = initial?.occurrence?.pending
-  if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+  if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
     throw new Error('Expected reaction choice.')
   const selected = await executeInRoom(value.owner.caller, {
     command: command({
       encounterId: base.run.id,
       pending: choice,
-      resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+      resolution: { kind: 'OPTION', optionId: choice.options[0].optionId }
     })
   })
   expect(selected.occurrence).toMatchObject({ status: 'PENDING' })

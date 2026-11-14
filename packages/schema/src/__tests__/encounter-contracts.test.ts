@@ -335,32 +335,24 @@ describe('encounter contracts', () => {
       occurrenceVersion: 4,
       status: 'PENDING' as const,
       pending: {
-        kind: 'MOVEMENT_REACTION' as const,
+        kind: 'REACTION_CHOICE' as const,
         occurrenceId: encounterId,
         occurrenceVersion: 4,
         encounterVersion: 7,
-        choice: {
-          pathDistance: 10,
-          reactorActorId: encounterId,
-          reactorTokenId: commandId,
-          options: [
-            {
-              optionId,
-              actionId: 'reaction-action',
-              actionSourceKind: 'CHARACTER_ACTION' as const
-            }
-          ]
-        },
+        targetActorId: encounterId,
+        reactorTokenId: commandId,
+        options: [{ optionId, actionId: 'reaction-action' }],
         allowedResponses: ['DECLINE', 'OPTION'] as const
       }
     }
     const pending =
       encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse(pendingInput)
-    if (!pending || pending.pending?.kind !== 'MOVEMENT_REACTION')
-      throw new Error('Expected a movement-reaction pending summary.')
+    if (!pending || pending.pending?.kind !== 'REACTION_CHOICE')
+      throw new Error('Expected a reaction-choice pending summary.')
     expect(pending.pending).toMatchObject({
-      kind: 'MOVEMENT_REACTION',
-      choice: { options: [{ optionId, actionId: 'reaction-action' }] }
+      kind: 'REACTION_CHOICE',
+      reactorTokenId: commandId,
+      options: [{ optionId, actionId: 'reaction-action' }]
     })
     expect(
       resolveRuleOccurrenceInputDtoSchema.parse({
@@ -378,15 +370,12 @@ describe('encounter contracts', () => {
         ...pendingInput,
         pending: {
           ...pendingInput.pending,
-          choice: {
-            ...pendingInput.pending.choice,
-            options: [
-              {
-                ...pendingInput.pending.choice.options[0],
-                actionSourceCurrentnessChecksum: 'b'.repeat(64)
-              }
-            ]
-          }
+          options: [
+            {
+              ...pendingInput.pending.options[0],
+              actionSourceCurrentnessChecksum: 'b'.repeat(64)
+            }
+          ]
         }
       })
     ).toThrow()

@@ -81,10 +81,10 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
     })
   ).result
   expect(first).toMatchObject({
-    occurrence: { status: 'PENDING', pending: { kind: 'MOVEMENT_REACTION' } }
+    occurrence: { status: 'PENDING', pending: { kind: 'REACTION_CHOICE' } }
   })
   const choice = first?.occurrence?.pending
-  if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
+  if (choice?.kind !== 'REACTION_CHOICE') throw new Error('Expected a reaction choice.')
   const answer: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
@@ -99,7 +99,7 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
   expect(second.occurrence).toMatchObject({ occurrenceId: choice.occurrenceId })
 
   const next = second.occurrence?.pending
-  if (next?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected the second reaction choice.')
+  if (next?.kind !== 'REACTION_CHOICE') throw new Error('Expected the second reaction choice.')
   const skip: VoidRuleOccurrenceInputDto = {
     type: 'VOID_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
@@ -167,7 +167,7 @@ it("refuses a player moving a reactor's token, answering the GM's decision, or a
   ).rejects.toThrow()
   const choice = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result?.occurrence
     ?.pending
-  if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
+  if (choice?.kind !== 'REACTION_CHOICE') throw new Error('Expected a reaction choice.')
   const answer: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),

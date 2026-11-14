@@ -262,7 +262,7 @@ export async function verifyEncounterMovementBrowser(
     stage = 'await movement decision'
     await expect
       .poll(async () => (await input.readPending())?.kind)
-      .toBe(input.scenario === 'PASSAGE' ? 'MOVEMENT_PASSAGE_CHOICE' : 'MOVEMENT_REACTION')
+      .toBe(input.scenario === 'PASSAGE' ? 'MOVEMENT_PASSAGE_CHOICE' : 'REACTION_CHOICE')
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toBeVisible()
@@ -305,10 +305,8 @@ export async function verifyEncounterMovementBrowser(
     if (!(await owner.getByText('Reaction available', { exact: true }).isVisible()))
       await owner.getByRole('button', { name: 'Open pending decision', exact: true }).click()
     await expect(owner.getByText('Reaction available', { exact: true })).toBeVisible()
-    const reaction = owner.getByRole('button', {
-      name: `Use ${input.reactor.actionId}`,
-      exact: true
-    })
+    // One offered reaction reads "Use reaction" (the shared Reaction choice wording).
+    const reaction = owner.getByRole('button', { name: 'Use reaction', exact: true })
     await expect(reaction).toBeVisible()
     if (!moverRoomPosition) throw new Error('No room commit reported the mover position.')
     await input.verifyReactionOffer({
@@ -565,7 +563,7 @@ async function resolveEvidence(
 async function waitForEvidence(
   readPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
 ): Promise<PendingEncounterRuleOccurrenceSummaryDto> {
-  await expect.poll(async () => (await readPending())?.kind).not.toBe('MOVEMENT_REACTION')
+  await expect.poll(async () => (await readPending())?.kind).not.toBe('REACTION_CHOICE')
   const pending = await readPending()
   if (!pending) throw new Error('Selected reaction completed without evidence.')
   return pending

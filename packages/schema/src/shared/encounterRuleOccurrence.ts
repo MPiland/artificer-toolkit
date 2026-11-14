@@ -423,6 +423,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
         targetActorId: uuidSchema,
+        /** The reactor's token when the offer is made on the stage (a movement reaction); absent otherwise. */
+        reactorTokenId: z.optional(uuidSchema),
         options: z
           .array(
             z.strictObject({

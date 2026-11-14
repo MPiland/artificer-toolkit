@@ -1391,6 +1391,17 @@ describe('a timed reaction offer (D207)', () => {
     return by === 'GM' ? room.send(command) : room.sendAsPlayer(command, by)
   }
 
+  // QUALITY-18.T5: the tabletop badges the reactor's token for an action offer as for a movement one.
+  it('names the reactor’s token on a Reaction offer made for an attack', async () => {
+    const room = await playerRoom()
+    await strike(room, 0)
+    const pending = await sessionPending(room)
+    if (pending?.kind !== 'REACTION_CHOICE') throw new Error('The session holds no reaction offer.')
+    const token = room.room.scene.tokens[1]
+    if (!token) throw new Error('Missing Character token.')
+    expect(pending.reactorTokenId).toBe(token.id)
+  })
+
   it('declines itself through the decline path once the Run’s reaction time runs out', async () => {
     const room = await playerRoom()
     const offeredAfter = Date.now()

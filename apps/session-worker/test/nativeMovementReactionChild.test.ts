@@ -462,7 +462,7 @@ describe('a reaction child at a paused Scene move: parity gaps (QUALITY-18.T3)',
       spatialEffects: [{ center: { x: 475, y: 150 }, radius: 5, save: true }]
     })
     const contact = await walkToContact(room)
-    expect(await room.pendingFor(true)).toMatchObject({ kind: 'MOVEMENT_REACTION' })
+    expect(await room.pendingFor(true)).toMatchObject({ kind: 'REACTION_CHOICE' })
     const failure = vi.spyOn(console, 'error').mockImplementation(() => {})
     // The resume's spatial save is the fourth die, so the move stays answered and unresumed.
     failDieAfter(room, 3)

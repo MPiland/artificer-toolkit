@@ -211,7 +211,7 @@ describe('GM void command', () => {
     })
     const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     const choice = initial?.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+    if (!choice || choice.kind !== 'REACTION_CHOICE')
       throw new Error('Expected an issued movement choice.')
 
     // The room keeps command history until the Run ends (D85), so it is read as the room sends it.
@@ -226,7 +226,7 @@ describe('GM void command', () => {
     const firstSkip = voidCommand({ encounterId: value.base.run.id, pending: choice })
     const continued = await executeInRoom(value.owner.caller, firstSkip)
     const next = continued.occurrence?.pending
-    if (continued.occurrence?.status !== 'PENDING' || next?.kind !== 'MOVEMENT_REACTION')
+    if (continued.occurrence?.status !== 'PENDING' || next?.kind !== 'REACTION_CHOICE')
       throw new Error('Expected the next movement choice.')
     expect(next.encounterVersion).toBe(choice.encounterVersion)
     expect(await commands()).toEqual(before)

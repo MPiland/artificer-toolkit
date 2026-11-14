@@ -60,7 +60,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
     }
     const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     const choice = initial?.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+    if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
       throw new Error('Expected the authored first controller choice.')
     const command: ResolveRuleOccurrenceInputDto = {
       type: 'RESOLVE_RULE_OCCURRENCE',
@@ -73,7 +73,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
       resolution:
         selection === 'DECLINE'
           ? { kind: 'DECLINE' }
-          : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+          : { kind: 'OPTION', optionId: choice.options[0].optionId }
     }
     const startHitPoints = await readCheckpointedHitPoints(value, value.base.mover.id)
     // Assisted play offers the next authored automatic reaction as Use/Decline; the GM uses it.
@@ -151,7 +151,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
     const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     expect(initial?.occurrence).toMatchObject({ status: 'PENDING' })
     const choice = initial?.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+    if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
       throw new Error('Expected first mixed movement choice.')
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
     const command: ResolveRuleOccurrenceInputDto = {
@@ -165,7 +165,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
       resolution:
         selection === 'DECLINE'
           ? { kind: 'DECLINE' }
-          : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+          : { kind: 'OPTION', optionId: choice.options[0].optionId }
     }
     const answered = await executeInRoom(value.owner.caller, { command })
     // Restated (QUALITY-18.T2b3): a Use answers with its reaction's own action (D219), so the
@@ -182,7 +182,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
         : answered
     expect(next.occurrence).toMatchObject({ status: 'PENDING' })
     const nextChoice = next.occurrence?.pending
-    if (!nextChoice || nextChoice.kind !== 'MOVEMENT_REACTION')
+    if (!nextChoice || nextChoice.kind !== 'REACTION_CHOICE')
       throw new Error('Expected the second mixed movement choice.')
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
     const terminal = await executeInRoom(value.owner.caller, {

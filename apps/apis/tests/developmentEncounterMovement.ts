@@ -123,56 +123,60 @@ export async function prepareEncounterMovementFixture({
   const passage = scenario === 'PASSAGE'
   const moverTokenId = crypto.randomUUID()
   const reactorTokenId = crypto.randomUUID()
+  const grid = {
+    kind: 'SQUARE',
+    origin: { x: 0, y: 0 },
+    cellSize: 100,
+    distancePerCell: 5,
+    diagonalPolicy: 'EQUAL',
+    unit: 'FEET'
+  } as const
+  const tokens: NonNullable<
+    Parameters<typeof createEncounterLifecycleScene>[0]['options']['tokens']
+  > = [
+    {
+      id: reactorTokenId,
+      assetId: null,
+      controlledByUserIds: [],
+      height: 100,
+      hidden: false,
+      label: 'Movement reaction reactor',
+      locked: false,
+      position: { x: passage ? 250 : 50, y: 50 },
+      rotationDegrees: 0,
+      senses: [],
+      vision: null,
+      width: 100
+    },
+    {
+      id: moverTokenId,
+      assetId: null,
+      controlledByUserIds: [playerUserId],
+      height: 100,
+      hidden: false,
+      label: 'Movement reaction mover',
+      locked: false,
+      position: { x: passage ? 50 : 150, y: 50 },
+      rotationDegrees: 0,
+      senses: [],
+      vision: {
+        enabled: true,
+        brightRange: 10,
+        dimRange: 0,
+        angleDegrees: 360,
+        directionDegrees: 0
+      },
+      width: 100
+    }
+  ]
   const scene = await createEncounterLifecycleScene({
     owner,
     campaignId,
     name: passage ? 'Movement passage browser scene' : 'Movement reaction browser scene',
     options: {
       map: { width: passage ? 600 : 400, height: 200 },
-      grid: {
-        kind: 'SQUARE',
-        origin: { x: 0, y: 0 },
-        cellSize: 100,
-        distancePerCell: 5,
-        diagonalPolicy: 'EQUAL',
-        unit: 'FEET'
-      },
-      tokens: [
-        {
-          id: reactorTokenId,
-          assetId: null,
-          controlledByUserIds: [],
-          height: 100,
-          hidden: false,
-          label: 'Movement reaction reactor',
-          locked: false,
-          position: { x: passage ? 250 : 50, y: 50 },
-          rotationDegrees: 0,
-          senses: [],
-          vision: null,
-          width: 100
-        },
-        {
-          id: moverTokenId,
-          assetId: null,
-          controlledByUserIds: [playerUserId],
-          height: 100,
-          hidden: false,
-          label: 'Movement reaction mover',
-          locked: false,
-          position: { x: passage ? 50 : 150, y: 50 },
-          rotationDegrees: 0,
-          senses: [],
-          vision: {
-            enabled: true,
-            brightRange: 10,
-            dimRange: 0,
-            angleDegrees: 360,
-            directionDegrees: 0
-          },
-          width: 100
-        }
-      ]
+      grid,
+      tokens
     }
   })
   // The fixture proves Assisted prompts: both the moving player and the GM enter their own dice.
@@ -318,6 +322,14 @@ export async function prepareEncounterMovementFixture({
       tokenId: reactorTokenId
     },
     run,
-    scene
+    scene,
+    geometry: {
+      grid,
+      tokens,
+      actorIdByTokenId: new Map([
+        [reactorTokenId, reactor.id],
+        [moverTokenId, mover.id]
+      ])
+    }
   }
 }
