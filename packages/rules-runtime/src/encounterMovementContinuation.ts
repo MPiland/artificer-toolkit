@@ -315,8 +315,9 @@ export async function prepareEncounterMovementContinuation<
           ...terminalMovementDamageEnds({
             result: evaluated.result,
             targets,
+            encounter: input.state,
             occurrenceId: input.occurrenceId,
-            turnActorId: input.state.currentActorId,
+            commandId: input.executionCommandId,
             released
           })
         },
@@ -401,8 +402,9 @@ export async function prepareEncounterMovementContinuation<
           ...terminalMovementDamageEnds({
             result,
             targets,
+            encounter: input.state,
             occurrenceId: input.occurrenceId,
-            turnActorId: input.state.currentActorId
+            commandId: input.executionCommandId
           })
         },
         settlements,

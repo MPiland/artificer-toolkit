@@ -105,6 +105,18 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
         .array(postgresUuidSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
+    /**
+     * The move's zone damage met a passive damage trigger of a creature it damaged: the commit
+     * re-derives the owed grant from current rows and creates it as the room planned.
+     */
+    z.strictObject({
+      kind: z.literal('DAMAGE_GRANT'),
+      damageGrant: z.strictObject({
+        effectId: postgresUuidSchema,
+        holderActorId: postgresUuidSchema
+      }),
+      createdEffect: activeRuleEffectRecordSchema
+    }),
     z.strictObject({
       kind: z.literal('PASSAGE'),
       actorId: postgresUuidSchema,
@@ -156,8 +168,8 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     voidCommand: z.optional(voidRuleOccurrenceInputDtoSchema),
     rules: z.nullable(encounterActorRuleOutputSchema),
     /**
-     * At most one batch, one Concentration outcome, one zone departure and one damage end for each
-     * spatial candidate, one repeat save for each effect its target holds, one massive-damage save
+     * At most one batch, one Concentration outcome, one zone departure, one damage end and one
+     * damage grant for each spatial candidate, one repeat save for each effect its target holds, one massive-damage save
      * for each damage source of its graph, and one passage and one move end for each actor. A
      * reaction settles in its own child action's commit (D219), never here.
      */
@@ -165,7 +177,7 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
       .array(liveSessionMovementSettlementSchema)
       .check(
         z.maxLength(
-          (4 + MAX_ACTIVE_RULE_EFFECTS_PER_OWNER + RULE_GRAPH_LIMITS.NODES) *
+          (5 + MAX_ACTIVE_RULE_EFFECTS_PER_OWNER + RULE_GRAPH_LIMITS.NODES) *
             MAX_SPATIAL_CANDIDATES +
             2 * MAX_ENCOUNTER_ACTORS
         )

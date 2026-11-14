@@ -19,6 +19,7 @@ import {
 import {
   persistLiveMovementAreaDeparture,
   persistLiveMovementDamageEnd,
+  persistLiveMovementDamageGrant,
   persistLiveMovementMoveEnd
 } from '@artificer-toolkit/encounter-persistence/escapedEffectEndPersistence'
 import {
@@ -122,6 +123,7 @@ export function roomMovementSettlementCallbacks(input: {
     persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),
     persistMoveEnd: (step) => persistLiveMovementMoveEnd(ctx, step),
     persistDamageEnd: (step) => persistLiveMovementDamageEnd(ctx, step),
+    persistDamageGrant: (step) => persistLiveMovementDamageGrant(ctx, step),
     endHolderGrants: (step) => endHolderStateGrants(ctx, step),
     applyMechanics
   }

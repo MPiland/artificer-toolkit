@@ -282,8 +282,9 @@ export async function evaluateEncounterMovementPassageResponse<
         ...terminalMovementDamageEnds({
           result,
           targets,
+          encounter: state,
           occurrenceId: input.occurrenceId,
-          turnActorId: state.currentActorId
+          commandId: responseCommand.commandId
         }),
         resolutionCommands
       },

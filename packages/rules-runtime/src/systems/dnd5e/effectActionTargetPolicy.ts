@@ -5,11 +5,142 @@ import {
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored
 } from '../../encounterAreaAction.js'
-import { reactionTriggerRow } from '../../events/reactionTriggers.js'
 import { shapeExtent } from '../../shapeMeasurement.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
-import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
+import {
+  unsupported,
+  type Dnd5eActionInvocation,
+  type Dnd5eCompiledEffectActionSource,
+  type TestKind
+} from './effectActionContracts.js'
+
+/**
+ * What an Effect action targets, apart from how it is taken, tested or what it leaves behind (ADR
+ * 0039 decision 1):
+ * - `SELF`: its user alone. A Self action with a distance range in feet carries that range as its
+ *   `reachFeet`, which only its user's own teleport may read (Misty Step).
+ * - `SINGLE`: one creature in range.
+ * - `CHOSEN`: a resolved list of chosen creatures, inside a round area when it names one.
+ * - `AREA`: the creatures a fixed-size area catches, or a hit-point pool rolled over them (Sleep).
+ * `willing` marks a target that must be willing; an unwilling one only warns, so the outcome decides
+ * whether it may ask for one.
+ */
+export type Dnd5eTargeting =
+  | Readonly<{ kind: 'SELF'; reachFeet: number | null }>
+  | Readonly<{ kind: 'SINGLE'; willing: boolean }>
+  | Readonly<{ kind: 'CHOSEN'; willing: boolean }>
+  | Readonly<{ kind: 'AREA'; pooled: boolean }>
+
+/**
+ * The targeting aspect of an activated Effect action, given the test that decides it (none for a
+ * direct or check action). Excluded creature types stay on the invocation: the room warns for an
+ * excluded target and the table can override it, so they never refuse an action.
+ */
+export function compileDnd5eTargeting(
+  action: Dnd5eCompiledEffectActionSource,
+  test: TestKind | null
+): Dnd5eTargeting {
+  const { invocation } = action.compiledEffect
+  if (invocation.kind !== 'ACTION') unsupported('D&D Effect is not an activated action.')
+  const { targeting, range, shape } = invocation
+  switch (targeting?.selectionKind) {
+    case 'AREA_CONTENTS':
+      if (!isSupportedArea(invocation, action.zoneAppearSave))
+        unsupported('D&D area must be one fixed-size shape the area target policy measures.')
+      return { kind: 'AREA', pooled: hitPointPoolIsAuthored(targeting) }
+    case 'SELF':
+      return selfTargeting(invocation, test)
+    case 'SINGLE_TARGET':
+      // A single target on a Self range can only be its user: the single-target evaluator holds a
+      // Self range to the user (Etherealness).
+      if (range.rangeKind === 'SELF') return selfTargeting(invocation, test)
+      if (shape) unsupported('D&D single target names no area shape.')
+      requireDisposition(targeting.dispositionKind)
+      requireTargetRange(invocation)
+      return { kind: 'SINGLE', willing: targeting.dispositionKind === 'WILLING' }
+    case 'CHOSEN_CREATURES': {
+      // A save list tests each creature once: a creature named again would save twice. An attack
+      // list (Scorching Ray) is one roll per ray, and a list with no test resolves one outcome per
+      // entry (Magic Missile's darts), so either may name a creature again, outside an area.
+      const repeated = targeting.allowRepeatedTargets === true
+      if (repeated && test === 'SAVE') unsupported('D&D save list must name each creature once.')
+      if (!chosenCreaturesListResolves(targeting))
+        unsupported('D&D chosen-creature list must resolve its cap at every cast.')
+      // A list that names each creature once may be bounded by a round area at a point (Volley,
+      // Mass Cure Wounds, D156).
+      if (shape && (repeated || !chosenCreaturesAreaSupported(range.rangeKind, shape.shapeKind)))
+        unsupported('D&D chosen-creature area must be a round area at a point.')
+      requireDisposition(targeting.dispositionKind)
+      // The room measures each chosen creature by distance; only a single target is held to sight.
+      if (range.rangeKind === 'SIGHT')
+        unsupported('D&D chosen-creature list needs a measured range, not Sight.')
+      requireTargetRange(invocation)
+      return { kind: 'CHOSEN', willing: targeting.dispositionKind === 'WILLING' }
+    }
+    default:
+      unsupported('D&D action targeting is not a supported selection.')
+  }
+}
+
+/**
+ * A creature target names whether it may be any creature, a willing one or a hostile one: the room
+ * warns against that disposition and cannot evaluate a target without one.
+ */
+function requireDisposition(dispositionKind: 'ANY' | 'WILLING' | 'HOSTILE' | undefined): void {
+  if (dispositionKind === undefined) unsupported('D&D creature target must name its disposition.')
+}
+
+function selfTargeting(invocation: Dnd5eActionInvocation, test: TestKind | null): Dnd5eTargeting {
+  if (test === 'ATTACK') unsupported('D&D attack roll needs a target other than its user.')
+  if (invocation.shape) unsupported('D&D Self target names no area shape.')
+  const { range } = invocation
+  if (range.rangeKind === 'SELF') return { kind: 'SELF', reachFeet: null }
+  if (isPlainDistance(range) && range.unit === 'FEET')
+    return { kind: 'SELF', reachFeet: range.amount }
+  unsupported('D&D Self target needs a Self range, or a distance its own teleport may reach.')
+}
+
+/** A positive whole distance, with no long or close range of disadvantage. */
+function isPlainDistance(
+  range: Dnd5eActionInvocation['range']
+): range is Extract<Dnd5eActionInvocation['range'], { rangeKind: 'DISTANCE' }> {
+  return (
+    range.rangeKind === 'DISTANCE' &&
+    Number.isSafeInteger(range.amount) &&
+    range.amount > 0 &&
+    range.longAmount === undefined &&
+    range.closeAmount === undefined
+  )
+}
+
+/**
+ * The range a creature target must be in. A distance or Touch range only warns when the target is
+ * out of range (D11); a Sight range bounds no distance. Only a ranged weapon attack has a long range
+ * ("range 80/320 ft."), only an attack has a close range it has disadvantage within (a Lance, D217),
+ * and a melee attack may reach 0 ft. (a swarm's "one target in the swarm's space").
+ */
+function requireTargetRange(invocation: Dnd5eActionInvocation): void {
+  const { range } = invocation
+  if (range.rangeKind === 'UNLIMITED' || range.rangeKind === 'SIGHT' || range.rangeKind === 'TOUCH')
+    return
+  if (range.rangeKind !== 'DISTANCE')
+    unsupported('D&D creature target needs a distance, Touch, Sight or unlimited range.')
+  const attackKind = dnd5eAttackKind(invocation.triggerCode)
+  const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
+  if (!Number.isSafeInteger(range.amount) || range.amount < minimumDistance)
+    unsupported('D&D target distance must be a whole number of feet in reach.')
+  if (
+    range.longAmount !== undefined &&
+    (attackKind !== 'RANGED' || !Number.isSafeInteger(range.longAmount))
+  )
+    unsupported('D&D long range belongs to a ranged weapon attack.')
+  if (
+    range.closeAmount !== undefined &&
+    (attackKind === null || !Number.isSafeInteger(range.closeAmount))
+  )
+    unsupported('D&D close range belongs to an attack.')
+}
 
 /**
  * An AREA_CONTENTS action over a fixed-size area: a save action, or a hit-point pool action (Sleep)
@@ -21,11 +152,7 @@ import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js
  * decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does.
  */
-export function isSupportedArea(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
-  overZone = false
-): boolean {
-  if (invocation.kind !== 'ACTION') return false
+function isSupportedArea(invocation: Dnd5eActionInvocation, overZone = false): boolean {
   const { shape, targeting, range } = invocation
   if (targeting?.selectionKind !== 'AREA_CONTENTS') return false
   const pooled = hitPointPoolIsAuthored(targeting)
@@ -37,12 +164,7 @@ export function isSupportedArea(
       : invocation.triggerCode !== 'SAVING_THROW') ||
     // A zone's later entry saves do not filter by creature type, so its appear save may not either.
     (overZone &&
-      (targeting.allowedCreatureTypeIds?.length || targeting.excludedCreatureTypeIds?.length)) ||
-    // An Action, or a free option its Feature charge pays for (a Legendary Wing Attack).
-    !(
-      (invocation.activation.code === 'ACTION' && invocation.activation.amount === 1) ||
-      isChargedFreeActivation(invocation)
-    )
+      (targeting.allowedCreatureTypeIds?.length || targeting.excludedCreatureTypeIds?.length))
   )
     return false
   // A Self action that names no shape reaches the creatures in the caster's own space.
@@ -53,16 +175,8 @@ export function isSupportedArea(
     encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
   )
     return false
-  if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED') {
-    if (
-      range.rangeKind !== 'DISTANCE' ||
-      !Number.isSafeInteger(range.amount) ||
-      range.amount < 1 ||
-      range.longAmount !== undefined ||
-      range.closeAmount !== undefined
-    )
-      return false
-  }
+  if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED' && !isPlainDistance(range))
+    return false
   const size = shapeExtent(shape)
   return (
     size !== null &&
@@ -77,16 +191,6 @@ export function isSupportedArea(
   )
 }
 
-/** A Legendary Action option is free; the Feature charge it spends is its cost. */
-export function isChargedFreeActivation(
-  invocation: Extract<
-    Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
-    { activation: unknown }
-  >
-): boolean {
-  return invocation.activation.code === 'FREE' && invocation.resourceUse !== undefined
-}
-
 function isBoundedDice(value: string): boolean {
   try {
     parseBoundedDiceConfiguration(value)
@@ -94,111 +198,4 @@ function isBoundedDice(value: string): boolean {
   } catch {
     return false
   }
-}
-
-export function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): boolean {
-  const { invocation } = action.compiledEffect
-  if (invocation.kind !== 'ACTION') return false
-  const { targeting } = invocation
-  if (targeting?.selectionKind === 'AREA_CONTENTS')
-    return isSupportedArea(invocation, action.zoneAppearSave)
-  // A resolved list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
-  // each creature once: a creature named again would save twice, so a repeating save list is
-  // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
-  // creature; one that names each creature once may be bounded by a round area at a point
-  // (Volley, D156), which a repeating list is not.
-  if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
-    const attacks = dnd5eAttackKind(invocation.triggerCode) !== null
-    if (
-      targeting.dispositionKind !== 'ANY' ||
-      (!attacks &&
-        (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
-      !chosenCreaturesListResolves(targeting) ||
-      (invocation.shape !== undefined &&
-        (targeting.allowRepeatedTargets === true ||
-          !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
-    )
-      return false
-  } else if (targeting?.selectionKind === 'SELF') {
-    // A save its user makes (Contact Other Plane) tests the user alone: a Self range, no area.
-    return (
-      invocation.triggerCode === 'SAVING_THROW' &&
-      invocation.range.rangeKind === 'SELF' &&
-      !invocation.shape &&
-      (invocation.activation.code === 'ACTION' || invocation.activation.code === 'BONUS_ACTION')
-    )
-  } else if (
-    invocation.shape ||
-    targeting?.selectionKind !== 'SINGLE_TARGET' ||
-    targeting.dispositionKind !== 'ANY'
-  )
-    return false
-  const attackKind = dnd5eAttackKind(invocation.triggerCode)
-  // Only a ranged weapon attack has a long range ("range 80/320 ft.").
-  if (
-    invocation.range.rangeKind === 'DISTANCE' &&
-    invocation.range.longAmount !== undefined &&
-    (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
-  )
-    return false
-  // Only an attack has a close range it has disadvantage within (a Lance, D217).
-  if (
-    invocation.range.rangeKind === 'DISTANCE' &&
-    invocation.range.closeAmount !== undefined &&
-    (attackKind === null || !Number.isSafeInteger(invocation.range.closeAmount))
-  )
-    return false
-  if (
-    invocation.activation.code === 'ACTION' ||
-    invocation.activation.code === 'BONUS_ACTION' ||
-    isChargedFreeActivation(invocation)
-  ) {
-    // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
-    const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
-    return (
-      invocation.range.rangeKind === 'UNLIMITED' ||
-      invocation.range.rangeKind === 'TOUCH' ||
-      (invocation.range.rangeKind === 'DISTANCE' &&
-        Number.isSafeInteger(invocation.range.amount) &&
-        invocation.range.amount >= minimumDistance)
-    )
-  }
-  return (
-    invocation.activation.code === 'REACTION' &&
-    invocation.range.rangeKind === 'DISTANCE' &&
-    Number.isSafeInteger(invocation.range.amount) &&
-    invocation.range.amount > 0
-  )
-}
-
-export function isSupportedTestActivation(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
-): boolean {
-  if (invocation.kind !== 'ACTION') return false
-  if (invocation.activation.code === 'FREE') return isChargedFreeActivation(invocation)
-  if (invocation.activation.amount !== 1) return false
-  if (invocation.activation.code === 'ACTION') return true
-  // A save or spell attack is a bonus action as a repeat offer's charge (Heat Metal's repeated
-  // damage, D166; Spiritual Weapon's attack, D190a).
-  if (invocation.activation.code === 'BONUS_ACTION')
-    return (
-      dnd5eAttackKind(invocation.triggerCode) !== null || invocation.triggerCode === 'SAVING_THROW'
-    )
-  return invocation.activation.code === 'REACTION' && reactionTriggerRow(invocation) !== null
-}
-
-/**
- * Whether the action's range and targeting name only its user. A removal from play on a Self range
- * (Etherealness) names its one target, which can only be its user: the single-target evaluator
- * holds a Self range to the user.
- */
-export function namesOnlyItsUser(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
-  removesFromPlay: boolean
-): boolean {
-  return (
-    invocation.range.rangeKind === 'SELF' &&
-    (invocation.targeting?.selectionKind === 'SELF' ||
-      (invocation.targeting?.selectionKind === 'SINGLE_TARGET' && removesFromPlay))
-  )
 }

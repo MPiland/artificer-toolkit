@@ -25,6 +25,12 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'perTargetLockout'
 >
 
+/** An activated Effect's invocation: the schema leaves an action's `kind` optional, so it is every non-passive one. */
+export type Dnd5eActionInvocation = Exclude<
+  Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+  { kind: 'PASSIVE' }
+>
+
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 export const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 export const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =

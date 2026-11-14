@@ -135,6 +135,8 @@ names.
 | `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                |
 | `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                   |
 | `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)    |
+| `effectActionActivation`         | The activation aspect, `compileDnd5eActivation`: one action, bonus action or registered-trigger reaction, or a free action and whether a Feature charge is its cost                                               |
+| `effectActionTargetPolicy`       | The targeting aspect, `compileDnd5eTargeting`: Self (with a teleport reach), single, chosen list or fixed-size area, its range rules and whether the target must be willing                                       |
 | `effectActionPublishedGraph`     | `publishedGraph`: the published DTO (identity, checksum, definition) of a graph the compiler built                                                                                                                |
 | `effectActionLifetime`           | `maintenancePlan` (the source actor's Concentration or named maintained effect), `durationPublishedGraph` (the graph a timed plan's duration publishes) and the grant consume and end trigger events              |
 | `effectActionModifierGrants`     | `modifierGrantEntryPlan`: a modifier grant entry's active-effect plan, with its cast-level amounts, lifetime and maintenance                                                                                      |
@@ -144,6 +146,19 @@ names.
 | `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant |
 
 The zones module imports the test-phase, outcome and lifetime modules above directly, as the compiler does.
+
+**Aspect composition (current, QUALITY-15.T1; ADR 0039 decision 1).** Activation and targeting compile independently
+and are composed in the compiler's `activatedAction`, which the direct path (`supported`), the test paths (`testPlan`,
+`supportedTestPhaseKind`) and nothing else read. Each aspect refuses with its own rule, so a refusal names the aspect
+that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a reaction aims no area (its trigger's
+pending decision carries no aim), a Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
+accepts: one creature a grant, timed condition or check; a list a grant, bond or form. A single target on a Self range is its user, as the room's
+single-target evaluator holds it. The targeting aspect (`compileDnd5eTargeting`) also holds the room's evaluator limits: a creature
+target names its disposition (any, willing or hostile), and a chosen-creature list needs a measured range, not Sight. Within those
+limits the aspects admit combinations the shape ladders refused: a save its user makes under any activation, an area save as a bonus
+action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
+(`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). The test, outcome and lifetime selection still run as plan ladders; they are the
+QUALITY-15 follow-up tasks.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
 and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
@@ -244,9 +259,9 @@ outcomes that act on the actor or the triggering event (a Dash's added speed, a 
 cancel). Every compiled graph is published through one helper, `publishedGraph`. Two
 admissions changed:
 
-- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
-  `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
-  check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
+- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. The activation aspect
+  (`compileDnd5eActivation`) marks such an option `charged`; the composition (`activatedAction`) refuses an uncharged
+  free action on anyone but its user, for direct and test actions alike (QUALITY-15.T1). So a charged free save option (Wing Attack's authored shape) compiles under
   its save. When its area is centered on its owner, or is a point or direction its controller aims, the turn end
   delegates it to the area coordinator as its own rule-raised root (SPELLS-33.T4l3, SPELLS-15.T1, D197;
   `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`). An aimed option carries its `area`, the answer
@@ -633,9 +648,18 @@ the damager) through `targetEndedEffects`, and lists the ends as `damageEnds` on
 outcome. Every terminal site calls it (the finished move, a stop at the terminal distance, a reaction's stop,
 a declined or lost passage). The room plans one `DAMAGE_END` settlement per end after every contact, beside
 `AREA_DEPARTURE` and `MOVE_END`; `persistLiveMovementDamageEnd` re-derives the ends with the same function
-(`movementDamageEndedEffects`) from the holder's current rows and the move's applied contacts, requires the
-step's effect among them, and ends it through the escape end path (the row, the conditions only it held,
-maintenance owners). The spatial receipt is unchanged. An effect the move itself placed never ends on the
+(`movementDamageEnds`) from the holder's current rows and the move's applied contacts, requires the
+step's effect among them, and ends it through the escape end path (the row, the conditions only it held, the
+temporary hit points whose source it was, maintenance owners). The spatial receipt is unchanged. The same
+call passes the holder's passive damage triggers (`prepareNativeIncomingDamageGrantTriggers`, ordinal
+`MOVEMENT_DAMAGE`, rooted in the move's own command) as the turn zone and melee retaliation do (current,
+QUALITY-14.T2d2): the grants they owe are `damageGrants` on the TERMINAL outcome, the effects the grants
+replace join `damageEnds`, and the room plans one `DAMAGE_GRANT` settlement per grant after the `DAMAGE_END`
+steps, carrying the record `incomingDamageGrantRecords` builds over the holder's remaining effects;
+`persistLiveMovementDamageGrant` re-derives the owed grants from current rows, refuses one not owed ('Movement
+damage grant is not owed.') and creates it through `createIncomingDamageGrants`. A spatial contact carries the
+target's temporary hit point source (`SpatialTargetState.temporarySourceEffectId`), so its published
+transition matches the mechanics batch for a holder whose pool an effect gave. An effect the move itself placed never ends on the
 move's own damage, and an effect the move already releases (`areaDepartures`, `moveEnds`) is not listed
 twice. The ends and every release read the targets as the save chain left them: the continuation
 (`prepareEncounterMovementContinuation` and the action and passage responses) returns those `targets`, and
@@ -643,9 +667,7 @@ the room's `nativeMovementSettlementInputs` derives each release's ended effect 
 never from the facts captured before the move. An effect a made repeat save released is therefore neither
 listed nor counted as still holding a condition, and persistence refuses a `DAMAGE_END` step for it
 ('Movement release differs from its holder effect.'). Not covered yet (transitional): a move left PENDING
-ends nothing until it finishes; the temporary hit points and incoming-damage grants an action's ends stage
-also releases (`movementDamageEndedEffects` keeps only the ended effects; QUALITY-14.T2d split); and the save
-chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
+ends nothing until it finishes, and the save chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
 effect and owes a save raises twice.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
@@ -1169,8 +1191,8 @@ the grants as `grantEffectTransitions` and the conditions the ended effects rele
 refuses a settlement whose created grants differ; it returns the ended effects, which the action root keeps in `consumedGrants`, so undo deletes
 the new grants, then restores the ended and replaced effects and their released conditions), and
 the movement-reaction root records them as `grantEffectTransitions` beside `ended`. Each area target's outcome calls it and creates the grants beside its other effects (`grantEffectTransitions` on its batch; the area root
-keeps the ended effects in `consumedGrants`). Spatial movement contacts (opt-in via
-`damageEnds.incomingDamageGrants`, unset for contacts) do not yet call it; contacts wait with T6e4's gap.
+keeps the ended effects in `consumedGrants`). A move's zone damage calls it once the move's last contact has
+settled (`movementDamageEnds`, `DAMAGE_GRANT` settlements; QUALITY-14.T2d2, see "Movement damage ends").
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source
@@ -1331,7 +1353,8 @@ Damage a turn zone or a melee retaliation deals ends the target's effects that e
 passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persistence call `spatialDamageEnds` over the same
 held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
 the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
-`deleteGrants`. Occupant save auras lend bonuses and deal no damage; spatial movement contacts do not pass `damageEnds` yet.
+`deleteGrants`. Occupant save auras lend bonuses and deal no damage. A move's contacts do not pass `damageEnds`: what their
+damage ends and gives settles once the move ends, as `DAMAGE_END` and `DAMAGE_GRANT` steps ("Movement damage ends").
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
@@ -2967,7 +2990,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
 - **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
-- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
+- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. The activation aspect (`compileDnd5eActivation`) admits a `BONUS_ACTION`, so a `BONUS_ACTION` saving throw (a repeat's charge) compiles through `activatedAction`.
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
 - **Carrier kinds (SPELLS-4.T2n2, D181):** a repeat offer on a grant with no chosen item is an ordinary grant's offer: `modifierGrantPlan` plans it (an offer counts as grant content) and the generic modifier-grant path freezes it, so an attack's carrier works (Vampiric Touch). Only a chosen-item grant takes the Heat Metal rider (`effectActionRepeatCarrier.ts`: save, bound to the item, ends on release). An attack grant authored alike on the hit and the miss applies on either result; two grants on hit results are still refused.
 

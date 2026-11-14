@@ -466,6 +466,11 @@ export async function prepareNativeLiveMovement(
     state,
     actors: captured.actors,
     finalActors,
+    step: {
+      occurrenceId: input.occurrenceId,
+      executionCommandId: save.commandId,
+      occurredAt: input.occurredAt
+    },
     planned
   })
   // `targets` stays the captured facts the commit's currentness checks read.
