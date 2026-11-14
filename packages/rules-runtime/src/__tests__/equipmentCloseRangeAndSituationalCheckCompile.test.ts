@@ -71,8 +71,6 @@ describe('an attack’s close range (D217)', () => {
         range: { ...sacredFlame.invocation.range, closeAmount: 5 }
       }
     }
-    expect(() => planOf(withCloseRange)).toThrow(
-      'D&D test action has an unsupported bounded shape.'
-    )
+    expect(() => planOf(withCloseRange)).toThrow('D&D close range belongs to an attack.')
   })
 })
