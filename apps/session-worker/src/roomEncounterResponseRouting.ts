@@ -15,10 +15,16 @@ import type {
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 
-/** Retained evidence selects only implemented planners; each planner admits the caller again. */
+/**
+ * Retained evidence selects only implemented planners; each planner admits the caller again. An
+ * option taken at a paused Scene move's reaction choice is the one movement answer the Encounter
+ * path settles: it records and runs the reaction's child action and leaves the move where it is.
+ */
 export async function readRoomEncounterResponseRoute(
   store: RoomEncounterStore,
-  command: Pick<ResolveRuleOccurrenceInputDto, 'encounterId' | 'occurrenceId'>
+  command: Pick<ResolveRuleOccurrenceInputDto, 'encounterId' | 'occurrenceId'> & {
+    resolution?: Pick<ResolveRuleOccurrenceInputDto['resolution'], 'kind'>
+  }
 ) {
   const run = await store.store
     .query('encounterRuns')
@@ -36,6 +42,14 @@ export async function readRoomEncounterResponseRoute(
   )
     return null
   const owner = await readNativeEncounterOccurrenceOwner({ db: store.store }, run, occurrence.id)
+  if (owner === 'MOVEMENT' && command.resolution?.kind === 'OPTION') {
+    const context =
+      occurrence.state === 'PENDING'
+        ? (await readPendingSnapshot({ db: store.store }, occurrence))?.applicationContext
+        : null
+    if (context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'CHOICE')
+      return 'MOVEMENT_REACTION_CHILD' as const
+  }
   if (
     owner === 'TURN' ||
     owner === 'CONCENTRATION' ||

@@ -8,7 +8,7 @@ import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtim
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { readEncounterActorDefeated } from './characterStates.js'
-import { countRunVoidVersions, readCommittedReactionDescendants } from './reactionChildren.js'
+import { countRunSettlementVersions, readCommittedReactionDescendants } from './reactionChildren.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -98,7 +98,7 @@ export async function readNativeEncounterActionAdmission(
           beforeVersion: replay.version
         })
       ).length +
-      (await countRunVoidVersions(ctx, {
+      (await countRunSettlementVersions(ctx, {
         encounterId: run.id,
         afterVersion: input.expectedVersion,
         throughVersion: replay.version - 1

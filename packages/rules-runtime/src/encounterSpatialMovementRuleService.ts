@@ -137,6 +137,12 @@ export type FrozenMovementReactionRemainder = Pick<
         { kind: 'SPATIAL_EVIDENCE' }
       >['currentCandidate']
     | null
+  /**
+   * The move resumes from a committed reaction child (D219). That child's own commit moved the Run
+   * and its creatures since the move froze them, so the continuation takes the currentness facts as
+   * it locks them instead of holding them to the frozen checksum.
+   */
+  resumedFromReactionChild?: true
 }
 
 /** A mover leaving the area of a zone that holds a condition on it until it does (D146). */
@@ -517,6 +523,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     })
     if (
       frozenReactionRemainder &&
+      !frozenReactionRemainder.resumedFromReactionChild &&
       frozenReactionRemainder.spatialCurrentnessChecksum !== currentnessChecksum
     )
       throw new EncounterConflictError('The frozen spatial currentness facts are stale.')
@@ -616,6 +623,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   })
   if (
     frozenReactionRemainder &&
+    !frozenReactionRemainder.resumedFromReactionChild &&
     frozenReactionRemainder.appliedSpatialPrefix === null &&
     frozenReactionRemainder.spatialCurrentnessChecksum !== currentnessChecksum
   )
@@ -705,7 +713,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         if (!expected || !sameRemainingPendingCandidate(currentCandidate, expected))
           throw new EncounterConflictError('The remaining spatial contacts changed.')
       }
-    } else if (frozenReactionRemainder) {
+    } else if (frozenReactionRemainder && !frozenReactionRemainder.resumedFromReactionChild) {
+      // A resume from a committed reaction child plans the rest of the walk against the Run as
+      // the child left it (D219), so the suffix frozen before the child is not compared.
       const expected =
         frozenReactionRemainder.remainingSpatialCandidates[candidateIndex - completedPrefix.length]
       if (!expected || !sameRemainingPendingCandidate(currentCandidate, expected))

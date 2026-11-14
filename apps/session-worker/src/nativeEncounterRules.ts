@@ -124,7 +124,7 @@ import {
   planNativeLiveEncounterAreaAnswer,
   planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
-  planNativeLiveEncounterAreaRayReaction,
+  planNativeLiveEncounterAreaRayOffer,
   planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
 import { prepareCasterActionOnTarget, type ForcedMovementPick } from './nativeAreaPreparation.js'
@@ -392,20 +392,20 @@ export async function planNativeLiveEncounterAction(
         revisions
       }
     }
-    const heldRayOffer =
-      areaSnapshot && pendingContext?.pause?.kind === 'CAST_REACTION'
-        ? pendingContext.pause.payload
-        : null
-    const rayContinuation = !heldRayOffer
-      ? null
-      : resumeCommand
-        ? { resume: resumeCommand, offer: heldRayOffer }
-        : responseCommand && castAnswer
-          ? { response: responseCommand, answer: castAnswer }
+    // A ray list holds one ray at a time on an offer its hit raised: its creature's reaction, which
+    // the room may resume from, then its caster's on-hit rider.
+    const heldRayPause = areaSnapshot ? pendingContext?.pause : null
+    const rayContinuation =
+      resumeCommand && heldRayPause?.kind === 'CAST_REACTION'
+        ? { resume: resumeCommand, offer: heldRayPause.payload }
+        : responseCommand &&
+            (pauseAnswer?.kind === 'CAST_REACTION' || pauseAnswer?.kind === 'ON_HIT') &&
+            pauseAnswer.kind === heldRayPause?.kind
+          ? { response: responseCommand, answer: pauseAnswer }
           : null
     if (areaSnapshot && rayContinuation) {
       return {
-        ...(await planNativeLiveEncounterAreaRayReaction({
+        ...(await planNativeLiveEncounterAreaRayOffer({
           ...areaInput,
           areaSnapshot,
           continuation: rayContinuation
@@ -535,7 +535,9 @@ export async function planNativeLiveEncounterAction(
   const attackSceneLoaders = (targets: typeof movementTargets) =>
     nativeLiveAttackSceneLoaders({ ...attackScene, movementTargets: targets })
   // What the Scene move a reaction's child answers offered it under (D219). The mover's token already
-  // stands at the contact the move is held at, so the Scene is read as any action reads it.
+  // stands at the contact the move is held at, so the Scene is read as any action reads it, except
+  // for the range: the contact of a creature leaving reach is the first point outside it, and the
+  // move's offer is what proved the reach.
   const triggerMovement = 'triggerMovement' in admission ? admission.triggerMovement : null
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
@@ -683,7 +685,7 @@ export async function planNativeLiveEncounterAction(
     command,
     evaluation: { activationCode, economy, suppressed },
     endWarnings: endPlan.warnings,
-    scene: { sceneContext, facing: encounterFacingRule(state) },
+    scene: { sceneContext, facing: encounterFacingRule(state), rangeProven: !!triggerMovement },
     gameSystemId: state.gameSystemId,
     movementTargets
   })

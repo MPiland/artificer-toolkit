@@ -3,6 +3,7 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import {
   readCheckpointedHitPoints,
   readCheckpointedTokenPosition,
+  readResumedMovement,
   setupAutomaticSceneMovement,
   useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
@@ -31,10 +32,17 @@ it.each(['DECLINE', 'OPTION'] as const)(
         { x: 450, y: 50 }
       ]
     })
-    await queueRoomRolls(value.base.campaign.id, {
-      rolls: Array.from({ length: 2 }, () => [14, 0, 0]).flat(),
-      repeat: 0
-    })
+    // Restated (QUALITY-18.T2b3): a Use runs the reaction as the reactor's own action (D219), so
+    // the Bite's authored rider knocks the mover Prone as that action commits, where the inline
+    // engine left the mover standing through the move. The attack on a Prone mover rolls two d20s,
+    // so each Use queues its own hit (an attack of 15 and minimum damage) instead of both sharing
+    // one queue of three dice each.
+    const queueReactionHit = (moverProne: boolean) =>
+      queueRoomRolls(value.base.campaign.id, {
+        rolls: moverProne ? [14, 14, 0, 0] : [14, 0, 0],
+        repeat: 0
+      })
+    await queueReactionHit(false)
     /** Convex's rows, after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
     const snapshot = async () => {
       await checkpointLiveRoom(value.base.campaign.id)
@@ -69,8 +77,22 @@ it.each(['DECLINE', 'OPTION'] as const)(
     }
     const startHitPoints = await readCheckpointedHitPoints(value, value.base.mover.id)
     // Assisted play offers the next authored automatic reaction as Use/Decline; the GM uses it.
-    const decided = await executeInRoom(value.owner.caller, { command })
+    const answered = await executeInRoom(value.owner.caller, { command })
+    // Restated (QUALITY-18.T2b3): a Use answers with its reaction's own action (D219), not with
+    // the move's next choice, so after a Use the next choice is read from the move as the room
+    // resumed it. A Decline still answers with the next choice.
+    const decided =
+      selection === 'OPTION'
+        ? {
+            occurrence: await readResumedMovement(
+              value.owner.caller,
+              value.base.campaign.id,
+              choice
+            )
+          }
+        : answered
     expect(decided.occurrence).toMatchObject({ status: 'PENDING' })
+    await queueReactionHit(selection === 'OPTION')
     const before = await snapshot()
     const used = await useMovementReactionsInRoom(value, 10, decided)
     expect(used.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -79,7 +101,10 @@ it.each(['DECLINE', 'OPTION'] as const)(
       y: 50
     })
     const after = await snapshot()
-    expect(after.runs[0]!.version).toBe(before.runs[0]!.version + 1)
+    // Restated (QUALITY-18.T2b3): the used automatic reaction commits as the reactor's own action
+    // and the room's resume then completes the move (D219), so the Run advances twice where the Use
+    // answer committed both at once.
+    expect(after.runs[0]!.version).toBe(before.runs[0]!.version + 2)
     // Declining spends one reaction (the automatic one); using the first spends both.
     expect(await readCheckpointedHitPoints(value, value.base.mover.id)).toBe(
       startHitPoints - (selection === 'DECLINE' ? 4 : 8)
@@ -142,7 +167,19 @@ it.each(['DECLINE', 'OPTION'] as const)(
           ? { kind: 'DECLINE' }
           : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
     }
-    const next = await executeInRoom(value.owner.caller, { command })
+    const answered = await executeInRoom(value.owner.caller, { command })
+    // Restated (QUALITY-18.T2b3): a Use answers with its reaction's own action (D219), so the
+    // second choice is read from the move as the room resumed it. A Decline still answers with it.
+    const next =
+      selection === 'OPTION'
+        ? {
+            occurrence: await readResumedMovement(
+              value.owner.caller,
+              value.base.campaign.id,
+              choice
+            )
+          }
+        : answered
     expect(next.occurrence).toMatchObject({ status: 'PENDING' })
     const nextChoice = next.occurrence?.pending
     if (!nextChoice || nextChoice.kind !== 'MOVEMENT_REACTION')

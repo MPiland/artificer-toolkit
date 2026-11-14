@@ -472,6 +472,42 @@ describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D
     ).toEqual([poolRider(2)])
   })
 
+  it('withholds a slot or pool rider once an earlier attack roll of the action chose one (QUALITY-13.T1c4)', () => {
+    const smiteRider = {
+      riderId: OPTIONAL_SMITE_EFFECT_ID,
+      label: 'Optional Smite',
+      cost: { kind: 'SPELL_SLOT' as const }
+    }
+    const freeRider = { riderId: 'free', label: 'Shove', cost: { kind: 'FREE' as const } }
+    const free: EncounterOnHitCandidate = { kind: 'FREE', riderId: 'free', riderLabel: 'Shove' }
+    const offer = (chosenBefore: readonly EncounterOnHitCandidate[]) =>
+      onHitCandidates({
+        riders: [smiteRider, poolRider(2), freeRider],
+        chosenBefore,
+        spellSlots: {
+          ...emptySlots,
+          maxByLevel: [
+            {
+              spellLevel: 1,
+              slotCount: 2,
+              sourceIds: [],
+              rawUsed: 0,
+              effectiveUsed: 0,
+              remaining: 2
+            }
+          ]
+        },
+        resources: [poolResource()]
+      })
+
+    expect(offer([])).toEqual([smiteAt(1), poolStrikeAt(2), free])
+    expect(offer([smiteAt(1)])).toEqual([poolStrikeAt(2), free])
+    expect(offer([poolStrikeAt(2)])).toEqual([smiteAt(1), free])
+    // A free rider spends nothing, so choosing it withholds nothing.
+    expect(offer([free])).toEqual([smiteAt(1), poolStrikeAt(2), free])
+    expect(offer([smiteAt(1), poolStrikeAt(2)])).toEqual([free])
+  })
+
   it('offers the pool only while exactly one resolved pool holds the cost', () => {
     const offer = (resources: Parameters<typeof onHitCandidates>[0]['resources']) =>
       onHitCandidates({ riders: [poolRider(2)], spellSlots: emptySlots, resources })

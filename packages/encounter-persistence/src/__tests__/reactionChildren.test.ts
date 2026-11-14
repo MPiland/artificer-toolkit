@@ -43,7 +43,7 @@ import { readMovementResponseAuthority } from '../movementResolutionDocuments.js
 import { readPendingSnapshot, writePendingSnapshot } from '../pendingSnapshots.js'
 import {
   awaitsReactionChild,
-  countRunVoidVersions,
+  countRunSettlementVersions,
   reactionChildrenKept,
   readCommittedReactionChildren,
   readCommittedReactionDescendants,
@@ -53,6 +53,7 @@ import {
   readTrailingReactionDescendants,
   releaseReactionChildParent,
   repinReactionChildParent,
+  resumeSettledReactionChildParent,
   suspendReactionChildParent
 } from '../reactionChildren.js'
 import { readNativeEncounterActionResumeAdmission } from '../actionResumeAdmission.js'
@@ -1214,7 +1215,7 @@ describe('suspending the pending action while its reaction child is the pending 
     await insertCommittedAction(memory, state, reactionChild(ROOT_VERSION + 1), ROOT_VERSION + 2)
     await insertVoid(memory, ROOT_VERSION + 3)
     const count = (afterVersion: number, throughVersion: number) =>
-      countRunVoidVersions(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
+      countRunSettlementVersions(ctx, { encounterId: ENCOUNTER_ID, afterVersion, throughVersion })
     expect(await count(ROOT_VERSION, ROOT_VERSION + 3)).toBe(2)
     // The lower bound is exclusive and the upper inclusive.
     expect(await count(ROOT_VERSION + 1, ROOT_VERSION + 3)).toBe(1)
@@ -1310,7 +1311,7 @@ describe('counting a root’s committed reaction children from the Run’s comma
       }
     ])
     expect(
-      await countRunVoidVersions(ctx, {
+      await countRunSettlementVersions(ctx, {
         encounterId: ENCOUNTER_ID,
         afterVersion: ROOT_VERSION,
         throughVersion: ROOT_VERSION + 3
@@ -1689,15 +1690,36 @@ describe('the held actions above a reaction child (QUALITY-9.T1c2, D219)', () =>
 const MOVE_SCENE_ID = testUuid(0x8a43)
 
 /**
+ * What the move's contact offers the protector: its one reaction action twice, under two allowances.
+ */
+const MOVE_OPTIONS = [
+  { optionId: checksum('7'), sourceId: checksum('8'), allowanceDefinitionId: testUuid(0x8a31) },
+  { optionId: checksum('b'), sourceId: checksum('c'), allowanceDefinitionId: testUuid(0x8a33) }
+]
+
+/** The entry of a move's history that records its reactor's controller choosing an option. */
+const chosenOption = (optionId: string) => ({
+  commandId: testUuid(0x8a4a),
+  commandFingerprint: checksum('2'),
+  actorUserId: USER_ID,
+  correlationId: null,
+  expectedOccurrenceVersion: 0,
+  kind: 'OPTION' as const,
+  optionId
+})
+
+/**
  * A Run at `ROOT_VERSION` whose Scene move, the attacker's, is paused on the protector's reaction
- * choice at its contact, the choice recording `reactionChildren`. Nothing has answered the move yet,
- * so its history is empty and its occurrence at version 0. Returns that choice and the move's root
- * with the Run.
+ * choice at its contact, the choice recording `reactionChildren`. A move records a child in the
+ * answer that chooses its option (QUALITY-18.T2b2), so a move with children holds that answer as its
+ * one history entry at version 1; an open choice nothing has answered has no history at version 0.
+ * Returns that choice and the move's root with the Run.
  */
 async function pausedMove(
   reactionChildren?: { commandId: string; resumeOutcome?: null }[],
   /** The Run to make the move on, when its child is already held against it. */
-  held?: Awaited<ReturnType<typeof pausedAttack>>
+  held?: Awaited<ReturnType<typeof pausedAttack>>,
+  chosenOptionId = MOVE_OPTIONS[0]!.optionId
 ) {
   const paused = held ?? (await pausedAttack())
   const { ctx, memory, occurrence } = paused
@@ -1717,45 +1739,44 @@ async function pausedMove(
       group: {
         pathDistance: contact.pathDistance,
         ...reactor,
-        options: [
-          {
-            optionId: checksum('7'),
-            contactSourceId: checksum('8'),
-            actionId: REACTION_ACTION_ID,
-            actionSourceKind: 'ENCOUNTER_FEATURE',
-            actionSourceCurrentnessChecksum: checksum('9'),
-            candidate: {
-              ...contact,
-              ...reactor,
-              movingActorId: ATTACKER_ID,
-              sourceId: checksum('8'),
-              stage: 'BEFORE_LEAVE_REACH'
-            },
-            binding: {
-              kind: 'MOVEMENT',
-              stage: 'BEFORE_LEAVE_REACH',
-              perceptionRequirement: 'SEE',
-              eligibilityDefinitionId: testUuid(0x8a42)
-            },
-            policy: {
-              eligible: true,
-              allowanceDefinitionId: testUuid(0x8a31),
-              allowanceMaximum: 1,
-              allowanceRefreshBoundary: 'START_OF_TURN',
-              selectionPolicy: 'CHOICE',
-              choiceDefinitionId: testUuid(0x8a32),
-              targetPolicy: 'MOVER'
-            },
-            eligibilityEvidenceChecksum: checksum('a'),
-            authority: { kind: 'GM' },
-            visibility: 'GM_ONLY'
-          }
-        ]
+        options: MOVE_OPTIONS.map(({ optionId, sourceId, allowanceDefinitionId }) => ({
+          optionId,
+          contactSourceId: sourceId,
+          actionId: REACTION_ACTION_ID,
+          actionSourceKind: 'ENCOUNTER_FEATURE',
+          actionSourceCurrentnessChecksum: checksum('9'),
+          candidate: {
+            ...contact,
+            ...reactor,
+            movingActorId: ATTACKER_ID,
+            sourceId,
+            stage: 'BEFORE_LEAVE_REACH'
+          },
+          binding: {
+            kind: 'MOVEMENT',
+            stage: 'BEFORE_LEAVE_REACH',
+            perceptionRequirement: 'SEE',
+            eligibilityDefinitionId: testUuid(0x8a42)
+          },
+          policy: {
+            eligible: true,
+            allowanceDefinitionId,
+            allowanceMaximum: 1,
+            allowanceRefreshBoundary: 'START_OF_TURN',
+            selectionPolicy: 'CHOICE',
+            choiceDefinitionId: testUuid(0x8a32),
+            targetPolicy: 'MOVER'
+          },
+          eligibilityEvidenceChecksum: checksum('a'),
+          authority: { kind: 'GM' },
+          visibility: 'GM_ONLY'
+        }))
       }
     }
   ])
+  const resolutionCommands = reactionChildren ? [chosenOption(chosenOptionId)] : []
   await memory.store.patch(_id, {
-    version: 0,
+    version: resolutionCommands.length,
     pendingSnapshotChecksum: await writePendingSnapshot(
       ctx,
       root,
@@ -1781,7 +1802,7 @@ async function pausedMove(
             pathChecksum: checksumRuleDocument(path),
             pathStartDistance: contact.pathDistance,
             currentPosition: contact.contact,
-            resolutionCommands: []
+            resolutionCommands
           },
           spatialSelectionChecksum: checksum('4'),
           spatialCurrentnessChecksum: checksum('5'),
@@ -1807,6 +1828,162 @@ async function pausedMove(
   }
   return { ...paused, move, choice: async () => (await move()).choice }
 }
+
+const CHECK_OCCURRENCE_ID = testUuid(0x8a46)
+
+/**
+ * Leaves a check as the Run's pending decision, as a reaction child's commit at `version` raises one
+ * for its target (a Concentration check, say). Returns the settling of that check, answered or
+ * voided, on the Run version that settling produced.
+ */
+async function raiseChildCheck(paused: Awaited<ReturnType<typeof pausedAttack>>, version: number) {
+  const { memory, occurrence } = paused
+  const { _id, _creationTime, ...root } = occurrence()
+  await memory.store.insert(
+    'encounterRuleOccurrences',
+    encounterStoredRuleOccurrenceSchema.parse({
+      ...root,
+      id: CHECK_OCCURRENCE_ID,
+      rootCommandId: testUuid(0x8a47),
+      state: 'PENDING',
+      version: 0,
+      expectedEncounterVersion: version
+    })
+  )
+  return async (state: 'COMPLETED' | 'VOIDED', settledVersion: number) => {
+    const check = memory
+      .documents('encounterRuleOccurrences')
+      .find(({ id }) => id === CHECK_OCCURRENCE_ID)!
+    await memory.store.patch(check._id, {
+      state,
+      pendingSnapshotChecksum: null,
+      completedAt: TIMESTAMP
+    })
+    await memory.store.patch(memory.documents('encounterRuns')[0]!._id, {
+      version: settledVersion
+    })
+    if (state === 'VOIDED') await insertVoid(memory, settledVersion, CHECK_OCCURRENCE_ID)
+    else
+      await memory.store.insert(
+        'encounterRunCommands',
+        encounterStoredRunCommandSchema.parse({
+          id: crypto.randomUUID(),
+          campaignId: CAMPAIGN_ID,
+          encounterId: ENCOUNTER_ID,
+          commandId: crypto.randomUUID(),
+          commandType: 'RESOLVE_RULE_OCCURRENCE',
+          ruleOccurrenceId: CHECK_OCCURRENCE_ID,
+          ruleResultChecksum: checksum('d'),
+          optionalCombatSnapshotChecksum: paused.state.optionalCombatSnapshotChecksum,
+          commandFingerprint: checksum('f'),
+          actorUserId: USER_ID,
+          version: settledVersion,
+          commandJson: '{}',
+          replayReceiptJson: '{}',
+          replayReceiptChecksum: checksum('e'),
+          createdAt: TIMESTAMP
+        })
+      )
+  }
+}
+
+const pendingOccurrenceIds = (memory: ReturnType<typeof createMemoryEncounterStore>) =>
+  memory
+    .documents('encounterRuleOccurrences')
+    .filter(({ state }) => state === 'PENDING')
+    .map(({ id }) => id)
+
+describe('a reaction child whose commit leaves a check of its own pending (QUALITY-18.T2b2, D219)', () => {
+  it.each(['COMPLETED', 'VOIDED'] as const)(
+    'holds the move suspended while the check is pending, and returns it to pending once the check is %s',
+    async (settled) => {
+      const paused = await pausedMove(recorded.reactionChildren)
+      const { ctx, memory, state, occurrence } = paused
+      const held = occurrence()
+      await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+      const settleCheck = await raiseChildCheck(paused, ROOT_VERSION + 1)
+      await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+      // The move follows the Run the child left, but the check is the Run's one pending decision.
+      expect(occurrence()).toMatchObject({
+        state: 'SUSPENDED',
+        version: held.version,
+        expectedEncounterVersion: ROOT_VERSION + 1,
+        pendingSnapshotChecksum: held.pendingSnapshotChecksum
+      })
+      expect(pendingOccurrenceIds(memory)).toEqual([CHECK_OCCURRENCE_ID])
+      expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(false)
+      expect(occurrence().state).toBe('SUSPENDED')
+
+      await settleCheck(settled, ROOT_VERSION + 2)
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+      // Pinned to the Run the settled check left; its history and version do not change.
+      expect(occurrence()).toMatchObject({
+        state: 'PENDING',
+        version: held.version,
+        expectedEncounterVersion: ROOT_VERSION + 2,
+        pendingSnapshotChecksum: held.pendingSnapshotChecksum
+      })
+      expect(pendingOccurrenceIds(memory)).toEqual([OCCURRENCE_ID])
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(false)
+    }
+  )
+
+  it('holds a pending attack the same way: the host of the child does not matter', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+    const settleCheck = await raiseChildCheck(paused, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    await settleCheck('COMPLETED', ROOT_VERSION + 2)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(occurrence()).toMatchObject({
+      state: 'PENDING',
+      expectedEncounterVersion: ROOT_VERSION + 2
+    })
+    expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual(
+      recorded.reactionChildren
+    )
+  })
+
+  it('returns only the action whose child committed: one above it still waits on its held child', async () => {
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    const child = await holdReactionChild(paused, nested.reactionChildren)
+    await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
+    const settleCheck = await raiseChildCheck(paused, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    expect(child()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 1
+    })
+
+    await settleCheck('COMPLETED', ROOT_VERSION + 2)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(child()).toMatchObject({ state: 'PENDING', expectedEncounterVersion: ROOT_VERSION + 2 })
+    expect(occurrence()).toMatchObject({
+      state: 'SUSPENDED',
+      expectedEncounterVersion: ROOT_VERSION + 2
+    })
+  })
+
+  it('returns nothing while a child is itself the pending decision, or when nothing is held', async () => {
+    const open = await pausedAttack(recorded)
+    expect(await resumeSettledReactionChildParent(open.ctx, ENCOUNTER_ID)).toBe(false)
+    const paused = await pausedAttack(recorded)
+    await holdReactionChild(paused)
+    expect(await resumeSettledReactionChildParent(paused.ctx, ENCOUNTER_ID)).toBe(false)
+    expect(paused.occurrence().state).toBe('SUSPENDED')
+  })
+})
 
 describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)', () => {
   it('is the held move whose reaction choice records the child command', async () => {
@@ -1854,6 +2031,18 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
     expect((await readReactionChildTrigger(ctx, child)).triggerMovement).toMatchObject({
       allowanceDefinitionId: testUuid(0x8a31)
     })
+  })
+
+  it('reads the allowance of the option the move’s history chose when the contact offers the action twice (QUALITY-18.T2b2)', async () => {
+    const { ctx } = await pausedMove(
+      recorded.reactionChildren,
+      undefined,
+      MOVE_OPTIONS[1]!.optionId
+    )
+    expect(
+      (await readReactionChildTrigger(ctx, { ...link, actionId: REACTION_ACTION_ID }))
+        .triggerMovement
+    ).toMatchObject({ allowanceDefinitionId: MOVE_OPTIONS[1]!.allowanceDefinitionId })
   })
 
   it('reads no move for a child a held attack records, or one the move does not record (QUALITY-18.T2b1)', async () => {
@@ -1926,7 +2115,10 @@ describe('releasing a Scene move from a voided reaction child (QUALITY-18.T1b1, 
     const suspended = occurrence()
     await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
     const { root, choice } = await move()
+    // Restated (QUALITY-18.T2b3): the answer that chose the option now records the child, so the
+    // release follows that entry instead of opening the history.
     expect(root.resolutionCommands).toEqual([
+      chosenOption(MOVE_OPTIONS[0]!.optionId),
       {
         kind: 'REACTION_CHILD_RELEASE',
         childCommandId: link.childCommandId,
@@ -1994,7 +2186,9 @@ describe('releasing a Scene move from a voided reaction child (QUALITY-18.T1b1, 
       'The movement reaction resolution command is stale.'
     )
     const resolutionCommands = decline(occurrence().version)
+    // Restated (QUALITY-18.T2b3): the history opens with the choice that recorded the child.
     expect(resolutionCommands.map(({ kind }) => kind)).toEqual([
+      'OPTION',
       'REACTION_CHILD_RELEASE',
       'DECLINE'
     ])
@@ -2051,8 +2245,19 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       Parameters<typeof revertLastEncounterAction>[0]
   }
 
-  /** The GM's answer to the move's open choice, read through the move's own response fence. */
-  async function answer(held: Held, expectedVersion: number, expectedOccurrenceVersion: number) {
+  /** The room's resume of the move from the child its choice records, made as the Campaign owner. */
+  const RESUME = { kind: 'REACTION_CHILD_RESUME' as const, childCommandId: link.childCommandId }
+
+  /**
+   * The GM's answer to the move, read through the move's own response fence: a decline of its open
+   * choice, or `resolution`.
+   */
+  async function answer(
+    held: Held,
+    expectedVersion: number,
+    expectedOccurrenceVersion: number,
+    resolution: typeof RESUME | { kind: 'DECLINE' } = { kind: 'DECLINE' }
+  ) {
     const { memory } = held
     if (memory.documents('encounterSceneBindings').length === 0)
       await memory.store.insert('encounterSceneBindings', {
@@ -2071,28 +2276,35 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       correlationId: null,
       occurrenceId: OCCURRENCE_ID,
       expectedOccurrenceVersion,
-      resolution: { kind: 'DECLINE' }
+      resolution
     })
   }
 
   it('is the version its committed child left, once the child’s commit re-pinned it', async () => {
     const held = await pausedMove(recorded.reactionChildren)
     const { ctx, memory, state, occurrence } = held
-    await expect(answer(held, ROOT_VERSION, 0)).resolves.toMatchObject({
+    // Restated (QUALITY-18.T2b3): the choice that recorded the child is the move's first answer, so
+    // every answer here is read at occurrence version 1 (it was 0) above that one history entry. And
+    // a move that records a child takes only the room's resume from it, so the answer read is that
+    // resume (it was the GM's decline, which such a move now refuses as stale at any version).
+    await expect(answer(held, ROOT_VERSION, 1, RESUME)).resolves.toMatchObject({
       occurrence: occurrence()
     })
+    await expect(answer(held, ROOT_VERSION, 1)).rejects.toThrow(
+      'Movement response occurrence is stale.'
+    )
     await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
     await advanceRun(held, ROOT_VERSION + 1)
     // A Run that moved without re-pinning the move is not the Run the move was held on.
-    await expect(answer(held, ROOT_VERSION + 1, 0)).rejects.toThrow(
+    await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).rejects.toThrow(
       'Movement response occurrence is stale.'
     )
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
-    await expect(answer(held, ROOT_VERSION + 1, 0)).resolves.toMatchObject({
+    await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).resolves.toMatchObject({
       occurrence: occurrence(),
-      root: { resolutionCommands: [] }
+      root: { resolutionCommands: [chosenOption(MOVE_OPTIONS[0]!.optionId)] }
     })
-    await expect(answer(held, ROOT_VERSION, 0)).rejects.toThrow('VERSION_STALE')
+    await expect(answer(held, ROOT_VERSION, 1, RESUME)).rejects.toThrow('VERSION_STALE')
   })
 
   it('refuses the GM’s undo of a committed child while the move it answered is still held (QUALITY-18.T2b1)', async () => {
@@ -2131,8 +2343,10 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       state: 'SUSPENDED',
       expectedEncounterVersion: ROOT_VERSION + 1
     })
-    // The move takes no answer while its child is the Run's pending decision.
-    await expect(answer(held, ROOT_VERSION + 1, 0)).rejects.toThrow(
+    // The move takes no answer while its child is the Run's pending decision. Restated
+    // (QUALITY-18.T2b3): the choice that recorded the child is the move's first answer, so the move's
+    // versions below are each one higher and its history opens with that choice.
+    await expect(answer(held, ROOT_VERSION + 1, 1)).rejects.toThrow(
       'Movement response occurrence is stale.'
     )
 
@@ -2154,13 +2368,14 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     await advanceRun(held, ROOT_VERSION + 3)
     await releaseReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 3 })
 
-    const current = await answer(held, ROOT_VERSION + 3, 1)
+    const current = await answer(held, ROOT_VERSION + 3, 2)
     expect(current.occurrence).toEqual(occurrence())
     expect(current.root.resolutionCommands.map(({ kind }) => kind)).toEqual([
+      'OPTION',
       'REACTION_CHILD_RELEASE'
     ])
     // Neither the Run version before the void nor the move's version before its release answers it.
-    await expect(answer(held, ROOT_VERSION + 2, 1)).rejects.toThrow('VERSION_STALE')
-    await expect(answer(held, ROOT_VERSION + 3, 0)).rejects.toThrow('VERSION_STALE')
+    await expect(answer(held, ROOT_VERSION + 2, 2)).rejects.toThrow('VERSION_STALE')
+    await expect(answer(held, ROOT_VERSION + 3, 1)).rejects.toThrow('VERSION_STALE')
   })
 })

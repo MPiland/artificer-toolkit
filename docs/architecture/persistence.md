@@ -311,19 +311,25 @@ not committed, so the proof is the pending action's own record instead: `reactio
 the Run version the pending occurrence is pinned to (`expectedEncounterVersion`), for a holder that still
 stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionCommit`)
 advances the Run one version and re-pins the pending occurrence to it in the same transaction
-(`repinReactionChildParent`), so the fences read as follows:
+(`repinReactionChildParent`). A child is not complete until its own check chain is (QUALITY-18.T2b2,
+ruling 17): when the child's commit leaves a prompted check of its own PENDING, the parent takes the new pin
+but stays SUSPENDED, so the Run keeps one pending decision. The room's after-commit settlement returns it to
+PENDING on the Run's version (`resumeSettledReactionChildParent`) once that chain is answered or voided and
+the Run waits on no other decision; only then does the room issue a paused move's `REACTION_CHILD_RESUME`.
+The fences read as follows:
 
 - A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
   `expectedVersion`; the live answer scope compares the answer's version, not the stored root's.
 - `readNativeActionPending` accepts a pin at most one version past the root for each recorded child, plus
-  one for each reaction that committed under one of its children, plus one for each version a GM void of a
-  held child made since the root (`countRunVoidVersions`: the void, and the undo it ran). The area read
+  one for each reaction that committed under one of its children, plus one for each version a settled
+  decision made since the root (`countRunSettlementVersions`: an answered check of a child, a GM void, and
+  the undo it ran). The area read
   (`readNativeAreaActionPending`) applies the same rule (`heldRootVersionAccounted`, `reactionChildren.ts`)
   with no recorded child of its own: an aggregate reached from a cast window sits past the root by the
   reactions committed in the root's tree.
 - A replay of the parent root expects its commit at the root's version plus the committed reactions of its
-  tree plus those void versions plus one. Both are read from `encounterRunCommands`
-  (`readCommittedReactionDescendants`, `countRunVoidVersions`); no counter is stored.
+  tree plus those settlement versions plus one. Both are read from `encounterRunCommands`
+  (`readCommittedReactionDescendants`, `countRunSettlementVersions`); no counter is stored.
 
 Reactions to a held reaction child (current, QUALITY-9.T1c1; raised by a single-target cast's counters since
 QUALITY-9.T1c2). A held child is itself a pending action, so it records the reactions chosen against it in
@@ -335,14 +341,25 @@ GM voided (which has no command) through the void's occurrence. Every commit or 
 Run, so `repinReactionChildParent` and `releaseReactionChildParent` also move the pin of each suspended
 action above the one they return to `PENDING`.
 
-A Scene move as the parent (transitional, QUALITY-18.T1a, T1b1 and T2a; target QUALITY-18.T2b). A paused move's
+A Scene move as the parent (current, QUALITY-18.T1a to T2b2). A paused move's
 `ENCOUNTER_MOVEMENT_REACTION` pending context can record reaction children too: `reactionChildren` on its
 `CHOICE` phase, the same child shape as the action's (`encounterReactionChildrenDtoSchema`), and on no other
 phase. `reactionChildren.ts` reads either parent: a recorded child is admitted against the move
 (`readReactionChildParent`), its ancestors name the mover (the moving actor of the open reaction choice, with
 no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
-`awaitsReactionChild` treat the move as they treat an action. Nothing records a child on a move yet
-(QUALITY-18.T2b does), so no stored move carries the field.
+`awaitsReactionChild` treat the move as they treat an action.
+
+A member's `OPTION` answer to a move's choice records the child (`recordMovementReactionChild`,
+`movementReactionChild.ts`): it appends the `OPTION` entry to the move's history, one occurrence version on,
+sets `reactionChildren` to the one child and leaves the Run version alone. The child's command id
+(`movementReactionChildCommandId`) names the move's command, the option and that occurrence version, so a
+reaction chosen again after a release never reuses an id. The room runs the child's action in the same
+transaction (`executeRoomMovementReactionChild`), so a refused child takes the record back with it and the
+choice stays open. While a child is recorded the choice is answered: the decision summary shows no choice, so
+nobody is asked again and no timeout declines it, and `readMovementResponseAuthority` admits only the campaign
+owner's `REACTION_CHILD_RESUME` naming that child. The option the child came from is the last `OPTION` entry
+of the history, which also names the allowance the option was offered under when one contact offers the same
+action twice (`readReactionChildTrigger`).
 
 The move's fence on the Run is its pin, not a count (QUALITY-18.T2a). `readMovementResponseAuthority` takes
 an answer only while the move is `PENDING` and `expectedEncounterVersion` equals the Run version. A move's own
@@ -364,9 +381,17 @@ release entry when the GM voids the held child, with the GM as `actorUserId`: it
 `CHOICE` phase, returns the move to `PENDING` one version on and pins it to the Run version the void
 produced, so the next answer is fenced on that version like any other. The resume is carried by a
 `RESOLVE_RULE_OCCURRENCE` resolution of kind `REACTION_CHILD_RESUME` with the `childCommandId`
-(QUALITY-18.T2a): the live-session command frame refuses it from every client, and no movement response
-path accepts it yet. QUALITY-18.T2b raises it in the room and writes the entry through the Scene geometry
-response path. The field and the two kinds are additive, so stored rows stay valid (D196: no local refresh).
+(QUALITY-18.T2a): the live-session command frame refuses it from every client. The room raises it
+(QUALITY-18.T2b2): after any commit, and from its alarm, the reaction-timeout sweep
+(`settleRoomReactionTimeouts`) reads a move whose recorded child has a committed Run command
+(`readMovementReactionChildResume`) and sends the resume through the Scene geometry response path as the
+campaign owner, with the owner as the entry's `actorUserId`. A resume that fails is logged and tried again
+after the alarm's retry delay, because nobody else can send it. The child may have changed the Scene, so the
+resume's staging first moves the move's `root.currentSceneVersion` to the Scene's version
+(`repinMovementReactionChildScene`); the mover's token must still stand at `root.currentPosition`. The resume
+continues the Kernel choice with the option the child came from, or ends the move at `root.currentPosition`
+when the child stops it or the mover is at 0 Hit Points. The field and the two kinds are additive, so stored
+rows stay valid (D196: no local refresh).
 
 The room runs the choice, the child and the resume in one room turn. The choice answer keeps the parent
 paused on the answered offer and records the child's command id; the child's commit is the one spend of the
@@ -374,7 +399,8 @@ reaction (its own economy charge; the parent records no used reaction for it); t
 (`ACTION_RESUME` admission, room-internal) then reads the committed child and records what it imposes on its
 parent as `reactionChildren[].resumeOutcome`: `null` for nothing, `{ kind: 'ROLL_MODE', rollMode }` for a
 roll mode on the triggering roll (`imposesRollModeOnTriggeringRoll`), or `{ kind: 'STOP' }` for a move ended
-at its contact (`stopsTriggeringMovement`; no host writes it before QUALITY-18.T2b). The System adapter
+at its contact (`stopsTriggeringMovement`; a move's own resume reads the adapter directly and records no
+`resumeOutcome`). The System adapter
 resolves each. A child without `resumeOutcome` is unresolved (`awaitsReactionChild`), and
 until it resolves the parent takes no other answer. The rename from `rollMode` (QUALITY-18.T2a) changes the
 JSON of a held decision's pending snapshot only (`encounterPendingSnapshotParts`), not a Convex validator or
@@ -503,7 +529,7 @@ null.
 The hit of one ray of a list (current, QUALITY-13.T1c2b, D219). A list its caster rolls one attack at a time
 (`ENCOUNTER_AREA_ACTION` with `resolution: 'ATTACK'`) holds the same offer per ray: the ray that hit keeps the
 `CAST_REACTION`/`HIT_BY_ATTACK` snapshot as its own sealed snapshot, unanswered, and no later ray is asked while
-it is held (`encounterAreaSaveAwaiting` returns `'REACTION'` for it, and nothing for it while its child is
+it is held (`encounterAreaSaveAwaiting` returns `'DECISION'` for it, and nothing for it while its child is
 awaited). The held ray's own context records the child, so every D219 read and write goes through
 `readRecordingParent`, which returns that ray's context and seals a changed one back into the list's snapshot:
 the child's trigger read, its ancestors, suspend, re-pin and the GM-void release need no list-specific path.
@@ -511,7 +537,7 @@ the child's trigger read, its ancestors, suspend, re-pin and the GM-void release
 - Admission. A reactor's `DECLINE` or `OPTION` names the held ray's request; the response admission offers it
   the options of that ray's pause. `ACTION_RESUME` on a list returns the held ray's snapshot as `snapshot` and
   the list as `areaSnapshot` (nullable, transport only).
-- The fence. `requireAreaActionAnswer` hands a step about a ray's hit reaction to `requireAreaActionRayReaction`:
+- The fence. `requireAreaActionAnswer` hands a step about a ray's hit offer to `requireAreaActionRayHit`:
   a roll may leave its ray held; a decline answers the ray with the d20 its offer kept and changes nothing else
   of it; a chosen reaction keeps it held and records one child (`heldActionContinues` on the ray's contexts);
   the resume answers it and writes the child's outcome. Only a ray behind one that left its offer may go on,
@@ -526,16 +552,46 @@ the child's trigger read, its ancestors, suspend, re-pin and the GM-void release
 - Projection. While a ray is held on its offer, the list's one decision is the reactor's reaction choice
   (`projectNativeAreaActionPending`), as its damage window and push pick are.
 
-The move a child answers (current contract, QUALITY-18.T2b1, D219; inert until QUALITY-18.T2b2 records a
-child on a move). The same three admissions return `triggerMovement`, null unless a held Scene move records
-the child: `readReactionChildTrigger` finds the option the move's contact offers the child's reactor for the
-child's action and returns its attack occasion and `policy.allowanceDefinitionId`, and throws when the move
+The on-hit rider of one ray of a list (current, QUALITY-13.T1c4, D123, D219). A ray that hits also holds for
+its caster's optional on-hit riders, after its creature's reaction: the ray keeps the `ON_HIT` snapshot an
+attack at one creature holds, as its own sealed snapshot, unanswered, and no later ray is asked meanwhile
+(`encounterAreaSaveAwaiting` returns `'DECISION'`; the list's one decision is the caster's `ON_HIT_CHOICE`).
+
+- `onHit` (additive, optional, per target). The caster's answer is kept with the ray as the audit an attack
+  at one creature seals into its OUTCOME (`EncounterOnHitAuditDto`: `DECLINE`, or `USE` with the option).
+  The schema accepts it only on an answered ray whose own snapshot holds the offer, for that offer's hit and,
+  when used, one of that offer's options. The ray's snapshot keeps the offer, so the commit and every later
+  ray at the same creature replay the hit from the offer's retained TEST and the audit, rolling no attack
+  again. The field is optional and absent on every stored list, so no reset or migration is needed (D196).
+- The fence (`requireAreaActionRayHit`). A roll, a declined reaction or a resumed reaction may leave the ray
+  held on the rider offer for the same hit (the d20 the reaction offer kept); a ray never returns from the
+  rider offer to a reaction offer. The caster's `DECLINE` or `OPTION` answers the ray with the d20 the offer
+  kept, writes `onHit` matching that response and changes nothing else of the ray; no other step writes
+  `onHit`, and an unanswered ray never carries it.
+- One slot and one pool per cast. A rider that spends a slot or a pool is not offered at a ray once an earlier
+  ray of the list chose such a one (`onHitCandidates` with `chosenBefore`), nor a slot rider when the cast
+  spends a slot itself. The commit folds the chosen riders' costs into the cast's one Character spend
+  (`settledCharacterActionSpend`), so nothing is spent before the last ray is answered and a GM void spends
+  nothing.
+
+The move a child answers (current contract, QUALITY-18.T2b1 and T2b2, D219). The same three admissions return
+`triggerMovement`, null unless a held Scene move records the child: `readReactionChildTrigger` finds the option
+the move's history last recorded as chosen, requires it to be the child's reactor's for the child's action, and
+returns its attack occasion and `policy.allowanceDefinitionId`, and throws when the move
 offers that reactor no such action. The child's economy transition (`encounterActionEconomyTransitionDtoSchema`)
 gains optional `turnSequence`, set when the spent allowance refreshes `EACH_TURN`; the undo
 (`returnSpentActionEconomy`) returns such a spend to that turn's `turnUsage` entry and refuses once the turn
 has passed. The field is additive, so stored receipts stay valid (D196: no refresh needed).
 `REVERT_LAST_ACTION` of a committed child is refused while its move is held: the move is the Run's pending
 decision (`PENDING_DECISION`).
+
+The move's spatial receipt across a child (current contract, QUALITY-18.T2b2, D219). A move's resume keeps
+no execution of its reaction child, so the spatial batch result (`ENCOUNTER_SPATIAL_MOVEMENT`) cannot chain a
+target's state across the child's commit. The resume records on the applied prefix how many spatial executions
+had settled (`reactionChildBoundaries`), and the batch's timeline proof starts again at the execution with that
+ordinal; the child's own receipt proves what it changed. A resume also plans the remaining contacts against the
+Run as the child left it, so it compares neither the frozen contact suffix nor the frozen currentness checksum.
+The field is additive and optional, so stored receipts stay valid (D196: no refresh needed).
 
 The resolved child records nothing new: the parent keeps its TEST and the kept d20, so its resume tests that
 d20 again against the committed state. The offer's `hit` and kind are persisted pending-context shape changes;

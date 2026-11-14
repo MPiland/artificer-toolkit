@@ -246,65 +246,58 @@ describe('movement-reaction save: window, then Legendary Resistance', () => {
   }
   type Room = Awaited<ReturnType<typeof room>>
 
+  /**
+   * Restated (QUALITY-18.T2b3): the save is rolled by the reaction's own action (D219), so its
+   * window and the Legendary Resistance choice after it are that action's decisions, read and
+   * answered as any action's while the move is SUSPENDED, where they were phases of the move's.
+   */
   async function offered(mover: Room) {
     await mover.move([MOVER_START, { x: 450, y: 150 }])
-    const reaction = await mover.pending()
-    if (reaction?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-      throw new Error(`Expected a reaction decision, got ${reaction?.context.kind}.`)
-    const option = reaction.context.reactionTimeline[0]?.group.options[0]
-    if (!option) throw new Error('The reaction decision offers no option.')
-    expect((await mover.respond({ kind: 'OPTION', optionId: option.optionId })).type).toBe(
-      'COMMAND_COMMITTED'
-    )
-    const window = await mover.pending()
-    if (
-      window?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-      window.context.phase.kind !== 'ACTION_EVIDENCE' ||
-      window.context.phase.pause?.kind !== 'ROLL_WINDOW'
-    )
-      throw new Error('Expected the mover to hold a d20 window on the reaction save.')
-    const { pause } = window.context.phase
-    const shown = await mover.pendingFor(false)
+    const reaction = await mover.useReaction()
+    expect(reaction.answer.type).toBe('COMMAND_COMMITTED')
+    const shown = (await readPendingActionDecision(mover.base.stub, false))?.pending
     if (shown?.kind !== 'ROLL_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
-    const used = await mover.respond({
+    const used = await mover.respondToChild({
       kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
-      optionId: pause.payload.offer.options[0]!.optionId,
+      optionId: shown.options[0]!.optionId,
       faces: [1]
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
-    const choice = await mover.pending()
-    if (
-      choice?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-      choice.context.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE'
-    )
+    const choice = (await readPendingActionDecision(mover.base.stub))?.pending
+    if (choice?.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
       throw new Error('Expected the Legendary Resistance choice after the window.')
-    return choice.context.phase
+    return { choice, reaction }
   }
 
   it.each(['USE', 'DECLINE'] as const)(
     'offers it after the die fails to save, and settles on %s',
     async (selection) => {
       const mover = await room()
-      const phase = await offered(mover)
-      const answered = await mover.respond(
+      const { choice, reaction } = await offered(mover)
+      const answered = await mover.respondToChild(
         selection === 'USE'
-          ? { kind: 'OPTION', optionId: phase.resistance.useOptionId }
+          ? { kind: 'OPTION', optionId: choice.options[0]!.optionId }
           : { kind: 'DECLINE' }
       )
       expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
 
-      const receipt = (await mover.receipts()).find(
-        (entry) => entry.commandId === answered.commandId
-      )
-      if (!receipt) throw new Error('The Legendary Resistance answer left no receipt.')
-      const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
-      if (result.status !== 'MOVEMENT_COMPLETE') throw new Error(`Got ${result.status}.`)
-      const [reaction] = result.reactionExecutions
-      if (!reaction || reaction.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      // Restated (QUALITY-18.T2b3): what the reaction did is the result of its action's receipt
+      // and how the move ended is the result of the room's resume, where both were in the
+      // terminal the Legendary Resistance answer committed.
+      const receipts = await mover.receipts()
+      const action = receipts.find((entry) => entry.commandId === reaction.childCommandId)
+      const resume = receipts.find((entry) => entry.commandId === reaction.resumeCommandId)
+      if (!action || !resume) throw new Error('The Legendary Resistance answer left no receipts.')
+      const settled = storedRuleExecutionResultDtoSchema.parse(action.result)
+      if (settled.status !== 'COMPLETE') throw new Error(`Got ${settled.status}.`)
+      const application = settled.applicationOutputs
+      if (application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
         throw new Error('Expected a Creature movement reaction target.')
-      expect(reaction.legendaryResistance?.use).toBe(selection === 'USE')
-      expect(reaction.application.targetFeatureResourceConsumption).toEqual(
+      const result = storedRuleExecutionResultDtoSchema.parse(resume.result)
+      if (result.status !== 'MOVEMENT_COMPLETE') throw new Error(`Got ${result.status}.`)
+      expect(application.legendaryResistance?.use).toBe(selection === 'USE')
+      expect(application.targetFeatureResourceConsumption).toEqual(
         selection === 'USE' ? expect.objectContaining({ beforeUsed: 0, afterUsed: 1 }) : null
       )
       expect(result.terminalPosition).toEqual(

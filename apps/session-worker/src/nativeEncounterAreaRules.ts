@@ -123,7 +123,7 @@ import {
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
 import { advanceAreaRay } from './nativeAreaRayAdvance.js'
-import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
+import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
 
 /**
@@ -824,19 +824,24 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
 }
 
 /**
- * Plans what moves a ray held on its hit's reaction offer (D219): its creature's answer, or the room's
- * resume once the reaction it chose committed as its holder's own child action. A decline runs the
- * ray's outcome. A chosen reaction keeps the ray held, records its child and keeps, with every
- * answered ray, the facts it was rolled against, so the list's replay finds the earlier rolls as they
- * were made. The resume seals every entry again to the creatures as the child left them, then runs
- * the ray past its offer against them. The rays behind it whose roller auto-rolls follow, each
- * stopping the list at its own hit's offer.
+ * Plans what moves a ray held on an offer its hit raised: the answer of the creature it hit to the
+ * reaction offer (D219), the room's resume once the reaction it chose committed as its holder's own
+ * child action, or its caster's answer to the on-hit rider offer. A declined reaction runs the ray's
+ * outcome, or holds the hit on its rider offer. A chosen reaction keeps the ray held, records its
+ * child and keeps, with every answered ray, the facts it was rolled against, so the list's replay
+ * finds the earlier rolls as they were made. The resume seals every entry again to the creatures as
+ * the child left them, then runs the ray past its offer against them. The rider decision runs the
+ * ray's outcome with it and is kept with the ray's answer. The rays behind it whose roller auto-rolls
+ * follow, each stopping the list at its own hit's offer.
  */
-export async function planNativeLiveEncounterAreaRayReaction(
+export async function planNativeLiveEncounterAreaRayOffer(
   input: ReachPlanInput & {
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
     continuation:
-      | { response: ResolveRuleOccurrenceInputDto; answer: NativeCastReactionAnswer }
+      | {
+          response: ResolveRuleOccurrenceInputDto
+          answer: Extract<NativePauseAnswer, { kind: 'CAST_REACTION' | 'ON_HIT' }>
+        }
       | { resume: LiveSessionEncounterActionResume; offer: EncounterCastReactionOfferDto }
   }
 ) {
@@ -849,7 +854,7 @@ export async function planNativeLiveEncounterAreaRayReaction(
     context.kind !== 'ENCOUNTER_AREA_ACTION' ||
     !held ||
     (response ?? resume)?.occurrenceId !== areaSnapshot.occurrenceId ||
-    (response !== null && encounterAreaSaveAwaiting(context, held) !== 'REACTION') ||
+    (response !== null && encounterAreaSaveAwaiting(context, held) !== 'DECISION') ||
     context.commandFingerprint !== input.fingerprint ||
     command.optionalCombatIntent != null ||
     context.targets.some(({ collision }) => collision)
@@ -937,7 +942,7 @@ export async function planNativeLiveEncounterAreaRayReaction(
     'resume' in continuation
       ? { kind: 'RESUMED', offer: continuation.offer }
       : {
-          kind: 'REACTION',
+          kind: 'ANSWER',
           answer: continuation.answer,
           testBindings: new Map(
             entries.flatMap(({ sealed, target }) =>
@@ -1175,14 +1180,27 @@ export async function planNativeLiveEncounterAreaCommit(
   // An area that keeps no creature (it caught nobody, or the GM removed everyone it caught) commits
   // the caster's spend alone, against the caster's own preparation of the action.
   const first = kept[0] ?? (await prepareAreaCasterLead(input, base, context.removedActorIds))
-  // A damage reroll the caster paid for at the area's window joins the cast's own spend (D208).
-  const lead = settledCharacterActionSpend({
-    prepared: first.target.prepared,
-    chosenOnHit: null,
-    damageReroll: context.damageRoll?.reroll ?? null,
-    maintenance: null,
-    automationMode: input.state.automationMode
-  })
+  // A damage reroll the caster paid for at the area's window joins the cast's own spend (D208), and
+  // so does each rider the caster chose at a ray's on-hit offer: one slot and one pool at most.
+  const lead = kept
+    .flatMap(({ sealed }) => (sealed.onHit?.option ? [sealed.onHit.option] : []))
+    .reduce(
+      (prepared, chosenOnHit) =>
+        settledCharacterActionSpend({
+          prepared,
+          chosenOnHit,
+          damageReroll: null,
+          maintenance: null,
+          automationMode: input.state.automationMode
+        }),
+      settledCharacterActionSpend({
+        prepared: first.target.prepared,
+        chosenOnHit: null,
+        damageReroll: context.damageRoll?.reroll ?? null,
+        maintenance: null,
+        automationMode: input.state.automationMode
+      })
+    )
   const formCreature = await readChosenFormCreature(
     input,
     lead,

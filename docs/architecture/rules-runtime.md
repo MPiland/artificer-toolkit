@@ -831,12 +831,24 @@ through the per-target function every attack uses (`advanceAreaRay` drives `adva
 `advanceNativeActionTarget` as its host), so a ray that hits a creature holding a `HIT_BY_ATTACK` reaction
 stops on that offer in its own snapshot, and the drawer asks the reactor before any later ray is rolled. A
 decline settles the ray with the d20 the offer kept. A chosen reaction launches the holder's child; the resume
-(`planNativeLiveEncounterAreaRayReaction`) seals every unanswered ray again from the room as the child left
+(`planNativeLiveEncounterAreaRayOffer`) seals every unanswered ray again from the room as the child left
 it, then rebinds the held ray's kept d20, so the reaction's effect counts for that ray and every later one,
 and a reaction already spent is not offered again. Rays answered before the reaction keep the binding they
 were rolled against (`testBindingJson`) and the commit replays them with it, so an earlier hit stays a hit.
 After a reaction step the remaining rays of an automatic roller are rolled in the same command. The
 [persistence guide](persistence.md) describes the stored shape and its fence.
+
+**A ray's hit offers its caster's on-hit riders per ray (current, QUALITY-13.T1c4, D123, D219):** the same
+per-target function raises the caster's optional on-hit riders at each ray that hits, once its creature's
+reaction is answered, and the ray stops on that `ON_HIT` offer in its own snapshot. The caster's answer goes
+through the same continuation as a reaction answer (`planNativeLiveEncounterAreaRayOffer`) and is kept with
+the ray as its `onHit` audit; a later ray at the same creature and the commit replay the hit from the offer's
+retained TEST and that audit (`heldOnHit` on `advanceNativeActionGraphs`), so the rider's dice are rolled once
+and kept in the ray's roll tape. A cast settles one slot and one pool: `onHitCandidates` withholds a slot or
+pool rider once an earlier ray chose such a one (`chosenBefore`), and the commit folds the chosen riders into
+the cast's one Character spend. Riders an open weapon-attack offer grants (`grantedByEffectId`) are not offered
+on a list. **Not yet per ray (target, QUALITY-13 follow-up):** the incoming gate and `ATTACK_RETARGET` are not
+run for a ray; a list of chosen creatures is admitted as today.
 
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 
@@ -1753,13 +1765,12 @@ excused: the child and the resume run in one room turn, the Run moves only by th
 held (`repinReactionChildParent`), and a child that paused held the same two creatures (its own source and
 target) to its own checksum until it committed. A resume from a bystander's child keeps the full comparison.
 
-**A Scene move as a reaction child's parent (transitional, QUALITY-18.T1a and T1b1).** The movement reaction
+**A Scene move as a reaction child's parent (current, QUALITY-18.T1a to T2b2).** The movement reaction
 pending context (`ENCOUNTER_MOVEMENT_REACTION`) accepts `reactionChildren` on its `CHOICE` phase, in the
 shape the action context uses, and the persistence module reads a move as a parent (persistence.md,
 "Reaction arm"). The move's history takes two entry kinds for a child, `REACTION_CHILD_RESUME` and
 `REACTION_CHILD_RELEASE`, with ids from `reactionChildMoveCommandId`; the GM's void of a held child records
-the release. No host records a child on a move yet: movement reactions still resolve inline under
-`MOVE_SCENE_TOKEN`. QUALITY-18.T2a adds the inert pieces. The resume's carrier is the
+the release. The resume's carrier is the
 `REACTION_CHILD_RESUME` resolution of `RESOLVE_RULE_OCCURRENCE`, which `liveSessionCommandDtoSchema` refuses
 from a client. The outcome capability adapter gains `stopsTriggeringMovement(execution)` beside
 `cancelsTriggeringEvent`: the D&D adapter (`systems/dnd5e/stopTriggeringMovement.ts`) reads the graph output
@@ -1768,9 +1779,9 @@ whose target used Legendary Resistance (`applicationOutputs.legendaryResistance.
 path after that TEST ran, so the adapter then reads the path the trigger authors from the TEST's
 movement-interruption trace and stops the move only when it is `ON_SAVE_SUCCESS` (QUALITY-18.T2b1).
 
-QUALITY-18.T2b1 adds what the child's own action reads of the move, still inert until T2b2 records a child on
-a move. The action capture returns `triggerMovement` (`{ attackOccasion, allowanceDefinitionId }`,
-`readReactionChildTrigger`) beside `triggerCastLevel` and `triggerDamageTypeIds`: the occasion is the one
+QUALITY-18.T2b1 adds what the child's own action reads of the move. The action capture returns
+`triggerMovement` (`{ attackOccasion, allowanceDefinitionId }`, `readReactionChildTrigger`) beside
+`triggerCastLevel` and `triggerDamageTypeIds`: the occasion is the one
 constant the inline path also passes (`MOVEMENT_REACTION_ATTACK_OCCASION`), and the allowance is the one the
 reactor's option was offered under. The action host passes both on without a move-specific branch: the attack
 preparation takes the occasion, and the action economy spends the offered allowance in place of the one the
@@ -1779,13 +1790,24 @@ refresh boundary. An `EACH_TURN` allowance's consumption carries the `turnSequen
 allowance return and undo read and write `resources.turnUsage` for that turn
 (`encounterActionEconomyUsed`, `withEncounterActionEconomyUsed`). The capture carries no contact position: a
 held move's token already stands at its contact (`movementResolutionDocuments.ts` requires it), so the host's
-own Scene reads judge perception, cover, flanking, proximity and light there. Two inline refusals are not
+own Scene reads judge perception, cover, flanking, proximity and light there. The one Scene read it skips is
+the action's range (`evaluateEncounterActionTargetPolicy` `rangeProven`): the contact of a creature leaving
+reach is the first point outside that reach, and the move's offer is what proved the reach. Two inline refusals are not
 carried and are open for QUALITY-18.T3: a movement reaction that uses up a single-use item, and the blanket
 single-target policy (`requireReactionTargetPolicy`); the action host applies its general rules to both.
 
-QUALITY-18.T2b moves the reaction itself to a child and raises the resume in the room as the campaign owner:
-it resumes the Kernel choice with the index of the option the child came from, drops that timeline entry and
-continues the move, or ends it at the contact when the child stops it.
+QUALITY-18.T2b2 moves the reaction itself to a child (current). A member's `OPTION` on a move's choice never
+reaches the movement evaluator, which refuses it: the room records the child and runs it as the reactor's own
+action (persistence.md, "A Scene move as the parent"), and the child's decoy and attack dice salt from the
+child's own occurrence like any action's. The room then raises the resume as the campaign owner. The
+evaluator's `CHOICE` branch (`encounterMovementActionResponse.ts`) takes `REACTION_CHILD_RESUME` only: it reads
+the committed child from `MOVEMENT_INPUTS.reactionChildren`, resumes the Kernel choice with the index of the
+option the child came from (the history's last `OPTION` entry), drops that timeline entry, records no
+`completedReactionExecutions` entry and continues the move, or ends it at `root.currentPosition` when the
+child stops it (`stopsTriggeringMovement`) or the mover is at 0 Hit Points. The child changed the Run and
+perhaps the Scene, so the rule service skips its frozen currentness comparison on that resume
+(`resumedFromReactionChild`). The inline reaction engine under `ACTION_EVIDENCE` is transitional: no choice
+reaches it, and QUALITY-18.T2c deletes it.
 
 **Higher-level check (current, D127; the child's incoming gate since QUALITY-9.T1b2).**
 `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`) makes a reaction cast below the triggering cast's

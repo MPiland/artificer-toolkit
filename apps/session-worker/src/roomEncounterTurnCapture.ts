@@ -48,6 +48,7 @@ import {
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
 import {
+  readCommittedReactionChildren,
   readReactionChildAncestors,
   readReactionChildTrigger
 } from '@artificer-toolkit/encounter-persistence/reactionChildren'
@@ -541,17 +542,25 @@ export async function readRoomEncounterTurnCapture(
   let response: SemanticResponse
   if (request.kind === 'MOVEMENT_INPUTS') {
     if (!movementAdmission) throw new Error('Movement capture scope is required.')
+    const held = readMovementResolution(movementAdmission.save)
     response = {
       kind: 'MOVEMENT_INPUTS',
       campaignOwnerUserId: campaign.ownerUserId,
       autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
         campaign,
-        initiatorUserId: movementAdmission.save.movementResolution
-          ? readMovementResolution(movementAdmission.save)!.root.initiatorUserId
-          : movementAdmission.save.actorUserId,
+        initiatorUserId: held?.root.initiatorUserId ?? movementAdmission.save.actorUserId,
         actors: await readRunActors(ctx, state)
       }),
       appRoll: movementAdmission.appRoll,
+      reactionChildren: await readCommittedReactionChildren(ctx, {
+        campaignId: campaign.id,
+        gameSystemId: state.gameSystemId,
+        recorded:
+          held?.context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+          held.context.phase.kind === 'CHOICE'
+            ? (held.context.phase.reactionChildren ?? [])
+            : []
+      }),
       save: movementAdmission.save,
       header: movementAdmission.header,
       bindings: await readEncounterActorTokenBindings(ctx, state, movementAdmission.header.id)

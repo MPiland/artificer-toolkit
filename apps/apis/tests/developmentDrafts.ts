@@ -4359,7 +4359,9 @@ try {
                 assert.equal(occurrence, null)
                 assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 1)
                 assert.equal(reactionAllowanceUsed(run, fixture.reactor.actorId), 1)
-                assert.equal(run.version, reactionRunVersion! + 1)
+                // Restated (QUALITY-18.T2b4): the reaction commits as a child action and the room
+                // then resumes the move (D219), so the Run advances twice, not once.
+                assert.equal(run.version, reactionRunVersion! + 2)
               }
               if (stage === 'reaction-resolved') completedMovement = await readMovementState()
               return
@@ -4399,7 +4401,9 @@ try {
               assert.equal(reactionAllowanceUsed(run, fixture.reactor.actorId), 1)
               if (reactionRunVersion === undefined)
                 throw new Error('Reaction Run baseline is unavailable.')
-              assert.equal(run.version, reactionRunVersion + 1)
+              // Restated (QUALITY-18.T2b4): the reaction commits as a child action and the room then
+              // resumes the move (D219), so the Run advances twice, not once.
+              assert.equal(run.version, reactionRunVersion + 2)
             }
             if (stage === 'reaction-resolved') completedMovement = await readMovementState()
           },

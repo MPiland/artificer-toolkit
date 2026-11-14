@@ -719,6 +719,7 @@ export async function prepareNativeLiveMovement(
         actorIdByTokenId: captured.actorIdByTokenId,
         resolvePerception: perception.resolvePerception,
         targets: captured.targets,
+        reactionChildren: response.reactionChildren,
         ...(input.retained ? { retained: input.retained } : {})
       },
       {

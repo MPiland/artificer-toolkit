@@ -11,6 +11,7 @@ import type {
 import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
+  ruleExecutionPositiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import {
@@ -91,6 +92,14 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
         z
           .array(encounterSpatialRuleEffectRecordSchema)
           .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
+      ),
+      /**
+       * How many spatial executions had settled each time a reaction child of the move committed
+       * (D219). The child's own receipt proves what it changed, so the timeline proof below starts
+       * again at the execution with that ordinal.
+       */
+      reactionChildBoundaries: z.optional(
+        z.array(ruleExecutionPositiveIntegerSchema).check(z.maxLength(MAX_SPATIAL_CANDIDATES))
       )
     })
     .check(
@@ -503,6 +512,19 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
                 ? -1
                 : 1)
         )
+        const reactionChildBoundaries = new Set(batch.reactionChildBoundaries)
+        if (
+          (batch.reactionChildBoundaries ?? []).some(
+            (boundary, index, boundaries) =>
+              boundary > batch.executions.length ||
+              (index > 0 && boundary <= boundaries[index - 1]!)
+          )
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['reactionChildBoundaries'],
+            message: 'Reaction child boundaries must be ordered and lie within the executions.'
+          })
         let priorReactionDistance = -1
         for (const [index, reaction] of batch.reactionExecutions.entries()) {
           if (reaction.option.candidate.pathDistance < priorReactionDistance)
@@ -526,6 +548,14 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             })
           if (event.kind === 'SPATIAL') {
             const execution = event.value
+            if (reactionChildBoundaries.has(execution.ordinal)) {
+              finishSpatialGroups()
+              currentStates.clear()
+              currentVersions.clear()
+              // An owner no contact had changed starts its span after the child.
+              for (const [ownerKey, summary] of spatialSummaries)
+                if (!summary.changed) spatialSummaries.delete(ownerKey)
+            }
             const actorId = execution.candidate.candidate.targetActorId
             const characterId =
               execution.candidate.target.kind === 'CHARACTER'

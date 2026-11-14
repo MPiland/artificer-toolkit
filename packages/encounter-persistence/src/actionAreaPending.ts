@@ -342,26 +342,45 @@ const hitReactionOf = (target: SealedAreaTarget | undefined) => {
 const heldOnHitReaction = (target: SealedAreaTarget) =>
   target.testedJson === undefined && hitReactionOf(target) !== null
 
-/** A sealed ray without what its own steps write: its snapshot, its answer and what that answer rolled. */
+/** The on-hit rider offer a ray's own snapshot holds its hit on, if it holds one. */
+const onHitOfferOf = (target: SealedAreaTarget | undefined) => {
+  const context = target?.snapshot.applicationContext
+  return context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'ON_HIT'
+    ? context.pause.payload
+    : null
+}
+
+/** Whether a ray still waits at the on-hit rider offer its hit raised. */
+const heldOnHitRider = (target: SealedAreaTarget) =>
+  target.testedJson === undefined && onHitOfferOf(target) !== null
+
+/** Whether a ray still waits at an offer its hit raised: its creature's reaction, then its caster's rider. */
+const heldOnHit = (target: SealedAreaTarget) => heldOnHitReaction(target) || heldOnHitRider(target)
+
+/** A sealed ray without what its own steps write: its snapshot, its answer and what that answer rolled and decided. */
 const rayIdentity = ({
   snapshot,
   testedJson: _testedJson,
   rolls: _rolls,
   testBindingJson: _testBindingJson,
+  onHit: _onHit,
   ...identity
 }: SealedAreaTarget) => ({ ...identity, occurrenceId: snapshot.occurrenceId })
 
 /**
- * Verifies the list a ray's step stores when that step is about the reaction to its hit (D219). The
- * ray's roll hit and raised the offer; its creature declined, so the ray is answered with the d20 the
- * offer kept; its creature chose a reaction, so the ray stays held and records that reaction's child;
- * or the room resumed from the committed child, so the ray is answered and the child's outcome is
- * written. Nothing else of the list changes but this: a ray answered before keeps its answer and, once
- * written, the facts it was rolled against; after a decline or a resume the rays behind may be
+ * Verifies the list a ray's step stores when that step is about an offer its hit raised: the reaction
+ * of the creature it hit (D219), then its caster's on-hit rider. The ray's roll hit and raised an
+ * offer; its creature declined, so the ray is answered with the d20 the offer kept; its creature chose
+ * a reaction, so the ray stays held and records that reaction's child; or the room resumed from the
+ * committed child, so the ray is answered and the child's outcome is written. A decline or a resume
+ * may instead leave the ray held on its rider offer, for the same d20. The caster's answer to the
+ * rider offer answers the ray and keeps the decision with it, on the offer as it was sealed. Nothing
+ * else of the list changes but this: a ray answered before keeps its answer, its decision and, once
+ * written, the facts it was rolled against; after a ray left its offers the rays behind may be
  * answered, the next of them held on its own hit; and only the resume, which follows a committed
  * child, seals the rays again to the creatures as that child left them.
  */
-function requireAreaActionRayReaction(
+function requireAreaActionRayHit(
   input: Parameters<typeof requireAreaActionAnswer>[0] & { at: number }
 ) {
   const stored = areaActionPendingContext(input.stored)
@@ -389,17 +408,49 @@ function requireAreaActionRayReaction(
         checksumCanonicalJson(rayIdentity(target)) !==
         checksumCanonicalJson(rayIdentity(next.targets[index]!))
     ) ||
-    next.targets.filter(heldOnHitReaction).length > 1
+    next.targets.filter(heldOnHit).length > 1
   )
     throw mismatch()
   const resumed = !response && awaitsReactionChild(previous)
   const offer = hitReactionOf(before)
   const kind = response?.resolution.kind
   const held = heldOnHitReaction(after)
-  // The ray's own step: its roll raises the offer, a decline or the resume leaves it, a chosen
-  // reaction stays on it with its child recorded.
-  if (!offer) {
-    if (!held || before.testedJson !== undefined || context.reactionChildren !== undefined)
+  const riderOffer = onHitOfferOf(before)
+  const riderHeld = heldOnHitRider(after) ? onHitOfferOf(after) : null
+  // The ray's own step: its roll raises an offer, a decline or the resume leaves the reaction offer
+  // (for the rider offer, if the hit raises one), a chosen reaction stays on it with its child
+  // recorded, and the caster's decision leaves the rider offer.
+  if (riderOffer) {
+    if (
+      before.testedJson !== undefined ||
+      after.testedJson === undefined ||
+      checksumCanonicalJson(after.snapshot) !== checksumCanonicalJson(before.snapshot) ||
+      after.onHit?.testExecutionChecksum !== riderOffer.testExecutionChecksum ||
+      (kind === 'OPTION' ? 'USE' : kind === 'DECLINE' ? 'DECLINE' : null) !== after.onHit.selection
+    )
+      throw mismatch()
+  } else if (after.onHit) throw mismatch()
+  else if (!offer) {
+    if (
+      !(held || riderHeld) ||
+      before.testedJson !== undefined ||
+      context.reactionChildren !== undefined
+    )
+      throw mismatch()
+  } else if (riderHeld) {
+    // The hit left its reaction offer for its rider offer: by a decline, on the roll as it was
+    // tested, or by the resume, on the same d20 tested against the creature as the child left it.
+    if (
+      before.testedJson !== undefined ||
+      !reactionChildrenKept(previous, context) ||
+      awaitsReactionChild(context) ||
+      checksumCanonicalJson(riderHeld.testD20.rawFaces) !==
+        checksumCanonicalJson(offer.originalD20.rawFaces) ||
+      (!resumed &&
+        (kind !== 'DECLINE' ||
+          awaitsReactionChild(previous) ||
+          riderHeld.testExecutionChecksum !== offer.originalExecutionChecksum))
+    )
       throw mismatch()
   } else if (
     before.testedJson !== undefined ||
@@ -427,22 +478,28 @@ function requireAreaActionRayReaction(
     if (index === at) continue
     const answeredBefore = target.testedJson !== undefined
     if (
-      // An answer is written once, with what it rolled.
-      (answeredBefore &&
-        checksumCanonicalJson([sealed.testedJson, sealed.rolls ?? null]) !==
-          checksumCanonicalJson([target.testedJson, target.rolls ?? null])) ||
+      // An answer is written once, with what it rolled and what its caster decided at its rider offer;
+      // a ray answered behind this one never passed such an offer.
+      checksumCanonicalJson(
+        answeredBefore
+          ? [sealed.testedJson, sealed.rolls ?? null, sealed.onHit ?? null]
+          : (sealed.onHit ?? null)
+      ) !==
+        checksumCanonicalJson(
+          answeredBefore ? [target.testedJson, target.rolls ?? null, target.onHit ?? null] : null
+        ) ||
       // So are the facts a ray was rolled against, and only when a reaction is chosen.
       (target.testBindingJson !== undefined
         ? sealed.testBindingJson !== target.testBindingJson
         : sealed.testBindingJson !== undefined &&
           !(answeredBefore && offer && held && kind === 'OPTION')) ||
-      // Only the rays behind a ray that left its offer go on, in order.
+      // Only the rays behind a ray that left its offers go on, in order.
       (!answeredBefore &&
-        (sealed.testedJson !== undefined || heldOnHitReaction(sealed)) &&
-        (index < at || held || !offer)) ||
+        (sealed.testedJson !== undefined || heldOnHit(sealed)) &&
+        (index < at || heldOnHit(after))) ||
       // Only the resume seals a ray again.
       (!resumed &&
-        (answeredBefore || (sealed.testedJson === undefined && !heldOnHitReaction(sealed))) &&
+        (answeredBefore || (sealed.testedJson === undefined && !heldOnHit(sealed))) &&
         checksumCanonicalJson(sealed.snapshot) !== checksumCanonicalJson(target.snapshot))
     )
       throw mismatch()
@@ -492,9 +549,10 @@ export function requireAreaActionAnswer(input: {
     -1
   if (
     hitReactionOf(stored?.targets[at]) ||
-    (next?.targets[at] && heldOnHitReaction(next.targets[at]))
+    onHitOfferOf(stored?.targets[at]) ||
+    (next?.targets[at] && heldOnHit(next.targets[at]))
   )
-    return requireAreaActionRayReaction({ ...input, at })
+    return requireAreaActionRayHit({ ...input, at })
   // An answer that opens the next d20 window swaps that save's snapshot, so the answered creature is
   // found by its place in the stored area.
   const answered =
@@ -677,11 +735,12 @@ export function projectNativeAreaActionPending(
           allowedResponses: ['FORCED_MOVEMENT']
         }
       : null
-  // A ray held on the reaction to its hit (D219) is the list's one decision, its creature's.
+  // A ray held on an offer its hit raised is the list's one decision: its creature's reaction (D219),
+  // then its caster's on-hit rider.
   const heldRay = pending.targets.find(
     (target) =>
       encounterAreaSaveAwaiting({ casterActorId: casterId, targets: pending.targets }, target) ===
-      'REACTION'
+      'DECISION'
   )
   if (heldRay)
     return answers(heldRay.context.rollerActorId)

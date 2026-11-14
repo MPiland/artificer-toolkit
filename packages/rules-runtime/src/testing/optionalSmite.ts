@@ -9,16 +9,20 @@ export const OPTIONAL_POOL_STRIKE_FEATURE_ID = testUuid(0xb21)
 export const OPTIONAL_POOL_STRIKE_EFFECT_ID = testUuid(0xb22)
 export const OPTIONAL_POOL_STRIKE_CHARGE_ID = testUuid(0xb27)
 
+/** The attack a homebrew rider rides: a melee weapon's unless a test names a spell's. */
+type RiderTrigger = 'MELEE_WEAPON_ATTACK' | 'RANGED_SPELL_ATTACK'
+
 /**
- * A homebrew melee-weapon Feature built only from core options: after a hit its wielder may spend
- * `cost` charges of its own pool of `maximum` short-rest charges to add `diceConfig` damage of
- * `damageTypeCode`.
+ * A homebrew Feature built only from core options: after a hit with the attack its trigger names (a
+ * melee weapon's unless given) its wielder may spend `cost` charges of its own pool of `maximum`
+ * short-rest charges to add `diceConfig` damage of `damageTypeCode`.
  */
 export function optionalPoolStrike(input: {
   maximum: number
   cost: number
   diceConfig: string
   damageTypeCode: string
+  triggerCode?: RiderTrigger
 }): FeatureAuthored {
   const damageType = SRD_DAMAGE_TYPES.find((entry) => entry.code === input.damageTypeCode)
   if (!damageType) throw new Error(`SRD damage type "${input.damageTypeCode}" is missing.`)
@@ -42,7 +46,7 @@ export function optionalPoolStrike(input: {
         order: 1,
         invocation: {
           kind: 'PASSIVE',
-          triggerCode: 'MELEE_WEAPON_ATTACK',
+          triggerCode: input.triggerCode ?? 'MELEE_WEAPON_ATTACK',
           range: { id: testUuid(0xb23), rangeKind: 'SPECIAL' },
           targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' },
           optionalOnHit: {
@@ -88,10 +92,11 @@ const SMITE_DICE = [
 ] as const
 
 /**
- * A homebrew melee-weapon Feature built only from core options: after a hit its wielder may pay a
- * spell slot of any level to add radiant dice that grow with that level (2d8 at 1st, 5d8 from 4th).
+ * A homebrew Feature built only from core options: after a hit with the attack its trigger names (a
+ * melee weapon's unless given) its wielder may pay a spell slot of any level to add radiant dice that
+ * grow with that level (2d8 at 1st, 5d8 from 4th).
  */
-export function optionalSmite(): FeatureAuthored {
+export function optionalSmite(triggerCode: RiderTrigger = 'MELEE_WEAPON_ATTACK'): FeatureAuthored {
   const radiant = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'RADIANT')
   if (!radiant) throw new Error('SRD damage type "RADIANT" is missing.')
   return {
@@ -106,7 +111,7 @@ export function optionalSmite(): FeatureAuthored {
         order: 1,
         invocation: {
           kind: 'PASSIVE',
-          triggerCode: 'MELEE_WEAPON_ATTACK',
+          triggerCode,
           range: { id: testUuid(0xb03), rangeKind: 'SPECIAL' },
           targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' },
           optionalOnHit: { kind: 'SPELL_SLOT' }

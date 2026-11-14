@@ -10,7 +10,10 @@ import {
   setupCreatureReactionRun,
   reactionRecords
 } from '../../tests/fixtures/movementReactionEffects'
-import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readResumedMovement,
+  setupReactionMovementScene
+} from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -19,6 +22,7 @@ import {
   executeInRoom,
   executeSceneInRoom,
   queueRoomRolls,
+  readRoomEncounterSession,
   roomErrorLogs,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -172,10 +176,13 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
       command: { ...stale, expectedVersion: stale.expectedVersion - 1 }
     })
   ).rejects.toMatchObject({
+    // Restated (QUALITY-18.T2b3): the attack evidence belongs to the reaction's own action (D219),
+    // so a stale answer to it is refused by the action path, with the same reason and that path's
+    // message, where the move's evidence phase refused it before.
     data: {
       code: 'DOMAIN_REJECTED',
       reason: 'VERSION_STALE',
-      message: 'Encounter version is stale.'
+      message: 'The action occurrence version is stale.'
     }
   })
   // A stale answer is a domain refusal the member sees, not a failure inside the room.
@@ -233,6 +240,20 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
   if (!completed) throw new Error('Assisted immediate reaction did not complete.')
   expect(completed.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   expect(await effects(base)).toHaveLength(1)
+  // Restated (QUALITY-18.T2b3): the completed result is the reaction's own action (D219); the room
+  // then resumes and completes the move in a command of its own, so the settled records and the
+  // Run the turns advance from are read once the move has completed.
+  const offered = choice?.occurrence?.pending
+  if (!offered) throw new Error('Expected the offered reaction choice.')
+  expect(await readResumedMovement(scene.owner.caller, base.campaign.id, offered)).toMatchObject({
+    status: 'COMPLETE',
+    pending: null
+  })
+  const session = await readRoomEncounterSession(scene.owner.caller, base.campaign.id, {
+    timeline: false
+  })
+  if (!session.held || !session.state.encounter)
+    throw new Error('Expected the room to hold the Run.')
   const settled = await records(base)
   await expect(
     executeInRoom(scene.owner.caller, { command: completed.command })
@@ -240,7 +261,7 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
   expect(await records(base)).toEqual(settled)
   expect(await effects(base)).toHaveLength(1)
 
-  let { projection } = completed.result
+  let projection = session.state.encounter
   let targetTurns = 0
   for (let advances = 0; advances < 12 && targetTurns < 2; advances++) {
     const advanced = await executeInRoom(scene.owner.caller, {

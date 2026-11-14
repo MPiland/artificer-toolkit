@@ -5,6 +5,10 @@ import {
   type DamageRerollCostDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type {
+  EncounterOnHitAuditDto,
+  EncounterOnHitOfferDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type {
   EncounterCastReactionOfferDto,
   EncounterSettledHitDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -132,6 +136,12 @@ export async function advanceNativeActionGraphs(input: {
       | { kind: 'RESUMED' }
   }
   /**
+   * The held on-hit offer with the decision its attacker made at it, kept with a ray's answer. The TEST
+   * is rebuilt from the faces the offer kept, never rolled again, and its OUTCOME runs sealed against
+   * the decision.
+   */
+  heldOnHit?: { offer: EncounterOnHitOfferDto; audit: EncounterOnHitAuditDto }
+  /**
    * The creatures that may react to the action's rolled attack d20 (D219). Once the roller's own window
    * has settled, the roll is held for each in turn before it resolves; a reaction one of them uses runs
    * as its holder's own action.
@@ -185,6 +195,7 @@ export async function advanceNativeActionGraphs(input: {
       legendaryResistance,
       reaction,
       heldHit,
+      heldOnHit,
       rollReaction,
       heldRoll,
       onHitCandidates,
@@ -222,6 +233,21 @@ export async function advanceNativeActionGraphs(input: {
       throw new Error('The damage roll window evidence is stale.')
     if ((heldHit || heldRoll) && resume) throw new Error('Reaction evidence is stale.')
     if (heldHit && heldRoll) throw new Error('Reaction evidence is stale.')
+    if (heldOnHit) {
+      if (heldHit || heldRoll || resume) throw new Error('On-hit evidence is stale.')
+      return continueNativeActionAfterTest({
+        ...action,
+        testBinding,
+        boundary: await reconstructNativeActionTest({
+          ...sealedAgainst,
+          execution: heldOnHit.offer.testExecution,
+          d20: heldOnHit.offer.testD20
+        }),
+        onHit: heldOnHit.audit,
+        saveWindow,
+        damageRerolls
+      })
+    }
     if (heldRoll) {
       const { offer, answer } = heldRoll
       const [offered] = offer.reactions

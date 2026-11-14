@@ -7,6 +7,7 @@ import type {
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import {
   readCheckpointedTokenPosition,
+  readResumedMovement,
   setupReactionMovementScene
 } from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -162,6 +163,12 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     }
     if (result.occurrence?.status !== 'COMPLETE')
       throw new Error('Assisted automatic reaction did not complete.')
+    // Restated (QUALITY-18.T2b3): the completed result is the reaction's own action (D219); the
+    // room then resumes and completes the move in a command of its own.
+    expect(await readResumedMovement(value.owner.caller, base.campaign.id, choice)).toMatchObject({
+      status: 'COMPLETE',
+      pending: null
+    })
     if (rolls === 'PROMPT') expect(outcomeEvidenceCount).toBeGreaterThan(0)
     else expect(outcomeEvidenceCount).toBe(0)
     expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
@@ -173,7 +180,9 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     const settledChecksums = await actorChecksums(value)
     const settledTimeline = await readRoomTimeline(value.owner.caller, base.campaign.id)
     const replayed = await executeInRoom(value.owner.caller, { command: declineCommand })
-    expect(replayed.projection.version).toBe(result.projection.version)
+    // Restated (QUALITY-18.T2b3): the current table state is one Run version past the reaction's
+    // own commit, because the room's resume completed the move after it (D219).
+    expect(replayed.projection.version).toBe(result.projection.version + 1)
     expect(await actorChecksums(value)).toEqual(settledChecksums)
     expect(await readRoomTimeline(value.owner.caller, base.campaign.id)).toEqual(settledTimeline)
     await expect(

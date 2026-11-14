@@ -31,6 +31,8 @@ export async function resolveNativeActionOnHit(
 ) {
   const boundary = await reconstructNativeActionTest({
     ...input,
+    // A later ray at a creature runs on the hit points the earlier rays left it; its roll was sealed before.
+    binding: input.testBinding ?? input.binding,
     execution: input.offer.testExecution,
     d20: input.offer.testD20
   })
