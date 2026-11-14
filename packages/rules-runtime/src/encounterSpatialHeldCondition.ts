@@ -6,6 +6,7 @@ import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema
 
 import { conditionBaselinePresent } from './encounterActionEffectPlans.js'
 import { endSubscriptions } from './events/effectHooks.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 
 const SPATIAL_HELD_CONDITION_NAMESPACE = '8e3c1f52-6a0d-4b7e-a9c4-2d5f7b1e0c93'
 
@@ -105,13 +106,26 @@ export function planSpatialHeldCondition(input: {
 }
 
 /** The zone an effect holds its condition for until the holder leaves the zone's area, or null. */
-export function heldUntilLeavingZoneId({ definition }: Pick<ActiveRuleEffectRecord, 'definition'>) {
+function heldUntilLeavingZoneId({ definition }: Pick<ActiveRuleEffectRecord, 'definition'>) {
   if (!endSubscriptions({ definition }).some((subscription) => subscription.event === 'AREA_LEFT'))
     return null
   for (const contribution of definition.stateContributions)
     if (contribution.kind === 'CONDITION_OWNERSHIP' && contribution.heldBySpatialEffectId)
       return contribution.heldBySpatialEffectId
   return null
+}
+
+/** Whether the effect ends as its holder leaves this zone's area: the departure is raised on it as `AREA_LEFT`. */
+export function endsOnLeavingZone(
+  effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>,
+  zoneEffectId: string
+) {
+  return (
+    discoverEncounterEventHooks({
+      effects: [effect],
+      events: [{ kind: 'AREA_LEFT', zoneEffectId }]
+    }).ended.length > 0
+  )
 }
 
 /** Each creature's zones holding a condition on it until it leaves their area (D146). */

@@ -14,8 +14,9 @@ import type { EncounterActionSceneContext } from '../encounterActionTargetPolicy
 /**
  * The events an Encounter raises on the creature that holds effects or reactions (ADR 0039 decision
  * 4). The kinds are structural facts every System has; a System's event vocabulary binds its
- * authored codes to them, so shared code never names a System's events. A rest is the Sheet's event,
- * so only its subscription is here. See the rules-runtime guide's "Event hooks" section.
+ * authored codes to them, so shared code never names a System's events. Every way an effect's
+ * lifetime ends is one of them (a rest too, which the Sheet raises). See the rules-runtime guide's
+ * "Event hooks" section.
  */
 export type EncounterEvent =
   /** The holder takes an action, which may make an attack roll or cast a spell, aimed at an enemy or not. */
@@ -95,8 +96,17 @@ export type EncounterEvent =
   | { kind: 'IDLE_TURN' }
   /** The holder moves of its own will. */
   | { kind: 'MOVED' }
-  /** The holder leaves the area holding the effect. */
-  | { kind: 'AREA_LEFT' }
+  /** The holder leaves the area of this zone, which ends the effects the zone holds on it. */
+  | { kind: 'AREA_LEFT'; zoneEffectId: string }
+  /**
+   * A turn of the actor the effect counts its lifetime on starts or ends. The caller raises it on
+   * the effects anchored to that actor.
+   */
+  | { kind: 'TURN_BOUNDARY'; stage: 'START_OF_TURN' | 'END_OF_TURN' }
+  /** The holder's token stands `feet` from `sourceActorId`'s, measured between footprints. */
+  | { kind: 'SEPARATED'; sourceActorId: string; feet: number }
+  /** The holder finishes a rest of this kind. */
+  | { kind: 'REST'; restKind: 'SHORT' | 'LONG' }
   /**
    * An attack hits the holder: melee or ranged, a weapon or a spell attack, by an attacker it sees or
    * not, dealing these damage types.
@@ -161,11 +171,10 @@ export type EncounterEventSubscription =
   | { event: 'TEST'; test: 'CHECK' | 'SAVE'; valueDomainCode: string }
   | { event: 'DAMAGED'; by: 'ANYONE' | 'SOURCE_SIDE'; damageTypeIds: readonly string[] | null }
   | { event: 'INCAPACITATED'; of: 'HOLDER' | 'SOURCE' }
-  /**
-   * The holder stands farther than `beyondFeet` from the source. No event raises it: the
-   * post-commit relationship sweep measures the Scene (`encounterSeparatedEffects`).
-   */
+  /** The holder stands farther than `beyondFeet` from the effect's source. */
   | { event: 'SEPARATED'; from: 'SOURCE'; beyondFeet: number }
+  /** A turn boundary of this stage, of the actor the effect counts its lifetime on. */
+  | { event: 'TURN_BOUNDARY'; stage: 'START_OF_TURN' | 'END_OF_TURN' }
   | { event: 'CONDITION_HELD'; conditionIds: readonly string[] }
   | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: readonly string[] }
   | { event: 'REST'; restKind: 'SHORT' | 'LONG' }
@@ -185,9 +194,16 @@ export type EncounterEventSubscription =
         | 'AREA_LEFT'
     }
 
-/** What an effect does when one of its subscriptions is met: it ends, or its holder repeats its save. */
+/**
+ * What an effect does when one of its subscriptions is met: it ends, it counts one tick off its
+ * lifetime (and ends when none remain), or its holder repeats its save.
+ */
 export type EncounterEffectHook =
   | { hook: 'END'; subscription: EncounterEventSubscription }
+  | {
+      hook: 'COUNT_DOWN'
+      subscription: Extract<EncounterEventSubscription, { event: 'TURN_BOUNDARY' }>
+    }
   | {
       hook: 'REPEAT_SAVE'
       subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>
@@ -266,6 +282,12 @@ export type ZoneEventSubscription = Pick<
   'triggerModes' | 'turnTriggers' | 'retaliatesMeleeHits'
 >
 
+/**
+ * An actor relationship hold (a grapple) by its sealed payload, which is its subscription: it breaks
+ * once the held creature stands beyond the reach it sealed from its source, or the source can't act.
+ */
+export type RelationshipHoldSubscription = { sourceActorId: string; sealedReachFeet: number }
+
 /** The recurrence a stored effect authors its subscriptions in. */
 export type EncounterEffectRecurrence = Extract<
   ActiveRuleEffectRecord['definition'],
@@ -275,7 +297,10 @@ export type EncounterEffectRecurrence = Extract<
 /** System-owned event vocabulary: how the System's authored codes subscribe to the event table. */
 export interface EventVocabularyCapabilityAdapter {
   readonly gameSystemId: string
-  /** The hooks an effect's recurrence authors, in authored order; a code the System lacks throws. */
+  /**
+   * The hooks an effect's recurrence authors, in authored order; a code the System lacks throws. The
+   * count of a timed effect is structural, so `effectHooks` adds it for every System.
+   */
   effectHooks(recurrence: EncounterEffectRecurrence): readonly EncounterEffectHook[]
   /**
    * The hook a passive Effect's authored trigger code subscribes, so the Encounter raises the Effect

@@ -2,6 +2,7 @@ import {
   isSaveTallyStep,
   requireTurnMaintainedStates,
   selectTurnEffectCandidates,
+  turnBoundaryCount,
   turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
@@ -195,10 +196,11 @@ export async function persistEncounterTurnEffects(
       !Number.isSafeInteger(effect.version + 1)
     )
       throw new Error('Staged turn effect currentness is stale.')
-    const afterRemainingTicks = remaining === null ? null : remaining - 1
+    const count = turnBoundaryCount(effect, boundary.stage)
+    const afterRemainingTicks = count.remainingTicks
     if (
       (lifecycle.kind === 'UPDATE' &&
-        (remaining === 1 ||
+        (count.runsOut ||
           lifecycle.afterVersion !== effect.version + 1 ||
           lifecycle.afterRemainingTicks !== afterRemainingTicks ||
           lifecycle.afterLifecycleChecksum !==
