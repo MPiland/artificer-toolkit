@@ -54,17 +54,13 @@ it.each(['USE', 'DECLINE'] as const)(
     const startHitPoints = await readCheckpointedHitPoints(value, base.mover.id)
     const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     const reactionChoice = initial?.occurrence?.pending
-    if (
-      !reactionChoice ||
-      reactionChoice.kind !== 'MOVEMENT_REACTION' ||
-      !reactionChoice.choice.options[0]
-    )
+    if (!reactionChoice || reactionChoice.kind !== 'REACTION_CHOICE' || !reactionChoice.options[0])
       throw new Error('Expected issued Scene reaction choice.')
     const resisted = await executeInRoom(value.owner.caller, {
       command: command({
         encounterId: base.run.id,
         pending: reactionChoice,
-        resolution: { kind: 'OPTION', optionId: reactionChoice.choice.options[0].optionId }
+        resolution: { kind: 'OPTION', optionId: reactionChoice.options[0].optionId }
       })
     })
     const resistance = resisted.occurrence?.pending

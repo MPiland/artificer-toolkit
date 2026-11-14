@@ -241,6 +241,7 @@ export async function setupReactionMovementScene<
     reactorTokenIds: tokens.filter((_, index) => index !== 1).map((token) => token.id),
     moverTokenId: tokens[1]!.id,
     rootInput,
+    grid: settings.grid,
     geometry: {
       sceneTokens: tokens,
       actorIdByTokenId: new Map(tokens.map((token, index) => [token.id, actors[index]!.id]))
@@ -361,7 +362,7 @@ export async function useMovementReactionsInRoom(
   let responseCommandId: string | null = null
   for (let uses = 0; uses < maxUses; uses++) {
     const pending = occurrence?.pending
-    if (pending?.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0]) break
+    if (pending?.kind !== 'REACTION_CHOICE' || !pending.options[0]) break
     responseCommandId = crypto.randomUUID()
     const answered = await executeInRoom(owner.caller, {
       command: {
@@ -372,7 +373,7 @@ export async function useMovementReactionsInRoom(
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
         correlationId: null,
-        resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
+        resolution: { kind: 'OPTION', optionId: pending.options[0].optionId }
       }
     })
     occurrence =

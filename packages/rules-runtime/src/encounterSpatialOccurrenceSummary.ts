@@ -194,20 +194,16 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
       pending: {
-        kind: 'MOVEMENT_REACTION',
+        kind: 'REACTION_CHOICE',
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         encounterVersion,
-        choice: {
-          pathDistance: choice.pathDistance,
-          reactorActorId: choice.reactorActorId,
-          reactorTokenId: choice.reactorTokenId,
-          options: visibleOptions.map((option) => ({
-            optionId: option.optionId,
-            actionId: option.actionId,
-            actionSourceKind: option.actionSourceKind
-          }))
-        },
+        targetActorId: choice.reactorActorId,
+        reactorTokenId: choice.reactorTokenId,
+        options: visibleOptions.map((option) => ({
+          optionId: option.optionId,
+          actionId: option.actionId
+        })),
         allowedResponses: ['DECLINE', 'OPTION']
       }
     }

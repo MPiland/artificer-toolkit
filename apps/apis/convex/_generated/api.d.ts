@@ -295521,6 +295521,7 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{ actionId: string; optionId: string }>;
+                reactorTokenId?: string;
                 targetActorId: string;
               }
             | {
@@ -296535,6 +296536,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{ actionId: string; optionId: string }>;
+                  reactorTokenId?: string;
                   targetActorId: string;
                 }
               | {
@@ -298224,6 +298226,7 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             options: Array<{ actionId: string; optionId: string }>;
+            reactorTokenId?: string;
             targetActorId: string;
           }
         | {
@@ -299927,6 +299930,7 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{ actionId: string; optionId: string }>;
+                reactorTokenId?: string;
                 targetActorId: string;
               }
             | {

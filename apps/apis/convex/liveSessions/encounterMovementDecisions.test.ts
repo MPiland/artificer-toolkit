@@ -107,7 +107,7 @@ it.each([
       : value.rootInput
     const choice = (await executeSceneInRoom(value.owner.caller, rootInput)).result?.occurrence
       ?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+    if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
       throw new Error('Expected the Assisted Use/Decline reaction choice.')
     const responseCommandId = crypto.randomUUID()
     const useCommand: ResolveRuleOccurrenceInputDto = {
@@ -118,7 +118,7 @@ it.each([
       occurrenceId: choice.occurrenceId,
       expectedOccurrenceVersion: choice.occurrenceVersion,
       correlationId: null,
-      resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+      resolution: { kind: 'OPTION', optionId: choice.options[0].optionId }
     }
     /** Convex's rows, after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
     const records = async () => {

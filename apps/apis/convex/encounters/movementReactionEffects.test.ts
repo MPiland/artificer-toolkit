@@ -73,13 +73,13 @@ async function useAutomaticReaction(
   scene: Awaited<ReturnType<typeof setupReactionMovementScene>>,
   pending: PendingEncounterRuleOccurrenceSummaryDto | null | undefined
 ) {
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
+  if (!pending || pending.kind !== 'REACTION_CHOICE' || !pending.options[0])
     throw new Error('Expected the Assisted Use/Decline reaction choice.')
   return answer(
     scene,
     resolution(scene.base.run.id, pending, {
       kind: 'OPTION',
-      optionId: pending.choice.options[0].optionId
+      optionId: pending.options[0].optionId
     })
   )
 }

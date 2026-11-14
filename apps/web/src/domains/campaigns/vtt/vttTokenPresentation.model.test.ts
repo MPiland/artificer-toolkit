@@ -62,22 +62,13 @@ describe('VTT token presentation model', () => {
       currentUserId: token.controlledByUserIds[0]!,
       encounter: { ...tabletopGmEncounter, currentActorId: null },
       pending: {
-        kind: 'MOVEMENT_REACTION',
+        kind: 'REACTION_CHOICE',
         occurrenceId: '77777777-7777-4777-8777-777777777790',
         occurrenceVersion: 1,
         encounterVersion: tabletopGmEncounter.version,
-        choice: {
-          pathDistance: 5,
-          reactorActorId: actor.id,
-          reactorTokenId: token.id,
-          options: [
-            {
-              actionId: 'reaction',
-              actionSourceKind: 'CHARACTER_ACTION',
-              optionId: 'a'.repeat(64)
-            }
-          ]
-        },
+        targetActorId: actor.id,
+        reactorTokenId: token.id,
+        options: [{ actionId: 'reaction', optionId: 'a'.repeat(64) }],
         allowedResponses: ['DECLINE', 'OPTION']
       },
       scene

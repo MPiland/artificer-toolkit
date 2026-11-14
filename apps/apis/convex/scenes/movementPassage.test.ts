@@ -554,15 +554,11 @@ describe('native Scene movement passage', () => {
     // The retained authored automatic reaction is offered as Use/Decline; once used, its d20
     // pauses as evidence.
     const reactionChoice = completed.result.occurrence?.pending
-    if (
-      !reactionChoice ||
-      reactionChoice.kind !== 'MOVEMENT_REACTION' ||
-      !reactionChoice.choice.options[0]
-    )
+    if (!reactionChoice || reactionChoice.kind !== 'REACTION_CHOICE' || !reactionChoice.options[0])
       throw new Error('Expected the retained automatic reaction choice after the assisted contest.')
     const used = await respond(value, reactionChoice, {
       kind: 'OPTION',
-      optionId: reactionChoice.choice.options[0].optionId
+      optionId: reactionChoice.options[0].optionId
     })
     const reaction = used.result.occurrence?.pending
     if (!reaction || reaction.kind !== 'D20_EVIDENCE')
@@ -630,11 +626,11 @@ describe('native Scene movement passage', () => {
     expect(await blockerGrants()).toEqual([])
     // The blocker's retained opportunity attack can't use the Help again.
     const reactionChoice = completed.result.occurrence?.pending
-    if (reactionChoice?.kind !== 'MOVEMENT_REACTION' || !reactionChoice.choice.options[0])
+    if (reactionChoice?.kind !== 'REACTION_CHOICE' || !reactionChoice.options[0])
       throw new Error('Expected the retained reaction choice after the contest.')
     const used = await respond(value, reactionChoice, {
       kind: 'OPTION',
-      optionId: reactionChoice.choice.options[0].optionId
+      optionId: reactionChoice.options[0].optionId
     })
     const reaction = used.result.occurrence?.pending
     if (reaction?.kind !== 'D20_EVIDENCE') throw new Error('Expected the reaction d20.')

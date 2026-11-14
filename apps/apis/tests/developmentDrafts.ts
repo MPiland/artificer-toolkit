@@ -50,6 +50,8 @@ import {
 } from './developmentCampaignCustody'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
+import { reactionBinding } from './fixtures/reactionBinding'
+import { expectedReactionContact } from './fixtures/reactionContact'
 import { generateProfileUsername, generateValidUsername } from './fixtures/generatedUsername'
 import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
 import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
@@ -343,19 +345,6 @@ async function readVttCheckpoint(): Promise<VttCheckpoint> {
 function nextVttCheckpointSection(section: VttCheckpointSection): VttCheckpointSection | null {
   const index = vttCheckpointSections.indexOf(section)
   return vttCheckpointSections[index + 1] ?? null
-}
-
-function movementContact(
-  pathDistance: number,
-  origin: { x: number; y: number },
-  destination: { x: number; y: number }
-) {
-  const length = Math.hypot(destination.x - origin.x, destination.y - origin.y)
-  assert.ok(length > 0)
-  return {
-    x: origin.x + ((destination.x - origin.x) * pathDistance) / length,
-    y: origin.y + ((destination.y - origin.y) * pathDistance) / length
-  }
 }
 
 function reactionAllowanceUsed(run: unknown, actorId: string): number {
@@ -4214,13 +4203,13 @@ try {
             if (!session.held)
               throw new Error('The room must hold the Run during the reaction offer.')
             const { pending } = session.state
-            if (pending?.kind !== 'MOVEMENT_REACTION' || pending.answerBy === undefined)
+            if (pending?.kind !== 'REACTION_CHOICE' || pending.answerBy === undefined)
               throw new Error('Movement reaction is not pending.')
             const run = encounterGmProjectionDtoSchema.parse(session.state.encounter)
-            assert.equal(pending.choice.reactorActorId, fixture.reactor.actorId)
-            assert.equal(pending.choice.reactorTokenId, fixture.reactor.tokenId)
+            assert.equal(pending.targetActorId, fixture.reactor.actorId)
+            assert.equal(pending.reactorTokenId, fixture.reactor.tokenId)
             assert.ok(
-              pending.choice.options.some((option) => option.actionId === fixture.reactor.actionId)
+              pending.options.some((option) => option.actionId === fixture.reactor.actionId)
             )
             // D207: the offer counts down the Campaign's reaction time from the commit that issued it,
             // which the browser action started and this read follows (one clock on one machine).
@@ -4231,14 +4220,26 @@ try {
               issuedAfter <= issuedAt && issuedAt <= Date.now(),
               `The offer must count down ${run.reactionSeconds} s from its issuing commit (answerBy ${pending.answerBy}).`
             )
-            const contact = movementContact(
-              pending.choice.pathDistance,
-              movementPath.from,
-              movementPath.to
-            )
+            // The offer no longer carries the contact distance (the unified Reaction choice), so the
+            // stop is proved equal to the contact the product's reach function computes, and as a
+            // point on the path.
+            const contact = expectedReactionContact({
+              ...fixture.geometry,
+              movingTokenId: fixture.mover.tokenId,
+              path: [movementPath.from, movementPath.to],
+              reach: { amount: 5, unit: 'FEET' },
+              reactorTokenId: fixture.reactor.tokenId,
+              stage: reactionBinding.stage
+            })
             assert.ok(
               Math.hypot(moverPosition.x - contact.x, moverPosition.y - contact.y) < 0.001,
               'The room must stop the mover where the reaction triggers.'
+            )
+            assert.ok(
+              Math.abs(moverPosition.y - movementPath.from.y) < 0.001 &&
+                moverPosition.x > movementPath.from.x &&
+                moverPosition.x < movementPath.to.x,
+              'The room must stop the mover on its path, where the reaction triggers.'
             )
             if (passageBrowser) {
               if (passageRunVersion === undefined)
