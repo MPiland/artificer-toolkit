@@ -18,6 +18,18 @@ export type DamageSaveEffectHolder = {
 }
 
 /**
+ * Whether a command placed this effect: its origin, of either kind, names one of the command's
+ * occurrences (its own, or an entry occurrence it made per creature). Such an effect was not on its
+ * holder when the command's damage landed, so it never repeats against that damage.
+ */
+export function placedByCommand(
+  { definition: { origin } }: Pick<ActiveRuleEffectRecord, 'definition'>,
+  commandOccurrenceIds: readonly string[]
+) {
+  return commandOccurrenceIds.includes(origin.sourceOccurrenceId)
+}
+
+/**
  * The one planner of the saves a command's finalized damage owes (D95, D167, ATTACK-16), for every
  * damage root: an action, an area, a Cleaving blow, a turn, and a movement's zone contacts. It raises
  * `DAMAGED(AFTER)` once per damaged holder, with one hit per damage source that reached it, and reads
@@ -31,8 +43,11 @@ export function planDamageSaveChain(input: {
   applications: readonly ConcentrationDamageApplicationDto[]
   /** The Concentrations each damaged holder maintains, in casting order. */
   maintainedStates: ReadonlyMap<string, readonly { id: string; createdAt: string }[]>
-  /** The command whose damage this is. An effect it placed never repeats against its own damage. */
-  parentOccurrenceId: string
+  /**
+   * The occurrences of the command whose damage this is: its own, then each entry occurrence it made.
+   * An effect any of them placed never repeats against its own damage (`placedByCommand`).
+   */
+  commandOccurrenceIds: readonly string[]
   /** Who dealt damage whose application names no damager. */
   damagerActorId: string | null
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
@@ -51,13 +66,7 @@ export function planDamageSaveChain(input: {
     const holder = input.effectSaves?.holders.get(holderActorId)
     const effects =
       holder && !holder.defeated
-        ? holder.effects.filter(
-            ({ definition: { origin } }) =>
-              !(
-                origin.kind === 'ENCOUNTER' &&
-                origin.sourceOccurrenceId === input.parentOccurrenceId
-              )
-          )
+        ? holder.effects.filter((effect) => !placedByCommand(effect, input.commandOccurrenceIds))
         : []
     if (held.length === 0 && effects.length === 0) continue
     const hits: EncounterDamageHit[] = damage.map((application) => ({

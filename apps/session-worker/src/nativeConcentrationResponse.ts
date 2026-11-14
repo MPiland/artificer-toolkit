@@ -145,6 +145,7 @@ export async function planNativeLiveConcentrationResponse(
     // Remaining checks auto-roll by their roller's preference until one prompts (D23).
     autoRollByActorId: admission.autoRollByActorId,
     parentOccurrenceId: context.parentOccurrenceId,
+    entryOccurrenceIds: admission.parentEntryOccurrenceIds,
     parentCommandFingerprint: context.parentCommandFingerprint,
     applications: parentApplications,
     sourceLabels: context.sourceLabels,
