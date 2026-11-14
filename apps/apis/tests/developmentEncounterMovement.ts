@@ -4,7 +4,6 @@ import { srdWolf as wolf } from './fixtures/srdCreatures'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { api } from '../convex/_generated/api.js'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { bindScene, bindToken } from './developmentEncounterLifecycle'
@@ -132,7 +131,9 @@ export async function prepareEncounterMovementFixture({
     diagonalPolicy: 'EQUAL',
     unit: 'FEET'
   } as const
-  const tokens: SceneDefinitionDto['tokens'] = [
+  const tokens: NonNullable<
+    Parameters<typeof createEncounterLifecycleScene>[0]['options']['tokens']
+  > = [
     {
       id: reactorTokenId,
       assetId: null,
