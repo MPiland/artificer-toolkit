@@ -1,4 +1,3 @@
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdSpells } from './spells/index.js'
 
@@ -57,12 +56,6 @@ function effectNodes(value: unknown): Node[] {
 
 const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ')
 
-const ruleKindKey = (label: string) =>
-  label
-    .replace(/'/g, '')
-    .replace(/[^A-Za-z]+/g, '_')
-    .toUpperCase()
-
 describe('description-only SRD spells (D156 T2, class C)', () => {
   it.each(DESCRIPTION_ONLY_SPELLS)('%s resolves to the GM ruling on its description', (label) => {
     const spell = srdSpells.find((candidate) => candidate.label === label)
@@ -77,12 +70,5 @@ describe('description-only SRD spells (D156 T2, class C)', () => {
       expect(typeof ruling.instructions).toBe('string')
       expect(description).toContain(plainText(ruling.instructions as string))
     }
-  })
-
-  it('leaves none of their closed rule kinds', () => {
-    const kinds = Object.keys(CLOSED_RULE_KIND)
-    expect(DESCRIPTION_ONLY_SPELLS.map(ruleKindKey).filter((key) => kinds.includes(key))).toEqual(
-      []
-    )
   })
 })

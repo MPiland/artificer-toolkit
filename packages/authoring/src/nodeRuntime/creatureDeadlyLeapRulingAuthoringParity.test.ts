@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { bulette } from '@artificer-toolkit/source-data/srd/creatures/bulette.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -58,9 +57,5 @@ describe('Bulette Deadly Leap as a GM ruling beside its save (D187a)', () => {
     })
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(bulette.features)
-  })
-
-  it('no longer lists the Deadly Leap closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('BULETTE_DEADLY_LEAP')
   })
 })

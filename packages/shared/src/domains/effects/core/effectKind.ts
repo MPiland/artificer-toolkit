@@ -36,7 +36,6 @@ export const EFFECT_KIND = {
   RELEASE_CHOSEN_ITEM: 'RELEASE_CHOSEN_ITEM',
   END_EFFECTS: 'END_EFFECTS',
   DEGRADE_EQUIPMENT: 'DEGRADE_EQUIPMENT',
-  CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
 export type EffectKind = keyof typeof EFFECT_KIND
@@ -228,11 +227,6 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Degrade Equipment',
     description:
       'A nonmagical item the target wears or wields takes a permanent, cumulative penalty and may be destroyed.'
-  },
-  [EFFECT_KIND.CLOSED_RULE]: {
-    code: EFFECT_KIND.CLOSED_RULE,
-    label: 'Closed Rule',
-    description: 'Selects an audited deterministic SRD rule descriptor.'
   },
   [EFFECT_KIND.MANUAL_ADJUDICATION]: {
     code: EFFECT_KIND.MANUAL_ADJUDICATION,

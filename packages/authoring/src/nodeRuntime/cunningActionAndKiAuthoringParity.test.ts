@@ -8,7 +8,6 @@ import {
   srdFeature
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
@@ -88,17 +87,6 @@ function homebrewQuickStep(): FeatureAuthored {
 }
 
 describe('Cunning Action, Fast Hands, Vanish and the Ki disciplines (SPELLS-31.T4l1)', () => {
-  it('no longer lists their closed rule kinds', () => {
-    for (const kind of [
-      'CLASS_MONK_KI_DISCIPLINES',
-      'CLASS_RANGER_VANISH',
-      'CLASS_ROGUE_CUNNING_ACTION',
-      'CLASS_THIEF_FAST_HANDS'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
-  })
-
   it.each([rogue, thiefRoguishArchetype, ranger, monk])(
     'passes the class node map exactly as authored: $label',
     async (record) => {

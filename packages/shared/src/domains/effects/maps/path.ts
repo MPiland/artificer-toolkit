@@ -57,7 +57,6 @@ import {
   NON_MANIFEST_EFFECT_KIND_OPTIONS,
   SCALING_AMOUNT_OPTIONS,
   ACTION_ECONOMY_RULE_KIND_OPTIONS,
-  CLOSED_RULE_KIND_OPTIONS,
   ACTIVATION_OPTIONS,
   EQUIPMENT_CATEGORY_OPTIONS,
   EQUIPMENT_PROPERTY_OPTIONS,
@@ -2048,13 +2047,6 @@ function registerOutcomeFields(
       'mustEndTurnOutside',
       toggle(['mustEndTurnOutside'], 'Must End Turn Outside Tree', {
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'closedRuleKind',
-      selectSingle(['ruleKind'], 'Closed Rule', inlineOptions(CLOSED_RULE_KIND_OPTIONS), {
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CLOSED_RULE)
       })
     )
     .set(

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { adultBronzeDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-bronze-dragon.js'
 import { couatl } from '@artificer-toolkit/source-data/srd/creatures/couatl.js'
@@ -91,27 +90,5 @@ describe('Change Shape and Shapechanger as GM rulings (D187a)', () => {
       effectKind: 'MANUAL_ADJUDICATION',
       reasonCode: 'GM_CHOICE'
     })
-  })
-
-  it('no longer lists the Change Shape, lycanthrope, vampire and Misty Escape closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_COUATL_CHANGE_SHAPE',
-      'CREATURE_DEVA_CHANGE_SHAPE',
-      'CREATURE_IMP_SHAPECHANGER',
-      'CREATURE_MIMIC_SHAPECHANGER',
-      'CREATURE_ONI_SHAPECHANGER',
-      'CREATURE_QUASIT_SHAPECHANGER',
-      'CREATURE_SUCCUBUS_INCUBUS_SHAPECHANGER',
-      'DRAGON_CHANGE_SHAPE',
-      'NIGHT_HAG_CHANGE_SHAPE',
-      'CREATURE_WEREBEAR_SHAPECHANGER',
-      'CREATURE_WEREBOAR_SHAPECHANGER',
-      'CREATURE_WERERAT_SHAPECHANGER',
-      'CREATURE_WERETIGER_SHAPECHANGER',
-      'CREATURE_WEREWOLF_SHAPECHANGER',
-      'CREATURE_VAMPIRE_SHAPECHANGER',
-      'CREATURE_VAMPIRE_MISTY_ESCAPE'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
   })
 })

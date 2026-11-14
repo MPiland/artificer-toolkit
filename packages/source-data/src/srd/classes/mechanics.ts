@@ -34,8 +34,6 @@ import type {
 } from '@artificer-toolkit/shared/authored'
 import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
-export { closedRuleEffect } from '../closed-rule-effect.js'
-
 /**
  * The Protection fighting style: while the holder has a shield equipped, a creature they see attacks
  * another creature within 5 feet of them, and they may use their reaction to give that attack roll

@@ -1,4 +1,4 @@
-import { CLOSED_RULE_KIND, modifierRollInfluence } from '@artificer-toolkit/shared/core'
+import { modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -37,15 +37,6 @@ function attackMode(label: string, attackDomain: string, holderLight: EncounterH
 }
 
 describe('light sensitivity authored as disadvantage on SRD Creatures (SPELLS-33.T6d1, D189)', () => {
-  it('no longer has the Sunlight Sensitivity or Light Sensitivity closed rule kinds', () => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_SUNLIGHT_SENSITIVITY')
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_CLOAKER_LIGHT_SENSITIVITY')
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain(
-      'CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY'
-    )
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_CLOAKER_PHANTASMS')
-  })
-
   it('folds one holder-in-bright-light attack roll disadvantage per attack domain', () => {
     const grants = modifiersOf('Drow').filter(
       (modifier) =>

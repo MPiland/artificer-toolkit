@@ -1,5 +1,4 @@
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdSpells } from './spells/index.js'
 import { conditionTypeId } from './spells/shared.js'
@@ -12,28 +11,25 @@ const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g,
  * resolves is authored; the clauses it does not are the GM's ruling, quoted from the description.
  */
 describe.each([
-  { label: 'Blur', ruleKind: 'BLUR', effectKinds: ['APPLY_GRANT'] },
-  { label: 'Death Ward', ruleKind: 'DEATH_WARD', effectKinds: ['APPLY_GRANT'] },
-  { label: 'Enthrall', ruleKind: 'ENTHRALL', effectKinds: ['APPLY_GRANT'] },
-  { label: 'Guiding Bolt', ruleKind: 'GUIDING_BOLT', effectKinds: ['DAMAGE', 'APPLY_GRANT'] },
-  { label: 'Light', ruleKind: 'LIGHT', effectKinds: ['MANIFEST', 'MANUAL_ADJUDICATION'] },
-  { label: 'Mage Armor', ruleKind: 'MAGE_ARMOR', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Blur', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Death Ward', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Enthrall', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Guiding Bolt', effectKinds: ['DAMAGE', 'APPLY_GRANT'] },
+  { label: 'Light', effectKinds: ['MANIFEST', 'MANUAL_ADJUDICATION'] },
+  { label: 'Mage Armor', effectKinds: ['APPLY_GRANT'] },
   {
     label: 'Mind Blank',
-    ruleKind: 'MIND_BLANK',
     effectKinds: ['APPLY_GRANT', 'MANUAL_ADJUDICATION']
   },
-  { label: 'Mirror Image', ruleKind: 'MIRROR_IMAGE', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Mirror Image', effectKinds: ['APPLY_GRANT'] },
   {
     label: 'Pass without Trace',
-    ruleKind: 'PASS_WITHOUT_TRACE',
     effectKinds: ['APPLY_GRANT', 'MANUAL_ADJUDICATION']
   },
-  { label: 'Shillelagh', ruleKind: 'SHILLELAGH', effectKinds: ['APPLY_GRANT'] },
-  { label: 'Magic Weapon', ruleKind: 'MAGIC_WEAPON', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Shillelagh', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Magic Weapon', effectKinds: ['APPLY_GRANT'] },
   {
     label: 'Heat Metal',
-    ruleKind: 'HEAT_METAL',
     effectKinds: [
       'DAMAGE',
       'RELEASE_CHOSEN_ITEM',
@@ -45,45 +41,39 @@ describe.each([
       'APPLY_GRANT'
     ]
   },
-  { label: 'True Strike', ruleKind: 'TRUE_STRIKE', effectKinds: ['APPLY_GRANT'] },
+  { label: 'True Strike', effectKinds: ['APPLY_GRANT'] },
   {
     label: 'Vampiric Touch',
-    ruleKind: 'VAMPIRIC_TOUCH',
     effectKinds: ['DAMAGE', 'HEAL', 'APPLY_GRANT', 'APPLY_GRANT']
   },
   {
     label: 'Flame Blade',
-    ruleKind: 'FLAME_BLADE',
     // The cast's carrier, then the attack it offers each turn.
     effectKinds: ['APPLY_GRANT', 'DAMAGE']
   },
   {
     label: 'Produce Flame',
-    ruleKind: 'PRODUCE_FLAME',
     effectKinds: ['APPLY_GRANT', 'DAMAGE']
   },
-  { label: 'Lesser Restoration', ruleKind: 'LESSER_RESTORATION', effectKinds: ['END_EFFECTS'] },
+  { label: 'Lesser Restoration', effectKinds: ['END_EFFECTS'] },
   {
     label: 'Greater Restoration',
-    ruleKind: 'GREATER_RESTORATION',
     effectKinds: ['END_EFFECTS', 'MANUAL_ADJUDICATION']
   },
-  { label: 'Dispel Magic', ruleKind: 'DISPEL_MAGIC', effectKinds: ['END_EFFECTS'] },
+  { label: 'Dispel Magic', effectKinds: ['END_EFFECTS'] },
   {
     label: 'Protection from Poison',
-    ruleKind: 'PROTECTION_FROM_POISON',
     effectKinds: ['END_EFFECTS', 'MANUAL_ADJUDICATION']
   }
-])('SRD $label (D156 T2a3, T2k1)', ({ label, ruleKind, effectKinds }) => {
+])('SRD $label (D156 T2a3, T2k1)', ({ label, effectKinds }) => {
   const spell = srdSpells.find((entry) => entry.label === label)
   if (!spell) throw new Error(`SRD spell "${label}" is missing.`)
   const outcomes = (spell.effects ?? [])
     .flatMap((effect) => effect.paths)
     .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
 
-  it('authors its outcomes from core options, with no closed rule left', () => {
+  it('authors its outcomes from core options', () => {
     expect(outcomes.map(({ effectKind }) => effectKind)).toEqual(effectKinds)
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain(ruleKind)
   })
 
   it('quotes its description in every GM ruling', () => {
@@ -123,11 +113,10 @@ describe('SRD Power Word Kill (SPELLS-4.T2i)', () => {
   const spell = srdSpells.find((entry) => entry.label === 'Power Word Kill')
   const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
 
-  it('authors a hit-point gate of 100 around a kill, with no closed rule left', () => {
+  it('authors a hit-point gate of 100 around a kill', () => {
     if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
     expect(path.resultBlock.gate).toEqual({ kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 100 })
     expect(path.resultBlock.outcomes.map(({ effectKind }) => effectKind)).toEqual(['KILL'])
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('POWER_WORD_KILL')
   })
 
   it('states the limit its gate carries in its description', () => {
@@ -144,7 +133,7 @@ describe('SRD Power Word Stun (SPELLS-4.T2i3)', () => {
   const spell = srdSpells.find((entry) => entry.label === 'Power Word Stun')
   const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
 
-  it('authors a hit-point gate of 150 around a stun and its repeated save, with no closed rule left', () => {
+  it('authors a hit-point gate of 150 around a stun and its repeated save', () => {
     if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
     expect(path.resultBlock.gate).toEqual({ kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 150 })
     expect(path.resultBlock.duration).toMatchObject({ durationKind: 'MINUTE', amount: 1 })
@@ -158,7 +147,6 @@ describe('SRD Power Word Stun (SPELLS-4.T2i3)', () => {
       onSuccess: { kind: 'END' },
       onFailure: { kind: 'CONTINUE' }
     })
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('POWER_WORD_STUN')
   })
 
   it('states the limit its gate carries in its description', () => {
@@ -174,7 +162,7 @@ describe('SRD Divine Word (SPELLS-4.T2i4b2)', () => {
   const spell = srdSpells.find((entry) => entry.label === 'Divine Word')
   const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
 
-  it('authors the 50, 40, 30 and 20 hit point tiers, with no closed rule left', () => {
+  it('authors the 50, 40, 30 and 20 hit point tiers', () => {
     if (path?.selectionKind !== 'HIT_POINT_TIERS') throw new Error('Expected hit point tiers.')
     expect(
       path.rows.map(({ atMost, resultBlock }) => [
@@ -196,7 +184,6 @@ describe('SRD Divine Word (SPELLS-4.T2i4b2)', () => {
       ],
       [20, null, ['KILL']]
     ])
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('DIVINE_WORD')
   })
 
   it('states each tier its rows carry in its description', () => {
@@ -214,7 +201,7 @@ describe('SRD Death Ward (SPELLS-4.T2i2b)', () => {
   const spell = srdSpells.find((entry) => entry.label === 'Death Ward')
   const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
 
-  it('authors one damage interception use, with no closed rule left', () => {
+  it('authors one damage interception use', () => {
     if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
     expect(path.resultBlock.lifecycle).toEqual({ uses: 1 })
     expect(path.resultBlock.duration).toMatchObject({ durationKind: 'HOUR', amount: 8 })
@@ -227,7 +214,6 @@ describe('SRD Death Ward (SPELLS-4.T2i2b)', () => {
         payload: { dropToHitPoints: 1, negatesKill: true }
       }
     ])
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('DEATH_WARD')
   })
 })
 
@@ -246,7 +232,7 @@ describe('SRD Warding Bond (SPELLS-4.T2n4)', () => {
   const modifiers = outcome.grants.modifiers ?? []
   const valid = (candidate: typeof spell) => spellAuthoredDtoSchema.safeParse(candidate).success
 
-  it('authors the bonuses, every resistance and the mirror, with no closed rule left', () => {
+  it('authors the bonuses, every resistance and the mirror', () => {
     expect(path.resultBlock.duration).toMatchObject({ durationKind: 'HOUR', amount: 1 })
     expect(path.resultBlock.lifecycle).toEqual({
       endTriggers: [
@@ -260,7 +246,6 @@ describe('SRD Warding Bond (SPELLS-4.T2n4)', () => {
       ...SRD_DAMAGE_TYPES.map(() => 'DAMAGE_RESISTANCE'),
       'DAMAGE_MIRROR'
     ])
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('WARDING_BOND')
     expect(valid(spell)).toBe(true)
   })
 
@@ -301,7 +286,7 @@ describe('SRD Hideous Laughter (SPELLS-4.T2m1b1b)', () => {
   const spell = srdSpells.find((entry) => entry.label === 'Hideous Laughter')
   const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
 
-  it('authors two conditions and a repeated save from core options, with no closed rule left', () => {
+  it('authors two conditions and a repeated save from core options', () => {
     if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
     expect(path.resultBlock.duration).toMatchObject({ durationKind: 'MINUTE', amount: 1 })
     expect(path.resultBlock.outcomes.map(({ effectKind }) => effectKind)).toEqual([
@@ -316,7 +301,6 @@ describe('SRD Hideous Laughter (SPELLS-4.T2m1b1b)', () => {
       onSuccess: { kind: 'END' },
       onFailure: { kind: 'CONTINUE' }
     })
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('HIDEOUS_LAUGHTER')
   })
 
   it('states the clauses its data does not carry in its description', () => {

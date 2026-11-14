@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { describe, expect, it } from 'vitest'
 
@@ -86,7 +85,6 @@ async function plannedCharm(creature: CreatureAuthored) {
 
 describe('Vampire Charm authored from core options (SPELLS-33.T6e2, D176)', () => {
   it('is authored with no closed rule left', () => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_VAMPIRE_CHARM')
     const charmFeature = creatureFeature(vampire, 'Charm')
     expect(JSON.stringify(charmFeature.effects)).not.toContain('CLOSED_RULE')
   })

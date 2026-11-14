@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored, EffectAuthored } from '@artificer-toolkit/shared'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { fleshGolem } from '@artificer-toolkit/source-data/srd/creatures/flesh-golem.js'
 import { ironGolem } from '@artificer-toolkit/source-data/srd/creatures/iron-golem.js'
@@ -70,16 +69,4 @@ describe('absorption and healing-drain bites authored as GM rulings (D187a)', ()
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
-
-  it('no longer lists the six closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_FLESH_GOLEM_LIGHTNING_ABSORPTION',
-      'CREATURE_IRON_GOLEM_FIRE_ABSORPTION',
-      'CREATURE_SHAMBLING_MOUND_LIGHTNING_ABSORPTION',
-      'CREATURE_PIT_FIEND_BITE',
-      'CREATURE_VAMPIRE_BITE',
-      'CREATURE_VAMPIRE_SPAWN_BITE'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
 })

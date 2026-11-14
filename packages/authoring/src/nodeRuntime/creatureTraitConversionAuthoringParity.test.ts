@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored, EffectAuthored } from '@artificer-toolkit/shared'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { ghost } from '@artificer-toolkit/source-data/srd/creatures/ghost.js'
 import { kraken } from '@artificer-toolkit/source-data/srd/creatures/kraken.js'
@@ -78,14 +77,4 @@ describe('creature traits authored from generic options (D187a)', () => {
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
-
-  it('no longer lists the four closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_GHOST_HORRIFYING_VISAGE',
-      'CREATURE_KRAKEN_FREEDOM_OF_MOVEMENT',
-      'CREATURE_MEDUSA_PETRIFYING_GAZE',
-      'CREATURE_VROCK_SPORES'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
 })

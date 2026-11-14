@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { purpleWorm } from '@artificer-toolkit/source-data/srd/creatures/purple-worm.js'
@@ -61,17 +60,4 @@ describe('swallow riders as GM rulings (D187a)', () => {
       ])
     }
   )
-
-  it('no longer lists the six swallow closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_KRAKEN_BITE',
-      'CREATURE_REMORHAZ_SWALLOW',
-      'CREATURE_TARRASQUE_SWALLOW',
-      'GIANT_FROG_SWALLOW',
-      'GIANT_TOAD_SWALLOW',
-      'PURPLE_WORM_SWALLOW'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
-  })
 })

@@ -4,7 +4,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
-  CLOSED_RULE_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -72,7 +71,7 @@ import {
 
 export { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 
-export { closedRuleEffect, manualAdjudicationEffect } from '../closed-rule-effect.js'
+export { manualAdjudicationEffect } from '../srd-effect-builders.js'
 
 export {
   DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
@@ -1649,7 +1648,6 @@ export {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CHARGE_RESET_KIND,
-  CLOSED_RULE_KIND,
   CREATURE_CATEGORY_CODE,
   CREATURE_IDS,
   DAMAGE_BONUS_KIND,

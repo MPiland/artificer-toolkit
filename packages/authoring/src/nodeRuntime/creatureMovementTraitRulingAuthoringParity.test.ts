@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { adultWhiteDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-white-dragon.js'
 import { ancientWhiteDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-white-dragon.js'
@@ -69,16 +68,4 @@ describe('movement traits and the Harpoon pull as GM rulings (D187a)', () => {
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
-
-  it('no longer lists the six closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_GIANT_FROG_STANDING_LEAP',
-      'CREATURE_GIANT_TOAD_STANDING_LEAP',
-      'CREATURE_ICE_WALK',
-      'CREATURE_MERROW_HARPOON',
-      'CREATURE_SPIDER_CLIMB',
-      'CREATURE_STANDING_LEAP'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
 })

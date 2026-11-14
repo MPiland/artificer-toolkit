@@ -1,4 +1,3 @@
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdCreatures } from './creatures/index.js'
 import { srdRaces } from './races/index.js'
@@ -159,11 +158,6 @@ describe.each([
         (feature) => !isNode(feature) || String(feature.description ?? '').trim() === ''
       )
     ).toEqual([])
-  })
-
-  it('leaves none of their closed rule kinds', () => {
-    const remaining = Object.keys(CLOSED_RULE_KIND)
-    expect(kinds.filter((kind) => remaining.includes(kind))).toEqual([])
   })
 })
 
