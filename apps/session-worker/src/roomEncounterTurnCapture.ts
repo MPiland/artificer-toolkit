@@ -247,7 +247,7 @@ export async function readRoomEncounterTurnCapture(
       campaignId: input.campaignId,
       epoch: input.authorityEpoch
     })
-    const { removal, admission } = await readAreaRemovalCommitAdmission(
+    const { removal, admission, reactionChildren } = await readAreaRemovalCommitAdmission(
       ctx,
       input.request.removal,
       userId
@@ -268,6 +268,7 @@ export async function readRoomEncounterTurnCapture(
       command: admission.input,
       fingerprint: admission.fingerprint,
       areaSnapshot: removal.snapshot,
+      reactionChildren,
       revisions: observed
     })
   }
