@@ -322,6 +322,11 @@ export interface EventVocabularyCapabilityAdapter {
    */
   effectHooks(recurrence: EncounterEffectRecurrence): readonly EncounterEffectHook[]
   /**
+   * The lifecycle codes whose `END` trigger an event of this kind meets, which an end-event
+   * exemption names (Persistent Rage names the idle turn's).
+   */
+  lifecycleEndCodes(event: EncounterEventSubscription['event']): readonly string[]
+  /**
    * The hook a passive Effect's authored trigger code subscribes, so the Encounter raises the Effect
    * as its holder's action; null for a trigger that raises no action.
    */

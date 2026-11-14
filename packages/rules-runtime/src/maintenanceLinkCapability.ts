@@ -1,5 +1,6 @@
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
+import type { ValueDomainCode } from '@artificer-toolkit/shared/core'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { MaintenanceLinkHook } from './events/encounterEventTable.js'
@@ -28,6 +29,11 @@ export interface MaintenanceLinkCapabilityAdapter {
   readonly maintenanceDefinitionId: string
   /** Break and save hooks, a break in priority order (the first met names the reason). */
   readonly hooks: readonly MaintenanceLinkHook[]
+  /**
+   * The flag domain whose enabled grant bars its holder from starting or keeping a maintained effect
+   * (D&D's spellcasting lock), raising `MAINTENANCE_BARRED`; null when no grant does.
+   */
+  readonly barringDomain: ValueDomainCode | null
   /** The ability the damage save rolls, by vocabulary definition id. */
   readonly saveAbilityDefinitionId: string
   saveDc(appliedDamage: number): number

@@ -118,6 +118,10 @@ const tracerEventVocabularyAdapter: EventVocabularyCapabilityAdapter = {
         : [])
     ]
   },
+  lifecycleEndCodes: (event) =>
+    Object.entries(TRACER_LIFECYCLE_SUBSCRIPTIONS).flatMap(([code, subscription]) =>
+      subscription.event === event ? [code] : []
+    ),
   raiseActionHook: () => null,
   zoneSubscription: () => null
 }
@@ -130,6 +134,7 @@ const tracerMaintenanceLinkAdapter: MaintenanceLinkCapabilityAdapter = {
     { hook: 'BREAK', reason: 'DEFEATED', subscription: { event: 'DEFEATED' } },
     { hook: 'SAVE', subscription: { event: 'DAMAGED', by: 'ANYONE', damageTypeIds: null } }
   ],
+  barringDomain: null,
   saveAbilityDefinitionId: TRACER_APPROACH_DEFINITION_IDS.CAREFUL,
   saveDc: (appliedDamage) => 10 + appliedDamage,
   // The tracer rates no defence beside its approaches, so the defence adds nothing to the die.

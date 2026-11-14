@@ -720,6 +720,11 @@ export type CharacterRuleActionConditionOutcomeRules = {
 
 export interface CharacterRuleActionSystemAdapter {
   gameSystemId: string
+  /**
+   * Where an Actor relationship effect's definition keeps the result path it was authored on, and the
+   * operation key the conditions it applies name.
+   */
+  actorRelationship: { authoredPathFactKey: string; stateOperationKey: string }
   compile(input: { action: EffectActionCapabilityDescriptor }): ServerPublishedRuleDefinitionDto
   /** Chooses the explicit v4 execution arm during projection compilation. */
   compileExecutionPlan?(input: {
