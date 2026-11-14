@@ -273,6 +273,8 @@ export async function verifyEncounterPlayerBrowser(
       'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_ACTION',
+      // Heckle on the roll, its die (the player enters it, D219), then the death save.
+      'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_RULE_OCCURRENCE'
     ])
