@@ -201,14 +201,16 @@ export function nativeSpatialStepCallbacks(
 export function nativeMovementSettlementInputs(input: {
   state: EncounterRunState
   actors: readonly EncounterRunActorState[]
-  targets: ReadonlyMap<string, { activeEffects: ActiveRuleEffectRecord[] }>
   finalActors: Map<string, EncounterRunActorState>
   planned: {
     outcome: SceneSpatialPreparation['outcome']
     settlements: readonly NativeLiveMovementSettlement[]
+    /** Every target as the move's settled children left it: a release never sees an effect a child already ended. */
+    targets: ReadonlyMap<string, { activeEffects: ActiveRuleEffectRecord[] }>
   }
 }) {
-  const { state, actors, targets, finalActors, planned } = input
+  const { state, actors, finalActors, planned } = input
+  const { targets } = planned
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
     if (settlement.kind === 'CONCENTRATION')
       return liveSessionMovementSettlementSchema.parse({

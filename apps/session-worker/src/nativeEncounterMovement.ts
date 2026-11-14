@@ -116,6 +116,7 @@ export async function prepareNativeLiveMovement(
   async function continueMovement(step: ContinuationInput): Promise<{
     outcome: SceneSpatialPreparation['outcome']
     settlements: NativeLiveMovementSettlement[]
+    targets: ContinuationInput['targets']
   }> {
     return prepareEncounterMovementContinuation<
       CharacterFacts,
@@ -229,6 +230,7 @@ export async function prepareNativeLiveMovement(
   let planned: {
     outcome: SceneSpatialPreparation['outcome']
     settlements: NativeLiveMovementSettlement[]
+    targets: ContinuationInput['targets']
   }
   if (!response) {
     // A willing move that ends closer to the source of a condition that forbids it breaks a rule
@@ -330,7 +332,8 @@ export async function prepareNativeLiveMovement(
         evaluated.outcome.kind === 'TERMINAL'
           ? { ...evaluated.outcome, resolutionCommands: evaluated.resolutionCommands }
           : evaluated.outcome,
-      settlements: evaluated.settlements
+      settlements: evaluated.settlements,
+      targets: evaluated.targets
     }
   } else if (
     response.context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
@@ -406,7 +409,8 @@ export async function prepareNativeLiveMovement(
         evaluated.outcome.kind === 'TERMINAL'
           ? { ...evaluated.outcome, resolutionCommands: evaluated.resolutionCommands }
           : evaluated.outcome,
-      settlements: evaluated.settlements
+      settlements: evaluated.settlements,
+      targets: evaluated.targets
     }
   } else {
     const resolution = response.answer
@@ -461,9 +465,15 @@ export async function prepareNativeLiveMovement(
   const { settlementInputs, rules } = nativeMovementSettlementInputs({
     state,
     actors: captured.actors,
-    targets: captured.targets,
     finalActors,
     planned
   })
-  return { ...captured, ...planned, settlementInputs, rules }
+  // `targets` stays the captured facts the commit's currentness checks read.
+  return {
+    ...captured,
+    outcome: planned.outcome,
+    settlements: planned.settlements,
+    settlementInputs,
+    rules
+  }
 }

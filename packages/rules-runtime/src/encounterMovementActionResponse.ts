@@ -135,11 +135,14 @@ export async function evaluateEncounterMovementActionResponse<
     ): Promise<{
       outcome: SceneSpatialPreparation['outcome']
       settlements: readonly TContinuationSettlement[]
+      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     }>
   }
 ): Promise<{
   outcome: Outcome
   settlements: ResponseSettlement<TConcentrationPlan, TContinuationSettlement>[]
+  /** Every target as the move's settled children left it. */
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   resolutionCommands: ReactionContext['root']['resolutionCommands']
 }> {
   const { responseCommand, occurredAt } = input
@@ -316,6 +319,7 @@ export async function evaluateEncounterMovementActionResponse<
           movementIntent: null
         },
         settlements,
+        targets,
         resolutionCommands
       }
   }
@@ -348,6 +352,7 @@ export async function evaluateEncounterMovementActionResponse<
         })
       },
       settlements,
+      targets,
       resolutionCommands
     }
   }
@@ -392,6 +397,7 @@ export async function evaluateEncounterMovementActionResponse<
   return {
     outcome: continued.outcome,
     settlements: [...settlements, ...continued.settlements],
+    targets: continued.targets,
     resolutionCommands
   }
 }

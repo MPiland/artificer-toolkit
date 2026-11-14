@@ -1,5 +1,6 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -23,6 +24,38 @@ import {
 const WOLF_ID = testUuid(0xe61)
 const CASTER_ID = testUuid(0xe62)
 const LAUGHTER_EFFECT_ID = testUuid(0x5661)
+const SECOND_EFFECT_ID = testUuid(0x5662)
+
+type Recurrence = ReturnType<typeof plannedTimedCondition>['definition']['recurrence']
+type HeldEffect = {
+  id: string
+  sourceActorId: string
+  /** The recurrence the effect is authored with, from the one the SRD cast plans. */
+  authored(cast: Recurrence): Recurrence
+}
+const DAMAGE_ENDS = canonicalActiveEffectEndTriggers([
+  { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
+])
+/** SRD Hideous Laughter as cast: a save on damage, and no end on damage. */
+const laughter: HeldEffect = {
+  id: LAUGHTER_EFFECT_ID,
+  sourceActorId: CASTER_ID,
+  authored: (cast) => cast
+}
+/** Fixture data: the same effect authored to end on damage too. */
+const laughterEndedByDamage: HeldEffect = {
+  ...laughter,
+  authored: (cast) => ({ ...cast, endTriggers: DAMAGE_ENDS })
+}
+/** Fixture data: a second holder of the same conditions that damage ends and offers no save. */
+const secondHoldEndedByDamage: HeldEffect = {
+  id: SECOND_EFFECT_ID,
+  sourceActorId: WOLF_ID,
+  authored: ({ repeatTriggers: _repeatTriggers, ...cast }) => ({
+    ...cast,
+    endTriggers: DAMAGE_ENDS
+  })
+}
 const WOLF_START: ScenePoint = { x: 150, y: 150 }
 /** Each covers one cell of the row the Wolf walks along and deals 1 damage. */
 const firstZone = { center: { x: 350, y: 150 }, radius: 50 }
@@ -35,10 +68,11 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The Wolf holds SRD Hideous Laughter, cast by another Wolf, beside `zones`. */
+/** The Wolf holds `held` (SRD Hideous Laughter, cast by another Wolf, by default) beside `zones`. */
 function laughingRoom(
   zones: NonNullable<Parameters<typeof movementRoom>[0]['spatialEffects']>,
-  dice: Pick<Parameters<typeof movementRoom>[0], 'autoRoll' | 'rolls' | 'fallbackRoll'>
+  dice: Pick<Parameters<typeof movementRoom>[0], 'autoRoll' | 'rolls' | 'fallbackRoll'>,
+  held: readonly HeldEffect[] = [laughter]
 ) {
   return movementRoom({
     actors: [
@@ -50,20 +84,25 @@ function laughingRoom(
     spatialEffects: zones,
     ...dice,
     seed: async ({ effects, encounterId, occurredAt }) => {
-      const planned = plannedTimedCondition({
-        encounterId,
-        sourceActorId: CASTER_ID,
-        holderActorId: WOLF_ID,
-        spell: hideousLaughter,
-        lifetimeScope: 'ENCOUNTER'
-      })
-      await effects.create({
-        id: LAUGHTER_EFFECT_ID,
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: WOLF_ID },
-        definition: planned.definition,
-        lifecycle: planned.lifecycle,
-        occurredAt
-      })
+      for (const effect of held) {
+        const planned = plannedTimedCondition({
+          encounterId,
+          sourceActorId: effect.sourceActorId,
+          holderActorId: WOLF_ID,
+          spell: hideousLaughter,
+          lifetimeScope: 'ENCOUNTER'
+        })
+        await effects.create({
+          id: effect.id,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: WOLF_ID },
+          definition: {
+            ...planned.definition,
+            recurrence: effect.authored(planned.definition.recurrence)
+          },
+          lifecycle: planned.lifecycle,
+          occurredAt
+        })
+      }
     }
   })
 }
@@ -96,13 +135,9 @@ async function rolledWalk(
   zones: Parameters<typeof laughingRoom>[0],
   path: ScenePoint[],
   face: number,
-  rolls?: readonly number[]
+  held?: readonly HeldEffect[]
 ) {
-  const room = await laughingRoom(zones, {
-    autoRoll: 'GAME_MASTER',
-    fallbackRoll: face - 1,
-    ...(rolls ? { rolls } : {})
-  })
+  const room = await laughingRoom(zones, { autoRoll: 'GAME_MASTER', fallbackRoll: face - 1 }, held)
   const hitPointsBefore = readActorHitPoints(await readRoomHistory(room.base.stub), WOLF_ID)
   const moved = await room.move(path)
   expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
@@ -153,6 +188,41 @@ describe('zone damage against a mover holding a damage repeat save (QUALITY-14.T
       damageTaken: 0,
       pending: null
     })
+  }, 60_000)
+})
+
+describe('zone damage against an effect it both ends and offers a save against (QUALITY-14.T2c)', () => {
+  // The move commits only when persistence settles exactly the planned steps, so a damage end
+  // planned for an effect the save already released would refuse the whole move.
+  it('releases the effect once, by the made save', async () => {
+    expect(await rolledWalk([firstZone], PAST_FIRST_ZONE, 20, [laughterEndedByDamage])).toEqual({
+      outcomes: ['SAVE_SUCCESS'],
+      laughing: false,
+      damageTaken: 1,
+      pending: null
+    })
+  }, 60_000)
+
+  it('ends the effect by its damage when the save fails', async () => {
+    expect(await rolledWalk([firstZone], PAST_FIRST_ZONE, 1, [laughterEndedByDamage])).toEqual({
+      outcomes: ['SAVE_FAILURE'],
+      laughing: false,
+      damageTaken: 1,
+      pending: null
+    })
+  }, 60_000)
+
+  it('ends a second hold of the same conditions after the made save released the first', async () => {
+    const room = await laughingRoom([firstZone], { autoRoll: 'GAME_MASTER', fallbackRoll: 19 }, [
+      laughter,
+      secondHoldEndedByDamage
+    ])
+    const moved = await room.move(PAST_FIRST_ZONE)
+    // The damage end sees the holder without the released effect, as the commit does.
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.base.stub)
+    expect(repeatSaveChecks(history).map(({ outcome }) => outcome)).toEqual(['SAVE_SUCCESS'])
+    expect(history.activeEffects.map(({ id }) => id)).toEqual([])
   }, 60_000)
 })
 

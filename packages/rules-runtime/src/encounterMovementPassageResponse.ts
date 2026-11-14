@@ -90,6 +90,7 @@ export async function evaluateEncounterMovementPassageResponse<
     }) => Promise<{
       outcome: SceneSpatialPreparation['outcome']
       settlements: readonly TSettlement[]
+      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     }>
   }
 ) {
@@ -171,6 +172,7 @@ export async function evaluateEncounterMovementPassageResponse<
         movementIntent: null
       },
       settlements: [] as (PassageSettlement | TSettlement)[],
+      targets,
       resolutionCommands
     }
   const remainder: FrozenMovementReactionRemainder = {
@@ -286,6 +288,7 @@ export async function evaluateEncounterMovementPassageResponse<
         resolutionCommands
       },
       settlements,
+      targets,
       resolutionCommands
     }
   }
@@ -322,6 +325,7 @@ export async function evaluateEncounterMovementPassageResponse<
         ? { ...continued.outcome, resolutionCommands }
         : continued.outcome,
     settlements: [...settlements, ...continued.settlements],
+    targets: continued.targets,
     resolutionCommands,
     // Revalidate with this transaction's current facts, before projected allowance or effect changes.
     currentTargets

@@ -622,9 +622,14 @@ a declined or lost passage). The room plans one `DAMAGE_END` settlement per end 
 step's effect among them, and ends it through the escape end path (the row, the conditions only it held,
 maintenance owners). The spatial receipt is unchanged. An effect the move itself placed never ends on the
 move's own damage, and an effect the move already releases (`areaDepartures`, `moveEnds`) is not listed
-twice. Not covered yet (transitional): a move left PENDING ends nothing until it finishes; the temporary hit
-points and incoming-damage grants an action's ends stage also releases; effect repeat saves and
-massive-damage saves on movement damage (they need movement child kinds and pending phases); and the save
+twice. The ends and every release read the targets as the save chain left them: the continuation
+(`prepareEncounterMovementContinuation` and the action and passage responses) returns those `targets`, and
+the room's `nativeMovementSettlementInputs` derives each release's ended effect and conditions from them,
+never from the facts captured before the move. An effect a made repeat save released is therefore neither
+listed nor counted as still holding a condition, and persistence refuses a `DAMAGE_END` step for it
+('Movement release differs from its holder effect.'). Not covered yet (transitional): a move left PENDING
+ends nothing until it finishes; the temporary hit points and incoming-damage grants an action's ends stage
+also releases; massive-damage saves on movement damage (QUALITY-14.T2d); and the save
 chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
 effect and owes a save raises twice.
 
