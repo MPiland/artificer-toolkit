@@ -19,11 +19,11 @@
 //
 // System content (QUALITY-16.1): in the modules under the `fenced` prefixes of
 // `scripts/systemLiteralAllowlist.json` (the rules runtime outside `systems/`, the Kernel, Encounter
-// persistence, the Session Worker, the schema and Convex), no string names a System: nothing spelled
+// persistence, the Session Worker, the schema, authoring and Convex), no string names a System: nothing spelled
 // `dnd5e`, and none of `SYSTEM_RULE_LITERALS`, the System rule codes a neutral module would otherwise
 // branch on. Neutral code reads them from System data through a capability registry (ADR 0039 decision 5
-// and its 2026-10-22 amendment); a System's schema extension under `packages/schema/src/systems/<id>/` is
-// its own module. Import specifiers belong to the import fence and are not counted, nor
+// and its 2026-10-22 amendment); a System's schema extension under `packages/schema/src/systems/<id>/` and
+// its authoring modules under `packages/authoring/src/systems/<id>/` are its own modules. Import specifiers belong to the import fence and are not counted, nor
 // are `EXTERNAL_FORMAT_LITERALS`. Its `allowed` map names each module that still does, with its reason.
 //
 // With `--base <ref>` the lists are also compared with the ones at the merge base: a cap may not rise and
@@ -49,6 +49,7 @@ const RULES_RUNTIME = 'packages/rules-runtime/src/'
 const SYSTEMS = `${RULES_RUNTIME}systems`
 const UNFENCED = [`${SYSTEMS}/`, `${RULES_RUNTIME}character/`]
 const FENCED_CONSUMERS = [
+  'packages/authoring/src/',
   'packages/encounter-persistence/',
   'apps/session-worker/src/',
   'apps/apis/convex/',
@@ -58,7 +59,8 @@ const SYSTEMS_PACKAGE = '@artificer-toolkit/rules-runtime/systems'
 const SCHEMA = 'packages/schema/src/'
 const SCHEMA_SYSTEMS = `${SCHEMA}systems/`
 const SCHEMA_SYSTEMS_PACKAGE = '@artificer-toolkit/schema/systems/'
-// A System's own schema extension (`systems/<id>/...`), not the installed lists that name every System.
+const AUTHORING_SYSTEMS = 'packages/authoring/src/systems/'
+// A System's own extension (`systems/<id>/...`), not the installed lists that name every System.
 const systemSchemaExtension = (pathAfterSystems) => pathAfterSystems.includes('/')
 
 const sourceModule = (file) =>
@@ -200,7 +202,9 @@ export const EXTERNAL_FORMAT_LITERALS = ['FOUNDRY_DND5E']
 const contentFencedModule = (fenced) => (file) =>
   fenced.some((prefix) => file.startsWith(prefix)) &&
   !file.startsWith(`${SYSTEMS}/`) &&
-  !(file.startsWith(SCHEMA_SYSTEMS) && systemSchemaExtension(file.slice(SCHEMA_SYSTEMS.length)))
+  ![SCHEMA_SYSTEMS, AUTHORING_SYSTEMS].some(
+    (dir) => file.startsWith(dir) && systemSchemaExtension(file.slice(dir.length))
+  )
 
 /** The distinct strings and template text of a module that name System content, outside its import specifiers. */
 export const systemLiterals = (file, source) => {

@@ -42,6 +42,7 @@ import {
   applyImportedEquipmentTerms,
   type ImportedEquipmentVocabulary
 } from './importedEquipmentTerms.js'
+import { FOUNDRY_ACTOR_UNSUPPORTED_MESSAGE } from '../systems/dnd5e/foundryActorFormat.js'
 import { applyImportedWeaponAttack, type ImportedVocabularyEntry } from './importedWeaponAttack.js'
 const DND_BEYOND_RESPONSE_MAX_BYTES = 10 * 1024 * 1024
 const DND_BEYOND_TIMEOUT_MS = 15_000
@@ -429,7 +430,7 @@ export async function prepareImportBatch(
                 entry.entryId,
                 entry.name,
                 'UNSUPPORTED_FOUNDRY_ACTOR',
-                'Only Foundry dnd5e character Actor exports are supported.',
+                FOUNDRY_ACTOR_UNSUPPORTED_MESSAGE,
                 []
               )
             }

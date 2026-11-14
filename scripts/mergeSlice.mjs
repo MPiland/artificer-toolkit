@@ -15,7 +15,7 @@
 // further to a module's merged size when the merge left it smaller, and commits once the merged tree
 // passes the source ratchets.
 import { spawnSync } from 'node:child_process'
-import { appendFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { SIZE_BUDGET } from './sourceRatchets.mjs'
@@ -281,6 +281,26 @@ export function mergeSizeBudgets(base, ours, theirs) {
   )
 }
 
+// The merged tree's ratchets and the module they import (`redProof.mjs`), loaded apart from the copies
+// this process already holds from the phase checkout. Node caches a module by URL, so a query on the
+// ratchets alone leaves their relative import to the cache; each blob pair gets a directory of its own
+// instead. It sits under the checkout so the ratchets still resolve their packages. A new relative
+// import of the ratchets joins this list.
+const RATCHET_MODULES = ['sourceRatchets.mjs', 'redProof.mjs']
+
+async function importMergedRatchets(tools, root) {
+  const sources = RATCHET_MODULES.map((file) => join(root, 'scripts', file))
+  const key = sources.map((source) => git(tools, 'hash-object', source)).join('-')
+  const directory = join(root, 'local-validation', 'merged-ratchets', key)
+  mkdirSync(directory, { recursive: true })
+  try {
+    RATCHET_MODULES.forEach((file, index) => copyFileSync(sources[index], join(directory, file)))
+    return await import(pathToFileURL(join(directory, RATCHET_MODULES[0])).href)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
 // Every slice that shrinks a listed file lowers its cap line, so concurrent slices conflict there.
 // Only that conflict resolves, and only into a tree that passes the ratchets: growth past a resolved
 // cap, or any other ratchet problem, refuses. The ratchets are the merged tree's own, not the copy this
@@ -296,10 +316,7 @@ async function resolveBudgetConflict(tools, other, message) {
   if (!ours || !theirs)
     throw new MergeRefused(`Merging ${other} deletes ${SIZE_BUDGET} on one side.`)
   const root = git(tools, 'rev-parse', '--show-toplevel')
-  const ratchets = join(root, 'scripts', 'sourceRatchets.mjs')
-  const { ratchetProblems, shrunkCaps } = await import(
-    `${pathToFileURL(ratchets).href}?${git(tools, 'hash-object', ratchets)}`
-  )
+  const { ratchetProblems, shrunkCaps } = await importMergedRatchets(tools, root)
   const lowerCaps = mergeSizeBudgets(base, ours, theirs)
   // Both sides' deletions can leave a module under both caps; its cap comes down to the merged size.
   const lowered = shrunkCaps(root, lowerCaps)

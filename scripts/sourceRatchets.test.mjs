@@ -450,6 +450,33 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     ])
   })
 
+  it("fences System content and System schema imports in authoring, but not a System's own authoring modules or tests (QUALITY-16.T4)", () => {
+    const authoring = 'packages/authoring/src/reusableDefinitions/probeService.ts'
+    const authoringImport = 'packages/authoring/src/reusableDefinitions/probeKeys.ts'
+    write(authoring, "export const family = 'dnd5e-optional-combat'\n")
+    write(
+      authoringImport,
+      "export { key } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'\n"
+    )
+    write(
+      'packages/authoring/src/systems/dnd5e/definitionPublishers.ts',
+      "export const family = 'dnd5e-optional-combat'\n"
+    )
+    write(
+      'packages/authoring/src/systems/installedDefinitionPublishers.ts',
+      "export { family } from './dnd5e/definitionPublishers.js'\n"
+    )
+    write(
+      'packages/authoring/src/reusableDefinitions/probeService.test.ts',
+      "const family = 'dnd5e-optional-combat'\n"
+    )
+    commitAll(root, 'System content in authoring')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${authoringImport}: imports systems/ directly; reach it through a capability registry.`,
+      `${authoring}: names System content "dnd5e-optional-combat" outside systems/; read it from System data through a capability registry.`
+    ])
+  })
+
   it('lets a module the fence newly reaches enter the allowlist as debt', () => {
     const narrower = CONTENT_FENCE.filter((prefix) => prefix !== 'packages/schema/src/')
     writeJson(
