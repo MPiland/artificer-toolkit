@@ -4,7 +4,6 @@ import {
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
 import { spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
@@ -27,6 +26,10 @@ vi.mock('../events/encounterEventHooks.js', async (importOriginal) => {
   }
 })
 
+type SpatialApplication = Parameters<
+  typeof spatialDamageEnds
+>[0]['executions'][number]['applications'][number]
+
 const damagedRaises = () =>
   raised.events.flat().filter((event) => event.kind === 'DAMAGED' && event.phase === 'AFTER')
 
@@ -45,7 +48,8 @@ beforeEach(() => {
 })
 
 describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
-  const damage = (targetActorId: string): CharacterRuleActionApplication => ({
+  const damage = (): SpatialApplication => ({
+    ordinal: 0,
     kind: 'DAMAGE',
     damageTypeId: FIRE,
     damageDisposition: 'NORMAL',
@@ -62,11 +66,10 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
     afterCurrentHitPoints: 16,
     beforeTemporaryHitPoints: 0,
     afterTemporaryHitPoints: 0,
-    maximumHitPoints: 20,
-    targetActorId
+    maximumHitPoints: 20
   })
   const execution = (sourceActorId: string) => ({
-    applications: [damage(HOLDER_ID)],
+    applications: [damage()],
     candidate: { candidate: { sourceActorId } }
   })
 
