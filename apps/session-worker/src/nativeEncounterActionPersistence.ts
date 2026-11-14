@@ -7,7 +7,6 @@ import {
   buildEncounterActionPendingSnapshot,
   buildEncounterHeldActionPendingSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import { failedWardsBehind } from '@artificer-toolkit/encounter-persistence/actionPending'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -28,8 +27,7 @@ export function buildNativeLiveEncounterActionPendingInput(
     initiatorUserId: plan.initiatorUserId,
     currentnessChecksum: plan.currentnessChecksum,
     reactionChildren: plan.reactionChildren,
-    // The saves that turned the action are the ones the pause being answered carried, and no others.
-    retargeted: plan.resume ? failedWardsBehind(plan.resume.pending.context) : [],
+    retargeted: plan.retargeted,
     castLevel: preparedSpellCastLevel(plan.prepared),
     castSlotKey: plan.prepared.characterActionState?.spellConsumption?.slotKey ?? null
   }
@@ -104,3 +102,13 @@ export function buildNativeLiveEncounterActionCommitInput(
     reactionOffers: plan.reactionOffers
   })
 }
+
+type ProbePlan = Parameters<typeof buildNativeLiveEncounterActionPendingInput>[1]
+type Missing =
+  Extract<ProbePlan, { kind: 'PENDING' }> extends infer M
+    ? M extends { retargeted: unknown }
+      ? never
+      : M
+    : never
+export const probeKeys: number = null as unknown as keyof Missing
+export const probeExecution: number = null as unknown as Missing['execution']

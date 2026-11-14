@@ -94,6 +94,7 @@ import {
   planNativeGatedAction
 } from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import { failedWardsBehind } from '@artificer-toolkit/encounter-persistence/actionPending'
 import {
   chosenEncounterAttackRetarget,
   retargetEncounterAction,
@@ -908,6 +909,8 @@ export async function planNativeLiveEncounterAction(
       : { kind: 'NONE' as const, passed: null }
   /** The gate the source has passed, carried by every later pause of this action. */
   const passedIncomingGate = gate.kind === 'PASSED' ? gate.gate : pendingContext?.passedIncomingGate
+  /** The failed ward saves that turned this action, carried by every later pause and carded at the commit. */
+  const retargeted = pendingContext ? failedWardsBehind(pendingContext) : []
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
   /** The child of each reaction chosen against this action so far, set once its offers are heard. */
@@ -933,6 +936,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     consumedGrants,
     passedIncomingGate,
+    retargeted,
     dependencies,
     revisions
   })
