@@ -496,10 +496,10 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     encounterId: base.run.id,
     rootCommandId: assistedScene.rootInput.commandId
   })
-  // Restated (QUALITY-18.T2b3): the d20 evidence belongs to the reaction's own action (D219), so
-  // the move no longer pauses in an ACTION_EVIDENCE phase carrying a maintenance pin. It holds its
-  // choice with the reaction recorded as its child until the room resumes it. The refusals below
-  // still prove a changed slot or dependent owner cannot settle the staged evidence.
+  // Restated (QUALITY-18.T2b3): the d20 evidence belongs to the reaction's own action (D219), which
+  // carries the maintenance pin. The move holds its choice with the reaction recorded as its child
+  // until the room resumes it. The refusals below still prove a changed slot or dependent owner
+  // cannot settle the staged evidence.
   expect(pendingSnapshot).toMatchObject({
     applicationContext: {
       kind: 'ENCOUNTER_MOVEMENT_REACTION',

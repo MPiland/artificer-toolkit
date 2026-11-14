@@ -12,7 +12,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
-import { plainWolf, reactionWolf, stopReactionWolf } from '../src/testing/movementPlannerFixture.js'
+import {
+  plainWolf,
+  pushingReactionWolf,
+  reactionWolf,
+  stopReactionWolf
+} from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 import {
@@ -90,6 +95,7 @@ async function walkToContact(room: Room) {
   })
   return {
     occurrence: pending.occurrence,
+    encounterVersion: pending.encounterVersion,
     root,
     option,
     use: { kind: 'OPTION', optionId: option.optionId },
@@ -163,6 +169,34 @@ function failDieAfter(room: Room, drawn: number) {
       throw new Error('The dice source failed.')
     }
     return rigged(array)
+  })
+}
+
+/** The option's answer under a command id the test keeps, so it can send the same command again. */
+function optionAnswer(
+  room: Room,
+  contact: Awaited<ReturnType<typeof walkToContact>>,
+  commandId: string
+) {
+  return {
+    scope: 'ENCOUNTER',
+    command: {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: room.encounterId,
+      commandId,
+      expectedVersion: contact.encounterVersion,
+      correlationId: null,
+      occurrenceId: contact.occurrence.id,
+      expectedOccurrenceVersion: contact.occurrence.version,
+      resolution: contact.use
+    }
+  }
+}
+
+/** Drops a command from the room's journal, as its retention does once the command is old. */
+function forgetJournalEntry(room: Room, commandId: string) {
+  return runInDurableObject(room.base.stub, (_instance, context) => {
+    context.storage.sql.exec('DELETE FROM durable_command_receipts WHERE command_id = ?', commandId)
   })
 }
 
@@ -384,5 +418,94 @@ describe('a reaction chosen at a paused Scene move (QUALITY-18.T2b2)', () => {
     const receipts = await room.receipts()
     expect(receipts.filter(({ commandId: id }) => id === contact.resumeCommandId)).toHaveLength(1)
     expect(await moverPosition(room)).toEqual(DESTINATION)
+  }, 60_000)
+})
+
+describe('a reaction child at a paused Scene move: parity gaps (QUALITY-18.T3)', () => {
+  it('refuses a reaction that would push the mover from its contact, leaving the choice to decline', async () => {
+    // The mover waits at the edge of the reactor's reach, between two squares, and a forced
+    // movement starts from a square. The reaction is refused whole, so the move is never left
+    // resuming from a place its token no longer stands.
+    const room = await contactRoom({ reactor: pushingReactionWolf })
+    const before = await moverHitPoints(room)
+    const contact = await walkToContact(room)
+    const failure = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const refused = await room.respondOnly(contact.use)
+
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(failure).toHaveBeenCalled()
+    const pending = await room.pending()
+    if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+      throw new Error('The move is no longer pending.')
+    expect(pending.context.phase).toEqual({ kind: 'CHOICE' })
+    expect(pending.occurrence.version).toBe(contact.occurrence.version)
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
+    expect(await moverHitPoints(room)).toBe(before)
+
+    const declined = await room.respond({ kind: 'DECLINE' })
+
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(await moverPosition(room)).toEqual(DESTINATION)
+    expect(await openOccurrences(room)).toEqual([])
+  }, 60_000)
+
+  it('offers nobody the answered choice while the room has still to resume the move', async () => {
+    const room = await contactRoom({
+      spatialEffects: [{ center: { x: 475, y: 150 }, radius: 5, save: true }]
+    })
+    const contact = await walkToContact(room)
+    expect(await room.pendingFor(true)).toMatchObject({ kind: 'MOVEMENT_REACTION' })
+    const failure = vi.spyOn(console, 'error').mockImplementation(() => {})
+    // The resume's spatial save is the fourth die, so the move stays answered and unresumed.
+    failDieAfter(room, 3)
+
+    const used = await room.respondOnly(contact.use)
+
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(() => expect(failure).toHaveBeenCalled(), 10_000)
+    expect(await room.pendingFor(true)).toBeNull()
+    expect(await room.pendingFor(false)).toBeNull()
+  }, 60_000)
+
+  it('replays a retried option whose journal entry is gone while its child still waits on a roll', async () => {
+    // Only players' dice are rolled for them, so the GM's Wolf waits on its attack d20.
+    const room = await contactRoom({ autoRoll: 'PLAYER' })
+    const contact = await walkToContact(room)
+    const commandId = crypto.randomUUID()
+    const answer = optionAnswer(room, contact, commandId)
+    const used = await room.send(commandId, answer)
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const open = await openOccurrences(room)
+    expect(open).toHaveLength(2)
+    const commands = (await readRoomHistory(room.base.stub)).commands.length
+    await forgetJournalEntry(room, commandId)
+
+    const again = await room.send(commandId, answer)
+
+    expect(again.type, JSON.stringify(again)).toBe('COMMAND_COMMITTED')
+    expect(await openOccurrences(room)).toEqual(open)
+    expect((await readRoomHistory(room.base.stub)).commands).toHaveLength(commands)
+  }, 60_000)
+
+  it('replays a retried option whose journal entry is gone, once the move has ended', async () => {
+    const room = await contactRoom()
+    const contact = await walkToContact(room)
+    const commandId = crypto.randomUUID()
+    const answer = optionAnswer(room, contact, commandId)
+    const used = await room.send(commandId, answer)
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(async () => expect(await openOccurrences(room)).toEqual([]), 10_000)
+    const afterChild = await moverHitPoints(room)
+    const drawn = room.diceDrawn()
+    await forgetJournalEntry(room, commandId)
+
+    const again = await room.send(commandId, answer)
+
+    expect(again.type, JSON.stringify(again)).toBe('COMMAND_COMMITTED')
+    expect(await moverHitPoints(room)).toBe(afterChild)
+    expect(room.diceDrawn()).toBe(drawn)
+    expect(await moverPosition(room)).toEqual(DESTINATION)
+    expect(await openOccurrences(room)).toEqual([])
   }, 60_000)
 })

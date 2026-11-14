@@ -193,6 +193,13 @@ async function cutWith(room: Room, value: number) {
   if (die.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
     throw new Error(`Expected the reaction's die, got ${die.pending.kind}.`)
   expect(die.pending.request).toMatchObject({ min: 1, max: 6 })
+  // Ruling 17: the cast's ray list is held while the reaction's own die waits.
+  expect(
+    (await readRoomHistory(room.room.base.stub)).occurrences
+      .map(({ state }) => state)
+      .filter((state) => state === 'PENDING' || state === 'SUSPENDED')
+      .sort()
+  ).toEqual(['PENDING', 'SUSPENDED'])
   const rolled = await room.resolve(die, {
     kind: 'ENTER_INTEGER',
     requestId: die.pending.request.requestId,

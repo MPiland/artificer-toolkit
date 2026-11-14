@@ -176,6 +176,47 @@ export const incapacitatingReactionWolf: CreatureAuthored = (() => {
   }
 })()
 
+/** The `reactionWolf` whose hit deals no damage but pushes its target 10 feet straight away from it. */
+export const pushingReactionWolf: CreatureAuthored = (() => {
+  const bite = creatureFeature(reactionWolf, 'Bite')
+  const effect = bite.effects?.[0]
+  const hit = effect?.paths[0]
+  if (!effect || !hit || !('resultBlock' in hit))
+    throw new Error('The reaction Wolf Bite is missing.')
+  return {
+    ...reactionWolf,
+    features: [
+      {
+        ...bite,
+        effects: [
+          {
+            ...effect,
+            paths: [
+              {
+                ...hit,
+                resultBlock: {
+                  ...hit.resultBlock,
+                  outcomes: [
+                    {
+                      id: testUuid(0x7201),
+                      effectKind: 'FORCED_MOVEMENT' as const,
+                      direction: 'AWAY_FROM_SOURCE' as const,
+                      actionEconomy: 'NONE' as const,
+                      distanceMode: 'EXACT' as const,
+                      amount: 10,
+                      unit: 'FEET' as const
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+})()
+
 /** A Wolf that carries the Dragon's Legendary Resistance (its saves may be turned into successes). */
 export const legendaryWolf: CreatureAuthored = (() => {
   const resistance = adultBlackDragon.features?.find((feature) =>
