@@ -7,6 +7,7 @@ import {
   encounterChosenActorEntries,
   turnEncounterAreaRay
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { withGateSuccessImmunity } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { encounterAttackRetargetUseOptionId } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { sanctuary } from '@artificer-toolkit/source-data/srd/spells/sanctuary.js'
 import { scorchingRay } from '@artificer-toolkit/source-data/srd/spells/scorching-ray.js'
@@ -46,7 +47,7 @@ const SAVE_PASSES = 20
 const SAVE_FAILS = 1
 const HIT = 19
 
-const [warding] = sanctuary.effects ?? []
+const [srdWarding] = sanctuary.effects ?? []
 
 afterEach(() => {
   closeTrackedSockets()
@@ -65,9 +66,12 @@ function wardedRoom(
     bothWarded?: true
     /** A third Wolf, defeated, stands in the encounter. */
     defeatedWolf?: true
+    /** The wards author a success immunity: an attacker who passes one is free of it for 24 hours. */
+    immunity?: true
   } = {}
 ) {
-  if (!warding) throw new Error('The SRD Sanctuary has no effect.')
+  if (!srdWarding) throw new Error('The SRD Sanctuary has no effect.')
+  const warding = config.immunity ? withGateSuccessImmunity(srdWarding) : srdWarding
   const wolf = { ...plainWolf, hitPoints: WOLF_HIT_POINTS }
   const ward = (holderActorId: string) =>
     seedModifierGrant({
@@ -126,6 +130,40 @@ async function standing(room: Room) {
         ? [execution.applicationOutputs]
         : []
     })
+  }
+}
+
+/**
+ * The success immunities the room holds, each with its holder, its caster and the ward it is keyed
+ * to; `wards` is the ward each holder carries.
+ */
+async function immunities(room: Room) {
+  const { activeEffects } = await readRoomHistory(room.room.base.stub)
+  const rows = activeEffects.map((effect) => ({
+    effect,
+    ...(JSON.parse(effect.definitionJson) as {
+      origin: { sourceActorId?: string }
+      stateContributions: { kind: string; immuneToId?: string; sourceCharacterId?: string | null }[]
+    })
+  }))
+  return {
+    wards: new Map(
+      rows
+        .filter(({ stateContributions }) =>
+          stateContributions.every(({ kind }) => kind !== 'SOURCE_IMMUNITY')
+        )
+        .map(({ effect }) => [effect.targetActorId, effect.id])
+    ),
+    held: rows.flatMap(({ effect, origin, stateContributions }) =>
+      stateContributions
+        .filter(({ kind }) => kind === 'SOURCE_IMMUNITY')
+        .map((contribution) => ({
+          holderActorId: effect.targetActorId,
+          immuneToId: contribution.immuneToId,
+          sourceActorId: origin.sourceActorId,
+          sourceCharacterId: contribution.sourceCharacterId
+        }))
+    )
   }
 }
 
@@ -638,6 +676,88 @@ describe('a ray a ward stopped may be turned on another creature, that ray alone
     expect(after.lost[0]).toMatchObject({
       occurrenceId: lostEntry,
       gate: { origin: { kind: 'WARD', holderActorId: WARDED_ID } }
+    })
+  })
+})
+
+describe('a ray that passes a ward writes its success immunity like a single attack (QUALITY-13.T1c5d)', () => {
+  it('leaves one immunity on the warded creature, the caster own and keyed to that ward', async () => {
+    const room = await wardedRoom({ immunity: true })
+    await cast(room, [WARDED_ID, OPEN_ID])
+
+    await roll(room, SAVE_PASSES)
+    await roll(room, HIT)
+    await roll(room, HIT)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const { wards, held } = await immunities(room)
+    expect(wards.get(WARDED_ID)).toBeDefined()
+    expect(held).toEqual([
+      {
+        holderActorId: WARDED_ID,
+        immuneToId: wards.get(WARDED_ID),
+        sourceActorId: CASTER_ACTOR_ID,
+        sourceCharacterId: CASTER_ID
+      }
+    ])
+  })
+
+  it('leaves still one when two rays pass the same creature ward', async () => {
+    const room = await wardedRoom({ immunity: true })
+    await cast(room, [WARDED_ID, WARDED_ID, OPEN_ID])
+
+    // The immunity is written when the list commits, so the second ray still owes the save.
+    await roll(room, SAVE_PASSES)
+    await roll(room, HIT)
+    expect((await rays(room))[1]?.inner.pause?.kind).toBe('INCOMING_GATE')
+    await roll(room, SAVE_PASSES)
+    await roll(room, HIT)
+    await roll(room, HIT)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const { wards, held } = await immunities(room)
+    expect(held).toHaveLength(1)
+    expect(held[0]).toMatchObject({ holderActorId: WARDED_ID, immuneToId: wards.get(WARDED_ID) })
+  })
+
+  it('leaves none for a ray that fails or is lost, and none where the ward authors no immunity', async () => {
+    const failed = await wardedRoom({ immunity: true })
+    await cast(failed, [WARDED_ID, OPEN_ID])
+    await roll(failed, SAVE_FAILS)
+    await declineRetarget(failed)
+    await roll(failed, HIT)
+    expect(await readPendingActionDecision(failed.room.base.stub)).toBeNull()
+    expect((await immunities(failed)).held).toEqual([])
+
+    // The SRD Sanctuary authors none: a pass leaves nothing behind.
+    const plain = await wardedRoom()
+    await cast(plain, [WARDED_ID, OPEN_ID])
+    await roll(plain, SAVE_PASSES)
+    await roll(plain, HIT)
+    await roll(plain, HIT)
+    expect(await readPendingActionDecision(plain.room.base.stub)).toBeNull()
+    expect((await immunities(plain)).held).toEqual([])
+  })
+
+  it('writes the immunity against the creature a turned ray passes the ward of, not the one that stopped it', async () => {
+    const room = await wardedRoom({ immunity: true, bothWarded: true })
+    await cast(room, [WARDED_ID, OPEN_ID])
+
+    await roll(room, SAVE_FAILS)
+    await turn(room, OPEN_ID)
+    await roll(room, SAVE_PASSES)
+    await roll(room, HIT)
+    // The ray named at that creature fails its own save and is lost: no second immunity.
+    await roll(room, SAVE_FAILS)
+    await declineRetarget(room)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const { wards, held } = await immunities(room)
+    expect(held).toHaveLength(1)
+    expect(held[0]).toMatchObject({
+      holderActorId: OPEN_ID,
+      immuneToId: wards.get(OPEN_ID),
+      sourceActorId: CASTER_ACTOR_ID
     })
   })
 })

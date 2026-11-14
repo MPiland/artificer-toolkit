@@ -86,6 +86,28 @@ export function aidAtSecondLevel(): EffectAuthored {
 }
 
 /**
+ * `effect` (the SRD Sanctuary) with the success grant core options author on an incoming-attack ward
+ * (Nature's Sanctuary's, 24 hours): the SRD Sanctuary is a ward without one, and Nature's Sanctuary gates
+ * only beasts and plants, which a Character caster is not. A copy; the SRD effect is untouched.
+ */
+export function withGateSuccessImmunity(effect: EffectAuthored | undefined): EffectAuthored {
+  if (!effect) throw new Error('The effect to vary is missing.')
+  const copy = structuredClone(effect)
+  for (const path of copy.paths)
+    if (path.selectionKind === 'FIXED')
+      for (const outcome of path.resultBlock.outcomes)
+        if (outcome.effectKind === 'APPLY_GRANT')
+          for (const modifier of outcome.grants.modifiers ?? [])
+            if (modifier.valueDomainCode === 'INCOMING_ATTACK_GATE')
+              Object.assign(modifier.payload, {
+                successImmunity: {
+                  duration: { id: testUuid(0x9e7), durationKind: 'HOUR', amount: 24 }
+                }
+              })
+  return copy
+}
+
+/**
  * A grant of Dexterity-save advantage that holds only while the holder sees the effect's source,
  * authored from core options as Danger Sense's is: the SRD Dodge grant with its attack-defence
  * modifiers dropped and the save modifier flagged `requiresHolderSeesSource`.

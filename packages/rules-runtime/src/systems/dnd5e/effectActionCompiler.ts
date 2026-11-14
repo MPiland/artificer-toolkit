@@ -103,7 +103,7 @@ import {
 import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
-import { dnd5eAttackKind, dnd5eAttackModifierDomain } from './attackKind.js'
+import { dnd5eAttackModifierDomain } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_KEEP_BY_ROLL_MODE, resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
@@ -180,7 +180,6 @@ import {
   type Dnd5eCompiledEffectActionSource,
   type Outcome,
   type TestKind,
-  TEST_HOLD_PATHS,
   type SpecializedPath,
   isSpecializedPath,
   uuid,
@@ -230,6 +229,14 @@ import {
 } from './effectActionRepeatSaveEvidence.js'
 import { compileDnd5eActivation } from './effectActionActivation.js'
 import { compileDnd5eTargeting, type Dnd5eTargeting } from './effectActionTargetPolicy.js'
+import {
+  compileDnd5eTest,
+  DND5E_TEST_RESULT_PATHS,
+  dnd5eTestHoldPaths,
+  dnd5eTestKind,
+  isDnd5eRolledTest,
+  type Dnd5eTest
+} from './effectActionTest.js'
 import {
   dnd5eEffectScalingFacts,
   dnd5eAttackTargetFacts,
@@ -356,15 +363,9 @@ export function resolveCreatureDamageExpression(input: {
  */
 function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean {
   return (
-    action.compiledEffect.invocation.triggerCode === 'CHECK' &&
+    dnd5eTestKind(action.compiledEffect.invocation) === 'CHECK' &&
     supported(action).kind === 'CHECK_OUTCOME'
   )
-}
-
-function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
-  const trigger = action.compiledEffect.invocation.triggerCode
-  if (dnd5eAttackKind(trigger) !== null) return 'ATTACK'
-  return trigger === 'SAVING_THROW' ? 'SAVE' : null
 }
 
 /**
@@ -416,13 +417,8 @@ function entryResultGate(
   pathCode: string
 ): { paths: string[] } | null | undefined {
   if (pathCode === 'ON_USE') return null
-  const kind = testPhaseKindOrNull(action)
-  const testPaths =
-    kind === 'ATTACK'
-      ? ['ON_HIT', 'ON_MISS', 'ON_CRIT']
-      : kind === 'SAVE'
-        ? ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-        : []
+  const kind = dnd5eTestKind(action.compiledEffect.invocation)
+  const testPaths: readonly string[] = isDnd5eRolledTest(kind) ? DND5E_TEST_RESULT_PATHS[kind] : []
   return testPaths.includes(pathCode) ? dnd5eResultGate(pathCode) : undefined
 }
 
@@ -711,18 +707,12 @@ export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   // An attack holds its target on a hit; a save on a failure; a contest (Grapple) on the
   // initiator's win; an action with no roll (Engulf) as soon as it is used.
   const invocation = action.compiledEffect.invocation
-  const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
-  const direct = invocation.triggerCode === 'ACTIVATED'
-  const testKind = testPhaseKindOrNull(action)
+  const holdPaths: readonly string[] = dnd5eTestHoldPaths(invocation)
   if (
     invocation.kind !== 'ACTION' ||
     entry.resolutionKind !== 'DIRECT' ||
     (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-    (contest
-      ? entry.pathCode !== 'ON_CHECK_SUCCESS'
-      : direct
-        ? entry.pathCode !== 'ON_USE'
-        : !testKind || !TEST_HOLD_PATHS[testKind].includes(entry.pathCode)) ||
+    !holdPaths.includes(entry.pathCode) ||
     !UUID.test(relationship.id)
   ) {
     unsupported('D&D relationship outcomes need a bounded hit, failed save, contest win or use.')
@@ -1114,7 +1104,7 @@ function ownsTimedSaveCondition(
     : action
   const plan = planned ? timedConditionPlan(planned) : null
   return (
-    testPhaseKindOrNull(action) === 'SAVE' &&
+    dnd5eTestKind(action.compiledEffect.invocation) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
     (tier !== undefined ||
       (entry.lifecycle?.endTriggers ?? []).some(
@@ -1172,7 +1162,7 @@ function sourceImmunityPlan(
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   if (
     entries.length > 1 ||
-    testPhaseKindOrNull(action) !== 'SAVE' ||
+    dnd5eTestKind(action.compiledEffect.invocation) !== 'SAVE' ||
     entry.pathCode !== 'ON_SAVE_SUCCESS' ||
     initialRemaining === null ||
     Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
@@ -1209,7 +1199,7 @@ function modifierGrantPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { entries } = action.compiledEffect
-  const attack = testPhaseKindOrNull(action) === 'ATTACK'
+  const attack = dnd5eTestKind(action.compiledEffect.invocation) === 'ATTACK'
   const hitGrants = attack
     ? entries.flatMap((entry) =>
         'outcome' in entry &&
@@ -1236,7 +1226,7 @@ function modifierGrantPlan(
     unsupported('D&D attacks apply one active effect on a hit.')
   const entry = attack ? hitGrants[0] : entries[0]
   const plan =
-    testPhaseKindOrNull(action) === 'SAVE'
+    dnd5eTestKind(action.compiledEffect.invocation) === 'SAVE'
       ? saveGrantPlan(action)
       : entry
         ? // A grant with no duration lasts until one of its authored end events (Hide in Plain Sight).
@@ -1260,7 +1250,7 @@ function saveGrantPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   if (
-    testPhaseKindOrNull(action) !== 'SAVE' ||
+    dnd5eTestKind(action.compiledEffect.invocation) !== 'SAVE' ||
     timedConditionPlan(action) !== null ||
     repeatingDirectFollowUpSavePlan(action) !== null
   )
@@ -1655,7 +1645,11 @@ function repeatingDirectFollowUpSaveLeadEntries(
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
   const save = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry.outcome
-  if (!save || !isImmediateFollowUpSave(save) || testPhaseKindOrNull(action) !== 'ATTACK')
+  if (
+    !save ||
+    !isImmediateFollowUpSave(save) ||
+    dnd5eTestKind(action.compiledEffect.invocation) !== 'ATTACK'
+  )
     return false
   // A repeating save runs only with its active-effect plan; without one the condition would
   // never be saved against again. A duration belongs to the repeating save's condition or to a
@@ -1807,49 +1801,53 @@ function validateDiceOutcomeGroup(
 }
 
 /**
- * The activation and targeting aspects of an action, each compiled on its own, and the rules that
- * read both: an uncharged free action is bounded only by its holder's restrictions, so it is taken
- * on its user alone (Frenzy); and a reaction resolves on its trigger's pending decision, which aims
- * no area.
+ * The activation, test and targeting aspects of an action, each compiled on its own, and the rules
+ * that read more than one: an uncharged free action is bounded only by its holder's restrictions, so
+ * it is taken on its user alone (Frenzy); a reaction resolves on its trigger's pending decision,
+ * which aims no area; and an attack or save is rolled against a creature other than a Self action's
+ * teleport reach, by any creature in its targeting, never only a willing one.
  */
-function activatedAction(
-  action: Dnd5eCompiledEffectActionSource,
-  test: TestKind | null
-): {
+function activatedAction(action: Dnd5eCompiledEffectActionSource): {
   invocation: Dnd5eActionInvocation
+  test: Dnd5eTest
   targeting: Dnd5eTargeting
 } {
   const { invocation } = action.compiledEffect
   if (invocation.kind !== 'ACTION') unsupported('D&D Effect is not an activated action.')
   const activation = compileDnd5eActivation(invocation)
-  const targeting = compileDnd5eTargeting(action, test)
+  const test = compileDnd5eTest(invocation)
+  const targeting = compileDnd5eTargeting(action, test.kind)
   if (activation.code === 'FREE' && !activation.charged && targeting.kind !== 'SELF')
     unsupported('D&D free action with no charge is taken on its user alone.')
   if (activation.code === 'REACTION' && targeting.kind === 'AREA')
     unsupported('D&D reaction resolves on its trigger and aims no area.')
-  return { invocation, targeting }
+  if (isDnd5eRolledTest(test.kind)) {
+    if (targeting.kind === 'SELF' && targeting.reachFeet !== null)
+      unsupported('D&D Self action range of distance bounds only its user teleporting.')
+    if ((targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') && targeting.willing)
+      unsupported('D&D test targets any creature, not only a willing one.')
+  }
+  return { invocation, test, targeting }
 }
 
 /**
- * The targeting a test is rolled against. A Self action's distance bounds only its user's teleport,
- * and a test is rolled by any creature in its targeting, never only a willing one.
+ * The attack or save an action rolls, composed with its activation and targeting, for an action
+ * with at least one authored result. Null for an action that rolls no attack or save.
  */
-function testTargeting(action: Dnd5eCompiledEffectActionSource, kind: TestKind): void {
-  const { targeting } = activatedAction(action, kind)
-  if (targeting.kind === 'SELF' && targeting.reachFeet !== null)
-    unsupported('D&D Self action range of distance bounds only its user teleporting.')
-  if ((targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') && targeting.willing)
-    unsupported('D&D test targets any creature, not only a willing one.')
+function rolledTest(action: Dnd5eCompiledEffectActionSource): TestKind | null {
+  const kind = dnd5eTestKind(action.compiledEffect.invocation)
+  if (!isDnd5eRolledTest(kind)) return null
+  activatedAction(action)
+  if (action.compiledEffect.entries.length < 1)
+    unsupported('D&D test action has no authored result.')
+  return kind
 }
 
 function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const { entries } = action.compiledEffect
-  const kind = testPhaseKindOrNull(action)
+  const kind = rolledTest(action)
   if (!kind) return null
-  const allowedPaths =
-    kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  testTargeting(action, kind)
-  if (entries.length < 1) unsupported('D&D test action has no authored result.')
+  const allowedPaths: readonly string[] = DND5E_TEST_RESULT_PATHS[kind]
   const relationshipEntries = entries.filter(
     (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
   )
@@ -2037,15 +2035,14 @@ function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind'
 function supported(
   action: Dnd5eCompiledEffectActionSource
 ): Dnd5eDirectOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CHECK_OUTCOME' } {
-  const { invocation, targeting } = activatedAction(action, null)
+  const { invocation, test, targeting } = activatedAction(action)
   const effect = action.compiledEffect
-  // A direct action tests nothing; a CHECK action rolls its authored check against a fixed DC, each
-  // observer's passive score, the concealments that hide creatures from the checker, or the target's
-  // own check in a contest.
-  const checkAction = invocation.triggerCode === 'CHECK'
-  if (invocation.triggerCode !== 'ACTIVATED' && !checkAction)
+  // A direct action tests nothing and a check action rolls its check; an attack or save compiles
+  // through its own test phase.
+  if (isDnd5eRolledTest(test.kind))
     unsupported('D&D action trigger is not a test the Effect action compiler runs.')
-  const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
+  const checkAction = test.kind === 'CHECK'
+  const contestAction = test.kind === 'CHECK' && test.dc === 'CONTEST'
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
@@ -2094,7 +2091,7 @@ function supported(
     entry.resolutionKind !== 'DIRECT' ||
     // A sequence of one outcome (Haste) resolves as a single result does.
     (entry.groupKind === 'CHOICE' && !repeatPlan) ||
-    entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
+    !(DND5E_TEST_RESULT_PATHS[test.kind] as readonly string[]).includes(entry.pathCode) ||
     (entry.maintenanceDefinitionId && !lastingPlan) ||
     (hasLifecycleOverride(entry) && !lastingPlan && !concealmentPlan(action)) ||
     entry.rangeOverride ||
@@ -2124,41 +2121,22 @@ function supported(
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (
-    invocation.triggerCode === 'CHECK' &&
-    (invocation.check.dc.kind === 'PASSIVE') !== (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS')
+    test.kind === 'CHECK' &&
+    (test.dc === 'PASSIVE') !== (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS')
   )
     unsupported('D&D check action passive DC and conceal outcome must be authored together.')
   if (
-    invocation.triggerCode === 'CHECK' &&
-    (invocation.check.dc.kind === 'CONCEALMENT') !== (outcome.effectKind === 'DETECT_CONCEALED')
+    test.kind === 'CHECK' &&
+    (test.dc === 'CONCEALMENT') !== (outcome.effectKind === 'DETECT_CONCEALED')
   )
     unsupported('D&D check action concealment DC and detect outcome must be authored together.')
-  // A resolution names no check choice, so the action must list exactly one.
-  if (
-    invocation.triggerCode === 'CHECK' &&
-    invocation.check.checks.skillIds.length +
-      invocation.check.checks.abilityDefinitionIds.length !==
-      1
-  )
-    unsupported('D&D check action must list exactly one check.')
-  if (contestAction) {
-    if (
-      invocation.check.dc.kind !== 'CONTEST' ||
-      invocation.check.dc.checks.skillIds.length +
-        invocation.check.dc.checks.abilityDefinitionIds.length ===
-        0
-    )
-      unsupported('D&D contest check action must list the checks its target may roll.')
-    if (outcome.effectKind === 'ACTOR_RELATIONSHIP') {
-      relationshipPlan(action)
-      return { kind: 'CONTEST_RELATIONSHIP' }
-    }
+  if (contestAction && outcome.effectKind === 'ACTOR_RELATIONSHIP') {
+    relationshipPlan(action)
+    return { kind: 'CONTEST_RELATIONSHIP' }
   }
-  // Conceal and detect settle on a fixed-DC or passive check itself; a contest's win, and any other
-  // success outcome, runs after the check test (D173).
-  const settlesOnCheck =
-    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED'
-  if (contestAction || (checkAction && !settlesOnCheck)) {
+  // Conceal and detect settle on the passive or concealment check itself; a fixed DC's success and a
+  // contest's win run after the check test (D173).
+  if (test.kind === 'CHECK' && test.dc !== 'PASSIVE' && test.dc !== 'CONCEALMENT') {
     const won = specializedTestOutcome(entry, action)
     if (
       won.kind === 'CONDITION_APPLY' &&
@@ -2181,13 +2159,8 @@ function supported(
 }
 
 function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKind {
-  const kind = testPhaseKindOrNull(action)
-  if (!kind) unsupported('D&D action has no supported test phase.')
-  const allowedPaths =
-    kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  testTargeting(action, kind)
-  if (action.compiledEffect.entries.length < 1)
-    unsupported('D&D test action has no authored result.')
+  const kind = rolledTest(action) ?? unsupported('D&D action has no supported test phase.')
+  const allowedPaths: readonly string[] = DND5E_TEST_RESULT_PATHS[kind]
   if (isExactImmediateFollowUpSaveAction(action)) {
     // A band the registry cannot compose is refused here, before the hit is ever rolled.
     immediateFollowUpSaveGraphDefinition(action)
@@ -2299,9 +2272,10 @@ function compileDnd5eEffectActionTestTemplate({
       'D&D Effect action entry point does not match its exact Effect.'
     )
   }
+  // A check rolls its user's check against the target's own in a contest, else against its DC.
   if (isCheckOutcomeAction(action)) {
-    const { invocation } = action.compiledEffect
-    const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
+    const { test } = activatedAction(action)
+    const contest = test.kind === 'CHECK' && test.dc === 'CONTEST'
     const graph = contest ? createDnd5eContestGraph : createDnd5eCheckDefinition
     const published = graph(action.effectId)
     return { phase: 'TEST', published, templateChecksum: published.checksum }
@@ -2519,15 +2493,11 @@ function assertKnownTestResultPath(
   action: Dnd5eCompiledEffectActionSource,
   selectedPath: SpecializedPath
 ): void {
-  const kind = testPhaseKindOrNull(action)
-  const allowedPaths =
-    kind === 'ATTACK'
-      ? ['ON_HIT', 'ON_MISS', 'ON_CRIT']
-      : kind === 'SAVE'
-        ? ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-        : isCheckOutcomeAction(action)
-          ? ['ON_CHECK_SUCCESS']
-          : []
+  const kind = dnd5eTestKind(action.compiledEffect.invocation)
+  const allowedPaths: readonly string[] =
+    isDnd5eRolledTest(kind) || (kind === 'CHECK' && isCheckOutcomeAction(action))
+      ? DND5E_TEST_RESULT_PATHS[kind]
+      : []
   if (!allowedPaths.includes(selectedPath))
     throw new Dnd5eEffectActionCompilerError('D&D selected outcome path is not emitted by TEST.')
 }
@@ -2899,7 +2869,10 @@ function dnd5eActiveEffectPlans(
         : plan.marginRiders.length > 0))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
-  const repeatCarrier = repeatCarrierPlan(action, testPhaseKindOrNull(action) === 'SAVE')
+  const repeatCarrier = repeatCarrierPlan(
+    action,
+    dnd5eTestKind(action.compiledEffect.invocation) === 'SAVE'
+  )
   // The carrier takes the failure rider's slot and depends on the Concentration the grant rides.
   if (
     repeatCarrier &&
@@ -3277,7 +3250,8 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   // An attack critical includes the ordinary hit branch when one exists. It
   // therefore needs a reachable template even when the source has no extra
   // ON_CRIT entry of its own.
-  if (testPhaseKindOrNull(action) === 'ATTACK' && paths.has('ON_HIT')) paths.add('ON_CRIT')
+  if (dnd5eTestKind(action.compiledEffect.invocation) === 'ATTACK' && paths.has('ON_HIT'))
+    paths.add('ON_CRIT')
   const outcomes = [] as {
     pathCode: string
     template: {
@@ -3338,7 +3312,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = executableAction(dndSourceFromCompilerSource(compilerSource))
     if (
-      (!testPhaseKindOrNull(source) && !isCheckOutcomeAction(source)) ||
+      (!isDnd5eRolledTest(dnd5eTestKind(source.compiledEffect.invocation)) &&
+        !isCheckOutcomeAction(source)) ||
       supportedRecurringPlan(source) ||
       (source.compiledEffect.entries.every(
         (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
