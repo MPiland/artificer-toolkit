@@ -17,9 +17,9 @@ describe('installed reusable definition publishers', () => {
 
   it('fail when an installed family has no publisher, has two, or a publisher is for no installed family', () => {
     const [first] = installedDefinitionPublishers
-    expect(() =>
-      indexDefinitionPublishers([first], [...installedDefinitionFamilyKeys, 'other-family'])
-    ).toThrow('Installed reusable definition family "other-family" has no publisher.')
+    expect(() => indexDefinitionPublishers([first], [first.familyKey, 'other-family'])).toThrow(
+      'Installed reusable definition family "other-family" has no publisher.'
+    )
     expect(() => indexDefinitionPublishers([first, first], installedDefinitionFamilyKeys)).toThrow(
       `Reusable definition family "${first.familyKey}" has more than one publisher.`
     )

@@ -73,7 +73,11 @@ const sourceModule = (file) =>
 const fencedModule = (file) =>
   (file.startsWith(RULES_RUNTIME) && !UNFENCED.some((prefix) => file.startsWith(prefix))) ||
   (file.startsWith(SCHEMA) && !file.startsWith(SCHEMA_SYSTEMS)) ||
-  FENCED_CONSUMERS.some((prefix) => file.startsWith(prefix))
+  (FENCED_CONSUMERS.some((prefix) => file.startsWith(prefix)) &&
+    !(
+      file.startsWith(AUTHORING_SYSTEMS) &&
+      systemSchemaExtension(file.slice(AUTHORING_SYSTEMS.length))
+    ))
 
 /** Non-blank lines once comments are blanked out. */
 export const codeLines = (filename, source) => {

@@ -460,7 +460,7 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     )
     write(
       'packages/authoring/src/systems/dnd5e/definitionPublishers.ts',
-      "export const family = 'dnd5e-optional-combat'\n"
+      "export { key } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'\nexport const family = 'dnd5e-optional-combat'\n"
     )
     write(
       'packages/authoring/src/systems/installedDefinitionPublishers.ts',
