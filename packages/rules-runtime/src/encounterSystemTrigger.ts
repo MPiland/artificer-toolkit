@@ -18,6 +18,23 @@ export function systemTriggerCommandId(
 }
 
 /**
+ * The child command of a reaction chosen at a paused Scene move's contact (D219). The move's
+ * occurrence version at the choice is part of it, so a reaction chosen again after the GM voided its
+ * held child never reuses an id.
+ */
+export function movementReactionChildCommandId(input: {
+  parentCommandId: string
+  holderActorId: string
+  actionId: string
+  occurrenceVersion: number
+}) {
+  return uuidv5(
+    `${input.parentCommandId}:${input.holderActorId}:${input.actionId}:${input.occurrenceVersion}:system-trigger`,
+    NAMESPACE
+  )
+}
+
+/**
  * The reaction offer a committed attack raises for one reactor (D219): one per attack command and
  * reactor, so a replayed attack never offers twice, and a reaction's own attack raises an offer of
  * its own, which is how a chain of reactions ends.
@@ -135,6 +152,8 @@ export function systemTriggerSelfCommand(input: {
  * proves it against a record of this command id: the pending action's, for a reaction chosen while
  * the action was held, or the answer of the offer a committed attack raised. It names the
  * tokens of the Scene the reaction was offered on, so its range is judged there like any action's.
+ * A reaction chosen at a paused Scene move's contact passes that move's occurrence version at the
+ * choice, which its command id then carries.
  */
 export function systemTriggerReactionCommand(input: {
   encounterId: string
@@ -144,12 +163,21 @@ export function systemTriggerReactionCommand(input: {
   actionId: string
   targetActorId: string
   sceneContext: ResolveEncounterActionInputDto['sceneContext']
+  moveOccurrenceVersion?: number
 }): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
     encounterId: input.encounterId,
     expectedVersion: input.expectedVersion,
-    commandId: systemTriggerCommandId(input.parentCommandId, input.holderActorId, input.actionId),
+    commandId:
+      input.moveOccurrenceVersion === undefined
+        ? systemTriggerCommandId(input.parentCommandId, input.holderActorId, input.actionId)
+        : movementReactionChildCommandId({
+            parentCommandId: input.parentCommandId,
+            holderActorId: input.holderActorId,
+            actionId: input.actionId,
+            occurrenceVersion: input.moveOccurrenceVersion
+          }),
     actorId: input.holderActorId,
     actionId: input.actionId,
     target: { kind: 'ACTOR', actorId: input.targetActorId },

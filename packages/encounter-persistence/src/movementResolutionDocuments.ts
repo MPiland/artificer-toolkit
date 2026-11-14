@@ -86,6 +86,9 @@ export async function readResponse(
       : {}),
     ...('optionId' in current.command.resolution
       ? { optionId: current.command.resolution.optionId }
+      : {}),
+    ...('childCommandId' in current.command.resolution
+      ? { childCommandId: current.command.resolution.childCommandId }
       : {})
   })
   if (root.resolutionCommands.some((entry) => entry.commandId === responseCommand.commandId))
@@ -173,6 +176,19 @@ export async function readMovementResponseAuthority(
       (option) => option.candidate.reactorActorId
     )
   }
+  // A move that records a reaction child takes only the room's resume from that child, issued as
+  // the Campaign owner (D219); no other answer reaches it, and no resume reaches any other move.
+  const heldChild =
+    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'CHOICE'
+      ? context.phase.reactionChildren?.[0]
+      : undefined
+  const { resolution } = command
+  if (
+    resolution.kind === 'REACTION_CHILD_RESUME'
+      ? heldChild?.commandId !== resolution.childCommandId || membership.role !== 'OWNER'
+      : heldChild !== undefined
+  )
+    throw new Error('Movement response occurrence is stale.')
   // The decision belongs to the controllers of the actor whose roll or choice it is.
   const controlledActorIds = await readEncounterControlledActorIds(ctx, {
     campaign,

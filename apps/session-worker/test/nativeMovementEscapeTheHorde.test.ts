@@ -10,6 +10,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
+import { readPendingActionDecision } from './roomHistoryReads.js'
 
 /**
  * SPELLS-31.T4k2a (D156): the Hunter's Escape the Horde, authored as disadvantage on attacks against
@@ -55,13 +56,10 @@ async function opportunityAttackRollMode(input: { escapeTheHorde: boolean }) {
     characterClassFeatures: input.escapeTheHorde ? [escapeTheHorde()] : []
   })
   await room.move([MOVER_START, { x: 450, y: 150 }])
-  const pending = await room.pending()
-  if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-    throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-  const option = pending.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
-  await room.respond({ kind: 'OPTION', optionId: option.optionId })
-  const prompt = await room.pendingFor(true)
+  await room.useReaction()
+  // Restated (QUALITY-18.T2b3): the attack roll is the Wolf's own action's decision (D219), read
+  // while the move is SUSPENDED, where it was a phase of the move's decision.
+  const prompt = (await readPendingActionDecision(room.base.stub))?.pending
   if (prompt?.kind !== 'D20_EVIDENCE') throw new Error('Expected the reaction attack roll.')
   return prompt.request.rollMode
 }

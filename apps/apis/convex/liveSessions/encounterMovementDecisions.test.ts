@@ -8,6 +8,7 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import { readResumedMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
@@ -181,6 +182,11 @@ it.each([
     // The first roll (the reaction's attack) hits; every later one (the Concentration save) is a 1.
     await queueRoomRolls(value.base.campaign.id, { rolls: [14], repeat: 0 })
     const published = await executeInRoom(initiator.caller, { command: useCommand })
+    // Restated (QUALITY-18.T2b3): the Use answer is the reaction's own action (D219); the room
+    // then resumes the move, as the Campaign owner, and that resume completes it.
+    expect(
+      await readResumedMovement(value.owner.caller, value.base.campaign.id, choice)
+    ).toMatchObject({ occurrenceId, status: 'COMPLETE' })
     const committed = await records()
     // The room holds the settled result and its Concentration evidence (D85), pinned in
     // apps/session-worker/test/nativeMovementEvidence.test.ts ("a used automatic reaction followed
@@ -192,8 +198,11 @@ it.each([
     )
     expect(before.spatialEffects.map((entry) => entry.id)).toEqual(oneShot ? [oneShot.id] : [])
     // A decision answer returns its Encounter result for the member.
-    expect(published.occurrence).toMatchObject({ occurrenceId, status: 'COMPLETE' })
-    expect(committed.run?.version).toBe(before.run!.version + 1)
+    // Restated (QUALITY-18.T2b3): that result is the reaction's completed child action, not the
+    // move, and the Run advances once for it and once for the resume that completes the move.
+    expect(published.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(published.occurrence?.occurrenceId).not.toBe(occurrenceId)
+    expect(committed.run?.version).toBe(before.run!.version + 2)
     const settledActors = await initiator.caller.run(async (ctx) => {
       const run = await ctx.db
         .query('encounterRuns')

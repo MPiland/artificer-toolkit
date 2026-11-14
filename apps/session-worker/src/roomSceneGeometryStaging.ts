@@ -1,5 +1,6 @@
 import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { readMovementResponseAuthority } from '@artificer-toolkit/encounter-persistence/movementResolutionDocuments'
+import { repinMovementReactionChildScene } from '@artificer-toolkit/encounter-persistence/movementReactionChild'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -146,6 +147,8 @@ export async function stageRoomSceneGeometry(input: {
       command = priorResponseSave.input
     } else {
       if (receipt) throw new Error('Movement response receipt has no Scene publication.')
+      if (responseCommand.resolution.kind === 'REACTION_CHILD_RESUME')
+        await repinMovementReactionChildScene(ctx, responseCommand, header.version)
       const current = await readMovementResponseAuthority(ctx, responseCommand)
       const root = current.root
       if (root.sceneId !== header.id) throw new Error('Movement response Scene binding is stale.')

@@ -31,6 +31,10 @@ type SweepInput = {
  * The Run's relationships whose hold broke on its own (D152). A source can act as Concentration
  * reads it: a defeated or incapacitated source, or one no longer in the Run, holds nothing. It
  * writes nothing.
+ *
+ * A Run awaiting a decision ends none: a pending decision is pinned to one Run version, like every
+ * other Run change the sweep waits for its answer, and the commit that settles it runs the sweep
+ * again. A Scene move paused for its reaction child is such a decision (D219).
  */
 export async function readEndedEncounterRelationships(
   ctx: EncounterPersistenceTransaction,
@@ -38,6 +42,13 @@ export async function readEndedEncounterRelationships(
 ) {
   const { state } = input
   const actors = await readRunActors(ctx, state)
+  const [pending] = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_encounterId_state', (query) =>
+      query.eq('encounterId', state.id).eq('state', 'PENDING')
+    )
+    .take(1)
+  if (pending) return { actors, ends: [] }
   const activeEffectsByActorId = new Map(
     await Promise.all(
       actors.map(

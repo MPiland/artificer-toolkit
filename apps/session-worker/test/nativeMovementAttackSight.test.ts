@@ -1,3 +1,4 @@
+import { labelEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
@@ -8,8 +9,12 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf, reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
+import { readPendingActionDecision } from './roomHistoryReads.js'
 
 /** An opportunity attack rolls with the sight its reactor and mover have of each other (ATTACK-10.4, D100). */
+
+/** The rules-owned labels of a roll's mode reasons, as the room's pending read adds them. */
+const rollModeReasons = labelEncounterRollModeReasons(new Map())
 
 const MOVER_ID = testUuid(0x200)
 const REACTOR_ID = testUuid(0x201)
@@ -37,24 +42,21 @@ function reactionRoom(moverConditionIds: readonly string[]) {
   })
 }
 
-/** Walks the mover east, uses the one reaction offered and returns its attack d20. */
+/**
+ * Walks the mover east, uses the one reaction offered and returns its attack d20.
+ *
+ * Restated (QUALITY-18.T2b3): the attack settles as the reactor's own action (D219), so its d20
+ * is in that action's receipt, where it was in a reaction execution of the move's terminal.
+ */
 async function reactionAttackD20(room: Awaited<ReturnType<typeof reactionRoom>>) {
   await room.move([MOVER_START, { x: 450, y: 150 }])
-  const pending = await room.pending()
-  if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-    throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-  const option = pending.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
-  const used = await room.respond({ kind: 'OPTION', optionId: option.optionId })
-  const receipt = (await room.receipts()).find((entry) => entry.commandId === used.commandId)
+  const used = await room.useReaction()
+  const receipt = (await room.receipts()).find((entry) => entry.commandId === used.childCommandId)
   if (!receipt) throw new Error('The reaction left no receipt.')
   const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
-  if (
-    result.status !== 'MOVEMENT_COMPLETE' &&
-    !(result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
-  )
-    throw new Error(`Expected a movement result, got ${result.status}.`)
-  const { application } = result.reactionExecutions[0]!
+  if (result.status !== 'COMPLETE')
+    throw new Error(`Expected a settled action, got ${result.status}.`)
+  const application = result.applicationOutputs
   if (application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' || !application.d20)
     throw new Error('Expected a Creature reaction attack d20.')
   return application.d20
@@ -99,15 +101,15 @@ describe('a player rolling an opportunity attack against a mover that cannot see
       positions: { [REACTOR_ID]: { x: 50, y: 150 }, [MOVER_ID]: MOVER_START }
     })
     await room.move([MOVER_START, { x: 450, y: 150 }])
-    const pending = await room.pending()
-    if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-      throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-    const option = pending.context.reactionTimeline[0]?.group.options[0]
-    if (!option) throw new Error('The reaction decision offers no option.')
-    await room.respond({ kind: 'OPTION', optionId: option.optionId })
+    await room.useReaction()
 
-    const gmView = await room.pendingFor(true)
-    const playerView = await room.pendingFor(false)
+    // Restated (QUALITY-18.T2b3): the attack roll is the reactor's own action's decision (D219),
+    // read and answered as any action's while the move is SUSPENDED, where it was a phase of the
+    // move's decision. Each viewer still reads it in their own roll mode.
+    const shownTo = async (isOwner: boolean) =>
+      (await readPendingActionDecision(room.base.stub, isOwner, rollModeReasons))?.pending
+    const gmView = await shownTo(true)
+    const playerView = await shownTo(false)
     if (gmView?.kind !== 'D20_EVIDENCE' || playerView?.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the reaction attack roll.')
     expect(gmView.request).toMatchObject({
@@ -120,14 +122,14 @@ describe('a player rolling an opportunity attack against a mover that cannot see
     })
 
     // The one die the player's prompt asked for does not settle the true advantage.
-    await room.respond({
+    await room.respondToChild({
       kind: 'ENTER_DICE',
       requestId: playerView.request.requestId,
       rawFaces: [9],
       rollMode: 'NORMAL'
     })
-    const gmHeld = await room.pendingFor(true)
-    const playerHeld = await room.pendingFor(false)
+    const gmHeld = await shownTo(true)
+    const playerHeld = await shownTo(false)
     if (gmHeld?.kind !== 'D20_EVIDENCE' || playerHeld?.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the held reaction attack roll.')
     expect(playerHeld.request).toMatchObject({

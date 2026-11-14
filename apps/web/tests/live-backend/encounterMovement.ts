@@ -318,11 +318,19 @@ export async function verifyEncounterMovementBrowser(
     })
 
     stage = 'resolve reaction evidence'
+    const offerSceneVersion = observedSceneVersion
     await reaction.click()
-    await resolveEvidence(owner, input.readPending)
+    // Restated (QUALITY-18.T2b4): the reaction attack now misses (lowest face). A natural 20 is a
+    // critical hit whose app-rolled damage can drop the mover, and a move whose mover is at 0 hit
+    // points ends where the reaction triggered (D219), so the destination below was a coin toss.
+    await resolveEvidence(owner, input.readPending, 'min')
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toHaveCount(0)
+    // Restated (QUALITY-18.T2b4): the reaction is a child action of the suspended move (D219), so
+    // its answer no longer carries the movement result. The room resumes the move in a later
+    // commit, and the journey waits for that Scene commit before reading the settled state.
+    await expect.poll(() => observedSceneVersion).toBeGreaterThan(offerSceneVersion)
     await verifyAuthoritative('reaction-resolved')
 
     stage = 'reconnect after completed command'

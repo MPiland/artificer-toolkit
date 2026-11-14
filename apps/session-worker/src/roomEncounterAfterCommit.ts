@@ -1,4 +1,5 @@
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
+import { resumeSettledReactionChildParent } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import { raiseQueuedReactionOffer } from '@artificer-toolkit/encounter-persistence/reactionOffer'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
@@ -28,7 +29,9 @@ import type { RoomInputs } from './roomInputs.js'
  * 6. the flag on a creature that returned to play onto an occupied space;
  * 7. the mirrors and rewards the roots raised in stages 2 to 5 collected;
  * 8. the sweep of summons whose carrier ended, and the advance past one that was acting;
- * 9. the next queued reaction offer (D219), once the Run waits on nothing else.
+ * 9. the held action whose reaction child's own checks have all settled (D219), which is the Run's
+ *    decision again once the Run waits on no other;
+ * 10. the next queued reaction offer (D219), once the Run waits on nothing else.
  *
  * Stages 2 to 5 run only on an ACTIVE Run in a room that executes rules (`raisesRoots`). Returns
  * whether any stage changed the Run, so the caller reads it again before presenting it.
@@ -161,8 +164,11 @@ export async function settleRoomEncounterAfterCommit(input: {
           (await raiseTurnStart(advanceCommandId)) || (await raiseRules())
       })
     : false
-  // Last, once the command and every root it raised have settled: the next reaction offer a
-  // committed attack queued (D219) becomes the Run's decision when it waits on nothing else.
+  // Once the command and every root it raised have settled: an action held while its reaction
+  // child's own checks were answered (D219) is the Run's decision again when it waits on no other.
+  const resumedReactionParent = await resumeSettledReactionChildParent(ctx, encounterId)
+  // Last: the next reaction offer a committed attack queued (D219) becomes the Run's decision when
+  // it waits on nothing else.
   const raisedReactionOffer = await raiseQueuedReactionOffer(
     ctx,
     encounterId,
@@ -178,6 +184,7 @@ export async function settleRoomEncounterAfterCommit(input: {
     flaggedReturn ||
     summonSweep.ended ||
     advancedPastSummon ||
+    resumedReactionParent ||
     raisedReactionOffer
   )
 }

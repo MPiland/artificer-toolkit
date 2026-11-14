@@ -41,6 +41,10 @@ async function addFixturePlayer(base: Awaited<ReturnType<typeof setupCharacterRu
         data: {
           name: 'Second Character controller',
           email: 'draft_123456abcde2@example.invalid',
+          // A reaction this player uses is their own action (D219), and its roll card posts to the
+          // table chat, which needs a username.
+          username: 'secondcontroller',
+          displayUsername: 'SecondController',
           emailVerified: true,
           createdAt: Date.now(),
           updatedAt: Date.now()

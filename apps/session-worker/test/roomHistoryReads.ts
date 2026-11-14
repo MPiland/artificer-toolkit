@@ -97,9 +97,14 @@ export function parseReceiptExecution(receipt: { resultJson: string }) {
 /**
  * The Encounter's one PENDING action decision (a d20 or outcome roll, or a contested Disarm roll),
  * projected as the room shows it to the GM (or, for an action d20, to a player when `isOwner` is
- * false); null when none waits.
+ * false); null when none waits. `reasons` labels an action d20's roll-mode reasons, which are left
+ * unlabeled without it.
  */
-export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
+export function readPendingActionDecision(
+  stub: RoomStub,
+  isOwner = true,
+  reasons?: Parameters<typeof projectNativeActionPending>[3]
+) {
   return runInDurableObject(stub, async (_instance, context) => {
     const room = new RoomEncounterStore(context.storage)
     const occurrence = room
@@ -139,7 +144,8 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
                 : projectNativeActionPending(
                     occurrence,
                     await readNativeActionPending({ db: room.store }, occurrence),
-                    isOwner
+                    isOwner,
+                    reasons
                   )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {

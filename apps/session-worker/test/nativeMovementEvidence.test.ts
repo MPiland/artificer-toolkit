@@ -23,7 +23,7 @@ import {
   movementRoom,
   type MovementRoomConfig
 } from './movementRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * The movement evidence a room holds and Convex never sees (D88): receipts, evidence rolls and
@@ -49,14 +49,16 @@ async function receiptOf(room: Room, commandType: string) {
   return receipt
 }
 
-/** Uses the one reaction the walk offered; the room's GM controls the reactor. */
-async function useOfferedReaction(room: Room) {
-  const pending = await room.pending()
-  if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-    throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-  const option = pending.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
-  return room.respond({ kind: 'OPTION', optionId: option.optionId })
+/**
+ * The settled action a used reaction ran as (D219): the receipt of `commandId` and its result.
+ */
+async function settledActionOf(room: Room, commandId: string) {
+  const receipt = (await room.receipts()).find((entry) => entry.commandId === commandId)
+  if (!receipt) throw new Error('The reaction left no action receipt.')
+  const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
+  if (result.status !== 'COMPLETE')
+    throw new Error(`Expected a settled action, got ${result.status}.`)
+  return { receipt, outputs: result.applicationOutputs, occurrenceId: result.occurrenceId }
 }
 
 describe('a used automatic reaction followed by a failed Concentration save', () => {
@@ -82,22 +84,29 @@ describe('a used automatic reaction followed by a failed Concentration save', ()
       })
 
       await room.move([MOVER_START, { x: 450, y: 150 }])
-      const used = await useOfferedReaction(room)
-      expect(used.type).toBe('COMMAND_COMMITTED')
+      const used = await room.useReaction()
+      expect(used.answer.type).toBe('COMMAND_COMMITTED')
 
+      // Restated (QUALITY-18.T2b3): the Use answer has no receipt of its own. The reaction runs as
+      // the reactor's own action (D219), so its receipt holds what the reaction did, and the room's
+      // resume of the move, made as the Campaign owner, holds how the move ended (ruling 7: with no
+      // reaction execution of its own).
+      const reaction = await settledActionOf(room, used.childCommandId)
+      expect(reaction.receipt).toMatchObject({
+        commandType: 'RESOLVE_ACTION',
+        actorUserId: room.base.userId
+      })
+      if (reaction.outputs.kind !== 'CHARACTER_MECHANICS_BATCH')
+        throw new Error('Expected a Character movement reaction target.')
       const rootReceipt = await receiptOf(room, 'RESOLVE_RULE_OCCURRENCE')
-      expect(rootReceipt.commandId).toBe(used.commandId)
+      expect(rootReceipt.commandId).toBe(used.resumeCommandId)
       expect(rootReceipt.actorUserId).toBe(room.base.userId)
       const result = parseMovementResult(rootReceipt.result)
-      const reaction = result.reactionExecutions[0]
-      const concentration = reaction?.concentrationChecks?.[0]
-      if (!reaction || !concentration) throw new Error('Expected the reaction Concentration child.')
-      if (reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH')
-        throw new Error('Expected a Character movement reaction target.')
+      expect(result.reactionExecutions).toEqual([])
       const spatial = result.status === 'BATCH_COMPLETE' ? result.executions : []
 
       // The reaction spends the reactor's one Reaction.
-      expect(reaction.allowance).toMatchObject({
+      expect(reaction.outputs.actionEconomyTransition).toMatchObject({
         definitionId: SRD_REACTION_ALLOWANCE_DEFINITION_ID,
         beforeUsed: 0,
         afterUsed: 1
@@ -110,18 +119,32 @@ describe('a used automatic reaction followed by a failed Concentration save', ()
           targetActorId: MOVER_ID
         })
         expect(spatial[0]!.candidate.candidate.pathDistance).toBeGreaterThan(
-          reaction.option.candidate.pathDistance
+          used.option.candidate.pathDistance
         )
       } else expect(spatial).toHaveLength(0)
 
-      // The save is sourced by the Use response and rolled with advantage against DC 10.
-      expect(concentration.sourceCommandId).toBe(used.commandId)
-      const damage = reaction.characterTransitions.find(
-        (transition) => transition.characterId === CHARACTER_ID
+      // Restated (QUALITY-18.T2b3): the save is the Concentration check of the reaction's own
+      // action (D219), not a check the move's terminal embeds: one receipt of its own, under the
+      // id its occurrence derives, parented by the action's occurrence instead of the move's. It
+      // is still rolled with advantage against DC 10.
+      const checks = (await room.receipts()).filter(
+        (entry) => entry.commandType === 'DAMAGE_SAVE_CHECK'
       )
-      if (!damage) throw new Error('The reaction left no Character transition.')
-      expect(concentration.result.applicationOutputs).toMatchObject({
-        parentOccurrenceId: result.occurrenceId,
+      expect(checks).toHaveLength(1)
+      const [check] = checks
+      const concentration = storedRuleExecutionResultDtoSchema.parse(check!.result)
+      if (concentration.status !== 'COMPLETE')
+        throw new Error(`Expected a settled Concentration check, got ${concentration.status}.`)
+      expect(check!.commandId).toBe(concentrationCommandId(concentration.occurrenceId))
+      expect(check!.actorUserId).toBe(room.base.userId)
+      // Restated (QUALITY-18.T2b3): the action's Character batch names the stream version its
+      // damage left, where the move's reaction execution listed the transition.
+      const damagedStreamVersion = reaction.outputs.targetCharacterStreamVersion
+      if (damagedStreamVersion === null)
+        throw new Error('The reaction left the Character as it was.')
+      expect(concentration.applicationOutputs).toMatchObject({
+        kind: 'DAMAGE_SAVE_CHECK',
+        parentOccurrenceId: reaction.occurrenceId,
         application: { targetActorId: MOVER_ID },
         outcome: 'SAVE_FAILURE',
         d20: { rawFaces: [1, 1], rollMode: 'ADVANTAGE', dc: 10, modifier: 1 },
@@ -133,40 +156,24 @@ describe('a used automatic reaction followed by a failed Concentration save', ()
           characterOwnerTransitions: [
             {
               characterId: CHARACTER_ID,
-              beforeStreamVersion: damage.afterStreamVersion,
-              afterStreamVersion: damage.afterStreamVersion + 1
+              beforeStreamVersion: damagedStreamVersion,
+              afterStreamVersion: damagedStreamVersion + 1
             }
           ]
         }
       })
-      expect(concentration.ownerTransitions).toMatchObject([
-        { characterId: CHARACTER_ID, targetActorId: MOVER_ID }
-      ])
       // One attack d20, two bite dice and the two d20s of the advantage save.
       expect(room.diceDrawn()).toBe(5)
-
-      // The child's receipt is its own, linked to the Use and holding the same result as the root's.
-      const child = (await room.receipts()).find(
-        (entry) => entry.commandId === concentrationCommandId(concentration.result.occurrenceId)
-      )
-      if (!child) throw new Error('Movement Concentration receipt is unavailable.')
-      expect(child.commandType).toBe('DAMAGE_SAVE_CHECK')
-      expect(child.actorUserId).toBe(room.base.userId)
-      expect(storedRuleExecutionResultDtoSchema.parse(child.result)).toEqual(concentration.result)
-      expect(result).toMatchObject({
-        reactionExecutions: [{ concentrationChecks: [concentration] }]
-      })
     },
     60_000
   )
 })
 
-/** Uses every reaction the walk offers in turn, returning each Use's command id in order. */
+/** Uses every reaction the walk offers in turn, returning each Use in order. */
 async function useEveryOfferedReaction(room: Room) {
-  const commandIds: string[] = []
-  for (let uses = 0; (await room.pending()) && uses < 5; uses++)
-    commandIds.push((await useOfferedReaction(room)).commandId)
-  return commandIds
+  const uses: Awaited<ReturnType<Room['useReaction']>>[] = []
+  while ((await room.pending()) && uses.length < 5) uses.push(await room.useReaction())
+  return uses
 }
 
 /** A stored result of a movement that carries its reactions: completed outright, or with its spatial prefix. */
@@ -241,17 +248,23 @@ describe('used automatic reactions of a Creature walking east', () => {
       const destination = { x: 450, y: 150 }
 
       await room.move([start, destination])
-      const commandIds = await useEveryOfferedReaction(room)
+      const uses = await useEveryOfferedReaction(room)
 
-      const { result } = await lastDecisionResult(room)
-      expect(commandIds).toHaveLength(2)
-      expect(result.reactionExecutions).toHaveLength(2)
-      expect(result.reactionExecutions.map((entry) => entry.ordinal)).toEqual([0, 1])
-      expect(result.reactionExecutions.map((entry) => entry.sourceCommandId)).toEqual(commandIds)
+      const { receipt, result } = await lastDecisionResult(room)
+      expect(uses).toHaveLength(2)
+      // Restated (QUALITY-18.T2b3): the move's terminal result no longer lists its reactions
+      // (ruling 7). Each Use runs as an action of its own (D219), so the two Uses are the two
+      // action receipts, in order, each under the command id its own choice derives, and the
+      // terminal is the receipt of the room's resume after the last one.
+      expect(result.reactionExecutions).toEqual([])
+      expect(
+        (await room.receipts())
+          .filter((entry) => entry.commandType === 'RESOLVE_ACTION')
+          .map((entry) => entry.commandId)
+      ).toEqual(uses.map((use) => use.childCommandId))
+      expect(receipt.commandId).toBe(uses[1]!.resumeCommandId)
       expect(result.terminalPosition).toEqual(destination)
-      const [first, second] = result.reactionExecutions.map(
-        (entry) => entry.option.candidate.pathDistance
-      )
+      const [first, second] = uses.map((use) => use.option.candidate.pathDistance)
       if (positions[0]!.x !== positions[1]!.x) expect(first).toBeLessThan(second!)
       else expect(first).toBe(second)
     },
@@ -341,7 +354,7 @@ describe('used automatic reactions of a Creature walking east', () => {
     )
 
     await room.move([start, { x: 600, y: 150 }])
-    const commandIds = await useEveryOfferedReaction(room)
+    const uses = await useEveryOfferedReaction(room)
 
     const { receipt, result } = await lastDecisionResult(room)
     if (result.status !== 'BATCH_COMPLETE' || result.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
@@ -351,15 +364,18 @@ describe('used automatic reactions of a Creature walking east', () => {
     expect(result.executions.map((entry) => entry.candidate.candidate.effectId)).toEqual(
       room.spatialEffectIds
     )
-    const reactionDistances = result.reactionExecutions.map(
-      (entry) => entry.option.candidate.pathDistance
-    )
+    // Restated (QUALITY-18.T2b3): the terminal no longer lists the reactions (ruling 7), so each
+    // reaction's contact is read from the option its Use chose.
+    const reactionDistances = uses.map((use) => use.option.candidate.pathDistance)
     expect(reactionDistances).toHaveLength(2)
     expect(prefix.candidate.candidate.pathDistance).toBeLessThan(Math.min(...reactionDistances))
     expect(Math.max(...reactionDistances)).toBeLessThan(suffix.candidate.candidate.pathDistance)
     expect(result.terminalPosition).toEqual({ x: 600, y: 150 })
-    // The last Use's response holds the one terminal receipt.
-    const last = (await room.receipts()).filter((entry) => entry.commandId === commandIds.at(-1))
+    // Restated (QUALITY-18.T2b3): the room's resume after the last Use holds the one terminal
+    // receipt; the Use's own answer is the reaction's action.
+    const last = (await room.receipts()).filter(
+      (entry) => entry.commandId === uses.at(-1)?.resumeCommandId
+    )
     expect(last).toHaveLength(1)
     expect(last[0]).toEqual(receipt)
   }, 60_000)
@@ -400,7 +416,7 @@ describe('used automatic reactions of a Creature walking east', () => {
     )
 
     await room.move([start, { x: 700, y: 150 }])
-    await useOfferedReaction(room)
+    const used = await room.useReaction()
 
     const pending = await room.pending()
     if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
@@ -412,13 +428,17 @@ describe('used automatic reactions of a Creature walking east', () => {
     } = pending.context
     if (prefix?.status !== 'BATCH_COMPLETE' || prefix.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
       throw new Error('Expected the applied spatial prefix.')
-    const [reaction] = completedReactionExecutions
+    // Restated (QUALITY-18.T2b3): the used reaction ran as an action of its own (D219), so the
+    // move records no completed execution for it (ruling 7); its contact is the chosen option's.
+    expect(completedReactionExecutions).toEqual([])
+    expect((await settledActionOf(room, used.childCommandId)).receipt.commandType).toBe(
+      'RESOLVE_ACTION'
+    )
     const [execution] = prefix.executions
     const choice = reactionTimeline[0]
-    if (!reaction || !execution || !choice)
-      throw new Error('Expected reaction, spatial and choice stages.')
+    if (!execution || !choice) throw new Error('Expected spatial and choice stages.')
     expect(execution.candidate.candidate.effectId).toBe(room.spatialEffectIds[0])
-    expect(reaction.option.candidate.pathDistance).toBeLessThan(
+    expect(used.option.candidate.pathDistance).toBeLessThan(
       execution.candidate.candidate.pathDistance
     )
     expect(execution.candidate.candidate.pathDistance).toBeLessThan(choice.group.pathDistance)
@@ -459,20 +479,22 @@ describe("stops a Character's movement at a used reaction", () => {
 
       await room.move([start, destination])
       const receiptsBefore = (await room.receipts()).length
-      const used = await useOfferedReaction(room)
+      const used = await room.useReaction()
 
       expect(await room.pending()).toBeNull()
       const { receipt, result } = await lastDecisionResult(room)
-      expect(receipt.commandId).toBe(used.commandId)
-      expect((await room.receipts()).length).toBe(receiptsBefore + 1)
-      expect(result.reactionExecutions).toHaveLength(1)
-      const [reaction] = result.reactionExecutions
-      expect(reaction).toMatchObject({
-        ordinal: 0,
-        sourceCommandId: used.commandId,
-        option: { candidate: { reactorActorId: STOP_REACTOR_ID } }
-      })
-      const { pathDistance } = reaction!.option.candidate
+      // Restated (QUALITY-18.T2b3): the Use runs the reaction as the reactor's own action (D219)
+      // and the room then resumes the move, so the answer leaves two receipts, the action's and
+      // the resume's, and the terminal is the resume's with no reaction execution (ruling 7). The
+      // one reaction is the action receipt under the id the choice derives, for the chosen option.
+      expect(receipt.commandId).toBe(used.resumeCommandId)
+      expect((await room.receipts()).length).toBe(receiptsBefore + 2)
+      expect(result.reactionExecutions).toEqual([])
+      expect((await settledActionOf(room, used.childCommandId)).receipt.commandType).toBe(
+        'RESOLVE_ACTION'
+      )
+      expect(used.option.candidate.reactorActorId).toBe(STOP_REACTOR_ID)
+      const { pathDistance } = used.option.candidate
       expect(pathDistance).toBeGreaterThan(0)
       expect(pathDistance).toBeLessThan(destination.x - start.x)
       // The STOP ends the walk at the contact, not at the destination.
@@ -520,20 +542,25 @@ describe('a used automatic Character mutation at the next choice', () => {
       await room.move([MOVER_START, { x: 250 + ids.length * 100, y: 150 }])
       if (stage === 'RESPONSE') await room.respond({ kind: 'DECLINE' })
       const receiptsBefore = (await room.receipts()).length
-      const used = await useOfferedReaction(room)
+      const used = await room.useReaction()
 
       expect(await room.pending()).not.toBeNull()
+      // Restated (QUALITY-18.T2b3): a Use commits two receipts, the reaction's own action and the
+      // room's resume of the move (D219), where the Use answer committed one. The one Character
+      // transition is the action's; the resume, which paused at the next choice, records none.
       const receipts = await room.receipts()
-      expect(receipts).toHaveLength(receiptsBefore + 1)
-      const response = receipts.find((entry) => entry.commandId === used.commandId)
-      if (!response) throw new Error('The Use left no receipt.')
-      const stored = storedRuleExecutionResultDtoSchema.parse(response.result)
+      expect(receipts).toHaveLength(receiptsBefore + 2)
+      const reaction = await settledActionOf(room, used.childCommandId)
+      if (reaction.outputs.kind !== 'CHARACTER_MECHANICS_BATCH')
+        throw new Error('Expected a Character movement reaction target.')
+      // The Character page starts at stream version 1 and the one hit advances it once.
+      expect(reaction.outputs.targetCharacterStreamVersion).toBe(2)
+      const resume = receipts.find((entry) => entry.commandId === used.resumeCommandId)
+      if (!resume) throw new Error('The room left no resume receipt.')
+      const stored = storedRuleExecutionResultDtoSchema.parse(resume.result)
       if (!('characterTransitions' in stored))
         throw new Error('Expected pending command transitions.')
-      // The Character page starts at stream version 1 and the one hit advances it once.
-      expect(stored.characterTransitions).toEqual([
-        { characterId: CHARACTER_ID, beforeStreamVersion: 1, afterStreamVersion: 2 }
-      ])
+      expect(stored.characterTransitions).toEqual([])
     },
     60_000
   )
@@ -556,45 +583,50 @@ describe('a failed movement-reaction save against Legendary Resistance', () => {
       })
 
       await room.move([MOVER_START, { x: 450, y: 150 }])
-      await useOfferedReaction(room)
-      const choice = await room.pending()
-      if (
-        choice?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-        choice.context.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE'
-      )
+      const used = await room.useReaction()
+      // Restated (QUALITY-18.T2b3): the Legendary Resistance choice is the reaction's own action's
+      // (D219), read and answered as any action's while the move is SUSPENDED, where it was a
+      // phase of the move's decision.
+      const choice = await readPendingActionDecision(room.base.stub)
+      if (choice?.pending.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
         throw new Error('Expected the Legendary Resistance choice.')
-      const answered = await room.respond(
+      const answered = await room.respondToChild(
         selection === 'USE'
-          ? { kind: 'OPTION', optionId: choice.context.phase.resistance.useOptionId }
+          ? { kind: 'OPTION', optionId: choice.pending.options[0]!.optionId }
           : { kind: 'DECLINE' }
       )
       expect(answered.type).toBe('COMMAND_COMMITTED')
 
-      const receipt = (await room.receipts()).find(
-        (entry) => entry.commandId === answered.commandId
+      // Restated (QUALITY-18.T2b3): what the reaction did is the result of its action's receipt,
+      // and how the move ended is the result of the room's resume, which lists no reaction
+      // execution (ruling 7).
+      const reaction = await settledActionOf(room, used.childCommandId)
+      const resume = (await room.receipts()).find(
+        (entry) => entry.commandId === used.resumeCommandId
       )
-      if (!receipt) throw new Error('The LR answer left no receipt.')
-      const result = parseMovementResult(receipt.result)
-      expect(result.reactionExecutions).toHaveLength(1)
-      const reaction = result.reactionExecutions[0]!
+      if (!resume) throw new Error('The room left no resume receipt.')
+      const result = parseMovementResult(resume.result)
+      expect(result.reactionExecutions).toEqual([])
       // The reactor's authored STOP binding fires on the failed-save path.
-      expect(reaction.option.binding.movementInterruption).toEqual({
+      expect(used.option.binding.movementInterruption).toEqual({
         kind: 'STOP',
         whenResultPath: 'ON_SAVE_FAIL'
       })
-      expect(reaction.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_SAVE_FAIL')
-      expect(reaction.legendaryResistance?.use).toBe(selection === 'USE')
-      if (reaction.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      if (reaction.outputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
         throw new Error('Expected a Creature movement reaction target.')
-      expect(reaction.application.targetFeatureResourceConsumption).toEqual(
+      expect(reaction.outputs.legendaryResistance?.originalExecution.outputs.resultPath).toBe(
+        'ON_SAVE_FAIL'
+      )
+      expect(reaction.outputs.legendaryResistance?.use).toBe(selection === 'USE')
+      expect(reaction.outputs.targetFeatureResourceConsumption).toEqual(
         selection === 'USE' ? expect.objectContaining({ beforeUsed: 0, afterUsed: 1 }) : null
       )
-      expect(reaction.option.candidate.contact).toEqual({ x: 200, y: 150 })
+      expect(used.option.candidate.contact).toEqual({ x: 200, y: 150 })
       expect(result.terminalPosition).toEqual(
-        selection === 'USE' ? { x: 450, y: 150 } : reaction.option.candidate.contact
+        selection === 'USE' ? { x: 450, y: 150 } : used.option.candidate.contact
       )
       // A resisted save deals nothing; a failed one deals the bite's minimum (2d4 + 2).
-      const { before, after } = reaction.application.targetTransition
+      const { before, after } = reaction.outputs.targetTransition
       expect(before.currentHitPoints - after.currentHitPoints).toBe(selection === 'USE' ? 0 : 4)
     },
     60_000

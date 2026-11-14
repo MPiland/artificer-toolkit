@@ -199,6 +199,9 @@ export function projectSpatialMovementResult(input: {
       left.effectId.localeCompare(right.effectId)
     ),
     ...(consumedSpatialEffects.length ? { consumedSpatialEffects } : {}),
+    ...(historical?.reactionChildBoundaries
+      ? { reactionChildBoundaries: historical.reactionChildBoundaries }
+      : {}),
     characterTransitions: [...characterById.values()].sort((left, right) =>
       left.characterId.localeCompare(right.characterId)
     ),
