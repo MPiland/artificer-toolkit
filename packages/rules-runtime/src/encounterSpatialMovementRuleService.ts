@@ -1,4 +1,5 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import { damageRowHits } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -834,7 +835,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       input.interruptAfterContactToActorIds?.has(candidate.targetActorId) &&
       completed.applications.some(
         (application) =>
-          (application.kind === 'DAMAGE' && application.appliedAmount > 0) ||
+          (application.kind === 'DAMAGE' && damageRowHits(application)) ||
           (application.kind === 'CONDITION_APPLY' && application.applied)
       )
     ) {

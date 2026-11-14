@@ -5,7 +5,10 @@ import {
   type ConcentrationDamageApplicationDto,
   type ConcentrationDamageSourceLabelsDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
-import type { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  damageRowHits,
+  type characterMechanicsApplicationDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { StagedTurnZonePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
@@ -22,13 +25,14 @@ export type DamageBatch = {
 
 /**
  * Each batch is one damage source (an action, spell or turn effect against one target), so it makes
- * one Concentration check at the DC of its total applied damage (SRD 5.1), identified by its first
- * damage row.
+ * one Concentration check at the DC of the total damage its hitting rows dealt (`damageRowHits`: the
+ * damage the holder takes, SRD 5.1, even when an interception kept it off hit points), identified by
+ * its first hitting row.
  */
 function collectConcentrationDamage(batches: readonly DamageBatch[], preserveOrdinals: boolean) {
   const damage = batches.flatMap((batch) => {
     const rows = batch.applications.flatMap((application) =>
-      application.kind === 'DAMAGE' && application.appliedAmount > 0 ? [application] : []
+      application.kind === 'DAMAGE' && damageRowHits(application) ? [application] : []
     )
     const [first] = rows
     if (!first) return []
@@ -39,7 +43,7 @@ function collectConcentrationDamage(batches: readonly DamageBatch[], preserveOrd
           sourceNodeId: first.sourceNodeId,
           sourceOperationKey: first.sourceOperationKey,
           targetActorId: batch.targetActorId,
-          appliedAmount: rows.reduce((total, row) => total + row.appliedAmount, 0),
+          appliedAmount: rows.reduce((total, row) => total + row.resolvedAmount, 0),
           damageTypeIds: [...new Set(rows.map(({ damageTypeId }) => damageTypeId))],
           ...(batch.damagerActorId ? { damagerActorId: batch.damagerActorId } : {})
         },
@@ -188,7 +192,7 @@ export function nativeConcentrationParentDamage(
     result.status === 'AGGREGATE_CHOICE_COMPLETE' &&
     result.applicationOutputs.kind === 'CLEAVING_DAMAGE' &&
     result.applicationOutputs.outcome === 'APPLIED' &&
-    result.applicationOutputs.damage.appliedAmount > 0
+    damageRowHits(result.applicationOutputs.damage)
   )
     return [
       concentrationDamageApplicationDtoSchema.parse({
@@ -196,7 +200,7 @@ export function nativeConcentrationParentDamage(
         sourceNodeId: result.applicationOutputs.damage.sourceNodeId,
         sourceOperationKey: result.applicationOutputs.damage.sourceOperationKey,
         targetActorId: result.applicationOutputs.targetActorId,
-        appliedAmount: result.applicationOutputs.damage.appliedAmount,
+        appliedAmount: result.applicationOutputs.damage.resolvedAmount,
         damageTypeIds: [result.applicationOutputs.damage.damageTypeId]
       })
     ]

@@ -54,9 +54,14 @@ import {
   activeEffectGraphNodeId,
   durationPublishedGraph,
   incomingGateImmunityPlan,
-  isGrantEndTrigger,
   maintenancePlan
 } from './effectActionLifetime.js'
+import {
+  dnd5eLifetime,
+  holdsEntryLifetime,
+  holdsWholeGraph,
+  type Dnd5eLifetimeCandidates
+} from './effectActionLifetimeAspect.js'
 import {
   modifierGrantEntryPlan,
   passiveDamageGrantPlan,
@@ -428,99 +433,6 @@ function entryResultGate(
   return testPaths.includes(pathCode) ? dnd5eResultGate(pathCode) : undefined
 }
 
-function supportedRecurringPlan(
-  action: Dnd5eCompiledEffectActionSource
-): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { invocation, entries } = action.compiledEffect
-  const entry = entries[0]
-  if (!entry || !('outcome' in entry)) return null
-  const duration = entry.duration
-  const lifecycle = entry.lifecycle
-  const recurringStage =
-    lifecycle?.recurringKind === 'START_OF_TURN' || lifecycle?.recurringKind === 'END_OF_TURN'
-      ? lifecycle.recurringKind
-      : null
-  const recurringAmount =
-    duration?.durationKind === 'ROUND' &&
-    Number.isSafeInteger(duration.amount) &&
-    duration.amount > 0
-      ? duration.amount
-      : null
-  const recurringScaling = duration?.durationKind === 'ROUND' ? duration.scaling : true
-  const recurringLifecycleIsSupported =
-    recurringAmount !== null &&
-    !recurringScaling &&
-    lifecycle &&
-    recurringStage !== null &&
-    (lifecycle.endTriggers?.length ?? 0) === 0 &&
-    (lifecycle.endOnConditionIds?.length ?? 0) === 0
-  const maintenance = maintenancePlan(action, entry)
-  if (
-    invocation.kind === 'ACTION' &&
-    invocation.triggerCode === 'SAVING_THROW' &&
-    entries.length === 1 &&
-    entry.resolutionKind === 'DIRECT' &&
-    entry.groupKind === 'SINGLE' &&
-    entry.pathCode === 'ON_SAVE_FAIL' &&
-    !entry.rangeOverride &&
-    !entry.targetingOverride &&
-    recurringLifecycleIsSupported
-  ) {
-    if (recurringStage === null || recurringAmount === null) return null
-    const repeatSave = dnd5eRepeatSave({
-      abilityDefinitionId: action.savingThrowAbilityDefinitionId,
-      savingThrow: invocation.savingThrow,
-      requestNodeId: 'd20'
-    })
-    if (!repeatSave) {
-      unsupported(
-        'D&D recurring saving throws require one pinned ability definition and a fixed or caster save DC.'
-      )
-    }
-    if (!UUID.test(entry.resultBlockId))
-      unsupported('D&D recurring active-effect result blocks require a UUID-backed identity.')
-    return {
-      authoredEffectId: action.effectId,
-      compiledEntryId: entry.resultBlockId,
-      frozenGraphNodeId: 'proposal-on_save_fail',
-      capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-      recurrenceStage: recurringStage,
-      initialRemaining: recurringAmount,
-      ...repeatSave,
-      perceptionContributions: [],
-      maintenance,
-      marginRiders: []
-    }
-  }
-  if (
-    invocation.kind !== 'ACTION' ||
-    invocation.triggerCode !== 'ACTIVATED' ||
-    entries.length !== 1 ||
-    entry.resolutionKind !== 'DIRECT' ||
-    entry.groupKind !== 'SINGLE' ||
-    entry.pathCode !== 'ON_USE' ||
-    entry.rangeOverride ||
-    entry.targetingOverride ||
-    !recurringLifecycleIsSupported
-  )
-    return null
-  if (recurringStage === null || recurringAmount === null) return null
-  if (!UUID.test(entry.resultBlockId))
-    unsupported('D&D recurring active-effect result blocks require a UUID-backed identity.')
-  return {
-    authoredEffectId: action.effectId,
-    compiledEntryId: entry.resultBlockId,
-    frozenGraphNodeId: activeEffectGraphNodeId(entry.resultBlockId),
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: recurringStage,
-    initialRemaining: recurringAmount,
-    adapterFacts: {},
-    perceptionContributions: [],
-    maintenance,
-    marginRiders: []
-  }
-}
-
 /**
  * The one active effect a sequential composition holds (D156). A recurring heal is its graph: it
  * fires at each authored turn boundary of the holder, never at cast, for a duration in turns (a
@@ -678,11 +590,7 @@ function compileSequentialComposition(
 }
 
 function holdsLastingEffect(action: Dnd5eCompiledEffectActionSource): boolean {
-  return (
-    timedActiveEffectPlan(action) !== null ||
-    relationshipPlan(action) !== null ||
-    (supportedRecurringPlan(action) ?? concealmentPlan(action)) !== null
-  )
+  return dnd5eLifetime(action, LIFETIME_CANDIDATES) !== null
 }
 
 function compileDirectResultSequence(
@@ -1129,10 +1037,12 @@ function ownsTimedSaveCondition(
  * recurring result its recurring plan repeats.
  */
 function testOutcomeLifetimeHeld(action: Dnd5eCompiledEffectActionSource) {
-  return (entry: Dnd5eOutcomeEntry) =>
-    ownsTimedSaveCondition(action, entry) ||
-    (dnd5eTestKind(action.compiledEffect.invocation) === 'SAVE' &&
-      supportedRecurringPlan(action)?.compiledEntryId === entry.resultBlockId)
+  return (entry: Dnd5eOutcomeEntry) => {
+    if (ownsTimedSaveCondition(action, entry)) return true
+    if (dnd5eTestKind(action.compiledEffect.invocation) !== 'SAVE') return false
+    const lifetime = dnd5eLifetime(action, LIFETIME_CANDIDATES)
+    return lifetime?.kind === 'RECURRING' && lifetime.plan.compiledEntryId === entry.resultBlockId
+  }
 }
 
 /** The action's entries without a successful save's immunity, which is planned beside the effect it rides, not held by it. */
@@ -1449,47 +1359,6 @@ function creatureFormPlan(
       initialRemainingScaling: duration.scaling
     },
     ...(resultGate && { resultGate }),
-    adapterFacts: {},
-    perceptionContributions: [],
-    maintenance: maintenancePlan(action, entry),
-    marginRiders: []
-  }
-}
-
-/**
- * Hide: a successful check conceals the actor from the observers its total beats. It lasts until
- * dispelled and the events its lifecycle authors consume it (Hide: the first attack roll); any
- * other lifecycle stays unsupported.
- */
-function concealmentPlan(
-  action: Dnd5eCompiledEffectActionSource
-): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { entries } = action.compiledEffect
-  const entry = entries[0]
-  if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
-  if (entry.outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS') return null
-  const { endTriggers = [], ...otherLifecycle } = entry.lifecycle ?? {}
-  if (
-    entry.duration?.durationKind !== 'UNTIL_DISPELLED' ||
-    !endTriggers.every(
-      (trigger) =>
-        trigger.event === 'LIFECYCLE' && trigger.timing === 'CONSUME' && isGrantEndTrigger(trigger)
-    ) ||
-    Object.values(otherLifecycle).some((value) => value !== undefined) ||
-    !UUID.test(entry.entryId)
-  )
-    return null
-  return {
-    authoredEffectId: action.effectId,
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'conceal',
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'NONE',
-    initialRemaining: null,
-    concealmentContribution: {
-      observers: entry.outcome.observers,
-      endTriggers: canonicalEndTriggers(endTriggers)
-    },
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
@@ -2083,13 +1952,6 @@ function supported(
     unsupported('D&D willing target needs an outcome a creature accepts.')
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
-  const lastingPlan =
-    repeatPlan ||
-    supportedRecurringPlan(action) ||
-    grantPlan ||
-    conditionPlan ||
-    linkPlan ||
-    formPlan
   const entry = dnd5eDirectOutcomeEntry(effect.entries, {
     test: test.kind,
     repeatsSave: repeatPlan !== null,
@@ -2097,9 +1959,7 @@ function supported(
     carriers: {
       sequence: true,
       choice: repeatPlan !== null,
-      // A concealment holds its lifecycle but no maintenance: its check settles with no maintenance link.
-      lifetime: (held) =>
-        lastingPlan !== null || (!held.maintenanceDefinitionId && concealmentPlan(action) !== null)
+      lifetime: () => holdsEntryLifetime(dnd5eLifetime(action, LIFETIME_CANDIDATES))
     }
   })
   if (
@@ -2775,13 +2635,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
 function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolean {
   const results = directResultSequence(action, holdsLastingEffect)
   if (results) return results.some(startsMaintainedEffect)
-  const plan =
-    sequentialCompositionPlan(action) ??
-    repeatingFollowUpSavePlan(action) ??
-    timedActiveEffectPlan(action) ??
-    relationshipPlan(action) ??
-    supportedRecurringPlan(action)
-  return plan?.maintenance != null
+  return dnd5eLifetime(action, LIFETIME_CANDIDATES)?.plan.maintenance != null
 }
 
 /** The effect a follow-up save repeats in, wherever the save sits: a failed save, a cast or a hit. */
@@ -2795,11 +2649,16 @@ function repeatingFollowUpSavePlan(action: Dnd5eCompiledEffectActionSource) {
 
 /** The plan that holds a roll-table row that lasts: a repeating save, or a duration alone. */
 function lastingRowPlan(rowAction: Dnd5eCompiledEffectActionSource) {
-  return (
-    repeatingDirectFollowUpSavePlan(rowAction) ??
-    repeatingDirectFollowUpSavePlan(rowAction, 'ACTIVATED') ??
-    timedActiveEffectPlan(rowAction)
-  )
+  const lifetime = dnd5eLifetime(rowAction, LIFETIME_CANDIDATES)
+  return lifetime?.kind === 'REPEAT_SAVE' || lifetime?.kind === 'TIMED' ? lifetime.plan : null
+}
+
+/** The plans the lifetime aspect chooses among; it builds recurring and concealment plans itself. */
+const LIFETIME_CANDIDATES: Dnd5eLifetimeCandidates = {
+  sequential: sequentialCompositionPlan,
+  repeatSave: repeatingFollowUpSavePlan,
+  timed: timedActiveEffectPlan,
+  relationship: relationshipPlan
 }
 
 /** The effect whose own duration counts it down, with no save repeating. */
@@ -2821,19 +2680,10 @@ function dnd5eActiveEffectPlans(
     throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
   const results = directResultSequence(action, holdsLastingEffect)
   if (results) return results.flatMap((result) => dnd5eActiveEffectPlans(result, published))
-  const composed = sequentialCompositionPlan(action)
-  if (composed) return [composed]
-  const repeatPlan = repeatingFollowUpSavePlan(action)
-  const timedPlan = repeatPlan ? null : timedActiveEffectPlan(action)
-  // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
-  const savePlan = repeatPlan ?? (timedPlan?.turnEndGate ? timedPlan : null)
-  const relationship = relationshipPlan(action)
-  const plan =
-    repeatPlan ??
-    timedPlan ??
-    relationship ??
-    supportedRecurringPlan(action) ??
-    concealmentPlan(action)
+  const lifetime = dnd5eLifetime(action, LIFETIME_CANDIDATES)
+  if (lifetime?.kind === 'SEQUENTIAL') return [lifetime.plan]
+  const plan = lifetime?.plan
+  const timedPlan = lifetime?.kind === 'TIMED' ? lifetime.plan : null
   // A chosen item rides a grant plan; with any other plan its binding or release would vanish.
   if (
     !plan?.chosenItem &&
@@ -2873,7 +2723,9 @@ function dnd5eActiveEffectPlans(
       sourceImmunity)
   )
     unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
-  if (!plan) return []
+  if (!lifetime || !plan) return []
+  // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
+  const savePlan = lifetime.kind === 'REPEAT_SAVE' || timedPlan?.turnEndGate ? plan : null
   const frozenGraph = savePlan
     ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
     : timedPlan
@@ -2881,35 +2733,38 @@ function dnd5eActiveEffectPlans(
           effectId: action.effectId,
           plan: { ...timedPlan, repeatCarrier }
         })
-      : relationship
-        ? relationship.frozenGraph
+      : lifetime.kind === 'RELATIONSHIP'
+        ? lifetime.plan.frozenGraph
         : published
-  const test = repeatPlan || timedPlan || relationship ? null : testPlan(action)
-  const outcome = repeatPlan || timedPlan || relationship || test ? null : supported(action)
+  // Only a recurring result or a concealment is frozen as the action's own graph.
+  const ownGraph = lifetime.kind === 'RECURRING' || lifetime.kind === 'CONCEALMENT'
+  const test = ownGraph ? testPlan(action) : null
+  const outcome = ownGraph && !test ? supported(action) : null
   const firstEntry = action.compiledEffect.entries[0]
   const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
   const testOutcomeKind = test && recurringOutcome ? boundedTestOutcome(firstEntry!).kind : null
-  const expectedOperation = relationship
-    ? relationshipOperationKey(action)
-    : savePlan
-      ? DND5E_SAVE_TEST_OPERATION_KEY
-      : timedPlan
-        ? DND5E_CONDITION_DURATION_OPERATION_KEY
-        : testOutcomeKind
-          ? testOutcomeKind === 'FORCED_MOVEMENT'
-            ? null
-            : dnd5eOutcomeDefinition(testOutcomeKind).pathGatedOperationKey
-          : outcome?.kind === 'DICE_HEAL'
-            ? dnd5eOutcomeDefinition(outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL')
-                .operationKey
-            : // A recurring plan rides one registered outcome; no other graph carries one.
-              !outcome ||
-                outcome.kind === 'DICE_DAMAGE' ||
-                outcome.kind === 'CONTEST_RELATIONSHIP' ||
-                outcome.kind === 'CHECK_OUTCOME' ||
-                outcome.kind === 'DIRECT_RELATIONSHIP'
+  const expectedOperation =
+    lifetime.kind === 'RELATIONSHIP'
+      ? relationshipOperationKey(action)
+      : savePlan
+        ? DND5E_SAVE_TEST_OPERATION_KEY
+        : timedPlan
+          ? DND5E_CONDITION_DURATION_OPERATION_KEY
+          : testOutcomeKind
+            ? testOutcomeKind === 'FORCED_MOVEMENT'
               ? null
-              : dnd5eOutcomeDefinition(outcome.kind).operationKey
+              : dnd5eOutcomeDefinition(testOutcomeKind).pathGatedOperationKey
+            : outcome?.kind === 'DICE_HEAL'
+              ? dnd5eOutcomeDefinition(outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL')
+                  .operationKey
+              : // A recurring plan rides one registered outcome; no other graph carries one.
+                !outcome ||
+                  outcome.kind === 'DICE_DAMAGE' ||
+                  outcome.kind === 'CONTEST_RELATIONSHIP' ||
+                  outcome.kind === 'CHECK_OUTCOME' ||
+                  outcome.kind === 'DIRECT_RELATIONSHIP'
+                ? null
+                : dnd5eOutcomeDefinition(outcome.kind).operationKey
   if (
     frozenGraph.definition.nodes.filter(
       (node) => node.id === plan.frozenGraphNodeId && node.operation.key === expectedOperation
@@ -2977,7 +2832,10 @@ function compileEffectActionGraph(
     refuseDirectGates(gates)
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }
-  const recurringPlan = supportedRecurringPlan(action) ?? concealmentPlan(action)
+  const lifetime = dnd5eLifetime(action, LIFETIME_CANDIDATES)
+  // A recurring result or a concealment binds the action's own outcome node to its result block.
+  const recurringPlan =
+    lifetime?.kind === 'RECURRING' || lifetime?.kind === 'CONCEALMENT' ? lifetime.plan : null
   const plan = testPlan(action)
   if (plan) {
     return bindMovementInterruptionOutput({
@@ -3282,11 +3140,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (
       (!isDnd5eRolledTest(dnd5eTestKind(source.compiledEffect.invocation)) &&
         !isCheckOutcomeAction(source)) ||
-      supportedRecurringPlan(source) ||
-      (source.compiledEffect.entries.every(
-        (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
-      ) &&
-        relationshipPlan(source))
+      holdsWholeGraph(source, dnd5eLifetime(source, LIFETIME_CANDIDATES))
     ) {
       return {
         kind: 'SINGLE_GRAPH',

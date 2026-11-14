@@ -1,4 +1,5 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { damageRowHits } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
 
 /** One damage type a creature took, and the command that dealt it. */
@@ -22,9 +23,7 @@ export function withDamageTypesTaken<T extends { damageTypesSinceTurnStart?: Dam
 ): T {
   const damageTypeIds = new Set(
     applications.flatMap((application) =>
-      application.kind === 'DAMAGE' && application.resolvedAmount > 0
-        ? [application.damageTypeId]
-        : []
+      application.kind === 'DAMAGE' && damageRowHits(application) ? [application.damageTypeId] : []
     )
   )
   if (!damageTypeIds.size) return holder

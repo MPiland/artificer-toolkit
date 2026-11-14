@@ -813,8 +813,8 @@ describe('nativeConcentrationParentDamage for Cleaving', () => {
     })
   }
 
-  it('checks the carried-over damage a cleave applied, and nothing for a decline or zero damage', () => {
-    expect(nativeConcentrationParentDamage(cleaving('APPLIED', 7))).toEqual([
+  it('checks the carried-over damage a cleave dealt, even when it applied none, and nothing for a decline', () => {
+    const check = [
       {
         ordinal: 0,
         sourceNodeId: 'cleave_damage',
@@ -823,8 +823,10 @@ describe('nativeConcentrationParentDamage for Cleaving', () => {
         appliedAmount: 7,
         damageTypeIds: [SLASHING.id]
       }
-    ])
-    expect(nativeConcentrationParentDamage(cleaving('APPLIED', 0))).toEqual([])
+    ]
+    expect(nativeConcentrationParentDamage(cleaving('APPLIED', 7))).toEqual(check)
+    // Its 7 damage survived the holder's defenses (D132), so it is a hit at the damage taken.
+    expect(nativeConcentrationParentDamage(cleaving('APPLIED', 0))).toEqual(check)
     expect(nativeConcentrationParentDamage(cleaving('DECLINED', 0))).toEqual([])
   })
 })
