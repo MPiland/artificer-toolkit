@@ -198,7 +198,7 @@ it('creates no concentration child for a holder at 0 hit points, whose incapacit
         state: {
           ...character.state,
           hitpoints: { ...character.state.hitpoints, current: 0 },
-          conditions: [{ conditionTypeId: UNCONSCIOUS, label: 'Unconscious' }]
+          conditions: [{ conditionTypeId: UNCONSCIOUS }]
         }
       },
       streamVersion: characterRow.play.streamVersion,
