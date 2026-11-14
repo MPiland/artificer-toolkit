@@ -3,7 +3,10 @@ import type { CastReactionLevelCheck } from './encounterCastReactionCheck.js'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
-import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  damageRowHits
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type {
   CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
@@ -217,11 +220,11 @@ export function targetEndedEffects(input: {
     const dealt = applications.flatMap((application) =>
       application.kind === 'DAMAGE' &&
       application.targetActorId === input.holderActorId &&
-      application.resolvedAmount > 0
+      damageRowHits(application)
         ? [application.damageTypeId]
         : []
     )
-    return dealt.length > 0 ? [{ damagerActorId, damageTypeIds: dealt }] : []
+    return dealt.length > 0 ? [{ damagerActorId, damageTypeIds: [...new Set(dealt)] }] : []
   })
   const events: EncounterEvent[] = [
     // An attack consumes only the effects whose event scope admits the attacker on this turn.
