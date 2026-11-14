@@ -26906,7 +26906,7 @@
             },
             {
               "id": "QUALITY-14.T2e2b3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26915,9 +26915,24 @@
                 "size": 13,
                 "after": ["QUALITY-14.T2e2b2"]
               },
-              "text": "One ends-stage damaged-holder discovery carried into the damage-save chain across action, area, Legendary Action and melee retaliation roots, so the chain no longer re-discovers from the post-command projection.",
-              "note": "Registered 2026-11-14 from the T2e2b split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "One ends-stage damaged-holder discovery carried into the damage-save chain for the action and area roots, in the room and in persistence (persistence re-derives it from the committed rows), with an agreement test.",
+              "note": "Registered 2026-11-14 from the T2e2b split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at delivery (whole task about 21): melee retaliation and the Legendary Action turn root moved to T2e2b4.",
+              "mergedAt": "2026-11-14",
+              "proof": "m776 (974d6bb94, batch with QUALITY-15.T3); slice tip adedef923: Tests 43647854537, Live 43647854614, Browser journeys 43647854540 green. targetEndedEffects returns repeatSaveEffects (its one DAMAGED(AFTER) raise, minus the effects it ended); planDamageSaveChain pairs that discovery with each hit; settledRepeatSaveEffects re-derives it in persistence. Red proof: nativeRoomEffectRepeatSave, nativeRoomAreaEffectRepeatSave RED (room planned a repeat save persistence rejected, UNAVAILABLE); damagedHolderDiscoveryAgreement RED. Restated: whole-object targetEndedEffects expectations gained repeatSaveEffects: [] (new field; no repeat-save hook in those cases). No D196 change."
+            },
+            {
+              "id": "QUALITY-14.T2e2b4",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2e2b3"]
+              },
+              "text": "Melee retaliation and the Legendary Action turn root carry their ends-stage damaged discovery into the damage-save chain, in the room and in persistence; the retaliation settlement reads the attacker effects after the ends stage, and the chain and the ends stage name the same damager (the zone source).",
+              "note": "Registered 2026-11-14 from the T2e2b3 split; under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-14.T2e2c",
@@ -26928,7 +26943,12 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-14.T2e2b", "QUALITY-14.T2e2b2", "QUALITY-14.T2e2b3"]
+                "after": [
+                  "QUALITY-14.T2e2b",
+                  "QUALITY-14.T2e2b2",
+                  "QUALITY-14.T2e2b3",
+                  "QUALITY-14.T2e2b4"
+                ]
               },
               "text": "A resumed save chain reads the sealed pre-command discovery on its damage-save context (D220, D196) instead of re-deriving from a snapshot earlier saves changed; forged and replayed steps refused.",
               "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
@@ -26942,7 +26962,12 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-14.T2e2b", "QUALITY-14.T2e2b2", "QUALITY-14.T2e2b3"]
+                "after": [
+                  "QUALITY-14.T2e2b",
+                  "QUALITY-14.T2e2b2",
+                  "QUALITY-14.T2e2b3",
+                  "QUALITY-14.T2e2b4"
+                ]
               },
               "text": "A move takes damage per contact (D220): each contact raises one DAMAGED(AFTER) per holder settling ends and the Concentration chain together, replacing the terminal ends settle; a Concentration lost mid-move stops that zone later damage.",
               "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
@@ -27067,7 +27092,7 @@
             },
             {
               "id": "QUALITY-15.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27076,9 +27101,38 @@
                 "size": 8,
                 "after": ["QUALITY-15.T2"]
               },
-              "text": "A GM ruling with a duration compiles to a timed ruling plan holding its duration and Concentration (about 47 golden rows: 33 direct, 14 test path); persisted active-effect plan shape change migrated per D196.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "A single-entry GM ruling with a duration compiles to a timed ruling plan holding its text, its duration (up to one day) and its Concentration (30 golden rows: 24 direct, 6 test path); stored as a GM_RULING contribution on the active effect.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at delivery: 18 lifetime refusals remain, moved to T3h (a ruling beside a manifestation or a second entry) and T3i (rulings longer than a day, Geas).",
+              "mergedAt": "2026-11-14",
+              "proof": "m776 (974d6bb94, batch with QUALITY-14.T2e2b3); slice tip 8453e998f: Tests 43649320751, Live 43649320863, Browser journeys 43649320788 green. effectActionTimedRuling.ts (timedRulingPlan) after creatureFormPlan in timedActiveEffectPlan; TEST/OUTCOME gate admits a ruling plan. Golden: lifetime refusals 48 to 18, other rows byte-identical. Red proof: nativeRoomTimedRuling RED (SRD Suggestion at a Wolf held 4800 ticks, ends with Concentration and with undo), timedRulingPlan RED 3 of 4. No restated assertions. D196: optional rulingContribution on the compiled plan and a GM_RULING state contribution (additive; refresh character-mechanics projections)."
+            },
+            {
+              "id": "QUALITY-15.T3h",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T3"]
+              },
+              "text": "A timed GM ruling beside a manifestation (Light, Continual Flame) or with a second entry (Channel Divinity, multi-entry charm and dominate rows) compiles, so the ruling and its sibling share one lifetime.",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3i",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T3"]
+              },
+              "text": "A timed GM ruling longer than one day (Geas, 30 days) compiles and expires by elapsed time instead of the one-day turn cap.",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3b",

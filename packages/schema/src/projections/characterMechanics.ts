@@ -36,6 +36,7 @@ import {
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
 import { heldEscapeDcDtoSchema } from '../effects/check.js'
+import { manualAdjudicationTextDtoSchema } from '../effects/manualAdjudication.js'
 import { summonStatBlockDtoSchema } from '../effects/manifest.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -343,6 +344,9 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       null
     ),
     playAbsenceContribution: z.optional(z.strictObject({ keepsTurn: z.boolean() })),
+    rulingContribution: z.optional(
+      z.extend(manualAdjudicationTextDtoSchema, { rulingOutcomeId: serverUuidIdentityDtoSchema })
+    ),
     turnEndGate: z.optional(
       z.strictObject({
         minimumRoll: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)),
@@ -536,10 +540,13 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
   })
 )
 
-/** Named so the many schemas embedding a plan stay within the declaration size limit (TS7056). */
-export type CompiledActionActiveEffectPlan = z.infer<
+/**
+ * An interface, not an alias, so the many schemas embedding a plan print it by name and stay within
+ * the declaration size limit (TS7056); an alias of `z.infer` is expanded wherever it is embedded.
+ */
+export interface CompiledActionActiveEffectPlan extends z.infer<
   typeof compiledActionActiveEffectPlanObjectSchema
->
+> {}
 
 const compiledActionActiveEffectPlanSchema: z.ZodMiniType<CompiledActionActiveEffectPlan> =
   compiledActionActiveEffectPlanObjectSchema

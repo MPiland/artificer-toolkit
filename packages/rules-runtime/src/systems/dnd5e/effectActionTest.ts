@@ -1,4 +1,5 @@
 import { dnd5eAttackKind } from './attackKind.js'
+import { dnd5eResultGate } from './effectActionOperationRegistry.js'
 import {
   unsupported,
   type Dnd5eActionInvocation,
@@ -50,6 +51,20 @@ export function dnd5eTestKind(invocation: Invocation): Dnd5eTestKind | null {
   if (invocation.triggerCode === 'SAVING_THROW') return 'SAVE'
   if (invocation.triggerCode === 'CHECK') return 'CHECK'
   return invocation.triggerCode === 'ACTIVATED' ? 'NONE' : null
+}
+
+/**
+ * The gate of an outcome an active-effect plan carries: none on use, and on a test's result path the
+ * resolved paths that select it. Undefined for a path the action's test never resolves to.
+ */
+export function entryResultGate(
+  action: Dnd5eCompiledEffectActionSource,
+  pathCode: string
+): { paths: string[] } | null | undefined {
+  if (pathCode === 'ON_USE') return null
+  const kind = dnd5eTestKind(action.compiledEffect.invocation)
+  const testPaths: readonly string[] = isDnd5eRolledTest(kind) ? DND5E_TEST_RESULT_PATHS[kind] : []
+  return testPaths.includes(pathCode) ? dnd5eResultGate(pathCode) : undefined
 }
 
 /**

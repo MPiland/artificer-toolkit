@@ -52,7 +52,6 @@ describe('the tracer maintenance link on the neutral event table (RULES-2.T12b)'
       gameSystemId: TRACER_SYSTEM_ID,
       applications: [stress(HOLDER_ID, 0), stress(BYSTANDER_ID, 1)],
       maintainedStates: new Map([[HOLDER_ID, [{ id: STUNT_STATE_ID, createdAt: STUNT_CAST_AT }]]]),
-      commandOccurrenceIds: ['parent'],
       damagerActorId: null,
       dispositions: new Map(),
       effectSaves: null
