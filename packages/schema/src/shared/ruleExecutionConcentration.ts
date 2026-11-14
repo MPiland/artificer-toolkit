@@ -24,7 +24,7 @@ export const concentrationDamageApplicationDtoSchema = lazySchema(() =>
     sourceNodeId: ruleExecutionIdentifierSchema,
     sourceOperationKey: ruleExecutionIdentifierSchema,
     targetActorId: ruleExecutionUuidSchema,
-    /** One source's total damage. */
+    /** One source's total damage taken: its hitting rows' damage after the holder's defenses (D132). */
     appliedAmount: ruleExecutionPositiveIntegerSchema,
     /** Every damage type the source dealt, each once, in the order its rows first dealt it (D220). */
     damageTypeIds: z

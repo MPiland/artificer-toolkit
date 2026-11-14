@@ -6,6 +6,7 @@ import { encounterReactionChildrenDtoSchema } from './encounterActionPending.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
+import { damageRowHits } from './ruleExecutionMechanics.js'
 import {
   encounterConcentrationDamageCheckPendingContextDtoSchema,
   encounterEffectRepeatSavePendingContextDtoSchema,
@@ -255,7 +256,7 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
             !execution ||
             execution.ordinal !== damageSave.damageSource.executionOrdinal ||
             !applications?.some(
-              (application) => application.kind === 'DAMAGE' && application.appliedAmount > 0
+              (application) => application.kind === 'DAMAGE' && damageRowHits(application)
             ) ||
             !envelope ||
             checksumRuleDocument(envelope) !== damageSave.context.finalizedDamageEnvelopeChecksum ||
