@@ -10,12 +10,10 @@ import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import {
   unsupported,
+  type Dnd5eActionInvocation,
   type Dnd5eCompiledEffectActionSource,
   type TestKind
 } from './effectActionContracts.js'
-
-type Invocation = Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
-type ActionInvocation = Extract<Invocation, { kind: 'ACTION' }>
 
 /**
  * What an Effect action targets, apart from how it is taken, tested or what it leaves behind (ADR
@@ -80,7 +78,7 @@ export function compileDnd5eTargeting(
   }
 }
 
-function selfTargeting(invocation: ActionInvocation, test: TestKind | null): Dnd5eTargeting {
+function selfTargeting(invocation: Dnd5eActionInvocation, test: TestKind | null): Dnd5eTargeting {
   if (test === 'ATTACK') unsupported('D&D attack roll needs a target other than its user.')
   if (invocation.shape) unsupported('D&D Self target names no area shape.')
   const { range } = invocation
@@ -92,8 +90,8 @@ function selfTargeting(invocation: ActionInvocation, test: TestKind | null): Dnd
 
 /** A positive whole distance, with no long or close range of disadvantage. */
 function isPlainDistance(
-  range: ActionInvocation['range']
-): range is Extract<ActionInvocation['range'], { rangeKind: 'DISTANCE' }> {
+  range: Dnd5eActionInvocation['range']
+): range is Extract<Dnd5eActionInvocation['range'], { rangeKind: 'DISTANCE' }> {
   return (
     range.rangeKind === 'DISTANCE' &&
     Number.isSafeInteger(range.amount) &&
@@ -109,7 +107,7 @@ function isPlainDistance(
  * ("range 80/320 ft."), only an attack has a close range it has disadvantage within (a Lance, D217),
  * and a melee attack may reach 0 ft. (a swarm's "one target in the swarm's space").
  */
-function requireTargetRange(invocation: ActionInvocation): void {
+function requireTargetRange(invocation: Dnd5eActionInvocation): void {
   const { range } = invocation
   if (range.rangeKind === 'UNLIMITED' || range.rangeKind === 'SIGHT' || range.rangeKind === 'TOUCH')
     return
@@ -141,7 +139,7 @@ function requireTargetRange(invocation: ActionInvocation): void {
  * decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does.
  */
-function isSupportedArea(invocation: ActionInvocation, overZone = false): boolean {
+function isSupportedArea(invocation: Dnd5eActionInvocation, overZone = false): boolean {
   const { shape, targeting, range } = invocation
   if (targeting?.selectionKind !== 'AREA_CONTENTS') return false
   const pooled = hitPointPoolIsAuthored(targeting)

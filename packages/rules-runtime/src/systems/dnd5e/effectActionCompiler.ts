@@ -174,6 +174,7 @@ import {
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   UUID,
   Dnd5eEffectActionCompilerError,
+  type Dnd5eActionInvocation,
   type Dnd5eCompiledEffectActionSource,
   type Outcome,
   type TestKind,
@@ -1815,10 +1816,7 @@ function activatedAction(
   action: Dnd5eCompiledEffectActionSource,
   test: TestKind | null
 ): {
-  invocation: Extract<
-    Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
-    { kind: 'ACTION' }
-  >
+  invocation: Dnd5eActionInvocation
   targeting: Dnd5eTargeting
 } {
   const { invocation } = action.compiledEffect
