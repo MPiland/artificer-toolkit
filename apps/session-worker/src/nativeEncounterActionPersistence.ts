@@ -27,7 +27,8 @@ export function buildNativeLiveEncounterActionPendingInput(
     initiatorUserId: plan.initiatorUserId,
     currentnessChecksum: plan.currentnessChecksum,
     reactionChildren: plan.reactionChildren,
-    retargeted: plan.retargeted,
+    // A list cast's plans keep the saves that turned a ray on the ray, not on the pause.
+    ...('retargeted' in plan && { retargeted: plan.retargeted }),
     castLevel: preparedSpellCastLevel(plan.prepared),
     castSlotKey: plan.prepared.characterActionState?.spellConsumption?.slotKey ?? null
   }
