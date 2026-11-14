@@ -897,9 +897,12 @@ the failed save to `retargeted`. The ray's aim then opens afresh on that creatur
 root command and its fingerprint still name the creatures the list named, so entry occurrences and the named
 counts are told by `encounterAreaNamedActorId` (the holder of the first ward that turned the ray), while
 receipts and outcomes use the creature the ray is aimed at. A GM removal takes only the unanswered rays at a
-creature, and is refused while an unanswered ray turned on that creature would have to leave with it. Known
-limits: the turned ray is not checked again against the open-time warnings (range, immunity overrides) of its
-new creature beyond the offer's own candidate list.
+creature, and is refused while an unanswered ray turned on that creature would have to leave with it. The
+offer filters as one attack's does (creatures the caster sees, on the Scene the list read); the chosen creature
+is then held to what one attack turned on it is: an immune one is refused (`refuseImmuneTarget`) and so is one
+that raises a warning the cast did not acknowledge (`reachRuleOverrides` over that creature: range, defeated,
+excluded creature type), with the offer kept. Known limit: a list bound to an area does not check that the
+chosen creature is inside it.
 
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 

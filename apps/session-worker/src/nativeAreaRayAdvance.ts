@@ -14,6 +14,7 @@ import {
 import { settleEncounterAttackRetarget } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { encounterOnHitAudit } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   buildEncounterActionPendingSnapshot,
@@ -31,7 +32,8 @@ import {
   prepareReach,
   prepareReachReaction,
   reachCastPause,
-  reachRollReactions
+  reachRollReactions,
+  reachRuleOverrides
 } from './nativeAreaPreparation.js'
 import {
   type AreaTargetRecord,
@@ -39,6 +41,7 @@ import {
   prepareAreaTargetNow,
   sealedListAttack
 } from './nativeAreaRevalidation.js'
+import { refuseImmuneTarget } from './nativeEncounterActionInputs.js'
 import { applyNativeReactionChildren } from './nativeEncounterCastPause.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import {
@@ -304,6 +307,21 @@ export async function answerAreaRayRetarget(
   const { token, prepared } = turned.target
   if ((token?.tokenId ?? null) !== option.targetTokenId)
     throw new Error('The pending area changed.')
+  // The creature is held to what one attack turned on it is: an immune one is refused, and so is one
+  // that raises a warning the cast did not acknowledge, which the list's commit would refuse too.
+  refuseImmuneTarget(prepared, {
+    targetEffects: input.activeEffectsByActorId.get(actor.id) ?? [],
+    sourceFacts: reach.casterFacts
+  })
+  reachRuleOverrides({
+    command: input.command,
+    lead: prepared,
+    evaluation: turned.evaluation,
+    areaWarnings: reach.area?.warnings ?? [],
+    targets: [turned.target],
+    movementTargets: reach.movementTargets,
+    facing: encounterFacingRule(input.state)
+  })
   const [test] = await prepareEncounterAreaTests({
     runtime: input.runtime,
     random: input.random,
