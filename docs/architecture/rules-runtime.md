@@ -135,6 +135,8 @@ names.
 | `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                |
 | `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                   |
 | `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)    |
+| `effectActionActivation`         | The activation aspect, `compileDnd5eActivation`: one action, bonus action or registered-trigger reaction, or a free action and whether a Feature charge is its cost                                               |
+| `effectActionTargetPolicy`       | The targeting aspect, `compileDnd5eTargeting`: Self (with a teleport reach), single, chosen list or fixed-size area, its range rules and whether the target must be willing                                       |
 | `effectActionPublishedGraph`     | `publishedGraph`: the published DTO (identity, checksum, definition) of a graph the compiler built                                                                                                                |
 | `effectActionLifetime`           | `maintenancePlan` (the source actor's Concentration or named maintained effect), `durationPublishedGraph` (the graph a timed plan's duration publishes) and the grant consume and end trigger events              |
 | `effectActionModifierGrants`     | `modifierGrantEntryPlan`: a modifier grant entry's active-effect plan, with its cast-level amounts, lifetime and maintenance                                                                                      |
@@ -144,6 +146,15 @@ names.
 | `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant |
 
 The zones module imports the test-phase, outcome and lifetime modules above directly, as the compiler does.
+
+**Aspect composition (current, QUALITY-15.T1; ADR 0039 decision 1).** Activation and targeting compile independently
+and are composed in the compiler's `activatedAction`, which the direct path (`supported`), the test paths (`testPlan`,
+`supportedTestPhaseKind`) and nothing else read. Each aspect refuses with its own rule, so a refusal names the aspect
+that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a
+Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
+accepts (a grant, condition, link, form or check). A single target on a Self range is its user, as the room's
+single-target evaluator holds it. The test, outcome and lifetime selection still run as plan ladders; they are the
+QUALITY-15 follow-up tasks.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
 and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
@@ -244,9 +255,9 @@ outcomes that act on the actor or the triggering event (a Dash's added speed, a 
 cancel). Every compiled graph is published through one helper, `publishedGraph`. Two
 admissions changed:
 
-- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
-  `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
-  check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
+- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. The activation aspect
+  (`compileDnd5eActivation`) marks such an option `charged`; the composition (`activatedAction`) refuses an uncharged
+  free action on anyone but its user, for direct and test actions alike (QUALITY-15.T1). So a charged free save option (Wing Attack's authored shape) compiles under
   its save. When its area is centered on its owner, or is a point or direction its controller aims, the turn end
   delegates it to the area coordinator as its own rule-raised root (SPELLS-33.T4l3, SPELLS-15.T1, D197;
   `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`). An aimed option carries its `area`, the answer
