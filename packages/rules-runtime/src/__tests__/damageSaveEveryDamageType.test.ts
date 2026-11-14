@@ -93,7 +93,7 @@ function savesOwed(types: readonly string[]) {
     gameSystemId: DND5E_SYSTEM_ID,
     applications,
     maintainedStates: new Map(),
-    parentOccurrenceId: testUuid(0xd224),
+    commandOccurrenceIds: [testUuid(0xd224)],
     damagerActorId: null,
     dispositions: new Map(),
     effectSaves: {

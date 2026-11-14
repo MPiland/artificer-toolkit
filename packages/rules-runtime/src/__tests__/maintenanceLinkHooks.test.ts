@@ -62,7 +62,7 @@ describe('maintenance link hooks', () => {
         gameSystemId: DND5E_SYSTEM_ID,
         applications: [application('held'), application('bare')],
         maintainedStates: new Map([['held', [{ id: 'state-1', createdAt: CAST_AT }]]]),
-        parentOccurrenceId: 'parent',
+        commandOccurrenceIds: ['parent'],
         damagerActorId: null,
         dispositions: new Map(),
         effectSaves: null
@@ -93,7 +93,7 @@ describe('maintenance link hooks', () => {
             ]
           ]
         ]),
-        parentOccurrenceId: 'parent',
+        commandOccurrenceIds: ['parent'],
         damagerActorId: null,
         dispositions: new Map(),
         effectSaves: null

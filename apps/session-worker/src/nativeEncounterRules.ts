@@ -1353,6 +1353,7 @@ export async function planNativeLiveEncounterAction(
     state: nextState,
     autoRollByActorId,
     parentOccurrenceId: occurrenceId,
+    entryOccurrenceIds: [],
     parentCommandFingerprint: fingerprint,
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),

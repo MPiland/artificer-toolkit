@@ -444,7 +444,7 @@ export async function persistEncounterTurnCommit(
       state: nextState,
       actors: settledActors,
       applications,
-      parentOccurrenceId: input.occurrenceId,
+      commandOccurrenceIds: [input.occurrenceId],
       damagerActorId: null
     }),
     correlationId: input.occurrenceId,

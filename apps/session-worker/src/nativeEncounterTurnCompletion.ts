@@ -146,6 +146,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,
     parentOccurrenceId: input.occurrenceId,
+    entryOccurrenceIds: [],
     parentCommandFingerprint: prepared.root.commandFingerprint,
     applications: nativeConcentrationDamageApplications(damage),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage),

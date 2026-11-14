@@ -851,7 +851,7 @@ export async function persistEncounterAreaCommit(
       state: nextState,
       actors: nextActors,
       applications: damage,
-      parentOccurrenceId: areaOccurrenceId,
+      commandOccurrenceIds: [areaOccurrenceId, ...root.targetOccurrenceIds],
       damagerActorId: command.actorId
     }),
     correlationId: areaOccurrenceId,

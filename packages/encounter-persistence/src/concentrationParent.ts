@@ -19,13 +19,17 @@ import {
   damageSaveContextBoundApplication
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import type { NativeDamageSaveContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
-import { nativeConcentrationParentDamage } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  nativeConcentrationParentDamage,
+  nativeConcentrationParentEntryOccurrenceIds
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterReadContext } from './store.js'
 
 /**
- * A response commit with a failed check advances the Run once; every intervening command must belong
- * to this damage parent.
+ * A damage parent's finalized damage and the entry occurrences it made, read from its committed
+ * receipt. A response commit with a failed check advances the Run once; every intervening command
+ * must belong to this damage parent.
  */
 export async function readNativeConcentrationParentDamage(
   ctx: EncounterReadContext,
@@ -66,6 +70,7 @@ export async function readNativeConcentrationParentDamage(
   )
     throw new Error('The concentration parent receipt is invalid.')
   const applications = nativeConcentrationParentDamage(result)
+  const entryOccurrenceIds = nativeConcentrationParentEntryOccurrenceIds(result)
 
   if (parent.expectedEncounterVersion < state.version) {
     const commands = await ctx.db
@@ -148,7 +153,7 @@ export async function readNativeConcentrationParentDamage(
     if (advances.size !== state.version - parent.expectedEncounterVersion)
       throw new Error('The concentration parent version is stale.')
   }
-  return applications
+  return { applications, entryOccurrenceIds }
 }
 
 /**

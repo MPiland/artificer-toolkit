@@ -202,6 +202,7 @@ export async function planNativeLiveCleavingResponse(
     state: nextState,
     autoRollByActorId: admission.autoRollByActorId,
     parentOccurrenceId: snapshot.occurrenceId,
+    entryOccurrenceIds: [],
     parentCommandFingerprint: admission.fingerprint,
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
