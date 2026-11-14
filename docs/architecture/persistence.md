@@ -316,6 +316,11 @@ ruling 17): when the child's commit leaves a prompted check of its own PENDING, 
 but stays SUSPENDED, so the Run keeps one pending decision. The room's after-commit settlement returns it to
 PENDING on the Run's version (`resumeSettledReactionChildParent`) once that chain is answered or voided and
 the Run waits on no other decision; only then does the room issue a paused move's `REACTION_CHILD_RESUME`.
+A paused Scene move always stays SUSPENDED at its child's commit (QUALITY-18.T3c): the roots that commit
+raises in the room's after-commit settlement (the effect of a mover the child dropped to 0 hit points, say)
+need a Run that waits on nothing, and the move's resume runs through the Scene path, which raises none, so
+they would otherwise be lost. Those roots name the child command as their parent, since the option's answer
+records no Run command or rule receipt. A held action is unchanged: it still returns to PENDING at once.
 The fences read as follows:
 
 - A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
@@ -645,7 +650,8 @@ moves the parent occurrence to the stored state `SUSPENDED` (`suspendReactionChi
 `actionPendingPersistence.ts`), so the Run still has at most one `PENDING` occurrence: the child's. A
 suspended occurrence keeps its sealed snapshot under PENDING's rules and takes no answer. `SUSPENDED` is a
 stored state only; the public occurrence summary does not carry it. The child's final commit re-pins the
-parent and returns it to `PENDING` in the same transaction (`repinReactionChildParent`), and the room then
+parent and returns it to `PENDING` in the same transaction (`repinReactionChildParent`; a Scene move returns
+through `resumeSettledReactionChildParent` in the same room command instead), and the room then
 resumes the parent from that commit, whoever's answer produced it. A child that never pauses never suspends
 its parent. The System decides what a reaction's own test may propose: the dnd5e compiler admits, on a
 result path of that test, the outcome its reaction trigger resumes by (`dnd5eTestPathResumeOutcome`), gated
