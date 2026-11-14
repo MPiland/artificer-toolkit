@@ -18,6 +18,12 @@ import type { EncounterActionSceneContext } from '../encounterActionTargetPolicy
  * lifetime ends is one of them (a rest too, which the Sheet raises). See the rules-runtime guide's
  * "Event hooks" section.
  */
+/** One damage source that reached a holder: who dealt it (null for nobody) and its types. */
+export type EncounterDamageHit = {
+  damagerActorId: string | null
+  damageTypeIds: readonly (string | null)[]
+}
+
 export type EncounterEvent =
   /** The holder takes an action, which may make an attack roll or cast a spell, aimed at an enemy or not. */
   | { kind: 'ACTION'; attackRoll: boolean; spellCast: boolean; againstEnemy: boolean }
@@ -45,18 +51,19 @@ export type EncounterEvent =
       ability: { code: string | null } | { definitionId: string } | null
     }
   /**
-   * The holder takes damage. `AFTER`, it survived the holder's defenses and intercepts: of these types
-   * (null for a source that dealt several), from `damagerActorId` (null when nobody dealt it).
-   * `BEFORE`, it is about to land as the batch settling it plans it, taking the holder's current hit
-   * points from `before` to `after`; an intercept it meets changes where it lands. `damageTaken` is the
+   * The holder takes damage. `AFTER`, it survived the holder's defenses and intercepts. A command raises
+   * it once per holder (`planDamageSaveChain` and `targetEndedEffects` are its raisers), with one `hit`
+   * for each damage source that reached the holder: its types (null for a source that dealt several)
+   * and its damager (null when nobody dealt it). A hook reports which hits met it, so a save is owed per
+   * source while the event stays one. `BEFORE`, it is about to land as the batch settling it plans it,
+   * taking the holder's current hit points from `before` to `after`; an intercept it meets changes where it lands. `damageTaken` is the
    * whole blow after resistance, vulnerability and immunity (not the overflow past 0), of
    * `damageTypeId`, and `critical` when it came from a critical hit.
    */
   | {
       kind: 'DAMAGED'
       phase: 'AFTER'
-      damagerActorId: string | null
-      damageTypeIds: readonly (string | null)[]
+      hits: readonly EncounterDamageHit[]
       dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
     }
   | {

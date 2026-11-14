@@ -1,5 +1,4 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import {
@@ -24,12 +23,8 @@ import {
 import { d20CheckTotal } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import {
-  concentrationDamageSourceLabel,
-  type ConcentrationDamageApplicationDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
-import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 
 export type NativeConcentrationContext = ReturnType<
@@ -247,46 +242,6 @@ export function createNativeConcentrationContext(input: {
     remaining: input.remaining
   })
   return { context, facts: facts.facts }
-}
-
-/**
- * The Concentration checks a finalized damage envelope owes: one per held Concentration (a holder's
- * `maintainedStates`) for each application whose damage meets the System's save hook in the event
- * table.
- */
-export function concentrationSaveApplications<
-  Application extends ConcentrationDamageApplicationDto
->(input: {
-  gameSystemId: string
-  applications: readonly Application[]
-  maintainedStates: ReadonlyMap<string, readonly { id: string; createdAt: string }[]>
-  damagerActorId: string | null
-  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
-}) {
-  const { hooks } = maintenanceLinkCapabilityRegistry.require(input.gameSystemId)
-  return input.applications.flatMap((application) => {
-    const held = input.maintainedStates.get(application.targetActorId) ?? []
-    if (held.length === 0) return []
-    const { maintenanceSave } = discoverEncounterEventHooks({
-      maintenanceHooks: hooks,
-      events: [
-        {
-          kind: 'DAMAGED',
-          phase: 'AFTER',
-          damagerActorId: application.damagerActorId ?? input.damagerActorId,
-          damageTypeIds: [application.damageTypeId],
-          dispositions: input.dispositions
-        }
-      ]
-    })
-    return maintenanceSave
-      ? held.map(({ id, createdAt }) => ({
-          ...application,
-          maintainedStateId: id,
-          castAt: createdAt
-        }))
-      : []
-  })
 }
 
 /** Names a pending damage-triggered save for its roller: its source, the damage behind it and its DC. */

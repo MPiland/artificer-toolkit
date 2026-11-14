@@ -1,7 +1,6 @@
 import { persistCarriedEffectResumes } from '@artificer-toolkit/encounter-persistence/grantTickPersistence'
 import { persistEncounterTurnPending } from '@artificer-toolkit/encounter-persistence/turnPendingPersistence'
 import { persistEncounterTurnCommit } from '@artificer-toolkit/encounter-persistence/turnCommitPersistence'
-import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import type {
   EncounterCharacterWriteTransaction,
   EncounterWritePorts
@@ -147,8 +146,6 @@ export async function executeRoomEncounterTurn(input: {
         await ctx.ports.requireCampaignAuthority(scope.campaignId, userId)
         return (await inputs.definition(id, observed, transaction)).definition
       },
-      bindConcentrationApplications: (state, applications) =>
-        bindEncounterConcentrationApplications(ctx, state, applications),
       persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
     }
   )

@@ -199,18 +199,30 @@ export function targetEndedEffects(input: {
   applications: readonly CharacterRuleActionApplication[]
   /** Who dealt the damage; null when nobody did, so only `ANYONE` triggers meet it. */
   damagerActorId: string | null
+  /**
+   * The holder's damage grouped by who dealt it, when one command damages it from several sources
+   * (a move's zone contacts): in place of `applications` and `damagerActorId` for the damage, so the
+   * holder still has one `DAMAGED(AFTER)` raise per command with one hit per source.
+   */
+  damageBySource?: readonly {
+    damagerActorId: string | null
+    applications: readonly CharacterRuleActionApplication[]
+  }[]
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
   /** The grants this action's events may give the holder; none when omitted. */
   grantTriggers?: readonly EncounterGrantTrigger[]
 }) {
-  const dealt = input.applications.flatMap((application) =>
-    application.kind === 'DAMAGE' &&
-    application.targetActorId === input.holderActorId &&
-    application.resolvedAmount > 0
-      ? [application.damageTypeId]
-      : []
-  )
+  const hits = (input.damageBySource ?? [input]).flatMap(({ applications, damagerActorId }) => {
+    const dealt = applications.flatMap((application) =>
+      application.kind === 'DAMAGE' &&
+      application.targetActorId === input.holderActorId &&
+      application.resolvedAmount > 0
+        ? [application.damageTypeId]
+        : []
+    )
+    return dealt.length > 0 ? [{ damagerActorId, damageTypeIds: dealt }] : []
+  })
   const events: EncounterEvent[] = [
     // An attack consumes only the effects whose event scope admits the attacker on this turn.
     ...(input.attack
@@ -230,16 +242,8 @@ export function targetEndedEffects(input: {
         ? []
         : [{ kind: 'TEST', test: 'SAVE', ability: { definitionId } } as const]
     }),
-    ...(dealt.length > 0
-      ? [
-          {
-            kind: 'DAMAGED',
-            phase: 'AFTER',
-            damagerActorId: input.damagerActorId,
-            damageTypeIds: dealt,
-            dispositions: input.dispositions
-          } as const
-        ]
+    ...(hits.length > 0
+      ? [{ kind: 'DAMAGED', phase: 'AFTER', hits, dispositions: input.dispositions } as const]
       : [])
   ]
   const hooks = discoverEncounterEventHooks({

@@ -22,11 +22,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { recordZoneApplications, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
-import type {
-  ConcentrationDamageApplicationDto,
-  concentrationMaintainedDamageApplicationDtoSchema,
-  DamageSaveApplicationDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import type { DamageSaveApplicationDto } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { readDeadCharacterIds } from './characterStates.js'
 import { readRunActors } from './documents.js'
@@ -86,10 +82,6 @@ export async function persistEncounterTurnCommit(
       | null
     >
     readDefinition(id: string, userId: string): Promise<ReusableDefinitionCurrentDto | null>
-    bindConcentrationApplications(
-      state: EncounterRunState,
-      applications: readonly ConcentrationDamageApplicationDto[]
-    ): Promise<ReturnType<typeof concentrationMaintainedDamageApplicationDtoSchema.parse>[]>
     persistConcentrationChildren(
       input: {
         state: EncounterRunState
@@ -449,7 +441,6 @@ export async function persistEncounterTurnCommit(
     parentCommandFingerprint: fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
     remaining: await bindEncounterDamageSaveChain(ctx, {
-      concentration: await callbacks.bindConcentrationApplications(nextState, applications),
       state: nextState,
       actors: settledActors,
       applications,

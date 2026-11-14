@@ -1,6 +1,7 @@
 import { RULE_GRAPH_LIMITS, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
+  isMaintainedDamageApplication,
   requireMaintainedDamageApplications,
   unboundDamageSaveApplication,
   type ConcentrationMaintainedDamageApplicationDto
@@ -21,8 +22,8 @@ import {
   type FrozenMovementReactionRemainder
 } from './encounterSpatialMovementRuleService.js'
 import { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
+import { planDamageSaveChain } from './encounterDamageSaveChain.js'
 import {
-  concentrationSaveApplications,
   createNativeConcentrationContext,
   completeNativeConcentrationResult,
   evaluateNativeConcentrationEvidence,
@@ -69,6 +70,8 @@ function movementConcentrationDamageSource(
   return {
     execution,
     holderActorId,
+    /** The zone's source, who dealt this contact's damage. */
+    damagerActorId: execution.candidate.candidate.sourceActorId,
     envelopeChecksum: checksumRuleDocument(movementDamageEnvelope(execution)),
     applications: damage.map((application) => ({
       ...application,
@@ -287,13 +290,17 @@ export async function prepareEncounterMovementConcentration<
         )
     }
     remaining.push(
-      ...concentrationSaveApplications({
+      ...planDamageSaveChain({
         gameSystemId: input.state.gameSystemId,
         applications: source.applications,
         maintainedStates,
-        damagerActorId: null,
-        dispositions: new Map()
-      })
+        parentOccurrenceId: input.occurrenceId,
+        damagerActorId: source.damagerActorId,
+        dispositions: new Map(
+          [...targets.values()].map(({ actor }) => [actor.id, actor.disposition])
+        ),
+        effectSaves: null
+      }).filter(isMaintainedDamageApplication)
     )
   }
   const runtime = remaining.length ? await callbacks.runtime() : null

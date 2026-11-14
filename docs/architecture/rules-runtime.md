@@ -571,8 +571,8 @@ Worker does not settle (`allowCapacityUses` unset: area, reaction and movement p
 replace. Automation `MANUAL` checks the pool but writes no spend.
 
 **Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
-save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
-each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
+save for each state it holds, per damage source. `planDamageSaveChain` (`encounterDamageSaveChain.ts`, the
+one planner for every damage root, QUALITY-14.T2) emits one bound chain entry per held state; each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
 ordinal, save source, then `castAt`, then state id (`compareDamageSaveApplications`), so a holder's saves
 run in casting order. The pending context pins the answered state's `createdAt`, persistence re-derives
 `remaining` from every held state and checksums it against the context, and a failed save ends only its own
@@ -586,7 +586,12 @@ and projected, in casting order; the projection's slots are keyed per state (`mo
 definition, stateId)`), so a failed save ends only its own state and a later contact sees the others. Each
 bound save carries `maintainedStateId` and `castAt`, and the movement result carries `concentrationEnds` (an
 array, one `CONCENTRATION_END` per state, persisted and checksummed with its contact children) beside
-`concentrationChecks`. Incapacitation or defeat ends every held state with no save (D95).
+`concentrationChecks`. Incapacitation or defeat ends every held state with no save (D95). The movement
+chain plans through the same `planDamageSaveChain` as an action (current, QUALITY-14.T2): the zone's source
+is the damager and every actor's disposition is passed, so the System's maintenance hook gates a check
+exactly as for action damage. It is Concentration-only (`effectSaves: null`); movement repeat saves,
+massive-damage saves and damage-taken effect ends need new child kinds and persisted shapes and are
+tracked as QUALITY-14.T2b.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
 (`domain.ruleDefinitionId`) is an ordinary roll-influence or bonus grant; two Equipment-context predicates
@@ -1620,9 +1625,12 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   is a neutral link keyed by the System's `maintenanceDefinitionId`; the 5e adapter (`systems/dnd5e/concentrationPolicy.ts`)
   supplies `MaintenanceLinkHook`s in priority order: `BREAK` on `DEFEATED`, `INCAPACITATED` of the holder or
   `MAINTENANCE_BARRED` (a held casting lock), each naming its persisted end reason, and `SAVE` on any `DAMAGED`. Discovery
-  returns `maintenanceBreakReason` (the first break met) and `maintenanceSave`. `encounterConcentrationEndReason` raises
-  one event, short-circuiting in that order, and `concentrationSaveApplications` binds the damage applications that owe a
-  save, from both the Worker and the movement path. The adapter also owns the Constitution ability, the DC formula and the
+  returns `maintenanceBreakReason` (the first break met) and `maintenanceSaveHits` (the indexes of the `DAMAGED` event's
+  hits that owe a save). `DAMAGED(AFTER)` carries `hits` (one per damage source: damager and damage types) and is raised
+  once per command and holder (QUALITY-14.T2): `planDamageSaveChain` discovers once per damaged holder and reads the
+  Concentration checks (`maintenanceSaveHits`), effect repeat saves (`repeatSaves`, per hit) and massive-damage saves off
+  it, from the Worker, persistence's re-derivation and the movement path. `encounterConcentrationEndReason` raises
+  one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
   one, so no Concentration or incoming-gate importer reaches into `systems/dnd5e`.
@@ -3862,10 +3870,10 @@ on a damage-triggered repeat) are stored on the plan's lifecycle and read by the
 
 **Damage-save reader contract (D167, SPELLS-4.T2m1b2b).** Committed damage owes its damaged holders a chain of
 saves: Concentration checks and effect repeat saves, in one canonical order (`compareDamageSaveApplications`),
-raised inside the damaging command and answered by the holder's controllers. Two functions derive the effect half
-and are the only readers of `repeatTriggers`: `effectRepeatTrigger` (does this damage meet this effect's trigger)
-and `effectRepeatSaveApplications` (the saves a finalized damage envelope owes: one per damaged, undefeated holder
-effect; an effect the damaging command placed never repeats against its own damage). A damage source opts in on
+raised inside the damaging command and answered by the holder's controllers. `planDamageSaveChain` plans the whole
+chain (QUALITY-14.T2) and `damagedHitRepeatTrigger` (does this hit meet this effect's trigger) is the only reader of
+`repeatTriggers`: one per damaged, undefeated holder effect and hit; an effect the damaging command placed never
+repeats against its own damage. A damage source opts in on
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is

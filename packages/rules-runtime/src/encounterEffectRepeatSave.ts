@@ -1,11 +1,9 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterEffectRepeatSavePendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { effectRepeatSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import {
   concentrationDamageSourceLabel,
-  damageSaveApplicationsAfterRelease,
-  type ConcentrationDamageApplicationDto
+  damageSaveApplicationsAfterRelease
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ServerRuleExecutionD20PolicyDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
@@ -16,7 +14,6 @@ import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { activeEffectTargetFacts } from './encounterTurnEffects.js'
-import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   resumeTargetBoundActiveRuleEffectWithAnswer,
@@ -33,62 +30,6 @@ type RepeatTrigger = NonNullable<
     { schemaVersion: 2 }
   >['recurrence']['repeatTriggers']
 >[number]
-
-/** The first repeat trigger of this effect that damage to its holder from this side and type meets. */
-export function effectRepeatTrigger(
-  effect: ActiveRuleEffectRecord,
-  input: {
-    damagerActorId: string | null
-    dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
-    damageTypeId: string | null
-  }
-): RepeatTrigger | undefined {
-  return discoverEncounterEventHooks({
-    effects: [effect],
-    events: [
-      {
-        kind: 'DAMAGED',
-        phase: 'AFTER',
-        damagerActorId: input.damagerActorId,
-        damageTypeIds: [input.damageTypeId],
-        dispositions: input.dispositions
-      }
-    ]
-  }).repeatSaves[0]?.trigger
-}
-
-/**
- * The repeat saves a finalized damage envelope owes (D167): one per damaged, undefeated holder
- * effect whose repeat trigger the damage meets. An effect the damaging command itself placed never
- * repeats against that command's damage. A source that dealt several damage types
- * (`damageTypeId: null`) meets only an untyped trigger.
- */
-export function effectRepeatSaveApplications(input: {
-  applications: readonly ConcentrationDamageApplicationDto[]
-  parentOccurrenceId: string
-  damagerActorId: string | null
-  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
-  holders: ReadonlyMap<string, { defeated: boolean; effects: readonly ActiveRuleEffectRecord[] }>
-}) {
-  return input.applications.flatMap((application) => {
-    const holder = input.holders.get(application.targetActorId)
-    if (!holder || holder.defeated) return []
-    return holder.effects
-      .filter(
-        (effect) =>
-          !(
-            effect.definition.origin.kind === 'ENCOUNTER' &&
-            effect.definition.origin.sourceOccurrenceId === input.parentOccurrenceId
-          ) &&
-          effectRepeatTrigger(effect, {
-            ...input,
-            damagerActorId: application.damagerActorId ?? input.damagerActorId,
-            damageTypeId: application.damageTypeId
-          })
-      )
-      .map((effect) => ({ ...application, activeEffectId: effect.id }))
-  })
-}
 
 /** The kernel input that runs one effect's frozen save against its damaged holder. */
 export function effectRepeatSaveExecutionInput(input: {

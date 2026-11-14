@@ -127,6 +127,30 @@ describe('movement-path Concentration ends (D95)', () => {
     expect(room.diceDrawn()).toBe(3)
   })
 
+  it('owes a holder an opportunity attack leaves standing one Concentration check, as an action does (QUALITY-14.T2)', async () => {
+    const room = await holderRoom({
+      actors: [
+        srdCreatureActor({ id: REACTOR_ID, creature: reactionWolf }),
+        characterActor({ id: MOVER_ID, characterId: CHARACTER_ID })
+      ],
+      positions: { [REACTOR_ID]: { x: 50, y: 150 }, [MOVER_ID]: MOVER_START },
+      characterPlay: { currentHitPoints: 20 },
+      autoRoll: 'BOTH',
+      rolls: [14],
+      fallbackRoll: 0
+    })
+
+    await room.move([MOVER_START, { x: 450, y: 150 }])
+    const pending = await room.pending()
+    if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+      throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
+    const option = pending.context.reactionTimeline[0]?.group.options[0]
+    if (!option) throw new Error('The reaction decision offers no option.')
+    await room.respond({ kind: 'OPTION', optionId: option.optionId })
+
+    expect(await receiptsOf(room, 'DAMAGE_SAVE_CHECK')).toHaveLength(1)
+  })
+
   it.each(['PARALYZED', 'STUNNED'] as const)(
     'ends Concentration with no check when a spatial effect leaves the holder %s',
     async (code) => {
