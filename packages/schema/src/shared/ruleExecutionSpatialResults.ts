@@ -4,9 +4,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { encounterSpatialRuleEffectRecordSchema } from '../projections/spatialRuleEffectPersistence.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
-import type {
-  MovementConcentrationEndDto,
-  MovementConcentrationExecutionDto
+import {
+  movementDamageSaveChildren,
+  type MovementConcentrationEndDto,
+  type MovementConcentrationExecutionDto,
+  type MovementRepeatSaveExecutionDto
 } from './ruleExecutionMovementConcentration.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
@@ -345,13 +347,27 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           }
           openSpatialGroups.clear()
         }
-        const applyConcentrationChildren = (
-          children: readonly (MovementConcentrationExecutionDto | MovementConcentrationEndDto)[],
-          path: (string | number)[],
-          key: 'concentrationEnds' | 'concentrationChecks'
+        /** A contact's children in the order they settled; `release` is the cleanup each one retained. */
+        const applyMovementChildren = (
+          children: readonly {
+            path: (string | number)[]
+            releasePath: string[]
+            check:
+              | MovementConcentrationExecutionDto
+              | MovementConcentrationEndDto
+              | MovementRepeatSaveExecutionDto
+            release: MovementRepeatSaveExecutionDto['release']
+            /** A release changes derived conditions; a Concentration check keeps the exact state. */
+            derivesConditions: boolean
+          }[]
         ) => {
-          for (const [index, check] of children.entries()) {
-            const checkPath = [...path, key, index]
+          for (const {
+            path: checkPath,
+            releasePath,
+            check,
+            release,
+            derivesConditions
+          } of children) {
             const output = check.result.applicationOutputs
             if (output.parentOccurrenceId !== batch.occurrenceId)
               context.addIssue({
@@ -359,7 +375,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
                 path: [...checkPath, 'result', 'applicationOutputs', 'parentOccurrenceId'],
                 message: 'Movement Concentration children must bind their terminal movement batch.'
               })
-            if (output.cleanup === null) {
+            if (release === null) {
               if (check.ownerTransitions.length > 0)
                 context.addIssue({
                   code: 'custom',
@@ -371,26 +387,19 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             }
             const cleanupTransitions = new Map<
               string,
-              (typeof output.cleanup.characterOwnerTransitions)[number]
+              (typeof release.characterOwnerTransitions)[number]
             >()
             for (const [
               cleanupIndex,
               cleanupTransition
-            ] of output.cleanup.characterOwnerTransitions.entries()) {
+            ] of release.characterOwnerTransitions.entries()) {
               if (
                 cleanupTransitions.has(cleanupTransition.characterId) ||
                 cleanupTransition.afterStreamVersion !== cleanupTransition.beforeStreamVersion + 1
               )
                 context.addIssue({
                   code: 'custom',
-                  path: [
-                    ...checkPath,
-                    'result',
-                    'applicationOutputs',
-                    'cleanup',
-                    'characterOwnerTransitions',
-                    cleanupIndex
-                  ],
+                  path: [...checkPath, ...releasePath, 'characterOwnerTransitions', cleanupIndex],
                   message:
                     'Concentration cleanup Character transitions must be unique and advance exactly once.'
                 })
@@ -401,14 +410,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
               )
                 context.addIssue({
                   code: 'custom',
-                  path: [
-                    ...checkPath,
-                    'result',
-                    'applicationOutputs',
-                    'cleanup',
-                    'characterOwnerTransitions',
-                    cleanupIndex
-                  ],
+                  path: [...checkPath, ...releasePath, 'characterOwnerTransitions', cleanupIndex],
                   message:
                     'Concentration cleanup Character versions must continue the movement receipt timeline.'
                 })
@@ -444,7 +446,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
               const priorState = currentStates.get(ownerKey)
               if (
                 priorState !== undefined &&
-                !(key === 'concentrationEnds'
+                !(derivesConditions
                   ? continuesWithDerivedConditions(priorState, ownerTransition.before)
                   : sameState(priorState, ownerTransition.before))
               )
@@ -537,19 +539,29 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             currentVersions.set(characterId, pinVersion!)
           if (
             execution.concentrationEnds !== undefined ||
-            execution.concentrationChecks !== undefined
+            execution.concentrationChecks !== undefined ||
+            execution.repeatSaves !== undefined
           ) {
             finishSpatialGroups()
-            applyConcentrationChildren(
-              execution.concentrationEnds ?? [],
-              ['executions', index],
-              'concentrationEnds'
-            )
-            applyConcentrationChildren(
-              execution.concentrationChecks ?? [],
-              ['executions', index],
-              'concentrationChecks'
-            )
+            applyMovementChildren([
+              ...(execution.concentrationEnds ?? []).map((check, childIndex) => ({
+                path: ['executions', index, 'concentrationEnds', childIndex],
+                releasePath: ['result', 'applicationOutputs', 'cleanup'],
+                check,
+                release: check.result.applicationOutputs.cleanup,
+                derivesConditions: true
+              })),
+              ...movementDamageSaveChildren(execution).map((child) => ({
+                path: ['executions', index, child.field, child.index],
+                releasePath:
+                  child.kind === 'CONCENTRATION'
+                    ? ['result', 'applicationOutputs', 'cleanup']
+                    : ['release'],
+                check: child.execution,
+                release: child.release,
+                derivesConditions: child.kind === 'REPEAT_SAVE'
+              }))
+            ])
           }
         }
         finishSpatialGroups()

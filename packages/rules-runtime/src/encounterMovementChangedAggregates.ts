@@ -1,4 +1,9 @@
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  movementDamageSaveChildren,
+  type MovementConcentrationExecutionDto,
+  type MovementRepeatSaveExecutionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
@@ -15,20 +20,22 @@ type CharacterVersionTransition = {
   afterStreamVersion: number
 }
 
-type ConcentrationChild = {
-  result: {
-    applicationOutputs: {
-      cleanup: { characterOwnerTransitions: readonly CharacterVersionTransition[] } | null
-    }
-  }
+type OwnerRelease = { characterOwnerTransitions: readonly CharacterVersionTransition[] } | null
+
+type ConcentrationChild = { result: { applicationOutputs: { cleanup: OwnerRelease } } }
+
+type MovementContactChildren = {
+  concentrationEnds?: readonly ConcentrationChild[]
+  concentrationChecks?: readonly MovementConcentrationExecutionDto[]
+  repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
 }
 
-/** A contact's Concentration children advance Character versions in order: its ends, then its checks. */
-function concentrationChildren(contact: {
-  concentrationEnds?: readonly ConcentrationChild[]
-  concentrationChecks?: readonly ConcentrationChild[]
-}) {
-  return [...(contact.concentrationEnds ?? []), ...(contact.concentrationChecks ?? [])]
+/** A contact's children advance Character versions in order: its ends, then its damage saves. */
+function contactChildReleases(contact: MovementContactChildren): OwnerRelease[] {
+  return [
+    ...(contact.concentrationEnds ?? []).map((end) => end.result.applicationOutputs.cleanup),
+    ...movementDamageSaveChildren(contact).map((child) => child.release)
+  ]
 }
 
 type MovementPendingSpatialExecution = {
@@ -40,9 +47,7 @@ type MovementPendingSpatialExecution = {
       | { kind: 'ENCOUNTER_ACTOR' }
   }
   targetTransition: { before: unknown; after: unknown }
-  concentrationEnds?: readonly ConcentrationChild[]
-  concentrationChecks?: readonly ConcentrationChild[]
-}
+} & MovementContactChildren
 
 type MovementPendingSpatialPrefix = {
   characterTransitions?: readonly CharacterVersionTransition[]
@@ -59,6 +64,7 @@ export type MovementCommandTransition =
   | { kind: 'DAMAGE_END'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'PASSAGE'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'CONCENTRATION' | 'CONCENTRATION_END'; execution: ConcentrationChild }
+  | { kind: 'REPEAT_SAVE'; execution: Pick<MovementRepeatSaveExecutionDto, 'release'> }
 
 type MovementChangedAggregate = {
   aggregateId: string
@@ -153,12 +159,14 @@ export function movementPendingCharacterAggregateVersions(
         before: execution.targetTransition.before,
         after: execution.targetTransition.after
       })
-    if (execution.concentrationEnds !== undefined || execution.concentrationChecks !== undefined) {
+    if (
+      execution.concentrationEnds !== undefined ||
+      execution.concentrationChecks !== undefined ||
+      execution.repeatSaves !== undefined
+    ) {
       finishSpatialGroups()
-      for (const child of concentrationChildren(execution))
-        for (const transition of child.result.applicationOutputs.cleanup
-          ?.characterOwnerTransitions ?? [])
-          append(transition)
+      for (const release of contactChildReleases(execution))
+        for (const transition of release?.characterOwnerTransitions ?? []) append(transition)
     }
   }
   finishSpatialGroups()
@@ -205,8 +213,11 @@ export function movementCommandCharacterAggregateVersions(
     ) {
       for (const characterTransition of transition.characterTransitions) append(characterTransition)
     } else {
-      for (const characterTransition of transition.execution.result.applicationOutputs.cleanup
-        ?.characterOwnerTransitions ?? [])
+      const release =
+        transition.kind === 'REPEAT_SAVE'
+          ? transition.execution.release
+          : transition.execution.result.applicationOutputs.cleanup
+      for (const characterTransition of release?.characterOwnerTransitions ?? [])
         append(characterTransition)
     }
   }

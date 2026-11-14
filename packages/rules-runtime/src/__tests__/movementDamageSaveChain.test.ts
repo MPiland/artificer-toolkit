@@ -1,3 +1,5 @@
+import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
+import { invisibility } from '@artificer-toolkit/source-data/srd/spells/invisibility.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,6 +12,7 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 
 /**
  * QUALITY-14.T2: movement damage plans its Concentration chain through the one planner an action's
@@ -106,8 +109,8 @@ describe('a movement contact plans its Concentration chain like an action (QUALI
           remainder,
           source: { executionOrdinal: 0 },
           targets: new Map([
-            [HOLDER_ID, { actor: holder }],
-            [ZONE_SOURCE_ID, { actor: zoneSource }]
+            [HOLDER_ID, { actor: holder, state: { deathSaves: null }, activeEffects: [] }],
+            [ZONE_SOURCE_ID, { actor: zoneSource, state: { deathSaves: null }, activeEffects: [] }]
           ])
         } as unknown as Input,
         callbacks as unknown as Callbacks
@@ -123,5 +126,102 @@ describe('a movement contact plans its Concentration chain like an action (QUALI
       [HOLDER_ID, 'FRIENDLY'],
       [ZONE_SOURCE_ID, 'HOSTILE']
     ])
+  })
+})
+
+describe('a movement contact owes the repeat saves its holder effects offer on damage (QUALITY-14.T2c)', () => {
+  const ENCOUNTER_OCCURRENCE_ID = testUuid(0x3115)
+  const zoneSource = srdCreatureActor({
+    id: ZONE_SOURCE_ID,
+    creature: srdByLabel(SRD.creatures, 'Ogre'),
+    disposition: 'HOSTILE'
+  })
+
+  /** A Wolf holding `spell` cast by the zone's source takes 4 fire damage at a contact. */
+  function contact(spell: typeof hideousLaughter | null, holderInput: { defeated?: boolean } = {}) {
+    const holder = srdCreatureActor({
+      id: HOLDER_ID,
+      creature: srdByLabel(SRD.creatures, 'Wolf'),
+      ...holderInput
+    })
+    const state = srdEncounterState({ actors: [holder, zoneSource], currentActorId: HOLDER_ID })
+    const planned =
+      spell &&
+      plannedTimedCondition({
+        encounterId: state.id,
+        sourceActorId: ZONE_SOURCE_ID,
+        holderActorId: HOLDER_ID,
+        spell,
+        lifetimeScope: 'ENCOUNTER'
+      })
+    const runtime = vi.fn(async () => {
+      throw new Error(PLANNED)
+    })
+    const prepared = prepareEncounterMovementConcentration(
+      {
+        state,
+        occurrenceId: ENCOUNTER_OCCURRENCE_ID,
+        sourceCommandId: testUuid(0x3116),
+        userId: testUuid(0x3117),
+        autoRoll: {},
+        occurredAt: CAST_AT,
+        remainder: {
+          completedSpatialExecutions: [
+            {
+              ordinal: 0,
+              candidate: { candidate: { targetActorId: HOLDER_ID, sourceActorId: ZONE_SOURCE_ID } },
+              applications: [
+                {
+                  ordinal: 0,
+                  kind: 'DAMAGE',
+                  damageTypeId: FIRE,
+                  sourceNodeId: 'damage',
+                  sourceOperationKey: 'damage',
+                  appliedAmount: 4
+                }
+              ]
+            }
+          ]
+        },
+        source: { executionOrdinal: 0 },
+        targets: new Map([
+          [
+            HOLDER_ID,
+            {
+              actor: holder,
+              state: { deathSaves: null },
+              activeEffects: planned
+                ? [
+                    {
+                      id: testUuid(0x3118),
+                      definition: planned.definition,
+                      lifecycle: planned.lifecycle
+                    }
+                  ]
+                : []
+            }
+          ],
+          [ZONE_SOURCE_ID, { actor: zoneSource, state: { deathSaves: null }, activeEffects: [] }]
+        ])
+      } as unknown as Input,
+      { loadStates: async () => [], findEnds: async () => [], runtime } as unknown as Callbacks
+    )
+    return { prepared, runtime }
+  }
+
+  it('starts the save of an effect that repeats its save on damage, with no Concentration held', async () => {
+    const { prepared, runtime } = contact(hideousLaughter)
+    await expect(prepared).rejects.toThrow(PLANNED)
+    expect(runtime).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    { name: 'an effect that offers no repeat save', spell: invisibility, holder: {} },
+    { name: 'no effect', spell: null, holder: {} },
+    { name: 'a defeated holder', spell: hideousLaughter, holder: { defeated: true } }
+  ])('owes nothing for $name', async ({ spell, holder }) => {
+    const { prepared, runtime } = contact(spell, holder)
+    await expect(prepared).resolves.toMatchObject({ settlements: [], pendingSnapshot: null })
+    expect(runtime).not.toHaveBeenCalled()
   })
 })

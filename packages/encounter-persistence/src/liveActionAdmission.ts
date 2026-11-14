@@ -98,7 +98,11 @@ export async function readLiveEncounterActionAdmission(
           optionId: responseAdmission.resolution.optionId
         })
       : null
-  const retargeted = retarget ? retargetEncounterAction(admission.input, retarget) : null
+  // A list's ray turns inside its own entry: the list's command still names the creatures it named.
+  const retargeted =
+    retarget && admission.input.target.kind === 'ACTOR'
+      ? retargetEncounterAction(admission.input, retarget)
+      : null
   if (retarget)
     await requireTargetSeenByMember(ctx, {
       encounterId: admission.state.id,

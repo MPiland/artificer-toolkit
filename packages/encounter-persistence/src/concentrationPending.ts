@@ -5,7 +5,10 @@ import {
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { damageSaveRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
+import {
+  damageSaveRollPolicy,
+  damageSaveRollTrigger
+} from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { damageSaveWindowResume } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { damageSaveContextBoundApplication } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
@@ -60,16 +63,7 @@ export function projectNativeConcentrationPending(
 ) {
   const { snapshot, context, window } = readNativeConcentrationPending(occurrence, pendingSnapshot)
   if (window) throw new Error('A damage save window projects as a d20 window.')
-  // The save the roller makes: the holder's derived one, or the effect's frozen policy.
-  const save =
-    context.source !== 'EFFECT_REPEAT_SAVE'
-      ? context.save
-      : {
-          rollMode: context.d20Policy.rollMode,
-          keep: context.d20Policy.keep,
-          contributors: context.d20Policy.contributors,
-          addedDice: context.d20Policy.addedDice
-        }
+  const save = damageSaveRollPolicy(context)
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_EVIDENCE',
     occurrenceId: occurrence.id,

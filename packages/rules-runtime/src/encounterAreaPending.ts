@@ -65,6 +65,25 @@ export function encounterAreaTargetCommandId(targetOccurrenceId: string) {
 type AreaContext = EncounterAreaActionPendingContextDto
 type AreaTarget = AreaContext['targets'][number]
 
+/**
+ * The creature the list named for an entry: the holder of the first ward that turned its ray, else
+ * the creature it is aimed at. Entry occurrences and the named counts are told by it, so a ray its
+ * caster turned on another creature keeps the entry it was named under.
+ */
+export const encounterAreaNamedActorId = (target: Pick<AreaTarget, 'actorId' | 'retargeted'>) =>
+  target.retargeted?.[0]?.origin.holderActorId ?? target.actorId
+
+/**
+ * The answer of a ray lost at a ward: the d20 its caster rolled against that ward, and nothing else.
+ */
+export function encounterLostRayAnswerJson(
+  requestId: string,
+  gate: NonNullable<AreaTarget['lost']>['gate']
+) {
+  const { rawFaces, rollMode } = gate.d20
+  return JSON.stringify({ kind: 'ENTER_DICE', requestId, rawFaces, rollMode })
+}
+
 /** Seals the creatures a chosen-creature action named, whatever order they were named in. */
 export function encounterChosenActorsChecksum(actorIds: readonly string[]) {
   return checksumRuleDocument({
@@ -100,7 +119,10 @@ export function encounterAreaCaughtChecksum(input: {
  * struck (D159) was not caught, and its save stays.
  */
 export function removeEncounterAreaTarget<
-  Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token' | 'collision'> & {
+  Target extends Pick<
+    AreaContext['targets'][number],
+    'actorId' | 'token' | 'collision' | 'retargeted'
+  > & {
     testedJson?: string
     rolledJson?: string
   }
@@ -124,7 +146,10 @@ export function removeEncounterAreaTarget<
   const removed = caught.filter(
     (target) => target.testedJson === undefined && target.rolledJson === undefined
   )
-  if (removed.length === 0) return { kind: 'ANSWERED' }
+  // A ray its caster turned on the creature keeps the entry of the creature it was named at, so it
+  // cannot leave with this one: the creature stays until that ray is answered.
+  if (removed.length === 0 || removed.some(({ retargeted }) => retargeted !== undefined))
+    return { kind: 'ANSWERED' }
   const targets = context.targets.filter((target) => !removed.includes(target))
   return {
     kind: 'REMOVED',
@@ -233,6 +258,13 @@ const heldOnGate = (snapshot: AreaTarget['snapshot']) =>
   snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
   snapshot.applicationContext.pause?.kind === 'INCOMING_GATE'
 
+/** The retarget offer a ray's snapshot holds it on once a ward stopped it (`ATTACK_RETARGET`), or null. */
+const retargetOffer = (snapshot: AreaTarget['snapshot']) =>
+  snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+  snapshot.applicationContext.pause?.kind === 'ATTACK_RETARGET'
+    ? snapshot.applicationContext.pause.payload
+    : null
+
 /**
  * Whether the area's caster makes the entry's roll, as for an attack roll at a creature. A ray held
  * on a reaction offer is still the caster's roll, though the creature that may react answers the offer.
@@ -255,11 +287,13 @@ const awaitingTurn = (area: SaveList, target: SaveProgress) =>
 /**
  * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, the
  * decision its ray is held on (a reaction to its aim, D217, to its rolled d20 or of the creature it
- * hit, D219, then its caster's on-hit rider), or nothing (settled, rolled and waiting its turn at the window, a ray behind an
+ * hit, D219, then its caster's on-hit rider, or its caster's choice to turn a ray a ward stopped), or
+ * nothing (settled, rolled and waiting its turn at the window, a ray behind an
  * unanswered one, or a ray whose chosen reaction is running as a child action).
  */
 export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) => {
   if (awaitingTurn(area, target)) return null
+  if (target.testedJson === undefined && retargetOffer(target.snapshot)) return 'DECISION'
   if (target.testedJson === undefined && heldOnHitChoice(target))
     return rayReactionOffer(target)?.reactionChildren?.some(
       ({ resumeOutcome }) => resumeOutcome === undefined
@@ -271,12 +305,14 @@ export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) 
 
 /**
  * The ray of `snapshot` that is held: on a reaction offer of its aim (D217), its roll or its hit (D219), answered or awaiting its
- * child, or on its caster's on-hit rider offer; null if none.
+ * child, on its caster's on-hit rider offer, or on its caster's choice to turn it once a ward stopped it; null if none.
  */
 export function encounterAreaHeldRay(snapshot: ServerAggregateChoicePendingSnapshotDto) {
   return (
     requireAreaContext(snapshot).targets.find(
-      (target) => target.testedJson === undefined && heldOnHitChoice(target)
+      (target) =>
+        target.testedJson === undefined &&
+        (heldOnHitChoice(target) || retargetOffer(target.snapshot) !== null)
     ) ?? null
   )
 }
@@ -390,8 +426,14 @@ export function holdEncounterAreaRay(
     !casterRolls(applicationContext, held) ||
     awaitingTurn(applicationContext, held) ||
     hold.occurrenceId !== held.snapshot.occurrenceId ||
-    // The incoming gate of the creature a ray is aimed at is rolled before any offer of the ray.
-    !(heldOnHitChoice({ snapshot: hold }) || (heldOnGate(hold) && !heldOnHitChoice(held))) ||
+    // A ray held on its caster's choice to turn it leaves that hold lost or turned, never held again.
+    retargetOffer(held.snapshot) !== null ||
+    // The incoming gate of the creature a ray is aimed at is rolled before any offer of the ray, and
+    // its failure offers the ray another creature before any other.
+    !(
+      heldOnHitChoice({ snapshot: hold }) ||
+      ((heldOnGate(hold) || retargetOffer(hold) !== null) && !heldOnHitChoice(held))
+    ) ||
     // A hit is offered its rider once its reaction is past, never the other way round.
     (heldOnHitOffer(held) && !heldOnHitOffer({ snapshot: hold }))
   )
@@ -407,6 +449,50 @@ export function holdEncounterAreaRay(
             ? undefined
             : testBindings.get(target.snapshot.occurrenceId)
         return testBindingJson === undefined ? target : { ...target, testBindingJson }
+      })
+    }
+  })
+}
+
+/**
+ * Turns the ray held on its retarget offer with `requestId` on the creature its caster chose: the
+ * entry keeps its place and its occurrence, takes that creature, its token and the roll sealed
+ * against it, and records the failed ward save that turned it. The caught set is sealed again over
+ * the creatures the rays are now aimed at; every other entry stays exactly as sealed.
+ */
+export function turnEncounterAreaRay(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  turned: Pick<AreaTarget, 'actorId' | 'token' | 'perceivedByCaster' | 'snapshot'>
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const held = applicationContext.targets.find(
+    (target) => target.snapshot.request.requestId === requestId
+  )
+  const offer = held && held.testedJson === undefined ? retargetOffer(held.snapshot) : null
+  if (
+    !held ||
+    !offer ||
+    turned.snapshot.occurrenceId !== held.snapshot.occurrenceId ||
+    !offer.options.some(
+      (option) =>
+        option.targetActorId === turned.actorId &&
+        option.targetTokenId === (turned.token?.tokenId ?? null)
+    )
+  )
+    throw new Error('This ray has no retarget to make.')
+  const targets = applicationContext.targets.map((target) =>
+    target === held ? { ...turned, retargeted: [...(held.retargeted ?? []), offer.gate] } : target
+  )
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets,
+      caughtChecksum: encounterAreaCaughtChecksum({
+        scene: applicationContext.scene,
+        area: applicationContext.area,
+        caught: targets
       })
     }
   })

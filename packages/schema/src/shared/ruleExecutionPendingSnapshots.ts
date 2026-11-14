@@ -27,6 +27,7 @@ import {
   type EncounterReactionOfferPendingContextDto
 } from './ruleExecutionReactionOffer.js'
 import {
+  movementPendingDamageSave,
   movementReactionPendingContextDtoSchema,
   spatialPendingContextDtoSchema
 } from './ruleExecutionSpatialPendingContexts.js'
@@ -63,7 +64,9 @@ import {
   type DamageRerollCostDto
 } from './ruleExecutionDamageRollWindow.js'
 import {
+  encounterFailedWardGateDtoSchema,
   encounterSettledIncomingGateDtoSchema,
+  type EncounterFailedWardGateDto,
   type EncounterSettledIncomingGateDto
 } from './ruleExecutionReactionChoice.js'
 
@@ -347,16 +350,18 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((snapshot, context) => {
-        const concentration =
-          snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-          snapshot.applicationContext.phase.kind === 'CONCENTRATION_EVIDENCE'
-            ? snapshot.applicationContext.phase.concentration
+        const movementDamageSave =
+          snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+            ? movementPendingDamageSave(snapshot.applicationContext.phase)
             : null
         if (
-          concentration &&
-          (snapshot.occurrenceId === concentration.parentOccurrenceId ||
-            snapshot.graph.source.definitionId !== concentration.concentrationDefinition.id ||
-            snapshot.graph.source.checksum !== concentration.concentrationDefinition.checksum ||
+          movementDamageSave &&
+          (snapshot.occurrenceId === movementDamageSave.context.parentOccurrenceId ||
+            (movementDamageSave.context.source === 'CONCENTRATION' &&
+              (snapshot.graph.source.definitionId !==
+                movementDamageSave.context.concentrationDefinition.id ||
+                snapshot.graph.source.checksum !==
+                  movementDamageSave.context.concentrationDefinition.checksum)) ||
             snapshot.request.kind !== 'INTEGER_RANGE' ||
             snapshot.request.min !== 1 ||
             snapshot.request.max !== 20)
@@ -365,7 +370,7 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
             code: 'custom',
             path: ['applicationContext', 'phase'],
             message:
-              'Concentration movement evidence must retain its child continuation identity, exact graph, and d20 request.'
+              'Movement damage-save evidence must retain its child continuation identity, exact graph, and d20 request.'
           })
         // A damage save's d20 window pends in the save's place, so it keeps the save's deferred choice.
         const concentrationParent =
@@ -614,6 +619,12 @@ export type EncounterAreaActionPendingContextDto = {
      * It is never rolled, deals nothing and the rays behind it go on.
      */
     lost?: { gate: EncounterSettledIncomingGateDto }
+    /**
+     * The evidence of a ray its caster turned on this creature after a ward stopped it
+     * (`ATTACK_RETARGET`): each failed ward save that turned it, in order. The first ward's holder is
+     * the creature the list named for this ray, so the ray keeps that creature's entry and occurrence.
+     */
+    retargeted?: EncounterFailedWardGateDto[]
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -772,6 +783,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             testBindingJson: z.optional(z.string()),
             onHit: z.optional(encounterOnHitAuditDtoSchema),
             lost: z.optional(z.strictObject({ gate: encounterSettledIncomingGateDtoSchema })),
+            retargeted: z.optional(
+              z
+                .array(encounterFailedWardGateDtoSchema)
+                .check(z.minLength(1))
+                .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+            ),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
@@ -917,11 +934,25 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               message:
                 'A ray is lost at the ward of the creature it was aimed at, answered by that roll alone.'
             })
-          // A ray is gated by the ward of the creature it is aimed at, and its caster rolls that save.
+          if (
+            target.retargeted &&
+            (!casterRolls ||
+              struck ||
+              target.retargeted.at(-1)?.origin.holderActorId === target.actorId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'retargeted'],
+              message:
+                'A ray is turned by its caster, away from the creature whose ward stopped it.'
+            })
+          // A ray is gated by the ward of the creature it is aimed at, and its caster rolls that save;
+          // the retarget offer its failure raises holds that same ward.
           const gates =
             inner.kind === 'ENCOUNTER_ACTION'
               ? [
                   inner.pause?.kind === 'INCOMING_GATE' ? inner.pause.payload : undefined,
+                  inner.pause?.kind === 'ATTACK_RETARGET' ? inner.pause.payload.gate : undefined,
                   inner.passedIncomingGate
                 ]
               : []
@@ -1061,13 +1092,14 @@ export function requireServerAggregateChoicePendingSnapshot(
   return snapshot
 }
 
-/** Returns the aggregate occurrence that owns a pending movement concentration child. */
+/** Returns the aggregate occurrence that owns a pending movement damage-save child. */
 export function serverRuleExecutionPendingOccurrenceId(
   snapshot: ServerRuleExecutionPendingSnapshotDto
 ): string {
-  return snapshot.snapshotKind === 'KERNEL_EVIDENCE' &&
-    snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-    snapshot.applicationContext.phase.kind === 'CONCENTRATION_EVIDENCE'
-    ? snapshot.applicationContext.phase.concentration.parentOccurrenceId
-    : snapshot.occurrenceId
+  return (
+    (snapshot.snapshotKind === 'KERNEL_EVIDENCE' &&
+    snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+      ? movementPendingDamageSave(snapshot.applicationContext.phase)?.context.parentOccurrenceId
+      : undefined) ?? snapshot.occurrenceId
+  )
 }

@@ -189,6 +189,13 @@ export function damagedHitRepeatTrigger(
   return undefined
 }
 
+/** Whether damage can owe the effect's holder a repeat save (D167), whoever deals it. */
+export function repeatsSaveOnDamage(effect: HookedEffect): boolean {
+  return effectHooks(effect).some(
+    (hook) => hook.hook === 'REPEAT_SAVE' && hook.subscription.event === 'DAMAGED'
+  )
+}
+
 /** `effect` is null for a maintenance link, which has no effect record: effect-bound filters are unmet. */
 function subscriptionMet(
   effect: HookedEffect | null,

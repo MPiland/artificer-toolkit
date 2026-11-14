@@ -13,7 +13,10 @@ import type {
   MovementMaintenanceProjection
 } from './encounterMovementMaintenance.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
+import type {
+  MovementConcentrationExecutionDto,
+  MovementRepeatSaveExecutionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
   appendEncounterMovementConcentrationEvidenceCommand,
   appendEncounterMovementReactionResolutionCommand,
@@ -112,7 +115,10 @@ export async function evaluateEncounterMovementActionResponse<
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       projection?: MovementMaintenanceProjection<TRow>
       source: { executionOrdinal: number }
-      retainedChecks?: readonly MovementConcentrationExecutionDto[]
+      retainedSaves?: {
+        concentrationChecks?: readonly MovementConcentrationExecutionDto[]
+        repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
+      }
       resume?: {
         snapshot: ServerKernelRuleExecutionPendingSnapshotDto
         resolution: Extract<EncounterResponseAnswer, { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }>
@@ -129,11 +135,14 @@ export async function evaluateEncounterMovementActionResponse<
     ): Promise<{
       outcome: SceneSpatialPreparation['outcome']
       settlements: readonly TContinuationSettlement[]
+      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     }>
   }
 ): Promise<{
   outcome: Outcome
   settlements: ResponseSettlement<TConcentrationPlan, TContinuationSettlement>[]
+  /** Every target as the move's settled children left it. */
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   resolutionCommands: ReactionContext['root']['resolutionCommands']
 }> {
   const { responseCommand, occurredAt } = input
@@ -228,9 +237,12 @@ export async function evaluateEncounterMovementActionResponse<
       context,
       resolutionCommands
     })
-  } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
+  } else if (
+    context.phase.kind === 'CONCENTRATION_EVIDENCE' ||
+    context.phase.kind === 'REPEAT_SAVE_EVIDENCE'
+  ) {
     if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
-      throw new Error('Movement response does not match the issued Concentration evidence.')
+      throw new Error('Movement response does not match the issued damage-save evidence.')
     resolutionCommands = appendEncounterMovementConcentrationEvidenceCommand({
       history: root.resolutionCommands,
       command: responseCommand,
@@ -286,8 +298,9 @@ export async function evaluateEncounterMovementActionResponse<
       targets,
       projection: maintenanceProjection,
       source: concentrationSource,
-      ...(input.retained ? { retainedChecks: retainedSource?.concentrationChecks ?? [] } : {}),
-      ...(context.phase.kind === 'CONCENTRATION_EVIDENCE' &&
+      ...(input.retained ? { retainedSaves: retainedSource ?? {} } : {}),
+      ...((context.phase.kind === 'CONCENTRATION_EVIDENCE' ||
+        context.phase.kind === 'REPEAT_SAVE_EVIDENCE') &&
       (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL')
         ? { resume: { snapshot, resolution } }
         : {})
@@ -306,6 +319,7 @@ export async function evaluateEncounterMovementActionResponse<
           movementIntent: null
         },
         settlements,
+        targets,
         resolutionCommands
       }
   }
@@ -338,6 +352,7 @@ export async function evaluateEncounterMovementActionResponse<
         })
       },
       settlements,
+      targets,
       resolutionCommands
     }
   }
@@ -382,6 +397,7 @@ export async function evaluateEncounterMovementActionResponse<
   return {
     outcome: continued.outcome,
     settlements: [...settlements, ...continued.settlements],
+    targets: continued.targets,
     resolutionCommands
   }
 }

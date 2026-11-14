@@ -157,7 +157,10 @@ export async function prepareEncounterMovementContinuation<
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       projection?: TProjection
       executionOrdinal: number
-      retainedChecks?: FrozenMovementReactionRemainder['completedSpatialExecutions'][number]['concentrationChecks']
+      retainedSaves?: Pick<
+        FrozenMovementReactionRemainder['completedSpatialExecutions'][number],
+        'concentrationChecks' | 'repeatSaves'
+      >
     }): Promise<{
       remainder: FrozenMovementReactionRemainder
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -283,7 +286,8 @@ export async function prepareEncounterMovementContinuation<
         throw new Error('Scene movement spatial continuation is unavailable.')
       return {
         outcome: outcomePending(evaluated.pendingSnapshot, context.root.currentPosition),
-        settlements
+        settlements,
+        targets
       }
     }
     if (evaluated.kind === 'TERMINAL') {
@@ -316,13 +320,15 @@ export async function prepareEncounterMovementContinuation<
             released
           })
         },
-        settlements
+        settlements,
+        targets
       }
     }
     if (evaluated.kind === 'MANUAL' || evaluated.kind === 'NO_CANDIDATES')
       return {
         outcome: { kind: 'UNINTERRUPTED' as const, reason: evaluated.kind },
-        settlements
+        settlements,
+        targets
       }
     const boundary =
       'preparedBoundary' in evaluated && evaluated.preparedBoundary
@@ -351,10 +357,10 @@ export async function prepareEncounterMovementContinuation<
         executionOrdinal: boundary.concentrationExecutionOrdinal,
         ...(input.retained
           ? {
-              retainedChecks:
+              retainedSaves:
                 retainedMovementSpatialExecutions(input.retained).find(
                   (entry) => entry.ordinal === boundary.concentrationExecutionOrdinal
-                )?.concentrationChecks ?? []
+                ) ?? {}
             }
           : {})
       })
@@ -363,7 +369,11 @@ export async function prepareEncounterMovementContinuation<
       maintenanceProjection = concentration.projection
       settlements.push(...concentration.settlements)
       if (concentration.pendingSnapshot)
-        return { outcome: outcomePending(concentration.pendingSnapshot, position), settlements }
+        return {
+          outcome: outcomePending(concentration.pendingSnapshot, position),
+          settlements,
+          targets
+        }
       continue
     }
     if (terminalStop && Math.abs(boundary.boundaryDistance - terminalStop.pathDistance) <= 1e-8) {
@@ -395,7 +405,8 @@ export async function prepareEncounterMovementContinuation<
             turnActorId: input.state.currentActorId
           })
         },
-        settlements
+        settlements,
+        targets
       }
     }
     if (passage && Math.abs(boundary.boundaryDistance - passage.contact.pathDistance) <= 1e-8) {
@@ -406,7 +417,7 @@ export async function prepareEncounterMovementContinuation<
         reactionTimeline: timeline,
         targets
       })
-      return { outcome: pending, settlements }
+      return { outcome: pending, settlements, targets }
     }
     if (
       !next ||
@@ -438,6 +449,6 @@ export async function prepareEncounterMovementContinuation<
       boundary,
       reactionTimeline
     })
-    return { outcome: outcomePending(snapshot, position), settlements }
+    return { outcome: outcomePending(snapshot, position), settlements, targets }
   }
 }

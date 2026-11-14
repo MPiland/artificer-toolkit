@@ -85,7 +85,7 @@ export async function prepareRoomForcedMovementContacts(input: {
     executionCommandId: commandId,
     occurredAt: input.occurredAt
   }
-  const { outcome, settlements } = await prepareEncounterMovementContinuation<
+  const planned = await prepareEncounterMovementContinuation<
     CharacterFacts,
     NativeLiveMovementMaintenanceProjection,
     PreparedSpatialMovementPlan<CharacterFacts>,
@@ -141,13 +141,13 @@ export async function prepareRoomForcedMovementContacts(input: {
       runtime: async () => runtime
     }
   )
+  const { outcome } = planned
   if (outcome.kind === 'PENDING') throw new Error('A forced movement contact asked for a choice.')
   const { settlementInputs, rules } = nativeMovementSettlementInputs({
     state,
     actors,
-    targets,
     finalActors,
-    planned: { outcome, settlements }
+    planned
   })
   return {
     outcome,

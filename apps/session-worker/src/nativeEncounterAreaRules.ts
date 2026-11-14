@@ -50,6 +50,7 @@ import {
   encounterAreaHeldRay,
   encounterAreaSaveAwaiting,
   encounterAreaSettled,
+  encounterAreaNamedActorId,
   encounterChosenActorEntries,
   encounterChosenActorsChecksum,
   encounterCollisionSaveOccurrenceId,
@@ -125,7 +126,7 @@ import {
   sealedListAttack
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
-import { advanceAreaRay, advanceAreaRayAim } from './nativeAreaRayAdvance.js'
+import { advanceAreaRay, advanceAreaRayAim, answerAreaRayRetarget } from './nativeAreaRayAdvance.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
 
@@ -714,7 +715,7 @@ export async function planNativeLiveEncounterAreaAnswer(
           )
         : encounterChosenActorEntries(
             areaSnapshot.occurrenceId,
-            caught.map(({ actorId }) => actorId)
+            caught.map(encounterAreaNamedActorId)
           )[caught.indexOf(answered)]?.occurrenceId) ||
     context.commandFingerprint !== input.fingerprint ||
     command.optionalCombatIntent != null
@@ -901,6 +902,11 @@ export async function planNativeLiveEncounterAreaRayOffer(
           response: ResolveRuleOccurrenceInputDto
           answer: Extract<NativePauseAnswer, { kind: 'CAST_REACTION' | 'ON_HIT' }>
         }
+      /** The caster's choice at the retarget offer of a ray a ward stopped. */
+      | {
+          response: ResolveRuleOccurrenceInputDto
+          retarget: Extract<NativePauseAnswer, { kind: 'ATTACK_RETARGET' }>['answer']
+        }
       | { resume: LiveSessionEncounterActionResume; offer: EncounterCastReactionOfferDto }
   }
 ) {
@@ -996,31 +1002,48 @@ export async function planNativeLiveEncounterAreaRayOffer(
         : []
     )
   )
-  // An offer of the ray's aim is heard before its d20 (D217); every other is one its roll raised.
-  const aimStep =
-    'resume' in continuation
-      ? continuation.offer.kind === 'ATTACK_ON_OTHER'
-        ? ({ kind: 'RESUMED' } as const)
-        : null
-      : continuation.answer.kind === 'CAST_REACTION' &&
-          continuation.answer.answer.offer.kind === 'ATTACK_ON_OTHER'
-        ? ({ kind: 'ANSWER', answer: continuation.answer.answer, testBindings } as const)
-        : null
-  const advanced = aimStep
-    ? await advanceAreaRayAim(input, snapshot, heldRay, reach, aimStep)
-    : await advanceAreaRay(
-        input,
-        snapshot,
-        heldRay,
-        'resume' in continuation
-          ? { kind: 'RESUMED', offer: continuation.offer }
-          : { kind: 'ANSWER', answer: continuation.answer, testBindings }
-      )
-  snapshot = advanced.snapshot
+  let reactionChild: Awaited<ReturnType<typeof advanceAreaRay>>['reactionChild'] = null
+  // A ray its caster turns goes on as the chosen creature's, its aim heard afresh.
+  let turned: Awaited<ReturnType<typeof answerAreaRayRetarget>>['turned'] = null
+  if ('retarget' in continuation) {
+    const answered = await answerAreaRayRetarget(
+      input,
+      snapshot,
+      heldRay.sealed,
+      reach,
+      continuation.retarget
+    )
+    snapshot = answered.snapshot
+    turned = answered.turned
+  } else {
+    // An offer of the ray's aim is heard before its d20 (D217); every other is one its roll raised.
+    const aimStep =
+      'resume' in continuation
+        ? continuation.offer.kind === 'ATTACK_ON_OTHER'
+          ? ({ kind: 'RESUMED' } as const)
+          : null
+        : continuation.answer.kind === 'CAST_REACTION' &&
+            continuation.answer.answer.offer.kind === 'ATTACK_ON_OTHER'
+          ? ({ kind: 'ANSWER', answer: continuation.answer.answer, testBindings } as const)
+          : null
+    const advanced = aimStep
+      ? await advanceAreaRayAim(input, snapshot, heldRay, reach, aimStep)
+      : await advanceAreaRay(
+          input,
+          snapshot,
+          heldRay,
+          'resume' in continuation
+            ? { kind: 'RESUMED', offer: continuation.offer }
+            : { kind: 'ANSWER', answer: continuation.answer, testBindings }
+        )
+    snapshot = advanced.snapshot
+    reactionChild = advanced.reactionChild
+  }
   // The held ray, once past its aim, and the rays behind it go on for a roller who auto-rolls.
-  for (const [index, { actor, target }] of entries.entries()) {
+  for (const [index, entry] of entries.entries()) {
     if (index < heldIndex) continue
-    if (index > heldIndex)
+    const { actor, target } = index === heldIndex && turned ? turned : entry
+    if (index > heldIndex || turned)
       snapshot = (
         await advanceAreaRayAim(
           input,
@@ -1043,7 +1066,7 @@ export async function planNativeLiveEncounterAreaRayOffer(
     command,
     response,
     snapshot,
-    reactionChild: advanced.reactionChild,
+    reactionChild,
     prepared: { actors },
     fingerprint: input.fingerprint,
     initiatorUserId: context.initiatorUserId,
