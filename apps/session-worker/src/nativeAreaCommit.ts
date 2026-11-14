@@ -29,6 +29,7 @@ import {
 import { encounterChosenActorEntries } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { buildEncounterLostRayStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
   actionEndedEffects,
@@ -51,6 +52,7 @@ import {
   reachRuleOverrides
 } from './nativeAreaPreparation.js'
 import {
+  type AreaTargetRecord,
   type StruckSaves,
   discoverNativeLegendaryResistance,
   replayAreaTargetSave
@@ -73,6 +75,8 @@ async function settleForcedMovementCollisions(args: {
   areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
   areaOccurrenceId: string
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
+  /** The actor of every caught entry in its sealed order; a mover's entry takes the next ordinal. */
+  caughtActorIds: readonly string[]
   settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>
   struck: StruckSaves
   movements: readonly LiveSessionForcedMovement[]
@@ -111,7 +115,7 @@ async function settleForcedMovementCollisions(args: {
         args.settled[index]!.complete.applications
       )
     )
-  const priorActorIds = args.kept.map(({ actor }) => actor.id)
+  const priorActorIds = [...args.caughtActorIds]
   for (const { targetActorId, feet } of landings) {
     const collision = args.movements.find(
       (movement) => movement.targetActorId === targetActorId
@@ -206,6 +210,11 @@ export async function completeAreaCommit(args: {
   occurredAt: string
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
+  /**
+   * Every caught entry in its sealed order, when a ray was lost at its creature's incoming gate: `kept`
+   * leaves a lost ray out, and it still holds its place in its creature's ordinals.
+   */
+  caught?: readonly Pick<AreaTargetRecord, 'actorId' | 'lost'>[]
   lead: AreaPrepared
   ruleOverrides: ReturnType<typeof reachRuleOverrides>
   actionEconomy:
@@ -270,9 +279,29 @@ export async function completeAreaCommit(args: {
     formCreature
   } = args
   const { actors } = input
-  const caughtEntries = encounterChosenActorEntries(
-    areaOccurrenceId,
-    caughtKept.map(({ actor }) => actor.id)
+  const caught: readonly Pick<AreaTargetRecord, 'actorId' | 'lost'>[] =
+    args.caught ?? caughtKept.map(({ actor }) => ({ actorId: actor.id }))
+  const caughtActorIds = caught.map(({ actorId }) => actorId)
+  const sealedEntries = encounterChosenActorEntries(areaOccurrenceId, caughtActorIds)
+  const caughtEntries = sealedEntries.filter((_, index) => !caught[index]!.lost)
+  // A ray lost at its creature's gate did nothing: its receipt is the failed gate alone, under the
+  // root that holds the cast's one spend.
+  const lostRays = caught.flatMap(({ actorId, lost }, index) =>
+    lost
+      ? [
+          {
+            actorId,
+            execution: buildEncounterLostRayStoredExecution({
+              occurrenceId: sealedEntries[index]!.occurrenceId,
+              parentOccurrenceId: areaOccurrenceId,
+              actorId: caster.id,
+              sourceCharacterId: caster.kind === 'CHARACTER' ? caster.sourceId : null,
+              lost: preparedCastsSpell(lead) ? 'SPELL' : 'ATTACK',
+              gate: lost.gate
+            })
+          }
+        ]
+      : []
   )
   const forcedMovements = caughtKept.flatMap(({ actor, target }, index) => {
     const { occurrenceId } = caughtEntries[index]!
@@ -297,6 +326,7 @@ export async function completeAreaCommit(args: {
     areaSnapshot,
     areaOccurrenceId,
     kept: caughtKept,
+    caughtActorIds,
     settled: caughtSettled,
     struck,
     movements: forcedMovements
@@ -320,10 +350,10 @@ export async function completeAreaCommit(args: {
   })
   // A struck creature's save ran under its own collision occurrence, sealed with it.
   const entries = [
-    ...encounterChosenActorEntries(
-      areaOccurrenceId,
-      kept.slice(0, struckStart).map(({ actor }) => actor.id)
-    ),
+    ...encounterChosenActorEntries(areaOccurrenceId, [
+      ...caughtActorIds,
+      ...collisions.kept.map(({ actor }) => actor.id)
+    ]).filter((_, index) => !caught[index]?.lost),
     ...collisions.struck.settled.map(({ actorId, occurrenceId }) => ({ actorId, occurrenceId }))
   ]
   const { maintenance, removedIds, planZones, holdingZone } = await prepareAreaCommitMaintenance({
@@ -369,7 +399,7 @@ export async function completeAreaCommit(args: {
     maintenance,
     maintainedState: outcomes.maintainedState
   })
-  return settleAreaCommit({
+  const commit = await settleAreaCommit({
     input,
     command,
     caster,
@@ -400,6 +430,7 @@ export async function completeAreaCommit(args: {
     maintainedState,
     zoneMaintenanceTransition
   })
+  return { ...commit, lostRays }
 }
 
 /** The completed area and its per-creature child contracts the room persists in one transaction. */
@@ -435,6 +466,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     initialDefinitionId: plan.initialDefinitionId,
     execution: plan.execution,
     targets: plan.targets,
+    lostRays: plan.lostRays,
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
     unaffectedActorIds: plan.unaffectedActorIds,

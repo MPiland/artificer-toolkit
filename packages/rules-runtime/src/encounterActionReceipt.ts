@@ -336,6 +336,8 @@ export function buildEncounterCounteredCastStoredExecution(input: {
  */
 export function buildEncounterGatedActionStoredExecution(input: {
   occurrenceId: string
+  /** The chosen list this is one lost ray of. */
+  parentOccurrenceId?: string
   occurrenceVersion: number
   actorId: string
   sourceCharacterId: string | null
@@ -364,6 +366,7 @@ export function buildEncounterGatedActionStoredExecution(input: {
       kind: 'ENCOUNTER_GATED_ACTION',
       schemaVersion: 1,
       occurrenceId: input.occurrenceId,
+      ...(input.parentOccurrenceId && { parentOccurrenceId: input.parentOccurrenceId }),
       sourceActorId: input.actorId,
       sourceCharacterId: input.sourceCharacterId,
       sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
@@ -377,6 +380,32 @@ export function buildEncounterGatedActionStoredExecution(input: {
       lost: input.lost,
       gate: input.gate
     }
+  })
+}
+
+/**
+ * Builds the child receipt of one ray of a chosen list that its creature's incoming gate stopped: the
+ * failed gate alone. The list's root holds the cast's one spend, so the ray spends and applies nothing.
+ */
+export function buildEncounterLostRayStoredExecution(
+  input: Pick<
+    Parameters<typeof buildEncounterGatedActionStoredExecution>[0],
+    'occurrenceId' | 'actorId' | 'sourceCharacterId' | 'lost' | 'gate'
+  > & { parentOccurrenceId: string }
+) {
+  return buildEncounterGatedActionStoredExecution({
+    ...input,
+    occurrenceVersion: 0,
+    spend: {
+      sourceCharacterStreamVersion: null,
+      resourceReceipt: null,
+      featureResourceReceipt: null,
+      sourceItemUseStateTransition: null,
+      itemConsumptionReceipt: null,
+      spellConsumptionReceipt: null,
+      sourceApplications: []
+    },
+    actionEconomy: null
   })
 }
 

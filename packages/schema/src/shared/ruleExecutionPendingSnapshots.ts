@@ -62,6 +62,10 @@ import {
   damageRerollCostDtoSchema,
   type DamageRerollCostDto
 } from './ruleExecutionDamageRollWindow.js'
+import {
+  encounterSettledIncomingGateDtoSchema,
+  type EncounterSettledIncomingGateDto
+} from './ruleExecutionReactionChoice.js'
 
 export type ServerKernelRuleExecutionPendingSnapshotDto = ServerRuleExecutionContinuationDto & {
   snapshotKind: 'KERNEL_EVIDENCE'
@@ -604,6 +608,12 @@ export type EncounterAreaActionPendingContextDto = {
      * slot or pool it spent is not offered on a later ray of the list.
      */
     onHit?: EncounterOnHitAuditDto
+    /**
+     * Marks a ray lost at the incoming gate of the creature it was aimed at: its caster failed the
+     * roll that creature's ward asks, kept here as rolled, so the ray is answered by that roll alone.
+     * It is never rolled, deals nothing and the rays behind it go on.
+     */
+    lost?: { gate: EncounterSettledIncomingGateDto }
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -761,6 +771,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             rolls: z.optional(encounterFrozenRollsSchema),
             testBindingJson: z.optional(z.string()),
             onHit: z.optional(encounterOnHitAuditDtoSchema),
+            lost: z.optional(z.strictObject({ gate: encounterSettledIncomingGateDtoSchema })),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
@@ -886,6 +897,48 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               path: ['targets', index, 'onHit'],
               message:
                 'An on-hit decision is kept with the answered ray whose held offer it answers, and uses an option of that offer.'
+            })
+          if (
+            target.lost &&
+            (target.testedJson === undefined ||
+              !casterRolls ||
+              struck ||
+              target.lost.gate.origin.kind !== 'WARD' ||
+              target.lost.gate.origin.holderActorId !== target.actorId ||
+              target.rolledJson !== undefined ||
+              target.rolls !== undefined ||
+              target.testDice !== undefined ||
+              target.onHit !== undefined ||
+              target.legendaryResistance !== undefined)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'lost'],
+              message:
+                'A ray is lost at the ward of the creature it was aimed at, answered by that roll alone.'
+            })
+          // A ray is gated by the ward of the creature it is aimed at, and its caster rolls that save.
+          const gates =
+            inner.kind === 'ENCOUNTER_ACTION'
+              ? [
+                  inner.pause?.kind === 'INCOMING_GATE' ? inner.pause.payload : undefined,
+                  inner.passedIncomingGate
+                ]
+              : []
+          if (
+            gates.some(
+              (gate) =>
+                gate !== undefined &&
+                (!casterRolls ||
+                  struck ||
+                  gate.origin.kind !== 'WARD' ||
+                  gate.origin.holderActorId !== target.actorId)
+            )
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'snapshot'],
+              message: 'A ray’s incoming gate is the ward of the creature it is aimed at.'
             })
           if (target.legendaryResistance) {
             if (

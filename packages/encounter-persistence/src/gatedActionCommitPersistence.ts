@@ -59,6 +59,7 @@ export async function persistEncounterGatedActionCommit(
     command.optionalCombatIntent != null ||
     rootExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_GATED_ACTION' ||
+    rootExecution.applicationOutputs.parentOccurrenceId !== undefined ||
     rootExecution.occurrenceVersion !== (resume ? resume.occurrence.version + 1 : 0) ||
     (resume && rootExecution.occurrenceId !== resume.occurrence.id) ||
     // A save asked of a player is always the answer to the pause that offered it.

@@ -66,7 +66,10 @@ import {
   rerolledEncounterAreaRolls,
   resealEncounterAreaTargets
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
-import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  buildEncounterActionPendingSnapshot,
+  pendingSnapshotContinuation
+} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import type { EncounterCastReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   characterClassLevels,
@@ -525,6 +528,8 @@ async function autoRollAreaSave(
     !current ||
     encounterAreaSaveAwaiting(context, current) !== 'ROLL' ||
     sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+    // A ray held on its creature's incoming gate owes that roll, which its caster was asked for.
+    sealed.snapshot.applicationContext.pause?.kind === 'INCOMING_GATE' ||
     !input.requireAutoRoll(sealed.snapshot.applicationContext.rollerActorId)
   )
     return snapshot
@@ -719,33 +724,46 @@ export async function planNativeLiveEncounterAreaAnswer(
   const revalidated = answered.collision
     ? await revalidateStruckTarget(input, context, answered, answered.collision, reach)
     : await revalidateAreaTarget(input, context, answered, reach)
-  let snapshot = await recordAreaRoll(
-    input,
-    areaSnapshot,
-    areaSnapshot.occurrenceId,
-    { ...revalidated, prepared: revalidated.target.prepared, sealed: answered },
-    resolution
-  )
-  // An answered ray hands the turn to the next, whose aim is heard before its d20 (D217).
-  const answeredAt = context.targets.indexOf(answered)
-  const following = context.targets[answeredAt + 1]
-  if (
-    revalidated.target.prepared.makesAttackRoll &&
-    following &&
-    sealedAt(snapshot, answeredAt).testedJson !== undefined
-  )
-    snapshot = (
-      await advanceAreaRayAim(
-        input,
-        snapshot,
-        {
-          prepared: (await revalidateAreaTarget(input, context, following, reach)).target.prepared,
-          sealed: following
-        },
-        reach,
-        { kind: 'OPEN' }
-      )
-    ).snapshot
+  const entry = { ...revalidated, prepared: revalidated.target.prepared, sealed: answered }
+  const gate = answered.snapshot.applicationContext.pause
+  // A ray held on its creature's incoming gate takes its caster's roll of that gate: a pass leaves
+  // the ray to its aim and its attack roll, and a fail loses it.
+  let snapshot =
+    gate?.kind === 'INCOMING_GATE' && resolution.kind !== 'ROLL_WINDOW'
+      ? (
+          await advanceAreaRayAim(input, areaSnapshot, entry, reach, {
+            kind: 'GATE',
+            answer: {
+              offer: gate.payload,
+              continuation: pendingSnapshotContinuation(answered.snapshot),
+              evidence: resolution
+            }
+          })
+        ).snapshot
+      : await recordAreaRoll(input, areaSnapshot, areaSnapshot.occurrenceId, entry, resolution)
+  // An answered ray hands the turn to the next, whose gate is rolled and whose aim is heard before
+  // its d20 (D217). A ray an auto-rolled gate loses is answered too, so the turn passes on.
+  if (revalidated.target.prepared.makesAttackRoll)
+    for (
+      let at = context.targets.indexOf(answered) + 1;
+      at < context.targets.length && sealedAt(snapshot, at - 1).testedJson !== undefined;
+      at += 1
+    ) {
+      const following = context.targets[at]!
+      snapshot = (
+        await advanceAreaRayAim(
+          input,
+          snapshot,
+          {
+            prepared: (await revalidateAreaTarget(input, context, following, reach)).target
+              .prepared,
+            sealed: following
+          },
+          reach,
+          { kind: 'OPEN' }
+        )
+      ).snapshot
+    }
   snapshot = await openNextAreaSaveWindow(input, snapshot)
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
@@ -1228,7 +1246,8 @@ export async function planNativeLiveEncounterAreaCommit(
         sealed,
         ...(await revalidateStruckTarget(input, context, sealed, sealed.collision, base))
       })
-    else
+    // A ray lost at its creature's incoming gate deals nothing; the commit writes its gate alone.
+    else if (!sealed.lost)
       kept.push({
         sealed,
         ...(await revalidateAreaTarget(input, context, sealed, base))
@@ -1392,6 +1411,7 @@ export async function planNativeLiveEncounterAreaCommit(
     occurredAt,
     movementTargets: base.movementTargets,
     kept,
+    caught: context.targets.filter(({ collision }) => !collision),
     lead,
     ruleOverrides,
     formCreature,
