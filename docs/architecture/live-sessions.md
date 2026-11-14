@@ -195,7 +195,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
   escape end path. The spatial receipt is unchanged. The effects a move's zone damage ends on the creatures
   it damaged settle the same way, as `damageEnds` on the TERMINAL outcome and one `DAMAGE_END` settlement
-  each (`persistLiveMovementDamageEnd`, QUALITY-14.T2b; see
+  each (`persistLiveMovementDamageEnd`, QUALITY-14.T2b), which also releases the temporary hit points the
+  ended effect gave; the grants that damage owes the creature's passive triggers follow as `damageGrants` and
+  one `DAMAGE_GRANT` settlement each (`persistLiveMovementDamageGrant`, QUALITY-14.T2d2; see
   [rules runtime](rules-runtime.md), "Movement damage ends"). The repeat saves a contact's damage owes
   settle at that contact, one `REPEAT_SAVE` settlement each (`persistLiveMovementRepeatSave`,
   QUALITY-14.T2c; "Movement repeat saves").

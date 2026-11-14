@@ -205,6 +205,7 @@ describe('persistMovementSettlements spatial zone currentness', () => {
           persistAreaDeparture: unreachable,
           persistMoveEnd: unreachable,
           persistDamageEnd: unreachable,
+          persistDamageGrant: unreachable,
           endHolderGrants: unreachable,
           applyMechanics: unreachable
         }

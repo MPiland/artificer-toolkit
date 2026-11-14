@@ -633,9 +633,18 @@ the damager) through `targetEndedEffects`, and lists the ends as `damageEnds` on
 outcome. Every terminal site calls it (the finished move, a stop at the terminal distance, a reaction's stop,
 a declined or lost passage). The room plans one `DAMAGE_END` settlement per end after every contact, beside
 `AREA_DEPARTURE` and `MOVE_END`; `persistLiveMovementDamageEnd` re-derives the ends with the same function
-(`movementDamageEndedEffects`) from the holder's current rows and the move's applied contacts, requires the
-step's effect among them, and ends it through the escape end path (the row, the conditions only it held,
-maintenance owners). The spatial receipt is unchanged. An effect the move itself placed never ends on the
+(`movementDamageEnds`) from the holder's current rows and the move's applied contacts, requires the
+step's effect among them, and ends it through the escape end path (the row, the conditions only it held, the
+temporary hit points whose source it was, maintenance owners). The spatial receipt is unchanged. The same
+call passes the holder's passive damage triggers (`prepareNativeIncomingDamageGrantTriggers`, ordinal
+`MOVEMENT_DAMAGE`, rooted in the move's own command) as the turn zone and melee retaliation do (current,
+QUALITY-14.T2d2): the grants they owe are `damageGrants` on the TERMINAL outcome, the effects the grants
+replace join `damageEnds`, and the room plans one `DAMAGE_GRANT` settlement per grant after the `DAMAGE_END`
+steps, carrying the record `incomingDamageGrantRecords` builds over the holder's remaining effects;
+`persistLiveMovementDamageGrant` re-derives the owed grants from current rows, refuses one not owed ('Movement
+damage grant is not owed.') and creates it through `createIncomingDamageGrants`. A spatial contact carries the
+target's temporary hit point source (`SpatialTargetState.temporarySourceEffectId`), so its published
+transition matches the mechanics batch for a holder whose pool an effect gave. An effect the move itself placed never ends on the
 move's own damage, and an effect the move already releases (`areaDepartures`, `moveEnds`) is not listed
 twice. The ends and every release read the targets as the save chain left them: the continuation
 (`prepareEncounterMovementContinuation` and the action and passage responses) returns those `targets`, and
@@ -643,9 +652,7 @@ the room's `nativeMovementSettlementInputs` derives each release's ended effect 
 never from the facts captured before the move. An effect a made repeat save released is therefore neither
 listed nor counted as still holding a condition, and persistence refuses a `DAMAGE_END` step for it
 ('Movement release differs from its holder effect.'). Not covered yet (transitional): a move left PENDING
-ends nothing until it finishes; the temporary hit points and incoming-damage grants an action's ends stage
-also releases (`movementDamageEndedEffects` keeps only the ended effects; QUALITY-14.T2d split); and the save
-chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
+ends nothing until it finishes, and the save chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
 effect and owes a save raises twice.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
@@ -1169,8 +1176,8 @@ the grants as `grantEffectTransitions` and the conditions the ended effects rele
 refuses a settlement whose created grants differ; it returns the ended effects, which the action root keeps in `consumedGrants`, so undo deletes
 the new grants, then restores the ended and replaced effects and their released conditions), and
 the movement-reaction root records them as `grantEffectTransitions` beside `ended`. Each area target's outcome calls it and creates the grants beside its other effects (`grantEffectTransitions` on its batch; the area root
-keeps the ended effects in `consumedGrants`). Spatial movement contacts (opt-in via
-`damageEnds.incomingDamageGrants`, unset for contacts) do not yet call it; contacts wait with T6e4's gap.
+keeps the ended effects in `consumedGrants`). A move's zone damage calls it once the move's last contact has
+settled (`movementDamageEnds`, `DAMAGE_GRANT` settlements; QUALITY-14.T2d2, see "Movement damage ends").
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source
@@ -1331,7 +1338,8 @@ Damage a turn zone or a melee retaliation deals ends the target's effects that e
 passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persistence call `spatialDamageEnds` over the same
 held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
 the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
-`deleteGrants`. Occupant save auras lend bonuses and deal no damage; spatial movement contacts do not pass `damageEnds` yet.
+`deleteGrants`. Occupant save auras lend bonuses and deal no damage. A move's contacts do not pass `damageEnds`: what their
+damage ends and gives settles once the move ends, as `DAMAGE_END` and `DAMAGE_GRANT` steps ("Movement damage ends").
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.

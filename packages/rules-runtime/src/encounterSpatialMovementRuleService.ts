@@ -1284,6 +1284,9 @@ function copyState(state: SpatialTargetState): SpatialTargetState {
   return {
     current: state.current,
     temporary: state.temporary,
+    ...(state.temporarySourceEffectId && {
+      temporarySourceEffectId: state.temporarySourceEffectId
+    }),
     conditions: [...state.conditions],
     deathSaves: state.deathSaves,
     damageInterceptions: state.damageInterceptions
