@@ -1,6 +1,5 @@
 /** Code-owned D&D test operation identities shared by policy graphs. */
 export const DND5E_ATTACK_TEST_OPERATION_KEY = 'dnd5e.attack-test-resolution'
-export const DND5E_SAVE_TEST_OPERATION_KEY = 'dnd5e.save-test-resolution'
 
 /** The key of a direct proposal's form inside a test graph: `dnd5e.<x>` becomes `dnd5e.test-<x>`. */
 export function dnd5ePathGatedOperationKey(directOperationKey: string): string {

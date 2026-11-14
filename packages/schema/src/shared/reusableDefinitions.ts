@@ -4,14 +4,13 @@ import { ruleGraphDefinitionDtoSchema } from '../api/rulesRuntime.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from './basicActions.js'
 import { senseReusableDefinitionDocumentDtoSchema } from './combatPerception.js'
 import { initiativePolicyReusableDefinitionDocumentDtoSchema } from './initiativePolicy.js'
-import { dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema } from './encounterLifecycle.js'
-import { dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema } from './optionalCombat.js'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from './ruleMaintenance.js'
 import {
   conditionRuleStateReusableDefinitionDocumentDtoSchema,
   ruleCapabilityReusableDefinitionDocumentDtoSchema
 } from './ruleState.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
+import { installedDefinitionDocumentFamilies } from '../systems/installedSystemDefinitionDocuments.js'
 
 import { reusableDefinitionFamilyKeyDtoSchema } from './reusableDefinitionIdentity.js'
 export { reusableDefinitionFamilyKeyDtoSchema } from './reusableDefinitionIdentity.js'
@@ -29,13 +28,12 @@ export const reusableDefinitionDocumentDtoSchema = lazySchema(() =>
   z.union([
     ruleGraphDefinitionDtoSchema,
     initiativePolicyReusableDefinitionDocumentDtoSchema,
-    dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema,
-    dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
     senseReusableDefinitionDocumentDtoSchema,
     ruleCapabilityReusableDefinitionDocumentDtoSchema,
     conditionRuleStateReusableDefinitionDocumentDtoSchema,
     ruleMaintenanceReusableDefinitionDocumentDtoSchema,
-    basicActionReusableDefinitionDocumentDtoSchema
+    basicActionReusableDefinitionDocumentDtoSchema,
+    ...installedDefinitionDocumentFamilies.map(({ documentSchema }) => documentSchema)
   ])
 )
 
@@ -44,31 +42,11 @@ export function reusableDefinitionDocumentFamilyKey(
 ): string {
   if ('definitionFamilyKey' in document) return document.definitionFamilyKey
   if (document.kind === 'INITIATIVE_POLICY') return 'initiative-policy'
-  if (
-    document.kind === 'LEGENDARY_ACTION' ||
-    document.kind === 'LEGENDARY_RESISTANCE' ||
-    document.kind === 'RECHARGE'
-  ) {
-    return 'dnd5e-encounter-lifecycle'
-  }
-  if (
-    document.kind === 'FLANKING' ||
-    document.kind === 'ALTERNATING_DIAGONALS' ||
-    document.kind === 'FACING' ||
-    document.kind === 'CLIMB_ONTO_LARGER_CREATURE' ||
-    document.kind === 'DISARM' ||
-    document.kind === 'MARK' ||
-    document.kind === 'OVERRUN' ||
-    document.kind === 'SHOVE_ASIDE' ||
-    document.kind === 'TUMBLE' ||
-    document.kind === 'HITTING_COVER' ||
-    document.kind === 'CLEAVING' ||
-    document.kind === 'INJURIES' ||
-    document.kind === 'MASSIVE_DAMAGE' ||
-    document.kind === 'MORALE'
-  ) {
-    return 'dnd5e-optional-combat'
-  }
+  const systemFamily = installedDefinitionDocumentFamilies.find(({ documentKinds }) => {
+    const kinds: readonly string[] = documentKinds
+    return kinds.includes(document.kind)
+  })
+  if (systemFamily) return systemFamily.familyKey
   if (document.kind === 'SENSE') return 'sense'
   if (document.kind === 'RULE_CAPABILITY') return 'rule-capability'
   if (document.kind === 'RULE_MAINTENANCE') return 'rule-maintenance'

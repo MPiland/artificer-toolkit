@@ -1,3 +1,4 @@
+import { DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { CompiledDuration, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
@@ -8,7 +9,6 @@ import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY,
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
   UUID

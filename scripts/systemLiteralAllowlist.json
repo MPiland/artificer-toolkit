@@ -7,11 +7,5 @@
     "packages/schema/src/",
     "apps/apis/convex/"
   ],
-  "allowed": {
-    "packages/schema/src/grants/modifier.ts": "SPELLCASTING_LOCK is a modifier grant kind in the persisted grant union; a System-registered grant kind needs a System extension seam in the schema (proposed QUALITY-16.T3).",
-    "packages/schema/src/shared/reusableDefinitionIdentity.ts": "dnd5e-encounter-lifecycle and dnd5e-optional-combat are persisted reusable definition family keys tied to the D&D document schemas; System-owned families need the schema extension seam (proposed QUALITY-16.T3).",
-    "packages/schema/src/shared/reusableDefinitions.ts": "Maps the D&D definition document kinds to their persisted family keys (dnd5e-encounter-lifecycle, dnd5e-optional-combat); moves with reusableDefinitionIdentity.ts (proposed QUALITY-16.T3).",
-    "packages/schema/src/shared/ruleExecutionResults.ts": "The stored result refinement checks the dnd5e.actor-relationship-state operation's application; System-registered result refinements need the schema extension seam (proposed QUALITY-16.T3).",
-    "packages/schema/src/shared/ruleExecutionTurnResults.ts": "The stored turn result refinements check D&D save, repeat-save and condition-duration operation keys and evidence facts (dnd5e.*); System-registered result refinements need the schema extension seam (proposed QUALITY-16.T3)."
-  }
+  "allowed": {}
 }

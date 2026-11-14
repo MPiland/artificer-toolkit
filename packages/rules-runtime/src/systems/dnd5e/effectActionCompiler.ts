@@ -1,3 +1,12 @@
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_CONDITION_DURATION_OPERATION_KEY,
+  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -68,6 +77,7 @@ import {
   directResultSequence,
   mergeDirectResultGraphs,
   rulingSequence,
+  withRulingNodes,
   sequentialComposition,
   singleEntryAction
 } from './effectActionResultSequences.js'
@@ -120,24 +130,18 @@ import {
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
 import { rolledDamageDice } from './effectActionDamageDice.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-  DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
-  DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_ATTACK_MODIFIER_FACT_KEY,
   DND5E_TARGET_DEFENSE_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   dnd5eSaveOutcomeRule,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
@@ -162,7 +166,6 @@ import {
   DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
   DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY,
@@ -170,7 +173,6 @@ import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
-  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   UUID,
@@ -2942,29 +2944,7 @@ function compileDnd5eEffectAction({
 }): ServerPublishedRuleDefinitionDto {
   const sequence = rulingSequence(action)
   if (!sequence) return compileEffectActionGraph(action)
-  const { definition } = compileEffectActionGraph(sequence.executable)
-  // Each ruling is a manual-adjudication proposal on the same target, bound to its authored entry
-  // so the commit carries the GM's instructions beside the executable result.
-  const rulingNodes = sequence.rulings.map((entry, index) => ({
-    entryId: entry.entryId,
-    node: {
-      id: `manual_adjudication-${index + 1}`,
-      operation: { key: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
-      inputs: {
-        targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-        targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
-      }
-    } satisfies RuleGraphDefinition['nodes'][number]
-  }))
-  const withRulings: RuleGraphDefinition = {
-    ...definition,
-    nodes: [...definition.nodes, ...rulingNodes.map(({ node }) => node)],
-    sourceEntryBindings: [
-      ...(definition.sourceEntryBindings ?? []),
-      ...rulingNodes.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
-    ]
-  }
-  return publishedGraph(withRulings)
+  return withRulingNodes(compileEffectActionGraph(sequence.executable).definition, sequence.rulings)
 }
 
 function compileEffectActionGraph(
