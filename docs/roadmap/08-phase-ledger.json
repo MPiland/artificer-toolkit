@@ -26053,7 +26053,7 @@
             },
             {
               "id": "QUALITY-9.T1e3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
@@ -26063,7 +26063,8 @@
                 "after": ["QUALITY-9.T1e2", "QUALITY-18.T6"]
               },
               "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll). Carried from T1e2 (2026-11-13): fix the golden harness so the Cutting Words facts column binds a resolved die instead of pinning a refusal; path-gated subtract rolls no die and the compiler still refuses it; a sight-governed d20 offers no rolled-offer die; beside-roll versus after-roll die split on the child path; legendary-action retained replay with child dice; ray hosts pass child dice but no ray source supplies rollReaction (no ray die test); delete planNativeWindowReactions and the movement-only targetSaveWindow dice parameter with the window fields once the movement host and opportunity attacks no longer need them.",
-              "text": "Delete the window reaction die: spentReaction, windowReactions, EncounterWindowReactionReceiptDto, the reaction-die option, planNativeWindowReactions and the movement step field; ROLL_WINDOW stays for held dice and damage rerolls; docs."
+              "text": "Delete the window reaction die: spentReaction, windowReactions, EncounterWindowReactionReceiptDto, the reaction-die option, planNativeWindowReactions and the movement step field; ROLL_WINDOW stays for held dice and damage rerolls; docs.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -26453,18 +26454,47 @@
             },
             {
               "id": "QUALITY-13.T1c5b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
+                "size": 20,
                 "after": ["QUALITY-13.T1c5a"]
               },
               "text": "A ray lost at the incoming gate offers ATTACK_RETARGET for that ray only and re-seals its own entry with per-entry retarget evidence; the persistence fence covers the ATTACK_RETARGET hold. Riders from T1c5a (2026-11-14): show a lost ray's gate roll as a roll card; prove SYSTEM_ROLL on a gate-held ray and a GM AREA_REMOVAL of a target that has lost rays (ordinals); write the gate's authored success grant (if any) for rays like single attacks.",
-              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13). Resized 8 to 13 on 2026-11-14 for the T1c5a riders.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13). Resized 8 to 13 on 2026-11-14 for the T1c5a riders. Resized 13 to 20 at delivery (fence for the ATTACK_RETARGET hold, per-creature named ordinals). Split at delivery: the ward-save roll card (single attacks and rays together; single attacks do not card ward saves either) moved to QUALITY-13.T1c5c, and the ray ward success grant to QUALITY-13.T1c5d. Review riders done in the slice: a turned ray meeting the new creature's own ward (pass and fail journeys); a turned ray's answer now runs refuseImmuneTarget and the list's reachRuleOverrides like a single attack's retargeted command (TARGET_DEFEATED proof); direct turnEncounterAreaRay / named-ordinal test.",
+              "mergedAt": "2026-11-14",
+              "proof": "m754 (b8625178c); slice tip 7324862cf: Tests 43582950968, Live 43584984922, Browser journeys 43582950955 green. Red proof: nativeRoomRayIncomingGate 12/13 RED (the one passing test is unchanged T1c5a behaviour). A failed ray holds on ATTACK_RETARGET for that ray only (caster answers, never auto-rolled); decline marks it lost; choosing another creature turns the ray inside its own entry (same occurrence ids, retargeted[] keeps the stopped ward), rays behind untouched; forged options refused; GM AREA_REMOVAL takes only unanswered rays and is refused while a turned ray aims at that creature; SYSTEM_ROLL on a gate-held ray proved. offerNativeAttackRetarget is shared by single attacks and rays. Restated with reasons: three T1c5a journeys gained a declineRetarget step (a failed ray is offered a retarget before it is lost); no assertion weakened. D196 persisted-shape change: optional targets[].retargeted on the ENCOUNTER_AREA_ACTION pending snapshot; entry ordinals counted per named creature (unchanged for unturned lists); a ray may await DECISION on ATTACK_RETARGET."
+            },
+            {
+              "id": "QUALITY-13.T1c5c",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T1c5b"]
+              },
+              "text": "An incoming-gate ward save is shown as a roll card for single attacks and for each ray (recordCounterCheckRollCards cards only TRIGGER gates today), one card path for both.",
+              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-13.T1c5d",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T1c5b"]
+              },
+              "text": "A ray that passes an incoming ward writes the ward's authored success grant like a single attack: the held ward (id and successImmunity) is re-derived per passed ray at commit and passed to planAreaOutcomes grants, deduplicated per creature.",
+              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-13.T2c",
@@ -26792,10 +26822,16 @@
           "acs": [
             {
               "id": "QUALITY-18.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "Opportunity attacks and other movement reactions are offered as REACTION_CHOICE and run as D219 children of the Scene move, which resumes from them (a reaction that stops movement ends the move at the contact point); void and undo follow the child rules (an opportunity-attack child is not undone on its own); MOVEMENT_REACTION, the movement reaction phases and the nested movement-reaction workflow modules are deleted; nativeMovementDecisionReplay and the movement journey pass."
+              "text": "Opportunity attacks and other movement reactions are offered as REACTION_CHOICE and run as D219 children of the Scene move, which resumes from them (a reaction that stops movement ends the move at the contact point); void and undo follow the child rules (an opportunity-attack child is not undone on its own); MOVEMENT_REACTION, the movement reaction phases and the nested movement-reaction workflow modules are deleted; nativeMovementDecisionReplay and the movement journey pass.",
+              "proof": [
+                "nativeMovementReactionChild.test.ts",
+                "nativeRoomReactionChildDefeat.test.ts",
+                "reactionChildren.test.ts",
+                "occurrenceVoid.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -27009,13 +27045,13 @@
             },
             {
               "id": "QUALITY-18.T6",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 1,
                 "after": [
                   "QUALITY-18.T3",
                   "QUALITY-18.T4",
@@ -27024,8 +27060,10 @@
                   "QUALITY-18.T3d"
                 ]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "Delete the MOVEMENT_REACTION summary kind, the movement reaction phases, completedReactionExecutions, the nested movement-reaction modules, liveMovementReactionPersistence and the movement window-die field; restate tests; update rules-runtime.md and persistence.md; D196 reset."
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Resized 5 to 1 at delivery: QUALITY-18.T2c had already deleted the movement phases, completedReactionExecutions and persistLiveMovementReaction, and no window-die field remained; the encounterMovementReaction* modules, movementReactionChild, the MOVEMENT_REACTION_CHILD route and the ENCOUNTER_MOVEMENT_REACTION parent context are live (the child path) and stay.",
+              "text": "Delete the MOVEMENT_REACTION summary kind, the movement reaction phases, completedReactionExecutions, the nested movement-reaction modules, liveMovementReactionPersistence and the movement window-die field; restate tests; update rules-runtime.md and persistence.md; D196 reset.",
+              "mergedAt": "2026-11-14",
+              "proof": "m753 (17008a2ab); slice tip 62ac7ed54 (live-backend auto-fix of _generated/api.d.ts on 21aea8a29): Tests 43580324542, Live 43580326654, Browser journeys 43583154096 green. Deleted the dead MOVEMENT_REACTION pending summary variant (encounterRuleOccurrence.ts); persistence.md and rules-runtime.md updated. No test changed (red proof skipped); no persisted shape change (summary is transport-only)."
             }
           ]
         }

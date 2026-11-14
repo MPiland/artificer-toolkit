@@ -635,6 +635,24 @@ completed child of the list (`ENCOUNTER_GATED_ACTION.parentOccurrenceId`), which
 root gated action never carries `parentOccurrenceId`. The `lost` marker, the ray-level gate fields,
 `parentOccurrenceId` and `lostRays` are persisted-shape changes; refresh local data when next used (D196).
 
+A ray's retarget (current, QUALITY-13.T1c5b). A ray whose gate failed may instead be held on an
+`ATTACK_RETARGET` pause in its own snapshot (the schema admits it only there, on a ray its caster rolls), and
+an entry its caster turned carries `retargeted`: the failed ward saves that turned it, oldest first, the first
+one's holder being the creature the list named for that entry (`encounterAreaNamedActorId`).
+`requireAreaActionRayGate` accepts a failed roll that holds the ray on the offer for the same gate.
+`requireAreaActionAnswer` routes a retarget-held ray's answer to `requireAreaActionRayRetarget`: a `DECLINE`
+marks exactly that ray lost on the offer's gate; an `OPTION` must name a creature the stored offer lists, and
+the entry is rebuilt with `turnEncounterAreaRay` (same place and occurrence, the option's creature and token,
+`retargeted` extended, the caught set sealed again), begun afresh as one retargeted attack is
+(`castPendingContinues`). Since the caster's choice is the one answer an auto-rolling caster gives a list, the
+turned ray and the rays behind it may be answered in the same step by rolls made for them
+(`withRaysBehindOpened` with `rolledForCaster`). The live admission keeps the list's root command for a ray's
+retarget (only a single-creature action is replayed as the retargeted command) and still requires the member
+to see the chosen creature. `requireAreaActionPendingRoot`, the area commit and `persistEncounterAreaCommit`
+count entries by named creature, so a turned ray keeps its occurrence id and its receipt names the creature it
+hit. `retargeted` on a list entry is an additive persisted-shape change; refresh local data when next used
+(D196).
+
 The check a child owes (current, QUALITY-9.T1b2, D219 "Trigger-check gate"). A child whose authored
 `reactionTrigger` asks a check against a higher-level cast owes it as its incoming gate, read against
 `triggerCastLevel` (`owedNativeTriggerCheck`, `advanceNativeIncomingGate`). A gate carries a discriminated

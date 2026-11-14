@@ -7,6 +7,7 @@ import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-run
 import { encounterAreaLegendaryResistanceAudits } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { answerEncounterAreaTest } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import { encounterAreaNamedActorId } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { collisionStruckCapability } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
 import {
   targetSaveWindow,
@@ -71,14 +72,40 @@ export async function revalidateAreaTarget(
   sealed: AreaTargetRecord,
   base: AreaReach
 ) {
-  const { command, state, actors, capture } = input
   requireAreaUnchanged(base, context)
-  const actor = actors.find((candidate) => candidate.id === sealed.actorId)
+  const actor = input.actors.find((candidate) => candidate.id === sealed.actorId)
   const token = base.scene?.tokens.find((candidate) => candidate.actorId === sealed.actorId) ?? null
   if (!actor || sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
     throw new Error('Encounter rules input binding mismatch.')
   // A creature that had a token on the Scene must still have one (and one that had none, none).
   if ((token === null) !== (sealed.token === null)) throw new Error('The pending area changed.')
+  const current = await prepareAreaTargetNow(input, context, base, actor)
+  // The caster and a creature a held ray hit stand as the reaction it awaits left them (D219); the
+  // resume from that reaction's child seals the entry to them again.
+  if (
+    sealed.snapshot.applicationContext.currentnessChecksum !== current.currentnessChecksum &&
+    !reactedUnderAwaitedChild(input.reactionChildren.recorded, input.reactionChildren.committed, [
+      base.caster.id,
+      actor.id
+    ])
+  )
+    throw new Error('The pending action source or target changed.')
+  return { actor, ...current }
+}
+
+/**
+ * One creature of a pending list prepared against the Scene and its facts as they are now, with the
+ * checksum its sealed roll is current under: a sealed creature read again, or the creature a ray is
+ * being turned on.
+ */
+export async function prepareAreaTargetNow(
+  input: ReachPlanInput,
+  context: AreaContext,
+  base: AreaReach,
+  actor: EncounterRunActorState
+) {
+  const { command, state, capture } = input
+  const token = base.scene?.tokens.find((candidate) => candidate.actorId === actor.id) ?? null
   if (!base.movementTargets.has(actor.id))
     base.movementTargets.set(actor.id, await input.loadTarget(actor))
   const target = await prepareAreaTarget({
@@ -93,9 +120,12 @@ export async function revalidateAreaTarget(
     state,
     actionId: command.actionId,
     sourceTarget: base.casterFacts,
-    // The creatures the area first caught, as its sealed saves were prepared with.
+    // The creatures the area first caught, as its sealed saves were prepared with: a ray its caster
+    // turned counts as the creature it was named at.
     targetIds: [
-      ...context.targets.flatMap(({ actorId, collision }) => (collision ? [] : [actorId])),
+      ...context.targets.flatMap((target) =>
+        target.collision ? [] : [encounterAreaNamedActorId(target)]
+      ),
       ...context.removedActorIds
     ],
     capture
@@ -116,17 +146,7 @@ export async function revalidateAreaTarget(
     maintenance,
     sceneContext: target.sceneContext
   })
-  // The caster and a creature a held ray hit stand as the reaction it awaits left them (D219); the
-  // resume from that reaction's child seals the entry to them again.
-  if (
-    sealed.snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
-    !reactedUnderAwaitedChild(input.reactionChildren.recorded, input.reactionChildren.committed, [
-      base.caster.id,
-      actor.id
-    ])
-  )
-    throw new Error('The pending action source or target changed.')
-  return { actor, target, evaluation, currentnessChecksum }
+  return { target, evaluation, currentnessChecksum }
 }
 
 function requireAreaUnchanged(base: AreaReach, context: AreaContext) {

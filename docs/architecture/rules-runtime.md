@@ -906,8 +906,26 @@ ray's replay, counts it for no earlier attack on its creature and writes one chi
 (`buildEncounterLostRayStoredExecution`: `ENCOUNTER_GATED_ACTION` with `parentOccurrenceId`, spending and
 applying nothing); a list whose rays are all lost commits its spend with no effect. Known limits: only
 attack-roll rays are gated (a save-based chosen list is admitted as before), a passed ward's immunity grant is
-not written for a ray, and a lost ray's save is not carded. **Not yet per ray (target, QUALITY-13.T1c5b):**
-`ATTACK_RETARGET` is not offered for a lost ray.
+not written for a ray, and a lost ray's save is not carded (a ward save is not carded for one attack either).
+
+**A stopped ray may be turned, that ray alone (current, QUALITY-13.T1c5b):** a ray whose gate fails is offered
+another creature before it is lost, through the single-attack offer (`offerNativeAttackRetarget`, with the
+creatures the list removed or left unaffected left out). The ray is held on an `ATTACK_RETARGET` pause in its
+own snapshot; the list reads it as its caster's decision (`ATTACK_RETARGET_CHOICE`), never rolled for them,
+and with nobody to offer the ray is lost at once. The answer goes through `planNativeLiveEncounterAreaRayOffer`
+(`{ response, retarget }`) to `answerAreaRayRetarget`. `DECLINE` loses the ray as a failed gate does. `OPTION`
+turns it inside its own entry (`turnEncounterAreaRay`): the entry keeps its place and occurrence, takes the
+chosen creature, its token and a roll sealed against it as it stands now (`prepareAreaTargetNow`), and appends
+the failed save to `retargeted`. The ray's aim then opens afresh on that creature, its own ward owed again. The
+root command and its fingerprint still name the creatures the list named, so entry occurrences and the named
+counts are told by `encounterAreaNamedActorId` (the holder of the first ward that turned the ray), while
+receipts and outcomes use the creature the ray is aimed at. A GM removal takes only the unanswered rays at a
+creature, and is refused while an unanswered ray turned on that creature would have to leave with it. The
+offer filters as one attack's does (creatures the caster sees, on the Scene the list read); the chosen creature
+is then held to what one attack turned on it is: an immune one is refused (`refuseImmuneTarget`) and so is one
+that raises a warning the cast did not acknowledge (`reachRuleOverrides` over that creature: range, defeated,
+excluded creature type), with the offer kept. Known limit: a list bound to an area does not check that the
+chosen creature is inside it.
 
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 

@@ -413,14 +413,15 @@ export type EncounterFailedWardGateDto = EncounterSettledIncomingGateDto & {
   origin: Extract<EncounterIncomingGateOriginDto, { kind: 'WARD' }>
 }
 
-const encounterFailedWardGateDtoSchema: z.ZodMiniType<EncounterFailedWardGateDto> = lazySchema(() =>
-  z.strictObject({
-    origin: wardGateOriginSchema,
-    checkDefinitionId: uuidSchema,
-    dc: positiveIntegerSchema,
-    d20: ruleCheckD20EvidenceDtoSchema
-  })
-)
+export const encounterFailedWardGateDtoSchema: z.ZodMiniType<EncounterFailedWardGateDto> =
+  lazySchema(() =>
+    z.strictObject({
+      origin: wardGateOriginSchema,
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      d20: ruleCheckD20EvidenceDtoSchema
+    })
+  )
 
 /**
  * One creature the attacker could turn a lost attack or spell on instead (`ATTACK_RETARGET`). The use

@@ -225,30 +225,41 @@ export async function offerNativeAttackRetarget(input: {
   occurrenceId: string
   gameSystemId: string
   gate: EncounterSettledIncomingGateDto
-  command: ResolveEncounterActionInputDto
   actors: readonly EncounterRunActorState[]
-  prepared: Prepared
+  attackerActorId: string
+  /** Creatures never offered besides the attacker and the warded creature. */
+  excludedActorIds?: readonly string[]
+  /**
+   * How the action names a Scene: `BOUND` reads each creature's token from the attacker's Scene, a
+   * list gives the tokens of the Scene the action already read, null names no Scene.
+   */
+  tokens: 'BOUND' | readonly { actorId: string; tokenId: string }[] | null
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
-  const { gate, prepared } = input
+  const { gate } = input
   const { origin } = gate
-  if (origin.kind !== 'WARD' || input.command.target.kind !== 'ACTOR') return null
-  const bindings = input.command.sceneContext
-    ? await input.capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
-    : null
+  if (origin.kind !== 'WARD') return null
+  const bindings =
+    input.tokens === 'BOUND' ? await input.capture({ kind: 'ACTOR_TOKEN_BINDINGS' }) : null
   if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
     throw new Error('Retarget bindings are unavailable.')
+  const tokens = bindings ? bindings.bindings : input.tokens === 'BOUND' ? null : input.tokens
   const seen = await input.capture({ kind: 'SEEN_ACTORS' })
   if (seen.kind !== 'SEEN_ACTORS') throw new Error('Retarget sight is unavailable.')
   const seenIds = new Set(seen.actorIds)
   const candidates = input.actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
-    if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
+    if (
+      actor.id === input.attackerActorId ||
+      actor.id === origin.holderActorId ||
+      input.excludedActorIds?.includes(actor.id)
+    )
+      return []
     if (!seenIds.has(actor.id)) return []
-    if (!bindings) return [{ actorId: actor.id, tokenId: null }]
-    const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
-    return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []
+    if (!tokens) return [{ actorId: actor.id, tokenId: null }]
+    const token = tokens.find((entry) => entry.actorId === actor.id)
+    return token ? [{ actorId: actor.id, tokenId: token.tokenId }] : []
   })
   if (!candidates.length) return null
   return {
@@ -258,7 +269,7 @@ export async function offerNativeAttackRetarget(input: {
       gameSystemId: input.gameSystemId,
       optionCount: candidates.length
     }),
-    rollerActorId: prepared.actor.id,
+    rollerActorId: input.attackerActorId,
     pause: {
       kind: 'ATTACK_RETARGET' as const,
       payload: encounterAttackRetargetOffer({ ...gate, origin }, candidates)

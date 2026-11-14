@@ -168,8 +168,8 @@ export function readPendingActionContext(stub: RoomStub) {
   })
 }
 
-/** The stored application context of the Encounter's one PENDING occurrence, whatever its kind. */
-export function readPendingApplicationContext(stub: RoomStub) {
+/** The stored snapshot of the Encounter's one PENDING occurrence, whatever its kind. */
+export function readPendingRootSnapshot(stub: RoomStub) {
   return runInDurableObject(stub, async (_instance, context) => {
     const room = new RoomEncounterStore(context.storage)
     const occurrence = room
@@ -178,8 +178,13 @@ export function readPendingApplicationContext(stub: RoomStub) {
     if (!occurrence) throw new Error('No decision is pending.')
     const snapshot = await readPendingSnapshot({ db: room.store }, occurrence)
     if (!snapshot) throw new Error('The pending occurrence holds no snapshot.')
-    return snapshot.applicationContext
+    return snapshot
   })
+}
+
+/** The stored application context of the Encounter's one PENDING occurrence, whatever its kind. */
+export async function readPendingApplicationContext(stub: RoomStub) {
+  return (await readPendingRootSnapshot(stub)).applicationContext
 }
 
 /**
