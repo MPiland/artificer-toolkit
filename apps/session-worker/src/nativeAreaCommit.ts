@@ -28,6 +28,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
 import {
   encounterAreaNamedActorId,
+  encounterAreaRayPassedGate,
   encounterChosenActorEntries
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -217,7 +218,8 @@ export async function completeAreaCommit(args: {
    * Every caught entry in its sealed order, when a ray was lost at its creature's incoming gate: `kept`
    * leaves a lost ray out, and it still holds its place in its creature's ordinals.
    */
-  caught?: readonly Pick<AreaTargetRecord, 'actorId' | 'lost' | 'retargeted'>[]
+  caught?: readonly (Pick<AreaTargetRecord, 'actorId' | 'lost' | 'retargeted'> &
+    Partial<Pick<AreaTargetRecord, 'snapshot'>>)[]
   lead: AreaPrepared
   ruleOverrides: ReturnType<typeof reachRuleOverrides>
   actionEconomy:
@@ -282,7 +284,7 @@ export async function completeAreaCommit(args: {
     formCreature
   } = args
   const { actors } = input
-  const caught: readonly Pick<AreaTargetRecord, 'actorId' | 'lost' | 'retargeted'>[] =
+  const caught: NonNullable<typeof args.caught> =
     args.caught ?? caughtKept.map(({ actor }) => ({ actorId: actor.id }))
   // A ray its caster turned keeps the occurrence of the creature it was named at, and is the
   // receipt of the creature it was turned on.
@@ -384,6 +386,10 @@ export async function completeAreaCommit(args: {
     settled,
     entries,
     caughtCount: caughtKept.length,
+    // A kept ray records the gate it passed at its creature; a lost one has only its failed gate.
+    passedGates: caught.flatMap((entry) =>
+      entry.lost ? [] : [entry.snapshot && encounterAreaRayPassedGate({ snapshot: entry.snapshot })]
+    ),
     struckStart,
     tests,
     audits,

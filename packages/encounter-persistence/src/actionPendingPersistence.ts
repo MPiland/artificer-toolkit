@@ -22,7 +22,7 @@ import {
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { castPendingContinues, heldActionContinues } from './actionPending.js'
+import { castPendingContinues, failedWardsBehind, heldActionContinues } from './actionPending.js'
 import { suspendReactionChildParent } from './reactionChildren.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
@@ -224,6 +224,9 @@ export async function persistEncounterActionPending(
         next: snapshot.applicationContext,
         endpointActorIds: [admission.input.actorId, target.actorId]
       }) ||
+      // A turned action carries the failed saves that turned it, and no others.
+      checksumCanonicalJson(snapshot.applicationContext.retargeted ?? []) !==
+        checksumCanonicalJson(resume ? failedWardsBehind(resume.pending.context) : []) ||
       input.command.optionalCombatIntent != null
     )
       throw new Error('Live Session pending action root mismatch.')

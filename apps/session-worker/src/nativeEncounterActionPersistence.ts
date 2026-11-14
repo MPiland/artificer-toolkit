@@ -27,6 +27,7 @@ export function buildNativeLiveEncounterActionPendingInput(
     initiatorUserId: plan.initiatorUserId,
     currentnessChecksum: plan.currentnessChecksum,
     reactionChildren: plan.reactionChildren,
+    retargeted: plan.retargeted,
     castLevel: preparedSpellCastLevel(plan.prepared),
     castSlotKey: plan.prepared.characterActionState?.spellConsumption?.slotKey ?? null
   }
