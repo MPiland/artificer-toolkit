@@ -32,6 +32,8 @@ import {
   encounterChosenActorEntries
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
+import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { passedHeldWard } from '@artificer-toolkit/rules-runtime/encounterWardImmunity'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { buildEncounterLostRayStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
@@ -375,6 +377,28 @@ export async function completeAreaCommit(args: {
     placement,
     areaOccurrenceId
   })
+  // A kept ray records the gate it passed at its creature; a lost one has only its failed gate.
+  const passedGates = caught.flatMap((entry) =>
+    entry.lost ? [] : [entry.snapshot && encounterAreaRayPassedGate({ snapshot: entry.snapshot })]
+  )
+  // The ward each pass names is read again from the creature as it stands now, as one attack's is.
+  const wards = await Promise.all(
+    caughtKept.map(async ({ actor }, index) =>
+      passedHeldWard({
+        holderActorId: actor.id,
+        effects: input.activeEffectsByActorId.get(actor.id) ?? [],
+        grantFold:
+          (movementTargets.get(actor.id) ?? (await input.loadTarget(actor)))
+            .effectiveRulePolicyOutput?.grantFold ?? null,
+        attackerCreatureTypeId: snapshotCreatureTypeId(caster),
+        attacker: {
+          actorId: caster.id,
+          characterId: caster.kind === 'CHARACTER' ? caster.sourceId : null
+        },
+        passed: passedGates[index]
+      })
+    )
+  )
   const outcomes = await planAreaOutcomes({
     input,
     command,
@@ -386,10 +410,8 @@ export async function completeAreaCommit(args: {
     settled,
     entries,
     caughtCount: caughtKept.length,
-    // A kept ray records the gate it passed at its creature; a lost one has only its failed gate.
-    passedGates: caught.flatMap((entry) =>
-      entry.lost ? [] : [entry.snapshot && encounterAreaRayPassedGate({ snapshot: entry.snapshot })]
-    ),
+    passedGates,
+    wards,
     struckStart,
     tests,
     audits,

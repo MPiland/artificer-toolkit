@@ -26276,10 +26276,15 @@
           "acs": [
             {
               "id": "QUALITY-13.1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R10.",
-              "text": "Single-target, chosen-list and area actions run one per-target driver and one commit skeleton; a chosen-list action offers a reaction and a save window; area tests are unchanged."
+              "text": "Single-target, chosen-list and area actions run one per-target driver and one commit skeleton; a chosen-list action offers a reaction and a save window; area tests are unchanged.",
+              "proof": [
+                "nativeRoomIncomingGateCards.test.ts",
+                "nativeRoomRayIncomingGate.test.ts",
+                "areaRayWardImmunity.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -26493,7 +26498,7 @@
             },
             {
               "id": "QUALITY-13.T1c5d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26503,8 +26508,9 @@
                 "after": ["QUALITY-13.T1c5b"]
               },
               "text": "A ray that passes an incoming ward writes the ward's authored success grant like a single attack: the held ward (id and successImmunity) is re-derived per passed ray at commit and passed to planAreaOutcomes grants, deduplicated per creature.",
-              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13). Review 2026-11-14: accepted; the feature-borne ward success grant persistence gap is deferred to future-enhancements Deferred edge cases.",
+              "mergedAt": "2026-11-14",
+              "proof": "m761 (9d245f13b); slice tip 4d71c4998: Tests 43603294220, Live 43603294207, Browser journeys 43603294203 green. Proof: nativeRoomRayIncomingGate, areaRayWardImmunity. No D196 change."
             },
             {
               "id": "QUALITY-13.T2c",
@@ -26676,22 +26682,23 @@
             },
             {
               "id": "QUALITY-14.T2d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["QUALITY-14.T2d"]
               },
               "text": "Movement damage ends release temporary hit points and give incoming-damage grants as the action ends stage does, shared through spatialDamageEnds (movementDamageEndedEffects, nativeMovementSettlementInputs and persistLiveMovementDamageEnd carry the releases and grant triggers); room journeys for both and a forged-step refusal.",
-              "note": "Registered 2026-11-14 from the T2d split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-14 from the T2d split under the user standing approval for QUALITY growth (2026-11-13). Resized 5 to 8 at delivery. Review 2026-11-14: sent back for undo and Character holders; both traced as non-gaps (a settled move's undo is refused with SceneMoveSettledMechanicsError and forced movement with zoneUndoRefused; Characters get no incoming-damage grants on any path through one shared rule).",
+              "mergedAt": "2026-11-14",
+              "proof": "m760 (240048ac2); slice tip 42185ce7d: Tests 43601925283, Live 43603138557, Browser journeys 43601925279 green. D196: optional damageGrants on the TERMINAL outcome and a DAMAGE_GRANT settlement kind; existing rows parse."
             },
             {
               "id": "QUALITY-14.T2e",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26701,7 +26708,8 @@
                 "after": ["QUALITY-14.T2c", "QUALITY-14.T2d", "QUALITY-14.T2d2"]
               },
               "text": "DAMAGED(AFTER) is raised once per command and holder across the ends stage (targetEndedEffects) and the save-chain stage (planDamageSaveChain) over every damage root, with persistence re-derivations threaded through one discovery and an end-to-end count proof.",
-              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -26729,7 +26737,7 @@
           "tasks": [
             {
               "id": "QUALITY-15.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -26739,12 +26747,13 @@
                 "after": ["QUALITY-6.T1", "QUALITY-18.T6"]
               },
               "text": "Compiler composition, first increment: activation and targeting compile as independent aspects (compileDnd5eActivation, compileDnd5eTargeting) composed in activatedAction; SRD golden ratchet.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": " Split 2026-11-14 at delivery (full five-aspect composition about 25 to 30): test aspect to QUALITY-15.T1b, lifetime aspect to QUALITY-15.T1c, outcome and path composition to QUALITY-15.T1d."
+              "note": " Split 2026-11-14 at delivery (full five-aspect composition about 25 to 30): test aspect to QUALITY-15.T1b, lifetime aspect to QUALITY-15.T1c, outcome and path composition to QUALITY-15.T1d.",
+              "mergedAt": "2026-11-14",
+              "proof": "m759 (f86635bc9); slice tip f45a57b0d: Tests 43600244636, Live 43600244589, Browser journeys 43600244584 green. Red proof: effectActionAspectAdmissions 13/13 RED, nativeRoomAreaAction 1/82 RED, selfRangeSingleTarget and equipmentCloseRange RED. Review sent back for compile proofs of the four newly admitted combinations and a bonus-action area room journey; a creature with no disposition and a chosen list at Sight range were re-refused. SRD golden byte-identical (382 refused; SRD Wish now compiles). One restated assertion: the close-range refusal message. No D196 change."
             },
             {
               "id": "QUALITY-15.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -26754,7 +26763,8 @@
                 "after": ["QUALITY-15.T1"]
               },
               "text": "Test aspect: testPlan, supportedTestPhaseKind and the check/contest paths unified into one test compiler composed with activation and targeting; golden parity.",
-              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T1c",
@@ -26823,7 +26833,7 @@
           "tasks": [
             {
               "id": "QUALITY-16.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-16.1"],
               "wsjf": {
                 "bv": 1,
@@ -26832,7 +26842,8 @@
                 "size": 5,
                 "after": ["QUALITY-14.T2"]
               },
-              "text": "Move System literals behind System data; content ratchet."
+              "text": "Move System literals behind System data; content ratchet.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
