@@ -3,6 +3,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import type { OutcomeAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
 import { prismaticSpray } from '@artificer-toolkit/source-data/srd/spells/prismatic-spray.js'
@@ -68,26 +69,30 @@ function damageRepeatingSpray(): SpellAuthored {
           durationKind: 'ROUND' as const,
           amount: 10
         }
-      row.resultBlock.outcomes = row.resultBlock.outcomes.map((outcome) =>
-        outcome.effectKind === 'DAMAGE'
-          ? {
-              id: outcome.id,
-              effectKind: 'DAMAGE' as const,
-              damageTypeId: outcome.damageTypeId,
-              ...(outcome.amountKind && { amountKind: outcome.amountKind }),
-              scalingKind: 'NONE' as const,
-              valueKind: 'FIXED' as const,
-              amount: 3
-            }
-          : outcome.effectKind === 'FOLLOW_UP_SAVE' && outcome.timing === 'TARGET_TURN_END'
-            ? {
-                ...outcome,
-                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
-                onFailure: { kind: 'CONTINUE' as const },
-                repeatTriggers: [{ kind: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
-              }
-            : outcome
-      )
+      row.resultBlock.outcomes = row.resultBlock.outcomes.map((outcome): OutcomeAuthored => {
+        if (outcome.effectKind === 'DAMAGE')
+          return {
+            id: outcome.id,
+            effectKind: 'DAMAGE',
+            damageTypeId: outcome.damageTypeId,
+            ...(outcome.amountKind === undefined ? {} : { amountKind: outcome.amountKind }),
+            scalingKind: 'NONE',
+            valueKind: 'FIXED',
+            amount: 3
+          }
+        if (outcome.effectKind === 'FOLLOW_UP_SAVE' && outcome.timing === 'TARGET_TURN_END')
+          return {
+            id: outcome.id,
+            effectKind: 'FOLLOW_UP_SAVE',
+            timing: 'TARGET_TURN_END',
+            repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'ANYONE' }],
+            savingThrow: outcome.savingThrow,
+            attempts: { kind: 'ONCE', repeatOnFailure: true },
+            onSuccess: { kind: 'END' },
+            onFailure: { kind: 'CONTINUE' }
+          }
+        return outcome
+      })
     }
   }
   return {
