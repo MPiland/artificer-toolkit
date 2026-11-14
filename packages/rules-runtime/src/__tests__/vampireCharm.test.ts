@@ -4,7 +4,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { describe, expect, it } from 'vitest'
 
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
-import { effectRepeatTrigger } from '../encounterEffectRepeatSave.js'
+import { damagedHitRepeatTrigger } from '../events/encounterEventHooks.js'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
   resumeTargetBoundActiveRuleEffectWithPause
@@ -132,26 +132,24 @@ describe('Vampire Charm authored from core options (SPELLS-33.T6e2, D176)', () =
       }),
       definition: (await plannedCharm(vampire)).definition
     })
-    const damage = (damagerActorId: string | null) => ({
-      damagerActorId,
-      damageTypeId: null,
-      dispositions: new Map([
-        [VAMPIRE_ID, 'HOSTILE' as const],
-        [ALLY_ID, 'HOSTILE' as const],
-        [STRANGER_ID, 'FRIENDLY' as const]
-      ])
-    })
+    const dispositions = new Map([
+      [VAMPIRE_ID, 'HOSTILE' as const],
+      [ALLY_ID, 'HOSTILE' as const],
+      [STRANGER_ID, 'FRIENDLY' as const]
+    ])
+    const trigger = (effect: Awaited<ReturnType<typeof held>>, damagerActorId: string | null) =>
+      damagedHitRepeatTrigger(effect, { damagerActorId, damageTypeIds: [null] }, dispositions)
 
     it('fires on damage from the vampire or its companions', async () => {
       const effect = await held()
-      expect(effectRepeatTrigger(effect, damage(VAMPIRE_ID))).toMatchObject({ by: 'SOURCE_SIDE' })
-      expect(effectRepeatTrigger(effect, damage(ALLY_ID))).toMatchObject({ by: 'SOURCE_SIDE' })
+      expect(trigger(effect, VAMPIRE_ID)).toMatchObject({ by: 'SOURCE_SIDE' })
+      expect(trigger(effect, ALLY_ID)).toMatchObject({ by: 'SOURCE_SIDE' })
     })
 
     it('does not fire on third-party or unattributed damage', async () => {
       const effect = await held()
-      expect(effectRepeatTrigger(effect, damage(STRANGER_ID))).toBeUndefined()
-      expect(effectRepeatTrigger(effect, damage(null))).toBeUndefined()
+      expect(trigger(effect, STRANGER_ID)).toBeUndefined()
+      expect(trigger(effect, null)).toBeUndefined()
     })
   })
 

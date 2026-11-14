@@ -1,5 +1,4 @@
 import { persistEncounterCleavingResponse } from '@artificer-toolkit/encounter-persistence/cleavingResponsePersistence'
-import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -89,8 +88,6 @@ export async function executeRoomEncounterCleavingResponse(input: {
           batch,
           damagerActorId
         }),
-      bindConcentrationApplications: (state, applications) =>
-        bindEncounterConcentrationApplications(ctx, state, applications),
       persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
     }
   )

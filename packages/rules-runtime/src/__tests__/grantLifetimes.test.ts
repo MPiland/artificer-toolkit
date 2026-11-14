@@ -1325,8 +1325,7 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
   const damaged = (damagerActorId: string, damageTypeIds: (string | null)[]): EncounterEvent => ({
     kind: 'DAMAGED',
     phase: 'AFTER',
-    damagerActorId,
-    damageTypeIds,
+    hits: [{ damagerActorId, damageTypeIds }],
     dispositions
   })
   const action = (facts: { attackRoll?: boolean; spellCast?: boolean; againstEnemy?: boolean }) =>
