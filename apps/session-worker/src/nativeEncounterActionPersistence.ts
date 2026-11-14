@@ -104,7 +104,11 @@ export function buildNativeLiveEncounterActionCommitInput(
 }
 
 type ProbePlan = Parameters<typeof buildNativeLiveEncounterActionPendingInput>[1]
-export type ProbeA = Extract<ProbePlan, { kind: 'PENDING' }>['retargeted']
-export type ProbeB = Extract<ProbePlan, { kind: 'CAST_PENDING' }>['retargeted']
-export type ProbeC = Extract<ProbePlan, { kind: 'GATE_PENDING' }>['retargeted']
-export type ProbeD = Extract<ProbePlan, { kind: 'RETARGET_PENDING' }>['retargeted']
+type Missing =
+  Extract<ProbePlan, { kind: 'PENDING' }> extends infer M
+    ? M extends { retargeted: unknown }
+      ? never
+      : M
+    : never
+export const probeKeys: number = null as unknown as keyof Missing
+export const probeExecution: number = null as unknown as Missing['execution']
