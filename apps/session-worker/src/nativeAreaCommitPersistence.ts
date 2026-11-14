@@ -127,7 +127,7 @@ export async function settleAreaCommit(args: {
     maintainedState,
     zoneMaintenanceTransition
   } = args
-  const { children, createdEffects, damageEndedEffects } = args.outcomes
+  const { children, createdEffects, damageEndedEffects, damagedHolderRepeatSaves } = args.outcomes
   const { state, actors } = input
   const userId = input.initial.expectedUserId
   const merged = children.find((child) => child.carriesSpend)
@@ -338,7 +338,7 @@ export async function settleAreaCommit(args: {
     capture: input.capture,
     runtime: input.runtime,
     random: input.random,
-    repeatSaves: { damagerActorId: caster.id }
+    repeatSaves: { damagerActorId: caster.id, discovered: damagedHolderRepeatSaves }
   })
   const casterTarget = movementTargets.get(caster.id)
   if (summon && !casterTarget) throw new Error('The summoning caster has no prepared target.')

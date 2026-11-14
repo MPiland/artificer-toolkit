@@ -31,7 +31,7 @@ import {
   type FrozenMovementReactionRemainder
 } from './encounterSpatialMovementRuleService.js'
 import { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
-import { planDamageSaveChain } from './encounterDamageSaveChain.js'
+import { planDamageSaveChain, settledRepeatSaveEffects } from './encounterDamageSaveChain.js'
 import {
   createNativeConcentrationContext,
   completeNativeConcentrationResult,
@@ -376,7 +376,6 @@ export async function prepareEncounterMovementConcentration<
         gameSystemId: input.state.gameSystemId,
         applications: source.applications,
         maintainedStates,
-        commandOccurrenceIds: [input.occurrenceId],
         damagerActorId: source.damagerActorId,
         dispositions,
         effectSaves: {
@@ -389,7 +388,14 @@ export async function prepareEncounterMovementConcentration<
                   target.actor,
                   deadCharacterIdsOfTargets([target])
                 ),
-                effects: target.activeEffects,
+                repeatSaveEffects: settledRepeatSaveEffects({
+                  holderActorId: actorId,
+                  effects: target.activeEffects,
+                  commandOccurrenceIds: [input.occurrenceId],
+                  applications: source.applications,
+                  damagerActorId: source.damagerActorId,
+                  dispositions
+                }),
                 maximumHitPoints: target.effectiveMaximumHitPoints
               }
             ])

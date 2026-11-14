@@ -173,7 +173,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
     },
     runtime: input.runtime,
     random: input.random,
-    repeatSaves: { damagerActorId: null }
+    repeatSaves: { damagerActorId: null, discovered: new Map() }
   })
   const facts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const rules = reconcileEncounterActorRuleOutput(

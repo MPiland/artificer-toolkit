@@ -1,5 +1,6 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -8,7 +9,12 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, fireballWolf } from './actionRoomFixture.js'
 import { answerAllSaves } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readPendingActionDecision,
+  readRoomHistory,
+  type RoomHistory
+} from './roomHistoryReads.js'
 
 /**
  * SPELLS-4.T2m1b2b (D167): an area that damages two holders of Hideous Laughter raises one repeat
@@ -26,7 +32,11 @@ afterEach(() => {
   closeTrackedSockets()
 })
 
-function laughingAreaRoom() {
+/**
+ * With `secondEndsOnDamage`, the second holder's Laughter is authored to end outright on damage as
+ * well (`endOnTriggers DAMAGE_TAKEN`).
+ */
+function laughingAreaRoom(secondEndsOnDamage = false) {
   return actionRoom({
     actors: [
       srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),
@@ -47,10 +57,23 @@ function laughingAreaRoom() {
           spell: hideousLaughter,
           lifetimeScope: 'ENCOUNTER'
         })
+        const { recurrence } = planned.definition
         await effects.create({
           id,
           owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: holderActorId },
-          definition: planned.definition,
+          definition:
+            secondEndsOnDamage && holderActorId === SECOND_ID
+              ? {
+                  ...planned.definition,
+                  recurrence: {
+                    ...recurrence,
+                    endTriggers: canonicalActiveEffectEndTriggers([
+                      ...recurrence.endTriggers,
+                      { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null } as const
+                    ])
+                  }
+                }
+              : planned.definition,
           lifecycle: planned.lifecycle,
           occurredAt
         })
@@ -110,5 +133,31 @@ describe('an area that damages two holders of Hideous Laughter (D167)', () => {
     ).toEqual(['SAVE_FAILURE', 'SAVE_SUCCESS'])
     expect(effectIds(after)).not.toContain(FIRST_EFFECT_ID)
     expect(effectIds(after)).toContain(SECOND_EFFECT_ID)
+  })
+})
+
+describe("an area whose damage ends one holder's Laughter (QUALITY-14.T2e2b3, D220)", () => {
+  it('owes a repeat save only to the holder whose Laughter the damage left in place', async () => {
+    const room = await laughingAreaRoom(true)
+    await room.startAreaAction({ x: 50, y: 150 })
+    await answerAllSaves(room)
+
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a repeat save.')
+    expect(decision.pending.rollerActorId).toBe(FIRST_ID)
+    const { request } = decision.pending
+    const resolved = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [1, 1],
+      rollMode: request.rollMode
+    })
+    expect(resolved.type, JSON.stringify(resolved)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(repeatSaveChecks(after)).toMatchObject([{ outcome: 'SAVE_FAILURE' }])
+    expect(effectIds(after)).toContain(FIRST_EFFECT_ID)
+    expect(effectIds(after)).not.toContain(SECOND_EFFECT_ID)
   })
 })

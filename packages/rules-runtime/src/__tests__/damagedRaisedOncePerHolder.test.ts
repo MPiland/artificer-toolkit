@@ -231,7 +231,6 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
       gameSystemId: DND5E_SYSTEM_ID,
       applications,
       maintainedStates: new Map([[HOLDER_ID, [{ id: STATE_ID, createdAt: CAST_AT }]]]),
-      commandOccurrenceIds: ['parent'],
       damagerActorId: null,
       dispositions: new Map(),
       effectSaves: null

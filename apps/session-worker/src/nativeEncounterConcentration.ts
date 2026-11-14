@@ -33,7 +33,10 @@ import {
   effectRepeatSaveMade,
   evaluateEffectRepeatSaveEvidence
 } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
-import { planDamageSaveChain } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
+import {
+  planDamageSaveChain,
+  settledRepeatSaveEffects
+} from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { damagedHitRepeatTrigger } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
@@ -136,8 +139,16 @@ export async function planNativeLiveConcentration(input: {
   /**
    * Opts the chain into the effect repeat saves the damage owes (D167); `damagerActorId` is who dealt
    * it. A resumed chain takes this from its sealed context, so callers pass it only on the first plan.
+   * `discovered` is the damaged discovery the command's ends stage made per holder it raised
+   * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
+   * rest of the command released (D220). A holder no ends stage discovered (a root with none, a
+   * retaliating attacker, or a resumed chain) is derived from the settled projection
+   * (`settledRepeatSaveEffects`).
    */
-  repeatSaves?: { damagerActorId: string | null }
+  repeatSaves?: {
+    damagerActorId: string | null
+    discovered: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  }
   resume?: {
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     context: NativeDamageSaveContext
@@ -473,17 +484,29 @@ export async function planNativeLiveConcentration(input: {
     : input.repeatSaves?.damagerActorId
   const dispositions = new Map(projection.actors.map(({ id, disposition }) => [id, disposition]))
   const massiveRule = encounterMassiveDamageRule(state)
+  const commandOccurrenceIds = [input.parentOccurrenceId, ...input.entryOccurrenceIds]
   const holders = new Map(
     [...new Set(selectedApplications.map(({ targetActorId }) => targetActorId))].map((actorId) => {
       const actor = projection.actors.find(({ id }) => id === actorId)
       const target = projection.projectedTargets.get(actorId)
+      const settled = projection.activeEffectsByActorId.get(actorId) ?? []
+      const discovered = input.repeatSaves?.discovered.get(actorId)
       return [
         actorId,
         {
           defeated:
             !actor ||
             isEncounterActorDefeated(actor, deadCharacterIdsOfTargets(target ? [target] : [])),
-          effects: projection.activeEffectsByActorId.get(actorId) ?? [],
+          repeatSaveEffects: discovered
+            ? discovered.filter(({ id }) => settled.some((effect) => effect.id === id))
+            : settledRepeatSaveEffects({
+                holderActorId: actorId,
+                effects: settled,
+                commandOccurrenceIds,
+                applications: selectedApplications,
+                damagerActorId: repeatSaveDamager ?? null,
+                dispositions
+              }),
           maximumHitPoints: target?.effectiveMaximumHitPoints ?? 0
         }
       ] as const
@@ -493,7 +516,6 @@ export async function planNativeLiveConcentration(input: {
     gameSystemId: state.gameSystemId,
     applications: selectedApplications,
     maintainedStates: bindings,
-    commandOccurrenceIds: [input.parentOccurrenceId, ...input.entryOccurrenceIds],
     damagerActorId: repeatSaveDamager ?? null,
     dispositions,
     effectSaves: repeatSaveDamager === undefined ? null : { massiveRule, holders }
