@@ -1,6 +1,7 @@
-import { damageSaveRollTrigger } from './encounterConcentration.js'
+import { damageSaveRollPolicy, damageSaveRollTrigger } from './encounterConcentration.js'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
+import { movementPendingDamageSave } from '@artificer-toolkit/schema/shared/ruleExecutionSpatialPendingContexts'
 import {
   isServerAggregateChoicePendingSnapshot,
   isServerKernelRuleExecutionPendingSnapshot
@@ -85,11 +86,13 @@ export function projectEncounterSpatialOccurrenceSummary(
   const rollModes = rollModeCapabilityRegistry.offeredRollModes(
     pendingSnapshot.graph.source.gameSystemId
   )
-  if (
-    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-    context.phase.kind === 'CONCENTRATION_EVIDENCE'
-  ) {
-    const canView = controls(context.phase.concentration.application.targetActorId)
+  const damageSave =
+    context.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+      ? (movementPendingDamageSave(context.phase)?.context ?? null)
+      : null
+  if (damageSave !== null) {
+    const save = damageSaveRollPolicy(damageSave)
+    const canView = controls(damageSave.application.targetActorId)
     return {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
@@ -100,22 +103,20 @@ export function projectEncounterSpatialOccurrenceSummary(
             occurrenceId: occurrence.id,
             occurrenceVersion: occurrence.version,
             encounterVersion,
-            rollerActorId: context.phase.concentration.application.targetActorId,
-            trigger: damageSaveRollTrigger(context.phase.concentration),
+            rollerActorId: damageSave.application.targetActorId,
+            trigger: damageSaveRollTrigger(damageSave),
             request: {
               requestId: pendingSnapshot.request.requestId,
               min: 1,
               max: 20,
-              rollMode: context.phase.concentration.save.rollMode,
-              keep: context.phase.concentration.save.keep,
+              rollMode: save.rollMode,
+              keep: save.keep,
               rollModes,
               derivedRollModeReasons: reasons({
-                rollMode: context.phase.concentration.save.rollMode,
-                contributors: context.phase.concentration.save.contributors
+                rollMode: save.rollMode,
+                contributors: save.contributors
               }),
-              ...(context.phase.concentration.save.addedDice?.length
-                ? { addedDice: context.phase.concentration.save.addedDice }
-                : {})
+              ...(save.addedDice?.length ? { addedDice: save.addedDice } : {})
             },
             allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
           }

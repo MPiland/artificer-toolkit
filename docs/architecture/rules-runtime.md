@@ -589,7 +589,25 @@ array, one `CONCENTRATION_END` per state, persisted and checksummed with its con
 `concentrationChecks`. Incapacitation or defeat ends every held state with no save (D95). The movement
 chain plans through the same `planDamageSaveChain` as an action (current, QUALITY-14.T2): the zone's source
 is the damager and every actor's disposition is passed, so the System's maintenance hook gates a check
-exactly as for action damage. Its saves are Concentration-only (`effectSaves: null`).
+exactly as for action damage.
+
+**Movement repeat saves (current, QUALITY-14.T2c, D167).** A contact's damage also owes the effect repeat
+saves its holder's effects offer on damage, like action damage: the movement chain passes every target's
+effects as `effectSaves.holders`, so `planDamageSaveChain` orders Concentration checks and repeat saves
+in one chain. `massiveRule` stays null on movement (QUALITY-14.T2d). `prepareEncounterMovementConcentration`
+settles a repeat save with the effect's own frozen save (the same `effectRepeatSaveExecutionInput`,
+`createEffectRepeatSaveContext` and `evaluateEffectRepeatSaveEvidence` as `settleEffectRepeatSave`); a made
+save releases the effect in the cumulative projection (`projectRelease`, `projectEncounterMovementEffectRelease`),
+so later saves and contacts observe it gone. The contact execution retains each save as `repeatSaves` beside
+`concentrationChecks` (`movementRepeatSaveExecutionDtoSchema`: the result, `release` with the Character
+versions a made save advanced, and `ownerTransitions`); `movementDamageSaveChildren` reads both lists back in
+chain order. A manual roll pauses the move on the `REPEAT_SAVE_EVIDENCE` phase (`movementPendingDamageSave`
+reads either save phase). A holder with no Concentration interrupts the move too
+(`determineConcentrationActorIds` uses `repeatsSaveOnDamage`). Each save settles as a `REPEAT_SAVE` movement
+settlement through `persistLiveMovementRepeatSave`, which reads the committed effect row at its pinned
+version, requires it to offer a repeat save for damage from this contact's zone source and type
+(`damagedHitRepeatTrigger`), and releases a made save through `releaseEffectRepeatSave`. Movement saves
+carry no source label, no D168 window and no spent dice.
 
 **Movement damage ends (current, QUALITY-14.T2b).** The damage a move's zones deal ends the effects the
 damaged creatures hold until damaged (`DAMAGE_TAKEN` end triggers), like action damage. They end once the
@@ -1869,7 +1887,8 @@ perhaps the Scene, so the rule service skips its frozen currentness comparison o
 (`resumedFromReactionChild`). QUALITY-18.T2c deleted the inline reaction engine: the `ACTION_EVIDENCE` and
 `LEGENDARY_RESISTANCE_CHOICE` phases, `completedReactionExecutions`, the move receipt's `reactionExecutions`, the
 `REACTION` movement settlement and its replay code. The movement pending context's phases are `SPATIAL_EVIDENCE`,
-`CHOICE` and a spatial-only `CONCENTRATION_EVIDENCE`, whose `damageSource` is `{ executionOrdinal }`. A reaction's
+`CHOICE` and the spatial-only `CONCENTRATION_EVIDENCE` and `REPEAT_SAVE_EVIDENCE` (QUALITY-14.T2c), whose
+`damageSource` is `{ executionOrdinal }`. A reaction's
 save window, its Legendary Resistance and its reactor windows run in the child action (the action host's own
 `ACTION_EVIDENCE` transition and public `LEGENDARY_RESISTANCE_CHOICE` pending stay).
 

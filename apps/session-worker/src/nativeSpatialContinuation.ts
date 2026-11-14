@@ -24,6 +24,7 @@ import {
   bindEncounterActorRuleOutputToFacts,
   reconcileEncounterActorRuleOutput
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import { repeatsSaveOnDamage } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import {
   prepareEncounterSpatialMovement,
@@ -133,8 +134,10 @@ export function nativeSpatialStepCallbacks(
           state.automationMode === 'MANUAL'
             ? undefined
             : async (actorIds, selected) => {
+                // A damaged actor owes a save for Concentration it holds or an effect it may repeat.
                 const active = await Promise.all(
                   actorIds.map(async (targetActorId) =>
+                    selected.get(targetActorId)?.activeEffects.some(repeatsSaveOnDamage) ||
                     (
                       await readNativeLiveMovementConcentrationStates({
                         state,
@@ -209,7 +212,12 @@ export function nativeMovementSettlementInputs(input: {
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
     if (settlement.kind === 'CONCENTRATION')
       return liveSessionMovementSettlementSchema.parse({
-        kind: settlement.plan.kind === 'END' ? 'CONCENTRATION_END' : 'CONCENTRATION',
+        kind:
+          settlement.plan.kind === 'END'
+            ? 'CONCENTRATION_END'
+            : settlement.plan.kind === 'REPEAT_SAVE'
+              ? 'REPEAT_SAVE'
+              : 'CONCENTRATION',
         execution: settlement.plan.execution
       })
     if (settlement.kind === 'PASSAGE')

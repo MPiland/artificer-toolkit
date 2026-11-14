@@ -157,7 +157,10 @@ export async function prepareEncounterMovementContinuation<
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       projection?: TProjection
       executionOrdinal: number
-      retainedChecks?: FrozenMovementReactionRemainder['completedSpatialExecutions'][number]['concentrationChecks']
+      retainedSaves?: Pick<
+        FrozenMovementReactionRemainder['completedSpatialExecutions'][number],
+        'concentrationChecks' | 'repeatSaves'
+      >
     }): Promise<{
       remainder: FrozenMovementReactionRemainder
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -351,10 +354,10 @@ export async function prepareEncounterMovementContinuation<
         executionOrdinal: boundary.concentrationExecutionOrdinal,
         ...(input.retained
           ? {
-              retainedChecks:
+              retainedSaves:
                 retainedMovementSpatialExecutions(input.retained).find(
                   (entry) => entry.ordinal === boundary.concentrationExecutionOrdinal
-                )?.concentrationChecks ?? []
+                ) ?? {}
             }
           : {})
       })

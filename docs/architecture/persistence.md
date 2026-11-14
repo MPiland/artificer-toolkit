@@ -362,11 +362,12 @@ no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactio
 `awaitsReactionChild` treat the move as they treat an action.
 
 The inline movement reaction engine is gone (QUALITY-18.T2c). A move's pending context phases are
-`SPATIAL_EVIDENCE`, `CHOICE` and a spatial-only `CONCENTRATION_EVIDENCE` (its `damageSource` is
-`{ executionOrdinal }`); the context and the optional-combat passage continuation carry no
+`SPATIAL_EVIDENCE`, `CHOICE` and the spatial-only `CONCENTRATION_EVIDENCE` and `REPEAT_SAVE_EVIDENCE`
+(their `damageSource` is `{ executionOrdinal }`; a spatial contact execution keeps its effect repeat saves
+as `repeatSaves` beside `concentrationChecks`, QUALITY-14.T2c); the context and the optional-combat passage continuation carry no
 `completedReactionExecutions`, the move receipts (`MOVEMENT_COMPLETE` and the spatial batch) carry no
 `reactionExecutions`, and `LiveSessionMovementSettlement` has no `REACTION` kind, so `persistMovementSettlements`
-persists spatial, Concentration, passage and release settlements only. The reaction's own mechanics persist
+persists spatial, Concentration, repeat-save (`REPEAT_SAVE`), passage and release settlements only. The reaction's own mechanics persist
 through its child action. D196: these are removed shapes of a held move's pending context and of move receipts;
 a local Run held on an old inline reaction is finished or cleared before use.
 

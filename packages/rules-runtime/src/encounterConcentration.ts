@@ -259,6 +259,13 @@ export function damageSaveRollTrigger(
   }
 }
 
+/** The d20 a pending damage save's roller makes: the holder's derived save, or the effect's frozen policy. */
+export function damageSaveRollPolicy(context: NativeDamageSaveContext) {
+  const { rollMode, keep, contributors, addedDice } =
+    context.source === 'EFFECT_REPEAT_SAVE' ? context.d20Policy : context.save
+  return { rollMode, keep, contributors, addedDice }
+}
+
 /** A kernel-built damage save's frozen holder save: its ability, modifier, mode and added dice. */
 type DamageSaveFacts = NativeConcentrationContext['save']
 

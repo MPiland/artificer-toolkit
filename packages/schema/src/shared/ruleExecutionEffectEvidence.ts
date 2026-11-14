@@ -32,7 +32,8 @@ import {
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
 import {
   movementConcentrationEndsDtoSchema,
-  movementConcentrationExecutionsDtoSchema
+  movementConcentrationExecutionsDtoSchema,
+  movementRepeatSavesDtoSchema
 } from './ruleExecutionMovementConcentration.js'
 
 export const turnEffectCharacterTransitionDtoSchema = lazySchema(() =>
@@ -335,6 +336,7 @@ export const spatialMovementExecutionDtoSchema = lazySchema(() =>
       candidate: spatialPendingCandidateDtoSchema,
       concentrationEnds: z.optional(movementConcentrationEndsDtoSchema),
       concentrationChecks: z.optional(movementConcentrationExecutionsDtoSchema),
+      repeatSaves: z.optional(movementRepeatSavesDtoSchema),
       ...spatialExecutionEvidenceFields()
     })
     .check(z.superRefine(refineSpatialExecutionEvidence))

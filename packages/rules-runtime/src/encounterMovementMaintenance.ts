@@ -219,6 +219,34 @@ function projectEncounterMovementMaintenanceOwners<
   }
 }
 
+/**
+ * Forecasts the release of effects a made repeat save ended on their holder: no maintained state
+ * ends, so the slots stand and only the holder's owner record advances.
+ */
+export function projectEncounterMovementEffectRelease<
+  TRow extends MovementCharacterRow,
+  TCharacterFacts extends ProjectableCharacterFacts
+>(
+  input: MovementMaintenanceProjectionInput<TRow, TCharacterFacts> & {
+    maintenance: Maintenance<TRow>
+  },
+  readCharacter: (row: TRow) => CharacterAuthored
+) {
+  const { targets, owners, ownerTransitions } = projectEncounterMovementMaintenanceOwners(
+    input,
+    readCharacter
+  )
+  return {
+    targets,
+    ownerTransitions,
+    projection: { slots: new Map(input.projection?.slots), owners },
+    characterOwnerTransitions: input.maintenance.characterVersions.map((entry) => ({
+      ...entry,
+      afterStreamVersion: entry.beforeStreamVersion + 1
+    }))
+  }
+}
+
 /** Forecasts failed-save cleanup; an explicit empty slot prevents stale storage fallback. */
 export function projectEncounterMovementConcentrationEnd<
   TRow extends MovementCharacterRow,

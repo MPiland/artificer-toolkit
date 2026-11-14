@@ -196,7 +196,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   escape end path. The spatial receipt is unchanged. The effects a move's zone damage ends on the creatures
   it damaged settle the same way, as `damageEnds` on the TERMINAL outcome and one `DAMAGE_END` settlement
   each (`persistLiveMovementDamageEnd`, QUALITY-14.T2b; see
-  [rules runtime](rules-runtime.md), "Movement damage ends").
+  [rules runtime](rules-runtime.md), "Movement damage ends"). The repeat saves a contact's damage owes
+  settle at that contact, one `REPEAT_SAVE` settlement each (`persistLiveMovementRepeatSave`,
+  QUALITY-14.T2c; "Movement repeat saves").
 - Once a command commits, `settleRoomEncounterAfterCommit` (`roomEncounterAfterCommit.ts`) runs everything it
   owes in the same transaction, in one fixed order (current, QUALITY-11.T1a): (1) the damage mirrors and defeat
   rewards the command collected; (2) the HP-zero effects of newly defeated creatures; (3) a delegated Legendary

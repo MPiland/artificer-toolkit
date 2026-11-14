@@ -9,6 +9,7 @@ import { prepareEncounterMovementConcentration } from '@artificer-toolkit/rules-
 import {
   movementSlotKey,
   projectEncounterMovementConcentrationEnd,
+  projectEncounterMovementEffectRelease,
   projectedHeldStates
 } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -181,6 +182,38 @@ export function prepareNativeLiveMovementConcentration(
             owners,
             characterVersions
           },
+          targets,
+          projection,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt: input.occurredAt
+        },
+        (row) => readNativeLiveMaintenanceCharacter(row, state.gameSystemId)
+      )
+    },
+    readVocabulary: async () => {
+      const response = await capture({ kind: 'SYSTEM_VOCABULARY' })
+      if (response.kind !== 'SYSTEM_VOCABULARY')
+        throw new Error('Movement repeat save vocabulary is unavailable.')
+      return response.snapshot
+    },
+    projectRelease: async (effect, targets, projection) => {
+      const removed = [effect]
+      const { owners, characterVersions } = await readNativeLiveMaintenanceOwners({
+        gameSystemId: state.gameSystemId,
+        actors: [...targets.values()].map((target) => target.actor),
+        activeEffectsByActorId: new Map(
+          [...targets].map(([id, target]) => [id, target.activeEffects])
+        ),
+        removed,
+        slot: null,
+        capture,
+        targets,
+        projection
+      })
+      return projectEncounterMovementEffectRelease(
+        {
+          maintenance: { removed, owners, characterVersions },
           targets,
           projection,
           campaignId: state.campaignId,
