@@ -440,13 +440,15 @@ export async function planNativeLiveEncounterAction(
           dependencies,
           revisions
         }
-      if (!snapshot || !resolved) throw new Error('The pending area action is unavailable.')
+      // A ray held on its creature's incoming gate is answered by the roll its caster owes it.
+      const areaAnswer = resolved ?? gateAnswer?.evidence
+      if (!snapshot || !areaAnswer) throw new Error('The pending area action is unavailable.')
       return {
         ...(await planNativeLiveEncounterAreaAnswer({
           ...areaInput,
           response: responseCommand,
           requestId: snapshot.request.requestId,
-          resolution: resolved,
+          resolution: areaAnswer,
           areaSnapshot
         })),
         dependencies,

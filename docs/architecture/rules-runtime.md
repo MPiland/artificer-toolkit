@@ -852,8 +852,22 @@ retained TEST and that audit (`heldOnHit` on `advanceNativeActionGraphs`), so th
 and kept in the ray's roll tape. A cast settles one slot and one pool: `onHitCandidates` withholds a slot or
 pool rider once an earlier ray chose such a one (`chosenBefore`), and the commit folds the chosen riders into
 the cast's one Character spend. Riders an open weapon-attack offer grants (`grantedByEffectId`) are not offered
-on a list. **Not yet per ray (target, QUALITY-13 follow-up):** the incoming gate and `ATTACK_RETARGET` are not
-run for a ray; a list of chosen creatures is admitted as today.
+on a list.
+
+**A ray owes its creature's incoming gate (current, QUALITY-13.T1c5a):** every ray is its own attack, so
+`advanceAreaRayAim` runs `advanceNativeIncomingGate` (a `WARD` origin held by the ray's creature) as the ray's
+turn comes, before its aim is heard. The root command and its fingerprint do not change. A prompted caster's
+ray is held on an `INCOMING_GATE` pause in its own snapshot (`holdEncounterAreaRay`); the caster's d20 answers
+it through the list's ordinary answer (`planNativeLiveEncounterAreaAnswer`, step `GATE`). A pass is kept as
+that ray's `passedIncomingGate` and grants nothing to a later ray at the same creature. A ray that fails is
+lost: it stays in the list, answered by the gate's d20 (`testedJson`) with `lost: { gate }`, and the turn
+passes to the next ray. An auto-rolling caster's gates are rolled as each ray opens. The commit skips a lost
+ray's replay, counts it for no earlier attack on its creature and writes one child receipt for it
+(`buildEncounterLostRayStoredExecution`: `ENCOUNTER_GATED_ACTION` with `parentOccurrenceId`, spending and
+applying nothing); a list whose rays are all lost commits its spend with no effect. Known limits: only
+attack-roll rays are gated (a save-based chosen list is admitted as before), a passed ward's immunity grant is
+not written for a ray, and a lost ray's save is not carded. **Not yet per ray (target, QUALITY-13.T1c5b):**
+`ATTACK_RETARGET` is not offered for a lost ray.
 
 ### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
 

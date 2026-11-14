@@ -446,6 +446,11 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
     createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
   }[]
   /**
+   * The rays of a chosen list lost at the incoming gate of the creature each was aimed at, in list
+   * order: each is a child receipt of the failed check that spends and applies nothing.
+   */
+  lostRays: { actorId: string; execution: z.infer<typeof storedRuleExecutionResultDtoSchema> }[]
+  /**
    * Whether every entry of `targets` rolled its own dice (a projectile list names a creature once
    * per projectile) rather than sharing the one roll of an area or a list of different creatures.
    */
@@ -485,6 +490,14 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
             createdEffects: z
               .array(activeRuleEffectRecordSchema)
               .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+          })
+        )
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      lostRays: z
+        .array(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            execution: storedRuleExecutionResultDtoSchema
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),

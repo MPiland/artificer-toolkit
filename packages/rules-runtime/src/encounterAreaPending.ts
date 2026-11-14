@@ -228,6 +228,11 @@ const heldOnHitOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
 const heldOnHitChoice = (target: Pick<SaveProgress, 'snapshot'>) =>
   rayReactionOffer(target) !== null || heldOnHitOffer(target)
 
+/** Whether a ray's snapshot holds it on the roll its caster owes the incoming gate of its creature. */
+const heldOnGate = (snapshot: AreaTarget['snapshot']) =>
+  snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+  snapshot.applicationContext.pause?.kind === 'INCOMING_GATE'
+
 /**
  * Whether the area's caster makes the entry's roll, as for an attack roll at a creature. A ray held
  * on a reaction offer is still the caster's roll, though the creature that may react answers the offer.
@@ -385,7 +390,8 @@ export function holdEncounterAreaRay(
     !casterRolls(applicationContext, held) ||
     awaitingTurn(applicationContext, held) ||
     hold.occurrenceId !== held.snapshot.occurrenceId ||
-    !heldOnHitChoice({ snapshot: hold }) ||
+    // The incoming gate of the creature a ray is aimed at is rolled before any offer of the ray.
+    !(heldOnHitChoice({ snapshot: hold }) || (heldOnGate(hold) && !heldOnHitChoice(held))) ||
     // A hit is offered its rider once its reaction is past, never the other way round.
     (heldOnHitOffer(held) && !heldOnHitOffer({ snapshot: hold }))
   )
@@ -450,10 +456,11 @@ export function markEncounterAreaSaveTested(
     legendaryResistance,
     testDice,
     rolls,
-    onHit
+    onHit,
+    lost
   }: { testedJson: string } & Pick<
     AreaTarget,
-    'legendaryResistance' | 'testDice' | 'rolls' | 'onHit'
+    'legendaryResistance' | 'testDice' | 'rolls' | 'onHit' | 'lost'
   >
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
@@ -474,6 +481,7 @@ export function markEncounterAreaSaveTested(
               ...(testDice?.length ? { testDice } : {}),
               ...(rolls?.length ? { rolls } : {}),
               ...(onHit ? { onHit } : {}),
+              ...(lost ? { lost } : {}),
               ...(legendaryResistance ? { legendaryResistance } : {})
             }
           : target

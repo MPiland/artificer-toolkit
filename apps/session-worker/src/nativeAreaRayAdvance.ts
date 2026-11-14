@@ -10,6 +10,7 @@ import {
   resealEncounterAreaTargets
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterOnHitAudit } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   buildEncounterActionPendingSnapshot,
@@ -36,6 +37,10 @@ import {
 } from './nativeAreaRevalidation.js'
 import { applyNativeReactionChildren } from './nativeEncounterCastPause.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
+import {
+  advanceNativeIncomingGate,
+  type NativeIncomingGateAnswer
+} from './nativeEncounterIncomingGate.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 
 /**
@@ -60,6 +65,8 @@ export async function advanceAreaRayAim(
         testBindings: ReadonlyMap<string, string>
       }
     | { kind: 'RESUMED' }
+    /** The caster's roll of the incoming gate the ray is held on. */
+    | { kind: 'GATE'; answer: NativeIncomingGateAnswer }
 ) {
   const { prepared } = entry
   const context = snapshot.applicationContext
@@ -72,12 +79,81 @@ export async function advanceAreaRayAim(
   const inner = ray?.snapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION' || !ray || inner?.kind !== 'ENCOUNTER_ACTION')
     throw new Error('The pending action evidence is invalid.')
+  const gateHeld = inner.pause?.kind === 'INCOMING_GATE'
   // A ray is aimed once, as its turn to be rolled comes; a save is never aimed.
   if (
     step.kind === 'OPEN' &&
-    (!prepared.makesAttackRoll || encounterAreaSaveAwaiting(context, ray) !== 'ROLL')
+    (!prepared.makesAttackRoll || gateHeld || encounterAreaSaveAwaiting(context, ray) !== 'ROLL')
   )
     return { snapshot, reactionChild: null }
+  if (step.kind === 'GATE' && !gateHeld) throw new Error('The pending action evidence is invalid.')
+  // Every ray is its own attack, so each owes the incoming gate of the creature it is aimed at before
+  // its aim is heard: a pass is kept with that ray alone, and a ray that fails is lost while the
+  // list goes on.
+  let { passedIncomingGate } = inner
+  if ((step.kind === 'OPEN' || step.kind === 'GATE') && ray.actorId !== context.casterActorId) {
+    const gate = await advanceNativeIncomingGate({
+      runtime: input.runtime,
+      random: input.random,
+      gameSystemId: input.state.gameSystemId,
+      occurrenceId: ray.snapshot.occurrenceId,
+      owed: {
+        kind: 'WARD',
+        holderActorId: ray.actorId,
+        holderEffects: input.activeEffectsByActorId.get(ray.actorId) ?? [],
+        holderGrantFold:
+          (reach.movementTargets.get(ray.actorId) ?? (await input.loadTarget(prepared.target)))
+            .effectiveRulePolicyOutput?.grantFold ?? null,
+        attackerCreatureTypeId: snapshotCreatureTypeId(reach.caster),
+        owner: async (ownerActorId) => {
+          const owner = input.actors.find((actor) => actor.id === ownerActorId)
+          return owner
+            ? (reach.movementTargets.get(owner.id) ?? (await input.loadTarget(owner)))
+            : null
+        }
+      },
+      attacker: reach.casterFacts,
+      autoRoll: input.requireAutoRoll(context.casterActorId),
+      passed: passedIncomingGate,
+      answer: step.kind === 'GATE' ? step.answer : null
+    })
+    if (gate.kind === 'PENDING')
+      return {
+        snapshot: holdEncounterAreaRay(
+          snapshot,
+          ray.snapshot.request.requestId,
+          buildEncounterHeldActionPendingSnapshot({
+            continuation: gate.continuation,
+            pause: gate.pause,
+            rollerActorId: gate.rollerActorId,
+            optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+            commandJson: context.commandJson,
+            commandFingerprint: context.commandFingerprint,
+            initiatorUserId: context.initiatorUserId,
+            currentnessChecksum: inner.currentnessChecksum
+          })
+        ),
+        reactionChild: null
+      }
+    if (gate.kind === 'FAILED') {
+      const requestId = ray.snapshot.request.requestId
+      const { rawFaces, rollMode } = gate.gate.d20
+      const lostRoll: EncounterEvidenceAnswer = {
+        kind: 'ENTER_DICE',
+        requestId,
+        rawFaces,
+        rollMode
+      }
+      return {
+        snapshot: markEncounterAreaSaveTested(snapshot, requestId, {
+          testedJson: JSON.stringify(lostRoll),
+          lost: { gate: gate.gate }
+        }),
+        reactionChild: null
+      }
+    }
+    if (gate.kind === 'PASSED') passedIncomingGate = gate.gate
+  }
   const aimed = await reachCastPause(input, {
     reach,
     lead: prepared,
@@ -104,6 +180,7 @@ export async function advanceAreaRayAim(
           commandFingerprint: context.commandFingerprint,
           initiatorUserId: context.initiatorUserId,
           currentnessChecksum: inner.currentnessChecksum,
+          passedIncomingGate,
           reactionChildren: aimed.reactionChildren
         }),
         // Only a chosen reaction's child changes the creature under the answered rays.
@@ -111,8 +188,9 @@ export async function advanceAreaRayAim(
       ),
       reactionChild: aimed.reactionChild
     }
-  // Nobody was asked, so the ray's sealed roll stands.
-  if (step.kind === 'OPEN') return { snapshot, reactionChild: null }
+  // Nobody was asked and no gate was passed now, so the ray's sealed roll stands.
+  if (step.kind === 'OPEN' && passedIncomingGate === inner.passedIncomingGate)
+    return { snapshot, reactionChild: null }
   const [test] = await prepareEncounterAreaTests({
     runtime: input.runtime,
     random: input.random,
@@ -143,6 +221,7 @@ export async function advanceAreaRayAim(
     sourceActorId: context.casterActorId,
     targetActorId: ray.actorId,
     currentnessChecksum: inner.currentnessChecksum,
+    passedIncomingGate,
     reactionChildren: aimed.reactionChildren
   })
   return {
@@ -230,7 +309,8 @@ export async function advanceAreaRay(
     attacks: [
       ...context.targets
         .slice(0, index)
-        .filter((target) => target.actorId === sealed.actorId)
+        // A ray lost at the creature's incoming gate did nothing to it.
+        .filter((target) => target.actorId === sealed.actorId && !target.lost)
         .map((earlier) => sealedListAttack(earlier, prepared, input.reactionChildren.committed)),
       {
         actorId: sealed.actorId,
@@ -310,6 +390,7 @@ export async function advanceAreaRay(
           sourceActorId: context.casterActorId,
           targetActorId: sealed.actorId,
           currentnessChecksum: inner.currentnessChecksum,
+          passedIncomingGate: inner.passedIncomingGate,
           // A hit held on its rider once its reaction ran keeps the record of that reaction's child.
           ...((launched ?? inner).reactionChildren && {
             reactionChildren: (launched ?? inner).reactionChildren

@@ -11,8 +11,10 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
+import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { buildEncounterLostRayStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   encounterAreaTargetCommandId,
@@ -145,6 +147,8 @@ type CommitScope = {
     actorId: string
     perceivedByCaster: boolean
     collision?: { moverActorId: string }
+    /** A ray its creature's incoming gate stopped: it keeps its place and commits no outcome. */
+    lost?: { gate: EncounterSettledIncomingGateDto }
   }[]
   caughtChecksum: string
   removedActorIds: readonly string[]
@@ -340,14 +344,15 @@ export async function persistEncounterAreaCommit(
   }
   // A mover's collision damage (D159) settles as one more entry per mover, after the caught creatures',
   // and a creature a mover struck as one more after those, under the occurrence its sealed save ran.
-  const caughtActorIds = scope.targets.flatMap(({ actorId, collision }) =>
-    collision ? [] : [actorId]
-  )
+  // A ray lost at its creature's gate keeps its ordinal among that creature's entries and commits
+  // no outcome, so the kept entries skip it.
+  const caught = scope.targets.filter(({ collision }) => !collision)
+  const caughtKeptCount = caught.filter(({ lost }) => !lost).length
   const struck = scope.targets.flatMap(({ actorId, collision }) =>
     collision ? [{ actorId, moverActorId: collision.moverActorId }] : []
   )
   const collisionActorIds = input.targets
-    .slice(caughtActorIds.length, input.targets.length - struck.length)
+    .slice(caughtKeptCount, input.targets.length - struck.length)
     .map(({ actorId }) => actorId)
   const movedWithCollision = (actorId: string) =>
     input.forcedMovements.some(
@@ -359,8 +364,12 @@ export async function persistEncounterAreaCommit(
     !struck.every(({ moverActorId }) => movedWithCollision(moverActorId))
   )
     throw new Error('Live Session area forced movement collision mismatch.')
+  const sealedEntries = encounterChosenActorEntries(areaOccurrenceId, [
+    ...caught.map(({ actorId }) => actorId),
+    ...collisionActorIds
+  ])
   const kept = [
-    ...encounterChosenActorEntries(areaOccurrenceId, [...caughtActorIds, ...collisionActorIds]),
+    ...sealedEntries.filter((_, index) => !caught[index]?.lost),
     ...struck.map(({ actorId, moverActorId }) => ({
       actorId,
       occurrenceId: encounterCollisionSaveOccurrenceId(areaOccurrenceId, moverActorId, actorId)
@@ -416,7 +425,7 @@ export async function persistEncounterAreaCommit(
         batch.targetFeatureResourceConsumption !== null) ||
       // A collision entry runs the pusher's synthetic damage action, sourced by its own occurrence id.
       initial.evidence.source.definitionId !==
-        (index < caughtActorIds.length ? input.initialDefinitionId : execution.occurrenceId) ||
+        (index < caughtKeptCount ? input.initialDefinitionId : execution.occurrenceId) ||
       initial.evidence.source.gameSystemId !== state.gameSystemId ||
       initial.phaseReceipts?.some((phase) => phase.template.gameSystemId !== state.gameSystemId)
     )
@@ -429,6 +438,34 @@ export async function persistEncounterAreaCommit(
       createdEffects
     }
   })
+  // Each lost ray's receipt is exactly its sealed gate under this root: no spend and no outcome.
+  const lostRays = caught.flatMap(({ actorId, lost }, index) =>
+    lost ? [{ actorId, occurrenceId: sealedEntries[index]!.occurrenceId, gate: lost.gate }] : []
+  )
+  if (
+    input.lostRays.length !== lostRays.length ||
+    input.lostRays.some(({ actorId, execution }, index) => {
+      const sealed = lostRays[index]!
+      const outputs =
+        execution.status === 'AGGREGATE_CHOICE_COMPLETE' ? execution.applicationOutputs : null
+      return (
+        actorId !== sealed.actorId ||
+        outputs?.kind !== 'ENCOUNTER_GATED_ACTION' ||
+        checksumRuleDocument(execution) !==
+          checksumRuleDocument(
+            buildEncounterLostRayStoredExecution({
+              occurrenceId: sealed.occurrenceId,
+              parentOccurrenceId: areaOccurrenceId,
+              actorId: source.id,
+              sourceCharacterId: root.sourceCharacterId,
+              lost: outputs.lost,
+              gate: sealed.gate
+            })
+          )
+      )
+    })
+  )
+    throw new Error('Live Session area lost ray mismatch.')
   const casterIsCharacter = source.kind === 'CHARACTER'
   // A caster named again (a second dart) spends once, with their first outcome.
   const mergedChildIndex = casterIsCharacter
@@ -454,7 +491,11 @@ export async function persistEncounterAreaCommit(
     state,
     characterIds: [...characterIds],
     revisions: input.revisions,
-    occurrenceIds: [areaOccurrenceId, ...children.map((child) => child.occurrenceId)],
+    occurrenceIds: [
+      areaOccurrenceId,
+      ...children.map((child) => child.occurrenceId),
+      ...lostRays.map(({ occurrenceId }) => occurrenceId)
+    ],
     pendingOccurrence,
     validateReadFence: callbacks.validateReadFence
   })
@@ -717,6 +758,30 @@ export async function persistEncounterAreaCommit(
         occurredAt: input.occurredAt
       })
   }
+  for (const { actorId, execution } of input.lostRays)
+    await persistCompletedChild(ctx, {
+      state: nextState,
+      result: execution,
+      rootCommandId: encounterAreaTargetCommandId(execution.occurrenceId),
+      commandId: encounterAreaTargetCommandId(execution.occurrenceId),
+      commandType: 'RESOLVE_ACTION',
+      fingerprint: checksumRuleDocument({
+        areaOccurrenceId,
+        rootFingerprint: fingerprint,
+        actorId
+      }),
+      userId: initiatorUserId,
+      correlationId: areaOccurrenceId,
+      metadata: {
+        schemaVersion: 1,
+        transition: 'START',
+        definitionId: input.initialDefinitionId,
+        expectedAggregateVersion: state.version,
+        factsChecksum: root.caughtChecksum,
+        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+      },
+      occurredAt: input.occurredAt
+    })
   // The replaced Concentration's owners settle once every creature holds its new effect.
   if (maintenance)
     nextActors = await reconcileNativeMaintenanceOwners(ctx, {

@@ -34,14 +34,20 @@ import {
   markEncounterAreaSaveTested,
   holdEncounterAreaRay,
   openEncounterAreaSaveWindow,
-  removeEncounterAreaTargetFromSnapshot
+  removeEncounterAreaTargetFromSnapshot,
+  resealEncounterAreaTargets
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { heldActionContinues, projectNativeActionPending } from './actionPending.js'
+import {
+  castPendingContinues,
+  heldActionContinues,
+  projectNativeActionPending,
+  sameGate
+} from './actionPending.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
   awaitsReactionChild,
@@ -389,6 +395,109 @@ const heldOnHitRider = (target: SealedAreaTarget) =>
 /** Whether a ray still waits at an offer its hit raised: its creature's reaction, then its caster's rider. */
 const heldOnHit = (target: SealedAreaTarget) => heldOnHitReaction(target) || heldOnHitRider(target)
 
+/** The incoming gate a ray's own snapshot holds its caster's roll on, if it holds one. */
+const gateOfferOf = (target: SealedAreaTarget | undefined) => {
+  const context = target?.snapshot.applicationContext
+  return context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'INCOMING_GATE'
+    ? context.pause.payload
+    : null
+}
+
+/**
+ * Whether a ray that waited its turn is now held on the gate of its creature: the same ray, about
+ * creatures that stand as they did, which had passed no gate and was held on nothing.
+ */
+const heldOnFreshGate = (before: SealedAreaTarget | undefined, after: SealedAreaTarget) => {
+  const previous = before?.snapshot.applicationContext
+  const context = after.snapshot.applicationContext
+  return (
+    gateOfferOf(after) !== null &&
+    before?.testedJson === undefined &&
+    after.testedJson === undefined &&
+    previous?.kind === 'ENCOUNTER_ACTION' &&
+    context.kind === 'ENCOUNTER_ACTION' &&
+    previous.pause === undefined &&
+    previous.passedIncomingGate === undefined &&
+    before?.snapshot.occurrenceId === after.snapshot.occurrenceId &&
+    context.currentnessChecksum === previous.currentnessChecksum
+  )
+}
+
+/**
+ * Whether a ray that waited its turn is now sealed for its caster's roll past the gate of its
+ * creature, which a roll made for its caster passed: the same ray, about creatures that stand as
+ * they did, which had passed no gate and was held on nothing.
+ */
+const sealedPastFreshGate = (
+  before: SealedAreaTarget,
+  after: SealedAreaTarget,
+  casterActorId: string
+) => {
+  const previous = before.snapshot.applicationContext
+  const context = after.snapshot.applicationContext
+  return (
+    before.testedJson === undefined &&
+    after.testedJson === undefined &&
+    previous.kind === 'ENCOUNTER_ACTION' &&
+    context.kind === 'ENCOUNTER_ACTION' &&
+    previous.pause === undefined &&
+    previous.passedIncomingGate === undefined &&
+    context.pause === undefined &&
+    context.passedIncomingGate !== undefined &&
+    context.rollerActorId === casterActorId &&
+    context.currentnessChecksum === previous.currentnessChecksum &&
+    after.snapshot.occurrenceId === before.snapshot.occurrenceId
+  )
+}
+
+/** The list with the ray at `index` sealed again on `snapshot`, every other entry as it was. */
+const resealAreaRay = (
+  area: ServerAggregateChoicePendingSnapshotDto,
+  index: number,
+  snapshot: SealedAreaTarget['snapshot']
+) =>
+  resealEncounterAreaTargets(
+    area,
+    (areaActionPendingContext(area)?.targets ?? []).map((target, at) =>
+      at === index ? snapshot : target.snapshot
+    )
+  )
+
+/**
+ * The list once the rays from `from` on took the turn an answered ray handed them, as `next` stores
+ * them: each ray its caster's auto-rolled gate lost is answered by that roll and hands the turn on,
+ * and the first ray not lost is held on its gate or on the first offer of its aim (D217), or sealed
+ * again past the gate it passed. A ray that waits as it was sealed, and every ray behind it, is untouched.
+ */
+function withRaysBehindOpened(
+  area: ServerAggregateChoicePendingSnapshotDto,
+  stored: EncounterAreaActionPendingContextDto,
+  next: EncounterAreaActionPendingContextDto,
+  from: number
+) {
+  // The answer that settles a list may add the creatures its movers struck (D159) behind its entries.
+  for (let index = from; index < stored.targets.length; index += 1) {
+    const sealed = stored.targets[index]!
+    const opened = next.targets[index]
+    if (!opened) return area
+    const requestId = sealed.snapshot.request.requestId
+    if (sealed.testedJson !== undefined) return area
+    if (opened.lost && opened.testedJson !== undefined) {
+      area = markEncounterAreaSaveTested(area, requestId, {
+        testedJson: opened.testedJson,
+        lost: opened.lost
+      })
+      continue
+    }
+    if (heldOnFreshGate(sealed, opened) || heldOnFreshAim(opened))
+      return holdEncounterAreaRay(area, requestId, opened.snapshot)
+    return sealedPastFreshGate(sealed, opened, stored.casterActorId)
+      ? resealAreaRay(area, index, opened.snapshot)
+      : area
+  }
+  return area
+}
+
 /** A sealed ray without what its own steps write: its snapshot, its answer and what that answer rolled and decided. */
 const rayIdentity = ({
   snapshot,
@@ -396,8 +505,74 @@ const rayIdentity = ({
   rolls: _rolls,
   testBindingJson: _testBindingJson,
   onHit: _onHit,
+  lost: _lost,
   ...identity
 }: SealedAreaTarget) => ({ ...identity, occurrenceId: snapshot.occurrenceId })
+
+/**
+ * Verifies the list a caster's roll of a ray's incoming gate stores. A failed roll loses the ray: it
+ * is answered by that roll alone, on the gate it was offered, and the rays behind it go on in order,
+ * each lost at its own gate or held on it or on the first offer of its aim. A passed roll seals the
+ * ray again with the gate it passed, for its caster's attack roll or on the first offer of its aim,
+ * about creatures that stand as they did. Nothing else of the list changes.
+ */
+function requireAreaActionRayGate(
+  input: Parameters<typeof requireAreaActionAnswer>[0] & { at: number }
+) {
+  const stored = areaActionPendingContext(input.stored)
+  const next = areaActionPendingContext(input.next)
+  const before = stored?.targets[input.at]
+  const after = next?.targets[input.at]
+  const gate = gateOfferOf(before)
+  const previous = before?.snapshot.applicationContext
+  const context = after?.snapshot.applicationContext
+  const kind = input.response?.resolution.kind
+  const mismatch = () => new Error('Live Session pending area answer mismatch.')
+  if (
+    !stored ||
+    !next ||
+    !before ||
+    !after ||
+    !gate ||
+    previous?.kind !== 'ENCOUNTER_ACTION' ||
+    context?.kind !== 'ENCOUNTER_ACTION' ||
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    stored.targets.length !== next.targets.length ||
+    (kind !== 'ENTER_DICE' && kind !== 'SYSTEM_ROLL')
+  )
+    throw mismatch()
+  const settled = after.lost?.gate ?? context.passedIncomingGate
+  if (
+    !settled ||
+    !sameGate(gate, settled) ||
+    settled.dc !== gate.dc ||
+    settled.checkDefinitionId !== gate.checkDefinitionId
+  )
+    throw mismatch()
+  let area: ServerAggregateChoicePendingSnapshotDto
+  if (after.lost) {
+    if (after.testedJson === undefined) throw mismatch()
+    area = markEncounterAreaSaveTested(input.stored, input.requestId, {
+      testedJson: after.testedJson,
+      lost: after.lost
+    })
+    area = withRaysBehindOpened(area, stored, next, input.at + 1)
+  } else {
+    if (
+      before.testedJson !== undefined ||
+      after.testedJson !== undefined ||
+      !castPendingContinues(previous, input.response, context) ||
+      context.currentnessChecksum !== previous.currentnessChecksum ||
+      !(context.pause === undefined
+        ? context.rollerActorId === stored.casterActorId
+        : heldOnFreshAim(after))
+    )
+      throw mismatch()
+    area = resealAreaRay(input.stored, input.at, after.snapshot)
+  }
+  if (checksumCanonicalJson(input.next) !== checksumCanonicalJson(withOpenedHold(area, input.next)))
+    throw mismatch()
+}
 
 /**
  * Verifies the list a ray's step stores when that step is about an offer its roll raised: the
@@ -538,11 +713,13 @@ function requireAreaActionRayHit(
       // a ray answered behind this one never passed such an offer.
       checksumCanonicalJson(
         answeredBefore
-          ? [sealed.testedJson, sealed.rolls ?? null, sealed.onHit ?? null]
+          ? [sealed.testedJson, sealed.rolls ?? null, sealed.onHit ?? null, sealed.lost ?? null]
           : (sealed.onHit ?? null)
       ) !==
         checksumCanonicalJson(
-          answeredBefore ? [target.testedJson, target.rolls ?? null, target.onHit ?? null] : null
+          answeredBefore
+            ? [target.testedJson, target.rolls ?? null, target.onHit ?? null, target.lost ?? null]
+            : null
         ) ||
       // So are the facts a ray was rolled against, and only when a reaction is chosen.
       (target.testBindingJson !== undefined
@@ -556,9 +733,15 @@ function requireAreaActionRayHit(
         (index < at ||
           heldOnHit(after) ||
           (aimOffer(reactionOfferOf(sealed)) && !heldOnFreshAim(sealed)))) ||
-      // Only the resume seals a ray again.
+      // Only the resume seals a ray again; the ray whose turn comes may be held on its gate.
       (!resumed &&
         (answeredBefore || (sealed.testedJson === undefined && !heldOnHit(sealed))) &&
+        !(
+          index > at &&
+          after.testedJson !== undefined &&
+          (heldOnFreshGate(target, sealed) ||
+            sealedPastFreshGate(target, sealed, stored.casterActorId))
+        ) &&
         checksumCanonicalJson(sealed.snapshot) !== checksumCanonicalJson(target.snapshot))
     )
       throw mismatch()
@@ -606,6 +789,7 @@ export function requireAreaActionAnswer(input: {
   const at =
     stored?.targets.findIndex((target) => target.snapshot.request.requestId === input.requestId) ??
     -1
+  if (gateOfferOf(stored?.targets[at])) return requireAreaActionRayGate({ ...input, at })
   if (
     reactionOfferOf(stored?.targets[at]) ||
     onHitOfferOf(stored?.targets[at]) ||
@@ -630,10 +814,16 @@ export function requireAreaActionAnswer(input: {
     throw new Error('Live Session pending area answer mismatch.')
   const settled =
     answered.testedJson !== undefined
-      ? markEncounterAreaSaveTested(input.stored, input.requestId, {
-          ...answered,
-          testedJson: answered.testedJson
-        })
+      ? // A caster's answered ray hands the turn to the rays behind it.
+        withRaysBehindOpened(
+          markEncounterAreaSaveTested(input.stored, input.requestId, {
+            ...answered,
+            testedJson: answered.testedJson
+          }),
+          stored,
+          next,
+          at + 1
+        )
       : answered.rolledJson !== undefined
         ? markEncounterAreaSaveRolled(input.stored, input.requestId, answered.rolledJson)
         : null
@@ -654,11 +844,7 @@ export function requireAreaActionAnswer(input: {
         withOpenedHold(
           opened < 0
             ? settled
-            : // A caster's answered ray hands the turn to the next, which is held on the first offer
-              // of its aim when a creature may react to it (D217).
-              (heldOnFreshAim(next.targets[opened]!)
-                ? holdEncounterAreaRay
-                : openEncounterAreaSaveWindow)(
+            : openEncounterAreaSaveWindow(
                 settled,
                 settledTargets[opened]!.snapshot.request.requestId,
                 next.targets[opened]!.snapshot

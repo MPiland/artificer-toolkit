@@ -955,6 +955,14 @@ function planRevertRoot({
       continue
     }
     if (
+      outputs?.kind === 'ENCOUNTER_GATED_ACTION' &&
+      outputs.parentOccurrenceId === ruleOccurrenceId
+    ) {
+      // One ray of a chosen list lost at its creature's incoming gate: it spent and applied nothing.
+      childOccurrenceIds.add(receipt.occurrenceId)
+      continue
+    }
+    if (
       outputs?.kind === 'REACTION_OFFER_ANSWER' &&
       outputs.parentOccurrenceId === ruleOccurrenceId
     ) {

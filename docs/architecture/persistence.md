@@ -618,6 +618,20 @@ The resolved child records nothing new: the parent keeps its TEST and the kept d
 d20 again against the committed state. The offer's `hit` and kind are persisted pending-context shape changes;
 refresh local data when next used (D196).
 
+A ray's incoming gate (current, QUALITY-13.T1c5a). A ray of a chosen list may be held on an `INCOMING_GATE`
+pause in its own snapshot, keep a `passedIncomingGate`, or be answered as lost (`lost: { gate }` beside the
+gate d20 in `testedJson`); the schema admits these only on a ray its caster rolls, for the ward of the creature
+it is aimed at. `requireAreaActionAnswer` routes a gate-held ray's answer to `requireAreaActionRayGate`: a fail
+marks exactly that ray lost on the gate it was offered, a pass seals it again with that gate
+(`castPendingContinues`), and the rays behind an answered ray go on in order (`withRaysBehindOpened`: lost by an
+auto-rolled gate, held on a fresh gate or aim, or sealed past a passed gate). The area commit input carries
+`lostRays`; `persistEncounterAreaCommit` rebuilds each receipt from the stored list
+(`buildEncounterLostRayStoredExecution`) and refuses any other, computes ray occurrence ids over the whole
+caught order so a kept ray's id does not shift when an earlier ray is lost, and writes each lost ray as a
+completed child of the list (`ENCOUNTER_GATED_ACTION.parentOccurrenceId`), which the list's undo collects. A
+root gated action never carries `parentOccurrenceId`. The `lost` marker, the ray-level gate fields,
+`parentOccurrenceId` and `lostRays` are persisted-shape changes; refresh local data when next used (D196).
+
 The check a child owes (current, QUALITY-9.T1b2, D219 "Trigger-check gate"). A child whose authored
 `reactionTrigger` asks a check against a higher-level cast owes it as its incoming gate, read against
 `triggerCastLevel` (`owedNativeTriggerCheck`, `advanceNativeIncomingGate`). A gate carries a discriminated

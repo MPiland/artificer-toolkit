@@ -510,6 +510,8 @@ const encounterGatedActionApplicationOutputImplSchema = lazySchema(() =>
       kind: z.literal('ENCOUNTER_GATED_ACTION'),
       schemaVersion: z.literal(1),
       occurrenceId: uuidSchema,
+      /** The chosen list this is one lost ray of; absent on a root, which holds the action's spend. */
+      parentOccurrenceId: z.optional(uuidSchema),
       sourceActorId: uuidSchema,
       sourceCharacterId: z.nullable(uuidSchema),
       ...sourceSpendReceiptShape(),
@@ -524,6 +526,7 @@ export type EncounterGatedActionApplicationOutputDto = SourceSpendReceipts & {
   kind: 'ENCOUNTER_GATED_ACTION'
   schemaVersion: 1
   occurrenceId: string
+  parentOccurrenceId?: string
   sourceActorId: string
   sourceCharacterId: string | null
   lost: 'ATTACK' | 'SPELL'
