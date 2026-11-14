@@ -2,6 +2,7 @@ import { encounterMassiveDamageSavePendingContextDtoSchema } from '@artificer-to
 import { massiveDamageSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import {
   concentrationDamageSourceLabel,
+  concentrationDamageTypeLabel,
   type ConcentrationDamageApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -149,9 +150,7 @@ export function createMassiveDamageSaveContext(input: {
     repeatSaveDamagerActorId: input.damagerActorId,
     trigger: {
       sourceLabel: concentrationDamageSourceLabel(input.sourceLabels, application),
-      damageTypeLabel:
-        input.damageTypes.find((damageType) => damageType.id === application.damageTypeId)?.label ??
-        null,
+      damageTypeLabel: concentrationDamageTypeLabel(input.damageTypes, application),
       dc: rule.difficultyClass
     },
     targetCharacter: targetCharacter ?? null,

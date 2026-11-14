@@ -1,3 +1,4 @@
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
@@ -10,6 +11,7 @@ const discover = (events: EncounterEvent[]) =>
   discoverEncounterEventHooks({ maintenanceHooks: hooks, events })
 
 const CAST_AT = '2026-01-01T00:00:00.000Z'
+const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
 
 describe('maintenance link hooks', () => {
   it('breaks with the first break hook an event meets, defeat before incapacity', () => {
@@ -32,7 +34,7 @@ describe('maintenance link hooks', () => {
       kind: 'DAMAGED',
       phase: 'AFTER',
       holderActorId: 'holder',
-      hits: [{ damagerActorId: null, damageTypeIds: [null] }],
+      hits: [{ damagerActorId: null, damageTypeIds: [FIRE] }],
       dispositions: new Map()
     }
     // The boolean `maintenanceSave` became the indexes of the hits owed a save: hit 0 is owed one.
@@ -53,7 +55,7 @@ describe('maintenance link hooks', () => {
       sourceOperationKey: 'k',
       targetActorId,
       appliedAmount: 7,
-      damageTypeId: null
+      damageTypeIds: [FIRE]
     })
     expect(
       planDamageSaveChain({
@@ -75,7 +77,7 @@ describe('maintenance link hooks', () => {
       sourceOperationKey: 'k',
       targetActorId: 'held',
       appliedAmount: 7,
-      damageTypeId: null
+      damageTypeIds: [FIRE]
     }
     const later = '2026-01-01T00:00:05.000Z'
     expect(

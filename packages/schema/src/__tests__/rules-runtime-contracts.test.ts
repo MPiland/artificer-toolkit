@@ -786,7 +786,7 @@ describe('rules runtime contracts', () => {
       sourceOperationKey: 'dnd5e.damage-proposal',
       targetActorId: turnBatchIds.actor,
       appliedAmount: 12,
-      damageTypeId: turnBatchIds.condition
+      damageTypeIds: [turnBatchIds.condition]
     }
     const pending = {
       kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK' as const,

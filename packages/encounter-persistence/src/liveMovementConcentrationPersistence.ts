@@ -381,7 +381,7 @@ export async function persistLiveMovementRepeatSave(
       effect,
       {
         damagerActorId: output.application.damagerActorId ?? input.damagerActorId,
-        damageTypeIds: [output.application.damageTypeId]
+        damageTypeIds: output.application.damageTypeIds
       },
       new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
     )

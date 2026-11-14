@@ -21,7 +21,8 @@ import { activeEffect } from './encounterActiveEffectFixtures.js'
 import {
   prepareCreatureAction,
   settleCreatureAction,
-  srdAbilityId
+  srdAbilityId,
+  srdDamageTypeId
 } from './encounterCreatureAction.js'
 
 const VAMPIRE_ID = testUuid(0x2300)
@@ -30,6 +31,7 @@ const ALLY_ID = testUuid(0x2302)
 const STRANGER_ID = testUuid(0x2303)
 const CHARMED = srdCondition('Charmed')
 const WISDOM = srdAbilityId('WISDOM')
+const NECROTIC = srdDamageTypeId('NECROTIC')
 const DAY_TURNS = 24 * 600
 
 const vampire = srdByLabel(SRD.creatures, 'Vampire')
@@ -136,7 +138,7 @@ describe('Vampire Charm authored from core options (SPELLS-33.T6e2, D176)', () =
       [STRANGER_ID, 'FRIENDLY' as const]
     ])
     const trigger = (effect: Awaited<ReturnType<typeof held>>, damagerActorId: string | null) =>
-      damagedHitRepeatTrigger(effect, { damagerActorId, damageTypeIds: [null] }, dispositions)
+      damagedHitRepeatTrigger(effect, { damagerActorId, damageTypeIds: [NECROTIC] }, dispositions)
 
     it('fires on damage from the vampire or its companions', async () => {
       const effect = await held()

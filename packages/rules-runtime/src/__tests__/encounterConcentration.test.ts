@@ -282,7 +282,6 @@ function application(input: {
   ordinal: number
   appliedAmount: number
   targetActorId?: string
-  damageTypeId?: string
 }): ConcentrationDamageApplicationDto {
   return {
     ordinal: input.ordinal,
@@ -290,7 +289,7 @@ function application(input: {
     sourceOperationKey: 'effect.damage',
     targetActorId: input.targetActorId ?? CASTER_ID,
     appliedAmount: input.appliedAmount,
-    damageTypeId: input.damageTypeId ?? FIRE.id
+    damageTypeIds: [FIRE.id]
   }
 }
 
@@ -685,7 +684,7 @@ describe('nativeConcentrationDamageApplications', () => {
         sourceOperationKey: 'effect.damage',
         targetActorId: CASTER_ID,
         appliedAmount: 9,
-        damageTypeId: SLASHING.id
+        damageTypeIds: [SLASHING.id]
       },
       {
         ordinal: 1,
@@ -693,7 +692,7 @@ describe('nativeConcentrationDamageApplications', () => {
         sourceOperationKey: 'effect.damage',
         targetActorId: OTHER_CASTER_ID,
         appliedAmount: 3,
-        damageTypeId: SLASHING.id
+        damageTypeIds: [SLASHING.id]
       }
     ])
   })
@@ -735,7 +734,14 @@ describe('nativeConcentrationDamageApplications', () => {
       { targetActorId: CASTER_ID, applications: mechanics.mechanics.receiptApplications }
     ])
     expect(others).toEqual([])
-    expect(check).toMatchObject({ targetActorId: CASTER_ID, appliedAmount: 7, damageTypeId: null })
+    expect(check).toMatchObject({
+      targetActorId: CASTER_ID,
+      appliedAmount: 7,
+      damageTypeIds: [
+        SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'PIERCING')!.id,
+        FIRE.id
+      ]
+    })
     expect(dnd5eConcentrationDamageDc(check!.appliedAmount)).toBe(10)
   })
 
@@ -815,7 +821,7 @@ describe('nativeConcentrationParentDamage for Cleaving', () => {
         sourceOperationKey: 'effect.damage',
         targetActorId: CASTER_ID,
         appliedAmount: 7,
-        damageTypeId: SLASHING.id
+        damageTypeIds: [SLASHING.id]
       }
     ])
     expect(nativeConcentrationParentDamage(cleaving('APPLIED', 0))).toEqual([])

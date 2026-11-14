@@ -24,9 +24,19 @@ export const concentrationDamageApplicationDtoSchema = lazySchema(() =>
     sourceNodeId: ruleExecutionIdentifierSchema,
     sourceOperationKey: ruleExecutionIdentifierSchema,
     targetActorId: ruleExecutionUuidSchema,
-    /** One source's total damage; a source that dealt several damage types has no single type. */
+    /** One source's total damage. */
     appliedAmount: ruleExecutionPositiveIntegerSchema,
-    damageTypeId: z.nullable(ruleExecutionUuidSchema),
+    /** Every damage type the source dealt, each once, in the order its rows first dealt it (D220). */
+    damageTypeIds: z
+      .array(ruleExecutionUuidSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      .check(
+        z.refine(
+          (ids) => new Set(ids).size === ids.length,
+          'A damage source names each damage type once.'
+        )
+      ),
     /** Who dealt this source's damage when it names one; absent, the chain's own damager applies. */
     damagerActorId: z.optional(ruleExecutionUuidSchema)
   })
@@ -211,4 +221,15 @@ export function concentrationDamageSourceLabel(
         entry.sourceOperationKey === application.sourceOperationKey
     )?.label ?? null
   )
+}
+
+/** The damage type a save's trigger names: the source's one type, or none when it dealt several. */
+export function concentrationDamageTypeLabel(
+  damageTypes: readonly { id: string; label: string }[],
+  application: ConcentrationDamageApplicationDto
+): string | null {
+  const [only, ...others] = application.damageTypeIds
+  return others.length > 0
+    ? null
+    : (damageTypes.find((damageType) => damageType.id === only)?.label ?? null)
 }

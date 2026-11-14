@@ -1318,11 +1318,12 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
   const ZONE_ID = testUuid(0xc360)
   const HELP = SRD_BASIC_ACTION_IDS.HELP
   const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
+  const COLD = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'COLD')!.id
   const dispositions = new Map([
     [SOURCE_ID, 'FRIENDLY'],
     [OTHER_ID, 'HOSTILE']
   ] as const)
-  const damaged = (damagerActorId: string, damageTypeIds: (string | null)[]): EncounterEvent => ({
+  const damaged = (damagerActorId: string, damageTypeIds: string[]): EncounterEvent => ({
     kind: 'DAMAGED',
     phase: 'AFTER',
     holderActorId: TARGET_ID,
@@ -1443,7 +1444,7 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
       'DAMAGE_TAKEN of a type',
       { endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: [FIRE] }] },
       damaged(OTHER_ID, [FIRE]),
-      damaged(OTHER_ID, [null])
+      damaged(OTHER_ID, [COLD])
     ],
     [
       'ATTACK_ROLL against an enemy',

@@ -101,7 +101,7 @@ describe('Damage save chain order', () => {
     sourceOperationKey: 'op',
     targetActorId: id(1),
     appliedAmount: 5,
-    damageTypeId: null
+    damageTypeIds: [id(10)]
   }
 
   it('runs one holder’s Concentration checks in casting order, whatever their ids', () => {
