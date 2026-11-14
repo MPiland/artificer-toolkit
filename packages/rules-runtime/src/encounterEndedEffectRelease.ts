@@ -187,7 +187,8 @@ export function incomingDamageGrantRecords(input: {
  * mechanics batch applies the releases in the same transaction as the effects' deletion. An event a
  * grantTriggers entry subscribes to then gives its grant, replacing the one the same source gave
  * from the same Effect before; it joins after the ended effects are released, so a grant from this
- * hit stays. `replacedEffects` are what the met grants end on other holders.
+ * hit stays. `replacedEffects` are what the met grants end on other holders. `repeatSaveEffects` is
+ * the holder's damaged discovery, which the command's damage-save chain consumes.
  */
 export function targetEndedEffects(input: {
   holderActorId: string
@@ -277,6 +278,13 @@ export function targetEndedEffects(input: {
       ended: endedEffects
     }),
     grants: hooks.grants.map(({ id, effect }) => ({ id, effect })),
+    /**
+     * The holder's damaged discovery for the damage-save chain (D220): the held effects this raise's
+     * `DAMAGED(AFTER)` found owing a repeat save, less those it ended.
+     */
+    repeatSaveEffects: hooks.repeatSaves.flatMap(({ effect }) =>
+      endedEffects.includes(effect) ? [] : [effect]
+    ),
     replacedEffects: [
       ...new Map(
         hooks.grants.flatMap(({ replaces = [] }) => replaces.map((effect) => [effect.id, effect]))

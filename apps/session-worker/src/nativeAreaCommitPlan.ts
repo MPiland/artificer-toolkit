@@ -135,6 +135,8 @@ export async function planAreaOutcomes(args: {
   // Damage an outcome deals ends the effects its target holds that end on damage; a creature named
   // again keeps what an earlier entry ended ended.
   const damageEndedEffects = new Map<string, ActiveRuleEffectRecord>()
+  // Each damaged creature's discovery, from its first entry's one `DAMAGED(AFTER)` raise (D220).
+  const discovered = new Map<string, readonly ActiveRuleEffectRecord[]>()
   let maintainedState: ReturnType<typeof prepareNativeLiveMaintainedState> | null = null
   let maintenanceCarried = false
   // A creature named again meets the hit points and Character record its earlier entries left it.
@@ -289,6 +291,8 @@ export async function planAreaOutcomes(args: {
         ? { sourceSpend: 'WITH_OUTCOME', sourceReleases }
         : { sourceSpend: 'NONE' }
     })
+    if (!damagedHolders.has(actor.id))
+      discovered.set(actor.id, outcome.damageEnded.repeatSaveEffects)
     damagedHolders.add(actor.id)
     const { mechanics, createdEffects: created, effectTransitions } = outcome
     for (const ended of outcome.damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
@@ -338,5 +342,17 @@ export async function planAreaOutcomes(args: {
       })
     })
   }
-  return { children, createdEffects, damageEndedEffects, maintainedState }
+  return {
+    children,
+    createdEffects,
+    damageEndedEffects,
+    // What a later entry ended leaves the discovery with its holder's other ends.
+    damagedHolderRepeatSaves: new Map(
+      [...discovered].map(([actorId, effects]) => [
+        actorId,
+        effects.filter(({ id }) => !damageEndedEffects.has(id))
+      ])
+    ),
+    maintainedState
+  }
 }

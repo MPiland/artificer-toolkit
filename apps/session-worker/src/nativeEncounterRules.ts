@@ -1362,7 +1362,10 @@ export async function planNativeLiveEncounterAction(
     capture,
     runtime: executionOptions.runtime,
     random: executionOptions.random,
-    repeatSaves: { damagerActorId: command.actorId }
+    repeatSaves: {
+      damagerActorId: command.actorId,
+      discovered: new Map([[prepared.target.id, damageEnded.repeatSaveEffects]])
+    }
   })
   const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const nextRules = reconcileEncounterActorRuleOutput(
