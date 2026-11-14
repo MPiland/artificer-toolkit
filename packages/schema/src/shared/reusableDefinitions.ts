@@ -28,12 +28,12 @@ export const reusableDefinitionDocumentDtoSchema = lazySchema(() =>
   z.union([
     ruleGraphDefinitionDtoSchema,
     initiativePolicyReusableDefinitionDocumentDtoSchema,
+    ...installedDefinitionDocumentFamilies.map(({ documentSchema }) => documentSchema),
     senseReusableDefinitionDocumentDtoSchema,
     ruleCapabilityReusableDefinitionDocumentDtoSchema,
     conditionRuleStateReusableDefinitionDocumentDtoSchema,
     ruleMaintenanceReusableDefinitionDocumentDtoSchema,
-    basicActionReusableDefinitionDocumentDtoSchema,
-    ...installedDefinitionDocumentFamilies.map(({ documentSchema }) => documentSchema)
+    basicActionReusableDefinitionDocumentDtoSchema
   ])
 )
 
