@@ -217,7 +217,8 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   (`areaTargetRemoval.ts`, routed with `AREA_REMOVAL` admission). It is not a Run command, and while the area
   still waits on another creature it writes no command receipt and leaves the Run version alone; only the
   occurrence version moves. A removal that leaves nothing to wait on writes nothing itself and the room commits
-  the area through the same path as a last save answer. Area saves and `AREA_LEGENDARY_RESISTANCE` decisions
+  the area through the same path as a last save answer; its admission carries the committed reaction children
+  of the rays the list keeps, as a resume's does (D219). Area saves and `AREA_LEGENDARY_RESISTANCE` decisions
   are routed to the pending area occurrence and answered by each creature's controller or the GM in any order.
   The last answer, the last decision, a settling removal, or the open when every save auto-rolls commits the
   area in one transaction: a root receipt with the source spend plus one child receipt per kept creature
