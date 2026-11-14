@@ -126,26 +126,27 @@ its runtime interpretation (the code that re-checks a committed graph's evidence
 sibling modules. Imports run one way, down this list; no module imports the compiler, and none re-exports another's
 names.
 
-| Module                           | Owns                                                                                                                                                                                                                              |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, `Dnd5eCompiledEffectActionSource`, forced-movement collision encoding, node-id helpers                                                   |
-| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                                              |
-| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                                             |
-| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                                                |
-| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                                |
-| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                                   |
-| `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)                    |
-| `effectActionActivation`         | The activation aspect, `compileDnd5eActivation`: one action, bonus action or registered-trigger reaction, or a free action and whether a Feature charge is its cost                                                               |
-| `effectActionTest`               | The test aspect, `compileDnd5eTest`: nothing, an attack, a save, or a check against a fixed DC, a contest, passive scores or concealment; the result paths each test resolves to and the paths that hold a relationship's target  |
-| `effectActionOutcomeAspect`      | The outcome aspect, `dnd5eDirectOutcomeEntry` and `dnd5eTestOutcomeEntries`: the one result an action that rolls no attack or save applies, and the results an attack or save applies on its paths, each entry under one rule set |
-| `effectActionTargetPolicy`       | The targeting aspect, `compileDnd5eTargeting`: Self (with a teleport reach), single, chosen list or fixed-size area, its range rules and whether the target must be willing                                                       |
-| `effectActionPublishedGraph`     | `publishedGraph`: the published DTO (identity, checksum, definition) of a graph the compiler built                                                                                                                                |
-| `effectActionLifetime`           | `maintenancePlan` (the source actor's Concentration or named maintained effect), `durationPublishedGraph` (the graph a timed plan's duration publishes) and the grant consume and end trigger events                              |
-| `effectActionModifierGrants`     | `modifierGrantEntryPlan`: a modifier grant entry's active-effect plan, with its cast-level amounts, lifetime and maintenance                                                                                                      |
-| `effectActionTestOutcomes`       | `boundedTestOutcome`, `specializedTestOutcome` and the dice damage and heal bonus validation a test path's outcome needs                                                                                                          |
-| `effectActionTestPhase`          | `compileTestDefinition` (the attack or save test graph and its result paths), `withMovementInterruption` and the `TestPlan` it reads                                                                                              |
-| `effectActionDiceGraph`          | `diceGraphDefinition`: the rolled dice damage or heal graph of an outcome                                                                                                                                                         |
-| `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant                 |
+| Module                           | Owns                                                                                                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, `Dnd5eCompiledEffectActionSource`, forced-movement collision encoding, node-id helpers                                                                                      |
+| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                                                                                 |
+| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                                                                                |
+| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                                                                                   |
+| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                                                                   |
+| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                                                                      |
+| `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)                                                       |
+| `effectActionActivation`         | The activation aspect, `compileDnd5eActivation`: one action, bonus action or registered-trigger reaction, or a free action and whether a Feature charge is its cost                                                                                                  |
+| `effectActionTest`               | The test aspect, `compileDnd5eTest`: nothing, an attack, a save, or a check against a fixed DC, a contest, passive scores or concealment; the result paths each test resolves to and the paths that hold a relationship's target                                     |
+| `effectActionOutcomeAspect`      | The outcome aspect, `dnd5eDirectOutcomeEntry` and `dnd5eTestOutcomeEntries`: the one result an action that rolls no attack or save applies, and the results an attack or save applies on its paths, each entry under one rule set                                    |
+| `effectActionTargetPolicy`       | The targeting aspect, `compileDnd5eTargeting`: Self (with a teleport reach), single, chosen list or fixed-size area, its range rules and whether the target must be willing                                                                                          |
+| `effectActionLifetimeAspect`     | The lifetime aspect, `dnd5eLifetime`: the one plan that holds what an action leaves behind (sequential, repeated save, timed, relationship, recurring or concealment) and whether it holds an entry's lifetime; it builds the recurring and concealment plans itself |
+| `effectActionPublishedGraph`     | `publishedGraph`: the published DTO (identity, checksum, definition) of a graph the compiler built                                                                                                                                                                   |
+| `effectActionLifetime`           | `maintenancePlan` (the source actor's Concentration or named maintained effect), `durationPublishedGraph` (the graph a timed plan's duration publishes) and the grant consume and end trigger events                                                                 |
+| `effectActionModifierGrants`     | `modifierGrantEntryPlan`: a modifier grant entry's active-effect plan, with its cast-level amounts, lifetime and maintenance                                                                                                                                         |
+| `effectActionTestOutcomes`       | `boundedTestOutcome`, `specializedTestOutcome` and the dice damage and heal bonus validation a test path's outcome needs                                                                                                                                             |
+| `effectActionTestPhase`          | `compileTestDefinition` (the attack or save test graph and its result paths), `withMovementInterruption` and the `TestPlan` it reads                                                                                                                                 |
+| `effectActionDiceGraph`          | `diceGraphDefinition`: the rolled dice damage or heal graph of an outcome                                                                                                                                                                                            |
+| `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant                                                    |
 
 The zones module imports the test-phase, outcome and lifetime modules above directly, as the compiler does.
 
@@ -176,10 +177,24 @@ not hold, and holds at most one relationship, and refuses with "unique direct ou
 (`Dnd5eOutcomeCarriers`: a sequence's later results, a choice, an entry's lifetime) is the compiler's input to the
 aspect: the single-graph test compile carries a sequence only when its plan holds the rest (a relationship or a removal
 from play), the TEST/OUTCOME compile specializes every sequence result, and a direct result's lifetime is held by any
-lasting plan, or by a concealment plan when it is not maintained: a Hide's check settles its concealment
-(`createEncounterConcealmentEffect`) with no maintenance link, so a maintained concealment stays refused. One rule set
-admitted one shape the separate ladders refused: an attack or save result authored as instantaneous
-(`effectActionOutcomeAspect.test.ts`). Lifetime selection still runs as plan ladders; it is the QUALITY-15.T1c task.
+plan the lifetime aspect chooses other than a relationship. One rule set admitted one shape the separate ladders refused:
+an attack or save result authored as instantaneous (`effectActionOutcomeAspect.test.ts`).
+
+**Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
+the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
+save, a timed condition, grant, link or form, a relationship, a recurring result, then a concealment. The compiler
+supplies its own plan builders as `Dnd5eLifetimeCandidates`; the aspect builds the recurring and concealment plans.
+Every reader asks the model: the active-effect plans (`dnd5eActiveEffectPlans`, which freezes a repeated save or a
+turn-end gate as its save, a timed plan as its duration, a relationship as its own graph, and a recurring result or
+concealment as the action's graph), the action graph (`compileEffectActionGraph`), the Concentration check, the direct
+result sequence, a roll-table row (a repeated save or a duration) and the outcome aspect's lifetime carrier. A
+relationship holds its hold until its own release, so it holds no entry's lifetime (`holdsEntryLifetime`), and a save or
+duration plan beside it is refused. A Hide's check settles its concealment (`createEncounterConcealmentEffect`,
+`concealmentCheckSettlement`) with no maintenance link, so a concealment under Concentration or a named maintained
+effect is refused by the aspect. The model refused two shapes the ladders admitted: a concealment under Concentration,
+whose plan carried a maintenance its settlement dropped, and a used hold whose result block authors a recurrence its
+relationship plan dropped (`effectActionLifetimeAspect.test.ts`). The execution plan's routing asks only whether a
+failed save recurs (`dnd5eRecurringPlan`), before any other plan is built.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
 and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
