@@ -26849,7 +26849,7 @@
             },
             {
               "id": "QUALITY-18.T3c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26858,23 +26858,39 @@
                 "size": 5,
                 "after": ["QUALITY-18.T3"]
               },
-              "text": "Movement child parity proofs still unverified, test first and fix what fails: a root raised in after-commit (roomEncounterAfterCommit stages 2-5) while a move awaits its resume, where readMovementReactionChildResume reads .take(1) (movementReactionChild.ts ~101) and may miss or resume early; OPTION on an unpresented Scene (readReactionSceneContext reads the bound Scene regardless); source, single-use item and target policy refusals at OPTION (recordMovementReactionChild does not revalidate the source); a departed mover's check answer and resume.",
-              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "A root raised in after-commit while a move awaits its resume: the move stays SUSPENDED at its child's commit so after-commit stages 2-5 raise roots (the mover's 0 HP effect), and stage 9 returns it to PENDING once nothing else is pending; raised roots name the committed child as parent.",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-14 at delivery: the seam trace showed the real bug (repinReactionChildParent returned the move to PENDING at the child commit, so readRoomRaisableRun answered WAITING and the mover's 0 HP effect was lost; systemTriggerAdmission refused the root for lack of a committed parent). Orchestrator triage: OPTION on an unpresented Scene, stale source/single-use item/target policy refusals at OPTION, and a departed mover's check answer are rare and recoverable (a child failure rolls the whole answer back), so they moved to future-enhancements Deferred edge cases. The same lost-root bug on a held action moved to QUALITY-18.T3d.",
+              "mergedAt": "2026-11-14",
+              "proof": "m744 (511b68d7d), fast path from slice tip 9acc9cac8: Tests 43558422538, Live 43558422746, Browser journeys 43558422631 green. New room test in nativeMovementReactionChild (a reaction child drops the mover to 0 HP; the burst is raised before the move resumes) failed before the fix (expected length 2, got 0). Restated with reasons in reactionChildren.test.ts: the re-pinned move is SUSPENDED (was PENDING) and resumes only through resumeSettledReactionChildParent; version, pin and checksum assertions unchanged. persistence.md re-pin rule updated. No persisted shape change."
             },
             {
-              "id": "QUALITY-18.T4",
+              "id": "QUALITY-18.T3d",
               "status": "TODO",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-18.T3c"]
+              },
+              "text": "A reaction child of a held action (not a move) that drops a creature to 0 HP raises that creature's 0 HP effect before the action resumes, through the same SUSPENDED-until-settled rule as moves, without re-running or advancing a held Legendary Action at after-commit stage 3. Also prove the summon-sweep turn advance (stage 8) with a held move, and refuse a GM revert while a parent is SUSPENDED with nothing PENDING (persistence-level window).",
+              "note": "Registered 2026-11-14 from the QUALITY-18.T3c report under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-18.T4",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
                 "size": 3,
-                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
+                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4", "QUALITY-18.T3c"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move."
+              "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T5",
@@ -26900,7 +26916,13 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-18.T3", "QUALITY-18.T4", "QUALITY-18.T5", "QUALITY-18.T3c"]
+                "after": [
+                  "QUALITY-18.T3",
+                  "QUALITY-18.T4",
+                  "QUALITY-18.T5",
+                  "QUALITY-18.T3c",
+                  "QUALITY-18.T3d"
+                ]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Delete the MOVEMENT_REACTION summary kind, the movement reaction phases, completedReactionExecutions, the nested movement-reaction modules, liveMovementReactionPersistence and the movement window-die field; restate tests; update rules-runtime.md and persistence.md; D196 reset."

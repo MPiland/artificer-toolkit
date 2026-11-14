@@ -18,6 +18,7 @@ import {
   reactionWolf,
   stopReactionWolf
 } from '../src/testing/movementPlannerFixture.js'
+import { deathBurstWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 import {
@@ -34,6 +35,7 @@ import {
 
 const MOVER_ID = testUuid(0x2b20)
 const REACTOR_ID = testUuid(0x2b21)
+const BYSTANDER_ID = testUuid(0x2b22)
 
 const START: ScenePoint = { x: 150, y: 150 }
 const DESTINATION: ScenePoint = { x: 600, y: 150 }
@@ -51,7 +53,10 @@ afterEach(() => {
 function contactRoom(
   config: {
     reactor?: CreatureAuthored
+    mover?: CreatureAuthored
     moverHitPoints?: number
+    /** A plain Wolf the room's player controls, 15 feet south of the start: its dice are entered. */
+    bystander?: boolean
   } & Pick<MovementRoomConfig, 'autoRoll' | 'spatialEffects'> = {}
 ) {
   return movementRoom({
@@ -63,12 +68,14 @@ function contactRoom(
       }),
       srdCreatureActor({
         id: MOVER_ID,
-        creature: plainWolf,
+        creature: config.mover ?? plainWolf,
         ...(config.moverHitPoints === undefined ? {} : { currentHitPoints: config.moverHitPoints })
-      })
+      }),
+      ...(config.bystander ? [srdCreatureActor({ id: BYSTANDER_ID, creature: plainWolf })] : [])
     ],
     moverActorId: MOVER_ID,
-    positions: { [REACTOR_ID]: START, [MOVER_ID]: START },
+    positions: { [REACTOR_ID]: START, [MOVER_ID]: START, [BYSTANDER_ID]: { x: 150, y: 450 } },
+    playerControlledActorIds: config.bystander ? [BYSTANDER_ID] : [],
     autoRoll: config.autoRoll ?? 'GAME_MASTER',
     rolls: [14, 0, 0, 14],
     fallbackRoll: 0,
@@ -507,5 +514,67 @@ describe('a reaction child at a paused Scene move: parity gaps (QUALITY-18.T3)',
     expect(room.diceDrawn()).toBe(drawn)
     expect(await moverPosition(room)).toEqual(DESTINATION)
     expect(await openOccurrences(room)).toEqual([])
+  }, 60_000)
+})
+
+describe('a reaction child at a paused Scene move: unverified parity (QUALITY-18.T3c)', () => {
+  it('holds the move behind the effect its mover raises at 0 hit points, then resumes it once', async () => {
+    // The mover bursts when it drops to 0 hit points, and the bystander's save is entered by hand,
+    // so the burst the child's commit raises waits as the Run's one pending decision.
+    const room = await contactRoom({
+      mover: deathBurstWolf(30, 10),
+      moverHitPoints: 1,
+      bystander: true
+    })
+    const bystanderBefore = readActorHitPoints(await readRoomHistory(room.base.stub), BYSTANDER_ID)
+    const contact = await walkToContact(room)
+
+    const used = await room.respondOnly(contact.use)
+
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await moverHitPoints(room)).toBe(0)
+    const held = await openOccurrences(room)
+    expect(held).toHaveLength(2)
+    expect(held).toContainEqual({ id: contact.occurrence.id, state: 'SUSPENDED' })
+    const burst = await readPendingActionDecision(room.base.stub)
+    if (burst?.pending.kind !== 'AREA_SAVES')
+      throw new Error(`Expected the burst’s saves, got ${burst?.pending.kind}.`)
+    expect(burst.pending.saves.map(({ actorId }) => actorId)).toEqual([BYSTANDER_ID])
+    expect(
+      (await room.receipts()).filter(({ commandId }) => commandId === contact.resumeCommandId)
+    ).toEqual([])
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
+
+    const [save] = burst.pending.saves
+    const commandId = crypto.randomUUID()
+    const saved = await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: burst.encounterVersion,
+        correlationId: null,
+        occurrenceId: burst.occurrence.id,
+        expectedOccurrenceVersion: burst.occurrence.version,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: save!.request.requestId,
+          rawFaces: [1],
+          rollMode: save!.request.rollMode
+        }
+      }
+    })
+
+    expect(saved.type, JSON.stringify(saved)).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(async () => expect(await openOccurrences(room)).toEqual([]), 10_000)
+    expect(readActorHitPoints(await readRoomHistory(room.base.stub), BYSTANDER_ID)).toBeLessThan(
+      bystanderBefore
+    )
+    // The mover dropped at the contact, so the one resume ends the move there.
+    expect(
+      (await room.receipts()).filter(({ commandId: id }) => id === contact.resumeCommandId)
+    ).toMatchObject([{ result: { terminalPosition: contact.root.currentPosition } }])
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
   }, 60_000)
 })

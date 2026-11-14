@@ -300,6 +300,10 @@ export async function executeRoomEncounterCommand(input: {
             .unique()
         )?.rootCommandId
       : undefined
+  // The command the roots raised after this one name as their parent: the command itself, or the
+  // child a reaction chosen at a paused Scene move commits, since that answer records no Run command
+  // or rule receipt of its own (D219).
+  let raisedRootParentCommandId = command.commandId
   const rawResult =
     command.type === 'START' || command.type === 'ADVANCE_TURN'
       ? await executeTurn(command)
@@ -380,7 +384,7 @@ export async function executeRoomEncounterCommand(input: {
     observed,
     encounterId: currentRun.id,
     random: input.random,
-    command,
+    command: { type: command.type, commandId: raisedRootParentCommandId },
     turnRootCommandId: answeredRootCommandId ?? command.commandId,
     active: currentRun.status === 'ACTIVE',
     raisesRoots: input.turnExecution !== undefined,
@@ -651,7 +655,10 @@ export async function executeRoomEncounterCommand(input: {
         ctx: context,
         transaction,
         command,
-        executeAction
+        executeAction: (child) => {
+          raisedRootParentCommandId = child.commandId
+          return executeAction(child)
+        }
       })
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
