@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { REUSABLE_DEFINITION_AUTHORING_FAMILY_KEYS } from '../shared/reusableDefinitionIdentity.js'
+import type { SystemModifierGrantKind } from '../shared/systemSchemaExtension.js'
 import { installedDefinitionDocumentFamilies } from '../systems/installedSystemDefinitionDocuments.js'
 import {
   installedDefinitionFamilyKeys,
@@ -21,7 +22,7 @@ const base = {
 describe('System schema extensions', () => {
   it.each(installedModifierGrantKinds)(
     'accepts the $valueDomainCode grant kind as a bare flag and refuses it with a domain, a payload or another modifier kind',
-    ({ valueDomainCode, modifierKind }) => {
+    ({ valueDomainCode, modifierKind }: SystemModifierGrantKind) => {
       const grant = { ...base, valueDomainCode, modifierKind, domain: {} }
       expect(modifierGrantDtoSchema.safeParse(grant).success).toBe(true)
       expect(
