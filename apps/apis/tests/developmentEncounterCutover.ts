@@ -1809,13 +1809,32 @@ export async function verifyEncounterReactionContention({
       console.log(`V14.4 response step: ${JSON.stringify({ kind: current.kind, ...steps.at(-1) })}`)
       // The winner's retry replays its receipt or is refused as settled; the loser's is refused.
       // Neither changes what the room holds.
-      await gmWatch.session(winner.value.projection.version)
+      // Restated (QUALITY-18.T2b2, D219): a reaction that completes as its holder's own action is not the
+      // end of the move. The room resumes the suspended move in a command of its own, one Run version on,
+      // so the room settles only once it has published that resume.
+      const resumed = winner.value.occurrence?.status === 'COMPLETE'
+      await gmWatch.session(winner.value.projection.version + (resumed ? 1 : 0))
       const settled = held()
       const [winnerRetry, loserRetry] = await Promise.allSettled([
         rivals[winnerIndex]!.mutation(executeEncounterCommand, contenders[winnerIndex]!),
         rivals[1 - winnerIndex]!.mutation(executeEncounterCommand, contenders[1 - winnerIndex]!)
       ])
-      if (winnerRetry?.status === 'fulfilled') assert.deepEqual(winnerRetry.value, winner.value)
+      // Restated reason: the winner's retry replays its journaled result, with the Run as it now stands
+      // when the room resumed the move after it (one version on, its own update time).
+      if (winnerRetry?.status === 'fulfilled')
+        assert.deepEqual(
+          winnerRetry.value,
+          resumed
+            ? {
+                ...winner.value,
+                projection: {
+                  ...winner.value.projection,
+                  version: winner.value.projection.version + 1,
+                  updatedAt: winnerRetry.value.projection.updatedAt
+                }
+              }
+            : winner.value
+        )
       assert.equal(loserRetry?.status, 'rejected', 'A stale loser must stay refused on retry.')
       console.log(
         `V14.4 retries: ${JSON.stringify({ winner: winnerRetry?.status === 'fulfilled' ? 'REPLAYED' : 'REFUSED', loser: 'REFUSED' })}`
