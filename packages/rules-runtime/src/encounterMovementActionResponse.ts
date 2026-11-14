@@ -137,6 +137,8 @@ export async function evaluateEncounterMovementActionResponse<
       contact: EncounterMovementReactionContact<EncounterMovementReactionSource>
     ) => Promise<boolean>
     targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+    /** The committed children of the choice this response resumes, each with what it does to the move. */
+    reactionChildren: readonly { commandId: string; stopsTriggeringMovement: boolean }[]
     retained?: Outcome
   },
   callbacks: {
@@ -259,8 +261,55 @@ export async function evaluateEncounterMovementActionResponse<
   let selectedOptionId: string | null = null
   let concentrationSource: { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number } | null = null
   let stopAfterReaction = false
-  if (context.phase.kind === 'CHOICE') {
-    if (resolution.kind !== 'OPTION' && resolution.kind !== 'DECLINE')
+  if (context.phase.kind === 'CHOICE' && resolution.kind === 'REACTION_CHILD_RESUME') {
+    // The reaction the choice took ran as its own child action (D219). The option that child came
+    // from settles the Kernel choice; the child's commit is the reaction's record, so the move keeps
+    // no execution of it.
+    const child = input.reactionChildren.find(
+      ({ commandId }) => commandId === resolution.childCommandId
+    )
+    const chosenOptionId = root.resolutionCommands
+      .flatMap((entry) => (entry.kind === 'OPTION' ? [entry.optionId] : []))
+      .at(-1)
+    if (
+      !child ||
+      !chosenOptionId ||
+      !context.phase.reactionChildren?.some(({ commandId }) => commandId === child.commandId) ||
+      responseCommand.kind !== 'REACTION_CHILD_RESUME' ||
+      responseCommand.childCommandId !== child.commandId ||
+      responseCommand.actorUserId !== input.userId ||
+      responseCommand.expectedOccurrenceVersion !== input.occurrenceVersion ||
+      root.resolutionCommands.length !== input.occurrenceVersion
+    )
+      throw new Error('Movement response does not match the recorded reaction child.')
+    resolutionCommands = [...root.resolutionCommands, responseCommand]
+    await resolveEncounterMovementReactionChoice({
+      runtime,
+      pendingSnapshot: snapshot,
+      selection: { kind: 'OPTION', optionId: chosenOptionId }
+    })
+    const prefix = context.appliedSpatialPrefix
+    remainder = {
+      ...movementReactionRemainderAfterCurrentChoice({ context, resolutionCommands }),
+      // The child's receipt proves what it changed, so the spatial receipt marks where it committed.
+      appliedSpatialPrefix:
+        prefix?.status === 'BATCH_COMPLETE' && prefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+          ? {
+              ...prefix,
+              reactionChildBoundaries: [
+                ...new Set([...(prefix.reactionChildBoundaries ?? []), prefix.executions.length])
+              ]
+            }
+          : prefix,
+      resumedFromReactionChild: true
+    }
+    const moverActorId = input.actorIdByTokenId.get(root.tokenId)
+    stopAfterReaction =
+      child.stopsTriggeringMovement ||
+      (moverActorId !== undefined && targets.get(moverActorId)?.state.current === 0)
+  } else if (context.phase.kind === 'CHOICE') {
+    // A taken option never arrives here: the room records it and raises its child action (D219).
+    if (resolution.kind !== 'DECLINE')
       throw new Error('Movement response does not match the issued reaction choice.')
     resolutionCommands = appendEncounterMovementReactionResolutionCommand({
       history: root.resolutionCommands,
@@ -269,12 +318,11 @@ export async function evaluateEncounterMovementActionResponse<
       actorUserId: input.userId,
       proposedOccurrenceVersion: input.occurrenceVersion + 1
     })
-    const selected = await resolveEncounterMovementReactionChoice({
+    await resolveEncounterMovementReactionChoice({
       runtime,
       pendingSnapshot: snapshot,
       selection: resolution
     })
-    if (selected.kind === 'SELECTED') selectedOptionId = selected.option.optionId
     remainder = movementReactionRemainderAfterCurrentChoice({
       context,
       resolutionCommands
@@ -374,6 +422,8 @@ export async function evaluateEncounterMovementActionResponse<
     }
   } else throw new Error('Movement action response does not match the issued phase.')
 
+  // Transitional (deleted in QUALITY-18.T2c): the inline reaction engine. No choice selects an option
+  // any more, so only a move already paused inside an inline reaction's evidence reaches it.
   if (selectedOptionId !== null) {
     const entry = context.reactionTimeline[0]
     const option = entry?.group.options.find((value) => value.optionId === selectedOptionId)
@@ -631,7 +681,9 @@ export async function evaluateEncounterMovementActionResponse<
         kind: 'TERMINAL',
         result,
         selectionChecksum: context.spatialSelectionChecksum,
-        currentnessChecksum: context.spatialCurrentnessChecksum
+        currentnessChecksum: context.spatialCurrentnessChecksum,
+        // A child's stop leaves the move no execution to read the stop distance from (D219).
+        terminalPathDistance: root.pathStartDistance
       },
       settlements,
       resolutionCommands

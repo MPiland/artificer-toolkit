@@ -224,32 +224,34 @@ describe('used movement reactions', () => {
     const room = await usedReactionRoom([])
     await room.move([MOVER_START, destination])
 
-    for (let uses = 0; (await room.pending()) && uses < 5; uses++) {
+    const uses: Awaited<ReturnType<Room['useReaction']>>[] = []
+    while ((await room.pending()) && uses.length < 5) {
       const context = await reactionDecision(room)
       if (context.phase.kind !== 'CHOICE')
         throw new Error('Expected a reaction Use/Decline choice.')
-      await room.respond({
-        kind: 'OPTION',
-        optionId: context.reactionTimeline[0]!.group.options[0]!.optionId
-      })
+      uses.push(await room.useReaction())
     }
 
     expect(await room.pending()).toBeNull()
-    expect(await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')).toMatchObject({
-      result: {
-        reactionExecutions: [{ ordinal: 0 }, { ordinal: 1 }],
-        terminalPosition: destination
-      }
-    })
-    // Each Use is linked to the resolution command that chose it.
-    const { metadata, result } = await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')
-    const commandIds = (
-      metadata as { resolutionCommands: { commandId: string }[] }
-    ).resolutionCommands.map((command) => command.commandId)
-    expect(commandIds).toHaveLength(2)
-    expect(result).toMatchObject({
-      reactionExecutions: commandIds.map((sourceCommandId) => ({ sourceCommandId }))
-    })
+    // Restated (QUALITY-18.T2b3): each Use runs as the reactor's own action (D219), so the used
+    // reactions are the action receipts, in order, each under the id its choice derives; the
+    // move's terminal, the room's last resume, lists no reaction execution (ruling 7).
+    expect(uses).toHaveLength(2)
+    expect(
+      (await room.receipts())
+        .filter((entry) => entry.commandType === 'RESOLVE_ACTION')
+        .map((entry) => entry.commandId)
+    ).toEqual(uses.map((use) => use.childCommandId))
+    const { commandId, metadata, result } = await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')
+    expect(commandId).toBe(uses[1]!.resumeCommandId)
+    expect(result).toMatchObject({ reactionExecutions: [], terminalPosition: destination })
+    // Restated (QUALITY-18.T2b3): each Use is two entries of the move's history, the answer that
+    // chose it and the room's resume after its action (ruling 4).
+    expect(
+      (metadata as { resolutionCommands: { commandId: string }[] }).resolutionCommands.map(
+        (command) => command.commandId
+      )
+    ).toEqual(uses.flatMap((use) => [use.answer.commandId, use.resumeCommandId]))
   })
 })
 

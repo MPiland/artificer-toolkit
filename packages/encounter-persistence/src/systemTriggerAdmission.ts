@@ -2,7 +2,10 @@ import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import {
+  movementReactionChildCommandId,
+  systemTriggerCommandId
+} from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { encounterRuleRaisedActions } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -133,11 +136,22 @@ export async function requireSystemTriggerAdmission(
       parentCommandId,
       childCommandId: command.commandId.toLowerCase()
     }
+    const recordingParent =
+      command.target.kind === 'ACTOR' ? await readReactionChildParent(ctx, link) : null
+    // A paused move stands one occurrence version past the choice that recorded its held child.
     const derived =
       command.target.kind === 'ACTOR' &&
-      link.childCommandId ===
-        systemTriggerCommandId(parentCommandId, holderActorId, command.actionId)
-    const pendingParent = derived ? await readReactionChildParent(ctx, link) : null
+      (link.childCommandId ===
+        systemTriggerCommandId(parentCommandId, holderActorId, command.actionId) ||
+        (recordingParent !== null &&
+          link.childCommandId ===
+            movementReactionChildCommandId({
+              parentCommandId,
+              holderActorId,
+              actionId: command.actionId,
+              occurrenceVersion: recordingParent.version - 1
+            })))
+    const pendingParent = derived ? recordingParent : null
     const offered =
       derived && !pendingParent
         ? await readReactionOfferChild(ctx, { ...link, reactorActorId: holderActorId })

@@ -1,3 +1,4 @@
+import { recordMovementReactionChild } from '@artificer-toolkit/encounter-persistence/movementReactionChild'
 import type { EncounterPersistenceTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { persistReactionOfferAnswer } from '@artificer-toolkit/encounter-persistence/reactionOfferAnswer'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -52,19 +53,57 @@ export async function executeRoomReactionOfferAnswer<ActionResult>(input: {
       holderActorId: context.reactorActorId,
       actionId,
       targetActorId: context.attackerActorId,
-      sceneContext: await readOfferSceneContext(input, encounterId, context)
+      sceneContext: await readReactionSceneContext(
+        input,
+        encounterId,
+        context.reactorActorId,
+        context.attackerActorId
+      )
     })
   )
 }
 
-/** An offer is raised only on a Scene, so the reaction is judged where both tokens stand now. */
-async function readOfferSceneContext(
+/**
+ * Runs the reaction a reactor's controller chose at a paused Scene move's contact (D219) as the
+ * reactor's own action against the mover, in the room command that records it on the move. The
+ * command is one transaction, so a reaction that is refused takes the record back with it and the
+ * choice stays open; one that pauses on evidence of its own suspends the move and commits later
+ * from that evidence's answer. The room resumes the move after the child commits.
+ */
+export async function executeRoomMovementReactionChild<ActionResult>(input: {
+  ctx: EncounterPersistenceTransaction
+  transaction: RoomRecordReader
+  command: ResolveRuleOccurrenceInputDto
+  executeAction(command: ResolveEncounterActionInputDto): Promise<ActionResult>
+}): Promise<ActionResult> {
+  const { ctx, command } = input
+  const encounterId = command.encounterId.toLowerCase()
+  const child = await recordMovementReactionChild(ctx, command)
+  // The record leaves the Run where it was, and admits this one command.
+  return input.executeAction(
+    systemTriggerReactionCommand({
+      ...child,
+      encounterId,
+      expectedVersion: command.expectedVersion,
+      sceneContext: await readReactionSceneContext(
+        input,
+        encounterId,
+        child.holderActorId,
+        child.targetActorId
+      )
+    })
+  )
+}
+
+/** A reaction is offered only on a Scene, so it is judged where both tokens stand now. */
+async function readReactionSceneContext(
   input: { ctx: EncounterPersistenceTransaction; transaction: RoomRecordReader },
   encounterId: string,
-  offer: { reactorActorId: string; attackerActorId: string }
+  reactorActorId: string,
+  targetActorId: string
 ): Promise<NonNullable<ResolveEncounterActionInputDto['sceneContext']>> {
   const [source, target] = await Promise.all(
-    [offer.reactorActorId, offer.attackerActorId].map((actorId) =>
+    [reactorActorId, targetActorId].map((actorId) =>
       input.ctx.db
         .query('encounterActorTokenBindings')
         .withIndex('by_encounterId_actorId', (query) =>
@@ -74,7 +113,7 @@ async function readOfferSceneContext(
     )
   )
   if (!source || !target || source.sceneId !== target.sceneId)
-    throw new Error('The reactor and its attacker are no longer on one Scene.')
+    throw new Error('The reactor and its target are no longer on one Scene.')
   return {
     sceneId: source.sceneId,
     expectedSceneVersion: readRoomScene(input.transaction, source.sceneId).header.version,

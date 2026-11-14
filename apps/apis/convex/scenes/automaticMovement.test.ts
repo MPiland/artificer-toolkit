@@ -15,12 +15,28 @@ useLocalRoomWorker()
 
 type Setup = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
 
-/** Each used reaction draws an attack d20 (14, a hit) and two damage dice (the minimum). */
-function queueReactionHits(value: Setup, reactions: number) {
+/**
+ * The next used reaction's dice: an attack d20 (14, a hit) and two damage dice (the minimum).
+ *
+ * Restated (QUALITY-18.T2b3): a Use runs the reaction as the reactor's own action (D219), so the
+ * Bite's authored rider knocks the mover Prone as that action commits, where the inline engine
+ * left the mover standing through the move. The attack on a mover an earlier Bite knocked Prone
+ * rolls two d20s, so each Use queues its own dice instead of every reaction sharing one queue of
+ * three dice each.
+ */
+function queueReactionHit(value: Setup, moverProne = false) {
   return queueRoomRolls(value.base.campaign.id, {
-    rolls: Array.from({ length: reactions }, () => [14, 0, 0]).flat(),
+    rolls: moverProne ? [14, 14, 0, 0] : [14, 0, 0],
     repeat: 0
   })
+}
+
+/** Commits the move and uses its two offered reactions, each a hit. */
+async function useTwoReactionHits(value: Setup) {
+  await queueReactionHit(value)
+  const first = await useMovementReactionsInRoom(value, 1)
+  await queueReactionHit(value, true)
+  return useMovementReactionsInRoom(value, 1, first)
 }
 
 function readRunVersion(value: Setup) {
@@ -54,9 +70,8 @@ async function readCheckpointedEffects(value: Setup) {
 // ("used automatic reactions of a Creature walking east") and nativeMovementPlanning.test.ts.
 it('commits used authored automatic movement reactions once', async () => {
   const value = await setupAutomaticSceneMovement()
-  await queueReactionHits(value, 2)
   const startHitPoints = await readCheckpointedHitPoints(value, value.base.mover.id)
-  const { occurrence } = await useMovementReactionsInRoom(value)
+  const { occurrence } = await useTwoReactionHits(value)
   expect(occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   // Two reactions, one hit each: a repeated commit would take more.
   expect(await readCheckpointedHitPoints(value, value.base.mover.id)).toBe(startHitPoints - 8)
@@ -64,7 +79,7 @@ it('commits used authored automatic movement reactions once', async () => {
 
 it('holds a committed automatic movement in the room until it checkpoints', async () => {
   const value = await setupAutomaticSceneMovement()
-  await queueReactionHits(value, 2)
+  await queueReactionHit(value)
   await checkpointLiveRoom(value.base.campaign.id)
   const before = await readRunVersion(value)
   await useMovementReactionsInRoom(value, 1)
@@ -82,7 +97,7 @@ it('commits used automatic mechanics once before the next controller choice', as
       { x: 600, y: 50 }
     ]
   })
-  await queueReactionHits(value, 1)
+  await queueReactionHit(value)
   await checkpointLiveRoom(value.base.campaign.id)
   const before = await readRunVersion(value)
   const startHitPoints = await readCheckpointedHitPoints(value, value.base.mover.id)
@@ -98,9 +113,8 @@ it('retains sequential used automatic reactions at distinct boundaries', async (
     policies: ['AUTOMATIC', 'AUTOMATIC'],
     reactorPositions: [50, 150]
   })
-  await queueReactionHits(value, 2)
   const startHitPoints = await readCheckpointedHitPoints(value, value.base.mover.id)
-  const { occurrence } = await useMovementReactionsInRoom(value)
+  const { occurrence } = await useTwoReactionHits(value)
   expect(occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   expect(await readCheckpointedHitPoints(value, value.base.mover.id)).toBe(startHitPoints - 8)
 })
@@ -123,8 +137,7 @@ it('settles a crossed spatial prefix before its used automatic reaction', async 
     { x: 475, y: 50 },
     5
   )
-  await queueReactionHits(value, 2)
-  const { occurrence } = await useMovementReactionsInRoom(value)
+  const { occurrence } = await useTwoReactionHits(value)
   expect(occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const effects = await readCheckpointedEffects(value)
   expect(effects.find((entry) => entry.id === effect.id)).toBeUndefined()
@@ -145,12 +158,15 @@ it('settles a spatial prefix between a used automatic reaction and later control
     { x: 450, y: 50 },
     5
   )
-  await queueReactionHits(value, 1)
+  await queueReactionHit(value)
   await checkpointLiveRoom(value.base.campaign.id)
   const before = await readRunVersion(value)
   const { occurrence } = await useMovementReactionsInRoom(value, 1)
   expect(occurrence).toMatchObject({ status: 'PENDING' })
   const effects = await readCheckpointedEffects(value)
   expect(effects.find((entry) => entry.id === effect.id)).toBeUndefined()
-  expect(await readRunVersion(value)).toBe((before ?? 0) + 1)
+  // Restated (QUALITY-18.T2b3): the used reaction commits as the reactor's own action and the
+  // room's resume of the move then settles the crossed effect (D219), so the Run advances twice
+  // where the Use answer committed both at once.
+  expect(await readRunVersion(value)).toBe((before ?? 0) + 2)
 }, 60_000)

@@ -347,27 +347,21 @@ describe('a warm Fire Shield answers an opportunity attack’s melee hit (SPELLS
       { x: 450, y: 150 }
     ])
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
-    const pending = await room.pending()
-    if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-      throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-    const option = pending.context.reactionTimeline[0]?.group.options[0]
-    if (!option) throw new Error('The reaction decision offers no option.')
-    const used = await room.respond({ kind: 'OPTION', optionId: option.optionId })
-    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const used = await room.useReaction()
+    expect(used.answer.type, JSON.stringify(used.answer)).toBe('COMMAND_COMMITTED')
 
-    const receipt = (await room.receipts()).find(
-      (entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE'
-    )
+    // Restated (QUALITY-18.T2b3): the bite settles as the reactor's own action (D219), so the
+    // shield's answer is in that action's receipt, where it was in a reaction execution of the
+    // move's terminal.
+    const receipt = (await room.receipts()).find((entry) => entry.commandId === used.childCommandId)
     if (!receipt) throw new Error('The reaction left no receipt.')
     const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
-    const reaction =
-      result.status === 'MOVEMENT_COMPLETE' ||
-      (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
-        ? result.reactionExecutions[0]
-        : undefined
-    if (reaction?.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+    if (
+      result.status !== 'COMPLETE' ||
+      result.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+    )
       throw new Error('Expected a Creature movement reaction.')
-    expect(reaction.application.meleeRetaliation).toMatchObject({
+    expect(result.applicationOutputs.meleeRetaliation).toMatchObject({
       executions: [
         {
           candidate: {

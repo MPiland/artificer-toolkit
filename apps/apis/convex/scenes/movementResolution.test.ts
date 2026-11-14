@@ -16,7 +16,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { readCheckpointedTokenPosition } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readCheckpointedTokenPosition,
+  readResumedMovement
+} from '../../tests/fixtures/automaticSceneMovement'
 import {
   attachFixtureRoom,
   checkpointLiveRoom,
@@ -286,11 +289,24 @@ describe('room movement response publication', () => {
               : {
                   kind: 'ENTER_INTEGER',
                   requestId: pending.request.requestId,
-                  value: pending.request.max
+                  // Restated (QUALITY-18.T2b3): the minimum, where this entered the maximum. A
+                  // maximum critical hit drops the mover to 0 Hit Points, and a move whose mover a
+                  // reaction drops now ends at the contact (D219; pinned in
+                  // apps/session-worker/test/nativeMovementReactionChild.test.ts), so the next
+                  // reactor this test declines would never be offered.
+                  value: pending.request.min
                 }
       }
       lastCommand = command
       result = await executeInRoom(owner.caller, { command })
+      // Restated (QUALITY-18.T2b3): the reaction's evidence belongs to its own action (D219), so
+      // the last evidence answer completes that action, not the move. The move is then read as the
+      // room resumed it, which is where the next reactor's choice appears.
+      if (pending.kind !== 'MOVEMENT_REACTION' && result.occurrence?.status === 'COMPLETE')
+        result = {
+          ...result,
+          occurrence: await readResumedMovement(owner.caller, value.base.campaign.id, choice)
+        }
       // Declining the last reactor completes the move; evidence and Use answers leave it pending.
       expect(result.occurrence?.status).toBe(
         pending.kind === 'MOVEMENT_REACTION' ? 'COMPLETE' : 'PENDING'
@@ -345,6 +361,9 @@ describe('room movement response publication', () => {
     const reactionStart = await stored(value)
     const losers: string[] = []
     let selected = false
+    const choice = root?.occurrence?.pending
+    if (choice?.kind !== 'MOVEMENT_REACTION')
+      throw new Error('Expected the issued reaction choice.')
     let pending = root?.occurrence?.pending ?? null
     while (pending) {
       if (
@@ -370,7 +389,10 @@ describe('room movement response publication', () => {
             : {
                 kind: 'ENTER_INTEGER',
                 requestId: pending.request.requestId,
-                value: pending.request.max
+                // Restated (QUALITY-18.T2b3): the minimum, where this entered the maximum, so the
+                // mover survives the critical hit and the second reactor's choice is still raced
+                // (a mover a reaction drops to 0 Hit Points ends its move at the contact, D219).
+                value: pending.request.min
               }
       if (resolution.kind === 'OPTION') selected = true
       const contenders = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
@@ -396,9 +418,22 @@ describe('room movement response publication', () => {
         throw new Error('Reaction response contention needs one winner and one stale loser.')
       // A stale answer is a domain rejection whether the winner completed the occurrence (moving
       // the Encounter version) or only advanced the occurrence: neither logs a cause.
+      // Restated (QUALITY-18.T2b3): a reaction's evidence is its own action's decision (D219), so
+      // a stale evidence answer is refused in that action's words; a stale answer to the move's own
+      // choice keeps the move's. Once the winner completes the action, the Run's pending decision
+      // is the move again, so the loser's evidence answer names a decision that is unavailable.
+      const staleMessages =
+        current.kind === 'MOVEMENT_REACTION'
+          ? ['Encounter version is stale.']
+          : [
+              'Encounter version is stale.',
+              'The action occurrence version is stale.',
+              'The action occurrence is no longer pending.',
+              'Rule occurrence is unavailable.'
+            ]
       const expectStaleRefusal = (failure: unknown, causes: readonly string[]) => {
         expect(failure).toMatchObject({
-          data: { ...versionStale, message: 'Encounter version is stale.' }
+          data: { ...versionStale, message: expect.toBeOneOf(staleMessages) }
         })
         expect(causes).toEqual([])
       }
@@ -419,14 +454,17 @@ describe('room movement response publication', () => {
       )
       expectStaleRefusal(retried, roomErrorLogs().slice(logsBeforeRetry))
       expect(await stored(value)).toEqual(settled)
+      // Restated (QUALITY-18.T2b3): the answer that completes the reaction's own action no longer
+      // carries the move (D219), so the next decision is read from the move as the room resumed it.
       pending =
-        winner.value.occurrence?.status === 'PENDING' ? winner.value.occurrence.pending : null
+        winner.value.occurrence?.status === 'PENDING'
+          ? winner.value.occurrence.pending
+          : winner.value.occurrence?.occurrenceId === choice.occurrenceId
+            ? null
+            : (await readResumedMovement(owner.caller, campaign.id, choice)).pending
     }
     expect(selected).toBe(true)
     const final = await stored(value)
-    const choice = root?.occurrence?.pending
-    if (choice?.kind !== 'MOVEMENT_REACTION')
-      throw new Error('Expected the issued reaction choice.')
     const reactor = final.actors.find((actor) => actor.id === choice.choice.reactorActorId)
     if (!reactor) throw new Error('Expected the selected reactor.')
     expect(readStoredRunActor(reactor).resources).toMatchObject({
@@ -437,10 +475,15 @@ describe('room movement response publication', () => {
     expect(JSON.stringify([final, timeline])).not.toMatch(new RegExp(losers.join('|')))
     // Each Run version the winners committed carries exactly one command: the receipts are
     // room-held (D85), so the timeline is where a member sees them.
+    // Restated (QUALITY-18.T2b3): the used reaction commits as its own action's command (D219),
+    // so the count takes that command with the move's answers.
     const committed = final.runs[0]!.version - reactionStart.runs[0]!.version
     expect(committed).toBeGreaterThan(0)
     expect(
-      timeline.filter((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')
+      timeline.filter(
+        (entry) =>
+          entry.commandType === 'RESOLVE_RULE_OCCURRENCE' || entry.commandType === 'RESOLVE_ACTION'
+      )
     ).toHaveLength(committed)
     await expect(
       executeSceneInRoom(owner.caller, value.rootInput, rootMove.expectedSessionSequence)

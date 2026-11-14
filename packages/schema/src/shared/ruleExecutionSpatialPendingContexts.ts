@@ -151,7 +151,7 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       kind: z.literal('CHOICE'),
       /**
        * The child actions of the reactions chosen against this move at its current contact (D219).
-       * Nothing records one yet (QUALITY-18.T2 does).
+       * While one is recorded the choice is answered: the move takes only the room's resume.
        */
       reactionChildren: z.optional(encounterReactionChildrenDtoSchema)
     }),

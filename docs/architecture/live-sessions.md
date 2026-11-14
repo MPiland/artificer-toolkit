@@ -200,7 +200,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   Action and its turn-end continuation; (4) the start-of-turn effects of a turn that began; (5) the rules'
   failed-save actions; (6) the flag on a creature that returned onto an occupied space; (7) the mirrors and
   rewards the roots raised in 2 to 5 collected; (8) the sweep of summons whose carrier ended and the advance
-  past one that was acting; (9) the next queued reaction offer (D219). Stages 2 to 5 run only on an ACTIVE Run
+  past one that was acting; (9) the held action whose reaction child's own checks have all settled, which
+  returns to PENDING once the Run waits on no other decision (`resumeSettledReactionChildParent`, D219);
+  (10) the next queued reaction offer (D219). Stages 2 to 5 run only on an ACTIVE Run
   in a room that executes rules. Each raised root goes through `raiseRoomChild` (`roomEncounterChildRaise.ts`):
   read the Run, raise nothing while a decision is PENDING, then execute. The two loops that advance turns (the
   delegated Legendary Action and the summon advance) share its read (`readRoomRaisableRun`). A PENDING decision
@@ -530,7 +532,9 @@ internal error.
 ([roomRelationshipEnds.ts](../../apps/session-worker/src/roomRelationshipEnds.ts)) on the journal head. For
 each ACTIVE Run, an actor relationship ends when its source can't act (DEFEATED or INCAPACITATED, as
 Concentration reads it) or when the held creature's bound token stands beyond the reach the relationship
-sealed (`encounterEndedRelationships`). A first read outside any transaction finds nothing to end in the
+sealed (`encounterEndedRelationships`). A Run awaiting a decision ends none (QUALITY-18.T2b2): a pending
+decision is pinned to one Run version, and a Scene move paused for its reaction child (D219) is such a
+decision, so the hold ends in the sweep after the commit that settles the decision. A first read outside any transaction finds nothing to end in the
 usual case and journals nothing. Otherwise one `RoomEncounterStore` transaction (a journal entry,
 `delta: null`) ends each broken relationship as the Campaign owner and records one `RELATIONSHIPS_ENDED`
 command per Run ("Hold ended", receipt `relationshipEnds`)

@@ -163,24 +163,23 @@ async function walk(room: MarkingRoom, path: readonly ScenePoint[]) {
   expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
 }
 
-/** The Fighter takes the one opportunity attack the room offers it; returns that attack's roll mode. */
+/**
+ * The Fighter takes the one opportunity attack the room offers it; returns that attack's roll mode.
+ *
+ * Restated (QUALITY-18.T2b3): the attack settles as the Fighter's own action (D219), so its d20
+ * is in that action's receipt, where it was in a reaction execution of the move's terminal.
+ */
 async function takeOpportunityAttack(room: MarkingRoom) {
-  const pending = await room.room.pending()
-  if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-    throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-  const option = pending.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
-  const used = await room.room.respond({ kind: 'OPTION', optionId: option.optionId })
-  expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
-  const receipt = (await room.room.receipts()).find((entry) => entry.commandId === used.commandId)
+  const used = await room.room.useReaction()
+  expect(used.answer.type, JSON.stringify(used.answer)).toBe('COMMAND_COMMITTED')
+  const receipt = (await room.room.receipts()).find(
+    (entry) => entry.commandId === used.childCommandId
+  )
   if (!receipt) throw new Error('The reaction left no receipt.')
   const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
-  if (
-    result.status !== 'MOVEMENT_COMPLETE' &&
-    !(result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
-  )
-    throw new Error(`Expected a movement result, got ${result.status}.`)
-  const { application } = result.reactionExecutions[0]!
+  if (result.status !== 'COMPLETE')
+    throw new Error(`Expected a settled action, got ${result.status}.`)
+  const application = result.applicationOutputs
   if (!('d20' in application) || !application.d20)
     throw new Error('Expected a reaction attack d20.')
   return application.d20.rollMode
