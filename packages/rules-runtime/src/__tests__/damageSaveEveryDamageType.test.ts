@@ -32,6 +32,8 @@ function laughterRepeatedByFire() {
     spell: hideousLaughter,
     lifetimeScope: 'ENCOUNTER'
   })
+  const { repeatTriggers } = definition.recurrence
+  if (!repeatTriggers) throw new Error('Hideous Laughter repeats its save on damage.')
   return {
     ...activeEffect({
       id: EFFECT_ID,
@@ -46,7 +48,7 @@ function laughterRepeatedByFire() {
       ...definition,
       recurrence: {
         ...definition.recurrence,
-        repeatTriggers: definition.recurrence.repeatTriggers.map((trigger) => ({
+        repeatTriggers: repeatTriggers.map((trigger) => ({
           ...trigger,
           damageTypeIds: [FIRE]
         }))
