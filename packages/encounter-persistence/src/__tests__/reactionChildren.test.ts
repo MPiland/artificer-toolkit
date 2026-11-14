@@ -2074,8 +2074,10 @@ describe('a Scene move as the parent of a reaction child (QUALITY-18.T1a, D219)'
     expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
     // The move's version counts its recorded answers, and a child's commit is not one of them.
+    // Restated (QUALITY-18.T3c): a move stays SUSPENDED at its child's commit (it was PENDING), so
+    // the roots that commit raises can run; `resumeSettledReactionChildParent` returns it to PENDING.
     expect(occurrence()).toMatchObject({
-      state: 'PENDING',
+      state: 'SUSPENDED',
       version: held.version,
       expectedEncounterVersion: ROOT_VERSION + 1,
       pendingSnapshotChecksum: held.pendingSnapshotChecksum
@@ -2299,6 +2301,12 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
       'Movement response occurrence is stale.'
     )
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    // Restated (QUALITY-18.T3c): the re-pin leaves the move SUSPENDED, so it takes no answer until
+    // the room has settled the child's commit and returned it to PENDING (it was PENDING at once).
+    await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).rejects.toThrow(
+      'Movement response occurrence is stale.'
+    )
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
     await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).resolves.toMatchObject({
       occurrence: occurrence(),
       root: { resolutionCommands: [chosenOption(MOVE_OPTIONS[0]!.optionId)] }
@@ -2312,6 +2320,9 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
     await advanceRun(held, ROOT_VERSION + 1)
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    // Restated (QUALITY-18.T3c): the move is the Run's pending decision again once the room has
+    // settled the child's commit (the re-pin alone returned it before).
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
     const pinned = occurrence()
     await expect(
       revertLastEncounterAction(

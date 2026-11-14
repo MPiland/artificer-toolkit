@@ -326,6 +326,9 @@ export async function suspendReactionChildParent(
  * A child is not complete until the checks it raised are. When its commit left one as the Run's
  * pending decision (its target's Concentration check, say), the action it answers stays suspended,
  * so the Run keeps one pending decision; `resumeSettledReactionChildParent` returns it to pending.
+ * A Scene move always stays suspended here: the roots its child's commit raises (a creature it
+ * dropped to 0 hit points, say) run after that commit and need a Run that waits on nothing, and the
+ * move's resume runs no such roots of its own, so they would otherwise be lost.
  */
 export async function repinReactionChildParent(
   ctx: EncounterWriteContext,
@@ -341,7 +344,11 @@ export async function repinReactionChildParent(
     )
     .take(2)
   await ctx.db.patch(recording.parent._id, {
-    state: pending.some(({ id }) => id !== recording.parent.id) ? 'SUSPENDED' : 'PENDING',
+    state:
+      recording.context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
+      pending.some(({ id }) => id !== recording.parent.id)
+        ? 'SUSPENDED'
+        : 'PENDING',
     expectedEncounterVersion: input.version
   })
   await repinSuspendedAncestors(ctx, recording, input.version)
