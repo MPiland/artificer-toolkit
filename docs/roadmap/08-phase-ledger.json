@@ -14024,7 +14024,7 @@
               "proof": "descriptionOnlyEquipmentAndVehicles.test.ts proves the Hooded Lantern has no CLOSED_RULE, keeps the hood text and its 30/30 ft light; EQUIPMENT_HOODED_LANTERN deleted; golden row removed; Character carried light recorded as a fast follow in future-enhancements.md. Tests 42841835949, Live 42845737910, Browser journeys 42841835953 green on 4f754598d; merged m680 (b45fc4ee2)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-4.T4e",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -14045,7 +14045,9 @@
                   "SPELLS-31.T4k1c"
                 ]
               },
-              "text": "Delete the CLOSED_RULE effect kind, CLOSED_RULE_KIND, the closedRuleEffect helper and the closed-rule schema once no kind remains, so a closed rule cannot be authored; set ADR 0038 to accepted and update the guides that describe closed rules; rerun the link audit on the touched docs. Runs last: it proves no closed rule is left in the SRD corpus for SPELLS-31.1 and SPELLS-33.1 as well."
+              "text": "Delete the CLOSED_RULE effect kind, CLOSED_RULE_KIND, the closedRuleEffect helper and the closed-rule schema once no kind remains, so a closed rule cannot be authored; set ADR 0038 to accepted and update the guides that describe closed rules; rerun the link audit on the touched docs. Runs last: it proves no closed rule is left in the SRD corpus for SPELLS-31.1 and SPELLS-33.1 as well.",
+              "mergedAt": "2026-11-14",
+              "proof": "m752 (e4802bfaa); slice tip 8e4eb0961: Tests 43569459258, Live 43569459260, Browser journeys 43569459268 green. CLOSED_RULE effect kind, CLOSED_RULE_KIND, closedRuleEffect, passiveEquipmentClosedRuleEffect, the closed-rule schema and the closedRuleKind node-map option deleted; no authored SRD record carried one. New contract test: pathDtoSchema and manifestBehaviorPathDtoSchema reject a CLOSED_RULE effect (accepted before). Deleted with the symbol: the CLOSED_RULE_KIND absence assertions in about 40 files (node-level no-CLOSED_RULE assertions remain). ADR 0038 accepted; engine, authoring-schema and rules-runtime guides updated. D196: a stored record could hold the kind only from old seeds; reseed local when used."
             }
           ]
         },
@@ -26435,6 +26437,22 @@
             },
             {
               "id": "QUALITY-13.T1c5a",
+              "status": "DONE",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 20,
+                "after": ["QUALITY-13.T1c5"]
+              },
+              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate deals nothing and the list continues; per-entry gate evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source. The INCOMING_GATE hold sits in the aim phase per ray; a lost ray stays in targets with a lost marker and its gate evidence, and commit skips its replay and writes a lost-ray child receipt (D196 persisted-shape change).",
+              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13). Carries the T1c5 rulings (every ray its own attack; passing once grants nothing to later rays; an all-lost list ends with no effect). Resized 13 to 20 at delivery (16 files, +833/-70; honest 21 to 34, delivered whole).",
+              "mergedAt": "2026-11-14",
+              "proof": "m751 (953a9e623); slice tip 9771fe1f8: Tests 43568771992, Live 43568771958, Browser journeys 43568771960 green. New room journeys in nativeRoomRayIncomingGate (SRD Sanctuary, SRD Scorching Ray): prompted pass, fail and unwarded ray; all rays lost then undo as one action; auto-roll. A pass holds for its ray only (passedIncomingGate); a lost ray keeps its place with a lost marker and gate d20, commit skips its replay and writes one ENCOUNTER_GATED_ACTION child receipt per lost ray. Push 1 regression fixed: withRaysBehindOpened bounded by stored targets (nativeRoomForcedMovementCollision 4 tests). Restated in the new file before it ever passed: receipt field sourceActorId (contract name) and auto-roll dice order. D196 persisted-shape change: optional lost marker on area targets, INCOMING_GATE pause on a ray's inner snapshot, optional parentOccurrenceId on ENCOUNTER_GATED_ACTION, required lostRays on the area commit input; refresh local data when used."
+            },
+            {
+              "id": "QUALITY-13.T1c5b",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
@@ -26442,25 +26460,11 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["QUALITY-13.T1c5"]
-              },
-              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate deals nothing and the list continues; per-entry gate evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source. The INCOMING_GATE hold sits in the aim phase per ray; a lost ray stays in targets with a lost marker and its gate evidence, and commit skips its replay and writes a lost-ray child receipt (D196 persisted-shape change).",
-              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13). Carries the T1c5 rulings (every ray its own attack; passing once grants nothing to later rays; an all-lost list ends with no effect).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
-            },
-            {
-              "id": "QUALITY-13.T1c5b",
-              "status": "TODO",
-              "closes": ["QUALITY-13.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 3,
-                "rr": 5,
-                "size": 8,
                 "after": ["QUALITY-13.T1c5a"]
               },
-              "text": "A ray lost at the incoming gate offers ATTACK_RETARGET for that ray only and re-seals its own entry with per-entry retarget evidence; the persistence fence covers the ATTACK_RETARGET hold.",
-              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "text": "A ray lost at the incoming gate offers ATTACK_RETARGET for that ray only and re-seals its own entry with per-entry retarget evidence; the persistence fence covers the ATTACK_RETARGET hold. Riders from T1c5a (2026-11-14): show a lost ray's gate roll as a roll card; prove SYSTEM_ROLL on a gate-held ray and a GM AREA_REMOVAL of a target that has lost rays (ordinals); write the gate's authored success grant (if any) for rays like single attacks.",
+              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13). Resized 8 to 13 on 2026-11-14 for the T1c5a riders.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T2c",
@@ -26568,7 +26572,7 @@
             },
             {
               "id": "QUALITY-14.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26579,11 +26583,12 @@
               },
               "text": "One concentration planner for action and movement damage (planDamageSaveChain shared by the room and persistence; the duplicate persistence binding deleted); movement damage carries its damager and dispositions; DAMAGED(AFTER) carries one hit per damage source and spatialDamageEnds raises it once per holder.",
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\". Resized 8 to 13 and split 2026-11-14 at delivery (about 26 files: event reshape, shared planner, persistence re-derive): movement repeat saves, massive-damage saves and damage-taken ends on movement, and one DAMAGED raise per command across the ends and save-chain stages moved to QUALITY-14.T2b.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m748 (f0127f575); slice tip b6339f259: Tests 43568534034, Live 43568534041, Browser journeys 43568534009 green. planDamageSaveChain (encounterDamageSaveChain.ts) is shared by the room and persistence (bindEncounterDamageSaveChain); the ungated persistence binding is deleted. Red proof: movementDamageSaveChain RED (movement dropped the zone damager and dispositions), damageSaveChainPersistence RED (persistence bound every held state ungated), grantLifetimes 2/183 RED, vampireCharm 2/10 RED, damagedRaisedOncePerHolder, maintenanceLinkHooks and tracerMaintenance RED-IMPORT (new planner); room proofs per root: new Cleaving, Legendary and movement-reaction proofs and existing action, area, turn and zone proofs ALREADY-PASSING. Restated with reasons: entry points moved to planDamageSaveChain and DAMAGED fixtures to the hits shape (damagedHitRepeatTrigger replaces effectRepeatTrigger), expected outputs unchanged. No persisted shape change."
             },
             {
               "id": "QUALITY-14.T2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26592,8 +26597,53 @@
                 "size": 13,
                 "after": ["QUALITY-14.T2"]
               },
-              "text": "Movement damage feeds repeat saves, massive-damage saves and damage-taken effect ends like action damage (new movement child kinds; D196 persisted-shape change), and DAMAGED(AFTER) is raised once per command and holder across the ends stage and the save-chain stage.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "text": "A move's zone damage ends the effects its holders keep until damaged (DAMAGE_TAKEN end triggers), settled after the move's last contact as a DAMAGE_END movement settlement, with DAMAGED(AFTER) raised once per holder for the whole move in the ends stage.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at delivery (the full task traced to about three slices of 13): movement repeat saves moved to QUALITY-14.T2c, massive-damage saves and the temporary hit point and incoming-damage grant releases on movement ends to QUALITY-14.T2d, one DAMAGED raise per command across the ends and save-chain stages to QUALITY-14.T2e. Orchestrator ruling: ends settle at the move's end, not at the contact (the spatial receipt forbids releases inside the SPATIAL batch); the in-between window is a deferred edge case.",
+              "mergedAt": "2026-11-14",
+              "proof": "m752 (e4802bfaa); slice tip 80870cad7: Tests 43571954137, Live 43571954126, Browser journeys 43571954071 green. Room proof nativeMovementZoneDamageEndsEffect (SRD Invisibility on an SRD Wolf through 1-damage zones: one zone ends it, two end it once, no zone keeps it) RED 2/3; damagedRaisedOncePerHolder movement cases RED 2/5. Persistence re-derives the ends (persistLiveMovementDamageEnd) with the same planner. No assertions restated. D196 persisted-shape change: optional damageEnds on the TERMINAL spatial preparation and a DAMAGE_END movement settlement kind (settlements max 4*MAX_SPATIAL_CANDIDATES + 2*MAX_ENCOUNTER_ACTORS); refresh local when used."
+            },
+            {
+              "id": "QUALITY-14.T2c",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-14.T2b"]
+              },
+              "text": "Movement damage owes effect repeat saves like action damage: a movement repeat-save child kind (port of settleEffectRepeatSave, nativeEncounterConcentration.ts), interrupts for holders without Concentration, contact children and a pending phase through planDamageSaveChain (D196 shape change).",
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-14.T2d",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2c"]
+              },
+              "text": "Movement damage owes massive-damage saves like action damage (movement child kind, port of settleMassiveDamageSave), and movement damage ends release temporary hit points and incoming-damage grants as the action ends stage does.",
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-14.T2c", "QUALITY-14.T2d"]
+              },
+              "text": "DAMAGED(AFTER) is raised once per command and holder across the ends stage (targetEndedEffects) and the save-chain stage (planDamageSaveChain) over every damage root, with persistence re-derivations threaded through one discovery and an end-to-end count proof.",
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13)."
             }
           ]
         },
@@ -26911,18 +26961,19 @@
             },
             {
               "id": "QUALITY-18.T3d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["QUALITY-18.T3c"]
               },
               "text": "A reaction child of a held action (not a move) that drops a creature to 0 HP raises that creature's 0 HP effect before the action resumes, through the same SUSPENDED-until-settled rule as moves, without re-running or advancing a held Legendary Action at after-commit stage 3. Also prove the summon-sweep turn advance (stage 8) with a held move, and refuse a GM revert while a parent is SUSPENDED with nothing PENDING (persistence-level window).",
-              "note": "Registered 2026-11-14 from the QUALITY-18.T3c report under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-14 from the QUALITY-18.T3c report under the user standing approval for QUALITY growth (2026-11-13). Resized 5 to 8 at delivery (room settle loop, settlement return shape, version count, defeat-warning fix).",
+              "mergedAt": "2026-11-14",
+              "proof": "m751 (953a9e623); slice tip d3641ca2e (re-synced after an m748 conflict in roomEncounterActions.ts): Tests 43573836082, Live 43573835953, Browser journeys 43573835932 green. One rule for held actions and moves: repinReactionChildParent always leaves the parent SUSPENDED and only resumeSettledReactionChildParent (stage 9) returns it; the room settles, runs RESUME_ACTION and settles again in a loop, so stages 2-5 raise roots (0 HP effects) before a held action resumes; readRoomTurnEndableRun keeps the delegated Legendary Action and the summon advance from acting under a SUSPENDED parent; a GM revert is refused with PENDING_DECISION while any occurrence is SUSPENDED. Pre-existing bug fixed: a held action whose child dropped its own target to 0 HP was refused TARGET_DEFEATED (targetStandsAsChildLeftIt). Red proof: nativeRoomReactionChildDefeat 1/1, reactionChildren 6/90, roomEncounterSummonEndAdvance 1/6, roomEncounterDelegatedLegendaryAction 1/2 RED. Restated with reasons in reactionChildren.test (inline comments): resumeSettledReactionChildParent returns the parent or null instead of a boolean; repinned parents read SUSPENDED until settlement. No persisted shape change."
             },
             {
               "id": "QUALITY-18.T4",
