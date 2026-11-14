@@ -578,3 +578,114 @@ describe('a reaction child at a paused Scene move: unverified parity (QUALITY-18
     expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
   }, 60_000)
 })
+
+describe('void and undo of a movement reaction child (QUALITY-18.T4)', () => {
+  /** The GM's void of the decision `asked` names, under a command id the caller keeps. */
+  const voidDecision = (
+    room: Room,
+    asked: { encounterVersion: number; occurrence: { id: string; version: number } },
+    commandId: string
+  ) =>
+    room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'VOID_RULE_OCCURRENCE',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: asked.encounterVersion,
+        occurrenceId: asked.occurrence.id,
+        expectedOccurrenceVersion: asked.occurrence.version
+      }
+    })
+
+  /** Answers the option, then fails the resume so the move waits with its child committed. */
+  async function holdCommittedChild(room: Room) {
+    const contact = await walkToContact(room)
+    const failure = vi.spyOn(console, 'error').mockImplementation(() => {})
+    failDieAfter(room, 3)
+    const used = await room.respondOnly(contact.use)
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(() => expect(failure).toHaveBeenCalled(), 10_000)
+    const held = await room.pending()
+    if (!held) throw new Error('The move is no longer pending.')
+    return { contact, held }
+  }
+
+  it('releases the move to its choice when the GM voids the child waiting on its roll', async () => {
+    const room = await contactRoom({ autoRoll: 'PLAYER' })
+    const contact = await walkToContact(room)
+    const used = await room.respond(contact.use)
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const child = await readPendingActionDecision(room.base.stub)
+    if (!child) throw new Error('The child waits on no decision.')
+
+    const voided = await voidDecision(room, child, crypto.randomUUID())
+
+    expect(voided.type, JSON.stringify(voided)).toBe('COMMAND_COMMITTED')
+    // The move is the Run's one decision again, at its choice, with no child recorded.
+    expect(await openOccurrences(room)).toEqual([{ id: contact.occurrence.id, state: 'PENDING' }])
+    const released = await room.pending()
+    if (released?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+      throw new Error('The move is not pending.')
+    expect(released.context.phase).toEqual({ kind: 'CHOICE' })
+    expect(released.context.root.resolutionCommands.map(({ kind }) => kind)).toEqual([
+      'OPTION',
+      'REACTION_CHILD_RELEASE'
+    ])
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
+    // The reaction was never spent: the same option answers again.
+    const again = await room.respondOnly({ kind: 'OPTION', optionId: contact.option.optionId })
+    expect(again.type, JSON.stringify(again)).toBe('COMMAND_COMMITTED')
+  }, 60_000)
+
+  it('refuses the GM’s undo of a committed child while the move waits to resume', async () => {
+    const room = await contactRoom({
+      spatialEffects: [{ center: { x: 475, y: 150 }, radius: 5, save: true }]
+    })
+    const { contact, held } = await holdCommittedChild(room)
+    const afterChild = await moverHitPoints(room)
+
+    const commandId = crypto.randomUUID()
+    const reverted = await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'REVERT_LAST_ACTION',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: held.encounterVersion
+      }
+    })
+
+    expect(reverted).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'PENDING_DECISION' })
+    expect(await moverHitPoints(room)).toBe(afterChild)
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
+  }, 60_000)
+
+  it('refuses the GM’s void of a move whose child committed, and the alarm still resumes it', async () => {
+    const room = await contactRoom({
+      spatialEffects: [{ center: { x: 475, y: 150 }, radius: 5, save: true }]
+    })
+    const { contact, held } = await holdCommittedChild(room)
+    const afterChild = await moverHitPoints(room)
+
+    const voided = await voidDecision(room, held, crypto.randomUUID())
+
+    expect(voided).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'DECISION_REQUIRES_ANSWER' })
+    expect(await moverHitPoints(room)).toBe(afterChild)
+    expect(await moverPosition(room)).toEqual(contact.root.currentPosition)
+    expect(await openOccurrences(room)).toEqual([{ id: contact.occurrence.id, state: 'PENDING' }])
+
+    await runInDurableObject(room.base.stub, async (instance) => {
+      const clock = vi
+        .spyOn(Date, 'now')
+        .mockReturnValue(Date.now() + ROOM_LIMITS.alarmRetryMs + 1_000)
+      try {
+        await instance.alarm()
+      } finally {
+        clock.mockRestore()
+      }
+    })
+    await vi.waitFor(async () => expect(await openOccurrences(room)).toEqual([]), 10_000)
+    expect(await moverPosition(room)).toEqual(DESTINATION)
+  }, 60_000)
+})
