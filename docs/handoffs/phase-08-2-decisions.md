@@ -2224,3 +2224,13 @@ QUALITY-14.T2e2's seam trace found that the ends stage and the save-chain stage 
 - **Ruling (orchestrator): a move takes damage per contact.** Each contact raises one DAMAGED(AFTER) per holder, settling the ends and the Concentration chain together, as the rules time damage. A Concentration lost mid-move stops that zone's later damage. This replaces the single terminal ends settle from QUALITY-14.T2b/T2d2. Turn effects stay per execution (D132 amendment).
 - **Ruling (orchestrator): a resumed save chain reads the sealed pre-command discovery** recorded on its damage-save context (D196), never a snapshot that earlier saves already changed.
 - **Tracking:** QUALITY-14.T2e2 split into T2e2a (hit model), T2e2b (one pre-command discovery and the widened placed-by-this-command filter), T2e2c (sealed resume), T2e2d (movement per contact) and T2e2e (room count proofs across roots).
+
+## D221 (2026-11-14): Storybook signs in through the web app and reads story data seeded through product commands
+
+PLATFORM-28.T1's seam audit found 41 page-level stories that need backend reads and a test identity, and many need states the SRD seed cannot reach (owned drafts, campaigns, characters, social applications, reports, a moderation queue). Sign-in only works through the web app's `/api/auth` proxy, which fails closed without its proxy secret and client address.
+
+- **Ruling (orchestrator, follows D218): Storybook proxies `/api/auth` to the running web app**, so stories sign in through the unchanged Better Auth flow and the Storybook process holds no secret. Bypassing the proxy's fail-closed checks is rejected.
+- **Ruling (orchestrator, follows D218): story data is seeded through product commands only**, as a step that extends the review-data driver after deploy and seed; stories find records by stable names. No direct table writes.
+- **Ruling (orchestrator, follows D218): backend stories are tagged and run in Browser journeys**, reusing its throwaway stack steps unchanged and selected through the import graph; props-only stories stay in the Tests Storybook job.
+- **Ruling (orchestrator, D218 scope): "no hand-typed DTO fixture remains" covers story files and story-only fixture modules.** Unit-test fixtures stay; component stories keep taking props (D218).
+- **Tracking:** PLATFORM-28 resized from 8 to about 50 (in approved scope): T1 audit, T2 wiring, T3 authoring routes, T4 social/notifications/settings, T5 campaign pages, T6 character sheet/builder/marketing capture, T7 tabletop window with the Worker, T8 fixture deletion and guard.
