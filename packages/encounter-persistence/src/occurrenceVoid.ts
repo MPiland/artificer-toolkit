@@ -54,7 +54,12 @@ type RuleOccurrenceVoidFacts =
       >
     }
   | { kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK'; source?: DamageSaveSource }
-  | { kind: 'ENCOUNTER_MOVEMENT_REACTION'; phase: Pick<MovementReactionContext['phase'], 'kind'> }
+  | {
+      kind: 'ENCOUNTER_MOVEMENT_REACTION'
+      phase: Pick<MovementReactionContext['phase'], 'kind'> & {
+        reactionChildren?: readonly unknown[]
+      }
+    }
 
 /** What a GM void does to one pending decision (ADR 0034 decision 2). */
 type RuleOccurrenceVoid =
@@ -89,9 +94,11 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
     case 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE':
       return { kind: 'DECLINE', resolution: { kind: 'PASSAGE_DECLINE' } }
     case 'ENCOUNTER_MOVEMENT_REACTION':
-      return context.phase.kind === 'CHOICE'
-        ? { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
-        : answerRequired('Dice during a move')
+      if (context.phase.kind !== 'CHOICE') return answerRequired('Dice during a move')
+      // A committed reaction child leaves the move to the room's own resume (D219).
+      return context.phase.reactionChildren?.length
+        ? answerRequired('A move awaiting its reaction’s resume')
+        : { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
     case 'ENCOUNTER_DAMAGE_SAVE_CHECK':
       return answerRequired(DAMAGE_SAVE_SUBJECTS[context.source ?? 'CONCENTRATION'])
     case 'ENCOUNTER_CONCEALMENT_CHECK':
