@@ -77,6 +77,21 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
         .array(postgresUuidSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
+    /**
+     * The move's zone damage ended an effect its holder carried until damaged (`DAMAGE_TAKEN`): the
+     * commit re-derives that end from current rows, ends the effect and the conditions only it held.
+     */
+    z.strictObject({
+      kind: z.literal('DAMAGE_END'),
+      damageEnd: z.strictObject({
+        effectId: postgresUuidSchema,
+        holderActorId: postgresUuidSchema
+      }),
+      endedEffect: activeRuleEffectRecordSchema,
+      removedConditionIds: z
+        .array(postgresUuidSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+    }),
     z.strictObject({
       kind: z.literal('PASSAGE'),
       actorId: postgresUuidSchema,
@@ -128,13 +143,13 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     voidCommand: z.optional(voidRuleOccurrenceInputDtoSchema),
     rules: z.nullable(encounterActorRuleOutputSchema),
     /**
-     * At most one batch, one Concentration outcome and one zone departure for each spatial
-     * candidate, and one passage and one move end for each actor. A reaction settles in its own
-     * child action's commit (D219), never here.
+     * At most one batch, one Concentration outcome, one zone departure and one damage end for each
+     * spatial candidate, and one passage and one move end for each actor. A reaction settles in its
+     * own child action's commit (D219), never here.
      */
     settlements: z
       .array(liveSessionMovementSettlementSchema)
-      .check(z.maxLength(3 * MAX_SPATIAL_CANDIDATES + 2 * MAX_ENCOUNTER_ACTORS))
+      .check(z.maxLength(4 * MAX_SPATIAL_CANDIDATES + 2 * MAX_ENCOUNTER_ACTORS))
   })
 )
 

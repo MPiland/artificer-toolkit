@@ -5,7 +5,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
-import { spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
+import { movementDamageEndedEffects, spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
@@ -41,6 +41,7 @@ const ZONE_A = '00000000-0000-4000-8000-00000000f403'
 const ZONE_B = '00000000-0000-4000-8000-00000000f404'
 const EFFECT_ID = '00000000-0000-4000-8000-00000000f405'
 const STATE_ID = '00000000-0000-4000-8000-00000000f406'
+const MOVE_OCCURRENCE_ID = '00000000-0000-4000-8000-00000000f407'
 const CAST_AT = '2026-01-01T00:00:00.000Z'
 
 beforeEach(() => {
@@ -96,6 +97,58 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
     expect(raises).toHaveLength(1)
     expect(raises[0]).toMatchObject({
       hits: [{ damagerActorId: ZONE_A }, { damagerActorId: ZONE_B }]
+    })
+  })
+
+  describe('a move whose zones damage two creatures (QUALITY-14.T2b)', () => {
+    const untilDamaged = (id: string, targetActorId: string) =>
+      activeEffect({
+        id,
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId },
+        createdOrdinal: 1,
+        endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }],
+        sourceActorId: targetActorId,
+        stateContributions: [
+          { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+        ]
+      })
+    const contact = (sourceActorId: string, targetActorId: string) => ({
+      applications: [damage()],
+      candidate: { candidate: { sourceActorId, targetActorId } }
+    })
+    const held = new Map([
+      [HOLDER_ID, [untilDamaged(EFFECT_ID, HOLDER_ID)]],
+      [OTHER_ID, [untilDamaged(STATE_ID, OTHER_ID)]]
+    ])
+    const executions = [
+      contact(ZONE_A, HOLDER_ID),
+      contact(ZONE_B, HOLDER_ID),
+      contact(ZONE_A, OTHER_ID)
+    ]
+    const endedBy = (occurrenceId: string) =>
+      [...held].flatMap(([holderActorId, effects]) =>
+        movementDamageEndedEffects({
+          holderActorId,
+          held: effects,
+          executions,
+          occurrenceId,
+          turnActorId: null,
+          dispositions: new Map()
+        })
+      )
+
+    it('raises one event per holder for the whole move, with one hit per contact that reached it', () => {
+      expect(endedBy(MOVE_OCCURRENCE_ID).map(({ id }) => id)).toEqual([EFFECT_ID, STATE_ID])
+      const raises = damagedRaises()
+      expect(raises).toHaveLength(2)
+      expect(raises).toMatchObject([
+        { hits: [{ damagerActorId: ZONE_A }, { damagerActorId: ZONE_B }] },
+        { hits: [{ damagerActorId: ZONE_A }] }
+      ])
+    })
+
+    it('never ends an effect the move itself placed', () => {
+      expect(endedBy(held.get(HOLDER_ID)![0]!.definition.origin.sourceOccurrenceId)).toEqual([])
     })
   })
 

@@ -24,6 +24,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
+import { terminalMovementDamageEnds } from './encounterSpatialDamageEnds.js'
 export { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
@@ -285,7 +286,13 @@ export async function prepareEncounterMovementContinuation<
         settlements
       }
     }
-    if (evaluated.kind === 'TERMINAL')
+    if (evaluated.kind === 'TERMINAL') {
+      const released = {
+        ...(evaluated.areaDepartures.length
+          ? { areaDepartures: [...evaluated.areaDepartures] }
+          : {}),
+        ...(evaluated.moveEnds.length ? { moveEnds: [...evaluated.moveEnds] } : {})
+      }
       return {
         outcome: {
           kind: 'TERMINAL' as const,
@@ -300,13 +307,18 @@ export async function prepareEncounterMovementContinuation<
           },
           selectionChecksum: evaluated.selectionChecksum,
           currentnessChecksum: evaluated.currentnessChecksum,
-          ...(evaluated.areaDepartures.length
-            ? { areaDepartures: [...evaluated.areaDepartures] }
-            : {}),
-          ...(evaluated.moveEnds.length ? { moveEnds: [...evaluated.moveEnds] } : {})
+          ...released,
+          ...terminalMovementDamageEnds({
+            result: evaluated.result,
+            targets,
+            occurrenceId: input.occurrenceId,
+            turnActorId: input.state.currentActorId,
+            released
+          })
         },
         settlements
       }
+    }
     if (evaluated.kind === 'MANUAL' || evaluated.kind === 'NO_CANDIDATES')
       return {
         outcome: { kind: 'UNINTERRUPTED' as const, reason: evaluated.kind },
@@ -355,28 +367,33 @@ export async function prepareEncounterMovementContinuation<
       continue
     }
     if (terminalStop && Math.abs(boundary.boundaryDistance - terminalStop.pathDistance) <= 1e-8) {
+      const result = stopSceneMovementResult({
+        occurrenceId: input.occurrenceId,
+        occurrenceVersion: input.occurrenceVersion,
+        encounterId: input.state.id,
+        encounterVersion: input.state.version + 1,
+        sceneId: root.sceneId,
+        sceneVersion:
+          input.sceneVersion +
+          (checksumRuleDocument(input.currentPosition) === checksumRuleDocument(position) ? 0 : 1),
+        tokenId: root.tokenId,
+        movementKind: root.movementKind,
+        terminalPosition: position,
+        remainder
+      })
       return {
         outcome: {
           kind: 'TERMINAL' as const,
-          result: stopSceneMovementResult({
-            occurrenceId: input.occurrenceId,
-            occurrenceVersion: input.occurrenceVersion,
-            encounterId: input.state.id,
-            encounterVersion: input.state.version + 1,
-            sceneId: root.sceneId,
-            sceneVersion:
-              input.sceneVersion +
-              (checksumRuleDocument(input.currentPosition) === checksumRuleDocument(position)
-                ? 0
-                : 1),
-            tokenId: root.tokenId,
-            movementKind: root.movementKind,
-            terminalPosition: position,
-            remainder
-          }),
+          result,
           selectionChecksum: boundary.selectionChecksum,
           currentnessChecksum: boundary.currentnessChecksum,
-          terminalPathDistance: terminalStop.pathDistance
+          terminalPathDistance: terminalStop.pathDistance,
+          ...terminalMovementDamageEnds({
+            result,
+            targets,
+            occurrenceId: input.occurrenceId,
+            turnActorId: input.state.currentActorId
+          })
         },
         settlements
       }

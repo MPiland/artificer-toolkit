@@ -193,7 +193,10 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   executed). The room plans one `AREA_DEPARTURE` movement settlement per departure, after every other step;
   `persistMovementSettlements` checks it against the retained departures, and
   `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
-  escape end path. The spatial receipt is unchanged.
+  escape end path. The spatial receipt is unchanged. The effects a move's zone damage ends on the creatures
+  it damaged settle the same way, as `damageEnds` on the TERMINAL outcome and one `DAMAGE_END` settlement
+  each (`persistLiveMovementDamageEnd`, QUALITY-14.T2b; see
+  [rules runtime](rules-runtime.md), "Movement damage ends").
 - Once a command commits, `settleRoomEncounterAfterCommit` (`roomEncounterAfterCommit.ts`) runs everything it
   owes in the same transaction, in one fixed order (current, QUALITY-11.T1a): (1) the damage mirrors and defeat
   rewards the command collected; (2) the HP-zero effects of newly defeated creatures; (3) a delegated Legendary
