@@ -26942,7 +26942,7 @@
             },
             {
               "id": "QUALITY-15.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -26951,7 +26951,109 @@
                 "size": 5,
                 "after": ["QUALITY-15.T1", "QUALITY-15.T1b", "QUALITY-15.T1c", "QUALITY-15.T1d"]
               },
-              "text": "Refusal triage: implement unimplemented combinations; each remaining refusal names a game rule or invalid input. Includes the reaction-over-an-area refusal (game rule or unbuilt path) from the T1 review.",
+              "text": "Refusal triage, first increment: every compiler refusal names one rule and is classed GAME_RULE, INVALID_INPUT or UNBUILT by a golden classification test that pins the UNBUILT set as shrink-only; a Self-range action with no targeting acts on its user (12 SRD creature actions compile).",
+              "note": " Split 2026-11-14 at delivery: 175 UNBUILT golden rows remain, moved to QUALITY-15.T3 to T3f; the reaction-over-an-area refusal is an unbuilt path (no SRD row), QUALITY-15.T3e. Sent back once for a room proof of the newly playable Self actions.",
+              "mergedAt": "2026-11-14",
+              "proof": "m771 (f31e1f926); slice tip 517028422: Tests 43637717526, Live 43639341259, Browser journeys 43637717530 green. Golden: compile refusals 298 to 286, passing rows byte-identical; classes GAME_RULE 4, INVALID_INPUT 128, UNBUILT 175. Red proof: effectActionAspectAdmissions, effectActionOutcomeAspect, srdEffectCompileGolden, nativeRoomSrdSelfAction RED (SRD Duergar Invisibility lands on its user, one undo restores; Enlarge spends its charge). No restated assertions. No D196 change."
+            },
+            {
+              "id": "QUALITY-15.T3",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "A GM ruling with a duration compiles to a timed ruling plan holding its duration and Concentration (about 47 golden rows: 33 direct, 14 test path); persisted active-effect plan shape change migrated per D196.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 13,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "An untested area (no save, no hit-point pool) compiles as a placement or area ruling (88 golden rows; 13 already compile as zones in product, 25 need zone-placement data fixes).",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3c",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "Several direct results, choice grants and timed manifestations compile (about 15 golden rows).",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3d",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "Small unbuilt kinds compile: unregistered reaction triggers, FOLLOW_UP_SAVE, spell-slot exchange, test outcome kinds, scaled heals, relationship hold paths, willing-target outcomes, choice, repeat offer, cost-2 activation (about 20 golden rows).",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3e",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "A reaction can aim an area: the trigger pending decision carries its aim across room, Worker and UI, removing the \"aims no area\" refusal.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3f",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "SRD data-gap authoring fixes for INVALID_INPUT rows real content should author (no targeting off a Self range, area with no shape; about 27 rows), source data only.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3g",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T2"]
+              },
+              "text": "An action whose limited uses are spent is no longer offered (or resolving it again is refused with a named reason); seen on SRD Duergar Enlarge after its one use.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
