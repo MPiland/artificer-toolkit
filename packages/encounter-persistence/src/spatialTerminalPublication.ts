@@ -164,7 +164,6 @@ export async function publishSpatialTerminal(
         result: retained,
         expectedSceneVersion: input.expectedSceneVersion,
         expectedEncounterVersion: preparation.expectedEncounterVersion,
-        sourceCommandId: save.commandId,
         commandCharacterTransitions
       }),
       resolutionCommands: []

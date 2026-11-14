@@ -6,70 +6,37 @@ import type {
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
-import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type {
   MovementCharacterRow,
   MovementMaintenanceProjection
 } from './encounterMovementMaintenance.js'
-import { bindEncounterMovementMaintenancePending } from './encounterMovementMaintenance.js'
-import type { MovementReactionSettlementInput } from './encounterMovementReactionPlan.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import type { EncounterMovementReactionContact } from './encounterMovementReactionContacts.js'
-import type { EncounterMovementReactionSource } from './encounterMovementReactionSources.js'
-import type { executeEncounterMovementReactionAction } from './encounterMovementReactionExecution.js'
-import { retainNativeMovementLegendaryResistance } from './encounterMovementLegendaryResistance.js'
-import type { revalidateEncounterMovementReactionOption } from './encounterMovementReactionDiscovery.js'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
-import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import {
   appendEncounterMovementReactionActionEvidenceCommand,
   appendEncounterMovementReactionResolutionCommand,
-  movementReactionRemainderAfterCompletedAction,
   movementReactionRemainderAfterCurrentChoice,
-  resolveEncounterMovementReactionChoice,
-  retainEncounterMovementReactionActionEvidence
+  resolveEncounterMovementReactionChoice
 } from './encounterMovementReactionContinuation.js'
-import {
-  checksumSpatialCurrentness,
-  type FrozenMovementReactionRemainder
-} from './encounterSpatialMovementRuleService.js'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { projectSpatialMovementCandidates } from './encounterSpatialMovementCurrentness.js'
+import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { movementDamageEnvelope } from './encounterMovementConcentration.js'
-import {
-  retainedMovementReactionExecutions,
-  retainedMovementSpatialExecutions
-} from './encounterMovementContinuation.js'
+import { retainedMovementSpatialExecutions } from './encounterMovementContinuation.js'
 import {
   stopSceneMovementResult,
   type MovementContinuationInput
 } from './encounterMovementContinuation.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
-import type { EncounterD20WindowResponse } from './encounterActionSaveWindow.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type ReactionContext = Extract<
   ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
   { kind: 'ENCOUNTER_MOVEMENT_REACTION' }
 >
-type ReactionExecution = Awaited<ReturnType<typeof executeEncounterMovementReactionAction>>
-type CompletedReaction = Extract<ReactionExecution, { kind: 'COMPLETE' }>
-type ReactionSettlement<TPrepared> = {
-  prepared: TPrepared
-  occurrenceId: string
-  commandId: string
-  ordinal: number
-  occurredAt: string
-  execution: CompletedReaction
-}
-type ResponseSettlement<TPrepared, TConcentrationPlan, TContinuationSettlement> =
-  | { kind: 'REACTION'; plan: ReactionSettlement<TPrepared> }
+type ResponseSettlement<TConcentrationPlan, TContinuationSettlement> =
   | { kind: 'CONCENTRATION'; plan: TConcentrationPlan }
   | TContinuationSettlement
 
@@ -104,16 +71,10 @@ function projectedTargetsAfterSpatialPrefix<
   }).projectedTargets
 }
 
-/** Reconstructs the selected action before the enclosing Scene transaction publishes its plan. */
+/** Resumes a move paused on a reaction choice, spatial evidence or Concentration evidence. */
 export async function evaluateEncounterMovementActionResponse<
   TCharacterFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow,
-  TPrepared extends MovementReactionSettlementInput<TCharacterFacts, TRow>['prepared'],
-  TPlan extends {
-    reactionExecution: FrozenMovementReactionRemainder['completedReactionExecutions'][number]
-    projectedTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-    maintenanceProjection?: MovementMaintenanceProjection<TRow>
-  },
   TConcentrationPlan,
   TContinuationSettlement
 >(
@@ -133,71 +94,12 @@ export async function evaluateEncounterMovementActionResponse<
     sceneTokens: readonly SceneToken[]
     sceneGrid: SceneGrid
     actorIdByTokenId: ReadonlyMap<string, string>
-    resolvePerception: (
-      contact: EncounterMovementReactionContact<EncounterMovementReactionSource>
-    ) => Promise<boolean>
     targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     /** The committed children of the choice this response resumes, each with what it does to the move. */
     reactionChildren: readonly { commandId: string; stopsTriggeringMovement: boolean }[]
     retained?: Outcome
   },
   callbacks: {
-    prepareReaction(input: {
-      encounterId: string
-      expectedEncounterVersion: number
-      movementKind: ReactionContext['root']['movementKind']
-      occurrenceId: string
-      option: Parameters<typeof revalidateEncounterMovementReactionOption>[0]['option']
-      actorIdByTokenId: ReadonlyMap<string, string>
-      tokens: readonly SceneToken[]
-      resolvePerception: Parameters<
-        typeof revalidateEncounterMovementReactionOption
-      >[0]['resolvePerception']
-      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-      maintenanceProjection?: MovementMaintenanceProjection<TRow>
-    }): Promise<TPrepared>
-    replayReaction(input: {
-      runtime: RulesRuntimeService
-      occurrenceId: string
-      prepared: TPrepared
-      retained:
-        | { kind: 'PENDING'; snapshot: ServerKernelRuleExecutionPendingSnapshotDto }
-        | {
-            kind: 'COMPLETE'
-            receipt: FrozenMovementReactionRemainder['completedReactionExecutions'][number]
-          }
-      issuedSnapshot?: ServerKernelRuleExecutionPendingSnapshotDto
-    }): Promise<ReactionExecution>
-    executeReaction(input: {
-      runtime: RulesRuntimeService
-      occurrenceId: string
-      prepared: TPrepared
-      autoRoll: EncounterAutoRollByActorId
-      resume?: {
-        pending: Extract<ReactionExecution, { kind: 'PENDING' }>
-        resolution:
-          | Extract<
-              EncounterResponseAnswer,
-              { kind: 'ENTER_DICE' | 'ENTER_INTEGER' | 'SYSTEM_ROLL' }
-            >
-          | EncounterD20WindowResponse
-      }
-    }): Promise<ReactionExecution>
-    resumeResistance(input: {
-      runtime: RulesRuntimeService
-      occurrenceId: string
-      prepared: TPrepared
-      autoRoll: EncounterAutoRollByActorId
-      snapshot: ServerKernelRuleExecutionPendingSnapshotDto
-      selection: Extract<EncounterResponseAnswer, { kind: 'OPTION' | 'DECLINE' }>
-      retainedExecution?: ReactionExecution
-    }): Promise<Exclude<ReactionExecution, { kind: 'LEGENDARY_RESISTANCE' }>>
-    /** `retainedRetaliation` is the replayed reaction's melee retaliation, rolled again from its dice. */
-    planReaction(
-      input: ReactionSettlement<TPrepared>,
-      userId: string,
-      retainedRetaliation: MeleeRetaliationEvidenceDto | null
-    ): Promise<TPlan>
     prepareConcentration(input: {
       autoRoll: EncounterAutoRollByActorId
       state: EncounterRunState
@@ -208,7 +110,7 @@ export async function evaluateEncounterMovementActionResponse<
       remainder: FrozenMovementReactionRemainder
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       projection?: MovementMaintenanceProjection<TRow>
-      source: { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number }
+      source: { executionOrdinal: number }
       retainedChecks?: readonly MovementConcentrationExecutionDto[]
       resume?: {
         snapshot: ServerKernelRuleExecutionPendingSnapshotDto
@@ -230,7 +132,7 @@ export async function evaluateEncounterMovementActionResponse<
   }
 ): Promise<{
   outcome: Outcome
-  settlements: ResponseSettlement<TPrepared, TConcentrationPlan, TContinuationSettlement>[]
+  settlements: ResponseSettlement<TConcentrationPlan, TContinuationSettlement>[]
   resolutionCommands: ReactionContext['root']['resolutionCommands']
 }> {
   const { responseCommand, occurredAt } = input
@@ -240,8 +142,7 @@ export async function evaluateEncounterMovementActionResponse<
   const snapshot = requireServerKernelRuleExecutionPendingSnapshot(input.snapshot)
   const root = context.root
   const { runtime, resolution } = input
-  const settlements: ResponseSettlement<TPrepared, TConcentrationPlan, TContinuationSettlement>[] =
-    []
+  const settlements: ResponseSettlement<TConcentrationPlan, TContinuationSettlement>[] = []
   let maintenanceProjection: MovementMaintenanceProjection<TRow> | undefined
   const token = input.sceneTokens.find((entry) => entry.id === root.tokenId)
   if (!token) throw new Error('Movement reaction token is unavailable.')
@@ -258,8 +159,7 @@ export async function evaluateEncounterMovementActionResponse<
         })
   let remainder: FrozenMovementReactionRemainder
   let resolutionCommands: ReactionContext['root']['resolutionCommands']
-  let selectedOptionId: string | null = null
-  let concentrationSource: { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number } | null = null
+  let concentrationSource: { executionOrdinal: number } | null = null
   let stopAfterReaction = false
   if (context.phase.kind === 'CHOICE' && resolution.kind === 'REACTION_CHILD_RESUME') {
     // The reaction the choice took ran as its own child action (D219). The option that child came
@@ -327,33 +227,6 @@ export async function evaluateEncounterMovementActionResponse<
       context,
       resolutionCommands
     })
-  } else if (context.phase.kind === 'ACTION_EVIDENCE') {
-    if (
-      resolution.kind !== 'ENTER_DICE' &&
-      resolution.kind !== 'ENTER_INTEGER' &&
-      resolution.kind !== 'SYSTEM_ROLL' &&
-      resolution.kind !== 'ROLL_WINDOW_USE' &&
-      resolution.kind !== 'ROLL_WINDOW_DECLINE'
-    )
-      throw new Error('Movement response does not match the issued action evidence.')
-    resolutionCommands = appendEncounterMovementReactionActionEvidenceCommand({
-      history: root.resolutionCommands,
-      command: responseCommand,
-      actorUserId: input.userId,
-      proposedOccurrenceVersion: input.occurrenceVersion + 1
-    })
-    selectedOptionId = context.phase.selectedOptionId
-    remainder = {
-      root: { ...root, resolutionCommands },
-      spatialSelectionChecksum: context.spatialSelectionChecksum,
-      spatialCurrentnessChecksum: context.spatialCurrentnessChecksum,
-      completedSpatialExecutions: [...context.completedSpatialExecutions],
-      appliedSpatialPrefix: context.appliedSpatialPrefix,
-      completedReactionExecutions: context.completedReactionExecutions,
-      currentSpatialCandidate: null,
-      remainingSpatialCandidates: [...context.remainingSpatialCandidates],
-      reactionTimeline: context.reactionTimeline
-    }
   } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
     if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
       throw new Error('Movement response does not match the issued Concentration evidence.')
@@ -369,37 +242,11 @@ export async function evaluateEncounterMovementActionResponse<
       spatialCurrentnessChecksum: context.spatialCurrentnessChecksum,
       completedSpatialExecutions: [...context.completedSpatialExecutions],
       appliedSpatialPrefix: context.appliedSpatialPrefix,
-      completedReactionExecutions: [...context.completedReactionExecutions],
       currentSpatialCandidate: null,
       remainingSpatialCandidates: [...context.remainingSpatialCandidates],
       reactionTimeline: context.reactionTimeline
     }
     concentrationSource = context.phase.damageSource
-    stopAfterReaction =
-      concentrationSource.kind === 'REACTION' &&
-      context.completedReactionExecutions.at(-1)?.execution.movementInterruption?.kind === 'STOP'
-  } else if (context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
-    if (resolution.kind !== 'OPTION' && resolution.kind !== 'DECLINE')
-      throw new Error('Movement response does not match the issued Legendary Resistance choice.')
-    resolutionCommands = appendEncounterMovementReactionResolutionCommand({
-      history: root.resolutionCommands,
-      command: responseCommand,
-      selection: resolution,
-      actorUserId: input.userId,
-      proposedOccurrenceVersion: input.occurrenceVersion + 1
-    })
-    selectedOptionId = context.phase.selectedOptionId
-    remainder = {
-      root: { ...root, resolutionCommands },
-      spatialSelectionChecksum: context.spatialSelectionChecksum,
-      spatialCurrentnessChecksum: context.spatialCurrentnessChecksum,
-      completedSpatialExecutions: [...context.completedSpatialExecutions],
-      appliedSpatialPrefix: context.appliedSpatialPrefix,
-      completedReactionExecutions: context.completedReactionExecutions,
-      currentSpatialCandidate: null,
-      remainingSpatialCandidates: [...context.remainingSpatialCandidates],
-      reactionTimeline: context.reactionTimeline
-    }
   } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
     if (
       resolution.kind !== 'ENTER_DICE' &&
@@ -415,218 +262,17 @@ export async function evaluateEncounterMovementActionResponse<
       spatialCurrentnessChecksum: context.spatialCurrentnessChecksum,
       completedSpatialExecutions: [...context.completedSpatialExecutions],
       appliedSpatialPrefix: context.appliedSpatialPrefix,
-      completedReactionExecutions: context.completedReactionExecutions,
       currentSpatialCandidate: context.phase.currentCandidate,
       remainingSpatialCandidates: [...context.remainingSpatialCandidates],
       reactionTimeline: context.reactionTimeline
     }
   } else throw new Error('Movement action response does not match the issued phase.')
 
-  // Transitional (deleted in QUALITY-18.T2c): the inline reaction engine. No choice selects an option
-  // any more, so only a move already paused inside an inline reaction's evidence reaches it.
-  if (selectedOptionId !== null) {
-    const entry = context.reactionTimeline[0]
-    const option = entry?.group.options.find((value) => value.optionId === selectedOptionId)
-    if (!option) throw new Error('The selected movement reaction was not issued.')
-    const prepared = await callbacks.prepareReaction({
-      encounterId: input.state.id,
-      expectedEncounterVersion: input.state.version,
-      movementKind: root.movementKind,
-      occurrenceId: input.occurrenceId,
-      option,
-      actorIdByTokenId: input.actorIdByTokenId,
-      tokens: input.sceneTokens,
-      resolvePerception: input.resolvePerception,
-      targets,
-      maintenanceProjection
-    })
-    const prior =
-      context.phase.kind === 'ACTION_EVIDENCE' && !input.retained
-        ? await callbacks.replayReaction({
-            runtime,
-            occurrenceId: input.occurrenceId,
-            prepared,
-            retained: { kind: 'PENDING', snapshot }
-          })
-        : null
-    if (prior && prior.kind !== 'PENDING') throw new Error('The issued action is already complete.')
-    const retainedContext =
-      input.retained?.kind === 'PENDING' ? input.retained.pendingSnapshot.applicationContext : null
-    const retainedExecutions = input.retained
-      ? retainedMovementReactionExecutions(input.retained)
-      : []
-    const retainedReceipt = retainedExecutions?.find(
-      (entry) =>
-        entry.sourceCommandId === responseCommand.commandId &&
-        entry.option.optionId === option.optionId
-    )
-    const retainedPending =
-      input.retained?.kind === 'PENDING' &&
-      retainedContext?.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-      (retainedContext.phase.kind === 'ACTION_EVIDENCE' ||
-        retainedContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') &&
-      retainedContext.phase.selectedOptionId === option.optionId
-        ? requireServerKernelRuleExecutionPendingSnapshot(input.retained.pendingSnapshot)
-        : null
-    if (input.retained && !retainedReceipt && !retainedPending)
-      throw new Error('Prepared movement action evidence is unavailable.')
-    const actionContext = { ...context, root: { ...root, resolutionCommands } }
-    const legendarySelection =
-      context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
-        ? resolution.kind === 'OPTION' || resolution.kind === 'DECLINE'
-          ? resolution
-          : (() => {
-              throw new Error(
-                'Movement response does not match the issued Legendary Resistance choice.'
-              )
-            })()
-        : null
-    const replayed = input.retained
-      ? await callbacks.replayReaction({
-          runtime,
-          occurrenceId: input.occurrenceId,
-          prepared,
-          retained: retainedPending
-            ? { kind: 'PENDING', snapshot: retainedPending }
-            : { kind: 'COMPLETE', receipt: retainedReceipt! },
-          ...(context.phase.kind === 'ACTION_EVIDENCE' ? { issuedSnapshot: snapshot } : {})
-        })
-      : null
-    const execution = legendarySelection
-      ? await callbacks.resumeResistance({
-          runtime,
-          occurrenceId: input.occurrenceId,
-          autoRoll: input.autoRoll,
-          prepared,
-          snapshot: { ...snapshot, applicationContext: actionContext },
-          selection: legendarySelection,
-          ...(replayed ? { retainedExecution: replayed } : {})
-        })
-      : (replayed ??
-        (await callbacks.executeReaction({
-          runtime,
-          occurrenceId: input.occurrenceId,
-          prepared,
-          autoRoll: input.autoRoll,
-          ...(prior?.kind === 'PENDING' &&
-          (resolution.kind === 'ENTER_DICE' ||
-            resolution.kind === 'ENTER_INTEGER' ||
-            resolution.kind === 'SYSTEM_ROLL' ||
-            resolution.kind === 'ROLL_WINDOW_USE' ||
-            resolution.kind === 'ROLL_WINDOW_DECLINE')
-            ? { resume: { pending: prior, resolution } }
-            : {})
-        })))
-    if (execution.kind === 'LEGENDARY_RESISTANCE') {
-      const pendingSnapshot = await retainNativeMovementLegendaryResistance({
-        runtime,
-        occurrenceId: input.occurrenceId,
-        prepared,
-        context: actionContext,
-        execution: execution.boundary.execution,
-        d20: execution.boundary.d20,
-        candidate: execution.candidate
-      })
-      return {
-        outcome: {
-          kind: 'PENDING',
-          pendingSnapshot: withPolicy(pendingSnapshot, input.state),
-          movementIntent: null
-        },
-        settlements,
-        resolutionCommands
-      }
-    }
-    if (execution.kind === 'PENDING') {
-      // Only a Character's own action opens a damage roll's window (D208).
-      const rollWindow = execution.pause?.kind === 'ROLL_WINDOW' ? execution.pause.payload : null
-      if (rollWindow && isDamageRollWindow(rollWindow))
-        throw new Error('A movement reaction opens no damage roll window.')
-      const pendingSnapshot = bindEncounterMovementMaintenancePending(
-        retainEncounterMovementReactionActionEvidence({
-          continuation: execution.continuation,
-          context: actionContext,
-          selectedOptionId,
-          // A reactor asked whether to change the attack roll decides its own d20 window (D207).
-          rollerActorId:
-            (rollWindow && d20WindowReactorActorId(rollWindow)) ||
-            (execution.roller === 'SOURCE'
-              ? option.candidate.reactorActorId
-              : option.candidate.movingActorId),
-          d20Policy: execution.d20Policy,
-          ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
-          ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
-          ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
-          ...(rollWindow ? { pause: { kind: 'ROLL_WINDOW' as const, payload: rollWindow } } : {}),
-          ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
-        }),
-        prepared.maintenance
-      )
-      return {
-        outcome: {
-          kind: 'PENDING',
-          pendingSnapshot: withPolicy(pendingSnapshot, input.state),
-          movementIntent: null
-        },
-        settlements,
-        resolutionCommands
-      }
-    }
-    const settlement = {
-      prepared,
-      occurrenceId: input.occurrenceId,
-      commandId: responseCommand.commandId,
-      ordinal: context.completedReactionExecutions.length,
-      occurredAt,
-      execution
-    }
-    const retainedApplication = retainedReceipt?.application
-    const plan = await callbacks.planReaction(
-      settlement,
-      input.userId,
-      (retainedApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
-        retainedApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH') &&
-        retainedApplication.meleeRetaliation
-        ? retainedApplication.meleeRetaliation
-        : null
-    )
-    if (
-      retainedReceipt &&
-      checksumCanonicalJson(plan.reactionExecution) !==
-        checksumCanonicalJson(movementDamageEnvelope(retainedReceipt))
-    )
-      throw new Error('Prepared movement action receipt does not match current mechanics.')
-    const remainingSpatialCandidates = projectSpatialMovementCandidates({
-      candidates: remainder.remainingSpatialCandidates,
-      beforeTargets: targets,
-      afterTargets: plan.projectedTargets
-    })
-    targets = plan.projectedTargets
-    maintenanceProjection = plan.maintenanceProjection
-    settlements.push({ kind: 'REACTION', plan: settlement })
-    remainder = movementReactionRemainderAfterCompletedAction({
-      context,
-      selectedOptionId,
-      resolutionCommands,
-      execution: plan.reactionExecution
-    })
-    remainder = {
-      ...remainder,
-      remainingSpatialCandidates,
-      spatialCurrentnessChecksum: checksumSpatialCurrentness({
-        encounter: { id: input.state.id, version: input.state.version },
-        candidates: remainingSpatialCandidates
-      })
-    }
-    concentrationSource = { kind: 'REACTION', executionOrdinal: plan.reactionExecution.ordinal }
-    stopAfterReaction = execution.execution.movementInterruption?.kind === 'STOP'
-  }
   if (concentrationSource) {
     const retainedSource = input.retained
-      ? (concentrationSource.kind === 'SPATIAL'
-          ? retainedMovementSpatialExecutions(input.retained)
-          : retainedMovementReactionExecutions(input.retained)
-        ).find((entry) => entry.ordinal === concentrationSource.executionOrdinal)
+      ? retainedMovementSpatialExecutions(input.retained).find(
+          (entry) => entry.ordinal === concentrationSource.executionOrdinal
+        )
       : undefined
     const concentration = await callbacks.prepareConcentration({
       autoRoll: input.autoRoll,
@@ -672,7 +318,6 @@ export async function evaluateEncounterMovementActionResponse<
       sceneVersion: root.currentSceneVersion,
       tokenId: root.tokenId,
       movementKind: root.movementKind,
-      reactionExecutions: remainder.completedReactionExecutions,
       terminalPosition: root.currentPosition,
       remainder
     })
@@ -731,15 +376,5 @@ export async function evaluateEncounterMovementActionResponse<
     outcome: continued.outcome,
     settlements: [...settlements, ...continued.settlements],
     resolutionCommands
-  }
-}
-
-function withPolicy(
-  snapshot: ServerKernelRuleExecutionPendingSnapshotDto,
-  state: EncounterRunState
-) {
-  return {
-    ...snapshot,
-    optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
   }
 }

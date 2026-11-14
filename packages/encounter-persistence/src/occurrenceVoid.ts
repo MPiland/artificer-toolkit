@@ -89,7 +89,7 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
     case 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE':
       return { kind: 'DECLINE', resolution: { kind: 'PASSAGE_DECLINE' } }
     case 'ENCOUNTER_MOVEMENT_REACTION':
-      return context.phase.kind === 'CHOICE' || context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
+      return context.phase.kind === 'CHOICE'
         ? { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
         : answerRequired('Dice during a move')
     case 'ENCOUNTER_DAMAGE_SAVE_CHECK':

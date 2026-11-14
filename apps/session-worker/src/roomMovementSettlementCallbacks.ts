@@ -10,7 +10,6 @@ import type {
 import type { persistMovementContacts } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
 import { endHolderStateGrants } from '@artificer-toolkit/encounter-persistence/concentrationEnd'
 import { persistLiveMovementSpatial } from '@artificer-toolkit/encounter-persistence/liveMovementSpatialPersistence'
-import { persistLiveMovementReaction } from '@artificer-toolkit/encounter-persistence/liveMovementReactionPersistence'
 import {
   persistLiveMovementConcentration,
   persistLiveMovementConcentrationEnd
@@ -27,7 +26,6 @@ import { applyLiveConcentrationCleanup } from '@artificer-toolkit/encounter-pers
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { settleDamageMirrors } from './roomDamageMirror.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
-import { readRoomSceneState } from './roomSceneRead.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -111,16 +109,6 @@ export function roomMovementSettlementCallbacks(input: {
       })
       return { ...committed, actors: await withSettledMirrors(step.state, committed.actors) }
     },
-    persistReaction: async (step) =>
-      withSettledMirrors(
-        step.state,
-        await persistLiveMovementReaction(ctx, step, {
-          applyMechanics,
-          readCampaignCharacterState,
-          readSceneTokens: async (sceneId) =>
-            (await readRoomSceneState(transaction, sceneId)).scene.tokens
-        })
-      ),
     persistConcentration: (step) =>
       persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
     persistConcentrationEnd: (step) =>

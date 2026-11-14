@@ -398,11 +398,7 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
           snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
           snapshot.applicationContext.twoPhase?.phase === 'OUTCOME'
             ? snapshot.applicationContext.twoPhase
-            : snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-                snapshot.applicationContext.phase.kind === 'ACTION_EVIDENCE' &&
-                snapshot.applicationContext.phase.twoPhase?.phase === 'OUTCOME'
-              ? snapshot.applicationContext.phase.twoPhase
-              : null
+            : null
         if (!twoPhase) return
         const receipt = snapshot.phaseReceipts?.[0]
         if (

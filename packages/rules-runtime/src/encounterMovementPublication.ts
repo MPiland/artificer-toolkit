@@ -59,16 +59,12 @@ export function preparedMovementSegment(input: {
   } else {
     position = outcome.result.terminalPosition
     pathEnd = terminalMovementPathEnd(outcome)
-    const stops = [
-      ...outcome.result.reactionExecutions
-        .filter((entry) => entry.execution.movementInterruption?.kind === 'STOP')
-        .map((entry) => entry.option.candidate.pathDistance),
-      ...(outcome.result.status === 'BATCH_COMPLETE'
+    const stops =
+      outcome.result.status === 'BATCH_COMPLETE'
         ? outcome.result.executions
             .filter((entry) => spatialExecutionStopsMovement(entry, outcome.result.movementKind))
             .map((entry) => entry.candidate.candidate.pathDistance)
-        : [])
-    ]
+        : []
     endDistance =
       outcome.terminalPathDistance ?? (stops.length ? Math.min(...stops) : pathLength(input.path))
   }

@@ -7,7 +7,6 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { receiptD20ContributorSchema } from './ruleExecutionEvidence.js'
-import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
 import {
   movementPassageStopDtoSchema,
   pendingD20FaceSchema,
@@ -30,7 +29,7 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import { MAX_SPATIAL_CANDIDATES, spatialPointDtoSchema } from './spatialFacts.js'
-import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { AUTHORED_LIMITS } from './authoredLimits.js'
 import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
@@ -142,10 +141,6 @@ const optionalCombatPassageContinuationDtoSchemaImpl = lazySchema(() =>
         .array(z.lazy(() => spatialMovementExecutionDtoSchema))
         .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
       appliedSpatialPrefix: z.nullable(z.lazy(() => storedRuleExecutionResultDtoSchema)),
-      completedReactionExecutions: z._default(
-        z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        []
-      ),
       remainingSpatialCandidates: z
         .array(spatialPendingCandidateDtoSchema)
         .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),

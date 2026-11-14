@@ -178,7 +178,6 @@ export async function evaluateEncounterMovementPassageResponse<
     spatialCurrentnessChecksum: evaluated.movement.spatialCurrentnessChecksum,
     completedSpatialExecutions: evaluated.movement.completedSpatialExecutions,
     appliedSpatialPrefix: evaluated.movement.appliedSpatialPrefix,
-    completedReactionExecutions: evaluated.movement.completedReactionExecutions,
     currentSpatialCandidate: null,
     remainingSpatialCandidates: evaluated.movement.remainingSpatialCandidates,
     reactionTimeline: evaluated.movement.reactionTimeline
@@ -270,7 +269,6 @@ export async function evaluateEncounterMovementPassageResponse<
           sceneVersion: root.currentSceneVersion + (entered ? 1 : 0),
           tokenId: root.tokenId,
           movementKind: root.movementKind,
-          reactionExecutions: remainder.completedReactionExecutions,
           terminalPosition: entered ?? root.currentPosition,
           remainder
         }),

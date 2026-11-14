@@ -117,7 +117,6 @@ type MovementReactionSpatialPendingRemainder = Pick<
   | 'spatialSelectionChecksum'
   | 'spatialCurrentnessChecksum'
   | 'appliedSpatialPrefix'
-  | 'completedReactionExecutions'
   | 'reactionTimeline'
 >
 export type FrozenMovementReactionRemainder = Pick<
@@ -127,7 +126,6 @@ export type FrozenMovementReactionRemainder = Pick<
   | 'spatialCurrentnessChecksum'
   | 'completedSpatialExecutions'
   | 'appliedSpatialPrefix'
-  | 'completedReactionExecutions'
   | 'remainingSpatialCandidates'
   | 'reactionTimeline'
 > & {
@@ -180,7 +178,6 @@ export type SpatialMovementRuleEvaluation =
       movementIntent: SpatialMovementIntent | null
       completedExecutions: readonly SpatialExecution[]
       appliedPrefix: SpatialBatch | null
-      completedReactionExecutions: MovementReactionPendingContext['completedReactionExecutions']
       remainingCandidates: PendingContext['remainingCandidates']
       resolutionCommands: readonly MovementRuleResolutionCommand[]
       selectionChecksum: string
@@ -226,7 +223,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     applications: ReadonlyMap<string, readonly CharacterRuleActionApplication[]>
     executions: readonly SpatialExecution[]
     appliedSpatialPrefix: SpatialBatch | null
-    completedReactionExecutions: FrozenMovementReactionRemainder['completedReactionExecutions']
     terminalPosition?: ScenePoint
   }): Promise<SpatialBatch>
   root: SpatialMovementRuleRoot
@@ -539,7 +535,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         movementIntent: intent(root.tokenId, input.currentPosition, boundaryPosition),
         completedExecutions: appliedExecutions,
         appliedPrefix,
-        completedReactionExecutions: frozenReactionRemainder?.completedReactionExecutions ?? [],
         remainingCandidates: [],
         resolutionCommands,
         selectionChecksum,
@@ -558,7 +553,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
           applications: new Map(),
           executions: [],
           appliedSpatialPrefix: appliedPrefix,
-          completedReactionExecutions: frozenReactionRemainder?.completedReactionExecutions ?? [],
           terminalPosition: retainedTerminalPosition
         })
       : completeMovementWithoutSpatial({ input, root })
@@ -784,7 +778,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
               spatialSelectionChecksum: selectionChecksum,
               spatialCurrentnessChecksum: currentnessChecksum,
               appliedSpatialPrefix: null,
-              completedReactionExecutions: [],
               reactionTimeline: input.initialReactionTimeline
             }
           : null)
@@ -866,7 +859,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       completedExecutions: [...appliedExecutions, ...executions],
       // Retain already-published history while staging only the new spatial suffix.
       appliedPrefix,
-      completedReactionExecutions: frozenReactionRemainder?.completedReactionExecutions ?? [],
       remainingCandidates: candidates.slice(executions.length).map((remaining, offset) => {
         const remainingEffect = lockedEffects.get(remaining.effectId)!
         const remainingTarget = targets.get(remaining.targetActorId)!
@@ -901,7 +893,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     applications,
     executions,
     appliedSpatialPrefix: appliedPrefix,
-    completedReactionExecutions: frozenReactionRemainder?.completedReactionExecutions ?? [],
     terminalPosition
   })
   return {
@@ -925,7 +916,6 @@ function frozenMovementReactionRemainder(
     spatialCurrentnessChecksum: context.spatialCurrentnessChecksum,
     completedSpatialExecutions: context.completedSpatialExecutions,
     appliedSpatialPrefix: context.appliedSpatialPrefix,
-    completedReactionExecutions: context.completedReactionExecutions,
     currentSpatialCandidate:
       context.phase.kind === 'SPATIAL_EVIDENCE' ? context.phase.currentCandidate : null,
     remainingSpatialCandidates: context.remainingSpatialCandidates,
@@ -1195,7 +1185,6 @@ function movementReactionSpatialPendingSnapshot(input: {
       reactionSelectionChecksum: checksumRuleDocument(input.reactionRemainder.reactionTimeline),
       completedSpatialExecutions: input.completedExecutions,
       appliedSpatialPrefix: input.reactionRemainder.appliedSpatialPrefix,
-      completedReactionExecutions: input.reactionRemainder.completedReactionExecutions,
       phase: {
         kind: 'SPATIAL_EVIDENCE',
         currentCandidate: input.current
@@ -1284,7 +1273,6 @@ function completeMovementWithoutSpatial(input: {
     sceneVersion: input.input.sceneVersion + (terminalIntent ? 1 : 0),
     tokenId: input.root.tokenId,
     movementKind: input.root.movementKind,
-    reactionExecutions: input.input.frozenReactionRemainder?.completedReactionExecutions ?? [],
     terminalPosition: input.root.originalPath.at(-1)!
   })
   if (result.status !== 'MOVEMENT_COMPLETE')

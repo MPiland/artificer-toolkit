@@ -1,5 +1,4 @@
 import { damageSaveRollTrigger } from './encounterConcentration.js'
-import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -173,30 +172,6 @@ export function projectEncounterSpatialOccurrenceSummary(
         ? context.phase.currentCandidate
         : null
   if (context.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind !== 'SPATIAL_EVIDENCE') {
-    if (context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
-      if (!controls(context.phase.resistance.targetActorId)) {
-        return {
-          occurrenceId: occurrence.id,
-          occurrenceVersion: occurrence.version,
-          status: 'PENDING',
-          pending: null
-        }
-      }
-      return {
-        occurrenceId: occurrence.id,
-        occurrenceVersion: occurrence.version,
-        status: 'PENDING',
-        pending: {
-          kind: 'LEGENDARY_RESISTANCE_CHOICE',
-          occurrenceId: occurrence.id,
-          occurrenceVersion: occurrence.version,
-          encounterVersion,
-          targetActorId: context.phase.resistance.targetActorId,
-          options: [{ optionId: context.phase.resistance.useOptionId }],
-          allowedResponses: ['DECLINE', 'OPTION']
-        }
-      }
-    }
     const currentEntry = context.reactionTimeline[0] ?? null
     // A choice that records a reaction child is answered (D219): the move waits for the room's
     // resume, so nobody is asked again and no timeout declines it.
@@ -204,113 +179,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       context.phase.kind === 'CHOICE' && !context.phase.reactionChildren?.length
         ? (currentEntry?.group ?? null)
         : null
-    const actionEvidenceOptionId =
-      context.phase.kind === 'ACTION_EVIDENCE' ? context.phase.selectedOptionId : null
-    const actionEvidenceOption = actionEvidenceOptionId
-      ? (currentEntry?.group.options.find((option) => option.optionId === actionEvidenceOptionId) ??
-        null)
-      : null
-    if (context.phase.kind === 'ACTION_EVIDENCE') {
-      const { d20Policy, d20Belief, heldD20 } = context.phase
-      // A roller that does not own the Encounter sees the sight it believes, never the true one.
-      const shown = !viewer.isOwner && d20Belief ? d20Belief : d20Policy
-      if (!actionEvidenceOption || !controls(context.phase.rollerActorId)) {
-        return {
-          occurrenceId: occurrence.id,
-          occurrenceVersion: occurrence.version,
-          status: 'PENDING',
-          pending: null
-        }
-      }
-      const window = context.phase.pause?.payload
-      if (window)
-        return {
-          occurrenceId: occurrence.id,
-          occurrenceVersion: occurrence.version,
-          status: 'PENDING',
-          pending: {
-            kind: 'ROLL_WINDOW',
-            occurrenceId: occurrence.id,
-            occurrenceVersion: occurrence.version,
-            encounterVersion,
-            rollerActorId: context.phase.rollerActorId,
-            // A reactor's die changes the opportunity attack the reacting creature rolled (D207).
-            ...(d20WindowReactorActorId(window)
-              ? { attackerActorId: actionEvidenceOption.candidate.reactorActorId }
-              : {}),
-            requestId: pendingSnapshot.request.requestId,
-            d20: {
-              selectedNatural: window.rolled.d20.selectedNatural,
-              total: window.rolled.d20.total
-            },
-            options: window.offer.options.map(({ optionId, label, count, faces, sign }) => ({
-              optionId,
-              label,
-              count,
-              faces,
-              sign
-            })),
-            allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
-          }
-        }
-      return {
-        occurrenceId: occurrence.id,
-        occurrenceVersion: occurrence.version,
-        status: 'PENDING',
-        pending:
-          shown === null
-            ? {
-                kind: 'ACTION_OUTCOME_EVIDENCE',
-                occurrenceId: occurrence.id,
-                occurrenceVersion: occurrence.version,
-                encounterVersion,
-                rollerActorId: context.phase.rollerActorId,
-                request: {
-                  requestId: pendingSnapshot.request.requestId,
-                  min: pendingSnapshot.request.min,
-                  max: pendingSnapshot.request.max
-                },
-                allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
-              }
-            : {
-                kind: 'D20_EVIDENCE',
-                occurrenceId: occurrence.id,
-                occurrenceVersion: occurrence.version,
-                encounterVersion,
-                rollerActorId: context.phase.rollerActorId,
-                request: {
-                  requestId: pendingSnapshot.request.requestId,
-                  min: 1,
-                  max: 20,
-                  rollModes,
-                  // The roller rolls the test's added dice with the d20 that settles it (D156).
-                  ...(d20Policy?.addedDice?.length ? { addedDice: d20Policy.addedDice } : {}),
-                  ...(heldD20
-                    ? {
-                        rollMode: 'NORMAL' as const,
-                        keep: rollModeCapabilityRegistry.rollModeKeep({
-                          gameSystemId: pendingSnapshot.graph.source.gameSystemId,
-                          rollMode: 'NORMAL'
-                        }),
-                        derivedRollModeReasons: [],
-                        heldD20: {
-                          faces: heldD20.faces,
-                          caption: viewer.isOwner ? heldD20.gmReason : heldD20.playerCaption
-                        }
-                      }
-                    : {
-                        rollMode: shown.rollMode,
-                        keep: shown.keep,
-                        derivedRollModeReasons: reasons({
-                          rollMode: shown.rollMode,
-                          contributors: shown.contributors
-                        })
-                      })
-                },
-                allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
-              }
-      }
-    }
     const visibleOptions =
       choice?.options.filter((option) => controls(option.candidate.reactorActorId)) ?? []
     if (!choice || visibleOptions.length === 0) {

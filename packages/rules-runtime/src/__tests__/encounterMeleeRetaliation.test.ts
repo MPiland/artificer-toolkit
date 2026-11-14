@@ -4,7 +4,6 @@ import { meleeRetaliationEvidenceDtoSchema } from '@artificer-toolkit/schema/sha
 import { deathWard } from '@artificer-toolkit/source-data/srd/spells/death-ward.js'
 
 import {
-  meleeRetaliationCharacterTransition,
   planEncounterMeleeRetaliation,
   selectMeleeRetaliationContacts
 } from '../encounterMeleeRetaliation.js'
@@ -152,11 +151,6 @@ describe('a melee hit setting off the zones its target holds (SPELLS-20 T6d2a, D
     expect(settlement?.plan.targetTransition.after.currentHitPoints).toBe(
       first!.targetTransition.before.currentHitPoints - 4
     )
-  })
-
-  it('leaves a Creature attacker’s burn without a Character span', async () => {
-    const { evidence } = await plan(select([shield(0x3c0)])!)
-    expect(meleeRetaliationCharacterTransition(evidence)).toBeNull()
   })
 })
 

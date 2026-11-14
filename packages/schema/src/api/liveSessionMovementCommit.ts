@@ -7,10 +7,6 @@ import { voidRuleOccurrenceInputDtoSchema } from './encounterRuleCommands.js'
 import { sceneSpatialPreparationSchema } from '../projections/sceneSpatialPreparation.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
-import {
-  liveSessionCharacterResourceConsumptionSchema,
-  liveSessionWindowReactionsSchema
-} from './liveSessionEncounterAction.js'
 import { liveSessionEncounterMaintenanceOwnerRequestSchema } from './liveSessionEncounterRules.js'
 import {
   MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
@@ -20,20 +16,15 @@ import {
   spatialMovementExecutionDtoSchema,
   spatialEffectTransitionEntryDtoSchema
 } from '../shared/ruleExecutionEffectEvidence.js'
-import { movementReactionActionExecutionDtoSchema } from '../shared/ruleExecutionMovementReactionReceipts.js'
 import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema
 } from '../shared/ruleExecutionMovementConcentration.js'
 import { movementPassageContestReceiptDtoSchema } from '../shared/ruleExecutionSpatial.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import {
-  activeRuleEffectRecordSchema,
-  encounterMaintainedEffectStateRecordSchema
-} from '../projections/activeRuleEffectPersistence.js'
+import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_SPATIAL_CANDIDATES } from '../shared/spatialFacts.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
-import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 
 /** Ordered domain outcomes only; Character documents and arbitrary patches never cross this seam. */
 export const liveSessionMovementSettlementSchema = lazySchema(() =>
@@ -48,26 +39,6 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
         .array(spatialEffectTransitionEntryDtoSchema)
         .check(z.minLength(1))
         .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
-    }),
-    z.strictObject({
-      kind: z.literal('REACTION'),
-      execution: movementReactionActionExecutionDtoSchema,
-      resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-      createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
-      maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
-      /**
-       * The reactor's one-roll grants the attack roll used up and the mover's effects the damage
-       * ended; the commit deletes them.
-       */
-      consumedGrants: z
-        .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-      /** A decoy of the mover the attack struck without it being the last: the commit spends one use of its effect. */
-      spentUseGrants: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1)),
-      /** The once-per-turn uses the reaction attack spent from the reactor's turn record (D119). */
-      turnUses: encounterTurnUseKeysSchema,
-      /** The reactions other creatures rolled against the reaction attack's d20 and what each costs (D207). */
-      windowReactions: liveSessionWindowReactionsSchema
     }),
     z.strictObject({
       kind: z.literal('CONCENTRATION'),
