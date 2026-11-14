@@ -16,6 +16,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import { targetEndedEffects } from './encounterEndedEffectRelease.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 
 export type TurnEffectBoundary = {
   ordinal: 0 | 1
@@ -97,6 +98,22 @@ export function effectAnchorActorId(
     origin.sourceAggregateId === encounterId
     ? (origin.sourceActorId ?? holderActorId)
     : holderActorId
+}
+
+/**
+ * What the turn boundary an effect runs at does to its count, read from the event table: whether it
+ * counts off the effect's last tick, and otherwise the ticks the effect keeps (null for an effect
+ * that counts none). The kernel seals this and the persistence fold checks it.
+ */
+export function turnBoundaryCount(
+  effect: ActiveRuleEffectRecord,
+  stage: TurnEffectBoundary['stage']
+) {
+  const { ended, countedDown } = discoverEncounterEventHooks({
+    effects: [effect],
+    events: [{ kind: 'TURN_BOUNDARY', stage }]
+  })
+  return { runsOut: ended.length > 0, remainingTicks: countedDown[0]?.remainingTicks ?? null }
 }
 
 export type TurnEffectCandidate = {

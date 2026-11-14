@@ -4,6 +4,8 @@ import { wardingBond } from '@artificer-toolkit/source-data/srd/spells/warding-b
 import { describe, expect, it } from 'vitest'
 
 import { encounterEndedRelationships } from '../encounterRelationshipEnds.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
+import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { plannedGrantEffect } from './antitoxinEffectFixture.js'
 import { escapeGrappleEffectDefinition } from '../testing/escapeGrappleEffectFixture.js'
 
@@ -39,11 +41,12 @@ const hold = (id: string, grapplerId = GRAPPLER, sourceIndependent = false) => (
     grapplerId,
     conditionIds: [],
     sourceIndependent
-  })
+  }),
+  lifecycle: { schemaVersion: 1 as const, remainingTicks: null }
 })
 
 function ended(input: {
-  effects: [string, Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]][]
+  effects: [string, Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[]][]
   tokens?: ReturnType<typeof placed>[] | null
   unable?: readonly string[]
 }) {
@@ -149,5 +152,46 @@ describe('a relationship ends on its own when its hold breaks (D152)', () => {
       tokens: [placed(GRAPPLER, 0), placed(HELD, 1), placed(OTHER, 4)]
     })
     expect(ends).toEqual([{ sourceActorId: GRAPPLER, heldActorId: OTHER, activeEffectId: 'far' }])
+  })
+})
+
+describe('a hold and a bond end through the event table (QUALITY-14.1)', () => {
+  const sealed = { sourceActorId: GRAPPLER, sealedReachFeet: 5 }
+  const broken = (events: EncounterEvent[]) =>
+    discoverEncounterEventHooks({ relationshipHolds: [sealed], events }).relationshipHolds
+
+  it('breaks a hold on a SEPARATED event beyond its sealed reach from its own source', () => {
+    expect(broken([{ kind: 'SEPARATED', sourceActorId: GRAPPLER, feet: 10 }])).toEqual([sealed])
+    expect(broken([{ kind: 'SEPARATED', sourceActorId: GRAPPLER, feet: 5 }])).toEqual([])
+    expect(broken([{ kind: 'SEPARATED', sourceActorId: OTHER, feet: 10 }])).toEqual([])
+  })
+
+  it('breaks a hold when its own source is incapacitated', () => {
+    const incapacitated = (of: 'SOURCE' | 'HOLDER', actorId: string): EncounterEvent => ({
+      kind: 'INCAPACITATED',
+      of,
+      sourceActorIds: new Set([actorId])
+    })
+    expect(broken([incapacitated('SOURCE', GRAPPLER)])).toEqual([sealed])
+    expect(broken([incapacitated('SOURCE', OTHER)])).toEqual([])
+    expect(broken([incapacitated('HOLDER', GRAPPLER)])).toEqual([])
+  })
+
+  it('ends a bond on a SEPARATED event beyond its authored limit from its own source', () => {
+    const bond = plannedGrantEffect({
+      id: 'bond',
+      holderActorId: HELD,
+      effect: wardingBond.effects?.[0],
+      sourceLabel: wardingBond.label,
+      sourceActorId: GRAPPLER
+    })
+    const ends = (sourceActorId: string, feet: number) =>
+      discoverEncounterEventHooks({
+        effects: [bond],
+        events: [{ kind: 'SEPARATED', sourceActorId, feet }]
+      }).ended
+    expect(ends(GRAPPLER, 65)).toEqual([bond])
+    expect(ends(GRAPPLER, 60)).toEqual([])
+    expect(ends(OTHER, 65)).toEqual([])
   })
 })

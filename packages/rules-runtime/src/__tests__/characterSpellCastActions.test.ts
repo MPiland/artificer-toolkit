@@ -38,7 +38,7 @@ import {
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
 import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
-import { activeEffectEndsOnRest } from '../character/sheetRest.js'
+import { activeEffectEndsOnRest } from '../character/sheetRestEndedEffects.js'
 import {
   buildCharacterSpellCastActions,
   RITUAL_CAST_REFUSAL,
@@ -1575,7 +1575,7 @@ describe('a save its caster makes, whose failure holds a condition until a long 
   })
 
   it('ends the effect a failed save stores on a long rest, not a short one', () => {
-    const { definition } = plannedTimedCondition({
+    const { definition, lifecycle } = plannedTimedCondition({
       encounterId: testUuid(0xd911),
       sourceActorId: testUuid(0xd912),
       holderActorId: testUuid(0xd912),
@@ -1586,8 +1586,10 @@ describe('a save its caster makes, whose failure holds a condition until a long 
       endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }],
       expiration: { kind: 'INDEFINITE' }
     })
-    expect(activeEffectEndsOnRest({ definition }, 'LONG')).toBe(true)
-    expect(activeEffectEndsOnRest({ definition }, 'SHORT')).toBe(false)
+    // The rest is raised on the stored effect, which has an id and a lifecycle.
+    const stored = { id: testUuid(0xd913), definition, lifecycle }
+    expect(activeEffectEndsOnRest(stored, 'LONG')).toBe(true)
+    expect(activeEffectEndsOnRest(stored, 'SHORT')).toBe(false)
   })
 })
 

@@ -1,7 +1,7 @@
 import type { LiveSessionMovementSettlement } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterEscapeEndedConditionIds } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
-import { heldUntilLeavingZoneId } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
+import { endsOnLeavingZone } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -73,7 +73,7 @@ export function persistLiveMovementAreaDeparture(
   return persistLiveMovementHeldEffectEnd(ctx, {
     ...input,
     holderActorId: input.step.departure.holderActorId,
-    isHeld: (effect) => heldUntilLeavingZoneId(effect) === input.step.departure.zoneEffectId
+    isHeld: (effect) => endsOnLeavingZone(effect, input.step.departure.zoneEffectId)
   })
 }
 

@@ -147,7 +147,8 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
 /**
  * Grants, and other timed effects counted on their source's turns, store no recurrence stage and
  * count down at the boundary of their anchor actor's turn, so the turn-effect kernel never
- * owns them.
+ * owns them. The boundary is raised on them as a `TURN_BOUNDARY` event, which counts each a tick
+ * and ends those with none left.
  */
 export function planEncounterGrantTicks(input: {
   encounterId: string
@@ -158,35 +159,30 @@ export function planEncounterGrantTicks(input: {
   const ticks: EncounterGrantTick[] = []
   for (const { actor, effects } of input.holders) {
     const owner = turnEffectOwner(actor, input.encounterId)
-    const counted = effects.flatMap((effect) => {
-      const { recurrence } = effect.definition
-      const expiration = recurrence.expiration
-      const remaining = effect.lifecycle.remainingTicks
-      return remaining === null ||
-        recurrence.recurrenceStage !== 'NONE' ||
-        expiration.kind !== 'TICKS' ||
-        (!isModifierGrant(effect) && recurrence.anchor !== 'SOURCE') ||
-        expiration.decrementStage !== input.stage ||
-        !isEffectLiveInEncounter(effect, actor, input.encounterId) ||
-        effectAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId
-        ? []
-        : [{ effect, remaining }]
+    const { ended, countedDown } = discoverEncounterEventHooks({
+      effects: effects.filter((effect) => {
+        const { recurrence } = effect.definition
+        return (
+          recurrence.recurrenceStage === 'NONE' &&
+          (isModifierGrant(effect) || recurrence.anchor === 'SOURCE') &&
+          isEffectLiveInEncounter(effect, actor, input.encounterId) &&
+          effectAnchorActorId(effect, actor.id, input.encounterId) === input.turnActorId
+        )
+      }),
+      events: [{ kind: 'TURN_BOUNDARY', stage: input.stage }]
     })
-    // An effect linked to an expiring one ends with it (D172), as Frenzy ends with Rage.
-    const expired = withLinkedDependents(
-      counted.filter(({ remaining }) => remaining <= 1).map(({ effect }) => effect),
-      effects
-    )
-    const expiredIds = new Set(expired.map(({ id }) => id))
+    // An effect linked to an expiring one ends with it (D172), as Frenzy ends with Rage, whether or
+    // not this boundary counts it.
+    const expired = withLinkedDependents(ended, effects)
     ticks.push(
       ...expired.map((effect) => ({ kind: 'EXPIRE' as const, effect, owner })),
-      ...counted
-        .filter(({ effect }) => !expiredIds.has(effect.id))
-        .map(({ effect, remaining }) => ({
+      ...countedDown
+        .filter(({ effect }) => !expired.includes(effect))
+        .map(({ effect, remainingTicks }) => ({
           kind: 'UPDATE' as const,
           effect,
           owner,
-          remainingTicks: remaining - 1
+          remainingTicks
         }))
     )
   }

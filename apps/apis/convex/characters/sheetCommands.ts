@@ -37,10 +37,8 @@ import {
   getSheetCommandResourceUsageUpdate,
   pruneSheetResourceUsage
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
-import {
-  activeEffectEndsOnRest,
-  applyCompletedCharacterRest
-} from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import { applyCompletedCharacterRest } from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import { activeEffectEndsOnRest } from '@artificer-toolkit/rules-runtime/character/sheetRestEndedEffects'
 import {
   getCharacterSpellKnownEligibleIdsByClass,
   getCharacterSpellPreparationEligibleIdsByClass
