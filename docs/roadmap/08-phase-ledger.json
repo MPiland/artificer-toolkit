@@ -20049,19 +20049,20 @@
               "note": "Growth approved by the user on 2026-10-31. Merged in m582 (bf0940e8e)."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-33.T8a",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 13,
                 "after": []
               },
               "text": "Mimic Grappler and the Grappler feat's advantage against a creature you grapple from the existing actor-relationship attack-roll influence (ADVANTAGE); the Grappler feat's Pin (both creatures restrained) from core options. Authoring-parity proofs; delete CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET and GRAPPLER_PIN.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "note": "Q30 answered 2026-11-13: all three recommendations (generic relationship advantage option; Pin description-only with a GM ruling plus a future-enhancements follow-up; Mimic Adhesive automated in both forms)."
+              "note": "Q30 answered 2026-11-13: all three recommendations (generic relationship advantage option; Pin description-only with a GM ruling plus a future-enhancements follow-up; Mimic Adhesive automated in both forms). Resized 3 to 13 at delivery (2026-11-14): the plan assumed an existing attacker-side relationship influence; none existed, so the slice added a generic ATTACK_ROLL ROLL_INFLUENCE domain flag (againstHeldConditionTypeId) across schema, shared, rules-runtime and source-data, read by both the Creature and Character attack paths. QUALITY/SPELLS growth inside approved Q30 scope (orchestrator resize).",
+              "mergedAt": "2026-11-14",
+              "proof": "m743 (0a4a94de8) batch with QUALITY-13.T1c3b; slice tip 5852254b8: Tests 43539338784, Live 43539338846, Browser journeys 43539338972 green. Red proof: featPublication, nativeHeldCreatureAttackAdvantage, creatureHeldAttackAdvantageAuthoringParity, srdCreatureAttackSweep, srdHeldCreatureAttackAdvantage, creatureGrappleRiders RED; creatureFormRulingAuthoringParity ALREADY-PASSING (roster row removed). Mimic Grappler and Grappler feat advantage authored through the generic flag; Mimic Pseudopod is one weapon attack with a DC 13 Huge-or-smaller grapple rider (Q30c); Grappler Pin is a GM ruling (Q30b, follow-up in future-enhancements); CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET and GRAPPLER_PIN deleted. Restated with reasons: Grappler kind checks to the flag shape; grapple rider counts 34 to 35 and 29 to 30 plus a Mimic Pseudopod expected mismatch (SRD prints the grapple in Adhesive); swept attacks 550 to 549 (sibling ruling merged); golden lines updated for the deleted kinds and the Pin GM ruling. D196: SRD content shape changed; reseed when local is next used. Known limit: the Grappler feat proof uses an injected held set; it fires only against holds whose relationship imposes Grappled."
             },
             {
               "status": "DONE",
@@ -26386,7 +26387,7 @@
             },
             {
               "id": "QUALITY-13.T1c3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26397,7 +26398,8 @@
               },
               "text": "Pre-roll bystander reactions per ray (Protection shape, ATTACK_ON_OTHER): a per-ray pre-roll moment discovered when a ray becomes current; a held state for an unrolled ray in the area hold and its fence; the persisted casterRolls rule widened to ATTACK_ON_OTHER; the child's ROLL_MODE outcome applied per ray at roll and at replay through one per-ray applyReactionChildren call (the T1c3 dice move onto it); one room journey with an SRD Protection source. Also prove two bystander reactors heard in turn on one ray, and a roll reaction followed by the target's hit reaction and an on-hit rider on the same ray.",
               "note": "Registered 2026-11-14 from the T1c3 split under the user standing approval for QUALITY growth (2026-11-13). Today the pre-roll stage lives only in the whole-cast pause (nativeEncounterCastPause.ts) and the ray list switches it off (aimedAttackPerception null in nativeAreaPreparation.ts).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m743 (0a4a94de8) batch with SPELLS-33.T8a; slice tip 9649e83e8: Tests 43539345868, Live 43539345593, Browser journeys 43539345484 green. Red proof: nativeRoomRayProtection 10/11 RED (the self-aimed negative case passes on old code, as expected). A ray that becomes current hears its aim (ATTACK_ON_OTHER) through the shared cast-pause moment (hearMoment(aimedMoment)); an offer holds the unrolled ray; leaving the aim re-seals the ray with the child's roll mode; applyNativeReactionChildren is the one per-ray call at roll and replay (T1c3 dice moved onto it). SRD Protection on Scorching Ray: hold with nothing spent, used, declined then used, declined twice, two reactors in turn on one ray, timeout, self-aimed no hold, snapshot honesty, GM void restores. Eldritch Blast chain: Protection then Shield then pool rider; Protection declined then Cutting Words then Shield then rider. Persisted: widenings only (ray inner snapshot may hold on an ATTACK_ON_OTHER CAST_REACTION pause; sealed unrolled ray may carry ROLL_MODE reactionChildren); no refresh needed. No assertions restated."
             },
             {
               "id": "QUALITY-13.T1c4",
@@ -26417,7 +26419,7 @@
             },
             {
               "id": "QUALITY-13.T1c5",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26426,8 +26428,9 @@
                 "size": 13,
                 "after": ["QUALITY-13.T1c4", "QUALITY-13.T1c3", "QUALITY-13.T1c3b"]
               },
-              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape. Sequenced after QUALITY-13.T1c3 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts. Sequenced after QUALITY-13.T1c3b on 2026-11-14 (no size change): same per-ray seam.",
-              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate offers ATTACK_RETARGET for that ray only and re-seals its own entry; per-entry gate and retarget evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source."
+              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape. Sequenced after QUALITY-13.T1c3 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts. Sequenced after QUALITY-13.T1c3b on 2026-11-14 (no size change): same per-ray seam. Rider from T1c3b (2026-11-14, no size change): the AREA_REMOVAL admission (liveSessionEncounterRules.ts ~630, roomEncounterTurnCapture.ts ~262) carries no reactionChildren, so a GM removal that settles a ray list with a ROLL_MODE child throws \"Reaction evidence is stale.\" at commit replay; add committed children to that admission with a room proof. Same per-ray seam.",
+              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate offers ATTACK_RETARGET for that ray only and re-seals its own entry; per-entry gate and retarget evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T2c",
@@ -26503,7 +26506,7 @@
           "tasks": [
             {
               "id": "QUALITY-14.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 3,
@@ -26513,6 +26516,23 @@
                 "after": ["QUALITY-11.T1b", "QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
               "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table.",
+              "mergedAt": "2026-11-14",
+              "note": "Split 2026-11-14 at delivery: the six named ending kinds shipped; the remaining direct enders moved to QUALITY-14.T1b (orchestrator ruling: AC QUALITY-14.1 says every effect ending, the list is illustrative).",
+              "proof": "m743 (0a4a94de8); slice tip 4e5e0bd4a: Tests 43545008971, Live 43545009000, Browser journeys 43545009301 green. Red proof (first push 43543008807): grantLifetimes 7/174 RED, encounterRelationshipEnds 3/10 RED. Turn tick, grant tick, hold sweep (D152), SEPARATED, REST and AREA_LEFT all raise through discoverEncounterEventHooks: new events TURN_BOUNDARY, SEPARATED, REST; AREA_LEFT carries zoneEffectId; a structural COUNT_DOWN hook for every TICKS expiration; turn kernel and persistence fold share turnBoundaryCount. activeEffectEndsOnRest moved to the server-only character/sheetRestEndedEffects (ADR 0036 S6 boundary test). Restated with reasons: the ON_LEAVING_AREA subscription row became a stricter dedicated test (ends only on its own zone); ON_LONG_REST became a REST row; fixtures gained lifecycle. No persisted shape change."
+            },
+            {
+              "id": "QUALITY-14.T1b",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T1"]
+              },
+              "text": "Route the remaining direct effect enders through the event table: planDepartedSourceGrantRemovals, expiredCarriedOverGrants, the EXPIRE path of planResumedCarriedEffects, planConcentrationCarriedGrantEnds, and the rest recovery of SCALAR_REDUCTION and HIT_POINT_MAXIMUM_REDUCTION contributions inside activeEffectEndsOnRest; apply D172 linked dependents in the relationship sweep like the other enders.",
+              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13); listed as \"not yet events\" in rules-runtime.md.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -26524,7 +26544,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-14.T1"]
+                "after": ["QUALITY-14.T1", "QUALITY-14.T1b"]
               },
               "text": "One concentration planner for action and movement damage; DAMAGED(AFTER) is raised once per command and holder and feeds effect ends, repeat saves and maintenance saves across every damage root.",
               "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\"."
@@ -26813,7 +26833,7 @@
             },
             {
               "id": "QUALITY-18.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26822,8 +26842,24 @@
                 "size": 5,
                 "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Parity items from QUALITY-18.T2b2-T2b4 (2026-11-13): a resumed move re-prices its remaining path against the mover's current state (a reaction that knocked it Prone means crawl or stand cost) and ends at contact if it no longer fits; plus the parity gaps listed in the T2b report (retried OPTION beyond the journal, a child moving the mover's token, OPTION or resume on an unpresented Scene, frozen spatialCurrentnessChecksum at a TERMINAL stop, single-use item and target policy refusals, sweep early return, member OPTION source revalidation, transient parent CHOICE read). Further T2b risks to cover: the action-host and ray-list hold and return under ruling 17 are proved only at persistence level (add room proofs); roots raised in after-commit run before a held parent returns; a departed mover's check answer and resume. Cleanups from T2c (2026-11-14): rename appendEncounterMovementReactionActionEvidenceCommand (now only the CONCENTRATION_EVIDENCE branch uses it), tighten the liveSessionMovementCommit settlements maxLength now that REACTION settlements are gone, and fix the stale ACTION_EVIDENCE comment in movementMaintenance.test.ts.",
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Parity items from QUALITY-18.T2b2-T2b4 (2026-11-13): a resumed move re-prices its remaining path against the mover's current state (a reaction that knocked it Prone means crawl or stand cost) and ends at contact if it no longer fits; plus the parity gaps listed in the T2b report (retried OPTION beyond the journal, a child moving the mover's token, OPTION or resume on an unpresented Scene, frozen spatialCurrentnessChecksum at a TERMINAL stop, single-use item and target policy refusals, sweep early return, member OPTION source revalidation, transient parent CHOICE read). Further T2b risks to cover: the action-host and ray-list hold and return under ruling 17 are proved only at persistence level (add room proofs); roots raised in after-commit run before a held parent returns; a departed mover's check answer and resume. Cleanups from T2c (2026-11-14): rename appendEncounterMovementReactionActionEvidenceCommand (now only the CONCENTRATION_EVIDENCE branch uses it), tighten the liveSessionMovementCommit settlements maxLength now that REACTION settlements are gone, and fix the stale ACTION_EVIDENCE comment in movementMaintenance.test.ts. Split 2026-11-14 at delivery: the unverified parity proofs moved to QUALITY-18.T3c. Orchestrator ruling: Prone crawl/stand cost is not enforced on a resumed move, parity with a fresh move (D37/D38: the budget is shown, never enforced server-side). A reaction that moves the mover at a movement contact is refused cleanly today (forced movement needs grid-aligned tokens) and the sweep early return across several pending Runs waits one alarm pass: both rare and recoverable, deferred to future-enhancements Deferred edge cases.",
               "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed.",
+              "mergedAt": "2026-11-14",
+              "proof": "m743 (0a4a94de8); slice tip d073cad81: Tests 43542310067, Live 43542310119, Browser journeys 43542310078 green. No product behaviour change: every rider kind (window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn, decoys, sight, flyby, Escape the Horde) already has a child-path room test; resumed move re-prices at resume (preparedMovementCost). New room proofs: retried OPTION beyond the journal (after the move ended and while the child waits with the parent SUSPENDED) replays with no new dice or commands; a pushing reaction at a contact is refused and rolled back with the choice open; the parent CHOICE reads null between child commit and resume; ray-list hold under ruling 17 asserted SUSPENDED. Cleanups: appendEncounterMovementConcentrationEvidenceCommand rename, settlements maxLength 3*MAX_SPATIAL_CANDIDATES + 2*MAX_ENCOUNTER_ACTORS, stale comment. No assertions restated; no persisted shape change."
+            },
+            {
+              "id": "QUALITY-18.T3c",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-18.T3"]
+              },
+              "text": "Movement child parity proofs still unverified, test first and fix what fails: a root raised in after-commit (roomEncounterAfterCommit stages 2-5) while a move awaits its resume, where readMovementReactionChildResume reads .take(1) (movementReactionChild.ts ~101) and may miss or resume early; OPTION on an unpresented Scene (readReactionSceneContext reads the bound Scene regardless); source, single-use item and target policy refusals at OPTION (recordMovementReactionChild does not revalidate the source); a departed mover's check answer and resume.",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -26842,7 +26878,7 @@
             },
             {
               "id": "QUALITY-18.T5",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26852,7 +26888,8 @@
                 "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4", "QUALITY-18.T3"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Re-scoped 2026-11-14 at the seam trace: the server still emits MOVEMENT_REACTION (encounterSpatialOccurrenceSummary.ts), so a web-only change cannot meet AC QUALITY-18.1; the flip touches about 60 test files and the projection T3 edits. Resized 3 to 13 and sequenced after T3; QUALITY growth pre-approved by the user (2026-11-13). Orchestrator ruling: carry the reactor token id on the offer (additive optional field; the server knows which token reacts) rather than guessing actor to token in the web model, and do not render two kinds side by side.",
-              "text": "The movement offer is REACTION_CHOICE end to end: the spatial occurrence summary emits REACTION_CHOICE (targetActorId = reactor, options { optionId, actionId }) instead of MOVEMENT_REACTION; REACTION_CHOICE gains an optional reactor token id so the token badge works for movement and action offers alike; the drawer uses one wording for both; restate the movement tests (worker, Convex, schema, development drafts), stories and the encounterMovement journey. The timed decline already runs through the shared encounter path (pendingReads reactionOffer, roomReactionTimeout), proved by the restated tests. T6 then deletes the MOVEMENT_REACTION kind."
+              "text": "The movement offer is REACTION_CHOICE end to end: the spatial occurrence summary emits REACTION_CHOICE (targetActorId = reactor, options { optionId, actionId }) instead of MOVEMENT_REACTION; REACTION_CHOICE gains an optional reactor token id so the token badge works for movement and action offers alike; the drawer uses one wording for both; restate the movement tests (worker, Convex, schema, development drafts), stories and the encounterMovement journey. The timed decline already runs through the shared encounter path (pendingReads reactionOffer, roomReactionTimeout), proved by the restated tests. T6 then deletes the MOVEMENT_REACTION kind.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T6",
@@ -26863,7 +26900,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-18.T3", "QUALITY-18.T4", "QUALITY-18.T5"]
+                "after": ["QUALITY-18.T3", "QUALITY-18.T4", "QUALITY-18.T5", "QUALITY-18.T3c"]
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
               "text": "Delete the MOVEMENT_REACTION summary kind, the movement reaction phases, completedReactionExecutions, the nested movement-reaction modules, liveMovementReactionPersistence and the movement window-die field; restate tests; update rules-runtime.md and persistence.md; D196 reset."
