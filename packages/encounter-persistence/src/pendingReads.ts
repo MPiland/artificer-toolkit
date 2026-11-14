@@ -128,8 +128,20 @@ export async function readPendingRunDecision(
     await readRunActor(ctx, state, reaction.reactorActorId)
   )
   const seconds = state.afkUserIds.includes(controller) ? 0 : state.reactionSeconds
+  // The tabletop badges the reactor's token: a movement offer names it, any other reaction offer
+  // reads it from the Run's actor-token binding.
+  const reactorBinding =
+    reaction.offer.kind === 'REACTION_CHOICE' && !reaction.offer.reactorTokenId
+      ? await ctx.db
+          .query('encounterActorTokenBindings')
+          .withIndex('by_encounterId_actorId', (q) =>
+            q.eq('encounterId', row.id).eq('actorId', reaction.reactorActorId)
+          )
+          .unique()
+      : null
   return {
     ...reaction.offer,
+    ...(reactorBinding && { reactorTokenId: reactorBinding.tokenId }),
     answerBy: new Date(Date.parse(occurrence.updatedAt) + seconds * 1000).toISOString()
   }
 }

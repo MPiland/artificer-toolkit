@@ -55,6 +55,7 @@ import {
   retriedAfterMovementResume
 } from '../../tests/fixtures/automaticSceneMovement'
 import { reactionBinding } from '../../tests/fixtures/reactionBinding'
+import { expectedReactionContact } from '../../tests/fixtures/reactionContact'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import {
   attachFixtureRoom,
@@ -506,6 +507,12 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     run,
     sceneId,
     tokens,
+    grid: settings.grid,
+    actorIdByTokenId: new Map(
+      [reactor, ...(futureReactorActor ? [futureReactorActor] : []), mover].map(
+        (actor, index) => [tokens[index]!.id, actor.id] as const
+      )
+    ),
     rootInput
   }
 }
@@ -803,11 +810,24 @@ describe('native Character movement-decision authority', () => {
     if (!before) throw new Error('Expected a pre-settlement read.')
     expect(after.liveEntities).toEqual(before.liveEntities)
     // Restated (QUALITY-18.T5): the offer no longer carries the contact's path distance (the
-    // unified Reaction choice), so the stop is proved as the mover's point on its path, short of the
-    // destination; the equality with the pre-settlement rows above keeps it where the move paused.
+    // unified Reaction choice), so the stop is proved equal to the contact the product's reach
+    // function computes for the reactor, and as a point on the path; the equality with the
+    // pre-settlement rows above keeps it where the move paused.
     expect(after.liveEntities).toMatchObject([{ entityId: value.tokens.at(-1)?.id }])
     const stop = after.liveEntities[0]?.value
     if (stop?.collection !== 'tokens') throw new Error('Missing mover token.')
+    expect(stop.entity.position).toEqual(
+      expectedReactionContact({
+        actorIdByTokenId: value.actorIdByTokenId,
+        grid: value.grid,
+        movingTokenId: value.rootInput.tokenId,
+        path: value.rootInput.path,
+        reach: { amount: 5, unit: 'FEET' },
+        reactorTokenId: value.tokens[0]!.id,
+        stage: reactionBinding.stage,
+        tokens: value.tokens
+      })
+    )
     const pathLength = Math.hypot(destination.x - origin.x, destination.y - origin.y)
     const along =
       ((stop.entity.position.x - origin.x) * (destination.x - origin.x) +

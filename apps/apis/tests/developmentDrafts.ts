@@ -50,6 +50,8 @@ import {
 } from './developmentCampaignCustody'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import { readCharacterSheetSlices } from './fixtures/characterSheetSlices'
+import { reactionBinding } from './fixtures/reactionBinding'
+import { expectedReactionContact } from './fixtures/reactionContact'
 import { generateProfileUsername, generateValidUsername } from './fixtures/generatedUsername'
 import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
 import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
@@ -4219,7 +4221,20 @@ try {
               `The offer must count down ${run.reactionSeconds} s from its issuing commit (answerBy ${pending.answerBy}).`
             )
             // The offer no longer carries the contact distance (the unified Reaction choice), so the
-            // stop is proved as a point on the path, short of the destination.
+            // stop is proved equal to the contact the product's reach function computes, and as a
+            // point on the path.
+            const contact = expectedReactionContact({
+              ...fixture.geometry,
+              movingTokenId: fixture.mover.tokenId,
+              path: [movementPath.from, movementPath.to],
+              reach: { amount: 5, unit: 'FEET' },
+              reactorTokenId: fixture.reactor.tokenId,
+              stage: reactionBinding.stage
+            })
+            assert.ok(
+              Math.hypot(moverPosition.x - contact.x, moverPosition.y - contact.y) < 0.001,
+              'The room must stop the mover where the reaction triggers.'
+            )
             assert.ok(
               Math.abs(moverPosition.y - movementPath.from.y) < 0.001 &&
                 moverPosition.x > movementPath.from.x &&

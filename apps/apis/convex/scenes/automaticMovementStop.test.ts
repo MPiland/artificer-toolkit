@@ -9,6 +9,8 @@ import {
   queueRoomRolls,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { reactionBinding } from '../../tests/fixtures/reactionBinding'
+import { expectedReactionContact } from '../../tests/fixtures/reactionContact'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { joinCharacterPlay } from '../characters/stateDocuments'
 
@@ -59,8 +61,20 @@ it.each([false, true])(
     // Production checkpoints periodically, including while a reaction choice is pending; the mover's
     // token waits at the contact then (D219). Restated (QUALITY-18.T5): the offer no longer carries
     // the contact's path distance (the unified Reaction choice), so the contact is read here and
-    // proved to lie on the path, short of the destination.
+    // proved equal to the product reach function's contact, and to lie on the path.
     const contact = await readCheckpointedTokenPosition(value, value.moverTokenId)
+    expect(contact).toEqual(
+      expectedReactionContact({
+        ...value.geometry,
+        grid: value.grid,
+        movingTokenId: value.moverTokenId,
+        path: value.rootInput.path,
+        reach: { amount: 5, unit: 'FEET' },
+        reactorTokenId: value.reactorTokenIds[0]!,
+        stage: reactionBinding.stage,
+        tokens: value.geometry.sceneTokens
+      })
+    )
     const along =
       ((contact.x - origin.x) * (destination.x - origin.x) +
         (contact.y - origin.y) * (destination.y - origin.y)) /

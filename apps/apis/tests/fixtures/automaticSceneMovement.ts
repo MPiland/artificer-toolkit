@@ -241,6 +241,7 @@ export async function setupReactionMovementScene<
     reactorTokenIds: tokens.filter((_, index) => index !== 1).map((token) => token.id),
     moverTokenId: tokens[1]!.id,
     rootInput,
+    grid: settings.grid,
     geometry: {
       sceneTokens: tokens,
       actorIdByTokenId: new Map(tokens.map((token, index) => [token.id, actors[index]!.id]))
