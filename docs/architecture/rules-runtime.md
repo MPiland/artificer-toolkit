@@ -589,9 +589,26 @@ array, one `CONCENTRATION_END` per state, persisted and checksummed with its con
 `concentrationChecks`. Incapacitation or defeat ends every held state with no save (D95). The movement
 chain plans through the same `planDamageSaveChain` as an action (current, QUALITY-14.T2): the zone's source
 is the damager and every actor's disposition is passed, so the System's maintenance hook gates a check
-exactly as for action damage. It is Concentration-only (`effectSaves: null`); movement repeat saves,
-massive-damage saves and damage-taken effect ends need new child kinds and persisted shapes and are
-tracked as QUALITY-14.T2b.
+exactly as for action damage. Its saves are Concentration-only (`effectSaves: null`).
+
+**Movement damage ends (current, QUALITY-14.T2b).** The damage a move's zones deal ends the effects the
+damaged creatures hold until damaged (`DAMAGE_TAKEN` end triggers), like action damage. They end once the
+move's last contact has settled, not at the contact: `terminalMovementDamageEnds`
+(`encounterSpatialDamageEnds.ts`) reads every applied contact of the move and each damaged creature's current
+effects, raises `DAMAGED(AFTER)` once per holder for the whole move (one hit per contact, the zone's source
+the damager) through `targetEndedEffects`, and lists the ends as `damageEnds` on the TERMINAL preparation
+outcome. Every terminal site calls it (the finished move, a stop at the terminal distance, a reaction's stop,
+a declined or lost passage). The room plans one `DAMAGE_END` settlement per end after every contact, beside
+`AREA_DEPARTURE` and `MOVE_END`; `persistLiveMovementDamageEnd` re-derives the ends with the same function
+(`movementDamageEndedEffects`) from the holder's current rows and the move's applied contacts, requires the
+step's effect among them, and ends it through the escape end path (the row, the conditions only it held,
+maintenance owners). The spatial receipt is unchanged. An effect the move itself placed never ends on the
+move's own damage, and an effect the move already releases (`areaDepartures`, `moveEnds`) is not listed
+twice. Not covered yet (transitional): a move left PENDING ends nothing until it finishes; the temporary hit
+points and incoming-damage grants an action's ends stage also releases; effect repeat saves and
+massive-damage saves on movement damage (they need movement child kinds and pending phases); and the save
+chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
+effect and owes a save raises twice.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
 (`domain.ruleDefinitionId`) is an ordinary roll-influence or bonus grant; two Equipment-context predicates
@@ -3872,8 +3889,9 @@ on its `repeatTriggers` alone: it requires them, a once-only repeated save, and 
 `repeatAttemptGate`, and is never a `repeatTiming`. It compiles to the same frozen repeat-save graph, gated on the
 adapter fact `dnd5e.active-effect-repeat-save-triggers-only`; the turn tick refuses the attempt (`ATTEMPT_REFUSED`,
 no request, only the duration counts down) and the damage hook passes `onTrigger: true` so the attempt is allowed.
-Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
-per-step stack, and is not in the chain yet.
+Movement (zone contact) damage settles its Concentration saves through `MovementConcentrationSettlement`, a
+separate per-step stack, and its damage-taken effect ends as `DAMAGE_END` steps (QUALITY-14.T2b, see "Movement
+damage ends"); its effect repeat saves and massive-damage saves are not in the chain yet.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`

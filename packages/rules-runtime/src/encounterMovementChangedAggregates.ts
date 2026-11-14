@@ -56,6 +56,7 @@ export type MovementCommandTransition =
     }
   | { kind: 'AREA_DEPARTURE'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'MOVE_END'; characterTransitions: readonly CharacterVersionTransition[] }
+  | { kind: 'DAMAGE_END'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'PASSAGE'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'CONCENTRATION' | 'CONCENTRATION_END'; execution: ConcentrationChild }
 
@@ -199,6 +200,7 @@ export function movementCommandCharacterAggregateVersions(
     } else if (
       transition.kind === 'AREA_DEPARTURE' ||
       transition.kind === 'MOVE_END' ||
+      transition.kind === 'DAMAGE_END' ||
       transition.kind === 'PASSAGE'
     ) {
       for (const characterTransition of transition.characterTransitions) append(characterTransition)
