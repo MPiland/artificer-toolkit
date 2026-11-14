@@ -127,11 +127,14 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     /** A GM void this commit declines (D26); it is recorded in the same transaction. */
     voidCommand: z.optional(voidRuleOccurrenceInputDtoSchema),
     rules: z.nullable(encounterActorRuleOutputSchema),
+    /**
+     * At most one batch, one Concentration outcome and one zone departure for each spatial
+     * candidate, and one passage and one move end for each actor. A reaction settles in its own
+     * child action's commit (D219), never here.
+     */
     settlements: z
       .array(liveSessionMovementSettlementSchema)
-      .check(
-        z.maxLength(3 * MAX_SPATIAL_CANDIDATES + MAX_ENCOUNTER_ACTORS * (MAX_ENCOUNTER_ACTORS + 2))
-      )
+      .check(z.maxLength(3 * MAX_SPATIAL_CANDIDATES + 2 * MAX_ENCOUNTER_ACTORS))
   })
 )
 
