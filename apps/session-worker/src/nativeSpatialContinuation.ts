@@ -9,7 +9,12 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import { moveEndHolds } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  incomingDamageGrantRecords,
+  moveEndHolds
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { movementDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { spatialEffectTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import {
   endsOnLeavingZone,
@@ -198,13 +203,16 @@ export function nativeSpatialStepCallbacks(
 
 /**
  * The receipts a continuation's settlements persist as, the releases a terminal move owes (a zone
- * left, a held effect ended by moving or by the move's zone damage) and the rule output of the actors it leaves; `finalActors`
- * gathers each actor those releases change.
+ * left, a held effect ended by moving or by the move's zone damage), the grants its zone damage
+ * gives, and the rule output of the actors it leaves; `finalActors` gathers each actor those
+ * releases change.
  */
 export function nativeMovementSettlementInputs(input: {
   state: EncounterRunState
   actors: readonly EncounterRunActorState[]
   finalActors: Map<string, EncounterRunActorState>
+  /** The move's occurrence and the command that settles it, which roots the grants it gives. */
+  step: Pick<ContinuationInput, 'occurrenceId' | 'executionCommandId' | 'occurredAt'>
   planned: {
     outcome: SceneSpatialPreparation['outcome']
     settlements: readonly NativeLiveMovementSettlement[]
@@ -212,7 +220,7 @@ export function nativeMovementSettlementInputs(input: {
     targets: ReadonlyMap<string, { activeEffects: ActiveRuleEffectRecord[] }>
   }
 }) {
-  const { state, actors, finalActors, planned } = input
+  const { state, actors, finalActors, step, planned } = input
   const { targets } = planned
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
     if (settlement.kind === 'CONCENTRATION')
@@ -298,6 +306,40 @@ export function nativeMovementSettlementInputs(input: {
       activeEffectId: endedEffect.id
     }))
       finalActors.set(actor.id, actor)
+  }
+  // Each grant joins its holder once the move's damage ends have, as the commit re-derives it.
+  const dispositions = new Map(actors.map((actor) => [actor.id, actor.disposition]))
+  for (const damageGrant of outcome?.damageGrants ?? []) {
+    const holder = finalActors.get(damageGrant.holderActorId)
+    const holderEffects =
+      remainingEffects.get(damageGrant.holderActorId) ??
+      targets.get(damageGrant.holderActorId)?.activeEffects
+    if (!holder || !holderEffects) throw new Error('Movement damage grant holder is missing.')
+    const grant = movementDamageEnds({
+      holder,
+      held: holderEffects,
+      executions: outcome?.result.status === 'BATCH_COMPLETE' ? outcome.result.executions : [],
+      encounter: state,
+      occurrenceId: step.occurrenceId,
+      commandId: step.executionCommandId,
+      dispositions
+    }).grants.find(({ id }) => id === damageGrant.effectId)
+    if (!grant) throw new Error('Movement damage grant is not owed.')
+    const created = incomingDamageGrantRecords({
+      grants: [grant],
+      owner: turnEffectOwner(holder, state.id),
+      current: holderEffects,
+      occurredAt: step.occurredAt
+    })
+    const [createdEffect] = created
+    remainingEffects.set(damageGrant.holderActorId, [...holderEffects, ...created])
+    settlementInputs.push(
+      liveSessionMovementSettlementSchema.parse({
+        kind: 'DAMAGE_GRANT',
+        damageGrant,
+        createdEffect
+      })
+    )
   }
   const ruleFacts =
     planned.outcome.kind === 'TERMINAL' || settlementInputs.length

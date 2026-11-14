@@ -5,10 +5,10 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
-import { movementDamageEndedEffects, spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
+import { movementDamageEnds, spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
-import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
+import { ENCOUNTER_ID, creatureActor } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
 const raised = vi.hoisted(() => ({ events: [] as EncounterEvent[][] }))
@@ -126,15 +126,17 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
       contact(ZONE_A, OTHER_ID)
     ]
     const endedBy = (occurrenceId: string) =>
-      [...held].flatMap(([holderActorId, effects]) =>
-        movementDamageEndedEffects({
-          holderActorId,
-          held: effects,
-          executions,
-          occurrenceId,
-          turnActorId: null,
-          dispositions: new Map()
-        })
+      [...held].flatMap(
+        ([holderActorId, effects]) =>
+          movementDamageEnds({
+            holder: creatureActor({ id: holderActorId, kind: 'CUSTOM', snapshot: {} }),
+            held: effects,
+            executions,
+            encounter: { id: ENCOUNTER_ID, currentActorId: null },
+            occurrenceId,
+            commandId: MOVE_OCCURRENCE_ID,
+            dispositions: new Map()
+          }).endedEffects
       )
 
     it('raises one event per holder for the whole move, with one hit per contact that reached it', () => {

@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { encounterEscapeEndedConditionIds } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
-import { movementDamageEndedEffects } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
+import { incomingDamageGrantRecords } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { movementDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {
   ENCOUNTER_ID,
-  creatureActor
+  creatureActor,
+  srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
 import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { createActiveRuleEffectStore } from '../effectStore.js'
-import { persistLiveMovementDamageEnd } from '../escapedEffectEndPersistence.js'
+import {
+  persistLiveMovementDamageEnd,
+  persistLiveMovementDamageGrant
+} from '../escapedEffectEndPersistence.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import type { EncounterCharacterWriteTransaction } from '../ports.js'
 import type { EncounterDocument } from '../store.js'
@@ -27,6 +35,8 @@ const ZONE_SOURCE_ID = '00000000-0000-4000-8000-0000000f0203'
 const EFFECT_ID = '00000000-0000-4000-8000-0000000f0204'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-0000000f0205'
 const DAMAGE_TYPE_ID = '00000000-0000-4000-8000-0000000f0206'
+const COMMAND_ID = '00000000-0000-4000-8000-0000000f0207'
+const GOLEM_ID = '00000000-0000-4000-8000-0000000f0208'
 const OCCURRED_AT = '2026-11-14T00:00:00.000Z'
 
 type DamageEnd = Parameters<typeof persistLiveMovementDamageEnd>[1]
@@ -52,8 +62,8 @@ const contact = (amount: number) =>
     }
   ] as unknown as DamageEnd['executions']
 
-/** A Run whose holder carries Hideous Laughter authored (fixture data) to end on damage too. */
-async function laughingRun() {
+/** A Run holding the given actors, with no effects yet. */
+function runOf(runActors: readonly EncounterRunActorState[]) {
   const memory = createMemoryEncounterStore()
   memory.load(
     'encounterRuns',
@@ -64,7 +74,7 @@ async function laughingRun() {
   )
   memory.load(
     'encounterRunActors',
-    actors.map((actor, index) => ({
+    runActors.map((actor, index) => ({
       ...actor,
       _id: `actor${index}`,
       _creationTime: 2 + index,
@@ -72,7 +82,12 @@ async function laughingRun() {
     })) as unknown as EncounterDocument<'encounterRunActors'>[],
     { validate: false }
   )
-  const ctx = { db: memory.store } as unknown as EncounterCharacterWriteTransaction
+  return { db: memory.store } as unknown as EncounterCharacterWriteTransaction
+}
+
+/** A Run whose holder carries Hideous Laughter authored (fixture data) to end on damage too. */
+async function laughingRun() {
+  const ctx = runOf(actors)
   const store = createActiveRuleEffectStore(ctx)
   const planned = plannedTimedCondition({
     encounterId: ENCOUNTER_ID,
@@ -108,6 +123,7 @@ async function laughingRun() {
       },
       executions,
       occurrenceId: OCCURRENCE_ID,
+      commandId: COMMAND_ID,
       occurredAt: OCCURRED_AT
     })
   return { store, effect, end }
@@ -119,14 +135,15 @@ describe('a DAMAGE_END step for an effect that both ends on damage and offers a 
     expect(run.effect.definition.recurrence.repeatTriggers?.length).toBeGreaterThan(0)
     // While the holder carries it, the move's damage does end it: the step is only stale.
     expect(
-      movementDamageEndedEffects({
-        holderActorId: HOLDER_ID,
+      movementDamageEnds({
+        holder: actors[1]!,
         held: await run.store.list(owner),
         executions: contact(1),
+        encounter: { id: ENCOUNTER_ID, currentActorId: HOLDER_ID },
         occurrenceId: OCCURRENCE_ID,
-        turnActorId: HOLDER_ID,
+        commandId: COMMAND_ID,
         dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
-      }).map(({ id }) => id)
+      }).endedEffects.map(({ id }) => id)
     ).toEqual([EFFECT_ID])
     await run.store.deleteCas({
       id: run.effect.id,
@@ -147,5 +164,82 @@ describe('a DAMAGE_END step for an effect that both ends on damage and offers a 
       'Movement release differs from its holder effect.'
     )
     expect((await run.store.list(owner)).map(({ id }) => id)).toEqual([EFFECT_ID])
+  })
+})
+
+/**
+ * QUALITY-14.T2d2: a `DAMAGE_GRANT` step is re-derived from the holder's current rows and the move's
+ * applied contacts, so the commit creates only a grant the move's damage owes.
+ */
+describe('a DAMAGE_GRANT step for an SRD Flesh Golem (Aversion of Fire)', () => {
+  const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
+  const golem = srdCreatureActor({
+    id: GOLEM_ID,
+    creature: srdByLabel(SRD.creatures, 'Flesh Golem')
+  })
+  const golemActors = [...actors, golem]
+  const golemOwner = turnEffectOwner(golem, ENCOUNTER_ID)
+  const state = { id: ENCOUNTER_ID, currentActorId: GOLEM_ID }
+  /** One zone contact of the move that dealt the Golem 3 damage of the given type. */
+  const golemContact = (damageTypeId: string) =>
+    [
+      {
+        applications: [
+          { kind: 'DAMAGE', targetActorId: GOLEM_ID, damageTypeId, resolvedAmount: 3 }
+        ],
+        candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: GOLEM_ID } }
+      }
+    ] as unknown as DamageEnd['executions']
+  /** The step the room plans for the grant the move's fire damage owes. */
+  const plannedGrant = () => {
+    const [grant] = movementDamageEnds({
+      holder: golem,
+      held: [],
+      executions: golemContact(FIRE),
+      encounter: state,
+      occurrenceId: OCCURRENCE_ID,
+      commandId: COMMAND_ID,
+      dispositions: new Map(golemActors.map(({ id, disposition }) => [id, disposition]))
+    }).grants
+    if (!grant) throw new Error('The fire damage must owe the Golem its grant.')
+    const [createdEffect] = incomingDamageGrantRecords({
+      grants: [grant],
+      owner: golemOwner,
+      current: [],
+      occurredAt: OCCURRED_AT
+    })
+    return {
+      kind: 'DAMAGE_GRANT' as const,
+      damageGrant: { effectId: grant.id, holderActorId: GOLEM_ID },
+      createdEffect: createdEffect!
+    }
+  }
+  const golemRun = () => {
+    const ctx = runOf(golemActors)
+    const grant = (damageTypeId: string) =>
+      persistLiveMovementDamageGrant(ctx, {
+        state,
+        actors: golemActors,
+        step: plannedGrant(),
+        executions: golemContact(damageTypeId),
+        occurrenceId: OCCURRENCE_ID,
+        commandId: COMMAND_ID,
+        occurredAt: OCCURRED_AT
+      })
+    return { store: createActiveRuleEffectStore(ctx), grant }
+  }
+
+  it('creates the grant the move’s fire damage owes, as the room planned it', async () => {
+    const run = golemRun()
+
+    await run.grant(FIRE)
+    expect(await run.store.list(golemOwner)).toEqual([plannedGrant().createdEffect])
+  })
+
+  it('refuses a forged grant the move’s damage does not owe', async () => {
+    const run = golemRun()
+
+    await expect(run.grant(DAMAGE_TYPE_ID)).rejects.toThrow('Movement damage grant is not owed.')
+    expect(await run.store.list(golemOwner)).toEqual([])
   })
 })

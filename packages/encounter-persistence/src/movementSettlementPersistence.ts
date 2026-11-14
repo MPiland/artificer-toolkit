@@ -39,6 +39,7 @@ import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistenc
 import type {
   persistLiveMovementAreaDeparture,
   persistLiveMovementDamageEnd,
+  persistLiveMovementDamageGrant,
   persistLiveMovementMoveEnd
 } from './escapedEffectEndPersistence.js'
 import type {
@@ -178,6 +179,9 @@ type MovementSettlementCallbacks = {
   persistDamageEnd: (
     input: Parameters<typeof persistLiveMovementDamageEnd>[1]
   ) => ReturnType<typeof persistLiveMovementDamageEnd>
+  persistDamageGrant: (
+    input: Parameters<typeof persistLiveMovementDamageGrant>[1]
+  ) => ReturnType<typeof persistLiveMovementDamageGrant>
   endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
   /** Versions a Character the passage's effect lands on, as every Character-owned effect does. */
   applyMechanics: Parameters<typeof persistLiveMovementSpatial>[2]['applyMechanics']
@@ -363,9 +367,12 @@ export async function persistMovementContacts(
     preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.moveEnds ?? []) : []
   const damageEnds =
     preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.damageEnds ?? []) : []
+  const damageGrants =
+    preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.damageGrants ?? []) : []
   let departureIndex = 0
   let moveEndIndex = 0
   let damageEndIndex = 0
+  let damageGrantIndex = 0
   let distance = -1
   const appliedEffectIds = new Set(
     priorPrefix?.spatialEffectTransitions.map((entry) => entry.effectId) ?? []
@@ -389,9 +396,12 @@ export async function persistMovementContacts(
       step.kind !== 'AREA_DEPARTURE' &&
       step.kind !== 'MOVE_END' &&
       step.kind !== 'DAMAGE_END' &&
-      (departureIndex || moveEndIndex || damageEndIndex)
+      step.kind !== 'DAMAGE_GRANT' &&
+      (departureIndex || moveEndIndex || damageEndIndex || damageGrantIndex)
     )
       throw new Error('Movement releases settle after every contact.')
+    if (step.kind !== 'DAMAGE_GRANT' && damageGrantIndex)
+      throw new Error('Movement damage grants settle after every release.')
     if (step.kind === 'SPATIAL') {
       const expected = spatial.slice(spatialIndex, spatialIndex + step.executions.length)
       if (
@@ -549,6 +559,7 @@ export async function persistMovementContacts(
         step,
         executions: appliedPrefix?.executions ?? [],
         occurrenceId: preparation.occurrenceId,
+        commandId: save.commandId,
         occurredAt: preparation.occurredAt
       })
       actors = committed.actors
@@ -557,6 +568,20 @@ export async function persistMovementContacts(
         characterTransitions: committed.characterTransitions
       })
       damageEndIndex++
+    } else if (step.kind === 'DAMAGE_GRANT') {
+      const expected = damageGrants[damageGrantIndex]
+      if (!expected || checksumCanonicalJson(expected) !== checksumCanonicalJson(step.damageGrant))
+        throw new Error('Movement damage grant differs from its retained move.')
+      await callbacks.persistDamageGrant({
+        state: input.state,
+        actors,
+        step,
+        executions: appliedPrefix?.executions ?? [],
+        occurrenceId: preparation.occurrenceId,
+        commandId: save.commandId,
+        occurredAt: preparation.occurredAt
+      })
+      damageGrantIndex++
     } else if (step.kind === 'CONCENTRATION_END') {
       const expected = ends.shift()
       if (!expected || checksumOnce(expected) !== checksumCanonicalJson(step.execution))
@@ -612,6 +637,7 @@ export async function persistMovementContacts(
     departureIndex !== departures.length ||
     moveEndIndex !== moveEnds.length ||
     damageEndIndex !== damageEnds.length ||
+    damageGrantIndex !== damageGrants.length ||
     saves.length ||
     ends.length ||
     Boolean(passage) !== passageSettled

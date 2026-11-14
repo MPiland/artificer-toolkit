@@ -24,6 +24,8 @@ import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-ru
 import type { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import type { HeldIncomingGate } from '@artificer-toolkit/rules-runtime/encounterIncomingAttackGate'
+import { plannedGateImmunityGrant } from './nativeGateImmunity.js'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
 import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import type { AreaPlanBase, AreaPrepared } from './nativeAreaPreparation.js'
@@ -85,6 +87,8 @@ export async function planAreaOutcomes(args: {
   caughtCount: number
   /** The incoming gate each kept caught entry passed, in order; the sealed ray's own record. */
   passedGates: readonly (EncounterSettledIncomingGateDto | undefined)[]
+  /** The ward each kept caught entry's passed gate names, re-derived at the commit; null when it names none. */
+  wards: readonly (HeldIncomingGate | null)[]
   struckStart: number
   tests: readonly Pick<Awaited<ReturnType<typeof replayAreaTargetSave>>, 'actorId' | 'boundary'>[]
   audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
@@ -111,6 +115,7 @@ export async function planAreaOutcomes(args: {
     entries,
     caughtCount,
     passedGates,
+    wards,
     struckStart,
     tests,
     audits,
@@ -134,6 +139,8 @@ export async function planAreaOutcomes(args: {
   let maintenanceCarried = false
   // A creature named again meets the hit points and Character record its earlier entries left it.
   const advanced = new Map<string, AreaPrepared>()
+  // Several rays that passed one creature's ward leave it one immunity.
+  const immunisedWards = new Set<string>()
   for (const [index, { actor, target }] of kept.entries()) {
     const earlier = advanced.get(actor.id)
     // Each entry runs its own action on the hit points and Character record its earlier entries left.
@@ -213,6 +220,21 @@ export async function planAreaOutcomes(args: {
         currentFeatureResource: resource
       })
     }
+    const ward = index < caughtCount ? (wards[index] ?? null) : null
+    const gateImmunityGrant =
+      ward && !immunisedWards.has(`${actor.id}:${ward.wardId}`)
+        ? plannedGateImmunityGrant({
+            ward,
+            state,
+            occurrenceId,
+            commandId,
+            actorId: caster.id,
+            sourceCharacterId: caster.kind === 'CHARACTER' ? caster.sourceId : null,
+            targetLabel: prepared.target.label,
+            targetLifetimeScope: prepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
+          })
+        : null
+    if (ward && gateImmunityGrant) immunisedWards.add(`${actor.id}:${ward.wardId}`)
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
@@ -245,7 +267,7 @@ export async function planAreaOutcomes(args: {
       dispositions,
       currentEffects: targetEffects,
       maintainedState: joined,
-      grants: [],
+      grants: gateImmunityGrant ? [gateImmunityGrant] : [],
       formCreature: formCreature ?? null,
       charge: resistance?.charge ?? null,
       mechanics: carriesSpend
