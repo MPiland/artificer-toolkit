@@ -540,10 +540,13 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
   })
 )
 
-/** Named so the many schemas embedding a plan stay within the declaration size limit (TS7056). */
-export type CompiledActionActiveEffectPlan = z.infer<
+/**
+ * An interface, not an alias, so the many schemas embedding a plan print it by name and stay within
+ * the declaration size limit (TS7056); an alias of `z.infer` is expanded wherever it is embedded.
+ */
+export interface CompiledActionActiveEffectPlan extends z.infer<
   typeof compiledActionActiveEffectPlanObjectSchema
->
+> {}
 
 const compiledActionActiveEffectPlanSchema: z.ZodMiniType<CompiledActionActiveEffectPlan> =
   compiledActionActiveEffectPlanObjectSchema
