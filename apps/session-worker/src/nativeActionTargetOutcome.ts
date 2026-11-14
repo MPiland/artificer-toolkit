@@ -49,7 +49,14 @@ export function planNativeActionTargetOutcome(input: {
   /** The target's effects the outcome may end: those no earlier outcome or spend ended. */
   held: EndedEffectsInput['held']
   grantTriggers: EndedEffectsInput['grantTriggers']
+  /** Who acts on the target: the attacker an attack-consumed effect checks. */
   damagerActorId: string
+  /**
+   * The command's damage to the target, one entry per source, that the target's one `DAMAGED(AFTER)`
+   * raise carries. A target named again in a list or an area takes all of it at its first outcome and
+   * none at the later ones, so it is damaged once per command (QUALITY-14.T2e).
+   */
+  damageBySource: NonNullable<EndedEffectsInput['damageBySource']>
   dispositions: EndedEffectsInput['dispositions']
   /** The effects the target holds as the outcome lands; the effects it creates join them. */
   currentEffects: ActiveRuleEffectRecord[]
@@ -87,6 +94,7 @@ export function planNativeActionTargetOutcome(input: {
     turnActorId: state.currentActorId,
     applications: input.applications,
     damagerActorId: input.damagerActorId,
+    damageBySource: input.damageBySource,
     dispositions: input.dispositions,
     grantTriggers: input.grantTriggers
   })

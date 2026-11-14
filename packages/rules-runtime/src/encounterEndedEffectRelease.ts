@@ -243,7 +243,15 @@ export function targetEndedEffects(input: {
         : [{ kind: 'TEST', test: 'SAVE', ability: { definitionId } } as const]
     }),
     ...(hits.length > 0
-      ? [{ kind: 'DAMAGED', phase: 'AFTER', hits, dispositions: input.dispositions } as const]
+      ? [
+          {
+            kind: 'DAMAGED',
+            phase: 'AFTER',
+            holderActorId: input.holderActorId,
+            hits,
+            dispositions: input.dispositions
+          } as const
+        ]
       : [])
   ]
   const hooks = discoverEncounterEventHooks({
