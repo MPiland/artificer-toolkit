@@ -32,6 +32,8 @@ afterEach(() => {
 function cleavingRoom(options: {
   autoRoll?: 'GAME_MASTER'
   rolls?: readonly number[]
+  /** The Bite's damage; 40 unless set. */
+  damage?: number
   /** The target that holds a Concentration the Bite then ends. */
   concentrationOwnerActorId?: string
   /** The target that holds a grant ending on incapacitation (D113), which the Bite's chain defeats. */
@@ -39,7 +41,7 @@ function cleavingRoom(options: {
   /** The creatures the Bite can reach; the first is the attack's target. */
   targetIds?: readonly string[]
 }) {
-  const attacker = biteWolf('ATTACK', { damage: 40, reachFeet: 20 })
+  const attacker = biteWolf('ATTACK', { damage: options.damage ?? 40, reachFeet: 20 })
   return actionRoom({
     ...options,
     concentration: options.concentrationOwnerActorId !== undefined,
@@ -267,6 +269,33 @@ describe('room Cleaving chain', () => {
       expect(concentrationEnds(settled)).toMatchObject([
         { ownerActorId: TARGET_IDS[1], reason: 'DEFEATED' }
       ])
+    })
+
+    it('checks a later target’s Concentration once for the damage the chain carries to it (QUALITY-14.T2)', async () => {
+      // 15 damage defeats the first Wolf (11), leaving 4 for the second, which survives and holds
+      // Concentration: the response commit plans its one check through the shared damage-save planner.
+      // The attack die shows 19; the GM's auto-rolled save die then shows 20.
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18, 19],
+        damage: 15,
+        concentrationOwnerActorId: TARGET_IDS[1]
+      })
+      await startAttack(room)
+      const first = await pendingChoice(room)
+      const option = first.pending.options.find((entry) => entry.targetActorId === TARGET_IDS[1])
+      const answer = await room.resolve(first, { kind: 'OPTION', optionId: option!.optionId })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      const settled = await readRoomHistory(room.room.base.stub)
+      const checks = settled.receipts.flatMap((receipt) => {
+        const execution = parseReceiptExecution(receipt)
+        return 'applicationOutputs' in execution &&
+          execution.applicationOutputs.kind === 'DAMAGE_SAVE_CHECK'
+          ? [execution.applicationOutputs]
+          : []
+      })
+      expect(checks).toMatchObject([{ outcome: 'SAVE_SUCCESS' }])
+      expect(settled.maintainedStates).toHaveLength(1)
     })
   })
 })
