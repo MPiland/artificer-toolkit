@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -99,12 +98,5 @@ describe('ability check bonus (Remarkable Athlete)', () => {
     }).output.derivedStats
     // Total level 9 gives a +4 proficiency bonus: +2 Strength, +2 rounded up, +2 rounded down.
     expect(checkOf(stats, 'STRENGTH')).toBe(6)
-  })
-})
-
-describe('the retired closed rule kinds', () => {
-  it('no longer exist', () => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CLASS_BARD_JACK_OF_ALL_TRADES')
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CLASS_CHAMPION_REMARKABLE_ATHLETE')
   })
 })

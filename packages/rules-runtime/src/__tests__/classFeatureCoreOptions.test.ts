@@ -207,7 +207,6 @@ describe('Dragon Wings, Unarmored Movement Improvement and Second-Story Work (SP
 
   it('Dragon Wings grants a fly speed equal to the walking speed, with no closed rule', () => {
     const outcomes = outcomesOf(featureOf('Draconic Bloodline', 'Dragon Wings'))
-    expect(outcomes.some(({ effectKind }) => effectKind === 'CLOSED_RULE')).toBe(false)
     const grant = outcomes.find((outcome) => outcome.effectKind === 'APPLY_GRANT')
     if (grant?.effectKind !== 'APPLY_GRANT') throw new Error('Dragon Wings must apply a grant.')
     expect(grant.grants?.modifiers?.[0]).toMatchObject({

@@ -8,7 +8,6 @@ import {
   srdFeature
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
@@ -78,7 +77,6 @@ function delegated(
 
 describe('Pact of the Chain (SPELLS-31.T4v2a)', () => {
   it('no longer lists its closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_WARLOCK_PACT_OF_CHAIN')
     expect(PACT_OF_THE_CHAIN.effects ?? []).toEqual([])
   })
 

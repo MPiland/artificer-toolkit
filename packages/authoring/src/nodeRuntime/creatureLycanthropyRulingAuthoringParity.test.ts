@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { werebear } from '@artificer-toolkit/source-data/srd/creatures/werebear.js'
@@ -61,16 +60,4 @@ describe('lycanthropy curse as a GM ruling (D187a)', () => {
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
-
-  it('no longer lists the five lycanthropy closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_WEREBEAR_BITE',
-      'CREATURE_WEREBOAR_TUSKS',
-      'CREATURE_WERERAT_BITE',
-      'CREATURE_WERETIGER_BITE',
-      'CREATURE_WEREWOLF_BITE'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
-  })
 })

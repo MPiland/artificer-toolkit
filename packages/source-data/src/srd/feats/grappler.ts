@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { heldCreatureAttackAdvantageGrants } from '../classes/mechanics.js'
-import { manualAdjudicationEffect } from '../closed-rule-effect.js'
+import { manualAdjudicationEffect } from '../srd-effect-builders.js'
 import { GRAPPLED_CONDITION_ID } from '../creatures/shared.js'
 import { FEAT_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'

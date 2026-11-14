@@ -462,7 +462,7 @@ Damage a Warding Bond mirrors to its source applies hit points and defeat only. 
 
 ### Pit Fiend Fear Aura as a passive zone (D147)
 
-The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELLS-20.T6b) needs four generic zone options: a placement filter by disposition relative to the source, a zone condition that ends at the start of the target's next turn, per-zone, per-target immunity for the rest of the Encounter after a made save, and suppression while the source is incapacitated (generalizing the defeated rule).
+The Fear Aura is authored as a start-of-turn save aura (the closed rule is deleted). Matching the full SRD rule needs four generic zone options: a placement filter by disposition relative to the source, a zone condition that ends at the start of the target's next turn, per-zone, per-target immunity for the rest of the Encounter after a made save, and suppression while the source is incapacitated (generalizing the defeated rule).
 
 ### Margin-of-failure riders on direct saves (D149)
 

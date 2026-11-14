@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { ghost } from '@artificer-toolkit/source-data/srd/creatures/ghost.js'
@@ -59,16 +58,5 @@ describe('partner-bound and body-control riders as GM rulings (D187a)', () => {
     expect(
       featureOutcomes(ghost, 'Possession (Recharge 6)').map(({ effectKind }) => effectKind)
     ).toEqual(['CONDITION', 'MANUAL_ADJUDICATION'])
-  })
-
-  it('no longer lists the four closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_GHOST_POSSESSION_RECHARGE_6',
-      'CREATURE_NIGHTMARE_CONFER_FIRE_RESISTANCE',
-      'CREATURE_SHIELD_GUARDIAN_BOUND',
-      'CREATURE_SHIELD_GUARDIAN_SHIELD'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
   })
 })

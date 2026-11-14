@@ -54,7 +54,6 @@ import {
   withOffHandDamage as sharedWithOffHandDamage
 } from '@artificer-toolkit/shared'
 import type {
-  ClosedRuleKind,
   EquipmentChildId,
   EquipmentEffectAuthored,
   EquipmentGrip,
@@ -190,48 +189,6 @@ export function skillId(code: string): string {
 
 export function stealthDisadvantageModifier(equipmentId: string, order = 1): ModifierGrantAuthored {
   return sharedStealthDisadvantageModifier(srdChildId(equipmentId), skillId('STEALTH'), order)
-}
-
-export function passiveEquipmentClosedRuleEffect(
-  equipmentId: string,
-  ruleKind: ClosedRuleKind,
-  order = 1,
-  bucket = 0x2e0
-): EquipmentEffectAuthored {
-  return {
-    id: equipmentChildId(equipmentId, bucket, 1),
-    order,
-    grip: null,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: {
-        id: equipmentChildId(equipmentId, bucket + 1, 1),
-        rangeKind: RANGE_KIND.SELF
-      }
-    },
-    paths: [
-      {
-        id: equipmentChildId(equipmentId, bucket + 2, 1),
-        order: 1,
-        pathCode: PATH_CODE.ON_USE,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: `${equipmentChildId(equipmentId, bucket + 2, 1)}__result`,
-          resultKind: 'SINGLE',
-          outcomes: [
-            {
-              id: equipmentChildId(equipmentId, bucket + 3, 1),
-              effectKind: EFFECT_KIND.CLOSED_RULE,
-              ruleKind
-            }
-          ]
-        }
-      }
-    ]
-  }
 }
 
 /**

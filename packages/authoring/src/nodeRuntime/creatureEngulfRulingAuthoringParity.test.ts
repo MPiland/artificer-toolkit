@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type {
   CreatureAuthored,
   EquipmentAuthored
@@ -118,16 +117,5 @@ describe('engulf riders as GM rulings (D187a), Whelm excepted (D202)', () => {
     expect(getValueAtPath(result.values, ['effects'])).toEqual(
       (authored as EquipmentAuthored).effects
     )
-  })
-
-  it('no longer lists the engulf and Finger of Death zombie closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_GELATINOUS_CUBE_OOZE_CUBE',
-      'CREATURE_WATER_ELEMENTAL_WHELM',
-      'FINGER_OF_DEATH_ZOMBIE',
-      'GELATINOUS_CUBE_ENGULF'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
   })
 })

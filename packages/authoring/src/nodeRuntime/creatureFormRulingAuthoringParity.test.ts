@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored, EffectAuthored } from '@artificer-toolkit/shared'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { clayGolem } from '@artificer-toolkit/source-data/srd/creatures/clay-golem.js'
 import { duergar } from '@artificer-toolkit/source-data/srd/creatures/duergar.js'
@@ -65,15 +64,4 @@ describe('Immutable Form and Duergar Enlarge as GM rulings (D187a)', () => {
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
-
-  it('no longer lists the five closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_IMMUTABLE_FORM',
-      'CREATURE_IRON_GOLEM_IMMUTABLE_FORM',
-      'CREATURE_STONE_GOLEM_IMMUTABLE_FORM',
-      'DUERGAR_ENLARGE',
-      'CREATURE_MIMIC_PSEUDOPOD_ADHESIVE'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
 })

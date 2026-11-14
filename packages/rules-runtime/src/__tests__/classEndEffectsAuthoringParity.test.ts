@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { featureEffectDtoSchema } from '@artificer-toolkit/schema/effects/effect'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
@@ -53,12 +52,6 @@ function compiledPlan(effect: Authored) {
 
 const stillness = feature(monk, 'Stillness of Mind')
 const cleansing = feature(paladin, 'Cleansing Touch')
-
-describe('the closed-rule kinds are deleted', () => {
-  it.each(['CLASS_MONK_STILLNESS_OF_MIND', 'CLASS_PALADIN_CLEANSING_TOUCH'])('%s', (kind) => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain(kind)
-  })
-})
 
 describe('Stillness of Mind is authorable from core options', () => {
   const [effect] = stillness.effects ?? []

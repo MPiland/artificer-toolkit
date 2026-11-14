@@ -11,7 +11,6 @@ import {
   type SrdCharacter
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
@@ -129,10 +128,6 @@ const warlockWith = (optionLabels: readonly string[]) =>
   })
 
 describe('spell range modifiers (SPELLS-31.T5i3)', () => {
-  it('no longer lists the closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_WARLOCK_ELDRITCH_SPEAR')
-  })
-
   it('keeps the SRD record and a homebrew reach exactly as authored through the class node map', async () => {
     const withReach: ClassAuthored = {
       ...structuredClone(warlock),
