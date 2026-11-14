@@ -74,6 +74,12 @@ describe('GM void decision table', () => {
       expect(
         classifyRuleOccurrenceVoid({ kind: 'ENCOUNTER_MOVEMENT_REACTION', phase: { kind: phase } })
       ).toEqual({ kind: 'DECLINE', resolution: { kind: 'DECLINE' } })
+    expect(
+      classifyRuleOccurrenceVoid({
+        kind: 'ENCOUNTER_MOVEMENT_REACTION',
+        phase: { kind: 'CHOICE', reactionChildren: [{ commandId: 'child' }] }
+      }).kind
+    ).toBe('REFUSE')
     for (const phase of ['SPATIAL_EVIDENCE', 'CONCENTRATION_EVIDENCE'] as const)
       expect(
         classifyRuleOccurrenceVoid({ kind: 'ENCOUNTER_MOVEMENT_REACTION', phase: { kind: phase } })
