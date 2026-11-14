@@ -1,3 +1,10 @@
+import {
+  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type {
   ActiveEffectSaveTally,
   ActiveEffectSaveThresholds,
@@ -7,16 +14,11 @@ import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/sha
 import { type CompiledRuleGraph } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionSystemAdapter } from '../../characterRuleActionSystemAdapter.js'
 import { requireDnd5eAddedDiceTotal } from './d20AddedDiceGraph.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
-  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
 import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'

@@ -61,6 +61,11 @@
       "types": "./dist/shared/*.d.ts",
       "default": "./dist/shared/*.js"
     },
+    "./systems/*": {
+      "source": "./src/systems/*.ts",
+      "types": "./dist/systems/*.d.ts",
+      "default": "./dist/systems/*.js"
+    },
     "./subjects": {
       "source": "./src/subjects/index.ts",
       "types": "./dist/subjects/index.d.ts",

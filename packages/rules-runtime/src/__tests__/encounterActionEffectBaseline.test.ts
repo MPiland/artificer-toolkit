@@ -1,3 +1,4 @@
+import { DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -30,7 +31,6 @@ import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDisco
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_SAVE_DC_FACT_KEY,

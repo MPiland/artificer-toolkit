@@ -376,7 +376,7 @@ export async function prepareEncounterMovementConcentration<
         gameSystemId: input.state.gameSystemId,
         applications: source.applications,
         maintainedStates,
-        parentOccurrenceId: input.occurrenceId,
+        commandOccurrenceIds: [input.occurrenceId],
         damagerActorId: source.damagerActorId,
         dispositions,
         effectSaves: {

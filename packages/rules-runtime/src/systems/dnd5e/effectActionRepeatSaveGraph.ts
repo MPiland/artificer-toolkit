@@ -1,18 +1,20 @@
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import { dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   Dnd5eEffectActionCompilerError,
   UUID,
   type Dnd5eCompiledEffectActionSource

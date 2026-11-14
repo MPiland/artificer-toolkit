@@ -1,3 +1,10 @@
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type {
   ActiveRuleEffectOwner,
   ActiveRuleEffectRecord
@@ -19,18 +26,13 @@ import {
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { ENCOUNTER_ID, SRD_SYSTEM_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'

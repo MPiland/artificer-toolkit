@@ -20,6 +20,7 @@ import {
   ROLLED_DIE_FACES
 } from '@artificer-toolkit/shared/core'
 import { amountBonusDtoSchema } from '../effects/heal.js'
+import { installedModifierGrantKinds } from '../systems/installedSystemSchemas.js'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -985,7 +986,6 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('WEAPON_PROFICIENCY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('FREE_OPPORTUNITY_REACTION', 'ENABLE', emptyDomainDtoSchema),
-    buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('HEALING_RECEIVED', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'HEALING_DEALT',
@@ -1405,6 +1405,9 @@ const buildModifierGrantVariants = () =>
       'REMOVE_OPTION',
       emptyDomainDtoSchema,
       attributePayloadDtoSchema
+    ),
+    ...installedModifierGrantKinds.map(({ valueDomainCode, modifierKind }) =>
+      buildModifierGrantVariant(valueDomainCode, modifierKind, emptyDomainDtoSchema)
     )
   ] as const
 type ModifierGrantVariant = ReturnType<typeof buildModifierGrantVariants>[number]

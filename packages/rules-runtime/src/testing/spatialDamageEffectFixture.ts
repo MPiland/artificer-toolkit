@@ -1,3 +1,10 @@
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
@@ -10,21 +17,16 @@ import {
 
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import { dnd5eAddedDiceFacts, dnd5eD20TestNodes } from '../systems/dnd5e/d20AddedDiceGraph.js'
 
 /** No d20 reaches it, so a spatial save effect always fails its save. */

@@ -1,10 +1,10 @@
+import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 
 import { EFFECT_KIND } from '@artificer-toolkit/shared/core'
 import { seaHag } from '@artificer-toolkit/source-data/srd/creatures/sea-hag.js'
 import { willOWisp } from '@artificer-toolkit/source-data/srd/creatures/will-o-wisp.js'
 
-import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   QUILL_VOLLEY_ID,

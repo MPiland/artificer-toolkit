@@ -14,10 +14,8 @@ import {
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
 
-import {
-  DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
-  RULE_RUNTIME_GRAPH_FAMILY_KEY
-} from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type {
   LegendaryActionEligibilityAdapter,
   LegendaryActionEligibilityFacts

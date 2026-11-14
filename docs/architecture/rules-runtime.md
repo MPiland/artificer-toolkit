@@ -554,7 +554,11 @@ Legendary discovery matches the eligibility adapter's `lifecycleDefinitionFamily
 relationship's conditions read the rule-action adapter's `actorRelationship` fact and operation keys,
 a maintenance barring grant is the maintenance-link adapter's `barringDomain` (null when none), and the
 idle-turn exemption reads the event vocabulary's `lifecycleEndCodes('IDLE_TURN')`, and the range and
-sight contributors are the roll-mode adapter's `ruleContributors` (QUALITY-16.T2).
+sight contributors are the roll-mode adapter's `ruleContributors` (QUALITY-16.T2). The schema's own
+System content (a System's modifier grant kinds, definition families and receipt bindings) is declared
+under `packages/schema/src/systems/<id>/` and read by neutral schema modules through the installed
+lists `systems/installedSystemSchemas.ts` and `systems/installedSystemDefinitionDocuments.ts`; the
+rules-runtime System imports its persisted keys from there (QUALITY-16.T3, ADR 0042 amendment).
 Each composition root builds its registries from one installed-Systems list per load tier (D195,
 RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
 (`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`
@@ -4064,7 +4068,14 @@ saves: Concentration checks and effect repeat saves, in one canonical order (`co
 raised inside the damaging command and answered by the holder's controllers. `planDamageSaveChain` plans the whole
 chain (QUALITY-14.T2) and `damagedHitRepeatTrigger` (does this hit meet this effect's trigger) is the only reader of
 `repeatTriggers`: one per damaged, undefeated holder effect and hit; an effect the damaging command placed never
-repeats against its own damage. A damage source opts in on
+repeats against its own damage. `placedByCommand` is that one rule (QUALITY-14.T2e2b2): an effect of either origin kind
+whose `sourceOccurrenceId` names one of the command's occurrences, its own or an entry occurrence it made per creature
+(an area's children, the root's `targetOccurrenceIds`), was placed by it. Leaving those out rebuilds each holder as the
+damage met it, from the room's projection and from the committed rows alike: `planDamageSaveChain` and
+`bindEncounterDamageSaveChain` take `commandOccurrenceIds`, `planNativeLiveConcentration` takes the parent's
+`entryOccurrenceIds`, and a resumed chain reads them from the parent receipt
+(`nativeConcentrationParentEntryOccurrenceIds`, carried as the `CONCENTRATION_RESPONSE` capture's
+`parentEntryOccurrenceIds`). A damage source opts in on
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is

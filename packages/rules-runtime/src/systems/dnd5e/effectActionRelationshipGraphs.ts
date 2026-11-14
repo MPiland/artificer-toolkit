@@ -1,3 +1,4 @@
+import { DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import { addNumbersRuleOperation, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
@@ -7,7 +8,6 @@ import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-  DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   type Dnd5eCompiledEffectActionSource,

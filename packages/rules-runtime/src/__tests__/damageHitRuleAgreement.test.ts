@@ -124,7 +124,7 @@ describe('the ends stage and the save chain read one hit rule (QUALITY-14.T2e2b,
       gameSystemId: DND5E_SYSTEM_ID,
       applications,
       maintainedStates: new Map([[HOLDER_ID, [{ id: STATE_ID, createdAt: CAST_AT }]]]),
-      parentOccurrenceId: testUuid(0xe2b7),
+      commandOccurrenceIds: [testUuid(0xe2b7)],
       damagerActorId: null,
       dispositions: new Map(),
       effectSaves: {

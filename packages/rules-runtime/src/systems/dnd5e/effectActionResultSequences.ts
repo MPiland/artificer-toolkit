@@ -1,7 +1,13 @@
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
-import { unsupported, type Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
+import {
+  DND5E_TARGET_ACTOR_FACT_KEY,
+  DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
+  unsupported,
+  type Dnd5eCompiledEffectActionSource
+} from './effectActionContracts.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 
 export type CompiledOutcomeEntry = Extract<
@@ -115,6 +121,35 @@ export function rulingSequence(action: Dnd5eCompiledEffectActionSource): {
     },
     rulings
   }
+}
+
+/**
+ * A ruling sequence's executable result with each ruling beside it as a manual-adjudication proposal
+ * on the same target, bound to its authored entry so the commit carries the GM's instructions.
+ */
+export function withRulingNodes(
+  definition: RuleGraphDefinition,
+  rulings: NonNullable<ReturnType<typeof rulingSequence>>['rulings']
+): ServerPublishedRuleDefinitionDto {
+  const rulingNodes = rulings.map((entry, index) => ({
+    entryId: entry.entryId,
+    node: {
+      id: `manual_adjudication-${index + 1}`,
+      operation: { key: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
+      inputs: {
+        targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+        targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
+      }
+    } satisfies RuleGraphDefinition['nodes'][number]
+  }))
+  return publishedGraph({
+    ...definition,
+    nodes: [...definition.nodes, ...rulingNodes.map(({ node }) => node)],
+    sourceEntryBindings: [
+      ...(definition.sourceEntryBindings ?? []),
+      ...rulingNodes.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
+    ]
+  })
 }
 
 /**

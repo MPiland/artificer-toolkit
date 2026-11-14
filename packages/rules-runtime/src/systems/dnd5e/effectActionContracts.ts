@@ -43,7 +43,6 @@ export const DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY = 'dnd5e.hit-points
 export const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 export const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
 export const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
-export const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY = 'dnd5e.play-absence-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
@@ -62,17 +61,11 @@ export const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
 export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-apply-proposal'
 export const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
   'dnd5e.movement-interruption-authorization'
-export const DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY = 'dnd5e.actor-relationship-state'
-export const DND5E_CONDITION_DURATION_OPERATION_KEY = 'dnd5e.condition-duration'
 export const DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION = 1
 export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
 export const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
 export const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
-export const DND5E_SAVE_MODIFIER_FACT_KEY = 'dnd5e.save-modifier'
 export const DND5E_SAVE_DC_FACT_KEY = 'dnd5e.save-dc'
-export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-checksum'
-/** The target's condition test-outcome rule (D94): `NONE`, `SAVE_AUTO_FAIL` or `HIT_IS_CRITICAL`. */
-export const DND5E_TEST_OUTCOME_RULE_FACT_KEY = 'dnd5e.test-outcome-rule'
 
 /** The conditions that fail a target's save of this ability unrolled, sorted and unique (D94). */
 export function dnd5eSaveAutoFailConditionIds(
@@ -204,8 +197,6 @@ export const DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY = 'dnd5e.attack-item-bindings'
 export const DND5E_DAMAGE_ADDED_DICE_FACT_KEY = 'dnd5e.damage-added-dice'
 /** The reductions the target's `INCOMING_DAMAGE` grants take from an attack's damage (Deflect Missiles). */
 export const DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY = 'dnd5e.incoming-damage-reductions'
-export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
-  'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
   'dnd5e.active-effect-save-request-node-id'
 /**
@@ -231,8 +222,6 @@ export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY =
 /** A repeat save made only when its damage trigger fires; the turn tick counts the duration alone. */
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY =
   'dnd5e.active-effect-repeat-save-triggers-only'
-/** Whether this turn's repeat save is attempted; false settles the gated d20 without a request. */
-export const DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY = 'dnd5e.repeat-save-attempt-allowed'
 export const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
 export const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.test-temporary-hit-points-proposal'

@@ -109,6 +109,8 @@ import {
 export async function planNativeLiveConcentration(input: {
   state: EncounterRunState
   parentOccurrenceId: string
+  /** The entry occurrences the parent made per creature (an area's children); empty for any other parent. */
+  entryOccurrenceIds: readonly string[]
   parentCommandFingerprint: string
   applications: readonly NativeConcentrationContext['application'][]
   sourceLabels: NativeConcentrationContext['sourceLabels']
@@ -491,7 +493,7 @@ export async function planNativeLiveConcentration(input: {
     gameSystemId: state.gameSystemId,
     applications: selectedApplications,
     maintainedStates: bindings,
-    parentOccurrenceId: input.parentOccurrenceId,
+    commandOccurrenceIds: [input.parentOccurrenceId, ...input.entryOccurrenceIds],
     damagerActorId: repeatSaveDamager ?? null,
     dispositions,
     effectSaves: repeatSaveDamager === undefined ? null : { massiveRule, holders }

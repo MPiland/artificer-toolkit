@@ -1,3 +1,4 @@
+import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 import {
   ACTIVATION_CODE,
@@ -14,7 +15,6 @@ import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/s
 import { executeEncounterActorsAction } from '../encounterActorsActionExecution.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
-import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureActor,

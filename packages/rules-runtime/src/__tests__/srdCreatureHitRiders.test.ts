@@ -1,3 +1,4 @@
+import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { describe, expect, it } from 'vitest'
 
@@ -6,7 +7,6 @@ import { readEncounterActorConditionState } from '../encounterCharacterMechanics
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
 import { lockedRelationshipActionFacts } from '../encounterRelationshipActionFacts.js'
 import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
-import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {

@@ -517,11 +517,12 @@ export async function readEncounterActionChoices(
             fillsSlot ? action.ownerFeatureId : undefined
           )
           const charged =
-            !fillsSlot ||
             !action.featureResourceUse ||
             (featureResources?.find((entry) => entry.featureId === action.ownerFeatureId)
               ?.remaining ?? 0) >= action.featureResourceUse.cost
-          if (economy.blocked || !charged) return null
+          // A spent slot filler is hidden (D93); any other spent use stays offered with the soft
+          // warning (D11), as for a Character.
+          if (economy.blocked || (fillsSlot && !charged)) return null
           if (action.equipmentBinding)
             itemBindings.set(action.actionId, {
               itemId: action.equipmentBinding.loadoutEntryId,
@@ -542,7 +543,12 @@ export async function readEncounterActionChoices(
               )
             ),
             attackSlot: economy.attackSlot,
-            warnings: economy.warnings
+            warnings: [
+              ...economy.warnings,
+              ...(charged
+                ? []
+                : [{ code: 'RESOURCE_UNAVAILABLE' as const, message: 'Not enough uses left.' }])
+            ]
           }
         })
     )

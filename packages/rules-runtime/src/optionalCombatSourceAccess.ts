@@ -5,7 +5,6 @@ import {
   DND5E_CLIMB_ONTO_LARGER_CREATURE_OPERATION_KEY,
   DND5E_DISARM_OPERATION_KEY,
   DND5E_FACING_OPERATION_KEY,
-  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
   DND5E_FLANKING_OPERATION_KEY,
   DND5E_INJURIES_OPERATION_KEY,
   DND5E_MARK_OPERATION_KEY,
@@ -16,7 +15,10 @@ import {
   DND5E_TUMBLE_OPERATION_KEY,
   type Dnd5eOptionalCombatReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
-import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import {
+  reusableDefinitionDocumentFamilyKey,
+  type ReusableDefinitionCurrentDto
+} from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { requireInstalledGameSystemPolicyModule } from './platformPolicyModules.js'
@@ -74,7 +76,7 @@ function requireExactCurrentOptionalCombatDefinition(input: {
     throw new OptionalCombatSourceError('Optional combat definition document is invalid.')
   const document = parsed.data
   if (
-    input.current.definitionFamilyKey !== DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY ||
+    input.current.definitionFamilyKey !== reusableDefinitionDocumentFamilyKey(document) ||
     input.current.gameSystemId !== input.gameSystemId ||
     input.current.id !== document.id ||
     document.gameSystemId !== input.gameSystemId ||
