@@ -2066,19 +2066,25 @@ function supported(
       : null
   if (targeting.kind === 'SELF' && targeting.reachFeet !== null && !selfTeleport)
     unsupported('D&D Self action range of distance bounds only its user teleporting.')
-  // A grant (Help), a timed condition (Invisibility), a bond (Telepathic Bond), a form or a check
-  // (First Aid) may ask for a willing target: an unwilling one only warns, and the table can
-  // override it.
+  // A willing target only warns when unwilling, and the table can override it. One creature may be
+  // asked to accept a grant (Help), a timed condition (Invisibility) or a check (First Aid); a list
+  // a grant, a bond (Telepathic Bond) or a form. Widening either set is QUALITY-15.T2 triage.
   if (
-    (targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') &&
+    targeting.kind === 'SINGLE' &&
     targeting.willing &&
     grantPlan === null &&
     conditionPlan === null &&
-    linkPlan === null &&
-    formPlan === null &&
     !checkAction
   )
-    unsupported('D&D willing target needs an outcome a creature accepts.')
+    unsupported('D&D willing creature needs a grant, timed condition or check it accepts.')
+  if (
+    targeting.kind === 'CHOSEN' &&
+    targeting.willing &&
+    grantPlan === null &&
+    linkPlan === null &&
+    formPlan === null
+  )
+    unsupported('D&D willing list needs a grant, bond or form its creatures accept.')
   const entry = effect.entries[0]
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')

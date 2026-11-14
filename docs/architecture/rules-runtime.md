@@ -152,8 +152,12 @@ and are composed in the compiler's `activatedAction`, which the direct path (`su
 `supportedTestPhaseKind`) and nothing else read. Each aspect refuses with its own rule, so a refusal names the aspect
 that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a reaction aims no area (its trigger's
 pending decision carries no aim), a Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
-accepts (a grant, condition, link, form or check). A single target on a Self range is its user, as the room's
-single-target evaluator holds it. The test, outcome and lifetime selection still run as plan ladders; they are the
+accepts: one creature a grant, timed condition or check; a list a grant, bond or form. A single target on a Self range is its user, as the room's
+single-target evaluator holds it. The targeting aspect (`compileDnd5eTargeting`) also holds the room's evaluator limits: a creature
+target names its disposition (any, willing or hostile), and a chosen-creature list needs a measured range, not Sight. Within those
+limits the aspects admit combinations the shape ladders refused: a save its user makes under any activation, an area save as a bonus
+action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
+(`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). The test, outcome and lifetime selection still run as plan ladders; they are the
 QUALITY-15 follow-up tasks.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
@@ -2963,7 +2967,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
 - **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
-- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
+- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. The activation aspect (`compileDnd5eActivation`) admits a `BONUS_ACTION`, so a `BONUS_ACTION` saving throw (a repeat's charge) compiles through `activatedAction`.
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
 - **Carrier kinds (SPELLS-4.T2n2, D181):** a repeat offer on a grant with no chosen item is an ordinary grant's offer: `modifierGrantPlan` plans it (an offer counts as grant content) and the generic modifier-grant path freezes it, so an attack's carrier works (Vampiric Touch). Only a chosen-item grant takes the Heat Metal rider (`effectActionRepeatCarrier.ts`: save, bound to the item, ends on release). An attack grant authored alike on the hit and the miss applies on either result; two grants on hit results are still refused.
 

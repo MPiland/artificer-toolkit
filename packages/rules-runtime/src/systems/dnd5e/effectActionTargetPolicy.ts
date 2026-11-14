@@ -56,6 +56,7 @@ export function compileDnd5eTargeting(
       // Self range to the user (Etherealness).
       if (range.rangeKind === 'SELF') return selfTargeting(invocation, test)
       if (shape) unsupported('D&D single target names no area shape.')
+      requireDisposition(targeting.dispositionKind)
       requireTargetRange(invocation)
       return { kind: 'SINGLE', willing: targeting.dispositionKind === 'WILLING' }
     case 'CHOSEN_CREATURES': {
@@ -70,12 +71,24 @@ export function compileDnd5eTargeting(
       // Mass Cure Wounds, D156).
       if (shape && (repeated || !chosenCreaturesAreaSupported(range.rangeKind, shape.shapeKind)))
         unsupported('D&D chosen-creature area must be a round area at a point.')
+      requireDisposition(targeting.dispositionKind)
+      // The room measures each chosen creature by distance; only a single target is held to sight.
+      if (range.rangeKind === 'SIGHT')
+        unsupported('D&D chosen-creature list needs a measured range, not Sight.')
       requireTargetRange(invocation)
       return { kind: 'CHOSEN', willing: targeting.dispositionKind === 'WILLING' }
     }
     default:
       unsupported('D&D action targeting is not a supported selection.')
   }
+}
+
+/**
+ * A creature target names whether it may be any creature, a willing one or a hostile one: the room
+ * warns against that disposition and cannot evaluate a target without one.
+ */
+function requireDisposition(dispositionKind: 'ANY' | 'WILLING' | 'HOSTILE' | undefined): void {
+  if (dispositionKind === undefined) unsupported('D&D creature target must name its disposition.')
 }
 
 function selfTargeting(invocation: Dnd5eActionInvocation, test: TestKind | null): Dnd5eTargeting {
