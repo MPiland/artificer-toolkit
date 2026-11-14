@@ -467,7 +467,7 @@ function concentrationContext(input: { finalizedDamageEnvelopeChecksum: string }
       sourceOperationKey: 'effect.apply',
       targetActorId: ids.actor,
       appliedAmount: 1,
-      damageTypeId: ids.effect
+      damageTypeIds: [ids.effect]
     },
     maintainedState: {
       id: ids.effectTwo,

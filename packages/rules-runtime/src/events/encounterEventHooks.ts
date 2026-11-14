@@ -67,20 +67,17 @@ export function isInEffectEventScope(scope: EffectEventScope, event: EffectEvent
 }
 
 /**
- * Whether damage of these types meets a damage subscription, for an end and a repeat save alike. A
- * damage of unknown type (`null`: a source that dealt several types) meets only an untyped one,
- * since no single type can satisfy a filter.
+ * Whether damage of these types meets a damage subscription, for an end and a repeat save alike: a
+ * typed one is met when any type the source dealt is among its types (D220).
  */
 function damageTriggerMet(
   trigger: { by: 'ANYONE' | 'SOURCE_SIDE'; damageTypeIds: readonly string[] | null },
-  input: { onSourceSide: boolean; damageTypeIds: readonly (string | null)[] }
+  input: { onSourceSide: boolean; damageTypeIds: readonly string[] }
 ) {
   return (
     (trigger.by === 'ANYONE' || input.onSourceSide) &&
     (trigger.damageTypeIds === null ||
-      input.damageTypeIds.some(
-        (damageTypeId) => damageTypeId !== null && trigger.damageTypeIds!.includes(damageTypeId)
-      ))
+      input.damageTypeIds.some((damageTypeId) => trigger.damageTypeIds!.includes(damageTypeId)))
   )
 }
 
@@ -434,10 +431,7 @@ function grantSubscriptionMet(subscription: EncounterGrantSubscription, event: E
         event.kind === 'DAMAGED' &&
         event.phase === 'AFTER' &&
         event.hits.some(({ damageTypeIds }) =>
-          damageTypeIds.some(
-            (damageTypeId) =>
-              damageTypeId !== null && subscription.damageTypeIds.includes(damageTypeId)
-          )
+          damageTypeIds.some((damageTypeId) => subscription.damageTypeIds.includes(damageTypeId))
         )
       )
     case 'ATTACKED':

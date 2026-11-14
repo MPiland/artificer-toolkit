@@ -1734,7 +1734,9 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `MAINTENANCE_BARRED` (a held casting lock), each naming its persisted end reason, and `SAVE` on any `DAMAGED`. Discovery
   returns `maintenanceBreakReason` (the first break met) and `maintenanceSaveHits` (the indexes of the `DAMAGED` event's
   hits that owe a save). `DAMAGED(AFTER)` names its `holderActorId` and carries `hits` (one per damage source: damager
-  and damage types). Each stage raises it once per command and holder (QUALITY-14.T2): `planDamageSaveChain` discovers
+  and every damage type it dealt). Both stages name a hit's types alike (D220, QUALITY-14.T2e2a): each type its source
+  dealt, so a typed trigger or grant subscription is met when any of them is listed. The chain reads them from the damage-save application, whose `damageTypeIds` keeps every type of its
+  source in first-dealt order; a save's trigger card names a type only when its source dealt one. Each stage raises it once per command and holder (QUALITY-14.T2): `planDamageSaveChain` discovers
   once per damaged holder and reads the Concentration checks (`maintenanceSaveHits`), effect repeat saves
   (`repeatSaves`, per hit) and massive-damage saves off it, from the Worker, persistence's re-derivation and the
   movement path. The ends stage (`targetEndedEffects`) raises it once per holder too: a move's zone contacts through

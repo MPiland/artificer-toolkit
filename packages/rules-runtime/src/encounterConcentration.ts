@@ -23,7 +23,10 @@ import {
 import { d20CheckTotal } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import {
+  concentrationDamageSourceLabel,
+  concentrationDamageTypeLabel
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 
@@ -206,9 +209,7 @@ export function createNativeConcentrationContext(input: {
       : { repeatSaveDamagerActorId: input.repeatSaveDamagerActorId }),
     trigger: {
       sourceLabel: concentrationDamageSourceLabel(input.sourceLabels, application),
-      damageTypeLabel:
-        current.damageTypes.find((damageType) => damageType.id === application.damageTypeId)
-          ?.label ?? null,
+      damageTypeLabel: concentrationDamageTypeLabel(current.damageTypes, application),
       dc: link.saveDc(application.appliedAmount)
     },
     maintainedState,

@@ -40,9 +40,7 @@ function collectConcentrationDamage(batches: readonly DamageBatch[], preserveOrd
           sourceOperationKey: first.sourceOperationKey,
           targetActorId: batch.targetActorId,
           appliedAmount: rows.reduce((total, row) => total + row.appliedAmount, 0),
-          damageTypeId: rows.every((row) => row.damageTypeId === first.damageTypeId)
-            ? first.damageTypeId
-            : null,
+          damageTypeIds: [...new Set(rows.map(({ damageTypeId }) => damageTypeId))],
           ...(batch.damagerActorId ? { damagerActorId: batch.damagerActorId } : {})
         },
         sourceLabel: batch.sourceLabel ?? null
@@ -199,7 +197,7 @@ export function nativeConcentrationParentDamage(
         sourceOperationKey: result.applicationOutputs.damage.sourceOperationKey,
         targetActorId: result.applicationOutputs.targetActorId,
         appliedAmount: result.applicationOutputs.damage.appliedAmount,
-        damageTypeId: result.applicationOutputs.damage.damageTypeId
+        damageTypeIds: [result.applicationOutputs.damage.damageTypeId]
       })
     ]
   // A turn deals its outgoing effects, then its Legendary Actions, then its incoming effects.

@@ -10,6 +10,7 @@ const HOLDER_ID = '00000000-0000-4000-8000-0000000fa201'
 const BYSTANDER_ID = '00000000-0000-4000-8000-0000000fa202'
 const SIDE_ID = '00000000-0000-4000-8000-0000000fc201'
 const STUNT_STATE_ID = '00000000-0000-4000-8000-0000000fd201'
+const BLAST_DAMAGE_TYPE_ID = '00000000-0000-4000-8000-0000000fe201'
 
 const ratings = { CAREFUL: 2, CLEVER: 1, FLASHY: 0, FORCEFUL: 1, QUICK: 1, SNEAKY: 0 }
 
@@ -31,7 +32,7 @@ function stress(targetActorId: string, ordinal: number) {
     sourceOperationKey: 'damage.apply',
     targetActorId,
     appliedAmount: 2,
-    damageTypeId: null
+    damageTypeIds: [BLAST_DAMAGE_TYPE_ID]
   }
 }
 

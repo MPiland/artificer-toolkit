@@ -51,7 +51,7 @@ function damage(input: {
     sourceOperationKey: 'dnd5e.damage',
     targetActorId: input.targetActorId ?? HOLDER_ID,
     appliedAmount: input.appliedAmount,
-    damageTypeId: FIRE.id
+    damageTypeIds: [FIRE.id]
   }
 }
 

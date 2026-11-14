@@ -54,7 +54,7 @@ const application = (damageTypeId: string, ordinal: number) => ({
   sourceOperationKey: 'damage',
   targetActorId: HOLDER_ID,
   appliedAmount: 5,
-  damageTypeId
+  damageTypeIds: [damageTypeId]
 })
 
 describe('the persisted damage-save chain follows the maintenance hook (QUALITY-14.T2)', () => {

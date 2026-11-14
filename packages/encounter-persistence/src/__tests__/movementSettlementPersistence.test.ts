@@ -17,6 +17,7 @@ vi.mock('../spatialEffectStore.js', () => ({
 const OCCURRENCE_ID = '00000000-0000-4000-8000-000000000001'
 const COMMAND_ID = '00000000-0000-4000-8000-000000000002'
 const END_ID = '00000000-0000-4000-8000-000000000003'
+const DAMAGE_TYPE_ID = '00000000-0000-4000-8000-000000000004'
 
 type Input = Parameters<typeof persistMovementSettlements>[1]
 type Callbacks = Parameters<typeof persistMovementSettlements>[2]
@@ -128,7 +129,7 @@ describe('persistMovementSettlements damage saves', () => {
     sourceOperationKey: 'damage',
     targetActorId: 'mover',
     appliedAmount: 1,
-    damageTypeId: null
+    damageTypeIds: [DAMAGE_TYPE_ID]
   }
   const check = {
     sourceCommandId: COMMAND_ID,
@@ -232,7 +233,7 @@ describe('persistMovementSettlements massive-damage saves', () => {
           sourceOperationKey: 'damage',
           targetActorId: 'mover',
           appliedAmount: 1,
-          damageTypeId: null
+          damageTypeIds: [DAMAGE_TYPE_ID]
         }
       }
     }

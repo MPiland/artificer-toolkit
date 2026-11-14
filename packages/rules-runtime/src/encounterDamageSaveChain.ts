@@ -62,7 +62,7 @@ export function planDamageSaveChain(input: {
     if (held.length === 0 && effects.length === 0) continue
     const hits: EncounterDamageHit[] = damage.map((application) => ({
       damagerActorId: application.damagerActorId ?? input.damagerActorId,
-      damageTypeIds: [application.damageTypeId]
+      damageTypeIds: application.damageTypeIds
     }))
     const { maintenanceSaveHits, repeatSaves } = discoverEncounterEventHooks({
       maintenanceHooks: held.length > 0 ? hooks : [],

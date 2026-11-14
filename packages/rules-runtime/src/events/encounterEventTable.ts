@@ -21,7 +21,7 @@ import type { EncounterActionSceneContext } from '../encounterActionTargetPolicy
 /** One damage source that reached a holder: who dealt it (null for nobody) and its types. */
 export type EncounterDamageHit = {
   damagerActorId: string | null
-  damageTypeIds: readonly (string | null)[]
+  damageTypeIds: readonly string[]
 }
 
 export type EncounterEvent =

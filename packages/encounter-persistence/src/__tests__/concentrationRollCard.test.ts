@@ -15,6 +15,7 @@ import type { EncounterDocument } from '../store.js'
 
 const OWNER_ID = '00000000-0000-4000-8000-0000000c1001'
 const PLAYER_ID = '00000000-0000-4000-8000-0000000c1002'
+const DAMAGE_TYPE_ID = '00000000-0000-4000-8000-0000000c10d2'
 const ACTOR_ID = '00000000-0000-4000-8000-0000000c1003'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-0000000c1004'
 const PARENT_ID = '00000000-0000-4000-8000-0000000c1005'
@@ -45,7 +46,7 @@ const checkOutput = concentrationCheckApplicationOutputDtoSchema.parse({
     sourceOperationKey: 'effect.damage',
     targetActorId: ACTOR_ID,
     appliedAmount: 4,
-    damageTypeId: null,
+    damageTypeIds: [DAMAGE_TYPE_ID],
     maintainedStateId: STATE_ID,
     castAt: '2026-01-01T00:00:00.000Z'
   },

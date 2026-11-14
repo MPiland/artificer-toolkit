@@ -3,6 +3,7 @@ import { encounterEffectRepeatSavePendingContextDtoSchema } from '@artificer-too
 import { effectRepeatSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import {
   concentrationDamageSourceLabel,
+  concentrationDamageTypeLabel,
   damageSaveApplicationsAfterRelease
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -95,9 +96,7 @@ export function createEffectRepeatSaveContext(input: {
     repeatSaveDamagerActorId: input.damagerActorId,
     trigger: {
       sourceLabel: concentrationDamageSourceLabel(input.sourceLabels, application),
-      damageTypeLabel:
-        input.damageTypes.find((damageType) => damageType.id === application.damageTypeId)?.label ??
-        null,
+      damageTypeLabel: concentrationDamageTypeLabel(input.damageTypes, application),
       dc: d20Policy.dc
     },
     targetCharacter: targetCharacter ?? null,

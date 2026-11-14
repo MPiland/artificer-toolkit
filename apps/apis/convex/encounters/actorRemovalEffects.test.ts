@@ -263,7 +263,7 @@ describe('native actor maintained-effect cleanup', () => {
           sourceOperationKey: 'damage',
           targetActorId: target.id,
           appliedAmount: 1,
-          damageTypeId: crypto.randomUUID()
+          damageTypeIds: [crypto.randomUUID()]
         },
         sourceLabels: [],
         trigger: { sourceLabel: null, damageTypeLabel: null, dc: 10 },
