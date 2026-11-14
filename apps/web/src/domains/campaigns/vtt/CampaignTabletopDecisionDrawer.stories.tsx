@@ -239,7 +239,7 @@ export const MovementReaction: Story = {
     resolveDecision.mockClear()
     const page = within(canvasElement.ownerDocument.body)
     const drawer = await openDecision(page)
-    await userEvent.click(drawer.getByRole('button', { name: 'Use opportunity-attack' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Use reaction' }))
     await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({
