@@ -116,10 +116,7 @@ async function readRoomReactionTimeout(host: RoomReactionTimeoutHost, epoch: str
         correlationId: null,
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
-        resolution:
-          pending.kind === 'ROLL_WINDOW'
-            ? { kind: 'ROLL_WINDOW_DECLINE', requestId: pending.requestId }
-            : { kind: 'DECLINE' }
+        resolution: { kind: 'DECLINE' }
       }
     }
   }

@@ -243,9 +243,7 @@ export async function planAreaOutcomes(args: {
       maintainedState: joined,
       grants: [],
       formCreature: formCreature ?? null,
-      targetSpends: false,
       charge: resistance?.charge ?? null,
-      reactionEconomy: null,
       mechanics: carriesSpend
         ? { sourceSpend: 'WITH_OUTCOME', sourceReleases }
         : { sourceSpend: 'NONE' }

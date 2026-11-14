@@ -47,14 +47,6 @@ describe('timedReactionOffer (D207)', () => {
     })
   })
 
-  it('uses a reactor’s first held die in a d20 window, without faces', () => {
-    expect(timedReactionOffer({ ...window, answerBy })).toEqual({
-      answerBy: Date.parse(answerBy),
-      take: { kind: 'ROLL_WINDOW_USE', requestId: 'window-1', optionId: 'c'.repeat(64) },
-      decline: { kind: 'ROLL_WINDOW_DECLINE', requestId: 'window-1' }
-    })
-  })
-
   it('leaves untimed: a roller’s own window and a reaction offer with no deadline', () => {
     expect(timedReactionOffer(window)).toBeNull()
     expect(timedReactionOffer(reaction)).toBeNull()

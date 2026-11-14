@@ -3,26 +3,16 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { D20WindowReactionDieDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import {
-  planNativeEncounterAreaSourceSpend,
-  type NativeEncounterActionMechanicsInput
-} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { EncounterActionRollReaction } from '@artificer-toolkit/rules-runtime/encounterActionRollReaction'
-import { buildEncounterWindowReactionReceipt } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
-import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
-import {
-  encounterReactionPin,
-  type EncounterReactionCandidate
-} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import type { EncounterReactionCandidate } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import { characterReactionCandidates } from '@artificer-toolkit/rules-runtime/encounterReactors'
-import { encounterWindowReactionDie } from '@artificer-toolkit/rules-runtime/encounterWindowReactionDie'
 import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 
@@ -36,10 +26,8 @@ type ReactorTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>
 type NativeActionScene = Awaited<ReturnType<typeof readNativeActionAreaScene>>
 type PreparationInput = Parameters<typeof prepareEncounterActionMechanics>[0]
 
-/** A reaction its holder could roll against another creature's attack roll now, with its die (D207). */
-export type NativeRollReaction = NativeReaction<EncounterReactionCandidate, Prepared> & {
-  die: D20WindowReactionDieDto
-}
+/** A reaction its holder could use against another creature's attack roll now, to roll a die from it (D219). */
+export type NativeRollReaction = NativeReaction<EncounterReactionCandidate, Prepared>
 
 /**
  * The turns `reactions` take at a rolled attack d20 (D219): the roll is held for each reactor in turn,
@@ -136,80 +124,18 @@ export async function discoverNativeRollReactions(input: {
           loadAttackPerception: input.loadAttackPerception,
           ...input.actionSources
         }),
-      admit: (prepared) => {
-        const die = encounterWindowReactionDie(prepared)
-        return die ? { die } : null
-      },
+      admit: ({ source }) =>
+        source.kind === 'CHARACTER_ACTION' &&
+        source.candidate.mechanicFacts.outcomes.some(
+          (outcome) => 'rolledDie' in outcome && outcome.rolledDie
+        )
+          ? {}
+          : null,
       range: { grid, sourceToken: reactorToken, targetToken: rollerToken },
       targetIds: [roller.id],
       capture
     })
-    reactions.push(
-      ...offered.map((reaction) => ({
-        ...reaction,
-        die: { reaction: encounterReactionPin(reaction.candidate), ...reaction.die }
-      }))
-    )
+    reactions.push(...offered)
   }
   return reactions
-}
-
-/**
- * The dice the next reactor still to answer the roll's window offers: the first, by actor id, neither
- * answered nor already spent its reaction on this action. None once every reactor has answered.
- */
-export function nextNativeRollReactionDice(
-  reactions: readonly NativeRollReaction[],
-  skippedActorIds: readonly string[]
-) {
-  const next = reactions.find(
-    ({ candidate }) => !skippedActorIds.includes(candidate.reactorActorId)
-  )?.candidate.reactorActorId
-  return reactions
-    .filter(({ candidate }) => candidate.reactorActorId === next)
-    .map(({ die }) => die)
-}
-
-/**
- * What each reaction the settled rolls spent costs its reactor at the action's terminal commit: its
- * reaction and the charge it costs, planned against the reactor as it stands now.
- */
-export function planNativeWindowReactions(input: {
-  reactions: readonly NativeRollReaction[]
-  execution: Parameters<typeof windowSpentReactions>[0]
-  state: EncounterRunState
-  occurrenceId: string
-  commandId: string
-  occurredAt: string
-  userId: string
-}) {
-  return windowSpentReactions(input.execution).map((spent) => {
-    const found = input.reactions.find(
-      ({ die: { reaction } }) =>
-        reaction.reactorActorId === spent.reactorActorId &&
-        reaction.selectionChecksum === spent.selectionChecksum
-    )
-    if (!found) throw new Error('Reaction evidence is stale.')
-    const spend = planNativeEncounterAreaSourceSpend(
-      {
-        prepared: found.prepared,
-        encounterId: input.state.id,
-        expectedEncounterVersion: input.state.version,
-        occurrenceId: input.occurrenceId,
-        sourceCommandId: input.commandId,
-        commandId: input.commandId,
-        occurredAt: input.occurredAt
-      },
-      input.userId
-    )
-    return {
-      receipt: buildEncounterWindowReactionReceipt({
-        reaction: found.die.reaction,
-        spend,
-        economy: found.economy.consumption
-      }),
-      resourceConsumption: found.prepared.characterActionState?.resourceConsumption ?? null,
-      economy: found.economy.consumption
-    }
-  })
 }

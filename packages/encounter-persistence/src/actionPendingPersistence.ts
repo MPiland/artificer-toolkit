@@ -10,8 +10,6 @@ import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/en
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
-import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterAreaCaughtSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
@@ -194,10 +192,6 @@ export async function persistEncounterActionPending(
       snapshot.applicationContext.kind === 'ENCOUNTER_ACTION'
         ? snapshot.applicationContext.pause
         : null
-    const windowReactorActorId =
-      pause?.kind === 'ROLL_WINDOW' && !isDamageRollWindow(pause.payload)
-        ? d20WindowReactorActorId(pause.payload)
-        : null
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
@@ -205,11 +199,7 @@ export async function persistEncounterActionPending(
       (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
         snapshot.applicationContext.rollerActorId !== target.actorId &&
         // A creature offered the chance to counter the cast is the roller of that decision.
-        pause?.kind !== 'CAST_REACTION' &&
-        // A reactor asked whether to change the attack roll decides its own d20 window (D207).
-        (windowReactorActorId === null ||
-          windowReactorActorId !== snapshot.applicationContext.rollerActorId ||
-          !actors.some(({ id }) => id === windowReactorActorId))) ||
+        pause?.kind !== 'CAST_REACTION') ||
       // A gate's roll is asked of the action's source; a ward's is the save of the creature it attacks.
       (pause?.kind === 'INCOMING_GATE' &&
         // Only a reaction's child owes the check of its trigger.

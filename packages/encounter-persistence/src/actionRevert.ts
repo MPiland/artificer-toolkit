@@ -26,10 +26,6 @@ import {
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
-  encounterActionEconomyUsed,
-  withEncounterActionEconomyUsed
-} from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import {
   readEncounterActorConditionState,
   targetTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -739,28 +735,6 @@ export async function revertLastEncounterAction(
       const marked = actorsById.get(actorId)
       if (marked)
         updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
-    }
-    // Each creature that reacted to the attack roll spent its reaction and charge (D207). A reaction
-    // that ran as its holder's own action is undone as that action, not here (D219).
-    for (const spend of root.windowReactions) {
-      const reactor = actorsById.get(spend.reaction.reactorActorId)
-      if (reactor?.kind !== 'CHARACTER')
-        throw new Error('Stored Encounter action actors are unavailable.')
-      if (spend.resourceConsumption) {
-        if (spend.characterStreamVersion === null)
-          throw new Error('Stored reactor Character version is missing.')
-        const inverse = characterInverse(reactor.sourceId, spend.characterStreamVersion)
-        if (inverse.resource) throw new Error('Stored reactor resource spends collide.')
-        inverse.resource = spend.resourceConsumption
-      }
-      const reaction = spend.actionEconomyTransition
-      if (encounterActionEconomyUsed(reactor, reaction) !== reaction.afterUsed)
-        revertUnavailable(
-          "The reacting creature's reactions changed after this action; adjust manually."
-        )
-      updateActor(reactor.id, {
-        resources: withEncounterActionEconomyUsed(reactor, reaction, reaction.beforeUsed)
-      })
     }
     // A Dash's speed bonus leaves the turn's movement record.
     if (root.speedBonusTurn)

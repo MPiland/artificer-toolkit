@@ -1,7 +1,5 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
-import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import {
   canAnswerNativeActionEvidence,
   projectNativeActionPending,
@@ -118,8 +116,8 @@ export async function readPendingRunDecision(
     occurrence,
     pendingSnapshot
   })
-  const reaction = pending && reactionOffer(pending, pendingSnapshot)
-  if (!reaction) return pending
+  if (pending?.kind !== 'REACTION_CHOICE') return pending
+  const reaction = { offer: pending, reactorActorId: pending.targetActorId }
   // A reaction offer declines itself once its time runs out (D207); an AFK reactor's at once.
   const state = readRunState(row)
   const controller = await readEncounterActorPrimaryController(
@@ -130,47 +128,19 @@ export async function readPendingRunDecision(
   const seconds = state.afkUserIds.includes(controller) ? 0 : state.reactionSeconds
   // The tabletop badges the reactor's token: a movement offer names it, any other reaction offer
   // reads it from the Run's actor-token binding.
-  const reactorBinding =
-    reaction.offer.kind === 'REACTION_CHOICE' && !reaction.offer.reactorTokenId
-      ? await ctx.db
-          .query('encounterActorTokenBindings')
-          .withIndex('by_encounterId_actorId', (q) =>
-            q.eq('encounterId', row.id).eq('actorId', reaction.reactorActorId)
-          )
-          .unique()
-      : null
+  const reactorBinding = !reaction.offer.reactorTokenId
+    ? await ctx.db
+        .query('encounterActorTokenBindings')
+        .withIndex('by_encounterId_actorId', (q) =>
+          q.eq('encounterId', row.id).eq('actorId', reaction.reactorActorId)
+        )
+        .unique()
+    : null
   return {
     ...reaction.offer,
     ...(reactorBinding && { reactorTokenId: reactorBinding.tokenId }),
     answerBy: new Date(Date.parse(occurrence.updatedAt) + seconds * 1000).toISOString()
   }
-}
-
-/** A pending decision that offers a reaction, with its reactor; null for every other decision. */
-function reactionOffer(
-  pending: PendingEncounterRuleOccurrenceSummaryDto,
-  pendingSnapshot: PendingSnapshot
-): {
-  offer: Extract<
-    PendingEncounterRuleOccurrenceSummaryDto,
-    { kind: 'REACTION_CHOICE' | 'ROLL_WINDOW' }
-  >
-  reactorActorId: string
-} | null {
-  if (pending.kind === 'REACTION_CHOICE')
-    return { offer: pending, reactorActorId: pending.targetActorId }
-  const context = pendingSnapshot.applicationContext
-  // Only a reactor's die against another creature's roll is a reaction; a roller's own window waits.
-  const reactorActorId =
-    pending.kind === 'ROLL_WINDOW' &&
-    context.kind === 'ENCOUNTER_ACTION' &&
-    context.pause?.kind === 'ROLL_WINDOW' &&
-    !isDamageRollWindow(context.pause.payload)
-      ? d20WindowReactorActorId(context.pause.payload)
-      : null
-  return pending.kind === 'ROLL_WINDOW' && reactorActorId
-    ? { offer: pending, reactorActorId }
-    : null
 }
 
 type PendingSnapshot = NonNullable<Awaited<ReturnType<typeof readPendingSnapshot>>>

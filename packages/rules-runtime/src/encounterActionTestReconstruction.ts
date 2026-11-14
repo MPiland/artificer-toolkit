@@ -49,7 +49,7 @@ export async function reconstructNativeActionTest(
   // joined the roll after it: a window spent it, or a reaction's own action rolled it (D219).
   const recorded = input.d20.addedDice ?? []
   const besideDice = recorded
-    .filter(({ spentEffectId, spentReaction }) => !spentEffectId && !spentReaction)
+    .filter(({ spentEffectId }) => !spentEffectId)
     .slice(0, pending.d20Policy?.addedDice?.length ?? 0)
   const windowDice = recorded.filter((die) => !besideDice.includes(die))
   const addedFaces = besideDice.flatMap((die) => die.rolledFaces)
