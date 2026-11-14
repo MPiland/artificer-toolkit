@@ -63,7 +63,9 @@ import {
   type DamageRerollCostDto
 } from './ruleExecutionDamageRollWindow.js'
 import {
+  encounterFailedWardGateDtoSchema,
   encounterSettledIncomingGateDtoSchema,
+  type EncounterFailedWardGateDto,
   type EncounterSettledIncomingGateDto
 } from './ruleExecutionReactionChoice.js'
 
@@ -614,6 +616,12 @@ export type EncounterAreaActionPendingContextDto = {
      * It is never rolled, deals nothing and the rays behind it go on.
      */
     lost?: { gate: EncounterSettledIncomingGateDto }
+    /**
+     * The evidence of a ray its caster turned on this creature after a ward stopped it
+     * (`ATTACK_RETARGET`): each failed ward save that turned it, in order. The first ward's holder is
+     * the creature the list named for this ray, so the ray keeps that creature's entry and occurrence.
+     */
+    retargeted?: EncounterFailedWardGateDto[]
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -772,6 +780,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             testBindingJson: z.optional(z.string()),
             onHit: z.optional(encounterOnHitAuditDtoSchema),
             lost: z.optional(z.strictObject({ gate: encounterSettledIncomingGateDtoSchema })),
+            retargeted: z.optional(
+              z
+                .array(encounterFailedWardGateDtoSchema)
+                .check(z.minLength(1))
+                .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+            ),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
@@ -917,11 +931,25 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               message:
                 'A ray is lost at the ward of the creature it was aimed at, answered by that roll alone.'
             })
-          // A ray is gated by the ward of the creature it is aimed at, and its caster rolls that save.
+          if (
+            target.retargeted &&
+            (!casterRolls ||
+              struck ||
+              target.retargeted.at(-1)?.origin.holderActorId === target.actorId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'retargeted'],
+              message:
+                'A ray is turned by its caster, away from the creature whose ward stopped it.'
+            })
+          // A ray is gated by the ward of the creature it is aimed at, and its caster rolls that save;
+          // the retarget offer its failure raises holds that same ward.
           const gates =
             inner.kind === 'ENCOUNTER_ACTION'
               ? [
                   inner.pause?.kind === 'INCOMING_GATE' ? inner.pause.payload : undefined,
+                  inner.pause?.kind === 'ATTACK_RETARGET' ? inner.pause.payload.gate : undefined,
                   inner.passedIncomingGate
                 ]
               : []

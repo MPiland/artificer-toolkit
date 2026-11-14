@@ -5,10 +5,13 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaSaveAwaiting,
+  encounterLostRayAnswerJson,
   holdEncounterAreaRay,
   markEncounterAreaSaveTested,
-  resealEncounterAreaTargets
+  resealEncounterAreaTargets,
+  turnEncounterAreaRay
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { settleEncounterAttackRetarget } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterOnHitAudit } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
@@ -33,12 +36,14 @@ import {
 import {
   type AreaTargetRecord,
   discoverNativeLegendaryResistance,
+  prepareAreaTargetNow,
   sealedListAttack
 } from './nativeAreaRevalidation.js'
 import { applyNativeReactionChildren } from './nativeEncounterCastPause.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import {
   advanceNativeIncomingGate,
+  offerNativeAttackRetarget,
   type NativeIncomingGateAnswer
 } from './nativeEncounterIncomingGate.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
@@ -137,18 +142,39 @@ export async function advanceAreaRayAim(
       }
     if (gate.kind === 'FAILED') {
       const requestId = ray.snapshot.request.requestId
-      const { rawFaces, rollMode } = gate.gate.d20
-      const lostRoll: EncounterEvidenceAnswer = {
-        kind: 'ENTER_DICE',
-        requestId,
-        rawFaces,
-        rollMode
-      }
+      // The caster may turn the ray a ward stopped on another creature before it is lost, as one
+      // attack is turned; a creature the list no longer reaches is not offered.
+      const retarget = await offerNativeAttackRetarget({
+        runtime: input.runtime,
+        occurrenceId: ray.snapshot.occurrenceId,
+        gameSystemId: input.state.gameSystemId,
+        gate: gate.gate,
+        actors: input.actors,
+        attackerActorId: context.casterActorId,
+        excludedActorIds: [...context.removedActorIds, ...(context.unaffectedActorIds ?? [])],
+        tokens: reach.scene?.tokens ?? null,
+        capture: input.capture
+      })
       return {
-        snapshot: markEncounterAreaSaveTested(snapshot, requestId, {
-          testedJson: JSON.stringify(lostRoll),
-          lost: { gate: gate.gate }
-        }),
+        snapshot: retarget
+          ? holdEncounterAreaRay(
+              snapshot,
+              requestId,
+              buildEncounterHeldActionPendingSnapshot({
+                continuation: retarget.continuation,
+                pause: retarget.pause,
+                rollerActorId: retarget.rollerActorId,
+                optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+                commandJson: context.commandJson,
+                commandFingerprint: context.commandFingerprint,
+                initiatorUserId: context.initiatorUserId,
+                currentnessChecksum: inner.currentnessChecksum
+              })
+            )
+          : markEncounterAreaSaveTested(snapshot, requestId, {
+              testedJson: encounterLostRayAnswerJson(requestId, gate.gate),
+              lost: { gate: gate.gate }
+            }),
         reactionChild: null
       }
     }
@@ -230,6 +256,96 @@ export async function advanceAreaRayAim(
       context.targets.map((target) => (target === ray ? sealedAgain : target.snapshot))
     ),
     reactionChild: null
+  }
+}
+
+/**
+ * Settles the caster's choice at the retarget offer a ray a ward stopped is held on, for that ray
+ * alone. A decline loses the ray, answered by the ward save that stopped it. A creature turns the ray
+ * on it: its entry keeps its occurrence, is sealed again against that creature as it stands now and
+ * records the failed save, and the creature is returned so the ray's aim opens on it, its own ward
+ * owed afresh.
+ */
+export async function answerAreaRayRetarget(
+  input: ReachPlanInput,
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  sealed: AreaTargetRecord,
+  reach: AreaReach,
+  answer: Extract<NativePauseAnswer, { kind: 'ATTACK_RETARGET' }>['answer']
+) {
+  const context = snapshot.applicationContext
+  const inner = sealed.snapshot.applicationContext
+  if (
+    context.kind !== 'ENCOUNTER_AREA_ACTION' ||
+    inner.kind !== 'ENCOUNTER_ACTION' ||
+    inner.pause?.kind !== 'ATTACK_RETARGET' ||
+    checksumRuleDocument(inner.pause.payload) !== checksumRuleDocument(answer.offer)
+  )
+    throw new Error('The pending action evidence is invalid.')
+  const requestId = sealed.snapshot.request.requestId
+  const option = await settleEncounterAttackRetarget({
+    runtime: input.runtime,
+    occurrenceId: sealed.snapshot.occurrenceId,
+    gameSystemId: input.state.gameSystemId,
+    offer: answer.offer,
+    selection: answer.selection
+  })
+  if (!option)
+    return {
+      snapshot: markEncounterAreaSaveTested(snapshot, requestId, {
+        testedJson: encounterLostRayAnswerJson(requestId, answer.offer.gate),
+        lost: { gate: answer.offer.gate }
+      }),
+      turned: null
+    }
+  const actor = input.actors.find((candidate) => candidate.id === option.targetActorId)
+  if (!actor) throw new Error('Encounter rules input binding mismatch.')
+  const turned = await prepareAreaTargetNow(input, context, reach, actor)
+  const { token, prepared } = turned.target
+  if ((token?.tokenId ?? null) !== option.targetTokenId)
+    throw new Error('The pending area changed.')
+  const [test] = await prepareEncounterAreaTests({
+    runtime: input.runtime,
+    random: input.random,
+    adapter: prepared.adapter,
+    plan: prepared.plan,
+    occurrenceId: snapshot.occurrenceId,
+    targets: [
+      {
+        actorId: actor.id,
+        occurrenceId: sealed.snapshot.occurrenceId,
+        binding: prepared.binding,
+        attackSight: prepared.attackSight,
+        autoRoll: { SOURCE: false, TARGET: false },
+        discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
+      }
+    ]
+  })
+  if (test?.kind !== 'PENDING') throw new Error('An area roll must wait for its roller.')
+  return {
+    snapshot: turnEncounterAreaRay(snapshot, requestId, {
+      actorId: actor.id,
+      // The caster chose the creature, so it is not hidden from them.
+      perceivedByCaster: true,
+      token: token && {
+        tokenId: token.tokenId,
+        position: token.position,
+        width: token.width,
+        height: token.height,
+        rotationDegrees: token.rotationDegrees
+      },
+      snapshot: buildEncounterActionPendingSnapshot({
+        execution: test.pending,
+        optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+        commandJson: context.commandJson,
+        commandFingerprint: context.commandFingerprint,
+        initiatorUserId: context.initiatorUserId,
+        sourceActorId: context.casterActorId,
+        targetActorId: actor.id,
+        currentnessChecksum: turned.currentnessChecksum
+      })
+    }),
+    turned: { actor, ...turned }
   }
 }
 

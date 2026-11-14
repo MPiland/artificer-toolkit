@@ -26,7 +26,10 @@ import {
   collisionDamageCapability,
   collisionDamageDiceConfig
 } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
-import { encounterChosenActorEntries } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import {
+  encounterAreaNamedActorId,
+  encounterChosenActorEntries
+} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { buildEncounterLostRayStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
@@ -214,7 +217,7 @@ export async function completeAreaCommit(args: {
    * Every caught entry in its sealed order, when a ray was lost at its creature's incoming gate: `kept`
    * leaves a lost ray out, and it still holds its place in its creature's ordinals.
    */
-  caught?: readonly Pick<AreaTargetRecord, 'actorId' | 'lost'>[]
+  caught?: readonly Pick<AreaTargetRecord, 'actorId' | 'lost' | 'retargeted'>[]
   lead: AreaPrepared
   ruleOverrides: ReturnType<typeof reachRuleOverrides>
   actionEconomy:
@@ -279,10 +282,14 @@ export async function completeAreaCommit(args: {
     formCreature
   } = args
   const { actors } = input
-  const caught: readonly Pick<AreaTargetRecord, 'actorId' | 'lost'>[] =
+  const caught: readonly Pick<AreaTargetRecord, 'actorId' | 'lost' | 'retargeted'>[] =
     args.caught ?? caughtKept.map(({ actor }) => ({ actorId: actor.id }))
-  const caughtActorIds = caught.map(({ actorId }) => actorId)
-  const sealedEntries = encounterChosenActorEntries(areaOccurrenceId, caughtActorIds)
+  // A ray its caster turned keeps the occurrence of the creature it was named at, and is the
+  // receipt of the creature it was turned on.
+  const namedActorIds = caught.map(encounterAreaNamedActorId)
+  const sealedEntries = encounterChosenActorEntries(areaOccurrenceId, namedActorIds).map(
+    ({ occurrenceId }, index) => ({ actorId: caught[index]!.actorId, occurrenceId })
+  )
   const caughtEntries = sealedEntries.filter((_, index) => !caught[index]!.lost)
   // A ray lost at its creature's gate did nothing: its receipt is the failed gate alone, under the
   // root that holds the cast's one spend.
@@ -326,7 +333,7 @@ export async function completeAreaCommit(args: {
     areaSnapshot,
     areaOccurrenceId,
     kept: caughtKept,
-    caughtActorIds,
+    caughtActorIds: namedActorIds,
     settled: caughtSettled,
     struck,
     movements: forcedMovements
@@ -350,10 +357,11 @@ export async function completeAreaCommit(args: {
   })
   // A struck creature's save ran under its own collision occurrence, sealed with it.
   const entries = [
+    ...caughtEntries,
     ...encounterChosenActorEntries(areaOccurrenceId, [
-      ...caughtActorIds,
+      ...namedActorIds,
       ...collisions.kept.map(({ actor }) => actor.id)
-    ]).filter((_, index) => !caught[index]?.lost),
+    ]).slice(caught.length),
     ...collisions.struck.settled.map(({ actorId, occurrenceId }) => ({ actorId, occurrenceId }))
   ]
   const { maintenance, removedIds, planZones, holdingZone } = await prepareAreaCommitMaintenance({

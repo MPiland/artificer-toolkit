@@ -2,6 +2,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { encounterAttackRetargetUseOptionId } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { sanctuary } from '@artificer-toolkit/source-data/srd/spells/sanctuary.js'
 import { scorchingRay } from '@artificer-toolkit/source-data/srd/spells/scorching-ray.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -120,6 +121,22 @@ async function roll(room: Room, face: number) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
+/** The offer to turn the ray a ward stopped: the caster's choice before the ray is lost. */
+async function retargetOffer(room: Room) {
+  const decision = await room.pendingDecision()
+  if (decision.pending.kind !== 'ATTACK_RETARGET_CHOICE')
+    throw new Error(`Expected the retarget offer, got ${decision.pending.kind}.`)
+  expect(decision.pending.attackerActorId).toBe(CASTER_ACTOR_ID)
+  return { decision, options: decision.pending.options }
+}
+
+/** Lets the ward lose the ray instead of turning it on another creature. */
+async function declineRetarget(room: Room) {
+  const { decision } = await retargetOffer(room)
+  const lost = await room.resolve(decision, { kind: 'DECLINE' })
+  expect(lost.type, JSON.stringify(lost)).toBe('COMMAND_COMMITTED')
+}
+
 /** The pending list's rays, each with its own sealed attack. */
 async function rays(room: Room) {
   const context = await readPendingApplicationContext(room.room.base.stub)
@@ -160,6 +177,8 @@ describe('each ray of a chosen list owes its creature’s incoming gate (QUALITY
     expect(second?.inner.pause?.kind).toBe('INCOMING_GATE')
     expect(second?.inner.passedIncomingGate).toBeUndefined()
     await roll(room, SAVE_FAILS)
+    // The caster is offered another creature before the ray is lost (T1c5b), and declines.
+    await declineRetarget(room)
     const [, lost, third] = await rays(room)
     expect(lost?.target.testedJson).toBeDefined()
     expect(lost?.target.lost?.gate.origin).toMatchObject({ kind: 'WARD', holderActorId: WARDED_ID })
@@ -190,9 +209,11 @@ describe('each ray of a chosen list owes its creature’s incoming gate (QUALITY
     const before = await standing(room)
     await cast(room, [WARDED_ID, WARDED_ID, WARDED_ID])
 
-    await roll(room, SAVE_FAILS)
-    await roll(room, SAVE_FAILS)
-    await roll(room, SAVE_FAILS)
+    // Each failed save offers that ray another creature (T1c5b); the caster declines each.
+    for (let ray = 0; ray < 3; ray += 1) {
+      await roll(room, SAVE_FAILS)
+      await declineRetarget(room)
+    }
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     const after = await standing(room)
@@ -222,6 +243,9 @@ describe('each ray of a chosen list owes its creature’s incoming gate (QUALITY
     const before = await standing(room)
 
     await cast(room, [WARDED_ID, WARDED_ID, OPEN_ID])
+    // Turning a stopped ray is the caster's choice, never rolled for them (T1c5b): once they
+    // decline, the rest of the list rolls on.
+    await declineRetarget(room)
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     const after = await standing(room)
@@ -230,5 +254,204 @@ describe('each ray of a chosen list owes its creature’s incoming gate (QUALITY
     expect(before.warded - after.warded).toBe(oneRay)
     expect(after.lost).toHaveLength(1)
     expect(after.lost[0]?.gate.origin).toMatchObject({ kind: 'WARD', holderActorId: WARDED_ID })
+  })
+})
+
+describe('a ray a ward stopped may be turned on another creature, that ray alone (QUALITY-13.T1c5b)', () => {
+  it('turns the stopped ray inside its own entry and leaves the rays behind it as they were named', async () => {
+    const room = await wardedRoom()
+    const before = await standing(room)
+    await cast(room, [WARDED_ID, WARDED_ID, OPEN_ID])
+    const named = (await rays(room)).map(({ target }) => target.snapshot.occurrenceId)
+
+    await roll(room, SAVE_FAILS)
+    const { decision, options } = await retargetOffer(room)
+    // The warded creature and the caster are no candidates.
+    const offered = options.map((option) => option.targetActorId)
+    expect(offered).toContain(OPEN_ID)
+    expect(offered).not.toContain(WARDED_ID)
+    expect(offered).not.toContain(CASTER_ACTOR_ID)
+    const turned = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: options.find((option) => option.targetActorId === OPEN_ID)!.optionId
+    })
+    expect(turned.type, JSON.stringify(turned)).toBe('COMMAND_COMMITTED')
+
+    // The entry keeps its occurrence, is aimed at the chosen creature and records the failed save.
+    const [first, second, third] = await rays(room)
+    expect((await rays(room)).map(({ target }) => target.snapshot.occurrenceId)).toEqual(named)
+    expect(first?.target.actorId).toBe(OPEN_ID)
+    expect(first?.target.lost).toBeUndefined()
+    expect(first?.target.testedJson).toBeUndefined()
+    expect(first?.target.retargeted).toHaveLength(1)
+    expect(first?.target.retargeted?.[0]?.origin).toMatchObject({
+      kind: 'WARD',
+      holderActorId: WARDED_ID
+    })
+    expect(first?.inner.pause).toBeUndefined()
+    // The rays behind it are still the ones the list named.
+    expect(second?.target.actorId).toBe(WARDED_ID)
+    expect(second?.target.retargeted).toBeUndefined()
+    expect(third?.target.actorId).toBe(OPEN_ID)
+    expect(third?.target.retargeted).toBeUndefined()
+
+    // The turned ray is rolled at the creature under no ward, and hits.
+    await roll(room, HIT)
+    // The second ray still owes the ward its own save: it passes and hits the warded creature.
+    expect((await rays(room))[1]?.inner.pause?.kind).toBe('INCOMING_GATE')
+    await roll(room, SAVE_PASSES)
+    await roll(room, HIT)
+    await roll(room, HIT)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await standing(room)
+    const oneRay = before.warded - after.warded
+    expect(oneRay).toBeGreaterThan(0)
+    // Every die of the damage rolls the same face: the turned ray and the third both landed here.
+    expect(before.open - after.open).toBe(2 * oneRay)
+    expect(after.lost).toHaveLength(0)
+    expect(after.wards).toBe(before.wards)
+  })
+
+  it('rolls the turned ray and the rays behind it for a caster who auto-rolls', async () => {
+    // The first ray's save fails. Once it is turned it hits and rolls its two damage dice; the
+    // second's save passes, it hits and rolls its damage; the third owes no save and hits.
+    const room = await wardedRoom({
+      autoRoll: 'EVERYONE',
+      rolls: [SAVE_FAILS - 1, HIT - 1, 0, 0, SAVE_PASSES - 1, HIT - 1, 0, 0, HIT - 1]
+    })
+    const before = await standing(room)
+    await cast(room, [WARDED_ID, WARDED_ID, OPEN_ID])
+
+    const { decision, options } = await retargetOffer(room)
+    const turned = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: options.find((option) => option.targetActorId === OPEN_ID)!.optionId
+    })
+    expect(turned.type, JSON.stringify(turned)).toBe('COMMAND_COMMITTED')
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await standing(room)
+    const oneRay = before.warded - after.warded
+    expect(oneRay).toBeGreaterThan(0)
+    expect(before.open - after.open).toBe(2 * oneRay)
+    expect(after.lost).toHaveLength(0)
+  })
+
+  it('refuses a creature the offer did not name and keeps the offer', async () => {
+    const room = await wardedRoom()
+    await cast(room, [WARDED_ID, OPEN_ID])
+    await roll(room, SAVE_FAILS)
+    const { decision } = await retargetOffer(room)
+    const [ward] = (await readRoomHistory(room.room.base.stub)).activeEffects
+    if (!ward) throw new Error('The warded creature holds no effect.')
+
+    const refused = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: encounterAttackRetargetUseOptionId({
+        gateEffectId: ward.id,
+        targetActorId: WARDED_ID
+      })
+    })
+
+    expect(refused.type).not.toBe('COMMAND_COMMITTED')
+    const [held] = await rays(room)
+    expect(held?.inner.pause?.kind).toBe('ATTACK_RETARGET')
+    expect(held?.target.actorId).toBe(WARDED_ID)
+  })
+
+  it('settles a gate-held ray with the d20 the app rolled for its caster', async () => {
+    const room = await wardedRoom({ rolls: [SAVE_PASSES - 1] })
+    await cast(room, [WARDED_ID, OPEN_ID])
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the pending rolls.')
+    const { request } = decision.pending.saves[0]!
+
+    const rolled = await room.send({
+      type: 'ROLL_RULE_EVIDENCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: decision.encounterVersion,
+      occurrenceId: decision.occurrence.id,
+      expectedOccurrenceVersion: decision.occurrence.version,
+      requestId: request.requestId,
+      rollMode: null
+    })
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    const held = (await readRoomHistory(room.room.base.stub)).evidenceRolls
+    expect(held.map((row) => row.faces)).toEqual([[SAVE_PASSES]])
+    // The held roll settles nothing by itself: the ray still waits on its gate.
+    expect((await rays(room))[0]?.inner.pause?.kind).toBe('INCOMING_GATE')
+
+    const settled = await room.resolve(decision, {
+      kind: 'SYSTEM_ROLL',
+      requestId: request.requestId,
+      rollId: held[0]!.id
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+
+    const [passed] = await rays(room)
+    expect(passed?.inner.pause).toBeUndefined()
+    expect(passed?.inner.passedIncomingGate).toMatchObject({
+      origin: { kind: 'WARD', holderActorId: WARDED_ID },
+      d20: { rawFaces: [SAVE_PASSES] }
+    })
+    expect(passed?.target.testedJson).toBeUndefined()
+  })
+
+  it('keeps a creature in the list while a ray turned on it is unanswered', async () => {
+    const room = await wardedRoom()
+    await cast(room, [WARDED_ID, OPEN_ID])
+    await roll(room, SAVE_FAILS)
+    const { decision, options } = await retargetOffer(room)
+    const turned = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: options.find((option) => option.targetActorId === OPEN_ID)!.optionId
+    })
+    expect(turned.type, JSON.stringify(turned)).toBe('COMMAND_COMMITTED')
+    const named = (await rays(room)).map(({ target }) => target.snapshot.occurrenceId)
+
+    // The turned ray holds the entry of the creature it was named at, so it cannot leave with this one.
+    const refused = await room.send(
+      room.removeAreaTargetCommand(await room.pendingDecision(), OPEN_ID)
+    )
+
+    expect(refused.type).not.toBe('COMMAND_COMMITTED')
+    const left = await rays(room)
+    expect(left.map(({ target }) => target.snapshot.occurrenceId)).toEqual(named)
+    expect(left.map(({ target }) => target.actorId)).toEqual([OPEN_ID, OPEN_ID])
+  })
+
+  it('takes only the unanswered rays with a creature the GM removes: its lost ray keeps its receipt', async () => {
+    const room = await wardedRoom()
+    const before = await standing(room)
+    await cast(room, [WARDED_ID, WARDED_ID, OPEN_ID])
+    const [lostEntry, , openEntry] = (await rays(room)).map(
+      ({ target }) => target.snapshot.occurrenceId
+    )
+
+    await roll(room, SAVE_FAILS)
+    await declineRetarget(room)
+    // The second ray waits on the ward; the GM takes the warded creature out of the list.
+    const removed = await room.send(
+      room.removeAreaTargetCommand(await room.pendingDecision(), WARDED_ID)
+    )
+    expect(removed.type, JSON.stringify(removed)).toBe('COMMAND_COMMITTED')
+
+    // The lost ray stays answered under its own entry, and the ray at the other creature under its own.
+    const left = await rays(room)
+    expect(left.map(({ target }) => target.snapshot.occurrenceId)).toEqual([lostEntry, openEntry])
+    expect(left[0]?.target.lost?.gate.origin).toMatchObject({ holderActorId: WARDED_ID })
+    await roll(room, HIT)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await standing(room)
+    expect(after.warded).toBe(before.warded)
+    expect(before.open - after.open).toBeGreaterThan(0)
+    expect(after.lost).toHaveLength(1)
+    expect(after.lost[0]).toMatchObject({
+      occurrenceId: lostEntry,
+      gate: { origin: { kind: 'WARD', holderActorId: WARDED_ID } }
+    })
   })
 })

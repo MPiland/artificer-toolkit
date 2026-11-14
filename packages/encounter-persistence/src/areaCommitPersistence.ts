@@ -11,12 +11,16 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
-import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterFailedWardGateDto,
+  EncounterSettledIncomingGateDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { buildEncounterLostRayStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
+  encounterAreaNamedActorId,
   encounterAreaTargetCommandId,
   encounterChosenActorEntries,
   encounterCollisionSaveOccurrenceId,
@@ -149,6 +153,8 @@ type CommitScope = {
     collision?: { moverActorId: string }
     /** A ray its creature's incoming gate stopped: it keeps its place and commits no outcome. */
     lost?: { gate: EncounterSettledIncomingGateDto }
+    /** The failed ward saves that turned a ray on this creature; the first ward's holder was named. */
+    retargeted?: EncounterFailedWardGateDto[]
   }[]
   caughtChecksum: string
   removedActorIds: readonly string[]
@@ -364,10 +370,15 @@ export async function persistEncounterAreaCommit(
     !struck.every(({ moverActorId }) => movedWithCollision(moverActorId))
   )
     throw new Error('Live Session area forced movement collision mismatch.')
+  // A ray its caster turned keeps the entry of the creature it was named at, and is the receipt of
+  // the creature it was turned on.
   const sealedEntries = encounterChosenActorEntries(areaOccurrenceId, [
-    ...caught.map(({ actorId }) => actorId),
+    ...caught.map(encounterAreaNamedActorId),
     ...collisionActorIds
-  ])
+  ]).map(({ actorId, occurrenceId }, index) => ({
+    actorId: caught[index]?.actorId ?? actorId,
+    occurrenceId
+  }))
   const kept = [
     ...sealedEntries.filter((_, index) => !caught[index]?.lost),
     ...struck.map(({ actorId, moverActorId }) => ({

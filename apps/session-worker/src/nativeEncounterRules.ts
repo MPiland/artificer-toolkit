@@ -281,10 +281,12 @@ export async function planNativeLiveEncounterAction(
   const gateAnswer = pauseAnswer?.kind === 'INCOMING_GATE' ? pauseAnswer.answer : null
   const forcedMovementAnswer = pauseAnswer?.kind === 'FORCED_MOVEMENT' ? pauseAnswer.answer : null
   // A creature chosen at a retarget continues the action as that creature's: every later pause and the
-  // terminal commit carry the retargeted command, and the pause that offered it is replaced.
-  const retargetOption = retargetAnswer
-    ? chosenEncounterAttackRetarget(retargetAnswer.offer, retargetAnswer.selection)
-    : null
+  // terminal commit carry the retargeted command, and the pause that offered it is replaced. A ray
+  // turned in a list keeps the list's command: its own entry records the creature it was turned on.
+  const retargetOption =
+    retargetAnswer && admission.command.target.kind === 'ACTOR'
+      ? chosenEncounterAttackRetarget(retargetAnswer.offer, retargetAnswer.selection)
+      : null
   const command = retargetOption
     ? retargetEncounterAction(admission.command, retargetOption)
     : admission.command
@@ -394,7 +396,8 @@ export async function planNativeLiveEncounterAction(
       }
     }
     // A ray list holds one ray at a time on an offer its hit raised: its creature's reaction, which
-    // the room may resume from, then its caster's on-hit rider.
+    // the room may resume from, then its caster's on-hit rider. A ray a ward stopped is held on its
+    // caster's choice to turn it.
     const heldRayPause = areaSnapshot ? pendingContext?.pause : null
     const rayContinuation =
       resumeCommand && heldRayPause?.kind === 'CAST_REACTION'
@@ -403,7 +406,9 @@ export async function planNativeLiveEncounterAction(
             (pauseAnswer?.kind === 'CAST_REACTION' || pauseAnswer?.kind === 'ON_HIT') &&
             pauseAnswer.kind === heldRayPause?.kind
           ? { response: responseCommand, answer: pauseAnswer }
-          : null
+          : responseCommand && retargetAnswer && heldRayPause?.kind === 'ATTACK_RETARGET'
+            ? { response: responseCommand, retarget: retargetAnswer }
+            : null
     if (areaSnapshot && rayContinuation) {
       return {
         ...(await planNativeLiveEncounterAreaRayOffer({
@@ -935,15 +940,15 @@ export async function planNativeLiveEncounterAction(
   if (gate.kind === 'PENDING') return { ...preflight(), ...gate, kind: 'GATE_PENDING' as const }
   // The attacker may turn the action a ward stopped on another creature before it is lost.
   const retarget =
-    gate.kind === 'FAILED' && !declinedRetarget
+    gate.kind === 'FAILED' && !declinedRetarget && command.target.kind === 'ACTOR'
       ? await offerNativeAttackRetarget({
           runtime: executionOptions.runtime,
           occurrenceId,
           gameSystemId: state.gameSystemId,
           gate: gate.gate,
-          command,
           actors,
-          prepared,
+          attackerActorId: prepared.actor.id,
+          tokens: command.sceneContext ? 'BOUND' : null,
           capture
         })
       : null
