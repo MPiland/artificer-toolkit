@@ -2170,6 +2170,22 @@
           "tasks": [
             {
               "id": "PLATFORM-28.T1",
+              "status": "DONE",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": ["QUALITY-16.T1", "QUALITY-16.T2", "QUALITY-16.T3"]
+              },
+              "text": "Seam audit: 68 story files classed by backend need (25 props-only, 41 page stories needing reads and a test identity), DTO fixture modules and their importers, and the Browser journeys stack Storybook reuses; split into T2 to T8 (D221).",
+              "note": "Re-split into domain tasks at the seam audit; re-score WSJF then.",
+              "mergedAt": "2026-11-14",
+              "proof": "Audit only, no code (D221). 41 page stories need backend reads plus a test identity, many need seed-unreachable states; Storybook signs in through the web app /api/auth proxy; story data seeded through product commands; tagged backend stories run in Browser journeys."
+            },
+            {
+              "id": "PLATFORM-28.T2",
               "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
@@ -2177,11 +2193,101 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-16.T1", "QUALITY-16.T2", "QUALITY-16.T3"]
+                "after": ["PLATFORM-28.T1"]
               },
-              "text": "Seam audit first (stories that query, write, need a test identity or a seed-impossible state; fixture modules; CI setup reuse with Browser journeys), then split: wire Storybook to the seeded backend and the CI stack, migrate story files by domain, delete the DTO fixtures.",
-              "note": "Re-split into domain tasks at the seam audit; re-score WSJF then.",
+              "text": "Wiring: the Storybook preview uses createAppQueryClient(convex) against the seeded backend, signs in through the web app /api/auth proxy, a story-data step seeds missing states through product commands, tagged backend stories run in a Browser journeys job on the throwaway stack, and a spec fails on any \"No queryFn\" message; SpellEditRoute MasterLocked is the first migrated story.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T3",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T2"]
+              },
+              "text": "Authoring route stories (16 create and edit routes, EquipmentParentPreview, SystemDetailPage) read seeded data; state stories composed with one single-query override; loader overrides, nodeRuntimeResolver and the story-only authoring fixtures deleted.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+            },
+            {
+              "id": "PLATFORM-28.T4",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T2"]
+              },
+              "text": "Social, notification and settings page stories (11 files) read seeded data, with second-account and superadmin story data.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+            },
+            {
+              "id": "PLATFORM-28.T5",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T2"]
+              },
+              "text": "Campaign page stories (Settings, Loot, Scene editor, Encounter builder) read seeded data; the fake ConvexReactClient and hand-seeded query caches deleted.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+            },
+            {
+              "id": "PLATFORM-28.T6",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T2"]
+              },
+              "text": "Character sheet, builder and marketing capture stories (7 files) read seeded characters; the sheet story fixtures deleted.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+            },
+            {
+              "id": "PLATFORM-28.T7",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T2"]
+              },
+              "text": "The tabletop window story runs a live session with the Session Worker in the Storybook stack.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+            },
+            {
+              "id": "PLATFORM-28.T8",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": [
+                  "PLATFORM-28.T3",
+                  "PLATFORM-28.T4",
+                  "PLATFORM-28.T5",
+                  "PLATFORM-28.T6",
+                  "PLATFORM-28.T7"
+                ]
+              },
+              "text": "The remaining story-only fixture modules are deleted and a guard test fails when a story imports a fixture module; a Storybook run logs no \"No queryFn\" message.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
             }
           ],
           "internalReason": "Developer tooling: changes where Storybook stories get their data, not a product flow."
