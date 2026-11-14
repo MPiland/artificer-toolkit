@@ -268,3 +268,23 @@ describe('a creature target’s disposition (QUALITY-15.T1)', () => {
     ).toThrow('D&D chosen-creature list needs a measured range, not Sight.')
   })
 })
+
+describe('an action that names no targeting (QUALITY-15.T2)', () => {
+  /** The save action with its targeting left out, as an authored Effect may leave it. */
+  function untargeted(change: InvocationChange = {}): EffectAuthored {
+    const effect = saveAction(change)
+    const invocation = { ...effect.invocation }
+    delete invocation.targeting
+    return { ...effect, invocation }
+  }
+
+  it('is taken on its user alone at a Self range, as a Self target is', () => {
+    expect(failedSaveGraph(untargeted({ range: selfRange }))).toEqual(SAVE_FAILED_FOR_DAMAGE)
+  })
+
+  it('is refused at any other range, which leaves its target unnamed', () => {
+    expect(() => planOf(untargeted())).toThrow(
+      'D&D action off a Self range must name its targeting.'
+    )
+  })
+})
