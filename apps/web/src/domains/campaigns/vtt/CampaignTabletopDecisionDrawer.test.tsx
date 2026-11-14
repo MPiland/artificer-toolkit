@@ -447,23 +447,14 @@ describe('CampaignTabletopDecisionDrawer timed reaction offer (D207)', () => {
   /** Offered now with the default 5 s to answer. */
   const timedPending = () =>
     validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
-      kind: 'MOVEMENT_REACTION',
+      kind: 'REACTION_CHOICE',
       occurrenceId,
       occurrenceVersion: 2,
       encounterVersion: tabletopGmEncounter.version,
       answerBy: new Date(Date.now() + 5_000).toISOString(),
-      choice: {
-        pathDistance: 5,
-        reactorActorId: tabletopGmEncounter.actors[0]!.id,
-        reactorTokenId: '77777777-7777-4777-8777-777777777791',
-        options: [
-          {
-            optionId: 'a'.repeat(64),
-            actionId: 'opportunity-attack',
-            actionSourceKind: 'CHARACTER_ACTION'
-          }
-        ]
-      },
+      targetActorId: tabletopGmEncounter.actors[0]!.id,
+      reactorTokenId: '77777777-7777-4777-8777-777777777791',
+      options: [{ optionId: 'a'.repeat(64), actionId: 'opportunity-attack' }],
       allowedResponses: ['DECLINE', 'OPTION']
     })
 
@@ -493,10 +484,7 @@ describe('CampaignTabletopDecisionDrawer timed reaction offer (D207)', () => {
 
     expect(await screen.findByRole('timer')).toHaveTextContent(/^[45] seconds to react$/)
     expect(screen.getByText('Enter takes the first option. Esc declines.')).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Use opportunity-attack' })).toHaveAttribute(
-      'data-size',
-      'lg'
-    )
+    expect(screen.getByRole('button', { name: 'Use reaction' })).toHaveAttribute('data-size', 'lg')
   })
 
   it('takes the first option on Enter and declines on Esc', async () => {

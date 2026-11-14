@@ -1905,7 +1905,7 @@ context carries no used reactions. `usedReactionSpend.ts` spends only the reacti
 The offer's `kind` names what it holds: `COUNTER` for counters to a cast (`SPELL_CAST` pins), otherwise the trigger of
 its pins, `TARGETED_SELF` or `ATTACK_ON_OTHER`. The schema refuses an offer whose pins do not match its kind.
 
-Transitional: `MOVEMENT_REACTION` keeps its own host, offer and pin until QUALITY-9.
+Transitional: a Scene move's reaction keeps its own host and pin until QUALITY-18.T6. Its offer is the shared `REACTION_CHOICE` summary (QUALITY-18.T5): `targetActorId` is the reactor and the optional `reactorTokenId` names the reactor's token, so the tabletop badge and the decision drawer read one shape for movement and action offers.
 
 #### `ATTACK_ON_OTHER` (current, SPELLS-31.T4k1b; D217)
 
@@ -1933,7 +1933,7 @@ it), and only armor and shield categories count as equipped. Proof: `nativeRoomP
 #### Timed reaction offers (current, SPELLS-31.T4r, D207)
 
 Every reaction offer declines itself when its time runs out: `REACTION_CHOICE` (a hit, `SPELL_CAST`,
-`DAMAGE_TAKEN`, `ATTACK_ON_OTHER`), `MOVEMENT_REACTION` and a reactor's `ROLL_WINDOW` (a roller's own window waits). The Campaign's
+`DAMAGE_TAKEN`, `ATTACK_ON_OTHER`, a Scene move's contact) and a reactor's `ROLL_WINDOW` (a roller's own window waits). The Campaign's
 `reactionSeconds` (default 5, 3 to 15, set by the GM in the table settings) is frozen into the Run's policy snapshot at
 Run start with the other play settings. `readPendingRunDecision` (`encounter-persistence/pendingReads.ts`) is the one
 home of the deadline: `answerBy = occurrence.updatedAt + reactionSeconds`, or `updatedAt` itself when the offer's reactor

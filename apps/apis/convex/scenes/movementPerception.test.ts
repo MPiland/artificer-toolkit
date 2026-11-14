@@ -361,7 +361,7 @@ describe('room Scene movement perception staging', () => {
     })
     const visible = await base.owner.caller.query(pendingReference, query)
     expect(visible).toMatchObject({
-      kind: 'MOVEMENT_REACTION',
+      kind: 'REACTION_CHOICE',
       occurrenceId: prepared.occurrenceId,
       occurrenceVersion: 0,
       encounterVersion: prepared.expectedEncounterVersion,
@@ -440,7 +440,7 @@ describe('room Scene movement perception staging', () => {
     const result = (await executeSceneInRoom(base.owner.caller, input)).result
     expect(result).toMatchObject({
       delta: { kind: 'TOKEN_MOVED', position: { x: 200, y: 50 } },
-      occurrence: { status: 'PENDING', pending: { kind: 'MOVEMENT_REACTION' } }
+      occurrence: { status: 'PENDING', pending: { kind: 'REACTION_CHOICE' } }
     })
     const snapshot = await readRoomPendingSnapshot(base.t, {
       campaignId: base.campaign.id,

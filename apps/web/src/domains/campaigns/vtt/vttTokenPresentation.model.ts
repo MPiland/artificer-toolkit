@@ -153,8 +153,8 @@ export function buildVttTokenPresentations(input: {
       statuses.push(statusFromValues('group', 'GROUP', `${actor.owner.count} creatures`))
     if (actorId && input.lootActorIds?.has(actorId))
       statuses.push(statusFromValues('loot', 'LOOT', 'Has loot'))
-    const pendingReaction = input.pending?.kind === 'MOVEMENT_REACTION' ? input.pending : null
-    const reactionAvailable = pendingReaction?.choice.reactorTokenId === token.id
+    const pendingReaction = input.pending?.kind === 'REACTION_CHOICE' ? input.pending : null
+    const reactionAvailable = pendingReaction?.reactorTokenId === token.id
     if (reactionAvailable) {
       statuses.push(
         statusFromValues(

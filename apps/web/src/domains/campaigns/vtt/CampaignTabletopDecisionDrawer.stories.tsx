@@ -69,22 +69,13 @@ const areaPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
 })
 
 const reactionPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
-  kind: 'MOVEMENT_REACTION',
+  kind: 'REACTION_CHOICE',
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
-  choice: {
-    pathDistance: 5,
-    reactorActorId: tabletopGmEncounter.actors[0]!.id,
-    reactorTokenId: '77777777-7777-4777-8777-777777777791',
-    options: [
-      {
-        optionId: 'a'.repeat(64),
-        actionId: 'opportunity-attack',
-        actionSourceKind: 'CHARACTER_ACTION'
-      }
-    ]
-  },
+  targetActorId: tabletopGmEncounter.actors[0]!.id,
+  reactorTokenId: '77777777-7777-4777-8777-777777777791',
+  options: [{ optionId: 'a'.repeat(64), actionId: 'opportunity-attack' }],
   allowedResponses: ['DECLINE', 'OPTION']
 })
 
@@ -248,7 +239,7 @@ export const MovementReaction: Story = {
     resolveDecision.mockClear()
     const page = within(canvasElement.ownerDocument.body)
     const drawer = await openDecision(page)
-    await userEvent.click(drawer.getByRole('button', { name: 'Use opportunity-attack' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Use reaction' }))
     await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({

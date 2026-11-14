@@ -38,12 +38,7 @@ export function timedReactionOffer(pending: PendingEncounterRuleOccurrenceSummar
   take: ResolveRuleOccurrenceInputDto['resolution']
   decline: ResolveRuleOccurrenceInputDto['resolution']
 } | null {
-  if (
-    (pending.kind !== 'REACTION_CHOICE' &&
-      pending.kind !== 'MOVEMENT_REACTION' &&
-      pending.kind !== 'ROLL_WINDOW') ||
-    !pending.answerBy
-  )
+  if ((pending.kind !== 'REACTION_CHOICE' && pending.kind !== 'ROLL_WINDOW') || !pending.answerBy)
     return null
   const answerBy = Date.parse(pending.answerBy)
   if (pending.kind === 'ROLL_WINDOW') {
@@ -57,7 +52,7 @@ export function timedReactionOffer(pending: PendingEncounterRuleOccurrenceSummar
       decline: { kind: 'ROLL_WINDOW_DECLINE', requestId }
     }
   }
-  const [first] = pending.kind === 'MOVEMENT_REACTION' ? pending.choice.options : pending.options
+  const [first] = pending.options
   return {
     answerBy,
     take: first ? { kind: 'OPTION', optionId: first.optionId } : { kind: 'DECLINE' },
@@ -142,7 +137,6 @@ export function movementPassageOptionLabel(option: MovementPassageOption): strin
 
 export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {
   if (kind === 'D20_EVIDENCE') return 'Roll required'
-  if (kind === 'MOVEMENT_REACTION') return 'Reaction available'
   if (kind === 'MOVEMENT_PASSAGE_CHOICE') return 'Passage choice'
   if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
   if (kind === 'REACTION_CHOICE') return 'Reaction available'

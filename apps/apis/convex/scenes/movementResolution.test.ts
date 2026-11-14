@@ -235,9 +235,9 @@ describe('room movement response publication', () => {
     const rootMove = await executeSceneInRoom(owner.caller, value.rootInput)
     const root = rootMove.result
     const choice = root?.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+    if (!choice || choice.kind !== 'REACTION_CHOICE')
       throw new Error('Expected issued movement reaction choice.')
-    const option = choice.choice.options[0]
+    const option = choice.options[0]
     if (!option) throw new Error('Expected issued movement reaction option.')
     const selected: ResolveRuleOccurrenceInputDto = {
       type: 'RESOLVE_RULE_OCCURRENCE',
@@ -261,13 +261,13 @@ describe('room movement response publication', () => {
       const pending = result.occurrence.pending
       if (
         !pending ||
-        (pending.kind !== 'MOVEMENT_REACTION' &&
+        (pending.kind !== 'REACTION_CHOICE' &&
           pending.kind !== 'D20_EVIDENCE' &&
           pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
       )
         throw new Error('Expected selected reaction evidence request.')
-      if (pending.kind !== 'MOVEMENT_REACTION') evidenceKinds.push(pending.kind)
-      if (pending.kind === 'MOVEMENT_REACTION') sawSubsequentReactor = true
+      if (pending.kind !== 'REACTION_CHOICE') evidenceKinds.push(pending.kind)
+      if (pending.kind === 'REACTION_CHOICE') sawSubsequentReactor = true
       const command: ResolveRuleOccurrenceInputDto = {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
@@ -277,7 +277,7 @@ describe('room movement response publication', () => {
         expectedOccurrenceVersion: pending.occurrenceVersion,
         correlationId: null,
         resolution:
-          pending.kind === 'MOVEMENT_REACTION'
+          pending.kind === 'REACTION_CHOICE'
             ? { kind: 'DECLINE' }
             : pending.kind === 'D20_EVIDENCE'
               ? {
@@ -302,14 +302,14 @@ describe('room movement response publication', () => {
       // Restated (QUALITY-18.T2b3): the reaction's evidence belongs to its own action (D219), so
       // the last evidence answer completes that action, not the move. The move is then read as the
       // room resumed it, which is where the next reactor's choice appears.
-      if (pending.kind !== 'MOVEMENT_REACTION' && result.occurrence?.status === 'COMPLETE')
+      if (pending.kind !== 'REACTION_CHOICE' && result.occurrence?.status === 'COMPLETE')
         result = {
           ...result,
           occurrence: await readResumedMovement(owner.caller, value.base.campaign.id, choice)
         }
       // Declining the last reactor completes the move; evidence and Use answers leave it pending.
       expect(result.occurrence?.status).toBe(
-        pending.kind === 'MOVEMENT_REACTION' ? 'COMPLETE' : 'PENDING'
+        pending.kind === 'REACTION_CHOICE' ? 'COMPLETE' : 'PENDING'
       )
     }
     // The natural 20 is a critical hit: the reaction's two damage dice are each rolled twice (D58).
@@ -331,7 +331,7 @@ describe('room movement response publication', () => {
     // The command receipts are room-held (D85); a member sees them as the Run's timeline entries.
     const timeline = await readRoomTimeline(owner.caller, value.base.campaign.id)
     expect(timeline.some((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')).toBe(true)
-    const source = completed.actors.find((actor) => actor.id === choice.choice.reactorActorId)
+    const source = completed.actors.find((actor) => actor.id === choice.targetActorId)
     const target = completed.actors.find((actor) => actor.id === value.base.mover.id)
     const priorTarget = beforePreparation.actors.find((actor) => actor.id === value.base.mover.id)
     if (!source || !target || !priorTarget) throw new Error('Expected selected reaction actors.')
@@ -362,20 +362,19 @@ describe('room movement response publication', () => {
     const losers: string[] = []
     let selected = false
     const choice = root?.occurrence?.pending
-    if (choice?.kind !== 'MOVEMENT_REACTION')
-      throw new Error('Expected the issued reaction choice.')
+    if (choice?.kind !== 'REACTION_CHOICE') throw new Error('Expected the issued reaction choice.')
     let pending = root?.occurrence?.pending ?? null
     while (pending) {
       if (
-        pending.kind !== 'MOVEMENT_REACTION' &&
+        pending.kind !== 'REACTION_CHOICE' &&
         pending.kind !== 'D20_EVIDENCE' &&
         pending.kind !== 'ACTION_OUTCOME_EVIDENCE'
       )
         throw new Error('Expected a movement reaction response.')
       const current = pending
-      const option = pending.kind === 'MOVEMENT_REACTION' ? pending.choice.options[0] : undefined
+      const option = pending.kind === 'REACTION_CHOICE' ? pending.options[0] : undefined
       const resolution: ResolveRuleOccurrenceInputDto['resolution'] =
-        pending.kind === 'MOVEMENT_REACTION'
+        pending.kind === 'REACTION_CHOICE'
           ? !selected && option
             ? { kind: 'OPTION', optionId: option.optionId }
             : { kind: 'DECLINE' }
@@ -423,7 +422,7 @@ describe('room movement response publication', () => {
       // choice keeps the move's. Once the winner completes the action, the Run's pending decision
       // is the move again, so the loser's evidence answer names a decision that is unavailable.
       const staleMessages =
-        current.kind === 'MOVEMENT_REACTION'
+        current.kind === 'REACTION_CHOICE'
           ? ['Encounter version is stale.']
           : [
               'Encounter version is stale.',
@@ -465,7 +464,7 @@ describe('room movement response publication', () => {
     }
     expect(selected).toBe(true)
     const final = await stored(value)
-    const reactor = final.actors.find((actor) => actor.id === choice.choice.reactorActorId)
+    const reactor = final.actors.find((actor) => actor.id === choice.targetActorId)
     if (!reactor) throw new Error('Expected the selected reactor.')
     expect(readStoredRunActor(reactor).resources).toMatchObject({
       ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }

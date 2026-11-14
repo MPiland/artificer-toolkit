@@ -79,7 +79,7 @@ it('settles sealed movement responses through the room without replaying the cro
   )
   expect(crossedEffects.map((entry) => entry.candidate.candidate.effectId)).toContain(effect.id)
   const choice = initial?.occurrence?.pending
-  if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+  if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
     throw new Error('Expected a published movement choice.')
   expect((await records()).effects.map((entry) => entry.id)).not.toContain(effect.id)
 
@@ -102,7 +102,7 @@ it('settles sealed movement responses through the room without replaying the cro
     occurrenceId: choice.occurrenceId,
     expectedOccurrenceVersion: choice.occurrenceVersion,
     correlationId: null,
-    resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+    resolution: { kind: 'OPTION', optionId: choice.options[0].optionId }
   }
   const committed = await executeInRoom(value.owner.caller, { command })
   // Restated (QUALITY-18.T2b3): the Use answer is the reaction's own completed action (D219), and
@@ -117,7 +117,7 @@ it('settles sealed movement responses through the room without replaying the cro
   expect(after.effects).toEqual(baseline.effects)
   expect(after.timeline).toHaveLength(baseline.timeline.length + 1)
   const secondChoice = resumed.pending
-  if (!secondChoice || secondChoice.kind !== 'MOVEMENT_REACTION')
+  if (!secondChoice || secondChoice.kind !== 'REACTION_CHOICE')
     throw new Error('Expected the next issued movement choice.')
   const terminal = await executeInRoom(value.owner.caller, {
     command: {

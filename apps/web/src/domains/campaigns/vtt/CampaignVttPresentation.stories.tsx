@@ -112,16 +112,11 @@ function reactionPending(reactor: {
 }): PendingEncounterRuleOccurrenceSummaryDto {
   return {
     allowedResponses: ['DECLINE', 'OPTION'],
-    choice: {
-      options: [
-        { actionId: 'reaction', actionSourceKind: 'CHARACTER_ACTION', optionId: 'a'.repeat(64) }
-      ],
-      pathDistance: 5,
-      reactorActorId: reactor.actorId,
-      reactorTokenId: reactor.tokenId
-    },
     encounterVersion: presentationEncounter.version,
-    kind: 'MOVEMENT_REACTION',
+    kind: 'REACTION_CHOICE',
+    options: [{ actionId: 'reaction', optionId: 'a'.repeat(64) }],
+    reactorTokenId: reactor.tokenId,
+    targetActorId: reactor.actorId,
     occurrenceId: '77777777-7777-4777-8777-777777777790',
     occurrenceVersion: 1
   }

@@ -26574,12 +26574,26 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 13,
                 "after": ["QUALITY-14.T1", "QUALITY-14.T1b"]
               },
-              "text": "One concentration planner for action and movement damage; DAMAGED(AFTER) is raised once per command and holder and feeds effect ends, repeat saves and maintenance saves across every damage root.",
-              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
+              "text": "One concentration planner for action and movement damage (planDamageSaveChain shared by the room and persistence; the duplicate persistence binding deleted); movement damage carries its damager and dispositions; DAMAGED(AFTER) carries one hit per damage source and spatialDamageEnds raises it once per holder.",
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\". Resized 8 to 13 and split 2026-11-14 at delivery (about 26 files: event reshape, shared planner, persistence re-derive): movement repeat saves, massive-damage saves and damage-taken ends on movement, and one DAMAGED raise per command across the ends and save-chain stages moved to QUALITY-14.T2b.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-14.T2b",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-14.T2"]
+              },
+              "text": "Movement damage feeds repeat saves, massive-damage saves and damage-taken effect ends like action damage (new movement child kinds; D196 persisted-shape change), and DAMAGED(AFTER) is raised once per command and holder across the ends stage and the save-chain stage.",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
             }
           ]
         },
@@ -26897,7 +26911,7 @@
             },
             {
               "id": "QUALITY-18.T3d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26907,11 +26921,12 @@
                 "after": ["QUALITY-18.T3c"]
               },
               "text": "A reaction child of a held action (not a move) that drops a creature to 0 HP raises that creature's 0 HP effect before the action resumes, through the same SUSPENDED-until-settled rule as moves, without re-running or advancing a held Legendary Action at after-commit stage 3. Also prove the summon-sweep turn advance (stage 8) with a held move, and refuse a GM revert while a parent is SUSPENDED with nothing PENDING (persistence-level window).",
-              "note": "Registered 2026-11-14 from the QUALITY-18.T3c report under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the QUALITY-18.T3c report under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26920,13 +26935,14 @@
                 "size": 3,
                 "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4", "QUALITY-18.T3c"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Ruling 2026-11-14 at delivery (orchestrator, triage by likelihood): a GM void of a held move whose reaction child committed but whose resume has not run exists only after a failed room resume and is recovered by the alarm, so it is refused with DECISION_REQUIRES_ANSWER; the cascading void moved to future-enhancements Deferred edge cases.",
               "text": "Void and undo: void of a held move cascades to its committed child and refunds the reaction; void of a paused child releases the move; REVERT_LAST_ACTION refuses a REACTION child of a Scene move.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m746 (7e86a4f9e); slice tip 56751c8f9: Tests 43562217467, Live 43562217452, Browser journeys 43562217495 green. Room proofs in nativeMovementReactionChild: a void of a paused child releases the move to its CHOICE (history OPTION, REACTION_CHILD_RELEASE) and the same option answers again (reaction refunded); undo of a committed child while the move is held is refused with PENDING_DECISION; a void of a held move with a committed child is refused with DECISION_REQUIRES_ANSWER, nothing changes, and the alarm resumes the move (failed before the fix with UNAVAILABLE). classifyRuleOccurrenceVoid classifies a move CHOICE with recorded reactionChildren as REFUSE (occurrenceVoid.test). No assertions restated; no persisted shape change."
             },
             {
               "id": "QUALITY-18.T5",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26937,7 +26953,8 @@
               },
               "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Re-scoped 2026-11-14 at the seam trace: the server still emits MOVEMENT_REACTION (encounterSpatialOccurrenceSummary.ts), so a web-only change cannot meet AC QUALITY-18.1; the flip touches about 60 test files and the projection T3 edits. Resized 3 to 13 and sequenced after T3; QUALITY growth pre-approved by the user (2026-11-13). Orchestrator ruling: carry the reactor token id on the offer (additive optional field; the server knows which token reacts) rather than guessing actor to token in the web model, and do not render two kinds side by side.",
               "text": "The movement offer is REACTION_CHOICE end to end: the spatial occurrence summary emits REACTION_CHOICE (targetActorId = reactor, options { optionId, actionId }) instead of MOVEMENT_REACTION; REACTION_CHOICE gains an optional reactor token id so the token badge works for movement and action offers alike; the drawer uses one wording for both; restate the movement tests (worker, Convex, schema, development drafts), stories and the encounterMovement journey. The timed decline already runs through the shared encounter path (pendingReads reactionOffer, roomReactionTimeout), proved by the restated tests. T6 then deletes the MOVEMENT_REACTION kind.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m747 (4f0cb5ef8); slice tip 7e6eb3680: Tests 43563914516, Live 43563914520, Browser journeys 43563914484 green. The spatial occurrence summary emits REACTION_CHOICE (targetActorId = reactor, reactorTokenId, options { optionId, actionId }); pendingReads drops the MOVEMENT_REACTION branches and adds reactorTokenId to action offers from the actor token binding (new worker test); the drawer has one wording for both offers (\"Use reaction\" / \"Use {actionId}\", \"Decline\"; GM \"Void decision\"); the token badge reads reactorTokenId for either. Restated with reasons: pathDistance and actionSourceKind left the wire, so exact contact assertions now compare the checkpointed mover token with the product reach function (expectedReactionContact imports collectReactionReachCandidates, no copied logic) in automaticMovementStop, characterMovementResolution and verifyReactionOffer; option source checks became targetActorId/reactorTokenId checks; kind literals flipped in about 24 files. MOVEMENT_REACTION kind stays until T6. No persisted shape change."
             },
             {
               "id": "QUALITY-18.T6",

@@ -256,10 +256,10 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
   await setCurrentActor(base, base.mover.id)
 
   const choice = (await moveAwayFromReactor(base)).occurrence?.pending
-  if (choice?.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+  if (choice?.kind !== 'REACTION_CHOICE' || !choice.options[0])
     throw new Error('Expected the opportunity attack choice.')
   const attack = (
-    await answer(base, choice, { kind: 'OPTION', optionId: choice.choice.options[0].optionId })
+    await answer(base, choice, { kind: 'OPTION', optionId: choice.options[0].optionId })
   ).occurrence?.pending
   if (attack?.kind !== 'D20_EVIDENCE') throw new Error('Expected the opportunity attack roll.')
   // The tabletop reads the prompt with its reasons.
@@ -287,11 +287,11 @@ async function moverHitPointsAfterOpportunityAttack(
   const base = await moverTurn(false, qualifiedDamageDefenses)
   await queueRoomRolls(base.campaign.id, { rolls: [19], repeat: 0 })
   const choice = (await moveAwayFromReactor(base)).occurrence?.pending
-  if (choice?.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+  if (choice?.kind !== 'REACTION_CHOICE' || !choice.options[0])
     throw new Error('Expected the opportunity attack choice.')
   const settled = await answer(base, choice, {
     kind: 'OPTION',
-    optionId: choice.choice.options[0].optionId
+    optionId: choice.options[0].optionId
   })
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   await checkpointLiveRoom(base.campaign.id)
