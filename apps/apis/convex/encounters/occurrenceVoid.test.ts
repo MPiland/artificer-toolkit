@@ -70,11 +70,11 @@ describe('GM void decision table', () => {
       kind: 'DECLINE',
       resolution: { kind: 'PASSAGE_DECLINE' }
     })
-    for (const phase of ['CHOICE', 'LEGENDARY_RESISTANCE_CHOICE'] as const)
+    for (const phase of ['CHOICE'] as const)
       expect(
         classifyRuleOccurrenceVoid({ kind: 'ENCOUNTER_MOVEMENT_REACTION', phase: { kind: phase } })
       ).toEqual({ kind: 'DECLINE', resolution: { kind: 'DECLINE' } })
-    for (const phase of ['SPATIAL_EVIDENCE', 'CONCENTRATION_EVIDENCE', 'ACTION_EVIDENCE'] as const)
+    for (const phase of ['SPATIAL_EVIDENCE', 'CONCENTRATION_EVIDENCE'] as const)
       expect(
         classifyRuleOccurrenceVoid({ kind: 'ENCOUNTER_MOVEMENT_REACTION', phase: { kind: phase } })
           .kind

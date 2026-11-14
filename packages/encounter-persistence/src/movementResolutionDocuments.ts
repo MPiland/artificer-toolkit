@@ -166,10 +166,6 @@ export async function readMovementResponseAuthority(
     decisionActorIds = [context.phase.concentration.application.targetActorId]
   } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
     decisionActorIds = [spatialPendingRollerActorId(context.phase.currentCandidate)]
-  } else if (context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
-    decisionActorIds = [context.phase.resistance.targetActorId]
-  } else if (context.phase.kind === 'ACTION_EVIDENCE') {
-    decisionActorIds = [context.phase.rollerActorId]
   } else {
     const options = context.reactionTimeline[0]?.group.options ?? []
     decisionActorIds = (context.phase.kind === 'CHOICE' ? options : []).map(

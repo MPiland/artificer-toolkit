@@ -3,21 +3,16 @@ import type {
   EncounterMaintainedEffectStateRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
-import type { movementReactionActionExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementReactionReceipts'
+import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
   encodeCharacterRecord,
   type StoredCharacter
 } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import {
-  buildEncounterMaintenanceTransition,
-  endedMaintenanceConditions
-} from './encounterActionMaintenance.js'
+import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import {
   projectEncounterActionTarget,
   type ProjectableCharacterFacts
@@ -70,9 +65,7 @@ export function projectedHeldStates(
   return held.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
 }
 type Maintenance<TRow extends MovementCharacterRow> = {
-  prior: EncounterMaintainedEffectStateRecord | null
   removed: readonly ActiveRuleEffectRecord[]
-  carried: readonly ActiveRuleEffectRecord[]
   owners: readonly MovementMaintenanceOwner<TRow>[]
   characterVersions: readonly { characterId: string; beforeStreamVersion: number }[]
 }
@@ -92,7 +85,6 @@ type MovementMaintenanceProjectionInput<
   TRow extends MovementCharacterRow,
   TCharacterFacts extends ProjectableCharacterFacts
 > = {
-  createdEffects: readonly ActiveRuleEffectRecord[]
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   projection?: MovementMaintenanceProjection<TRow>
   campaignId: string
@@ -105,16 +97,14 @@ function projectEncounterMovementMaintenanceOwners<
   TCharacterFacts extends ProjectableCharacterFacts
 >(
   input: MovementMaintenanceProjectionInput<TRow, TCharacterFacts> & {
-    maintenance: Pick<Maintenance<TRow>, 'removed' | 'owners' | 'characterVersions'>
+    maintenance: Maintenance<TRow>
   },
   readCharacter: (row: TRow) => CharacterAuthored
 ) {
   const { maintenance } = input
   const targets = new Map(input.targets)
   const owners = new Map(input.projection?.owners)
-  const ownerTransitions: NonNullable<
-    ReturnType<typeof movementReactionActionExecutionDtoSchema.parse>['maintenanceOwnerTransitions']
-  > = []
+  const ownerTransitions: MovementConcentrationExecutionDto['ownerTransitions'] = []
   const removedIds = new Set(maintenance.removed.map((effect) => effect.id))
   for (const snapshot of maintenance.owners) {
     const owner = snapshot.owner
@@ -127,12 +117,6 @@ function projectEncounterMovementMaintenanceOwners<
     const remaining = (target?.activeEffects ?? snapshot.effects).filter(
       (effect) => !removedIds.has(effect.id)
     )
-    for (const effect of input.createdEffects)
-      if (
-        checksumCanonicalJson(effect.owner) === key &&
-        !remaining.some((value) => value.id === effect.id)
-      )
-        remaining.push(effect)
     const ended = endedMaintenanceConditions(
       maintenance.removed.filter((effect) => checksumCanonicalJson(effect.owner) === key),
       remaining
@@ -235,55 +219,13 @@ function projectEncounterMovementMaintenanceOwners<
   }
 }
 
-/** Carries exact slot, owner and condition changes into the next contact without publishing. */
-export function projectEncounterMovementMaintenance<
-  TRow extends MovementCharacterRow,
-  TCharacterFacts extends ProjectableCharacterFacts
->(
-  input: MovementMaintenanceProjectionInput<TRow, TCharacterFacts> & {
-    maintenance: Maintenance<TRow>
-    state: EncounterMaintainedEffectStateRecord
-  },
-  readCharacter: (row: TRow) => CharacterAuthored
-) {
-  const { targets, owners, ownerTransitions } = projectEncounterMovementMaintenanceOwners(
-    input,
-    readCharacter
-  )
-  const slots = new Map(input.projection?.slots)
-  const dependents = input.createdEffects.filter(
-    (effect) => effect.maintainedEffectStateId === input.state.id
-  )
-  const { prior } = input.maintenance
-  if (prior)
-    slots.set(movementSlotKey(prior.ownerActorId, prior.maintenanceDefinitionId, prior.id), {
-      state: null,
-      dependents: [],
-      zoneIds: []
-    })
-  slots.set(
-    movementSlotKey(input.state.ownerActorId, input.state.maintenanceDefinitionId, input.state.id),
-    { state: input.state, dependents, zoneIds: [] }
-  )
-  return {
-    targets,
-    ownerTransitions,
-    projection: { slots, owners },
-    transition: buildEncounterMaintenanceTransition({
-      maintenance: input.maintenance,
-      createdState: input.state,
-      createdDependentEffectIds: dependents.map((effect) => effect.id)
-    })
-  }
-}
-
 /** Forecasts failed-save cleanup; an explicit empty slot prevents stale storage fallback. */
 export function projectEncounterMovementConcentrationEnd<
   TRow extends MovementCharacterRow,
   TCharacterFacts extends ProjectableCharacterFacts
 >(
-  input: Omit<MovementMaintenanceProjectionInput<TRow, TCharacterFacts>, 'createdEffects'> & {
-    maintenance: Pick<Maintenance<TRow>, 'removed' | 'owners' | 'characterVersions'> & {
+  input: MovementMaintenanceProjectionInput<TRow, TCharacterFacts> & {
+    maintenance: Maintenance<TRow> & {
       state: EncounterMaintainedEffectStateRecord
       zoneIds: readonly string[]
     }
@@ -291,10 +233,7 @@ export function projectEncounterMovementConcentrationEnd<
   readCharacter: (row: TRow) => CharacterAuthored
 ) {
   const { targets, owners, ownerTransitions } = projectEncounterMovementMaintenanceOwners(
-    {
-      ...input,
-      createdEffects: []
-    },
+    input,
     readCharacter
   )
   const { state, removed, zoneIds, characterVersions } = input.maintenance
@@ -318,45 +257,4 @@ export function projectEncounterMovementConcentrationEnd<
       }))
     }
   }
-}
-
-/** The native caller adds its preflight binding before the whole snapshot is stored and checksummed. */
-export function bindEncounterMovementMaintenancePending(
-  snapshot: ServerKernelRuleExecutionPendingSnapshotDto,
-  maintenance: Maintenance<MovementCharacterRow> | null
-): ServerKernelRuleExecutionPendingSnapshotDto {
-  const context = snapshot.applicationContext
-  if (
-    context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-    (context.phase.kind !== 'ACTION_EVIDENCE' &&
-      context.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
-  )
-    throw new Error('Movement maintenance requires a pending action phase.')
-  return maintenance
-    ? {
-        ...snapshot,
-        applicationContext: {
-          ...context,
-          phase: {
-            ...context.phase,
-            maintenanceCurrentnessChecksum: checksumRuleDocument(maintenance)
-          }
-        }
-      }
-    : snapshot
-}
-
-export function requireEncounterMovementMaintenanceCurrentness(
-  snapshot: ServerKernelRuleExecutionPendingSnapshotDto,
-  maintenance: Maintenance<MovementCharacterRow> | null
-) {
-  const context = snapshot.applicationContext
-  if (
-    context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-    (context.phase.kind !== 'ACTION_EVIDENCE' &&
-      context.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE') ||
-    (context.phase.maintenanceCurrentnessChecksum ?? null) !==
-      (maintenance ? checksumRuleDocument(maintenance) : null)
-  )
-    throw new Error('The pending movement maintenance state or owner changed.')
 }

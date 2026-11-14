@@ -43,7 +43,7 @@ export type SpatialMovementPreparationInput = Omit<
 
 export type PreparedSpatialMovementPlan<TCharacterFacts extends ProjectableCharacterFacts> = Pick<
   TerminalInput,
-  'effects' | 'executions' | 'root' | 'appliedSpatialPrefix' | 'completedReactionExecutions'
+  'effects' | 'executions' | 'root' | 'appliedSpatialPrefix'
 > & {
   remainingEffectIds?: readonly string[]
   terminalPosition: { x: number; y: number } | null
@@ -116,7 +116,6 @@ export function projectPreparedSpatialMovementReceipt<
       plan.appliedSpatialPrefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
         ? plan.appliedSpatialPrefix
         : null,
-    completedReactionExecutions: plan.completedReactionExecutions,
     remainingEffectIds: plan.remainingEffectIds
   })
 }
@@ -231,8 +230,7 @@ export async function prepareEncounterSpatialMovement<
       effects,
       executions,
       terminalPosition,
-      appliedSpatialPrefix,
-      completedReactionExecutions
+      appliedSpatialPrefix
     }) => {
       const plan: PreparedSpatialMovementPlan<TCharacterFacts> = {
         targets,
@@ -250,7 +248,6 @@ export async function prepareEncounterSpatialMovement<
         state,
         targetsUserId: userId,
         appliedSpatialPrefix,
-        completedReactionExecutions,
         mechanicsPlan: planNativeSpatialMovementPrefix({
           targets,
           executions,
@@ -316,8 +313,7 @@ export async function prepareEncounterSpatialMovement<
     },
     state,
     targetsUserId: userId,
-    appliedSpatialPrefix: evaluated.appliedPrefix,
-    completedReactionExecutions: evaluated.completedReactionExecutions
+    appliedSpatialPrefix: evaluated.appliedPrefix
   }
   const prefixSettlement = projectPreparedSpatialMovementReceipt(prefixSettlementPlan)
   const remainingCandidates = projectSpatialMovementCandidates({

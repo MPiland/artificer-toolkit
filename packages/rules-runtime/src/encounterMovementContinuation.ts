@@ -24,10 +24,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
-export {
-  retainedMovementSpatialExecutions,
-  retainedMovementReactionExecutions
-} from './encounterSpatialMovementResult.js'
+export { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type Boundary = Extract<SpatialMovementRuleEvaluation, { kind: 'REACTION_BOUNDARY' }>
@@ -132,7 +129,6 @@ function movementRemainderAtBoundary(input: {
     spatialCurrentnessChecksum: input.boundary.currentnessChecksum,
     completedSpatialExecutions: [...input.boundary.completedExecutions],
     appliedSpatialPrefix: input.boundary.appliedPrefix,
-    completedReactionExecutions: [...input.boundary.completedReactionExecutions],
     currentSpatialCandidate: null,
     remainingSpatialCandidates: [...input.boundary.remainingCandidates],
     reactionTimeline: [...input.timeline]
@@ -375,7 +371,6 @@ export async function prepareEncounterMovementContinuation<
                 : 1),
             tokenId: root.tokenId,
             movementKind: root.movementKind,
-            reactionExecutions: remainder.completedReactionExecutions,
             terminalPosition: position,
             remainder
           }),

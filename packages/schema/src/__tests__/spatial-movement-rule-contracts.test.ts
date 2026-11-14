@@ -10,7 +10,6 @@ import {
   serverRuleExecutionReceiptCommandMetadataDtoSchema,
   storedRuleExecutionResultDtoSchema
 } from '../shared/rulesExecution.js'
-import { movementReactionActionExecutionDtoSchema } from '../shared/ruleExecutionMovementReactionReceipts.js'
 import { spatialMovementExecutionDtoSchema } from '../shared/ruleExecutionEffectEvidence.js'
 import type { ServerRuleExecutionPendingApplicationContextDto } from '../shared/ruleExecutionPendingApplication.js'
 import {
@@ -46,17 +45,8 @@ type MovementReactionPendingContext = Extract<
   ServerRuleExecutionPendingApplicationContextDto,
   { kind: 'ENCOUNTER_MOVEMENT_REACTION' }
 >
-type MovementReactionActionPendingContext = Omit<MovementReactionPendingContext, 'phase'> & {
-  phase: Extract<MovementReactionPendingContext['phase'], { kind: 'ACTION_EVIDENCE' }>
-}
 type MovementConcentrationPendingContext = Omit<MovementReactionPendingContext, 'phase'> & {
   phase: Extract<MovementReactionPendingContext['phase'], { kind: 'CONCENTRATION_EVIDENCE' }>
-}
-
-function isMovementReactionActionPendingContext(
-  context: MovementReactionPendingContext
-): context is MovementReactionActionPendingContext {
-  return context.phase.kind === 'ACTION_EVIDENCE'
 }
 
 function isMovementConcentrationPendingContext(
@@ -315,121 +305,42 @@ function spatialEffectTransition(effectId: string = ids.effect) {
   }
 }
 
-function reactionExecution(
-  sourceResourceOnly = false
-): ReturnType<typeof movementReactionActionExecutionDtoSchema.parse> {
-  const before = {
-    currentHitPoints: 9,
-    temporaryHitPoints: 0,
-    maximumHitPoints: 10,
-    scalarValues: {},
-    conditionIds: [],
-    deathSaves: NO_DEATH_SAVES
-  }
-  const after = { ...before, currentHitPoints: 8 }
-  return movementReactionActionExecutionDtoSchema.parse({
-    ordinal: 0,
-    sourceCommandId: ids.commandTwo,
-    option: {
-      optionId: checksum('7'),
-      contactSourceId: checksum('8'),
-      actionId: 'reaction-action',
-      actionSourceKind: 'CHARACTER_ACTION' as const,
-      actionSourceCurrentnessChecksum: checksum('9'),
-      candidate: {
-        contact: { x: 6, y: 0 },
-        movingActorId: ids.actor,
-        pathDistance: 6,
-        reactorActorId: ids.actorTwo,
-        reactorTokenId: ids.token,
-        sourceId: checksum('8'),
-        stage: 'BEFORE_LEAVE_REACH' as const
-      },
-      binding: {
-        kind: 'MOVEMENT' as const,
-        stage: 'BEFORE_LEAVE_REACH' as const,
-        perceptionRequirement: 'SEE' as const,
-        eligibilityDefinitionId: ids.entry
-      },
-      policy: {
-        eligible: true,
-        allowanceDefinitionId: ids.effect,
-        allowanceMaximum: 1,
-        allowanceRefreshBoundary: 'START_OF_TURN' as const,
-        selectionPolicy: 'CHOICE' as const,
-        choiceDefinitionId: ids.source,
-        targetPolicy: 'MOVER' as const
-      },
-      eligibilityEvidenceChecksum: checksum('a'),
-      authority: { kind: 'CHARACTER_CONTROLLER' as const, characterId: ids.characterTwo },
-      visibility: 'CONTROLLER' as const
-    },
-    allowance: { definitionId: ids.effect, maximum: 1, beforeUsed: 0, afterUsed: 1 },
-    execution: completedExecution().execution,
-    application: {
-      kind: 'CHARACTER_MECHANICS_BATCH' as const,
-      sourceApplications: [],
-      actionEconomyTransition: null,
-      schemaVersion: 1 as const,
-      occurrenceId: ids.occurrence,
-      sourceActorId: ids.actorTwo,
-      sourceCharacterId: ids.characterTwo,
-      targetActorId: ids.actor,
-      sourceCharacterStreamVersion: sourceResourceOnly ? 5 : null,
-      targetCharacterStreamVersion: 6,
-      resourceConsumption: sourceResourceOnly
-        ? {
-            poolId: 'reaction-resource',
-            chargeId: 'reaction-charge',
-            cost: 1,
-            beforeUsed: 0,
-            afterUsed: 1,
-            beforeRemaining: 1,
-            afterRemaining: 0
-          }
-        : null,
-      spellCastConsumption: null,
-      featureResourceConsumption: null,
-      targetFeatureResourceConsumption: null,
-      activeEffectTransitions: [],
-      maintenanceTransition: null,
-      d20: null,
-      nestedD20: null,
-      stateEffectTransitions: [],
-      targetTransition: { checksum: checksum('2'), before, after },
-      applications: [
-        {
-          ordinal: 0,
-          kind: 'DAMAGE' as const,
-          requestedAmount: 1,
-          resolvedAmount: 1,
-          appliedAmount: 1,
-          beforeCurrentHitPoints: 9,
-          afterCurrentHitPoints: 8,
-          beforeTemporaryHitPoints: 0,
-          afterTemporaryHitPoints: 0,
-          maximumHitPoints: 10,
-          damageTypeId: ids.effect,
-          damageDisposition: 'NORMAL' as const,
-          incomingHalved: false,
-          critical: false,
-          sourceNodeId: 'reaction',
-          sourceOperationKey: 'reaction.apply',
-          authoredPath: null,
-          resolvedPath: null
-        }
-      ]
-    },
-    characterTransitions: [
-      { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 },
-      ...(sourceResourceOnly
-        ? [{ characterId: ids.characterTwo, beforeStreamVersion: 4, afterStreamVersion: 5 }]
-        : [])
-    ]
-  })
+const reactionOption = {
+  optionId: checksum('7'),
+  contactSourceId: checksum('8'),
+  actionId: 'reaction-action',
+  actionSourceKind: 'CHARACTER_ACTION' as const,
+  actionSourceCurrentnessChecksum: checksum('9'),
+  candidate: {
+    contact: { x: 6, y: 0 },
+    movingActorId: ids.actor,
+    pathDistance: 6,
+    reactorActorId: ids.actorTwo,
+    reactorTokenId: ids.token,
+    sourceId: checksum('8'),
+    stage: 'BEFORE_LEAVE_REACH' as const
+  },
+  binding: {
+    kind: 'MOVEMENT' as const,
+    stage: 'BEFORE_LEAVE_REACH' as const,
+    perceptionRequirement: 'SEE' as const,
+    eligibilityDefinitionId: ids.entry
+  },
+  policy: {
+    eligible: true,
+    allowanceDefinitionId: ids.effect,
+    allowanceMaximum: 1,
+    allowanceRefreshBoundary: 'START_OF_TURN' as const,
+    selectionPolicy: 'CHOICE' as const,
+    choiceDefinitionId: ids.source,
+    targetPolicy: 'MOVER' as const
+  },
+  eligibilityEvidenceChecksum: checksum('a'),
+  authority: { kind: 'CHARACTER_CONTROLLER' as const, characterId: ids.characterTwo },
+  visibility: 'CONTROLLER' as const
 }
 
-function bridgedSpatialResult(sourceResourceOnly = false) {
+function bridgedSpatialResult() {
   const first = completedExecution(0, 5)
   first.targetTransition.after.currentHitPoints = 9
   const second = completedExecution(1, 7, ids.effectTwo)
@@ -448,7 +359,6 @@ function bridgedSpatialResult(sourceResourceOnly = false) {
     sceneVersion: 4,
     tokenId: ids.token,
     movementKind: 'VOLUNTARY' as const,
-    reactionExecutions: [reactionExecution(sourceResourceOnly)],
     terminalPosition: { x: 10, y: 0 },
     executions: [first, second],
     spatialEffectTransitions: [spatialEffectTransition(), spatialEffectTransition(ids.effectTwo)],
@@ -466,54 +376,6 @@ function bridgedSpatialResult(sourceResourceOnly = false) {
   }
 }
 
-function encounterActorResourceReaction(): ReturnType<
-  typeof movementReactionActionExecutionDtoSchema.parse
-> {
-  const reaction = reactionExecution(true)
-  const target = {
-    currentHitPoints: 10,
-    temporaryHitPoints: 0,
-    maximumHitPoints: 10,
-    scalarValues: {},
-    conditionIds: [],
-    deathSaves: NO_DEATH_SAVES
-  }
-  return movementReactionActionExecutionDtoSchema.parse({
-    ...reaction,
-    option: {
-      ...reaction.option,
-      candidate: { ...reaction.option.candidate, movingActorId: ids.source }
-    },
-    application: {
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
-      sourceApplications: [],
-      actionEconomyTransition: null,
-      schemaVersion: 1 as const,
-      occurrenceId: ids.occurrence,
-      sourceActorId: ids.actorTwo,
-      targetActorId: ids.source,
-      sourceCharacterStreamVersion: 5,
-      resourceConsumption: {
-        poolId: 'reaction-resource',
-        chargeId: 'reaction-charge',
-        cost: 1,
-        beforeUsed: 0,
-        afterUsed: 1,
-        beforeRemaining: 1,
-        afterRemaining: 0
-      },
-      featureResourceConsumption: null,
-      targetFeatureResourceConsumption: null,
-      d20: null,
-      targetTransition: { checksum: checksum('2'), before: target, after: target },
-      applications: []
-    },
-    characterTransitions: [
-      { characterId: ids.characterTwo, beforeStreamVersion: 4, afterStreamVersion: 5 }
-    ]
-  })
-}
-
 function lastReactionSpatialEvidenceContext() {
   const completed = completedExecution()
   const prefix = {
@@ -528,7 +390,6 @@ function lastReactionSpatialEvidenceContext() {
     sceneVersion: 4,
     tokenId: ids.token,
     movementKind: 'VOLUNTARY' as const,
-    reactionExecutions: [],
     terminalPosition: { x: 10, y: 0 },
     executions: [completed],
     spatialEffectTransitions: [spatialEffectTransition()],
@@ -545,7 +406,6 @@ function lastReactionSpatialEvidenceContext() {
     reactionSelectionChecksum: checksumRuleDocument([]),
     completedSpatialExecutions: [completed],
     appliedSpatialPrefix: prefix,
-    completedReactionExecutions: [reactionExecution()],
     phase: {
       kind: 'SPATIAL_EVIDENCE' as const,
       currentCandidate: pendingCandidate(1, 7, ids.effectTwo)
@@ -555,8 +415,8 @@ function lastReactionSpatialEvidenceContext() {
   }
 }
 
-function movementReactionActionPendingContext(): MovementReactionActionPendingContext {
-  const option = reactionExecution().option
+function movementReactionChoicePendingContext() {
+  const option = reactionOption
   const reactionTimeline = [
     {
       kind: 'CONTROLLER_CHOICE' as const,
@@ -568,7 +428,7 @@ function movementReactionActionPendingContext(): MovementReactionActionPendingCo
       }
     }
   ]
-  const parsed = serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+  return serverRuleExecutionPendingApplicationContextDtoSchema.parse({
     kind: 'ENCOUNTER_MOVEMENT_REACTION' as const,
     schemaVersion: 1 as const,
     root: {
@@ -580,169 +440,13 @@ function movementReactionActionPendingContext(): MovementReactionActionPendingCo
     spatialCurrentnessChecksum: checksum('5'),
     reactionSelectionChecksum: checksumRuleDocument(reactionTimeline),
     completedSpatialExecutions: [],
-    completedReactionExecutions: [],
-    phase: {
-      kind: 'ACTION_EVIDENCE' as const,
-      selectedOptionId: option.optionId,
-      rollerActorId: option.candidate.reactorActorId,
-      d20Policy: null
-    },
+    phase: { kind: 'CHOICE' as const },
     remainingSpatialCandidates: [],
     reactionTimeline
   })
-  if (
-    parsed.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-    !isMovementReactionActionPendingContext(parsed)
-  )
-    throw new Error('Expected movement reaction action pending context.')
-  return parsed
 }
 
-function movementReactionLegendaryPendingContext() {
-  const context = movementReactionActionPendingContext()
-  const originalExecution = structuredClone(completedExecution().execution)
-  originalExecution.outputs = { resultPath: 'ON_SAVE_FAIL' }
-  originalExecution.evidence.outputs = { resultPath: 'ON_SAVE_FAIL' }
-  const originalD20 = {
-    requestId: 'movement-reaction-save',
-    rollMode: 'NORMAL' as const,
-    keep: 'FIRST' as const,
-    derivedRollMode: 'NORMAL' as const,
-    rawFaces: [5],
-    selectedNatural: 5,
-    contributors: [],
-    contributorChecksum: checksumRuleDocument([]),
-    modifier: 0,
-    total: 5,
-    defenseOrDc: 10,
-    resultPath: 'ON_SAVE_FAIL' as const
-  }
-  const selectionEvidence = {
-    targetActorId: ids.actor,
-    ownerFeatureId: 'legendary-resistance',
-    chargeId: 'resistance-use',
-    featureCost: 1,
-    definitionId: ids.effect,
-    definitionVersion: 1,
-    definitionChecksum: checksum('a'),
-    choiceGraphDefinitionId: ids.effectTwo,
-    choiceGraphDefinitionVersion: 1,
-    choiceGraphDefinitionChecksum: checksum('b')
-  }
-  const selectionChecksum = checksumRuleDocument(selectionEvidence)
-  return {
-    ...context,
-    phase: {
-      kind: 'LEGENDARY_RESISTANCE_CHOICE' as const,
-      selectedOptionId: context.phase.selectedOptionId,
-      originalExecution,
-      originalD20,
-      originalExecutionChecksum: checksumRuleDocument(originalExecution),
-      targetStateChecksum: checksum('2'),
-      resistance: {
-        ...selectionEvidence,
-        poolBefore: 1,
-        poolRemaining: 0,
-        useOutput: 'use',
-        useOptionId: checksumRuleDocument({ kind: 'USE', selectionChecksum }),
-        selectionChecksum
-      }
-    }
-  }
-}
-
-function maintainedReactionExecution() {
-  const reaction = structuredClone(reactionExecution())
-  if (reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH')
-    throw new Error('Expected Character reaction application.')
-  const ownerId = (ordinal: number) =>
-    `00000000-0000-4000-8000-${ordinal.toString().padStart(12, '0')}`
-  const owners = [ids.character, ownerId(602), ownerId(603)]
-  const maintainedStateId = ownerId(501)
-  reaction.application.activeEffectTransitions = [
-    {
-      kind: 'CREATE',
-      activeEffectId: ownerId(503),
-      characterId: ids.character,
-      sourceEncounterId: ids.encounter,
-      createdOrdinal: 1,
-      afterVersion: 1,
-      authoredEffectId: ids.effect,
-      compiledEntryId: ids.entry,
-      frozenGraphNodeId: 'reaction',
-      definitionChecksum: checksum('a'),
-      lifecycleChecksum: checksum('b'),
-      frozenSourceChecksum: checksum('c'),
-      capabilityContractVersion: 1,
-      recurrenceStage: 'START_OF_TURN',
-      remainingTicks: 2,
-      maintainedEffectStateId: maintainedStateId
-    }
-  ]
-  reaction.application.maintenanceTransition = {
-    kind: 'REPLACE_SAME_DEFINITION',
-    priorState: {
-      id: ownerId(504),
-      version: 1,
-      maintenanceDefinitionId: ownerId(502),
-      descriptorChecksum: checksum('d'),
-      sourceActorId: ids.actorTwo
-    },
-    removedDependentEffects: owners.map((characterId, index) => ({
-      kind: 'CHARACTER' as const,
-      characterId,
-      activeEffectId: ownerId(701 + index),
-      createdOrdinal: index + 1,
-      expectedVersion: 1,
-      definitionChecksum: checksum('e'),
-      lifecycleChecksum: checksum('f')
-    })),
-    endedCarriedGrants: [],
-    createdState: {
-      id: maintainedStateId,
-      version: 1,
-      maintenanceDefinitionId: ownerId(502),
-      descriptorChecksum: checksum('1'),
-      definitionChecksum: checksum('2'),
-      sourceActionId: 'reaction-action',
-      sourceOccurrenceId: ids.occurrence,
-      sourceActorId: ids.actorTwo
-    },
-    characterOwnerTransitions: owners.map((characterId) =>
-      characterId === ids.character
-        ? { characterId, beforeStreamVersion: 5, afterStreamVersion: 6 }
-        : { characterId, beforeStreamVersion: 10, afterStreamVersion: 11 }
-    ),
-    createdDependentEffectIds: [ownerId(503)]
-  }
-  reaction.characterTransitions = [
-    { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 },
-    ...reaction.application.maintenanceTransition.characterOwnerTransitions.filter(
-      (transition) => transition.characterId !== ids.character
-    )
-  ]
-  const detachedState = {
-    currentHitPoints: 10,
-    temporaryHitPoints: 0,
-    maximumHitPoints: 10,
-    scalarValues: {},
-    conditionIds: [],
-    deathSaves: NO_DEATH_SAVES
-  }
-  const targetAfter = structuredClone(reaction.application.targetTransition.after)
-  reaction.maintenanceOwnerTransitions = owners.map((characterId, index) => ({
-    targetActorId: characterId === ids.character ? ids.actor : ownerId(802 + index),
-    characterId,
-    before: characterId === ids.character ? structuredClone(targetAfter) : detachedState,
-    after: characterId === ids.character ? structuredClone(targetAfter) : detachedState
-  }))
-  return reaction
-}
-
-function concentrationContext(input: {
-  damageSource: { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number }
-  finalizedDamageEnvelopeChecksum: string
-}) {
+function concentrationContext(input: { finalizedDamageEnvelopeChecksum: string }) {
   return {
     kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK' as const,
     schemaVersion: 1 as const,
@@ -754,8 +458,8 @@ function concentrationContext(input: {
     trigger: { sourceLabel: null, damageTypeLabel: null, dc: 10 },
     application: {
       ordinal: 0,
-      sourceNodeId: input.damageSource.kind === 'SPATIAL' ? 'effect' : 'reaction',
-      sourceOperationKey: input.damageSource.kind === 'SPATIAL' ? 'effect.apply' : 'reaction.apply',
+      sourceNodeId: 'effect',
+      sourceOperationKey: 'effect.apply',
       targetActorId: ids.actor,
       appliedAmount: 1,
       damageTypeId: ids.effect
@@ -838,40 +542,25 @@ function completedSpatialDamageExecution() {
   })
 }
 
-function movementConcentrationPendingContext(
-  kind: 'SPATIAL' | 'REACTION'
-): MovementConcentrationPendingContext {
-  const context = movementReactionActionPendingContext()
-  const prepared =
-    kind === 'SPATIAL'
-      ? (() => ({ execution: completedSpatialDamageExecution(), root: pendingContext().root }))()
-      : (() => {
-          const execution = reactionExecution()
-          return {
-            execution,
-            root: {
-              ...context.root,
-              pathStartDistance: execution.option.candidate.pathDistance,
-              currentPosition: execution.option.candidate.contact
-            }
-          }
-        })()
-  const { execution, root } = prepared
+function movementConcentrationPendingContext(): MovementConcentrationPendingContext {
+  const execution = completedSpatialDamageExecution()
   const { concentrationChecks: _concentrationChecks, ...damageEnvelope } = execution
   const parsed = serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-    ...context,
-    root,
+    kind: 'ENCOUNTER_MOVEMENT_REACTION' as const,
+    schemaVersion: 1 as const,
+    root: pendingContext().root,
+    spatialSelectionChecksum: checksum('4'),
+    spatialCurrentnessChecksum: checksum('5'),
     reactionSelectionChecksum: checksumRuleDocument([]),
-    completedSpatialExecutions: kind === 'SPATIAL' ? [execution] : [],
-    completedReactionExecutions: kind === 'REACTION' ? [execution] : [],
+    completedSpatialExecutions: [execution],
     phase: {
       kind: 'CONCENTRATION_EVIDENCE',
-      damageSource: { kind, executionOrdinal: 0 },
+      damageSource: { executionOrdinal: 0 },
       concentration: concentrationContext({
-        damageSource: { kind, executionOrdinal: 0 },
         finalizedDamageEnvelopeChecksum: checksumRuleDocument(damageEnvelope)
       })
     },
+    remainingSpatialCandidates: [],
     reactionTimeline: []
   })
   if (
@@ -884,7 +573,7 @@ function movementConcentrationPendingContext(
 
 function movementConcentrationChildSnapshot() {
   const applicationContext = serverRuleExecutionPendingApplicationContextDtoSchema.parse(
-    movementConcentrationPendingContext('SPATIAL')
+    movementConcentrationPendingContext()
   )
   if (
     applicationContext.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
@@ -931,14 +620,10 @@ function movementConcentrationChildSnapshot() {
 }
 
 describe('spatial movement rule contracts', () => {
-  it('binds pending movement concentration evidence to its final spatial or reaction damage', () => {
-    const spatial = movementConcentrationPendingContext('SPATIAL')
-    const reaction = movementConcentrationPendingContext('REACTION')
+  it('binds pending movement concentration evidence to its final spatial damage', () => {
+    const spatial = movementConcentrationPendingContext()
     const parsedSpatial = serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(spatial)
     expect(parsedSpatial.success).toBe(true)
-    expect(serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(reaction).success).toBe(
-      true
-    )
 
     const child = movementConcentrationChildSnapshot()
     expect(child.occurrenceId).toBe(ids.commandTwo)
@@ -964,23 +649,18 @@ describe('spatial movement rule contracts', () => {
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(sameContactSpatial).success
     ).toBe(true)
-    const sameContactReaction = structuredClone(reaction)
-    sameContactReaction.remainingSpatialCandidates = [pendingCandidate(0, 6)]
-    expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(sameContactReaction).success
-    ).toBe(false)
 
     for (const invalid of [
       {
         ...spatial,
-        phase: { ...spatial.phase, damageSource: { kind: 'SPATIAL' as const, executionOrdinal: 1 } }
+        phase: { ...spatial.phase, damageSource: { executionOrdinal: 1 } }
       },
       {
-        ...reaction,
+        ...spatial,
         phase: {
-          ...reaction.phase,
+          ...spatial.phase,
           concentration: {
-            ...reaction.phase.concentration,
+            ...spatial.phase.concentration,
             finalizedDamageEnvelopeChecksum: checksum('0')
           }
         }
@@ -1008,11 +688,11 @@ describe('spatial movement rule contracts', () => {
         completedSpatialExecutions: []
       },
       {
-        ...reaction,
+        ...spatial,
         phase: {
-          ...reaction.phase,
+          ...spatial.phase,
           concentration: {
-            ...reaction.phase.concentration,
+            ...spatial.phase.concentration,
             parentCommandFingerprint: checksum('0')
           }
         }
@@ -1021,84 +701,6 @@ describe('spatial movement rule contracts', () => {
       expect(serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(invalid).success).toBe(
         false
       )
-  })
-
-  it('retains optional movement maintenance preflight only when supplied', () => {
-    const historical = serverRuleExecutionPendingApplicationContextDtoSchema.parse(
-      movementReactionActionPendingContext()
-    )
-    if (historical.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-      throw new Error('Expected movement reaction pending context.')
-    expect(historical.phase).not.toHaveProperty('maintenanceCurrentnessChecksum')
-
-    const maintenanceCurrentnessChecksum = checksum('6')
-    expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...movementReactionActionPendingContext(),
-        phase: {
-          ...movementReactionActionPendingContext().phase,
-          maintenanceCurrentnessChecksum
-        }
-      })
-    ).toMatchObject({ phase: { maintenanceCurrentnessChecksum } })
-
-    const historicalLegendary = serverRuleExecutionPendingApplicationContextDtoSchema.parse(
-      movementReactionLegendaryPendingContext()
-    )
-    if (historicalLegendary.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
-      throw new Error('Expected movement reaction pending context.')
-    expect(historicalLegendary.phase).not.toHaveProperty('maintenanceCurrentnessChecksum')
-    expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...movementReactionLegendaryPendingContext(),
-        phase: {
-          ...movementReactionLegendaryPendingContext().phase,
-          maintenanceCurrentnessChecksum
-        }
-      })
-    ).toMatchObject({ phase: { maintenanceCurrentnessChecksum } })
-  })
-
-  it('retains every maintained Character owner transition on one movement reaction', () => {
-    expect(reactionExecution()).not.toHaveProperty('maintenanceOwnerTransitions')
-    const reaction = maintainedReactionExecution()
-    expect(
-      movementReactionActionExecutionDtoSchema.parse(reaction).characterTransitions
-    ).toHaveLength(3)
-
-    const missing = structuredClone(reaction)
-    missing.characterTransitions.pop()
-    expect(() => movementReactionActionExecutionDtoSchema.parse(missing)).toThrow(
-      'include each maintained owner transition'
-    )
-
-    const duplicate = structuredClone(reaction)
-    duplicate.characterTransitions[2] = duplicate.characterTransitions[1]!
-    expect(() => movementReactionActionExecutionDtoSchema.parse(duplicate)).toThrow(
-      'unique, ordered, and advance exactly once'
-    )
-  })
-
-  it('retains the owner transition of a Character whose carried grant the reaction ends (D99)', () => {
-    const reaction = maintainedReactionExecution()
-    if (reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character reaction application.')
-    const maintenance = reaction.application.maintenanceTransition
-    if (!maintenance) throw new Error('Expected a maintenance transition.')
-    const [carried] = maintenance.removedDependentEffects.splice(-1)
-    if (carried?.kind !== 'CHARACTER') throw new Error('Expected a Character dependent effect.')
-    const { kind: _kind, ...grant } = carried
-    maintenance.endedCarriedGrants = [grant]
-
-    expect(
-      movementReactionActionExecutionDtoSchema.parse(structuredClone(reaction))
-        .maintenanceOwnerTransitions
-    ).toHaveLength(3)
-
-    maintenance.endedCarriedGrants = []
-    expect(() => movementReactionActionExecutionDtoSchema.parse(reaction)).toThrow(
-      'match removed owners'
-    )
   })
 
   it('rejects corrupted self-contained terminal passage path evidence', () => {
@@ -1254,7 +856,6 @@ describe('spatial movement rule contracts', () => {
       sceneVersion: 4,
       tokenId: ids.token,
       movementKind: 'VOLUNTARY' as const,
-      reactionExecutions: [],
       terminalPosition: { x: 10, y: 0 },
       executions: [completedExecution()],
       spatialEffectTransitions: [spatialEffectTransition()],
@@ -1450,31 +1051,6 @@ describe('spatial movement rule contracts', () => {
       expect(storedRuleExecutionResultDtoSchema.safeParse(invalid).success).toBe(false)
   })
 
-  it('stores reaction-only movement completion without fabricating a spatial execution', () => {
-    const result = {
-      status: 'MOVEMENT_COMPLETE' as const,
-      schemaVersion: 1 as const,
-      occurrenceId: ids.occurrence,
-      occurrenceVersion: 1,
-      encounterId: ids.encounter,
-      encounterVersion: 8,
-      sceneId: ids.scene,
-      sceneVersion: 4,
-      tokenId: ids.token,
-      movementKind: 'VOLUNTARY' as const,
-      reactionExecutions: [],
-      terminalPosition: { x: 10, y: 0 }
-    }
-
-    expect(storedRuleExecutionResultDtoSchema.parse(result)).toEqual(result)
-    expect(
-      storedRuleExecutionResultDtoSchema.safeParse({
-        ...result,
-        executions: []
-      }).success
-    ).toBe(false)
-  })
-
   it('transitions each spatial root exactly once across multiple target executions', () => {
     const multiTarget = {
       status: 'BATCH_COMPLETE' as const,
@@ -1632,183 +1208,6 @@ describe('spatial movement rule contracts', () => {
     expect(storedRuleExecutionResultDtoSchema.safeParse(netZero).success).toBe(true)
   })
 
-  it('proves spatial-reaction-spatial Character receipt bridges', () => {
-    const bridged = bridgedSpatialResult()
-    expect(storedRuleExecutionResultDtoSchema.safeParse(bridged).success).toBe(true)
-
-    const maintained = bridgedSpatialResult()
-    maintained.reactionExecutions = [maintainedReactionExecution()]
-    expect(storedRuleExecutionResultDtoSchema.safeParse(maintained).success).toBe(true)
-
-    const omittedCleanup = structuredClone(maintained)
-    Reflect.deleteProperty(omittedCleanup.reactionExecutions[0]!, 'maintenanceOwnerTransitions')
-    expect(storedRuleExecutionResultDtoSchema.safeParse(omittedCleanup).success).toBe(false)
-
-    const wrongMaintenanceSpan = structuredClone(maintained)
-    const wrongSpanApplication = wrongMaintenanceSpan.reactionExecutions[0]!.application
-    if (wrongSpanApplication.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character mechanics reaction fixture.')
-    wrongSpanApplication.maintenanceTransition!.characterOwnerTransitions[0] = {
-      characterId: ids.character,
-      beforeStreamVersion: 6,
-      afterStreamVersion: 7
-    }
-    wrongMaintenanceSpan.reactionExecutions[0]!.characterTransitions[0] = {
-      characterId: ids.character,
-      beforeStreamVersion: 6,
-      afterStreamVersion: 7
-    }
-    expect(storedRuleExecutionResultDtoSchema.safeParse(wrongMaintenanceSpan).success).toBe(false)
-
-    const staleCleanup = structuredClone(maintained)
-    const staleState = staleCleanup.reactionExecutions[0]!.maintenanceOwnerTransitions![0]!
-    staleState.before.currentHitPoints = 9
-    staleState.after.currentHitPoints = 9
-    expect(storedRuleExecutionResultDtoSchema.safeParse(staleCleanup).success).toBe(false)
-
-    const missingBridge = structuredClone(bridged)
-    missingBridge.reactionExecutions = []
-    expect(storedRuleExecutionResultDtoSchema.safeParse(missingBridge).success).toBe(false)
-
-    const changedBridge = structuredClone(bridged)
-    const changedApplication = changedBridge.reactionExecutions[0]!.application
-    if (changedApplication.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character mechanics reaction fixture.')
-    changedApplication.targetTransition.before.currentHitPoints = 10
-    expect(storedRuleExecutionResultDtoSchema.safeParse(changedBridge).success).toBe(false)
-
-    const scalarBridge = structuredClone(bridged)
-    const scalarApplication = scalarBridge.reactionExecutions[0]!.application
-    if (scalarApplication.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character mechanics reaction fixture.')
-    scalarApplication.targetTransition.after.scalarValues = {
-      [ids.entry]: 1
-    }
-    expect(storedRuleExecutionResultDtoSchema.safeParse(scalarBridge).success).toBe(false)
-
-    const versionGap = structuredClone(bridged)
-    const versionApplication = versionGap.reactionExecutions[0]!.application
-    if (versionApplication.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character mechanics reaction fixture.')
-    versionApplication.targetCharacterStreamVersion = 7
-    versionGap.reactionExecutions[0]!.characterTransitions[0]!.beforeStreamVersion = 6
-    versionGap.reactionExecutions[0]!.characterTransitions[0]!.afterStreamVersion = 7
-    versionGap.executions[1]!.candidate.target.streamVersion = 7
-    versionGap.characterTransitions[0]!.afterStreamVersion = 8
-    expect(storedRuleExecutionResultDtoSchema.safeParse(versionGap).success).toBe(false)
-
-    const netZeroAcrossGroups = structuredClone(bridged)
-    netZeroAcrossGroups.executions[1]!.targetTransition.after.currentHitPoints = 10
-    netZeroAcrossGroups.characterTransitions[0]!.after =
-      netZeroAcrossGroups.executions[1]!.targetTransition.after
-    expect(storedRuleExecutionResultDtoSchema.safeParse(netZeroAcrossGroups).success).toBe(true)
-
-    expect(storedRuleExecutionResultDtoSchema.safeParse(bridgedSpatialResult(true)).success).toBe(
-      true
-    )
-
-    const spatial = completedExecution()
-    spatial.targetTransition.after.currentHitPoints = 9
-    expect(
-      storedRuleExecutionResultDtoSchema.safeParse({
-        ...bridgedSpatialResult(),
-        reactionExecutions: [encounterActorResourceReaction()],
-        executions: [spatial],
-        spatialEffectTransitions: [spatialEffectTransition()],
-        characterTransitions: [
-          {
-            characterId: ids.character,
-            targetActorId: ids.actor,
-            beforeStreamVersion: 4,
-            afterStreamVersion: 5,
-            before: spatial.targetTransition.before,
-            after: spatial.targetTransition.after
-          }
-        ]
-      }).success
-    ).toBe(true)
-
-    const trailingReaction = structuredClone(bridged)
-    const resourceOnly = encounterActorResourceReaction()
-    resourceOnly.ordinal = 1
-    resourceOnly.option.candidate.pathDistance = 8
-    trailingReaction.reactionExecutions.push(resourceOnly)
-    expect(storedRuleExecutionResultDtoSchema.safeParse(trailingReaction).success).toBe(true)
-
-    const reorderedReactions = structuredClone(bridged)
-    reorderedReactions.reactionExecutions[0]!.option.candidate.pathDistance = 7
-    reorderedReactions.executions[1]!.candidate.candidate.pathDistance = 8
-    const earlierNoOp = encounterActorResourceReaction()
-    earlierNoOp.ordinal = 1
-    if (earlierNoOp.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
-      throw new Error('Expected Encounter actor mechanics reaction fixture.')
-    earlierNoOp.application.sourceCharacterStreamVersion = null
-    earlierNoOp.application.resourceConsumption = null
-    earlierNoOp.characterTransitions = []
-    reorderedReactions.reactionExecutions.push(earlierNoOp)
-    expect(storedRuleExecutionResultDtoSchema.safeParse(reorderedReactions).success).toBe(false)
-  })
-
-  it('binds a reaction mover Character absent from spatial contacts', () => {
-    const reaction = structuredClone(reactionExecution())
-    reaction.targetCharacterId = ids.characterTwo
-    reaction.option = {
-      ...reaction.option,
-      candidate: {
-        ...reaction.option.candidate,
-        movingActorId: ids.actorTwo,
-        reactorActorId: ids.actor,
-        pathDistance: 6
-      },
-      authority: { kind: 'CHARACTER_CONTROLLER', characterId: ids.character }
-    }
-    if (reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character mechanics reaction fixture.')
-    reaction.application.sourceActorId = ids.actor
-    reaction.application.sourceCharacterId = ids.character
-    reaction.application.targetActorId = ids.actorTwo
-    reaction.characterTransitions = [
-      { characterId: ids.characterTwo, beforeStreamVersion: 5, afterStreamVersion: 6 }
-    ]
-    const result = {
-      status: 'BATCH_COMPLETE' as const,
-      batchKind: 'ENCOUNTER_SPATIAL_MOVEMENT' as const,
-      schemaVersion: 1 as const,
-      occurrenceId: ids.occurrence,
-      occurrenceVersion: 2,
-      encounterId: ids.encounter,
-      encounterVersion: 8,
-      sceneId: ids.scene,
-      sceneVersion: 4,
-      tokenId: ids.token,
-      movementKind: 'VOLUNTARY' as const,
-      reactionExecutions: [reaction],
-      terminalPosition: { x: 10, y: 0 },
-      executions: [completedExecution()],
-      spatialEffectTransitions: [spatialEffectTransition()],
-      characterTransitions: [],
-      encounterActorTransitions: []
-    }
-    expect(storedRuleExecutionResultDtoSchema.safeParse(result).success).toBe(true)
-
-    const missingBinding = structuredClone(result)
-    Reflect.deleteProperty(missingBinding.reactionExecutions[0]!, 'targetCharacterId')
-    expect(storedRuleExecutionResultDtoSchema.safeParse(missingBinding).success).toBe(false)
-
-    const conflictingBinding = structuredClone(result)
-    conflictingBinding.reactionExecutions[0]!.targetCharacterId = ids.character
-    expect(storedRuleExecutionResultDtoSchema.safeParse(conflictingBinding).success).toBe(false)
-
-    const mismatchedTargetSpan = structuredClone(result)
-    const mismatchedApplication = mismatchedTargetSpan.reactionExecutions[0]!.application
-    if (mismatchedApplication.kind !== 'CHARACTER_MECHANICS_BATCH')
-      throw new Error('Expected Character mechanics reaction fixture.')
-    mismatchedApplication.targetCharacterStreamVersion = 7
-    expect(storedRuleExecutionResultDtoSchema.safeParse(mismatchedTargetSpan).success).toBe(false)
-
-    expect(storedRuleExecutionResultDtoSchema.safeParse(bridgedSpatialResult()).success).toBe(true)
-  })
-
   it('retains the remaining spatial evidence after the final reaction contact', () => {
     const afterLastReaction = lastReactionSpatialEvidenceContext()
     expect(
@@ -1827,7 +1226,7 @@ describe('spatial movement rule contracts', () => {
   })
 
   it('records reaction children only on a movement reaction choice (QUALITY-18.T1a, D219)', () => {
-    const action = movementReactionActionPendingContext()
+    const action = movementReactionChoicePendingContext()
     const parse = (phase: object) =>
       serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({ ...action, phase })
     const child = { commandId: ids.commandTwo }
@@ -1847,7 +1246,18 @@ describe('spatial movement rule contracts', () => {
       })
     }
 
-    expect(parse({ ...action.phase, reactionChildren: [child] }).success).toBe(false)
+    // A phase other than the choice carries no children: the spatial-evidence context is valid
+    // without them, so only the children are rejected.
+    const spatialEvidence = lastReactionSpatialEvidenceContext()
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(spatialEvidence).success
+    ).toBe(true)
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
+        ...spatialEvidence,
+        phase: { ...spatialEvidence.phase, reactionChildren: [child] }
+      }).success
+    ).toBe(false)
     expect(parse({ kind: 'CHOICE', reactionChildren: [{ commandId: 'child' }] }).success).toBe(
       false
     )
@@ -1878,7 +1288,7 @@ describe('spatial movement rule contracts', () => {
 
     // The entry is one version of the occurrence like any answer: after the die before it, and
     // nowhere else.
-    const choice = { ...movementReactionActionPendingContext(), phase: { kind: 'CHOICE' } }
+    const choice = movementReactionChoicePendingContext()
     const history = (resolutionCommands: object[]) =>
       serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
         ...choice,
@@ -1919,7 +1329,7 @@ describe('spatial movement rule contracts', () => {
       false
     )
 
-    const actionEvidence = movementReactionActionPendingContext()
+    const actionEvidence = movementReactionChoicePendingContext()
     actionEvidence.completedSpatialExecutions = [completedExecution()]
     actionEvidence.appliedSpatialPrefix = lastReactionSpatialEvidenceContext().appliedSpatialPrefix
     expect(
@@ -2052,7 +1462,6 @@ describe('Concentration ends in the spatial movement receipt timeline (D95)', ()
    */
   function endedSpatialResult(options: { observedConditionIds: string[]; secondChanges: boolean }) {
     const result = bridgedSpatialResult()
-    result.reactionExecutions = []
     const [first, second] = result.executions as [
       ReturnType<typeof completedExecution>,
       ReturnType<typeof completedExecution>

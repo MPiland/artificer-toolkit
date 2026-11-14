@@ -8,7 +8,6 @@ import type {
   MovementConcentrationEndDto,
   MovementConcentrationExecutionDto
 } from './ruleExecutionMovementConcentration.js'
-import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionPositiveIntegerSchema,
@@ -32,10 +31,9 @@ import {
   spatialPointDtoSchema
 } from './spatialFacts.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from './spatial.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 export const movementCompleteRuleExecutionResultDtoSchema = lazySchema(() =>
   z.strictObject({
-    /** A reaction-bearing movement completed without any spatial-effect execution. */
+    /** A move completed without any spatial-effect execution. */
     status: z.literal('MOVEMENT_COMPLETE'),
     schemaVersion: z.literal(1),
     occurrenceId: uuidSchema,
@@ -46,10 +44,6 @@ export const movementCompleteRuleExecutionResultDtoSchema = lazySchema(() =>
     sceneVersion: aggregateVersionSchema,
     tokenId: uuidSchema,
     movementKind: spatialMovementKindDtoSchema,
-    reactionExecutions: z._default(
-      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-      []
-    ),
     terminalPosition: spatialPointDtoSchema
   })
 )
@@ -68,10 +62,6 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
       sceneVersion: aggregateVersionSchema,
       tokenId: uuidSchema,
       movementKind: spatialMovementKindDtoSchema,
-      reactionExecutions: z._default(
-        z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        []
-      ),
       terminalPosition: spatialPointDtoSchema,
       executions: z
         .array(spatialMovementExecutionDtoSchema)
@@ -284,8 +274,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             context.addIssue({
               code: 'custom',
               path,
-              message:
-                'Spatial and reaction receipts must retain one exact actor to Character binding.'
+              message: 'Spatial receipts must retain one exact actor to Character binding.'
             })
           actorCharacters.set(actorId, characterId)
           characterActors.set(characterId, actorId)
@@ -299,13 +288,6 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             )
         for (const transition of batch.characterTransitions)
           bindCharacter(transition.targetActorId, transition.characterId, ['characterTransitions'])
-        for (const [index, reaction] of batch.reactionExecutions.entries())
-          if (reaction.targetCharacterId !== undefined)
-            bindCharacter(reaction.option.candidate.movingActorId, reaction.targetCharacterId, [
-              'reactionExecutions',
-              index,
-              'targetCharacterId'
-            ])
 
         const currentStates = new Map<
           string,
@@ -488,30 +470,6 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             }
           }
         }
-        const timeline = [
-          ...batch.executions.map((execution, index) => ({
-            kind: 'SPATIAL' as const,
-            index,
-            ordinal: execution.ordinal,
-            distance: execution.candidate.candidate.pathDistance,
-            value: execution
-          })),
-          ...batch.reactionExecutions.map((reaction, index) => ({
-            kind: 'REACTION' as const,
-            index,
-            ordinal: reaction.ordinal,
-            distance: reaction.option.candidate.pathDistance,
-            value: reaction
-          }))
-        ].sort(
-          (left, right) =>
-            left.distance - right.distance ||
-            (left.kind === right.kind
-              ? left.ordinal - right.ordinal
-              : left.kind === 'SPATIAL'
-                ? -1
-                : 1)
-        )
         const reactionChildBoundaries = new Set(batch.reactionChildBoundaries)
         if (
           (batch.reactionChildBoundaries ?? []).some(
@@ -525,329 +483,74 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             path: ['reactionChildBoundaries'],
             message: 'Reaction child boundaries must be ordered and lie within the executions.'
           })
-        let priorReactionDistance = -1
-        for (const [index, reaction] of batch.reactionExecutions.entries()) {
-          if (reaction.option.candidate.pathDistance < priorReactionDistance)
-            context.addIssue({
-              code: 'custom',
-              path: ['reactionExecutions', index, 'option', 'candidate', 'pathDistance'],
-              message: 'Reaction receipts must retain their sealed chronological contact order.'
-            })
-          priorReactionDistance = reaction.option.candidate.pathDistance
-        }
-        for (const event of timeline) {
-          if (event.ordinal !== event.index)
-            context.addIssue({
-              code: 'custom',
-              path: [
-                event.kind === 'SPATIAL' ? 'executions' : 'reactionExecutions',
-                event.index,
-                'ordinal'
-              ],
-              message: 'Movement receipt ordinals must retain their canonical within-kind order.'
-            })
-          if (event.kind === 'SPATIAL') {
-            const execution = event.value
-            if (reactionChildBoundaries.has(execution.ordinal)) {
-              finishSpatialGroups()
-              currentStates.clear()
-              currentVersions.clear()
-              // An owner no contact had changed starts its span after the child.
-              for (const [ownerKey, summary] of spatialSummaries)
-                if (!summary.changed) spatialSummaries.delete(ownerKey)
-            }
-            const actorId = execution.candidate.candidate.targetActorId
-            const characterId =
-              execution.candidate.target.kind === 'CHARACTER'
-                ? execution.candidate.target.characterId
-                : null
-            const ownerKey =
-              characterId === null ? `ENCOUNTER_ACTOR:${actorId}` : `CHARACTER:${characterId}`
-            const pinVersion =
-              execution.candidate.target.kind === 'CHARACTER'
-                ? execution.candidate.target.streamVersion
-                : null
-            let currentVersion = characterId === null ? undefined : currentVersions.get(characterId)
-            const open = openSpatialGroups.get(ownerKey)
-            if (
-              open &&
-              (open.version !== pinVersion ||
-                !sameState(open.after, execution.targetTransition.before))
-            ) {
-              finishSpatialGroups()
-              currentVersion = characterId === null ? undefined : currentVersions.get(characterId)
-            }
-            const priorState = openSpatialGroups.get(ownerKey)?.after ?? currentStates.get(ownerKey)
-            if (
-              (priorState !== undefined &&
-                !sameState(priorState, execution.targetTransition.before)) ||
-              (currentVersion !== undefined && currentVersion !== pinVersion)
-            )
-              context.addIssue({
-                code: 'custom',
-                path: ['executions', event.index, 'targetTransition'],
-                message: 'Spatial target pins must continue the proved movement receipt timeline.'
-              })
-            if (!openSpatialGroups.has(ownerKey))
-              openSpatialGroups.set(ownerKey, {
-                actorId,
-                characterId,
-                before: execution.targetTransition.before,
-                after: execution.targetTransition.after,
-                version: pinVersion
-              })
-            else openSpatialGroups.get(ownerKey)!.after = execution.targetTransition.after
-            if (characterId !== null && currentVersion === undefined)
-              currentVersions.set(characterId, pinVersion!)
-            if (
-              execution.concentrationEnds !== undefined ||
-              execution.concentrationChecks !== undefined
-            ) {
-              finishSpatialGroups()
-              applyConcentrationChildren(
-                execution.concentrationEnds ?? [],
-                ['executions', event.index],
-                'concentrationEnds'
-              )
-              applyConcentrationChildren(
-                execution.concentrationChecks ?? [],
-                ['executions', event.index],
-                'concentrationChecks'
-              )
-            }
-            continue
+        for (const [index, execution] of batch.executions.entries()) {
+          if (reactionChildBoundaries.has(execution.ordinal)) {
+            finishSpatialGroups()
+            currentStates.clear()
+            currentVersions.clear()
+            // An owner no contact had changed starts its span after the child.
+            for (const [ownerKey, summary] of spatialSummaries)
+              if (!summary.changed) spatialSummaries.delete(ownerKey)
           }
-          finishSpatialGroups()
-          const reaction = event.value
-          const application = reaction.application
+          const actorId = execution.candidate.candidate.targetActorId
+          const characterId =
+            execution.candidate.target.kind === 'CHARACTER'
+              ? execution.candidate.target.characterId
+              : null
+          const ownerKey =
+            characterId === null ? `ENCOUNTER_ACTOR:${actorId}` : `CHARACTER:${characterId}`
+          const pinVersion =
+            execution.candidate.target.kind === 'CHARACTER'
+              ? execution.candidate.target.streamVersion
+              : null
+          let currentVersion = characterId === null ? undefined : currentVersions.get(characterId)
+          const open = openSpatialGroups.get(ownerKey)
           if (
-            application.kind !== 'CHARACTER_MECHANICS_BATCH' &&
-            application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+            open &&
+            (open.version !== pinVersion ||
+              !sameState(open.after, execution.targetTransition.before))
           ) {
-            context.addIssue({
-              code: 'custom',
-              path: ['reactionExecutions', event.index, 'application'],
-              message: 'Mixed spatial timelines require a mechanics batch reaction application.'
-            })
-            continue
+            finishSpatialGroups()
+            currentVersion = characterId === null ? undefined : currentVersions.get(characterId)
           }
-          const sourceActorId = reaction.option.candidate.reactorActorId
-          const targetActorId = reaction.option.candidate.movingActorId
+          const priorState = openSpatialGroups.get(ownerKey)?.after ?? currentStates.get(ownerKey)
           if (
-            application.sourceActorId !== sourceActorId ||
-            application.targetActorId !== targetActorId
+            (priorState !== undefined &&
+              !sameState(priorState, execution.targetTransition.before)) ||
+            (currentVersion !== undefined && currentVersion !== pinVersion)
           )
             context.addIssue({
               code: 'custom',
-              path: ['reactionExecutions', event.index, 'application'],
-              message:
-                'Reaction mechanics application must bind the selected source and moving target.'
+              path: ['executions', index, 'targetTransition'],
+              message: 'Spatial target pins must continue the proved movement receipt timeline.'
             })
-          if (reaction.option.authority.kind === 'CHARACTER_CONTROLLER')
-            bindCharacter(sourceActorId, reaction.option.authority.characterId, [
-              'reactionExecutions',
-              event.index,
-              'option',
-              'authority'
-            ])
-          const targetOwnerKey = actorCharacters.has(targetActorId)
-            ? `CHARACTER:${actorCharacters.get(targetActorId)!}`
-            : `ENCOUNTER_ACTOR:${targetActorId}`
-          const priorTargetState = currentStates.get(targetOwnerKey)
+          if (!openSpatialGroups.has(ownerKey))
+            openSpatialGroups.set(ownerKey, {
+              actorId,
+              characterId,
+              before: execution.targetTransition.before,
+              after: execution.targetTransition.after,
+              version: pinVersion
+            })
+          else openSpatialGroups.get(ownerKey)!.after = execution.targetTransition.after
+          if (characterId !== null && currentVersion === undefined)
+            currentVersions.set(characterId, pinVersion!)
           if (
-            priorTargetState !== undefined &&
-            !sameState(priorTargetState, application.targetTransition.before)
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['reactionExecutions', event.index, 'application', 'targetTransition'],
-              message: 'Reaction target transition must bridge the preceding spatial state exactly.'
-            })
-          currentStates.set(targetOwnerKey, application.targetTransition.after)
-          const expectedTransitions = new Map<string, { before: number; after: number }>()
-          const expectCharacterVersion = (characterId: string, before: number) => {
-            const currentVersion = currentVersions.get(characterId)
-            if (currentVersion !== undefined && currentVersion !== before)
-              context.addIssue({
-                code: 'custom',
-                path: ['reactionExecutions', event.index, 'characterTransitions'],
-                message:
-                  'Reaction Character versions must continue the proved movement receipt timeline.'
-              })
-            if (currentVersion === undefined) currentVersions.set(characterId, before)
-          }
-          if (application.kind === 'CHARACTER_MECHANICS_BATCH') {
-            if (
-              application.sourceCharacterId !== null &&
-              application.sourceCharacterId !== actorCharacters.get(sourceActorId)
+            execution.concentrationEnds !== undefined ||
+            execution.concentrationChecks !== undefined
+          ) {
+            finishSpatialGroups()
+            applyConcentrationChildren(
+              execution.concentrationEnds ?? [],
+              ['executions', index],
+              'concentrationEnds'
             )
-              context.addIssue({
-                code: 'custom',
-                path: ['reactionExecutions', event.index, 'application', 'sourceCharacterId'],
-                message:
-                  'Reaction source Character identity must match the issued controller authority.'
-              })
-            if (application.sourceCharacterId !== null)
-              bindCharacter(sourceActorId, application.sourceCharacterId, [
-                'reactionExecutions',
-                event.index,
-                'application',
-                'sourceCharacterId'
-              ])
-            if (application.sourceCharacterStreamVersion !== null) {
-              if (application.sourceCharacterId === null)
-                context.addIssue({
-                  code: 'custom',
-                  path: [
-                    'reactionExecutions',
-                    event.index,
-                    'application',
-                    'sourceCharacterStreamVersion'
-                  ],
-                  message:
-                    'Reaction source Character version requires its immutable Character identity.'
-                })
-              else
-                expectCharacterVersion(
-                  application.sourceCharacterId,
-                  application.sourceCharacterStreamVersion - 1
-                )
-              if (application.sourceCharacterId !== null)
-                expectedTransitions.set(application.sourceCharacterId, {
-                  before: application.sourceCharacterStreamVersion - 1,
-                  after: application.sourceCharacterStreamVersion
-                })
-            }
-            const targetCharacterId = actorCharacters.get(targetActorId)
-            if (application.targetCharacterStreamVersion !== null) {
-              if (!targetCharacterId)
-                context.addIssue({
-                  code: 'custom',
-                  path: [
-                    'reactionExecutions',
-                    event.index,
-                    'application',
-                    'targetCharacterStreamVersion'
-                  ],
-                  message:
-                    'Reaction target Character version requires a proved target actor binding.'
-                })
-              else
-                expectCharacterVersion(
-                  targetCharacterId,
-                  application.targetCharacterStreamVersion - 1
-                )
-              if (targetCharacterId)
-                expectedTransitions.set(targetCharacterId, {
-                  before: application.targetCharacterStreamVersion - 1,
-                  after: application.targetCharacterStreamVersion
-                })
-            }
-          } else if (application.sourceCharacterStreamVersion !== null) {
-            const sourceCharacterId = actorCharacters.get(sourceActorId)
-            if (!sourceCharacterId)
-              context.addIssue({
-                code: 'custom',
-                path: [
-                  'reactionExecutions',
-                  event.index,
-                  'application',
-                  'sourceCharacterStreamVersion'
-                ],
-                message: 'Reaction source Character version requires a proved source actor binding.'
-              })
-            else
-              expectCharacterVersion(
-                sourceCharacterId,
-                application.sourceCharacterStreamVersion - 1
-              )
-            if (sourceCharacterId)
-              expectedTransitions.set(sourceCharacterId, {
-                before: application.sourceCharacterStreamVersion - 1,
-                after: application.sourceCharacterStreamVersion
-              })
-          }
-          for (const transition of application.maintenanceTransition?.characterOwnerTransitions ??
-            []) {
-            expectCharacterVersion(transition.characterId, transition.beforeStreamVersion)
-            const expected = expectedTransitions.get(transition.characterId)
-            if (
-              expected &&
-              (expected.before !== transition.beforeStreamVersion ||
-                expected.after !== transition.afterStreamVersion)
+            applyConcentrationChildren(
+              execution.concentrationChecks ?? [],
+              ['executions', index],
+              'concentrationChecks'
             )
-              context.addIssue({
-                code: 'custom',
-                path: ['reactionExecutions', event.index, 'characterTransitions'],
-                message:
-                  'Reaction maintenance and mechanics Character spans must agree for shared owners.'
-              })
-            expectedTransitions.set(transition.characterId, {
-              before: transition.beforeStreamVersion,
-              after: transition.afterStreamVersion
-            })
           }
-          for (const transition of reaction.characterTransitions) {
-            const expected = expectedTransitions.get(transition.characterId)
-            if (
-              !expected ||
-              transition.beforeStreamVersion !== expected.before ||
-              transition.afterStreamVersion !== expected.after
-            )
-              context.addIssue({
-                code: 'custom',
-                path: ['reactionExecutions', event.index, 'characterTransitions'],
-                message:
-                  'Reaction Character transitions must prove each source and target mechanics span.'
-              })
-            expectedTransitions.delete(transition.characterId)
-            currentVersions.set(transition.characterId, transition.afterStreamVersion)
-          }
-          if (expectedTransitions.size > 0)
-            context.addIssue({
-              code: 'custom',
-              path: ['reactionExecutions', event.index, 'characterTransitions'],
-              message: 'Reaction Character transitions must retain every proved mechanics span.'
-            })
-          for (const [index, transition] of (
-            reaction.maintenanceOwnerTransitions ?? []
-          ).entries()) {
-            if (transition.characterId !== null)
-              bindCharacter(transition.targetActorId, transition.characterId, [
-                'reactionExecutions',
-                event.index,
-                'maintenanceOwnerTransitions',
-                index
-              ])
-            const ownerKey =
-              transition.characterId === null
-                ? `ENCOUNTER_ACTOR:${transition.targetActorId}`
-                : `CHARACTER:${transition.characterId}`
-            const priorState = currentStates.get(ownerKey)
-            if (priorState !== undefined && !sameState(priorState, transition.before))
-              context.addIssue({
-                code: 'custom',
-                path: [
-                  'reactionExecutions',
-                  event.index,
-                  'maintenanceOwnerTransitions',
-                  index,
-                  'before'
-                ],
-                message: 'Reaction maintenance cleanup must continue the proved owner state.'
-              })
-            currentStates.set(ownerKey, transition.after)
-          }
-          applyConcentrationChildren(
-            reaction.concentrationEnds ?? [],
-            ['reactionExecutions', event.index],
-            'concentrationEnds'
-          )
-          applyConcentrationChildren(
-            reaction.concentrationChecks ?? [],
-            ['reactionExecutions', event.index],
-            'concentrationChecks'
-          )
         }
         finishSpatialGroups()
         for (const [ownerKey, summary] of spatialSummaries) {
