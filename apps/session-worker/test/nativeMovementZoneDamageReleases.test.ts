@@ -3,6 +3,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -49,10 +50,10 @@ describe('zone damage against a mover (QUALITY-14.T2d2)', () => {
     // D156), an effect that here ends when it takes damage.
     const room = await movementRoom({
       actors: [
-        {
+        encounterRunActorStateSchema.parse({
           ...srdCreatureActor({ id: WOLF_ID, creature: plainWolf, tempHitPoints: 5 }),
           tempHitPointsSourceEffectId: EFFECT_ID
-        }
+        })
       ],
       moverActorId: WOLF_ID,
       positions: { [WOLF_ID]: WOLF_START },
