@@ -335,18 +335,20 @@ type EncounterListAttack = Pick<
 } & (
     | {
         /**
-         * The sealed roll resumed with its answer, or rebuilt from the hit a reaction offer kept (D219)
-         * or from the hit an on-hit offer kept with its decision.
+         * The sealed roll resumed with its answer, or rebuilt from the rolled d20 or the hit a reaction
+         * offer kept (D219), or from the hit an on-hit offer kept with its decision.
          */
         settle:
           | Pick<GraphsInput, 'resume'>
+          | Pick<GraphsInput, 'heldRoll'>
           | Pick<GraphsInput, 'heldHit'>
           | Pick<GraphsInput, 'heldOnHit'>
       }
     | {
         /**
-         * The ray advanced now through its host, which offers the creature it hits its reactions
-         * (D219), then its caster the on-hit riders, and may leave it held on either offer. Only the
+         * The ray advanced now through its host, which offers its rolled d20 to the creatures that may
+         * react to it and the creature it hits its reactions (D219), then its caster the on-hit
+         * riders, and may leave it held on any of those offers. Only the
          * last ray of a list is advanced so.
          */
         host: (source: EncounterListAttackSource) => ReturnType<typeof advanceNativeActionGraphs>

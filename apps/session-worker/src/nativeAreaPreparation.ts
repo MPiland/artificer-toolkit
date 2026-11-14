@@ -77,9 +77,14 @@ import {
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
 import {
+  readNativeLiveAttackPerception,
   readNativeLivePointPerception,
   readNativeLivePointSight
 } from './nativeAttackPerception.js'
+import {
+  discoverNativeRollReactions,
+  nativeRollReactionTurns
+} from './nativeEncounterRollReaction.js'
 import {
   captureActionEconomyDefinitions,
   evaluateNativeLiveActionEconomy
@@ -789,6 +794,44 @@ export const prepareReachReaction =
       sceneContext: null,
       ...reachReactionSources(input)
     })
+
+/**
+ * The creatures that may roll a die against an attack roll the caster makes at one creature of a
+ * multi-creature cast, each in turn (D219), as for an attack at one creature. Range is read from the
+ * Scene, so a cast aimed off any Scene offers no such reaction.
+ */
+export async function reachRollReactions(
+  input: ReachPlanInput,
+  reach: Pick<AreaReach, 'caster' | 'scene' | 'movementTargets'>
+) {
+  const { scene } = reach
+  if (!scene) return nativeRollReactionTurns([], [])
+  return nativeRollReactionTurns(
+    await discoverNativeRollReactions({
+      state: input.state,
+      actors: input.actors,
+      system: input.system,
+      roller: reach.caster,
+      movementTargets: reach.movementTargets,
+      loadTarget: input.loadTarget,
+      loadScene: async () => ({ ...scene, rollerToken: scene.sourceToken }),
+      loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
+        readNativeLiveAttackPerception({
+          state: input.state,
+          system: input.system,
+          attacker: sourceFacts,
+          target: targetFacts,
+          roller,
+          sceneContext: scene,
+          capture: input.capture
+        }),
+      actionSources: reachReactionSources(input),
+      capture: input.capture
+    }),
+    input.reactionChildren.ancestors
+  )
+}
+
 /** The reaction window of a multi-creature cast, held over the caster's lead preparation of the action. */
 export function reachCastPause(
   input: ReachPlanInput,

@@ -2,7 +2,10 @@ import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { type EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  encounterActionCurrentnessChecksum,
+  withEncounterReactionDice
+} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterAreaLegendaryResistanceAudits } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { answerEncounterAreaTest } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
@@ -268,6 +271,11 @@ export function sealedListAttack(
   const context = sealed.snapshot.applicationContext
   const pause = context.kind === 'ENCOUNTER_ACTION' ? context.pause : null
   const offer = pause?.kind === 'CAST_REACTION' ? pause.payload : null
+  const children = (context.kind === 'ENCOUNTER_ACTION' && context.reactionChildren) || []
+  // The dice the ray's reactors rolled against its d20 join the dice its roll may total (D219).
+  const childDice = children.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : []))
+  const withChildDice = (binding: AreaPrepared['binding']) =>
+    withEncounterReactionDice({ attackDomain: prepared.attackDomain, binding }, childDice).binding
   // A ray answered at its on-hit offer is rebuilt from the d20 the offer kept, with the decision made there.
   const heldOnHit =
     pause?.kind === 'ON_HIT' && sealed.onHit ? { offer: pause.payload, audit: sealed.onHit } : null
@@ -276,33 +284,39 @@ export function sealedListAttack(
   return {
     actorId: sealed.actorId,
     occurrenceId: sealed.snapshot.occurrenceId,
-    binding: prepared.binding,
-    ...(testBinding && { testBinding }),
+    binding: withChildDice(prepared.binding),
+    ...(testBinding && { testBinding: withChildDice(testBinding) }),
     attackSight: prepared.attackSight,
     rolls: answer ? null : (sealed.rolls ?? []),
     // A ray held on its hit's reaction offer is rebuilt from the d20 the offer kept: past the
-    // reaction that ran as a child action, or with the decline proved against the hit (D219).
+    // reaction that ran as a child action, or with the decline proved against the hit (D219). One
+    // answered at its rolled d20's offer is rebuilt from that d20 and the dice its children rolled.
     settle: heldOnHit
       ? { heldOnHit }
       : offer?.hit
         ? {
             heldHit: {
               offer: { ...offer, hit: offer.hit },
-              answer:
-                context.kind === 'ENCOUNTER_ACTION' && context.reactionChildren?.length
-                  ? { kind: 'RESUMED' as const }
-                  : { kind: 'DECLINE' as const }
+              answer: children.length ? { kind: 'RESUMED' as const } : { kind: 'DECLINE' as const }
             }
           }
-        : {
-            resume: {
-              pending: {
-                ...restoreEncounterActionPending(sealed.snapshot),
-                roller: 'TARGET' as const
-              },
-              resolution
+        : offer?.rolled
+          ? {
+              heldRoll: {
+                offer: { ...offer, rolled: offer.rolled },
+                answer: { kind: 'SETTLED' as const },
+                childDice
+              }
             }
-          }
+          : {
+              resume: {
+                pending: {
+                  ...restoreEncounterActionPending(sealed.snapshot),
+                  roller: 'TARGET' as const
+                },
+                resolution
+              }
+            }
   }
 }
 

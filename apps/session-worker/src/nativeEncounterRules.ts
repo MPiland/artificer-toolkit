@@ -81,6 +81,7 @@ import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
 import {
   discoverNativeRollReactions,
+  nativeRollReactionTurns,
   planNativeWindowReactions
 } from './nativeEncounterRollReaction.js'
 import {
@@ -994,10 +995,6 @@ export async function planNativeLiveEncounterAction(
   // one used on the rolled d20 adds the die its own action rolled (D219).
   const react = castPause.applyReactionChildren(reactionChildren)
   const reacted = react(prepared)
-  // A creature whose reaction a held action above this one spent has been heard, like one that declined.
-  const heardAbove = reactionChildWindow.ancestors.flatMap(({ actorId, reaction }) =>
-    reaction ? [actorId] : []
-  )
   const actionSource = {
     runtime: executionOptions.runtime,
     damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
@@ -1015,17 +1012,7 @@ export async function planNativeLiveEncounterAction(
     // whichever answer starts the OUTCOME.
     saveWindow: targetSaveWindow(state.gameSystemId, heldOnTarget, prepared.attackWindowDice),
     // The rolled attack d20 is then held for each reactor in turn, by actor id (D219).
-    rollReaction: {
-      discover: async (heardReactorActorIds: readonly string[]) => {
-        const heard = [...heardReactorActorIds, ...heardAbove]
-        const next = rollReactions.find(
-          ({ candidate }) => !heard.includes(candidate.reactorActorId)
-        )?.candidate.reactorActorId
-        return rollReactions
-          .filter(({ candidate }) => candidate.reactorActorId === next)
-          .map(({ candidate }) => candidate)
-      }
-    }
+    rollReaction: nativeRollReactionTurns(rollReactions, reactionChildWindow.ancestors)
   }
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
   // pay them. An action that already spends a slot offers no slot rider, and one that already spends a

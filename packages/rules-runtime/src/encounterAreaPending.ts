@@ -202,12 +202,16 @@ const awaitingRoll = (target: SaveProgress) =>
 
 type SaveList = Pick<AreaContext, 'casterActorId'> & { targets: readonly SaveProgress[] }
 
-/** The offer a ray's hit is held on while the creature it hit answers it (D219), whatever came of it. */
-const hitReactionOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
+/**
+ * The offer a ray's roll is held on while a creature answers it (D219), whatever came of it: its
+ * rolled d20, offered to each creature that may react to it, or its hit, offered to the creature it hit.
+ */
+const rayReactionOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
   const context = target.snapshot.applicationContext
   return context.kind === 'ENCOUNTER_ACTION' &&
     context.pause?.kind === 'CAST_REACTION' &&
-    context.pause.payload.kind === 'HIT_BY_ATTACK'
+    (context.pause.payload.kind === 'ATTACK_ROLL_BY_OTHER' ||
+      context.pause.payload.kind === 'HIT_BY_ATTACK')
     ? context
     : null
 }
@@ -218,16 +222,16 @@ const heldOnHitOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
   return context.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'ON_HIT'
 }
 
-/** Whether a ray's hit is held on a choice made between its roll and its outcome: the reaction to it, then its rider. */
+/** Whether a ray is held on a choice made between its roll and its outcome: the reactions to its d20 and to its hit, then its rider. */
 const heldOnHitChoice = (target: Pick<SaveProgress, 'snapshot'>) =>
-  hitReactionOffer(target) !== null || heldOnHitOffer(target)
+  rayReactionOffer(target) !== null || heldOnHitOffer(target)
 
 /**
  * Whether the area's caster makes the entry's roll, as for an attack roll at a creature. A ray held
- * on its hit's reaction offer is still the caster's roll, though the creature it hit answers the offer.
+ * on a reaction offer is still the caster's roll, though the creature that may react answers the offer.
  */
 const casterRolls = (area: SaveList, target: SaveProgress) =>
-  hitReactionOffer(target) !== null ||
+  rayReactionOffer(target) !== null ||
   (target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
     target.snapshot.applicationContext.rollerActorId === area.casterActorId)
 
@@ -243,14 +247,14 @@ const awaitingTurn = (area: SaveList, target: SaveProgress) =>
 
 /**
  * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, the
- * decision its ray's hit is held on (the reaction of the creature it hit, D219, then its caster's
+ * decision its ray is held on (a reaction to its rolled d20 or of the creature it hit, D219, then its caster's
  * on-hit rider), or nothing (settled, rolled and waiting its turn at the window, a ray behind an
  * unanswered one, or a ray whose chosen reaction is running as a child action).
  */
 export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) => {
   if (awaitingTurn(area, target)) return null
   if (target.testedJson === undefined && heldOnHitChoice(target))
-    return hitReactionOffer(target)?.reactionChildren?.some(
+    return rayReactionOffer(target)?.reactionChildren?.some(
       ({ resumeOutcome }) => resumeOutcome === undefined
     )
       ? null
@@ -259,7 +263,7 @@ export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) 
 }
 
 /**
- * The ray of `snapshot` whose hit is held: on its reaction offer (D219), answered or awaiting its
+ * The ray of `snapshot` that is held: on a reaction offer of its roll or its hit (D219), answered or awaiting its
  * child, or on its caster's on-hit rider offer; null if none.
  */
 export function encounterAreaHeldRay(snapshot: ServerAggregateChoicePendingSnapshotDto) {
@@ -353,8 +357,9 @@ export function openEncounterAreaSaveWindow(
 }
 
 /**
- * Holds the ray with `requestId` on `hold`, an offer its hit raised: the ray stays unanswered while
- * the creature it hit answers the reaction offer (D219), then while its caster answers the on-hit
+ * Holds the ray with `requestId` on `hold`, an offer its roll raised: the ray stays unanswered while
+ * each creature that may react to its d20, then the creature it hit, answers a reaction offer (D219),
+ * then while its caster answers the on-hit
  * rider offer. The same ray is held again as the reaction offer records the child action of the
  * reaction chosen from it, and as the resume from that child resolves it. Every other entry stays
  * exactly as sealed, except that a chosen reaction keeps, with each answered ray in `testBindings`
