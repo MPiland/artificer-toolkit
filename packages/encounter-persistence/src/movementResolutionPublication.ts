@@ -619,7 +619,6 @@ export async function publishMovementResponse(
     result: retained,
     expectedSceneVersion: save.snapshotVersion,
     expectedEncounterVersion: current.state.version,
-    sourceCommandId: resolution.command.commandId,
     commandCharacterTransitions: committed.commandCharacterTransitions
   })
   const metadata = responseMetadata({

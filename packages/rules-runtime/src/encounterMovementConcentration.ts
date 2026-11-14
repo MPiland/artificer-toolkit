@@ -20,10 +20,7 @@ import {
   checksumSpatialCurrentness,
   type FrozenMovementReactionRemainder
 } from './encounterSpatialMovementRuleService.js'
-import {
-  nativeActionDamage,
-  nativeConcentrationDamageApplications
-} from './encounterConcentrationDamage.js'
+import { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
 import {
   concentrationSaveApplications,
   createNativeConcentrationContext,
@@ -42,11 +39,11 @@ import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 
-type DamageSource = { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number }
+type DamageSource = { executionOrdinal: number }
 type DiceResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
 
 /** Child receipts do not change the identity of the damage that caused them. */
-export function movementDamageEnvelope<
+function movementDamageEnvelope<
   T extends {
     concentrationChecks?: MovementConcentrationExecutionDto[]
     concentrationEnds?: MovementConcentrationEndDto[]
@@ -60,37 +57,15 @@ function movementConcentrationDamageSource(
   remainder: FrozenMovementReactionRemainder,
   source: DamageSource
 ) {
-  const spatial = source.kind === 'SPATIAL' ? remainder.completedSpatialExecutions.at(-1) : null
-  const reaction = source.kind === 'REACTION' ? remainder.completedReactionExecutions.at(-1) : null
-  const execution = spatial ?? reaction
+  const execution = remainder.completedSpatialExecutions.at(-1)
   if (!execution || execution.ordinal !== source.executionOrdinal)
     throw new Error('Movement Concentration requires the latest damaging contact.')
-  const reactionApplication = reaction?.application
+  const holderActorId = execution.candidate.candidate.targetActorId
   const damage = nativeConcentrationDamageApplications(
-    spatial
-      ? [
-          {
-            targetActorId: spatial.candidate.candidate.targetActorId,
-            applications: spatial.applications
-          }
-        ]
-      : reactionApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
-          reactionApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-        ? nativeActionDamage(reactionApplication)
-        : [],
+    [{ targetActorId: holderActorId, applications: execution.applications }],
     true
   )
-  const holderActorId = spatial
-    ? spatial.candidate.candidate.targetActorId
-    : reactionApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
-        reactionApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-      ? reactionApplication.targetActorId
-      : null
-  const offset =
-    (remainder.completedSpatialExecutions.length +
-      remainder.completedReactionExecutions.length -
-      1) *
-    RULE_GRAPH_LIMITS.NODES
+  const offset = (remainder.completedSpatialExecutions.length - 1) * RULE_GRAPH_LIMITS.NODES
   return {
     execution,
     holderActorId,
@@ -229,18 +204,11 @@ export async function prepareEncounterMovementConcentration<
       ...(checks.length ? { concentrationChecks: [...checks] } : {})
     }
     const completedSpatialExecutions = remainder.completedSpatialExecutions.map((entry) =>
-      input.source.kind === 'SPATIAL' && entry.ordinal === input.source.executionOrdinal
-        ? { ...entry, ...children }
-        : entry
+      entry.ordinal === input.source.executionOrdinal ? { ...entry, ...children } : entry
     )
     remainder = {
       ...remainder,
       completedSpatialExecutions,
-      completedReactionExecutions: remainder.completedReactionExecutions.map((entry) =>
-        input.source.kind === 'REACTION' && entry.ordinal === input.source.executionOrdinal
-          ? { ...entry, ...children }
-          : entry
-      ),
       appliedSpatialPrefix:
         remainder.appliedSpatialPrefix?.status === 'BATCH_COMPLETE' &&
         remainder.appliedSpatialPrefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
@@ -275,12 +243,10 @@ export async function prepareEncounterMovementConcentration<
   } else if (input.state.automationMode !== 'MANUAL') {
     // D95: a holder the contact defeated or left unable to act loses Concentration with no check,
     // so the checks below observe the lost slot and roll none for it.
-    const found = source.holderActorId
-      ? await callbacks.findEnds(source.holderActorId, targets, projection)
-      : []
+    const found = await callbacks.findEnds(source.holderActorId, targets, projection)
     for (const entry of found) {
       const ended = await callbacks.projectEnd(
-        { actorId: source.holderActorId!, maintainedState: entry.maintainedState },
+        { actorId: source.holderActorId, maintainedState: entry.maintainedState },
         targets,
         projection
       )

@@ -152,7 +152,6 @@ export async function prepareEncounterMovementPassageBoundary<
     spatialCurrentnessChecksum: boundary.currentnessChecksum,
     completedSpatialExecutions: [...boundary.completedExecutions],
     appliedSpatialPrefix: boundary.appliedPrefix,
-    completedReactionExecutions: [...boundary.completedReactionExecutions],
     remainingSpatialCandidates: [...boundary.remainingCandidates],
     reactionTimeline: [...input.reactionTimeline]
   }

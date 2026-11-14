@@ -9,8 +9,6 @@ import {
   movementReactionActionEvidenceCommandDtoSchema,
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   type ServerPublishedRuleDefinitionDto,
-  type ServerRuleExecutionD20EvidenceDto,
-  type ServerRuleExecutionContinuationDto,
   type ServerRuleExecutionPendingApplicationContextDto,
   type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -18,8 +16,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { resumeReactionChoice, startReactionChoice } from './reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { encounterLegendaryResistancePin } from './encounterLegendaryResistanceChoice.js'
-import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import { EncounterConflictError } from './encounterErrors.js'
 import type {
   FrozenMovementReactionRemainder,
@@ -35,12 +31,6 @@ type ReactionBoundary = Extract<SpatialMovementRuleEvaluation, { kind: 'REACTION
 
 type MovementReactionResolutionCommand =
   MovementReactionPendingContext['root']['resolutionCommands'][number]
-
-function currentTimelineOptions(context: MovementReactionPendingContext) {
-  const entry = context.reactionTimeline[0]
-  if (!entry) throw new EncounterConflictError('A movement reaction timeline entry is unavailable.')
-  return entry.group.options
-}
 
 /**
  * Appends one controller/GM selection to the same canonical movement
@@ -105,44 +95,6 @@ export function movementReactionRemainderAfterCurrentChoice(input: {
     spatialCurrentnessChecksum: input.context.spatialCurrentnessChecksum,
     completedSpatialExecutions: [...input.context.completedSpatialExecutions],
     appliedSpatialPrefix: input.context.appliedSpatialPrefix,
-    completedReactionExecutions: [...input.context.completedReactionExecutions],
-    currentSpatialCandidate: null,
-    remainingSpatialCandidates: [...input.context.remainingSpatialCandidates],
-    reactionTimeline: input.context.reactionTimeline.slice(1)
-  }
-}
-
-/** Drops the selected choice only after its action and allowance have committed. */
-export function movementReactionRemainderAfterCompletedAction(input: {
-  context: MovementReactionPendingContext
-  selectedOptionId: string
-  resolutionCommands: MovementReactionPendingContext['root']['resolutionCommands']
-  execution: MovementReactionPendingContext['completedReactionExecutions'][number]
-}): FrozenMovementReactionRemainder {
-  const selected = currentTimelineOptions(input.context).find(
-    (option) => option.optionId === input.selectedOptionId
-  )
-  if (
-    !selected ||
-    (input.context.phase.kind !== 'CHOICE' &&
-      ((input.context.phase.kind !== 'ACTION_EVIDENCE' &&
-        input.context.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE') ||
-        input.context.phase.selectedOptionId !== input.selectedOptionId)) ||
-    input.execution.option.optionId !== input.selectedOptionId ||
-    input.execution.ordinal !== input.context.completedReactionExecutions.length
-  ) {
-    throw new EncounterConflictError('The completed movement reaction action is stale.')
-  }
-  return {
-    root: {
-      ...input.context.root,
-      resolutionCommands: [...input.resolutionCommands]
-    },
-    spatialSelectionChecksum: input.context.spatialSelectionChecksum,
-    spatialCurrentnessChecksum: input.context.spatialCurrentnessChecksum,
-    completedSpatialExecutions: [...input.context.completedSpatialExecutions],
-    appliedSpatialPrefix: input.context.appliedSpatialPrefix,
-    completedReactionExecutions: [...input.context.completedReactionExecutions, input.execution],
     currentSpatialCandidate: null,
     remainingSpatialCandidates: [...input.context.remainingSpatialCandidates],
     reactionTimeline: input.context.reactionTimeline.slice(1)
@@ -189,7 +141,6 @@ export async function startEncounterMovementReactionAtBoundary(input: {
       spatialCurrentnessChecksum: input.boundary.currentnessChecksum,
       completedSpatialExecutions: [...input.boundary.completedExecutions],
       appliedSpatialPrefix: input.boundary.appliedPrefix,
-      completedReactionExecutions: [...input.boundary.completedReactionExecutions],
       remainingSpatialCandidates: [...input.boundary.remainingCandidates],
       reactionTimeline: input.reactionTimeline.map((entry) => ({
         ...entry,
@@ -245,7 +196,6 @@ async function startEncounterMovementReactionChoice(input: {
       reactionSelectionChecksum: checksumRuleDocument(input.context.reactionTimeline),
       completedSpatialExecutions: input.context.completedSpatialExecutions,
       appliedSpatialPrefix: input.context.appliedSpatialPrefix,
-      completedReactionExecutions: input.context.completedReactionExecutions,
       phase: { kind: 'CHOICE' },
       remainingSpatialCandidates: input.context.remainingSpatialCandidates,
       reactionTimeline: input.context.reactionTimeline
@@ -309,155 +259,4 @@ export async function resolveEncounterMovementReactionChoice(input: {
     context,
     option: currentChoice.options[optionIndex]!
   }
-}
-
-export function retainEncounterMovementReactionActionEvidence(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  context: MovementReactionPendingContext
-  selectedOptionId: string
-  rollerActorId: string
-  d20Policy: Extract<
-    MovementReactionPendingContext['phase'],
-    { kind: 'ACTION_EVIDENCE' }
-  >['d20Policy']
-  d20Belief?: Extract<
-    MovementReactionPendingContext['phase'],
-    { kind: 'ACTION_EVIDENCE' }
-  >['d20Belief']
-  heldD20?: Extract<MovementReactionPendingContext['phase'], { kind: 'ACTION_EVIDENCE' }>['heldD20']
-  twoPhase?: Extract<
-    MovementReactionPendingContext['phase'],
-    { kind: 'ACTION_EVIDENCE' }
-  >['twoPhase']
-  pause?: Extract<MovementReactionPendingContext['phase'], { kind: 'ACTION_EVIDENCE' }>['pause']
-  phaseReceipts?: ServerKernelRuleExecutionPendingSnapshotDto['phaseReceipts']
-}): ServerKernelRuleExecutionPendingSnapshotDto {
-  const legendaryResistance =
-    input.context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE' ? input.context.phase : null
-  if (
-    (input.context.phase.kind !== 'CHOICE' &&
-      ((input.context.phase.kind !== 'ACTION_EVIDENCE' &&
-        input.context.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE') ||
-        input.context.phase.selectedOptionId !== input.selectedOptionId)) ||
-    !currentTimelineOptions(input.context).some(
-      (option) => option.optionId === input.selectedOptionId
-    )
-  ) {
-    throw new EncounterConflictError(
-      'Reaction action evidence does not match an exact issued choice.'
-    )
-  }
-  if (input.context.phase.kind === 'ACTION_EVIDENCE') {
-    const prior = input.context.phase.twoPhase
-    const next = input.twoPhase
-    if (
-      Boolean(prior) !== Boolean(next) ||
-      (prior &&
-        next &&
-        (prior.compilerSourceChecksum !== next.compilerSourceChecksum ||
-          prior.testTemplateChecksum !== next.testTemplateChecksum ||
-          prior.boundFactsChecksum !== next.boundFactsChecksum ||
-          (prior.phase === 'OUTCOME' &&
-            (next.phase !== 'OUTCOME' ||
-              prior.outcomeTemplateChecksum !== next.outcomeTemplateChecksum ||
-              prior.testExecutionChecksum !== next.testExecutionChecksum ||
-              checksumRuleDocument(prior.testRollEvidence) !==
-                checksumRuleDocument(next.testRollEvidence)))))
-    )
-      throw new EncounterConflictError(
-        'Reaction action evidence cannot replace its sealed phase identity.'
-      )
-  }
-  if (
-    legendaryResistance &&
-    (input.twoPhase?.phase !== 'OUTCOME' ||
-      input.twoPhase.testExecutionChecksum !== legendaryResistance.originalExecutionChecksum ||
-      input.twoPhase.testRollEvidence.requestId !== legendaryResistance.originalD20.requestId ||
-      input.twoPhase.testRollEvidence.rollMode !== legendaryResistance.originalD20.rollMode ||
-      input.twoPhase.testRollEvidence.selectedNatural !==
-        legendaryResistance.originalD20.selectedNatural ||
-      checksumRuleDocument(input.twoPhase.testRollEvidence.rawFaces) !==
-        checksumRuleDocument(legendaryResistance.originalD20.rawFaces) ||
-      !input.twoPhase.legendaryResistance ||
-      input.twoPhase.legendaryResistance.originalExecutionChecksum !==
-        legendaryResistance.originalExecutionChecksum ||
-      input.twoPhase.legendaryResistance.targetStateChecksum !==
-        legendaryResistance.targetStateChecksum ||
-      checksumRuleDocument(input.twoPhase.legendaryResistance.resistance) !==
-        checksumRuleDocument(legendaryResistance.resistance))
-  )
-    throw new EncounterConflictError(
-      'Legendary Resistance outcome evidence does not match its sealed TEST identity.'
-    )
-  return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
-    snapshotKind: 'KERNEL_EVIDENCE',
-    ...input.continuation,
-    ...(input.phaseReceipts ? { phaseReceipts: input.phaseReceipts } : {}),
-    applicationContext: {
-      ...input.context,
-      phase: {
-        kind: 'ACTION_EVIDENCE',
-        selectedOptionId: input.selectedOptionId,
-        rollerActorId: input.rollerActorId,
-        d20Policy: input.d20Policy,
-        ...(input.d20Belief ? { d20Belief: input.d20Belief } : {}),
-        ...(input.heldD20 ? { heldD20: input.heldD20 } : {}),
-        ...(input.twoPhase !== undefined ? { twoPhase: input.twoPhase } : {}),
-        ...(input.pause ? { pause: input.pause } : {})
-      }
-    }
-  })
-}
-
-export function createEncounterLegendaryResistancePhase(
-  input: Pick<
-    Parameters<typeof retainEncounterLegendaryResistanceChoice>[0],
-    'selectedOptionId' | 'execution' | 'd20' | 'candidate' | 'targetStateChecksum'
-  >
-): Extract<MovementReactionPendingContext['phase'], { kind: 'LEGENDARY_RESISTANCE_CHOICE' }> {
-  return {
-    kind: 'LEGENDARY_RESISTANCE_CHOICE',
-    selectedOptionId: input.selectedOptionId,
-    originalExecution: input.execution,
-    originalD20: input.d20,
-    originalExecutionChecksum: checksumRuleDocument(input.execution),
-    targetStateChecksum: input.targetStateChecksum,
-    resistance: encounterLegendaryResistancePin(input.candidate)
-  }
-}
-
-/**
- * Replaces a completed failed save with the sealed Legendary Resistance
- * choice. The original action evidence remains immutable and no outcome is
- * applied until the same occurrence resumes.
- */
-export function retainEncounterLegendaryResistanceChoice(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  context: MovementReactionPendingContext
-  selectedOptionId: string
-  execution: MovementReactionPendingContext['completedReactionExecutions'][number]['execution']
-  d20: ServerRuleExecutionD20EvidenceDto
-  candidate: EncounterLegendaryResistanceCandidate
-  targetStateChecksum: string
-}): ServerKernelRuleExecutionPendingSnapshotDto {
-  if (input.context.phase.kind !== 'CHOICE' && input.context.phase.kind !== 'ACTION_EVIDENCE') {
-    throw new EncounterConflictError(
-      'Legendary Resistance may replace only a current reaction action.'
-    )
-  }
-  if (
-    !currentTimelineOptions(input.context).some(
-      (option) => option.optionId === input.selectedOptionId
-    )
-  ) {
-    throw new EncounterConflictError('Legendary Resistance action selection is stale.')
-  }
-  return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
-    snapshotKind: 'KERNEL_EVIDENCE',
-    ...input.continuation,
-    applicationContext: {
-      ...input.context,
-      phase: createEncounterLegendaryResistancePhase(input)
-    }
-  })
 }

@@ -102,7 +102,7 @@ describe('a used automatic reaction followed by a failed Concentration save', ()
       expect(rootReceipt.commandId).toBe(used.resumeCommandId)
       expect(rootReceipt.actorUserId).toBe(room.base.userId)
       const result = parseMovementResult(rootReceipt.result)
-      expect(result.reactionExecutions).toEqual([])
+      expect(result).not.toHaveProperty('reactionExecutions') // T2c: the field is deleted
       const spatial = result.status === 'BATCH_COMPLETE' ? result.executions : []
 
       // The reaction spends the reactor's one Reaction.
@@ -256,7 +256,7 @@ describe('used automatic reactions of a Creature walking east', () => {
       // (ruling 7). Each Use runs as an action of its own (D219), so the two Uses are the two
       // action receipts, in order, each under the command id its own choice derives, and the
       // terminal is the receipt of the room's resume after the last one.
-      expect(result.reactionExecutions).toEqual([])
+      expect(result).not.toHaveProperty('reactionExecutions') // T2c: the field is deleted
       expect(
         (await room.receipts())
           .filter((entry) => entry.commandType === 'RESOLVE_ACTION')
@@ -421,16 +421,12 @@ describe('used automatic reactions of a Creature walking east', () => {
     const pending = await room.pending()
     if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
       throw new Error('Expected the later reaction choice.')
-    const {
-      appliedSpatialPrefix: prefix,
-      completedReactionExecutions,
-      reactionTimeline
-    } = pending.context
+    const { appliedSpatialPrefix: prefix, reactionTimeline } = pending.context
     if (prefix?.status !== 'BATCH_COMPLETE' || prefix.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
       throw new Error('Expected the applied spatial prefix.')
     // Restated (QUALITY-18.T2b3): the used reaction ran as an action of its own (D219), so the
-    // move records no completed execution for it (ruling 7); its contact is the chosen option's.
-    expect(completedReactionExecutions).toEqual([])
+    // move records no completed execution for it (ruling 7, field deleted in T2c); its contact is the chosen option's.
+    expect(pending.context).not.toHaveProperty('completedReactionExecutions')
     expect((await settledActionOf(room, used.childCommandId)).receipt.commandType).toBe(
       'RESOLVE_ACTION'
     )
@@ -489,7 +485,7 @@ describe("stops a Character's movement at a used reaction", () => {
       // one reaction is the action receipt under the id the choice derives, for the chosen option.
       expect(receipt.commandId).toBe(used.resumeCommandId)
       expect((await room.receipts()).length).toBe(receiptsBefore + 2)
-      expect(result.reactionExecutions).toEqual([])
+      expect(result).not.toHaveProperty('reactionExecutions') // T2c: the field is deleted
       expect((await settledActionOf(room, used.childCommandId)).receipt.commandType).toBe(
         'RESOLVE_ACTION'
       )
@@ -606,7 +602,7 @@ describe('a failed movement-reaction save against Legendary Resistance', () => {
       )
       if (!resume) throw new Error('The room left no resume receipt.')
       const result = parseMovementResult(resume.result)
-      expect(result.reactionExecutions).toEqual([])
+      expect(result).not.toHaveProperty('reactionExecutions') // T2c: the field is deleted
       // The reactor's authored STOP binding fires on the failed-save path.
       expect(used.option.binding.movementInterruption).toEqual({
         kind: 'STOP',

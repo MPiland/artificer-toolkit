@@ -349,6 +349,15 @@ phase. `reactionChildren.ts` reads either parent: a recorded child is admitted a
 no cast slot and no cast level), and `suspendReactionChildParent`, `repinReactionChildParent` and
 `awaitsReactionChild` treat the move as they treat an action.
 
+The inline movement reaction engine is gone (QUALITY-18.T2c). A move's pending context phases are
+`SPATIAL_EVIDENCE`, `CHOICE` and a spatial-only `CONCENTRATION_EVIDENCE` (its `damageSource` is
+`{ executionOrdinal }`); the context and the optional-combat passage continuation carry no
+`completedReactionExecutions`, the move receipts (`MOVEMENT_COMPLETE` and the spatial batch) carry no
+`reactionExecutions`, and `LiveSessionMovementSettlement` has no `REACTION` kind, so `persistMovementSettlements`
+persists spatial, Concentration, passage and release settlements only. The reaction's own mechanics persist
+through its child action. D196: these are removed shapes of a held move's pending context and of move receipts;
+a local Run held on an old inline reaction is finished or cleared before use.
+
 A member's `OPTION` answer to a move's choice records the child (`recordMovementReactionChild`,
 `movementReactionChild.ts`): it appends the `OPTION` entry to the move's history, one occurrence version on,
 sets `reactionChildren` to the one child and leaves the Run version alone. The child's command id

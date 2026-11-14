@@ -1808,7 +1808,6 @@ async function pausedMove(
           spatialCurrentnessChecksum: checksum('5'),
           reactionSelectionChecksum: checksumRuleDocument(reactionTimeline),
           completedSpatialExecutions: [],
-          completedReactionExecutions: [],
           phase: { kind: 'CHOICE', ...(reactionChildren && { reactionChildren }) },
           remainingSpatialCandidates: [],
           reactionTimeline

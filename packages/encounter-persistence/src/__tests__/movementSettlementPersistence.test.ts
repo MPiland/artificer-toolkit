@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { persistMovementSettlements } from '../movementSettlementPersistence.js'
 
+// The spatial effect store is storage: the retained contact's effect is read through it.
+vi.mock('../spatialEffectStore.js', () => ({
+  createSpatialRuleEffectStore: () => ({
+    scope: async () => ({ get: async () => ({ id: 'effect' }) })
+  })
+}))
+
 /**
  * A retained contact's Concentration end (D95) must be settled by its own settlement step: a
  * planner that omits it must not be able to commit the movement.
@@ -22,17 +29,22 @@ const end = {
   },
   ownerTransitions: []
 }
-const reaction = {
-  option: { candidate: { pathDistance: 1, movingActorId: 'mover' } },
-  application: { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' },
-  characterTransitions: [],
+const contact = {
+  candidate: {
+    candidate: { pathDistance: 1, targetActorId: 'mover' },
+    effect: { effectId: 'effect' }
+  },
   concentrationEnds: [end]
 }
-const { concentrationEnds: _end, ...reactionEvidence } = reaction
+const { concentrationEnds: _end, ...contactEvidence } = contact
+const spatialStep = { kind: 'SPATIAL', executions: [contactEvidence], transitions: [] }
 
 function settle(settlements: unknown[], automationMode?: 'MANUAL') {
   const callbacks = {
-    persistReaction: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
+    persistSpatial: vi.fn(async () => ({
+      actors: [{ id: 'mover' }, { id: 'bystander' }],
+      characterTransitions: []
+    })),
     persistConcentrationEnd: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     endHolderGrants: vi.fn(async () => {})
   }
@@ -48,7 +60,7 @@ function settle(settlements: unknown[], automationMode?: 'MANUAL') {
         occurredAt: '2026-10-08T00:00:00.000Z',
         outcome: {
           kind: 'TERMINAL',
-          result: { status: 'BATCH_COMPLETE', executions: [], reactionExecutions: [reaction] }
+          result: { status: 'BATCH_COMPLETE', executions: [contact] }
         }
       },
       settlements,
@@ -62,7 +74,7 @@ function settle(settlements: unknown[], automationMode?: 'MANUAL') {
 describe('persistMovementSettlements Concentration ends', () => {
   it('settles a retained end through its own step', async () => {
     const { persisted, callbacks } = settle([
-      { kind: 'REACTION', execution: reactionEvidence },
+      spatialStep,
       { kind: 'CONCENTRATION_END', execution: end }
     ])
 
@@ -71,7 +83,7 @@ describe('persistMovementSettlements Concentration ends', () => {
   })
 
   it('refuses a settlement list that omits a retained end', async () => {
-    const { persisted, callbacks } = settle([{ kind: 'REACTION', execution: reactionEvidence }])
+    const { persisted, callbacks } = settle([spatialStep])
 
     await expect(persisted).rejects.toThrow('Movement settlement is incomplete.')
     expect(callbacks.persistConcentrationEnd).not.toHaveBeenCalled()
@@ -79,10 +91,7 @@ describe('persistMovementSettlements Concentration ends', () => {
 })
 
 describe('persistMovementSettlements holder-state grant ends', () => {
-  const settlements = [
-    { kind: 'REACTION', execution: reactionEvidence },
-    { kind: 'CONCENTRATION_END', execution: end }
-  ]
+  const settlements = [spatialStep, { kind: 'CONCENTRATION_END', execution: end }]
 
   it('reads only the damaged actors state-bound grants once the pass has settled', async () => {
     const { persisted, callbacks } = settle(settlements)

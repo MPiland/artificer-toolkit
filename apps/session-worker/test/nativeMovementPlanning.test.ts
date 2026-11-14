@@ -244,7 +244,8 @@ describe('used movement reactions', () => {
     ).toEqual(uses.map((use) => use.childCommandId))
     const { commandId, metadata, result } = await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')
     expect(commandId).toBe(uses[1]!.resumeCommandId)
-    expect(result).toMatchObject({ reactionExecutions: [], terminalPosition: destination })
+    expect(result).toMatchObject({ terminalPosition: destination })
+    expect(result).not.toHaveProperty('reactionExecutions') // T2c: the field is deleted
     // Restated (QUALITY-18.T2b3): each Use is two entries of the move's history, the answer that
     // chose it and the room's resume after its action (ruling 4).
     expect(

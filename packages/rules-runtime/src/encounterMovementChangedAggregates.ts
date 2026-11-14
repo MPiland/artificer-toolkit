@@ -1,11 +1,7 @@
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type {
-  ServerRuleExecutionApplicationOutputsDto,
-  StoredRuleExecutionResultDto
-} from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
-import { meleeRetaliationCharacterTransition } from './encounterMeleeRetaliation.js'
 
 type MovementTerminalResult = Extract<
   StoredRuleExecutionResultDto,
@@ -35,12 +31,6 @@ function concentrationChildren(contact: {
   return [...(contact.concentrationEnds ?? []), ...(contact.concentrationChecks ?? [])]
 }
 
-type MovementReactionCharacterExecution = {
-  characterTransitions: readonly CharacterVersionTransition[]
-  concentrationEnds?: readonly ConcentrationChild[]
-  concentrationChecks?: readonly ConcentrationChild[]
-}
-
 type MovementPendingSpatialExecution = {
   ordinal: number
   candidate: {
@@ -64,13 +54,6 @@ export type MovementCommandTransition =
       kind: 'SPATIAL_PREFIX'
       result: { characterTransitions: readonly CharacterVersionTransition[] }
     }
-  | {
-      kind: 'REACTION'
-      execution: {
-        characterTransitions: readonly CharacterVersionTransition[]
-        application: ServerRuleExecutionApplicationOutputsDto
-      }
-    }
   | { kind: 'AREA_DEPARTURE'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'MOVE_END'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'PASSAGE'; characterTransitions: readonly CharacterVersionTransition[] }
@@ -84,7 +67,6 @@ type MovementChangedAggregate = {
 }
 
 function characterVersions(
-  reactionExecutions: readonly MovementReactionCharacterExecution[],
   spatialTransitions: readonly {
     characterId: string
     beforeStreamVersion: number
@@ -105,13 +87,6 @@ function characterVersions(
       version: transition.afterStreamVersion
     })
   }
-  for (const execution of reactionExecutions) {
-    for (const transition of execution.characterTransitions) append(transition)
-    for (const child of concentrationChildren(execution))
-      for (const transition of child.result.applicationOutputs.cleanup?.characterOwnerTransitions ??
-        [])
-        append(transition)
-  }
   for (const transition of spatialTransitions) append(transition)
   return [...versions]
     .map(([aggregateId, transition]) => ({
@@ -131,7 +106,7 @@ export function movementPendingCharacterAggregateVersions(
 ): MovementChangedAggregate[] {
   const executions = appliedSpatialPrefix?.executions
   if (executions === undefined)
-    return characterVersions([], appliedSpatialPrefix?.characterTransitions ?? [])
+    return characterVersions(appliedSpatialPrefix?.characterTransitions ?? [])
 
   const versions = new Map<string, { beforeVersion: number; version: number }>()
   const append = (transition: CharacterVersionTransition) => {
@@ -218,18 +193,7 @@ export function movementCommandCharacterAggregateVersions(
     })
   }
   for (const transition of transitions) {
-    if (transition.kind === 'REACTION') {
-      for (const characterTransition of transition.execution.characterTransitions)
-        append(characterTransition)
-      const { application } = transition.execution
-      // The zones the reaction's melee hit set off settle on the reactor after its own batch.
-      const retaliation =
-        application.kind === 'CHARACTER_MECHANICS_BATCH' ||
-        application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-          ? meleeRetaliationCharacterTransition(application.meleeRetaliation)
-          : null
-      if (retaliation) append(retaliation)
-    } else if (transition.kind === 'SPATIAL_PREFIX') {
+    if (transition.kind === 'SPATIAL_PREFIX') {
       for (const characterTransition of transition.result.characterTransitions)
         append(characterTransition)
     } else if (
@@ -258,7 +222,6 @@ export function terminalMovementChangedAggregates(input: {
   result: MovementTerminalResult
   expectedSceneVersion: number
   expectedEncounterVersion: number
-  sourceCommandId: string
   commandCharacterTransitions?: readonly {
     characterId: string
     beforeStreamVersion: number
@@ -273,11 +236,6 @@ export function terminalMovementChangedAggregates(input: {
     throw new EncounterConflictError('Spatial aggregate transition is unavailable.')
   return [
     ...characterVersions(
-      input.commandCharacterTransitions
-        ? []
-        : input.result.reactionExecutions.filter(
-            (execution) => execution.sourceCommandId === input.sourceCommandId
-          ),
       input.commandCharacterTransitions ??
         (input.result.status === 'BATCH_COMPLETE' ? input.result.characterTransitions : [])
     ),

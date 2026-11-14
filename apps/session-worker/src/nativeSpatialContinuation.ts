@@ -36,27 +36,21 @@ import type {
 } from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
 import type { EncounterAutoRollByActorId } from '@artificer-toolkit/rules-runtime/encounterEvidenceMode'
 import type { MovementConcentrationSettlement } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
-import type { MovementReactionSettlementInput } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPlan'
 import type { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import {
   prepareNativeLiveMovementConcentration,
   readNativeLiveMovementConcentrationStates
 } from './nativeEncounterMovementConcentration.js'
-import type {
-  NativeLiveMovementMaintenanceProjection,
-  readNativeLiveMaintenanceCharacter
-} from './nativeEncounterMaintenance.js'
+import type { NativeLiveMovementMaintenanceProjection } from './nativeEncounterMaintenance.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
 export type CharacterFacts = PreparedLiveCharacterSheet
-export type CharacterRow = Parameters<typeof readNativeLiveMaintenanceCharacter>[0]
 export type ContinuationInput = MovementContinuationInput<
   CharacterFacts,
   NativeLiveMovementMaintenanceProjection
 >
 export type NativeLiveMovementSettlement =
   | { kind: 'SPATIAL'; plan: PreparedSpatialMovementPlan<CharacterFacts> }
-  | { kind: 'REACTION'; plan: MovementReactionSettlementInput<CharacterFacts, CharacterRow> }
   | { kind: 'CONCENTRATION'; plan: MovementConcentrationSettlement }
   | {
       kind: 'PASSAGE'
@@ -179,7 +173,7 @@ export function nativeSpatialStepCallbacks(
         occurrenceId: step.occurrenceId,
         sourceCommandId: step.executionCommandId,
         occurredAt: step.occurredAt,
-        source: { kind: 'SPATIAL', executionOrdinal },
+        source: { executionOrdinal },
         capture,
         runtime,
         random
@@ -210,10 +204,6 @@ export function nativeMovementSettlementInputs(input: {
     outcome: SceneSpatialPreparation['outcome']
     settlements: readonly NativeLiveMovementSettlement[]
   }
-  reactionSettlements?: ReadonlyMap<
-    MovementReactionSettlementInput<CharacterFacts, CharacterRow>,
-    Extract<LiveSessionMovementSettlement, { kind: 'REACTION' }>
-  >
 }) {
   const { state, actors, targets, finalActors, planned } = input
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
@@ -222,11 +212,6 @@ export function nativeMovementSettlementInputs(input: {
         kind: settlement.plan.kind === 'END' ? 'CONCENTRATION_END' : 'CONCENTRATION',
         execution: settlement.plan.execution
       })
-    if (settlement.kind === 'REACTION') {
-      const recorded = input.reactionSettlements?.get(settlement.plan)
-      if (!recorded) throw new Error('Prepared movement reaction settlement is missing.')
-      return liveSessionMovementSettlementSchema.parse(recorded)
-    }
     if (settlement.kind === 'PASSAGE')
       return liveSessionMovementSettlementSchema.parse({
         kind: 'PASSAGE',

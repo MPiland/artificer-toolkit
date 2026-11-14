@@ -560,7 +560,6 @@ function passageInput(state: EncounterRunState, targetActors: readonly Encounter
     spatialCurrentnessChecksum: checksum,
     completedSpatialExecutions: [],
     appliedSpatialPrefix: null,
-    completedReactionExecutions: [],
     remainingSpatialCandidates: [],
     reactionTimeline: []
   })
