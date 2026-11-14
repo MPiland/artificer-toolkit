@@ -75,10 +75,7 @@ import { settleActionTargetOutcome } from './actionTargetOutcomeSettlement.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 import { rollerAsPerceivedByCaster } from './ruleRollCards.js'
-import type {
-  bindEncounterConcentrationApplications,
-  persistEncounterConcentrationChildren
-} from './concentrationChildrenPersistence.js'
+import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative.js'
 import { persistSummonInitiativeRollCard } from './initiativeRollCards.js'
@@ -195,10 +192,6 @@ export async function persistEncounterAreaCommit(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
     currentCharacterMaximumHitPoints(state: EncounterRunState, characterId: string): Promise<number>
-    bindConcentrationApplications(
-      state: Parameters<typeof bindEncounterConcentrationApplications>[1],
-      applications: Parameters<typeof bindEncounterConcentrationApplications>[2]
-    ): ReturnType<typeof bindEncounterConcentrationApplications>
     persistConcentrationChildren(
       input: Parameters<typeof persistEncounterConcentrationChildren>[1]
     ): ReturnType<typeof persistEncounterConcentrationChildren>
@@ -747,7 +740,6 @@ export async function persistEncounterAreaCommit(
     parentCommandFingerprint: fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(damage),
     remaining: await bindEncounterDamageSaveChain(ctx, {
-      concentration: await callbacks.bindConcentrationApplications(nextState, damage),
       state: nextState,
       actors: nextActors,
       applications: damage,

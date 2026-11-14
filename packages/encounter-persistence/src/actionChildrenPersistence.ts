@@ -14,10 +14,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { insertNativeCleavingChoice } from './actionChildPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
-import type {
-  bindEncounterConcentrationApplications,
-  persistEncounterConcentrationChildren
-} from './concentrationChildrenPersistence.js'
+import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 /** Persists only children of this completed action; all writes share the parent's transaction. */
@@ -33,10 +30,6 @@ export async function persistEncounterActionChildren(
     authorizedCharacterIds: ReadonlySet<string>
   },
   callbacks: {
-    bindConcentrationApplications(
-      state: Parameters<typeof bindEncounterConcentrationApplications>[1],
-      applications: Parameters<typeof bindEncounterConcentrationApplications>[2]
-    ): ReturnType<typeof bindEncounterConcentrationApplications>
     persistConcentrationChildren(
       input: Parameters<typeof persistEncounterConcentrationChildren>[1]
     ): ReturnType<typeof persistEncounterConcentrationChildren>
@@ -58,7 +51,6 @@ export async function persistEncounterActionChildren(
     parentCommandFingerprint: args.fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
     remaining: await bindEncounterDamageSaveChain(ctx, {
-      concentration: await callbacks.bindConcentrationApplications(state, applications),
       state,
       actors: args.actors,
       applications,

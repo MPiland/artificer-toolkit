@@ -17,7 +17,6 @@ import {
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import {
   completeNativeConcentrationResult,
-  concentrationSaveApplications,
   createNativeConcentrationContext,
   damageSaveRolledD20,
   damageSaveWindowRoll,
@@ -30,12 +29,12 @@ import {
 import {
   completeEffectRepeatSaveResult,
   createEffectRepeatSaveContext,
-  effectRepeatSaveApplications,
   effectRepeatSaveExecutionInput,
   effectRepeatSaveMade,
-  effectRepeatTrigger,
   evaluateEffectRepeatSaveEvidence
 } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
+import { planDamageSaveChain } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
+import { damagedHitRepeatTrigger } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
   verifyTargetBoundActiveRuleEffectContinuation
@@ -60,8 +59,7 @@ import {
   completeMassiveDamageSaveResult,
   createMassiveDamageSaveContext,
   encounterMassiveDamageRule,
-  evaluateMassiveDamageSaveEvidence,
-  massiveDamageSaveApplications
+  evaluateMassiveDamageSaveEvidence
 } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
@@ -490,33 +488,15 @@ export async function planNativeLiveConcentration(input: {
       ] as const
     })
   )
-  const boundItems: DamageSaveApplicationDto[] =
-    repeatSaveDamager === undefined
-      ? []
-      : [
-          ...effectRepeatSaveApplications({
-            applications: selectedApplications,
-            parentOccurrenceId: input.parentOccurrenceId,
-            damagerActorId: repeatSaveDamager,
-            dispositions,
-            holders
-          }),
-          ...massiveDamageSaveApplications({
-            rule: massiveRule,
-            applications: selectedApplications,
-            holders
-          })
-        ]
-  let remaining: DamageSaveApplicationDto[] = [
-    ...concentrationSaveApplications({
-      gameSystemId: state.gameSystemId,
-      applications: selectedApplications,
-      maintainedStates: bindings,
-      damagerActorId: repeatSaveDamager ?? null,
-      dispositions
-    }),
-    ...boundItems
-  ].sort(compareDamageSaveApplications)
+  let remaining = planDamageSaveChain({
+    gameSystemId: state.gameSystemId,
+    applications: selectedApplications,
+    maintainedStates: bindings,
+    parentOccurrenceId: input.parentOccurrenceId,
+    damagerActorId: repeatSaveDamager ?? null,
+    dispositions,
+    effectSaves: repeatSaveDamager === undefined ? null : { massiveRule, holders }
+  })
   if (input.resume) {
     const answered = damageSaveContextBoundApplication(input.resume.context)
     remaining = remaining.filter((entry) => compareDamageSaveApplications(entry, answered) >= 0)
@@ -667,11 +647,14 @@ export async function planNativeLiveConcentration(input: {
     const effect = heldEffects.find(({ id }) => id === activeEffectId)
     const trigger =
       effect &&
-      effectRepeatTrigger(effect, {
-        damagerActorId: application.damagerActorId ?? repeatSaveDamager ?? null,
-        dispositions,
-        damageTypeId: application.damageTypeId
-      })
+      damagedHitRepeatTrigger(
+        effect,
+        {
+          damagerActorId: application.damagerActorId ?? repeatSaveDamager ?? null,
+          damageTypeIds: [application.damageTypeId]
+        },
+        dispositions
+      )
     if (!holder || !target || !effect || !trigger)
       throw new Error('The repeat save effect changed before its check.')
     const unspent = chainTarget(target)

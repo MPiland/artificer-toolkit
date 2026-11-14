@@ -9,7 +9,6 @@ import {
   persistEncounterActionEffects
 } from '@artificer-toolkit/encounter-persistence/actionEffectPersistence'
 import { persistEncounterActionChildren } from '@artificer-toolkit/encounter-persistence/actionChildrenPersistence'
-import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
@@ -180,8 +179,6 @@ export async function executeRoomEncounterAction(input: {
     persistActionEffects: (effects) => persistEncounterActionEffects(ctx, effects),
     persistActionChildren: (children) =>
       persistEncounterActionChildren(ctx, children, {
-        bindConcentrationApplications: (state, applications) =>
-          bindEncounterConcentrationApplications(ctx, state, applications),
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
       })
   }
@@ -225,8 +222,6 @@ export async function executeRoomEncounterAction(input: {
           ...callbacks,
           applySummonTokens: (summon) =>
             applyRoomSummonTokens({ ctx, transaction, userId: scope.expectedUserId, summon }),
-          bindConcentrationApplications: (state, applications) =>
-            bindEncounterConcentrationApplications(ctx, state, applications),
           persistConcentrationChildren: (children) =>
             persistRoomConcentrationChildren(ctx, children)
         }

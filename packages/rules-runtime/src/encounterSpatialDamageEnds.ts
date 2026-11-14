@@ -4,11 +4,7 @@ import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api
 import type { CharacterEndedEffectReleaseApplication } from './characterRuleActionSystemAdapter.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
 import { type TargetState, targetTemporaryHitPoints } from './encounterCharacterMechanicsBatch.js'
-import {
-  endedEffectReleases,
-  targetEndedEffects,
-  type EncounterGrantTrigger
-} from './encounterEndedEffectRelease.js'
+import { targetEndedEffects, type EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
 /** What a spatial execution carries of the damage it dealt and the zone's source that dealt it. */
@@ -40,36 +36,26 @@ export function spatialDamageEnds(input: {
   releases: CharacterEndedEffectReleaseApplication[]
   grants: ReturnType<typeof targetEndedEffects>['grants']
 } {
-  const ended = new Map<string, ActiveRuleEffectRecord>()
-  const grants = new Map<string, ReturnType<typeof targetEndedEffects>['grants'][number]>()
-  for (const execution of input.executions) {
-    const endedBy = targetEndedEffects({
-      holderActorId: input.holderActorId,
-      held: input.held,
-      attack: null,
-      testEvidence: [],
-      turnActorId: input.turnActorId,
+  // One raise for the holder however many contacts damaged it, with one hit per contact's source.
+  const { endedEffects, releases, grants } = targetEndedEffects({
+    holderActorId: input.holderActorId,
+    held: input.held,
+    attack: null,
+    testEvidence: [],
+    turnActorId: input.turnActorId,
+    applications: [],
+    damagerActorId: null,
+    damageBySource: input.executions.map((execution) => ({
+      damagerActorId: execution.candidate.candidate.sourceActorId,
       applications: execution.applications.map((application) => ({
         ...application,
         targetActorId: input.holderActorId
-      })),
-      damagerActorId: execution.candidate.candidate.sourceActorId,
-      dispositions: input.dispositions,
-      ...(input.grantTriggers ? { grantTriggers: input.grantTriggers } : {})
-    })
-    for (const effect of endedBy.endedEffects) ended.set(effect.id, effect)
-    for (const grant of endedBy.grants) grants.set(grant.id, grant)
-  }
-  const endedEffects = input.held.filter(({ id }) => ended.has(id))
-  return {
-    endedEffects,
-    releases: endedEffectReleases({
-      holderActorId: input.holderActorId,
-      held: input.held,
-      ended: endedEffects
-    }),
-    grants: [...grants.values()]
-  }
+      }))
+    })),
+    dispositions: input.dispositions,
+    ...(input.grantTriggers ? { grantTriggers: input.grantTriggers } : {})
+  })
+  return { endedEffects, releases, grants }
 }
 
 /**

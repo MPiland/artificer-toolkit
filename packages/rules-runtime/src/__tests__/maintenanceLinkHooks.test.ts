@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { concentrationSaveApplications } from '../encounterConcentration.js'
+import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { maintenanceLinkCapabilityRegistry } from '../platformPolicyModules.js'
@@ -31,12 +31,12 @@ describe('maintenance link hooks', () => {
     const damaged: EncounterEvent = {
       kind: 'DAMAGED',
       phase: 'AFTER',
-      damagerActorId: null,
-      damageTypeIds: [null],
+      hits: [{ damagerActorId: null, damageTypeIds: [null] }],
       dispositions: new Map()
     }
-    expect(discover([damaged]).maintenanceSave).toBe(true)
-    expect(discover([{ kind: 'DEFEATED' }]).maintenanceSave).toBe(false)
+    // The boolean `maintenanceSave` became the indexes of the hits owed a save: hit 0 is owed one.
+    expect(discover([damaged]).maintenanceSaveHits).toEqual([0])
+    expect(discover([{ kind: 'DEFEATED' }]).maintenanceSaveHits).toEqual([])
   })
 
   it('fails closed on a System that provides no maintenance link', () => {
@@ -55,12 +55,14 @@ describe('maintenance link hooks', () => {
       damageTypeId: null
     })
     expect(
-      concentrationSaveApplications({
+      planDamageSaveChain({
         gameSystemId: DND5E_SYSTEM_ID,
         applications: [application('held'), application('bare')],
         maintainedStates: new Map([['held', [{ id: 'state-1', createdAt: CAST_AT }]]]),
+        parentOccurrenceId: 'parent',
         damagerActorId: null,
-        dispositions: new Map()
+        dispositions: new Map(),
+        effectSaves: null
       })
     ).toEqual([{ ...application('held'), maintainedStateId: 'state-1', castAt: CAST_AT }])
   })
@@ -76,7 +78,7 @@ describe('maintenance link hooks', () => {
     }
     const later = '2026-01-01T00:00:05.000Z'
     expect(
-      concentrationSaveApplications({
+      planDamageSaveChain({
         gameSystemId: DND5E_SYSTEM_ID,
         applications: [damage],
         maintainedStates: new Map([
@@ -88,8 +90,10 @@ describe('maintenance link hooks', () => {
             ]
           ]
         ]),
+        parentOccurrenceId: 'parent',
         damagerActorId: null,
-        dispositions: new Map()
+        dispositions: new Map(),
+        effectSaves: null
       })
     ).toEqual([
       { ...damage, maintainedStateId: 'state-1', castAt: CAST_AT },
