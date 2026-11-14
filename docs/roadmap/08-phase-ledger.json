@@ -26370,17 +26370,33 @@
             },
             {
               "id": "QUALITY-13.T1c3",
+              "status": "DONE",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-13.T1c2b", "QUALITY-9.T1e2", "QUALITY-13.T1c4"]
+              },
+              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth). Sequenced after QUALITY-13.T1c4 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts. Split 2026-11-14 at delivery: the pre-roll bystander reactions (Protection shape, ATTACK_ON_OTHER) moved to QUALITY-13.T1c3b. Resized 3 to 5 for the delivered part; QUALITY growth pre-approved by the user (2026-11-13).",
+              "text": "Roll reactions per ray: a bystander attack-roll reaction is offered at each ray's rolled d20 and runs as its holder's child action; its spends fold into the cast's commit.",
+              "mergedAt": "2026-11-14",
+              "proof": "m738 (d8e72f46b), fast path from slice tip 58a4c0639: Tests 43533333285, Live 43533333244, Browser journeys 43533333265 green. Red proof: nativeRoomRayRollReactions 6/7 RED (the exhausted-pool test passes on old code, as expected). SRD Cutting Words against Scorching Ray: the Bard's child action runs under the cast (D219), its die comes off the ray's kept d20 at resume and commit replay with no reroll; the reaction and Bardic Inspiration used at one ray are not offered at the next; one undo or a GM void restores every spend; variants hit-to-miss, die too small, declined per ray, decline then use, exhausted pool, void after the child ran. Persisted-snapshot validation widened additively: a ray held at an ATTACK_ROLL_BY_OTHER offer counts as the caster roll (D219). Reactor-turn logic shared as nativeRollReactionTurns. No assertions restated."
+            },
+            {
+              "id": "QUALITY-13.T1c3b",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 3,
-                "after": ["QUALITY-13.T1c2b", "QUALITY-9.T1e2", "QUALITY-13.T1c4"]
+                "size": 8,
+                "after": ["QUALITY-13.T1c3"]
               },
-              "note": "Split 2026-11-12 from QUALITY-13.T1c at the seam trace (D219 per-ray reactions), within AC QUALITY-13.1 (no scope growth). Sequenced after QUALITY-13.T1c4 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts.",
-              "text": "Protection, bystander reaction children and roll reactions per ray, with their spends in the commit.",
+              "text": "Pre-roll bystander reactions per ray (Protection shape, ATTACK_ON_OTHER): a per-ray pre-roll moment discovered when a ray becomes current; a held state for an unrolled ray in the area hold and its fence; the persisted casterRolls rule widened to ATTACK_ON_OTHER; the child's ROLL_MODE outcome applied per ray at roll and at replay through one per-ray applyReactionChildren call (the T1c3 dice move onto it); one room journey with an SRD Protection source. Also prove two bystander reactors heard in turn on one ray, and a roll reaction followed by the target's hit reaction and an on-hit rider on the same ray.",
+              "note": "Registered 2026-11-14 from the T1c3 split under the user standing approval for QUALITY growth (2026-11-13). Today the pre-roll stage lives only in the whole-cast pause (nativeEncounterCastPause.ts) and the ray list switches it off (aimedAttackPerception null in nativeAreaPreparation.ts).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -26408,9 +26424,9 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["QUALITY-13.T1c4", "QUALITY-13.T1c3"]
+                "after": ["QUALITY-13.T1c4", "QUALITY-13.T1c3", "QUALITY-13.T1c3b"]
               },
-              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape. Sequenced after QUALITY-13.T1c3 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts.",
+              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape. Sequenced after QUALITY-13.T1c3 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts. Sequenced after QUALITY-13.T1c3b on 2026-11-14 (no size change): same per-ray seam.",
               "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate offers ATTACK_RETARGET for that ray only and re-seals its own entry; per-entry gate and retarget evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source."
             },
             {
