@@ -18,9 +18,12 @@ import {
 import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema,
+  movementContactDamageEnvelope,
+  movementMassiveDamageSaveExecutionDtoSchema,
   movementRepeatSaveExecutionDtoSchema,
   type MovementConcentrationEndDto,
   type MovementConcentrationExecutionDto,
+  type MovementMassiveDamageSaveExecutionDto,
   type MovementRepeatSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
@@ -50,6 +53,13 @@ import {
   evaluateEffectRepeatSaveEvidence
 } from './encounterEffectRepeatSave.js'
 import { encounterEscapeEndedConditionIds } from './encounterEscapeCheck.js'
+import {
+  type NativeMassiveDamageSaveContext,
+  completeMassiveDamageSaveResult,
+  createMassiveDamageSaveContext,
+  encounterMassiveDamageRule,
+  evaluateMassiveDamageSaveEvidence
+} from './encounterMassiveDamage.js'
 import { damagedHitRepeatTrigger } from './events/encounterEventHooks.js'
 import { projectSpatialMovementCandidates } from './encounterSpatialMovementCurrentness.js'
 import {
@@ -64,22 +74,22 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 
 type DamageSource = { executionOrdinal: number }
 type DiceResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+type RetainedD20 = Pick<
+  MovementConcentrationExecutionDto['result']['applicationOutputs']['d20'],
+  'rawFaces' | 'rollMode'
+>
 
-/** Child receipts do not change the identity of the damage that caused them. */
-function movementDamageEnvelope<
-  T extends {
-    concentrationChecks?: MovementConcentrationExecutionDto[]
-    concentrationEnds?: MovementConcentrationEndDto[]
-    repeatSaves?: MovementRepeatSaveExecutionDto[]
-  }
->(execution: T) {
+/** The kernel continuation a pending snapshot sealed, without the room's own envelope around it. */
+function sealedContinuation(snapshot: ServerKernelRuleExecutionPendingSnapshotDto) {
   const {
-    concentrationChecks: _checks,
-    concentrationEnds: _ends,
-    repeatSaves: _saves,
-    ...envelope
-  } = execution
-  return envelope
+    snapshotKind: _kind,
+    applicationContext: _context,
+    optionalCombatSnapshotChecksum: _policy,
+    phaseReceipts: _receipts,
+    deferredCleaving: _cleaving,
+    ...continuation
+  } = snapshot
+  return continuation
 }
 
 function movementConcentrationDamageSource(
@@ -100,7 +110,7 @@ function movementConcentrationDamageSource(
     holderActorId,
     /** The zone's source, who dealt this contact's damage. */
     damagerActorId: execution.candidate.candidate.sourceActorId,
-    envelopeChecksum: checksumRuleDocument(movementDamageEnvelope(execution)),
+    envelopeChecksum: checksumRuleDocument(movementContactDamageEnvelope(execution)),
     applications: damage.map((application) => ({
       ...application,
       ordinal: offset + application.ordinal
@@ -110,11 +120,13 @@ function movementConcentrationDamageSource(
 
 /**
  * One contact's damage children settle in order: its Concentration ends first, then each save its
- * damage owes in chain order (a Concentration check or an effect's repeat save, D167).
+ * damage owes in chain order (a Concentration check, an effect's repeat save, D167, or a
+ * massive-damage save, ATTACK-16).
  */
 export type MovementConcentrationSettlement =
   | { kind: 'END'; execution: MovementConcentrationEndDto }
   | { kind: 'REPEAT_SAVE'; execution: MovementRepeatSaveExecutionDto }
+  | { kind: 'MASSIVE_DAMAGE_SAVE'; execution: MovementMassiveDamageSaveExecutionDto }
   | {
       kind: 'CHECK'
       state: EncounterRunState
@@ -157,6 +169,7 @@ export async function prepareEncounterMovementConcentration<
     retainedSaves?: {
       concentrationChecks?: readonly MovementConcentrationExecutionDto[]
       repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
+      massiveDamageSaves?: readonly MovementMassiveDamageSaveExecutionDto[]
     }
     resume?: { snapshot: ServerKernelRuleExecutionPendingSnapshotDto; resolution: DiceResolution }
   },
@@ -215,6 +228,9 @@ export async function prepareEncounterMovementConcentration<
   const checks = [...(source.execution.concentrationChecks ?? [])]
   const ends = [...(source.execution.concentrationEnds ?? [])]
   const repeatSaves = [...(source.execution.repeatSaves ?? [])]
+  const massiveDamageSaves = [...(source.execution.massiveDamageSaves ?? [])]
+  // The Encounter's rule as it stands now: a save sealed under another definition is refused.
+  const massiveRule = encounterMassiveDamageRule(input.state)
   const phase = input.resume?.snapshot.applicationContext
   const issued =
     phase?.kind === 'ENCOUNTER_MOVEMENT_REACTION' ? movementPendingDamageSave(phase.phase) : null
@@ -262,7 +278,8 @@ export async function prepareEncounterMovementConcentration<
     const children = {
       ...(ends.length ? { concentrationEnds: [...ends] } : {}),
       ...(checks.length ? { concentrationChecks: [...checks] } : {}),
-      ...(repeatSaves.length ? { repeatSaves: [...repeatSaves] } : {})
+      ...(repeatSaves.length ? { repeatSaves: [...repeatSaves] } : {}),
+      ...(massiveDamageSaves.length ? { massiveDamageSaves: [...massiveDamageSaves] } : {})
     }
     const completedSpatialExecutions = remainder.completedSpatialExecutions.map((entry) =>
       entry.ordinal === input.source.executionOrdinal ? { ...entry, ...children } : entry
@@ -291,7 +308,12 @@ export async function prepareEncounterMovementConcentration<
             maintainedStateId: frozen.maintainedState.id,
             castAt: frozen.maintainedState.createdAt
           }
-        : { ...frozen.application, activeEffectId: frozen.activeEffect.id },
+        : frozen.source === 'EFFECT_REPEAT_SAVE'
+          ? { ...frozen.application, activeEffectId: frozen.activeEffect.id }
+          : {
+              ...frozen.application,
+              optionalCombatDefinitionId: frozen.optionalCombatDefinition.id
+            },
       ...frozen.remaining
     ]
     for (const entry of remaining)
@@ -357,9 +379,8 @@ export async function prepareEncounterMovementConcentration<
         parentOccurrenceId: input.occurrenceId,
         damagerActorId: source.damagerActorId,
         dispositions,
-        // The massive-damage save of a movement contact is not settled here, so no rule is read.
         effectSaves: {
-          massiveRule: null,
+          massiveRule,
           holders: new Map(
             [...targets].map(([actorId, target]) => [
               actorId,
@@ -385,6 +406,7 @@ export async function prepareEncounterMovementConcentration<
     save:
       | { kind: 'CONCENTRATION_EVIDENCE'; concentration: NativeConcentrationContext }
       | { kind: 'REPEAT_SAVE_EVIDENCE'; repeatSave: NativeEffectRepeatSaveContext }
+      | { kind: 'MASSIVE_DAMAGE_SAVE_EVIDENCE'; massiveDamageSave: NativeMassiveDamageSaveContext }
   ) => {
     const { currentSpatialCandidate: _candidate, ...movement } = remainder
     return {
@@ -406,11 +428,25 @@ export async function prepareEncounterMovementConcentration<
       })
     }
   }
+  /** A save's d20: its recorded dice when the contact replays, else its roller's answer or an auto-roll. */
+  const diceResolution = (
+    requestId: string,
+    retained: { result: { applicationOutputs: { d20: RetainedD20 } } } | undefined
+  ): DiceResolution =>
+    retained
+      ? {
+          kind: 'ENTER_DICE',
+          requestId,
+          rawFaces: retained.result.applicationOutputs.d20.rawFaces,
+          rollMode: retained.result.applicationOutputs.d20.rollMode
+        }
+      : (resume?.resolution ?? { kind: 'AUTO_ROLL', requestId })
   while (remaining.length) {
     const bound = remaining[0]!
     const application = unboundDamageSaveApplication(bound)
     remaining = remaining.slice(1)
     const binding = damageSaveBinding(bound)
+    const occurrenceId = concentrationOccurrenceId(input.occurrenceId, bound)
     if (binding?.source === 'EFFECT_REPEAT_SAVE') {
       // The effect's own frozen save, rolled by its damaged holder (D167); a made save ends it.
       const target = targets.get(application.targetActorId)
@@ -428,7 +464,6 @@ export async function prepareEncounterMovementConcentration<
         )
       if (!target || !effect || !trigger)
         throw new Error('The movement repeat save effect changed before its check.')
-      const occurrenceId = concentrationOccurrenceId(input.occurrenceId, bound)
       const sealed = resume && frozen?.source === 'EFFECT_REPEAT_SAVE' ? frozen : null
       if (resume && !sealed) throw new Error('The movement repeat save occurrence is stale.')
       const effectInput = effectRepeatSaveExecutionInput({
@@ -481,14 +516,7 @@ export async function prepareEncounterMovementConcentration<
         throw new Error('Prepared movement repeat save evidence is missing.')
       let continuation = paused?.continuation
       if (resume) {
-        const {
-          snapshotKind: _kind,
-          applicationContext: _context,
-          optionalCombatSnapshotChecksum: _policy,
-          phaseReceipts: _receipts,
-          deferredCleaving: _cleaving,
-          ...stored
-        } = resume.snapshot
+        const stored = sealedContinuation(resume.snapshot)
         if (
           checksumRuleDocument(context) !== checksumRuleDocument(sealed) ||
           stored.occurrenceId !== occurrenceId
@@ -507,17 +535,7 @@ export async function prepareEncounterMovementConcentration<
         effectInput,
         context,
         continuation,
-        resolution: retained
-          ? {
-              kind: 'ENTER_DICE',
-              requestId: continuation.request.requestId,
-              rawFaces: retained.result.applicationOutputs.d20.rawFaces,
-              rollMode: retained.result.applicationOutputs.d20.rollMode
-            }
-          : (resume?.resolution ?? {
-              kind: 'AUTO_ROLL',
-              requestId: continuation.request.requestId
-            }),
+        resolution: diceResolution(continuation.request.requestId, retained),
         expectedOccurrenceId: occurrenceId,
         random: callbacks.random
       })
@@ -550,8 +568,92 @@ export async function prepareEncounterMovementConcentration<
       resume = undefined
       continue
     }
+    if (binding?.source === 'MASSIVE_DAMAGE') {
+      // The rule's own save graph (ATTACK-16): the save records its outcome and changes nothing else.
+      const target = targets.get(application.targetActorId)
+      const vocabulary = await callbacks.readVocabulary()
+      if (!massiveRule || massiveRule.pin.definitionId !== binding.id || !target)
+        throw new Error('The massive-damage rule changed before its movement save.')
+      if (!vocabulary || !('damageTypes' in vocabulary.document))
+        throw new Error('The movement massive-damage save vocabulary is unavailable.')
+      const { context, facts } = createMassiveDamageSaveContext({
+        gameSystemId: input.state.gameSystemId,
+        rule: massiveRule,
+        target,
+        maximumHitPoints: target.effectiveMaximumHitPoints,
+        systemVocabularySnapshot: {
+          id: vocabulary.snapshotId,
+          version: vocabulary.snapshotVersion,
+          checksum: vocabulary.checksum
+        },
+        damageTypes: vocabulary.document.damageTypes,
+        parentOccurrenceId: input.occurrenceId,
+        parentCommandFingerprint: remainder.root.commandFingerprint,
+        application,
+        remaining,
+        finalizedDamageEnvelopeChecksum: source.envelopeChecksum,
+        // Movement contacts carry no display name yet; their saves name only the damage.
+        sourceLabels: [],
+        damagerActorId: source.damagerActorId
+      })
+      const started = await runtime!.executeResolved({
+        command: { definitionId: massiveRule.published.id, occurrenceId, facts },
+        published: massiveRule.published
+      })
+      if (started.status !== 'PAUSED')
+        throw new Error('The movement massive-damage save did not request bounded d20 evidence.')
+      if (
+        resume &&
+        (frozen?.source !== 'MASSIVE_DAMAGE' ||
+          checksumRuleDocument(context) !== checksumRuleDocument(frozen) ||
+          checksumRuleDocument(sealedContinuation(resume.snapshot)) !==
+            checksumRuleDocument(started.continuation))
+      )
+        throw new Error('The movement massive-damage save facts or sealed check changed.')
+      const retained = input.retainedSaves?.massiveDamageSaves?.find(
+        (save) =>
+          save.result.occurrenceId === occurrenceId &&
+          save.sourceCommandId === input.sourceCommandId
+      )
+      if (input.autoRoll[application.targetActorId] !== true && !resume) {
+        if (retained)
+          throw new Error('A movement massive-damage save cannot consume unissued player evidence.')
+        return pendingSave(started.continuation, {
+          kind: 'MASSIVE_DAMAGE_SAVE_EVIDENCE',
+          massiveDamageSave: context
+        })
+      }
+      if (input.retainedSaves && !retained)
+        throw new Error('Prepared movement massive-damage save evidence is missing.')
+      const execution = movementMassiveDamageSaveExecutionDtoSchema.parse({
+        sourceCommandId: input.sourceCommandId,
+        result: completeMassiveDamageSaveResult({
+          context,
+          continuation: started.continuation,
+          evidence: await evaluateMassiveDamageSaveEvidence({
+            gameSystemId: input.state.gameSystemId,
+            runtime: runtime!,
+            random: callbacks.random,
+            context,
+            rule: massiveRule,
+            continuation: started.continuation,
+            resolution: diceResolution(started.continuation.request.requestId, retained),
+            expectedOccurrenceId: occurrenceId
+          }),
+          occurrenceVersion: 1,
+          initialFactsChecksum: checksumRuleDocument(facts)
+        })
+      })
+      if (retained && checksumRuleDocument(execution) !== checksumRuleDocument(retained))
+        throw new Error('A prepared movement massive-damage save does not match current mechanics.')
+      massiveDamageSaves.push(execution)
+      settlements.push({ kind: 'MASSIVE_DAMAGE_SAVE', execution })
+      retainChildren()
+      resume = undefined
+      continue
+    }
     if (!isMaintainedDamageApplication(bound))
-      throw new Error('A movement damage chain holds no massive-damage save.')
+      throw new Error('A movement damage save names nothing it checks.')
     const { maintainedStateId } = bound
     const held = await callbacks.loadStates(application.targetActorId, targets, projection)
     const current = held.find((entry) => entry.maintained.id === maintainedStateId)
@@ -568,29 +670,20 @@ export async function prepareEncounterMovementConcentration<
       // Movement contacts carry no display name yet; their checks name only the damage.
       sourceLabels: []
     })
-    const occurrenceId = concentrationOccurrenceId(input.occurrenceId, bound)
     const started = await runtime!.executeResolved({
       command: { definitionId: current.published.id, occurrenceId, facts },
       published: current.published
     })
     if (started.status !== 'PAUSED')
       throw new Error('Movement Concentration did not request bounded d20 evidence.')
-    if (resume) {
-      const {
-        snapshotKind: _kind,
-        applicationContext: _context,
-        optionalCombatSnapshotChecksum: _policy,
-        phaseReceipts: _receipts,
-        deferredCleaving: _cleaving,
-        ...continuation
-      } = resume.snapshot
-      if (
-        frozen?.source !== 'CONCENTRATION' ||
+    if (
+      resume &&
+      (frozen?.source !== 'CONCENTRATION' ||
         checksumRuleDocument(context) !== checksumRuleDocument(frozen) ||
-        checksumRuleDocument(continuation) !== checksumRuleDocument(started.continuation)
-      )
-        throw new Error('The movement Concentration facts or sealed check changed.')
-    }
+        checksumRuleDocument(sealedContinuation(resume.snapshot)) !==
+          checksumRuleDocument(started.continuation))
+    )
+      throw new Error('The movement Concentration facts or sealed check changed.')
     const retained = input.retainedSaves?.concentrationChecks?.find(
       (check) =>
         check.result.occurrenceId === occurrenceId &&
@@ -606,22 +699,11 @@ export async function prepareEncounterMovementConcentration<
     }
     if (input.retainedSaves && !retained)
       throw new Error('Prepared movement Concentration evidence is missing.')
-    const resolution: DiceResolution = retained
-      ? {
-          kind: 'ENTER_DICE',
-          requestId: started.continuation.request.requestId,
-          rawFaces: retained.result.applicationOutputs.d20.rawFaces,
-          rollMode: retained.result.applicationOutputs.d20.rollMode
-        }
-      : (resume?.resolution ?? {
-          kind: 'AUTO_ROLL',
-          requestId: started.continuation.request.requestId
-        })
     const evidence = await evaluateNativeConcentrationEvidence({
       gameSystemId: input.state.gameSystemId,
       context,
       continuation: started.continuation,
-      resolution,
+      resolution: diceResolution(started.continuation.request.requestId, retained),
       expectedOccurrenceId: occurrenceId,
       runtime: runtime!,
       random: callbacks.random
@@ -664,12 +746,13 @@ export async function prepareEncounterMovementConcentration<
   if (
     [
       ...(input.retainedSaves?.concentrationChecks ?? []),
-      ...(input.retainedSaves?.repeatSaves ?? [])
+      ...(input.retainedSaves?.repeatSaves ?? []),
+      ...(input.retainedSaves?.massiveDamageSaves ?? [])
     ]
       .filter((save) => save.sourceCommandId === input.sourceCommandId)
       .some(
         (save) =>
-          ![...checks, ...repeatSaves].some(
+          ![...checks, ...repeatSaves, ...massiveDamageSaves].some(
             (value) => value.result.occurrenceId === save.result.occurrenceId
           )
       )

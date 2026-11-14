@@ -12,11 +12,18 @@ import { damagedHitRepeatTrigger } from '@artificer-toolkit/rules-runtime/events
 import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema,
+  movementMassiveDamageSaveExecutionDtoSchema,
   movementRepeatSaveExecutionDtoSchema,
   type MovementConcentrationEndDto,
   type MovementConcentrationExecutionDto,
+  type MovementMassiveDamageSaveExecutionDto,
   type MovementRepeatSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
+import { unboundDamageSaveApplication } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import {
+  encounterMassiveDamageRule,
+  massiveDamageRulePinned
+} from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { damageSaveCheckBoundApplication } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -30,7 +37,11 @@ import { createActiveRuleEffectStore } from './effectStore.js'
 import type { applyLiveConcentrationCleanup } from './concentrationCleanupPersistence.js'
 import { movementPersistedTransitionState } from './liveMovementTargetState.js'
 import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
-import { readEffectRepeatSaveRow, releaseEffectRepeatSave } from './effectRepeatSavePersistence.js'
+import {
+  bindEncounterDamageSaveChain,
+  readEffectRepeatSaveRow,
+  releaseEffectRepeatSave
+} from './effectRepeatSavePersistence.js'
 
 type MovementConcentrationPersistenceCallbacks = {
   applyCleanup: (
@@ -413,4 +424,88 @@ export async function persistLiveMovementRepeatSave(
     }
   })
   return actors
+}
+
+/**
+ * Persists one massive-damage save (ATTACK-16) a movement contact's damage owed its holder. The
+ * save is re-derived from the committed rows through the chain every damage root binds: the
+ * Encounter's rule must still be the pinned one and this damage must still owe its holder the save.
+ * It records the outcome and changes no Run state.
+ */
+export async function persistLiveMovementMassiveDamageSave(
+  ctx: Parameters<typeof bindEncounterDamageSaveChain>[0] &
+    Parameters<typeof persistNativeConcentrationResult>[0],
+  input: {
+    state: EncounterRunState
+    actors: EncounterRunActorState[]
+    execution: MovementMassiveDamageSaveExecutionDto
+    parentOccurrenceId: string
+    sourceCommandId: string
+    userId: string
+    authorizedCharacterIds: ReadonlySet<string>
+    occurredAt: string
+  },
+  callbacks: Pick<MovementConcentrationPersistenceCallbacks, 'currentCharacterStreamVersion'>
+): Promise<void> {
+  const execution = movementMassiveDamageSaveExecutionDtoSchema.parse(input.execution)
+  const { state, parentOccurrenceId } = input
+  const result = execution.result
+  const output = result.applicationOutputs
+  const application = damageSaveCheckBoundApplication(output)
+  const expectedId = concentrationOccurrenceId(parentOccurrenceId, application)
+  const rule = encounterMassiveDamageRule(state)
+  if (
+    state.automationMode === 'MANUAL' ||
+    !massiveDamageRulePinned(rule, output) ||
+    execution.sourceCommandId !== input.sourceCommandId ||
+    result.occurrenceId !== expectedId ||
+    output.parentOccurrenceId !== parentOccurrenceId ||
+    result.evidence.source.gameSystemId !== state.gameSystemId ||
+    result.evidence.source.definitionId !== rule.published.id ||
+    result.evidence.source.checksum !== rule.published.checksum
+  )
+    throw new Error('Live Session movement massive-damage save receipt scope mismatch.')
+  const target = input.actors.find((actor) => actor.id === application.targetActorId)
+  if (
+    !target ||
+    target.encounterId !== state.id ||
+    target.systemId !== state.gameSystemId ||
+    !state.actorIds.includes(target.id) ||
+    (target.kind === 'CHARACTER' && !input.authorizedCharacterIds.has(target.sourceId)) ||
+    (await concentrationTargetPinChanged(target, output.targetCharacter, (characterId) =>
+      callbacks.currentCharacterStreamVersion(state, characterId)
+    ))
+  )
+    throw new Error('Live Session movement massive-damage save target changed.')
+  const owed = await bindEncounterDamageSaveChain(ctx, {
+    state,
+    actors: input.actors,
+    applications: [unboundDamageSaveApplication(application)],
+    parentOccurrenceId,
+    damagerActorId: null
+  })
+  if (!owed.some((entry) => checksumCanonicalJson(entry) === checksumCanonicalJson(application)))
+    throw new Error('Live Session movement massive-damage save is not owed by its damage.')
+  const existing = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', expectedId))
+    .unique()
+  if (existing) throw new Error('The massive-damage save child occurrence already exists.')
+  await persistNativeConcentrationResult(ctx, {
+    state,
+    result,
+    commandId: concentrationCommandId(expectedId),
+    fingerprint: checksumRuleDocument(execution),
+    userId: input.userId,
+    correlationId: parentOccurrenceId,
+    occurredAt: input.occurredAt,
+    metadata: {
+      schemaVersion: 1,
+      transition: 'START',
+      definitionId: rule.published.id,
+      expectedAggregateVersion: state.version,
+      factsChecksum: result.initialFactsChecksum,
+      optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+    }
+  })
 }
