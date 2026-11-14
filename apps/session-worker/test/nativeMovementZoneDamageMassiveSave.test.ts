@@ -117,6 +117,38 @@ describe('zone damage of half a mover’s hit point maximum (QUALITY-14.T2d)', (
     expect(await rolledWalk(plainWolf, 1)).toEqual({ saves: [], hitPoints: 10, pending: null })
   }, 60_000)
 
+  it.each([
+    { name: 'below half the maximum', creature: plainWolf },
+    { name: 'dropped to 0 hit points', creature: raven }
+  ])(
+    'records a move $name as it would with the rule off',
+    async ({ creature }) => {
+      // The rule stops the move at every damaging contact so the save chain can measure it; a
+      // contact that owes no save only re-plans the rest of the move and records nothing more.
+      /** The receipts and occurrences the move left, by kind, in commit order. */
+      const recorded = async (massiveDamage: boolean) => {
+        const room = await zoneRoom(
+          creature,
+          { autoRoll: 'GAME_MASTER', fallbackRoll: 0 },
+          massiveDamage
+        )
+        expect((await room.move(PAST_ZONE)).type).toBe('COMMAND_COMMITTED')
+        const history = await readRoomHistory(room.base.stub)
+        return {
+          receipts: history.receipts.map((receipt) => {
+            const execution = parseReceiptExecution(receipt)
+            return execution.status === 'COMPLETE' ? execution.applicationOutputs.kind : null
+          }),
+          occurrences: history.occurrences.map(({ state }) => state),
+          commands: history.commands.length
+        }
+      }
+
+      expect(await recorded(true)).toEqual(await recorded(false))
+    },
+    60_000
+  )
+
   it('owes no save when the damage drops the mover to 0 hit points', async () => {
     // The SRD Raven has 1 hit point.
     expect(await rolledWalk(raven, 1)).toEqual({ saves: [], hitPoints: 0, pending: null })
