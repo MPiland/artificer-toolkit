@@ -111,6 +111,9 @@ type Missing = ProbePlan extends infer M
       : M
     : never
   : never
+type Lack<K extends string> = 'retargeted' extends keyof Extract<ProbePlan, { kind: K }> ? 0 : 1
+type Idx<K extends string> = string extends keyof Extract<ProbePlan, { kind: K }> ? 'index' : 'none'
+export const probeA: [Lack<'PENDING'>, Lack<'CAST_PENDING'>, Lack<'GATE_PENDING'>, Lack<'RETARGET_PENDING'>] = 'a'
+export const probeB: [Idx<'PENDING'>, Idx<'CAST_PENDING'>, Idx<'GATE_PENDING'>, Idx<'RETARGET_PENDING'>] = 'b'
 export const probeKind: number = null as unknown as Missing['kind']
-export const probeKeys: number = null as unknown as keyof Missing
-export const probeExecution: number = null as unknown as Missing['reactionChildren']
+export const probeExecution: number = null as unknown as ProbePlan['kind']
