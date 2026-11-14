@@ -21,6 +21,23 @@ import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import { damageTypeIdentity } from './effectActionOutcomeNodes.js'
 import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
 
+/** Where a hold's definition keeps the result path it was authored on, and its state operation. */
+export const DND5E_ACTOR_RELATIONSHIP = {
+  authoredPathFactKey: 'dnd5e.relationship-authored-path',
+  stateOperationKey: DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+}
+
+/** A hold's adapter facts: its recurring save's, then the result path it was authored on. */
+export function relationshipAdapterFacts(
+  recurrence: ReturnType<typeof relationshipRecurrencePlan>,
+  authoredPath: string
+) {
+  return {
+    ...recurrence?.save?.adapterFacts,
+    [DND5E_ACTOR_RELATIONSHIP.authoredPathFactKey]: authoredPath
+  }
+}
+
 /**
  * The bare hold: the graph an action with no roll (Engulf) runs when used, and a hold with no
  * recurrence stores.

@@ -26,6 +26,7 @@ import {
   evaluateLegendaryActionEligibility,
   requireLegendaryActionCapabilityDefinitionIds
 } from './legendaryActionEligibilityService.js'
+import { legendaryActionEligibilityCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { LegendaryActionEligibilitySource } from './legendaryActionEligibilityService.js'
 import { resolveEncounterRuleCapabilityStates } from './encounterRuleCapabilityState.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -105,6 +106,10 @@ async function resolveLifecycle(input: {
   feature: FeatureDto
   gameSystemId: string
 }): Promise<EncounterLegendaryActionCandidate['lifecycle'] | null> {
+  // A System without Legendary Action policy has no lifecycle definitions to match.
+  const lifecycleFamilyKey = legendaryActionEligibilityCapabilityRegistry.find(
+    input.gameSystemId
+  )?.lifecycleDefinitionFamilyKey
   const matching: EncounterLegendaryActionCandidate['lifecycle'][] = []
   for (const definitionId of input.feature.ruleDefinitionIds ?? []) {
     const current = await input.definitions.requireCurrent(definitionId)
@@ -113,7 +118,7 @@ async function resolveLifecycle(input: {
       throw new EncounterConflictError(
         'Legendary Action lifecycle definition System identity is stale.'
       )
-    if (current.definitionFamilyKey !== 'dnd5e-encounter-lifecycle') continue
+    if (current.definitionFamilyKey !== lifecycleFamilyKey) continue
     const lifecycle = dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema.safeParse(
       current.document
     )

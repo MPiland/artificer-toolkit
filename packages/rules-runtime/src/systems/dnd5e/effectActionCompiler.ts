@@ -57,6 +57,8 @@ import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
+  DND5E_ACTOR_RELATIONSHIP,
+  relationshipAdapterFacts,
   relationshipOperationKey,
   relationshipRecurrenceGraph,
   relationshipRecurrencePlan,
@@ -762,10 +764,7 @@ export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       capabilitySuppressions
     },
     ...(entry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(entry.pathCode) }),
-    adapterFacts: {
-      ...recurrence?.save?.adapterFacts,
-      'dnd5e.relationship-authored-path': entry.pathCode
-    },
+    adapterFacts: relationshipAdapterFacts(recurrence, entry.pathCode),
     perceptionContributions: [],
     maintenance: null,
     marginRiders: []
@@ -3303,6 +3302,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
 
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  actorRelationship: DND5E_ACTOR_RELATIONSHIP,
   compile: compileDnd5eEffectAction,
   incomingGateImmunityPlan,
   compileZonePlacement: ({ action, label }) =>

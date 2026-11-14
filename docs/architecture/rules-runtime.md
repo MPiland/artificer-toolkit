@@ -493,7 +493,12 @@ Encounter persistence, the Worker, Convex and web; since RULES-2.T11g3 it lists 
 the composition roots reach `systems/*` (active grants read the action-economy capability's
 `allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
 the composition roots above are exempt by name
-([CI validation](ci-validation.md)).
+([CI validation](ci-validation.md)). Since QUALITY-16.T1 neutral modules also never spell System
+content (a `dnd5e` string or a System rule code; `scripts/systemLiteralAllowlist.json`, shrink-only):
+Legendary discovery matches the eligibility adapter's `lifecycleDefinitionFamilyKey`, an Actor
+relationship's conditions read the rule-action adapter's `actorRelationship` fact and operation keys,
+a maintenance barring grant is the maintenance-link adapter's `barringDomain` (null when none), and the
+idle-turn exemption reads the event vocabulary's `lifecycleEndCodes('IDLE_TURN')`.
 Each composition root builds its registries from one installed-Systems list per load tier (D195,
 RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
 (`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`

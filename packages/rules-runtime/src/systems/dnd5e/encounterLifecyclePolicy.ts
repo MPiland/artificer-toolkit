@@ -129,6 +129,7 @@ function requireDnd5eActorActionAvailability(facts: LegendaryActionEligibilityFa
  */
 export const dnd5eLegendaryActionEligibilityAdapter: LegendaryActionEligibilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  lifecycleDefinitionFamilyKey: DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
   requiredCapabilityDefinitionIds: [DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID],
   async evaluate(input) {
     if (

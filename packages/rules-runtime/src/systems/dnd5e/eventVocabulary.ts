@@ -100,6 +100,10 @@ export const dnd5eEventVocabularyCapabilityAdapter: EventVocabularyCapabilityAda
       }))
     ]
   },
+  lifecycleEndCodes: (event) =>
+    LIFECYCLE_EVENTS.flatMap((row) =>
+      row.end && row.subscription.event === event ? [row.code] : []
+    ),
   raiseActionHook(triggerCode) {
     const event = RAISE_ACTION_EVENTS.get(triggerCode)
     return event ? { hook: 'RAISE_ACTION', subscription: { event } } : null
