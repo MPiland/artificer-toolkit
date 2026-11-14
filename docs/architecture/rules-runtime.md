@@ -1474,7 +1474,8 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
   `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT` (the zone left), the lifetime events
   (QUALITY-14.1) `TURN_BOUNDARY` (the stage of a turn the effect counts on), `SEPARATED` (the feet measured from a
-  source) and `REST` (short or long), and the events a reaction answers:
+  source) and `REST` (short or long), `SOURCE_DEPARTED`, `CAMPAIGN_CLOCK` and `CONCENTRATION_STARTED` (QUALITY-14.T1b,
+  below), and the events a reaction answers:
   `TURN_STARTED` and `SAVE_FAILED` (a rule definition's failed save), which with `DEFEATED` raise actions (below),
   `HIT_BY_ATTACK` (melee or not, attacker seen or not, the damage types the hit deals), `SPELL_CAST_BY_OTHER` and
   `TARGETED_BY_CAST` (with the spell cast), and the events an intercept answers before they resolve: the `BEFORE`-phase
@@ -1509,11 +1510,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `turnBoundaryCount` its persistence fold re-reads). The post-commit sweep (`encounterEndedRelationships`) raises the
   measured distance as `SEPARATED` and an unable source as `INCAPACITATED` on each relationship hold, passed as
   `relationshipHolds` (the sealed reach is the subscription), and `SEPARATED` on each effect for its authored
-  `beyondFeet`. A rest is raised by the Sheet (`activeEffectEndsOnRest` in `character/sheetRestEndedEffects.ts`, server only since discovery is Encounter rules, raises `REST` on each held effect), and a
-  departure from a zone by `endsOnLeavingZone` (`AREA_LEFT`, met only by the effect that zone holds). Not yet events:
-  a departed source (`planDepartedSourceGrantRemovals`), carried effects (`expiredCarriedOverGrants`,
-  `planResumedCarriedEffects`, `planConcentrationCarriedGrantEnds`) and a rest's recovery of a scalar or hit-point-maximum
-  reduction.
+  `beyondFeet`; an effect linked to a broken hold or bond ends with it (D172). A rest is raised by the Sheet
+  (`activeEffectEndsOnRest` in `character/sheetRestEndedEffects.ts`, server only since discovery is Encounter rules, raises
+  `REST` on each held effect), and a departure from a zone by `endsOnLeavingZone` (`AREA_LEFT`, met only by the effect that
+  zone holds). Three more events complete the set (QUALITY-14.T1b): `SOURCE_DEPARTED` (an actor leaves the Run:
+  `planDepartedSourceGrantRemovals`), `CAMPAIGN_CLOCK` (the clock reaches a carried-over effect's expiry:
+  `expiredCarriedOverGrants` and the expiring half of `planResumedCarriedEffects`, which still computes the rounds of an
+  effect it keeps) and `CONCENTRATION_STARTED` (a Character begins a Concentration, ending the carried effects stamped with
+  them: `planConcentrationCarriedGrantEnds`). Their hooks, and the `REST` hook of a scalar or hit-point-maximum reduction
+  (recovered by the rest kinds `getRestRecoveryTriggers` names, or by a long rest for a `LONG_REST` tag), are structural
+  like `COUNT_DOWN`: `effectHooks` derives them from the stored effect, so no System authors them, and each is met by the
+  state the effect already stores (its source, its `expiresAtCampaignMinute`, its Concentration stamp). Every ending now
+  raises an event; none is a direct call.
   `effectEventScope` (whose events and turn an effect meets), `damageTriggerMet` and `damagerOnSourceSide` live here too.
   Given the holder's `reactions` too, it returns the reactions the events offer, in held order, each once with the first
   hook met. A reaction's authored `reactionTrigger` is its subscription, already structural, so no vocabulary reads it:

@@ -5,6 +5,7 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { withLinkedDependents } from './activeEffectLinks.js'
 import { encounterRelationships } from './encounterRelationshipActionFacts.js'
 import { discoverEncounterEventHooks, REACH_EPSILON_FEET } from './events/encounterEventHooks.js'
 import type { EncounterEvent } from './events/encounterEventTable.js'
@@ -134,5 +135,14 @@ export async function encounterEndedRelationships(input: {
   for (const separated of encounterSeparatedEffects(input))
     if (!ended.some((entry) => entry.activeEffectId === separated.activeEffectId))
       ended.push(separated)
-  return ended
+  // An effect linked to an ended one ends with it (D172), as the event table does for every other end.
+  const withDependents = [...ended]
+  for (const end of ended) {
+    const held = input.activeEffectsByActorId.get(end.heldActorId) ?? []
+    const effect = held.find(({ id }) => id === end.activeEffectId)
+    for (const { id } of effect ? withLinkedDependents([effect], held) : [])
+      if (!withDependents.some((entry) => entry.activeEffectId === id))
+        withDependents.push({ ...end, activeEffectId: id })
+  }
+  return withDependents
 }
