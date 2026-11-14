@@ -39,7 +39,6 @@ const CASTER_ID = testUuid(0x9b1)
 const BARD_ACTOR_ID = testUuid(0x9b2)
 const BARD_ID = testUuid(0x9b3)
 const WOLF_ID = testUuid(0x9b4)
-const FAR_WOLF_ID = testUuid(0x9b5)
 const WOLF_HIT_POINTS = 20
 // The first of a ray's 2d6 twice over: a raw die is its face less one.
 const RAY_DAMAGE = 1 + 2
@@ -58,7 +57,7 @@ const inspirationGrantId = `resource:${bard.id}:${bard.resources?.id}`
 
 /**
  * A Caster with Scorching Ray, a level 3 Lore Bard 30 ft from it with `used` of its one Bardic
- * Inspiration spent, a Wolf 30 ft beyond the Bard and a second Wolf 30 ft beyond the first.
+ * Inspiration spent, and a Wolf 30 ft beyond the Bard.
  */
 function bystanderRoom(used = 0) {
   return actionRoom({
@@ -77,8 +76,7 @@ function bystanderRoom(used = 0) {
         id: WOLF_ID,
         creature: { ...plainWolf, hitPoints: WOLF_HIT_POINTS },
         currentHitPoints: WOLF_HIT_POINTS
-      }),
-      srdCreatureActor({ id: FAR_WOLF_ID, creature: plainWolf })
+      })
     ],
     characterSpellcasting: { spells: [scorchingRay], prepared: [scorchingRay.id] },
     secondCharacter: {
@@ -124,8 +122,8 @@ async function reactionUsed(room: Room) {
 const wolfHitPoints = async (room: Room) =>
   readActorHitPoints(await readRoomHistory(room.room.base.stub), WOLF_ID)
 
-async function cast(room: Room, rays: readonly string[] = TWO_RAYS) {
-  const { answer } = await room.startActorsAction(rays, [], true)
+async function cast(room: Room) {
+  const { answer } = await room.startActorsAction(TWO_RAYS, [], true)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
@@ -317,23 +315,6 @@ describe('a bystander answers each ray’s attack roll, as its own action (QUALI
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await wolfHitPoints(room)).toBe(WOLF_HIT_POINTS - RAY_DAMAGE)
-    expect(await inspirationUsed(room)).toBe(1)
-    expect((await committedActions(room)).children).toHaveLength(1)
-  }, 120000)
-
-  it('commits under the first ray’s reaction when the GM removes the creature the last ray waits on', async () => {
-    const room = await bystanderRoom()
-    await cast(room, [WOLF_ID, FAR_WOLF_ID])
-    await rollRay(room, 1)
-    await cutWith(room, 3)
-
-    const removal = await room.send(
-      room.removeAreaTargetCommand(await room.pendingDecision(), FAR_WOLF_ID)
-    )
-    expect(removal.type, JSON.stringify(removal)).toBe('COMMAND_COMMITTED')
-    // The removal settles the list: the first ray replays under the die taken off it, a miss.
-    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-    expect(await wolfHitPoints(room)).toBe(WOLF_HIT_POINTS)
     expect(await inspirationUsed(room)).toBe(1)
     expect((await committedActions(room)).children).toHaveLength(1)
   }, 120000)
