@@ -1,5 +1,6 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
   DURATION_KIND,
   EFFECT_KIND,
@@ -384,6 +385,28 @@ export function magicSaveAdvantageGrants(
       'MAGICAL'
     ]),
     order: firstOrder + index
+  }))
+}
+
+/**
+ * Advantage on the holder's attack rolls of every attack domain against a creature it holds through
+ * a relationship that imposes `heldConditionTypeId` (Grappler's "a creature you are grappling").
+ * Grant `index` uses id `makeId(index)`, one per attack domain.
+ */
+export function heldCreatureAttackAdvantageGrants(
+  makeId: (entry: number) => string,
+  heldConditionTypeId: string
+): ModifierGrantAuthored[] {
+  return Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+    id: makeId(index),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+    domain: { attackDomain, againstHeldConditionTypeId: heldConditionTypeId },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' },
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    order: index
   }))
 }
 

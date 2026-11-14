@@ -222,13 +222,15 @@ describe('SRD Creature grapple riders (D105)', () => {
       }))
     )
 
-    expect(riders).toHaveLength(34)
+    expect(riders).toHaveLength(35)
     // The SRD prints the Darkmantle's detach DC in a paragraph of its own, so its Crush paragraph
     // reads no rider; it attaches to a creature of any size, with a DC 13 Strength check to detach.
     // The Shambling Mound prints its grapple in its Multiattack ("if both attacks hit a Medium or smaller
     // target"), so its Slam paragraph reads no rider; the Slam authors the hold behind that gate (D93).
     // The Vampire Spawn's Claws and the Vampire's Unarmed Strike print "can grapple the target"
     // without the word "grappled", so their printed rider names no condition; they author GRAPPLED.
+    // The Mimic's Pseudopod prints its grapple in the Adhesive trait (escape DC 13, Huge or smaller), so its
+    // Pseudopod paragraph reads no rider; the Pseudopod hit authors that hold in either form (SPELLS-33.T8a, Q30c).
     // The Stirge attaches with no escape check (a creature detaches it with an action), so its Blood
     // Drain reads no rider and authors no escape DC (SPELLS-33.T6a3).
     // The Remorhaz and Tarrasque swallows print their hold in a paragraph of its own, so their Swallow
@@ -240,6 +242,11 @@ describe('SRD Creature grapple riders (D105)', () => {
         name: 'Darkmantle: Crush',
         printed: undefined,
         authored: { dc: 13, conditions: [] }
+      },
+      {
+        name: 'Mimic: Pseudopod',
+        printed: undefined,
+        authored: { dc: 13, conditions: ['GRAPPLED'], sizeLimit: 'HUGE' }
       },
       {
         name: 'Remorhaz: Swallow',
@@ -289,7 +296,7 @@ describe('SRD Creature grapple riders (D105)', () => {
     )
 
     // Every Actor Relationship above but the Cloaker's Bite, which attaches without grappling.
-    expect(grapples).toHaveLength(29)
+    expect(grapples).toHaveLength(30)
     expect(undragged).toEqual([])
   })
 

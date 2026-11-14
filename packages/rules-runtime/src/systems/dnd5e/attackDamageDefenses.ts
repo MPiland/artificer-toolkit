@@ -170,8 +170,13 @@ export const dnd5eAttackProfileCapabilityAdapter = {
   characterAttackTraits: dnd5eCharacterAttackTraits,
   characterAttackCriticalRules: (policy, domain, attack) =>
     dnd5eAttackCriticalRules(policy, domain, dnd5eCharacterAttackTarget(attack)),
-  characterAttackRollContributors: (policy, domain, attack) =>
-    dnd5eAttackRollContributors(policy, domain, dnd5eCharacterAttackTarget(attack)),
+  characterAttackRollContributors: (policy, domain, attack, heldConditionTypeIds) =>
+    dnd5eAttackRollContributors(
+      policy,
+      domain,
+      dnd5eCharacterAttackTarget(attack),
+      heldConditionTypeIds
+    ),
   attackDamageDefenses: dnd5eAttackDamageDefenses,
   creatureWeaponBonuses: resolveDnd5eCreatureWeaponBonuses,
   // Both come from the same proficiency bonus and ability modifier: the DC adds 8, the attack does not.

@@ -772,3 +772,14 @@ Four closed kinds deleted (D156), authored from generic options (D187a). Proof: 
 - Vrock Stunning Screech: the failed save stuns until the end of the vrock's next turn (ROUND 1, SOURCE END_OF_TURN anchor); the demon and hearing exemptions are a GM ruling.
 - Dryad Tree Stride: the placeholder TELEPORT stays; the trees and their size are a GM ruling.
 - Filters, ordinal variants, wake, stacking damage and absolute tree size are in future-enhancements under "Lingering creature riders". Proofs: `creatureLingeringRiderAuthoringParity.test.ts`, the attack sweep and the Couatl room test in `nativeRoomHitRiders.test.ts`.
+
+## T8a: Grappler as a held-creature attack advantage (ci/spells-33-t8a)
+
+- Status: implemented; CI is the gate. Q30 (a): "advantage on attacks against a creature you hold with condition X" is one roll-influence option, gainstHeldConditionTypeId on an ATTACK_ROLL domain (schema, node map, shared modifierHeldTargetApplies). Encounter attack preparation (ncounterHeldConditionTypeIds) reads the conditions the attacker's own actor relationships impose on the target and passes them to the Creature and Character contributor paths. The Sheet policy never receives them, so a flagged grant stays out of Sheet roll modes.
+- Mimic Grappler and the Grappler feat advantage author the same heldCreatureAttackAdvantageGrants (one grant per attack domain, held condition Grappled). Nothing names Grappler in code.
+- Q30 (b): Pin is a GM_CHOICE ruling; follow-up in future-enhancements under "Held-creature riders".
+- Q30 (c): the Pseudopod hit grapples a Huge or smaller target at escape DC 13 through weaponAttack({ grapple }), replacing T4s3's ruling. The object-form gate, adhesion on contact and the escape-check disadvantage stay description (no escape-check roll influence exists; future-enhancements).
+- Closed-rule kinds deleted: CREATURE_MIMIC_GRAPPLER, GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET, GRAPPLER_PIN.
+- Limit: no Character grapple relationship is authored yet, so the feat's advantage fires only against holds the Character applies through other authored relationships.
+- Proofs: srdHeldCreatureAttackAdvantage.test.ts (Creature and Character paths, SRD and homebrew), creatureHeldAttackAdvantageAuthoringParity.test.ts,
+  ativeHeldCreatureAttackAdvantage.test.ts (room), eatPublication.test.ts, SRD effect compile golden. D196: stored shape changed (Mimic, Grappler feat); refresh local.

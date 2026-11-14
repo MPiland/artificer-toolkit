@@ -191,6 +191,25 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         })
       )
       .set(
+        'againstHeldConditionTypeId',
+        selectSingle(
+          ['againstHeldConditionTypeId'],
+          'Only Attacks Against A Creature Held With Condition',
+          {
+            kind: 'DATA',
+            relationship: table('condition_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            showIf: and([
+              parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+              parent.field(['modifierKind']).eq('ROLL_INFLUENCE')
+            ])
+          }
+        )
+      )
+      .set(
         'proficientOnly',
         toggle(['proficientOnly'], 'Only Checks Adding Proficiency', {
           showIf: and([
