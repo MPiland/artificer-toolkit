@@ -16,6 +16,7 @@ import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateServi
 import { findEncounterFeatureResource } from './encounterActorRuleOutput.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import { legendaryActionEligibilityCapabilityRegistry } from './platformEncounterPolicy.js'
 
 export interface EncounterLegendaryResistanceCandidate {
   targetActorId: string
@@ -85,11 +86,15 @@ export async function discoverEncounterLegendaryResistanceCandidate(input: {
 }): Promise<EncounterLegendaryResistanceCandidate | null> {
   const features = requireCreatureTarget(input.targetActor, input.encounter)
   if (!features) return null
+  // A System without Legendary policy has no lifecycle definitions to match.
+  const lifecycleFamilyKey = legendaryActionEligibilityCapabilityRegistry.find(
+    input.encounter.gameSystemId
+  )?.lifecycleDefinitionFamilyKey
   const candidates: EncounterLegendaryResistanceCandidate[] = []
   for (const feature of features) {
     for (const definitionId of feature.ruleDefinitionIds ?? []) {
       const lifecycleCurrent = await input.definitions.requireCurrent(definitionId)
-      if (lifecycleCurrent.definitionFamilyKey !== 'dnd5e-encounter-lifecycle') continue
+      if (lifecycleCurrent.definitionFamilyKey !== lifecycleFamilyKey) continue
       requireCurrentIntegrity(lifecycleCurrent)
       if (
         lifecycleCurrent.id !== definitionId ||

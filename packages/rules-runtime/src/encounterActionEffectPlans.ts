@@ -14,7 +14,10 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { castModifierDuration } from './character/characterCastModifiers.js'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
-import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
+import {
+  attackProfileCapabilityRegistry,
+  characterRuleActionSystemAdapterRegistry
+} from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
@@ -259,7 +262,11 @@ export function relationshipConditionApplications(input: {
   resolvedPath: string
 }): Extract<CharacterRuleActionApplication, { kind: 'CONDITION_APPLY' }>[] {
   const { definition } = input
-  const authoredPath = definition.adapterFacts['dnd5e.relationship-authored-path']
+  const { authoredPathFactKey, stateOperationKey } =
+    characterRuleActionSystemAdapterRegistry.require(
+      definition.frozenGraph.source.gameSystemId
+    ).actorRelationship
+  const authoredPath = definition.adapterFacts[authoredPathFactKey]
   if (
     authoredPath !== 'ON_HIT' &&
     authoredPath !== 'ON_CRIT' &&
@@ -282,7 +289,7 @@ export function relationshipConditionApplications(input: {
             targetActorId: input.target.actorId,
             conditionId: contribution.conditionId,
             sourceNodeId: definition.frozenGraphNodeId,
-            sourceOperationKey: 'dnd5e.actor-relationship-state',
+            sourceOperationKey: stateOperationKey,
             authoredPath,
             resolvedPath: input.resolvedPath
           }

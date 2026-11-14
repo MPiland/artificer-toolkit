@@ -8,9 +8,11 @@ import {
   FENCE_ALLOWLIST,
   SIZE_BUDGET,
   SIZE_LIMIT,
+  SYSTEM_LITERAL_ALLOWLIST,
   codeLines,
   handSettledD20,
   ratchetProblems,
+  systemLiterals,
   systemsImports
 } from './sourceRatchets.mjs'
 
@@ -53,6 +55,8 @@ const d20Allowlist = (handSettled) => ({
   settlement: { [SETTLEMENT]: 'The one d20 test settlement.' },
   handSettled
 })
+const KERNEL = 'packages/shared/src/domains/rules/probeContributors.ts'
+const KERNEL_SOURCE = "export const RULE_IDS = ['long-range']\n"
 const allowlist = (importers, compositionRoots = { [ROOT]: 'Installs the probe adapters.' }) => ({
   compositionRoots,
   importers
@@ -122,6 +126,8 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     write(SETTLEMENT, "export const natural = rollModeKeptFace('FIRST', [7])\n")
     write(HAND_SETTLED, 'export const natural = rollModeKeptFace(keep, faces)\n')
     writeJson(D20_ALLOWLIST, d20Allowlist([HAND_SETTLED]))
+    write(KERNEL, KERNEL_SOURCE)
+    writeJson(SYSTEM_LITERAL_ALLOWLIST, { [KERNEL]: 'Moves in a later slice.' })
     commitAll(root, 'phase')
     git(root, 'switch', '--quiet', '-c', 'slice')
   })
@@ -342,6 +348,70 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     writeJson(D20_ALLOWLIST, d20Allowlist([]))
     commitAll(root, 'remove the entry')
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+
+  it('fails a dnd5e string or System rule code in a neutral rules module (QUALITY-16.1)', () => {
+    write(NEUTRAL, "export const family = 'dnd5e-encounter-lifecycle'\n")
+    write(CONSUMER, "export const end = { event: 'ON_IDLE_TURN', domain: `SPELLCASTING_LOCK` }\n")
+    commitAll(root, 'System content in neutral modules')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${CONSUMER}: names System content "ON_IDLE_TURN", "SPELLCASTING_LOCK" outside systems/; read it from System data through a capability registry.`,
+      `${NEUTRAL}: names System content "dnd5e-encounter-lifecycle" outside systems/; read it from System data through a capability registry.`
+    ])
+  })
+
+  it('does not fence System content in systems/, tests or outside the rules hosts', () => {
+    write('packages/rules-runtime/src/systems/dnd5e/family.ts', "export const f = 'dnd5e-x'\n")
+    write('packages/rules-runtime/src/__tests__/probe.test.ts', "const f = 'dnd5e-x'\n")
+    write('apps/web/src/probe.ts', "export const f = 'dnd5e-x'\n")
+    commitAll(root, 'unfenced System content')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+
+  it('asks to remove a content allowlist entry once the module names no System content', () => {
+    write(KERNEL, module(1))
+    commitAll(root, 'read the rule ids from System data')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${SYSTEM_LITERAL_ALLOWLIST}: ${KERNEL} names no System content; remove it.`
+    ])
+  })
+
+  it('fails a content allowlist entry without a reason', () => {
+    writeJson(SYSTEM_LITERAL_ALLOWLIST, { [KERNEL]: ' ' })
+    commitAll(root, 'drop the reason')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${SYSTEM_LITERAL_ALLOWLIST}: ${KERNEL} needs a reason.`
+    ])
+  })
+
+  it('fails a content allowlist entry added since the merge base', () => {
+    write(NEUTRAL, "export const code = 'ON_IDLE_TURN'\n")
+    writeJson(SYSTEM_LITERAL_ALLOWLIST, { [KERNEL]: 'Moves in a later slice.', [NEUTRAL]: 'New.' })
+    commitAll(root, 'allowlist new System content')
+    expect(ratchetProblems(root)).toEqual([])
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${SYSTEM_LITERAL_ALLOWLIST}: ${NEUTRAL} is new; the allowlist only shrinks.`
+    ])
+  })
+})
+
+describe('systemLiterals (QUALITY-16.1)', () => {
+  it('finds dnd5e strings and System rule codes, but not import specifiers or neutral codes', () => {
+    const source = [
+      "import { a } from './systems/dnd5e/a'",
+      "export * from './systems/dnd5e/b'",
+      "const c = await import('./systems/dnd5e/c')",
+      "const d = { 'DnD5e.fact': 1, path: 'ON_SAVE_SUCCESS', kind: 'DAMAGED' }",
+      "const e = ['unseen-target', 'close-range', 'unseen-target']",
+      'const f = `rule:${id}:unseen-attacker`',
+      'const g = `unseen-attacker`'
+    ].join('\n')
+    expect(systemLiterals('packages/rules-runtime/src/probe.ts', source)).toEqual([
+      'DnD5e.fact',
+      'close-range',
+      'unseen-attacker',
+      'unseen-target'
+    ])
   })
 })
 

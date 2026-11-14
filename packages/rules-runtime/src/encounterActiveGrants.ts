@@ -444,21 +444,14 @@ export function hasEncounterDefensiveGrants(
 
 /**
  * Whether an active grant switches on a flag domain (`ENABLE`): Disengage's
- * `OPPORTUNITY_ATTACK_IMMUNITY` makes the holder's movement provoke no opportunity attacks, and
- * `SPELLCASTING_LOCK` bars the holder from casting spells and holding Concentration, and
+ * `OPPORTUNITY_ATTACK_IMMUNITY` makes the holder's movement provoke no opportunity attacks, a
+ * System's maintenance `barringDomain` bars the holder from holding its maintained effects, and
  * `ACTION_BONUS_ACTION_EXCLUSIVITY` lets it take an Action or a Bonus Action on a turn, not both, and
  * `HEALING_RECEIVED` makes every die of healing the holder receives take its maximum.
  */
 export function encounterGrantsEnabledDomain(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  domain: Extract<
-    ValueDomainCode,
-    | 'OPPORTUNITY_ATTACK_IMMUNITY'
-    | 'FREE_OPPORTUNITY_REACTION'
-    | 'SPELLCASTING_LOCK'
-    | 'ACTION_BONUS_ACTION_EXCLUSIVITY'
-    | 'HEALING_RECEIVED'
-  >
+  domain: ValueDomainCode
 ): boolean {
   return listActiveEffectGrants(effects).some(({ modifiers }) =>
     modifiers.some(

@@ -1,0 +1,3 @@
+{
+  "packages/shared/src/domains/rules/contributors.ts": "Kernel rule contributor ids (long-range, close-range, unseen-attacker, unseen-target) are emitted by Encounter range and perception policy across 7 production files and persist as rule:<id> sourceIds; moving them behind the rollMode capability is the QUALITY-16.T2 split."
+}

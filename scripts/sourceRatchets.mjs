@@ -1,4 +1,4 @@
-// RULES-2.T1 (ADR 0039 decision 6) and QUALITY-10.T1: three shrink-only ratchets.
+// RULES-2.T1 (ADR 0039 decision 6), QUALITY-10.T1 and QUALITY-16.T1: four shrink-only ratchets.
 //
 // File size: a non-test source module over SIZE_LIMIT code lines (non-blank lines outside comments) fails
 // unless `scripts/fileSizeBudget.json` lists it. Each entry's cap is the file's size when it was listed;
@@ -15,6 +15,13 @@
 // node, roll a d20, resolve its answer, keep its face or resume its graph. `handSettled` lists the modules
 // that still do one of these by hand.
 //
+// System content (QUALITY-16.1): in the neutral rules runtime (outside `systems/`), the Kernel
+// (`packages/shared/src/domains/rules`), Encounter persistence and the Session Worker, no string names a
+// System: nothing spelled `dnd5e`, and none of `SYSTEM_RULE_LITERALS`, the System rule codes a neutral
+// module would otherwise branch on. Neutral code reads them from System data through a capability registry
+// (ADR 0039 decision 5 and its 2026-10-22 amendment). Import specifiers belong to the import fence and are
+// not counted. `scripts/systemLiteralAllowlist.json` names each module that still does, with its reason.
+//
 // With `--base <ref>` the lists are also compared with the ones at the merge base: a cap may not rise and
 // no list may gain an entry, so a slice cannot buy itself room.
 //
@@ -30,6 +37,7 @@ export const SIZE_LIMIT = 1500
 export const SIZE_BUDGET = 'scripts/fileSizeBudget.json'
 export const FENCE_ALLOWLIST = 'scripts/systemsImportAllowlist.json'
 export const D20_ALLOWLIST = 'scripts/d20SettlementAllowlist.json'
+export const SYSTEM_LITERAL_ALLOWLIST = 'scripts/systemLiteralAllowlist.json'
 const PLATFORM_ROOT = /^packages\/rules-runtime\/src\/platform[^/]*\.ts$/
 
 const RULES_RUNTIME = 'packages/rules-runtime/src/'
@@ -155,6 +163,59 @@ export const handSettledD20 = (file, source) => {
   return [...found].sort()
 }
 
+const CONTENT_FENCED = [
+  RULES_RUNTIME,
+  'packages/shared/src/domains/rules/',
+  'packages/encounter-persistence/src/',
+  'apps/session-worker/src/'
+]
+// System rule codes a neutral module must read from System data rather than spell. Neutral core codes
+// (outcome paths such as `ON_SAVE_SUCCESS`, event kinds, roll modes) live in schema or shared core and
+// are not listed.
+export const SYSTEM_RULE_LITERALS = [
+  'ON_IDLE_TURN',
+  'SPELLCASTING_LOCK',
+  'long-range',
+  'close-range',
+  'unseen-attacker',
+  'unseen-target'
+]
+
+const contentFencedModule = (file) =>
+  CONTENT_FENCED.some((prefix) => file.startsWith(prefix)) && !file.startsWith(`${SYSTEMS}/`)
+
+/** The distinct strings and template text of a module that name System content, outside its import specifiers. */
+export const systemLiterals = (file, source) => {
+  const found = new Set()
+  const specifiers = new Set()
+  const visit = (node) => {
+    if (Array.isArray(node)) return node.forEach(visit)
+    if (!node || typeof node.type !== 'string' || specifiers.has(node)) return
+    if (
+      [
+        'ImportDeclaration',
+        'ExportNamedDeclaration',
+        'ExportAllDeclaration',
+        'ImportExpression'
+      ].includes(node.type) &&
+      node.source
+    )
+      specifiers.add(node.source)
+    const text =
+      node.type === 'Literal' && typeof node.value === 'string'
+        ? node.value
+        : node.type === 'TemplateElement'
+          ? node.value.cooked
+          : null
+    if (text !== null && (/dnd5e/i.test(text) || SYSTEM_RULE_LITERALS.includes(text)))
+      found.add(text)
+    for (const [key, value] of Object.entries(node))
+      if (key !== 'parent' && value && typeof value === 'object') visit(value)
+  }
+  visit(parseSync(file, source).program)
+  return [...found].sort()
+}
+
 const readJson = (root, file) => JSON.parse(readFileSync(path.join(root, file), 'utf8'))
 
 // The list as committed at <base>, or undefined when <base> predates it (or its shape, for the allowlist).
@@ -249,7 +310,30 @@ export const ratchetProblems = (root, { base } = {}) => {
     if (!d20ByHand.has(file))
       problems.push(`${D20_ALLOWLIST}: ${file} no longer settles a d20 by hand; remove it.`)
 
+  const contentAllowlist = readJson(root, SYSTEM_LITERAL_ALLOWLIST)
+  const contentByModule = new Map(
+    files
+      .filter(contentFencedModule)
+      .map((file) => [file, systemLiterals(file, source(file))])
+      .filter(([, found]) => found.length > 0)
+  )
+  for (const [file, found] of contentByModule)
+    if (!Object.hasOwn(contentAllowlist, file))
+      problems.push(
+        `${file}: names System content ${found.map((text) => JSON.stringify(text)).join(', ')} outside systems/; read it from System data through a capability registry.`
+      )
+  for (const [file, reason] of Object.entries(contentAllowlist))
+    if (!contentByModule.has(file))
+      problems.push(`${SYSTEM_LITERAL_ALLOWLIST}: ${file} names no System content; remove it.`)
+    else if (reason.trim() === '')
+      problems.push(`${SYSTEM_LITERAL_ALLOWLIST}: ${file} needs a reason.`)
+
   if (base) {
+    const baseContent = baseJson(root, base, SYSTEM_LITERAL_ALLOWLIST)
+    if (baseContent)
+      for (const file of Object.keys(contentAllowlist))
+        if (!Object.hasOwn(baseContent, file))
+          problems.push(`${SYSTEM_LITERAL_ALLOWLIST}: ${file} is new; the allowlist only shrinks.`)
     const baseD20 = baseJson(root, base, D20_ALLOWLIST)
     if (baseD20) {
       const baseEntries = [...Object.keys(baseD20.settlement), ...baseD20.handSettled]

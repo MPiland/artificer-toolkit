@@ -378,6 +378,7 @@ export const dnd5eMaintenanceLinkCapabilityAdapter: MaintenanceLinkCapabilityAda
     { hook: 'BREAK', reason: 'SPELLCASTING_LOCKED', subscription: { event: 'MAINTENANCE_BARRED' } },
     { hook: 'SAVE', subscription: { event: 'DAMAGED', by: 'ANYONE', damageTypeIds: null } }
   ],
+  barringDomain: 'SPELLCASTING_LOCK',
   saveAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
   saveDc: dnd5eConcentrationDamageDc,
   saveFacts(input) {

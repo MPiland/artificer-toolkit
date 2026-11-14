@@ -20,6 +20,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 import { preparedSpellCastLevel } from './encounterPreparedSpellCast.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'
+import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
 import {
   temporaryHitPointsAfterEffectsEnd,
   withActorTemporaryHitPoints,
@@ -77,7 +78,7 @@ function characterConcentrationCapacity(
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
   prepared: Pick<PreparedMechanics, 'state' | 'actor' | 'plan' | 'source' | 'adapter'> &
     Partial<Pick<PreparedMechanics, 'characterActionState'>>
-  /** The acting actor's active effects; a `SPELLCASTING_LOCK` grant among them bars a new Concentration. */
+  /** The acting actor's active effects; a grant of its System's maintenance `barringDomain` bars a new one. */
   activeEffects: readonly ActiveRuleEffectRecord[]
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
   /** The held state the caster chose to end at capacity; required when several are held. */
@@ -138,7 +139,8 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     throw new Error('Encounter action selected multiple maintenance policies.')
   const policy = policies[0]
   if (!policy) return null
-  if (encounterGrantsEnabledDomain(input.activeEffects, 'SPELLCASTING_LOCK'))
+  const { barringDomain } = maintenanceLinkCapabilityRegistry.require(prepared.state.gameSystemId)
+  if (barringDomain !== null && encounterGrantsEnabledDomain(input.activeEffects, barringDomain))
     throw new SpellcastingLockedError()
   const definition = await input.readDefinition(policy.definitionId)
   if (

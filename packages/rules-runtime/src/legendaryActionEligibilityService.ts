@@ -48,6 +48,8 @@ export interface EvaluatedLegendaryActionCandidate<
 
 export interface LegendaryActionEligibilityAdapter {
   gameSystemId: string
+  /** The reusable-definition family of the System's Legendary Action and Resistance lifecycles. */
+  lifecycleDefinitionFamilyKey: string
   requiredCapabilityDefinitionIds: readonly string[]
   evaluate(input: {
     runtime: RulesRuntimeService

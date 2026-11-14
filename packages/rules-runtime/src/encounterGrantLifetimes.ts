@@ -18,6 +18,7 @@ import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { endSubscriptions } from './events/effectHooks.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { EncounterEvent } from './events/encounterEventTable.js'
+import { eventVocabularyCapabilityRegistry } from './platformPolicyModules.js'
 import {
   effectAnchorActorId,
   isEffectLiveInEncounter,
@@ -249,9 +250,9 @@ export function endEventExemptAuthoredEffectIds(input: {
 /**
  * What the end of the turn actor's turn does to its idle-bound grants (SRD Rage). An armed actor,
  * one that neither attacked a hostile creature nor took damage since its last turn ended, loses the
- * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. A grant its
- * `featureModifiers` exempt from `ON_IDLE_TURN` (Persistent Rage) is kept and keeps the actor
- * armed. `effects` need only be read for an armed actor. A grant created on the actor's own turn
+ * grants that end on an idle turn; an engaged one keeps them and is armed again. A grant its
+ * `featureModifiers` exempt from its System's idle-turn end codes (Persistent Rage) is kept and keeps
+ * the actor armed. `effects` need only be read for an armed actor. A grant created on the actor's own turn
  * arrives engaged, so its first check is at the end of the actor's next turn.
  */
 export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: {
@@ -267,18 +268,25 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
     effects: input.effects,
     events: [{ kind: 'IDLE_TURN' }]
   }).ended
-  const exempt = endEventExemptAuthoredEffectIds({
-    featureModifiers: input.featureModifiers,
-    event: 'ON_IDLE_TURN',
-    activeAuthoredEffectIds: input.effects.map(({ definition }) => definition.authoredEffectId)
-  })
+  const activeAuthoredEffectIds = input.effects.map(({ definition }) => definition.authoredEffectId)
+  // Each effect's idle-turn end codes come from its own System's event vocabulary.
+  const exempt = ({ definition }: Effect) =>
+    eventVocabularyCapabilityRegistry
+      .require(definition.frozenGraph.source.gameSystemId)
+      .lifecycleEndCodes('IDLE_TURN')
+      .some((event) =>
+        endEventExemptAuthoredEffectIds({
+          featureModifiers: input.featureModifiers,
+          event,
+          activeAuthoredEffectIds
+        }).includes(definition.authoredEffectId)
+      )
   // An effect linked to a kept one (Frenzy to a persistent Rage) is kept with it (D172).
   const kept = new Set(
     withLinkedDependents(
       idleBound.filter(
         (effect) =>
-          !isEffectLiveInEncounter(effect, input.actor, input.encounterId) ||
-          exempt.includes(effect.definition.authoredEffectId)
+          !isEffectLiveInEncounter(effect, input.actor, input.encounterId) || exempt(effect)
       ),
       input.effects
     ).map(({ id }) => id)
