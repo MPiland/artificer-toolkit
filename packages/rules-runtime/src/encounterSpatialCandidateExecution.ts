@@ -37,6 +37,8 @@ import {
 export type SpatialTargetState = {
   current: number
   temporary: number
+  /** The active effect whose temporary hit points these are; absent when none (D156). */
+  temporarySourceEffectId?: string
   conditions: string[]
   deathSaves: CharacterDeathSaves | null
   /** The target's damage interceptions its earlier contacts in this pass left unspent. */
@@ -245,6 +247,7 @@ export function spatialExecutionOutcome(input: {
     targetActorId: input.target.actor.id,
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
+    temporaryHitPointsSourceEffectId: input.state.temporarySourceEffectId ?? null,
     maximumHitPoints: input.target.maximumHitPoints,
     deathSaves: input.state.deathSaves,
     conditionIds: input.state.conditions,
@@ -254,6 +257,7 @@ export function spatialExecutionOutcome(input: {
       applications: input.result.applications,
       currentHitPoints: input.state.current,
       temporaryHitPoints: input.state.temporary,
+      temporaryHitPointsSourceEffectId: input.state.temporarySourceEffectId ?? null,
       interceptions: input.state.damageInterceptions
     }),
     damageInterceptions: input.state.damageInterceptions
@@ -261,6 +265,9 @@ export function spatialExecutionOutcome(input: {
   const state: SpatialTargetState = {
     current: folded.after.currentHitPoints,
     temporary: folded.after.temporaryHitPoints,
+    ...(folded.after.temporaryHitPointsSourceEffectId && {
+      temporarySourceEffectId: folded.after.temporaryHitPointsSourceEffectId
+    }),
     conditions: [...folded.after.conditionIds],
     deathSaves: folded.after.deathSaves,
     damageInterceptions: folded.afterDamageInterceptions

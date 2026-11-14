@@ -147,6 +147,7 @@ export async function prepareRoomForcedMovementContacts(input: {
     state,
     actors,
     finalActors,
+    step,
     planned
   })
   return {
