@@ -967,8 +967,9 @@ export async function openReachCastWindow(
         prepared: lead,
         ruleOverrides,
         currentnessChecksum,
-        // Area effects are not gated by an incoming-attack ward.
-        passedIncomingGate: undefined
+        // Area effects are not gated by an incoming-attack ward, so no failed ward turned them.
+        passedIncomingGate: undefined,
+        retargeted: []
       }
     }
   return {
