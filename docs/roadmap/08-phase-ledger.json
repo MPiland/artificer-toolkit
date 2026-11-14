@@ -26720,12 +26720,68 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
+                "size": 5,
                 "after": ["QUALITY-14.T2e"]
               },
-              "text": "DAMAGED(AFTER) is raised once per command and holder across the ends stage and the save-chain stage: one pre-command holder discovery threaded through planDamageSaveChain, its resume (nativeConcentrationResponse) and persistence re-derivation (bindEncounterDamageSaveChain, movement and turn persistence), with the command-placed-effect filter widened to area entry occurrences and incoming-damage grants, movement per-contact chains reconciled with terminal ends, and a room count proof across damage roots.",
-              "note": "Registered 2026-11-14 from the T2e split under the user standing approval for QUALITY growth (2026-11-13).",
+              "text": "One damage hit model (D220): a damage-save application carries every damage type it dealt (D196, development data migrated), so the ends stage and the save chain read the same hit; a fire-and-slashing hit owes a fire-triggered repeat save.",
+              "note": "Registered 2026-11-14 from the T2e split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 before any edit (whole task about 26 to 31; seam trace in D220) into T2e2a (this task), T2e2b, T2e2c, T2e2d and T2e2e.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-14.T2e2b",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2e2"]
+              },
+              "text": "One pre-command damaged-holder discovery per command in the ends stage (action, area, Legendary Action, melee retaliation) consumed by the room save chain; the placed-by-this-command filter widens to the effects and grants the command created; persistence rebuilds the pre-command snapshot with an agreement test.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2c",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2b"]
+              },
+              "text": "A resumed save chain reads the sealed pre-command discovery on its damage-save context (D220, D196) instead of re-deriving from a snapshot earlier saves changed; forged and replayed steps refused.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2d",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2e2b"]
+              },
+              "text": "A move takes damage per contact (D220): each contact raises one DAMAGED(AFTER) per holder settling ends and the Concentration chain together, replacing the terminal ends settle; a Concentration lost mid-move stops that zone later damage.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2e",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2c", "QUALITY-14.T2e2d"]
+              },
+              "text": "Room count proofs on SRD fixtures that DAMAGED(AFTER) is raised once per command and holder (single target, list or area multi-hit, multi-zone move, a damaged Concentration holder, a resumed chain); the transitional note leaves rules-runtime.md.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
             }
           ]
         },
