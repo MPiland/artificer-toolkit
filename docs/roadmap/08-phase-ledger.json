@@ -25836,10 +25836,16 @@
           "acs": [
             {
               "id": "QUALITY-9.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R5+R6.",
-              "text": "Counterspell and roll-window reactions are offered and run through the shared offer and child action; their dedicated pause kinds are deleted; the Counterspell and roll-window tests pass. Movement reactions moved to QUALITY-18 (2026-11-12)."
+              "text": "Counterspell and roll-window reactions are offered and run through the shared offer and child action; their dedicated pause kinds are deleted; the Counterspell and roll-window tests pass. Movement reactions moved to QUALITY-18 (2026-11-12).",
+              "proof": [
+                "nativeRoomCounterspell.test.ts",
+                "nativeRoomCounterspellMultiTarget.test.ts",
+                "encounterRollReactionWindow.test.ts",
+                "reactionChildren.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -26053,18 +26059,19 @@
             },
             {
               "id": "QUALITY-9.T1e3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-9.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 3,
+                "size": 8,
                 "after": ["QUALITY-9.T1e2", "QUALITY-18.T6"]
               },
-              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll). Carried from T1e2 (2026-11-13): fix the golden harness so the Cutting Words facts column binds a resolved die instead of pinning a refusal; path-gated subtract rolls no die and the compiler still refuses it; a sight-governed d20 offers no rolled-offer die; beside-roll versus after-roll die split on the child path; legendary-action retained replay with child dice; ray hosts pass child dice but no ray source supplies rollReaction (no ray die test); delete planNativeWindowReactions and the movement-only targetSaveWindow dice parameter with the window fields once the movement host and opportunity attacks no longer need them.",
+              "note": "User approved 2026-11-12 (D187 growth, 5 to 13): split from QUALITY-9.T1e at the seam trace. The die is offered after the d20 is rolled, children are recorded only from CAST_REACTION today, a reactor-is-target child needs the rebind QUALITY-8.T1d builds, and the movement host keeps the window die until QUALITY-9.T2; the old fields are deleted last so opportunity attacks never lose the die. User ruling 2026-11-12: the reactor keeps manual die entry (the child pauses for its die like any roll). Carried from T1e2 (2026-11-13): fix the golden harness so the Cutting Words facts column binds a resolved die instead of pinning a refusal; path-gated subtract rolls no die and the compiler still refuses it; a sight-governed d20 offers no rolled-offer die; beside-roll versus after-roll die split on the child path; legendary-action retained replay with child dice; ray hosts pass child dice but no ray source supplies rollReaction (no ray die test); delete planNativeWindowReactions and the movement-only targetSaveWindow dice parameter with the window fields once the movement host and opportunity attacks no longer need them. Resized 3 to 8 at delivery (about 45 files: schema, rules-runtime, persistence, worker, drawer).",
               "text": "Delete the window reaction die: spentReaction, windowReactions, EncounterWindowReactionReceiptDto, the reaction-die option, planNativeWindowReactions and the movement step field; ROLL_WINDOW stays for held dice and damage rerolls; docs.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m756 (ad1b43bfd); slice tip d967a29ff (live-backend auto-fix of _generated on a479604d9): Tests 43587498851, Live 43587500817, Browser journeys 43588563987 green. Deleted the window reaction die end to end (spentReaction, windowReactions, EncounterWindowReactionReceiptDto, reaction-die option, encounterWindowReactionDie.ts, planNativeWindowReactions, usedReactionSpend, targetReactorSpend, answeredReactorActorIds, ROLL_WINDOW attackerActorId/answerBy, drawer reactor wording); no live producer supplied reactionDice. Removed with the deleted behaviour: reactor-chain tests in encounterRollReactionWindow (rewritten to targetSaveWindow heldDice), the reaction-die guard test, usedReactionReceipt.test, drawer reactor tests; reactionChildren keeps its spentEffectId assertion. D196 persisted-shape change: ROLL_WINDOW pending payload, rolled added dice, stored RESOLVE_ACTION and the application outputs batch lose the reactor fields; refresh local when used."
             }
           ]
         },
@@ -26470,7 +26477,7 @@
             },
             {
               "id": "QUALITY-13.T1c5c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
                 "bv": 3,
@@ -26480,7 +26487,8 @@
                 "after": ["QUALITY-13.T1c5b"]
               },
               "text": "An incoming-gate ward save is shown as a roll card for single attacks and for each ray (recordCounterCheckRollCards cards only TRIGGER gates today), one card path for both.",
-              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-13.T1c5d",
@@ -26634,7 +26642,7 @@
             },
             {
               "id": "QUALITY-14.T2c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26644,12 +26652,13 @@
                 "after": ["QUALITY-14.T2b"]
               },
               "text": "Movement damage owes effect repeat saves like action damage: a movement repeat-save child kind (port of settleEffectRepeatSave, nativeEncounterConcentration.ts), interrupts for holders without Concentration, contact children and a pending phase through planDamageSaveChain (D196 shape change).",
-              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13). Review 2026-11-14: sent back for a stale DAMAGE_END read; the stale read was one layer down (nativeMovementSettlementInputs computed releases from pre-move captured facts) and was fixed at the root: settlement inputs take targets only from the save chain's planned targets.",
+              "mergedAt": "2026-11-14",
+              "proof": "m755 (8336208b2); slice tip 248458c23: Tests 43586432508, Live 43586432507, Browser journeys 43586432515 green. Movement repeat-save child kind through planDamageSaveChain; prepareEncounterMovementContinuation and the action/passage responses return post-chain targets and nativeMovementSettlementInputs reads only planned.targets. Proofs: nativeMovementZoneDamageRepeatSave (10 cases; two holds of one condition, one released by a made save and one ended by damage, RED before the root fix with \"Movement release differs from its plan\"), movementDamageEndPersistence (persistence refuses a DAMAGE_END after release and when the holder took no damage). No assertions restated. D196 persisted-shape change: movement repeat-save child kind and pending phase; refresh local when used."
             },
             {
               "id": "QUALITY-14.T2d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26659,7 +26668,8 @@
                 "after": ["QUALITY-14.T2c"]
               },
               "text": "Movement damage owes massive-damage saves like action damage (movement child kind, port of settleMassiveDamageSave), and movement damage ends release temporary hit points and incoming-damage grants as the action ends stage does.",
-              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e",
