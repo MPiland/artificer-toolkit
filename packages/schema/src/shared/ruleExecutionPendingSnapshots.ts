@@ -824,13 +824,14 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           // A creature's own save is rolled by the creature, once. An attack ray is rolled by the
           // caster, and a creature several rays are aimed at has an entry for each; the rays answered
           // before the GM took the creature out stay.
-          // A ray held on a reaction offer of its rolled d20 or its hit (D219) is still the caster's
-          // roll; the creature that may react answers the offer.
+          // A ray held on a reaction offer of its aim (D217), its rolled d20 or its hit (D219) is
+          // still the caster's roll; the creature that may react answers the offer.
           const casterRolls =
             inner.kind === 'ENCOUNTER_ACTION' &&
             (inner.rollerActorId === value.casterActorId ||
               (inner.pause?.kind === 'CAST_REACTION' &&
-                (inner.pause.payload.kind === 'ATTACK_ROLL_BY_OTHER' ||
+                (inner.pause.payload.kind === 'ATTACK_ON_OTHER' ||
+                  inner.pause.payload.kind === 'ATTACK_ROLL_BY_OTHER' ||
                   inner.pause.payload.kind === 'HIT_BY_ATTACK')))
           // A creature a mover struck makes its own save besides any the area caught it for, and may
           // be one the area never kept.

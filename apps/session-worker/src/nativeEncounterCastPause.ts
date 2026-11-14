@@ -44,6 +44,50 @@ type LoadAttackPerception = NonNullable<
   Parameters<typeof prepareEncounterActionMechanics>[0]['loadAttackPerception']
 >
 
+/** The committed child action a pending action records under `commandId` (D219). */
+const committedReactionChild = (
+  committed: readonly LiveSessionReactionChild[],
+  commandId: string
+) => {
+  const child = committed.find((candidate) => candidate.commandId === commandId)
+  if (!child) throw new Error('Reaction evidence is stale.')
+  return child
+}
+
+/**
+ * How the reactions that ran as child actions change the attack they answered: one used before its
+ * d20 imposes the roll mode its child resolved on the roll (D217), and one used on the rolled d20
+ * adds the die its child rolled to the dice the roll may total (D219). The attack is re-prepared as
+ * its pauses are answered and as a list replays it, so the same reactions are applied to each
+ * preparation: an attack at one creature's, and each ray's own.
+ */
+export const applyNativeReactionChildren =
+  (committed: readonly LiveSessionReactionChild[], children: PendingReactionChildren) =>
+  <
+    Attack extends Parameters<typeof withEncounterRollInfluences>[0] &
+      Parameters<typeof withEncounterReactionDice>[0]
+  >(
+    attack: Attack
+  ) =>
+    withEncounterReactionDice(
+      withEncounterRollInfluences(
+        attack,
+        children.flatMap(({ commandId, resumeOutcome }) =>
+          resumeOutcome?.kind === 'ROLL_MODE'
+            ? [
+                {
+                  reaction: {
+                    reactorActorId: committedReactionChild(committed, commandId).reactorActorId
+                  },
+                  rollMode: resumeOutcome.rollMode
+                }
+              ]
+            : []
+        )
+      ),
+      children.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : []))
+    )
+
 /**
  * The window in which another Character may react to an action before it does anything, shared by
  * every target shape (one creature, a chosen list, a point area): counter a spell, answer being named
@@ -119,11 +163,8 @@ export function createNativeCastPause(input: {
           ...children.ancestors.flatMap(({ actorId, reaction }) => (reaction ? [actorId] : []))
         ]
       })
-  const committedChild = (commandId: string) => {
-    const child = children.committed.find((child) => child.commandId === commandId)
-    if (!child) throw new Error('Reaction evidence is stale.')
-    return child
-  }
+  const committedChild = (commandId: string) =>
+    committedReactionChild(children.committed, commandId)
   /**
    * The recorded children with what the one the action resumes from did to the roll it answered: the
    * mode its reaction authors when its committed action imposed one, the die that action rolled
@@ -162,36 +203,6 @@ export function createNativeCastPause(input: {
         }
       })
     )
-  /**
-   * How the reactions that ran as child actions change the attack they answered: one used before its
-   * d20 imposes the roll mode its child resolved on the roll (D217), and one used on the rolled d20
-   * adds the die its child rolled to the dice the roll may total (D219). The attack is re-prepared as
-   * its pauses are answered, so the same reactions are applied to each preparation.
-   */
-  const applyReactionChildren =
-    (children: PendingReactionChildren) =>
-    <
-      Attack extends Parameters<typeof withEncounterRollInfluences>[0] &
-        Parameters<typeof withEncounterReactionDice>[0]
-    >(
-      attack: Attack
-    ) =>
-      withEncounterReactionDice(
-        withEncounterRollInfluences(
-          attack,
-          children.flatMap(({ commandId, resumeOutcome }) =>
-            resumeOutcome?.kind === 'ROLL_MODE'
-              ? [
-                  {
-                    reaction: { reactorActorId: committedChild(commandId).reactorActorId },
-                    rollMode: resumeOutcome.rollMode
-                  }
-                ]
-              : []
-          )
-        ),
-        children.flatMap(({ rolledDie }) => (rolledDie ? [rolledDie] : []))
-      )
   const triggerLevel = preparedSpellCastLevel(prepared)
   const castConsumption = prepared.characterActionState?.spellConsumption
   /** The spell a Character casts, which a reaction to being targeted may be limited to. */
@@ -389,6 +400,83 @@ export function createNativeCastPause(input: {
       }
     }
   }
+  /** The action held on the answered offer while the reaction chosen from it runs as a child. */
+  const awaitChild = async (
+    reactionChildren: PendingReactionChildren,
+    advanced: Extract<Awaited<ReturnType<typeof advanceNativeCastReactions>>, { kind: 'CHILD' }>,
+    targetActorId: string
+  ) => ({
+    kind: 'CAST_PENDING' as const,
+    continuation: advanced.continuation,
+    rollerActorId: advanced.child.holderActorId,
+    pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
+    ...(await launchReactionChild(reactionChildren, advanced.child, targetActorId))
+  })
+  /**
+   * Hears the creatures of one moment in turn: the action held on the next creature's offer, or on
+   * the answered offer while the reaction chosen from it runs as a child; null once nobody is left
+   * to ask, or when the action offers no such moment.
+   */
+  const hearMoment = async (
+    reactionChildren: PendingReactionChildren,
+    moment: {
+      kind: EncounterCastReactionOfferDto['kind']
+      offered: unknown
+      discover: () => CastReactionDiscovery<NativeCastResponse>
+      answer: NativeCastReactionAnswer | null
+      declinedReactorActorIds: readonly string[]
+      /** The creature the chosen reaction's child action is its holder's action at. */
+      childTargetActorId: (holderActorId: string) => string
+    }
+  ) => {
+    if (!moment.offered) {
+      if (moment.answer) throw new Error('Reaction evidence is stale.')
+      return null
+    }
+    const advanced = await advanceNativeCastReactions({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      kind: moment.kind,
+      discover: moment.discover(),
+      answer: moment.answer,
+      declinedReactorActorIds: moment.declinedReactorActorIds
+    })
+    if (advanced.kind === 'CHILD')
+      return awaitChild(
+        reactionChildren,
+        advanced,
+        moment.childTargetActorId(advanced.child.holderActorId)
+      )
+    if (advanced.kind === 'OFFER')
+      return {
+        kind: 'CAST_PENDING' as const,
+        continuation: advanced.continuation,
+        rollerActorId: advanced.reactor.id,
+        pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
+        reactionChildren,
+        reactionChild: null
+      }
+    return null
+  }
+  /**
+   * An attack aimed at another creature, heard before its d20 (D217). The creature whose child the
+   * action resumes from has been heard, like one that declined.
+   */
+  const aimedMoment = (answer: NativeCastReactionAnswer | null) => ({
+    kind: 'ATTACK_ON_OTHER' as const,
+    offered:
+      prepared.makesAttackRoll &&
+      prepared.actor.id !== prepared.target.id &&
+      input.aimedAttackPerception &&
+      input.readScene,
+    discover: discoverAimed,
+    answer,
+    declinedReactorActorIds:
+      resumedOffer?.kind === 'ATTACK_ON_OTHER'
+        ? [...resumedOffer.declinedReactorActorIds, resumedOffer.reactorActorId]
+        : [],
+    childTargetActorId: () => prepared.actor.id
+  })
   /**
    * Before a Character's spell does anything, another Character in range may counter it. A cast that
    * already offered itself replays past this point once answered: a decline moves to the next creature,
@@ -440,17 +528,6 @@ export function createNativeCastPause(input: {
         })
       }
     const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
-    /** The action held on the answered offer while the reaction chosen from it runs as a child. */
-    const awaitChild = async (
-      advanced: Extract<Awaited<ReturnType<typeof advanceNativeCastReactions>>, { kind: 'CHILD' }>,
-      targetActorId: string
-    ) => ({
-      kind: 'CAST_PENDING' as const,
-      continuation: advanced.continuation,
-      rollerActorId: advanced.child.holderActorId,
-      pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-      ...(await launchReactionChild(reactionChildren, advanced.child, targetActorId))
-    })
     // An answer to an offer the action resumes from was made after every counter offer was heard, and
     // one to an attack aimed at another after every offer the cast made.
     const resumeAnswer = input.answer && input.answer.offer.kind !== 'COUNTER' ? input.answer : null
@@ -477,7 +554,8 @@ export function createNativeCastPause(input: {
           : [],
         discover: await discoverCast(triggerLevel)
       })
-      if (advanced.kind === 'CHILD') return awaitChild(advanced, prepared.actor.id)
+      if (advanced.kind === 'CHILD')
+        return awaitChild(reactionChildren, advanced, prepared.actor.id)
       if (advanced.kind === 'OFFER')
         return {
           kind: 'CAST_PENDING' as const,
@@ -493,7 +571,7 @@ export function createNativeCastPause(input: {
     // then an attack aimed at another creature. A moment already answered past is not offered again,
     // and the creature whose child the action resumes from has been heard, like one that declined.
     const targetedResume = resumedOffer?.kind === 'TARGETED_SELF' ? resumedOffer : null
-    for (const stage of [
+    for (const moment of [
       {
         kind: 'TARGETED_SELF' as const,
         offered:
@@ -511,51 +589,30 @@ export function createNativeCastPause(input: {
         // The reaction answers its holder being named, so its action is the holder's on itself.
         childTargetActorId: (holderActorId: string) => holderActorId
       },
-      {
-        kind: 'ATTACK_ON_OTHER' as const,
-        offered:
-          prepared.makesAttackRoll &&
-          prepared.actor.id !== prepared.target.id &&
-          input.aimedAttackPerception &&
-          input.readScene,
-        discover: discoverAimed,
-        answer: aimedAnswer,
-        declinedReactorActorIds:
-          resumedOffer?.kind === 'ATTACK_ON_OTHER'
-            ? [...resumedOffer.declinedReactorActorIds, resumedOffer.reactorActorId]
-            : [],
-        childTargetActorId: () => prepared.actor.id
-      }
+      aimedMoment(aimedAnswer)
     ]) {
-      if (!stage.offered) {
-        if (stage.answer) throw new Error('Reaction evidence is stale.')
-        continue
-      }
-      const advanced = await advanceNativeCastReactions({
-        runtime: input.runtime,
-        occurrenceId: input.occurrenceId,
-        kind: stage.kind,
-        discover: stage.discover(),
-        answer: stage.answer,
-        declinedReactorActorIds: stage.declinedReactorActorIds
-      })
-      if (advanced.kind === 'CHILD')
-        return awaitChild(advanced, stage.childTargetActorId(advanced.child.holderActorId))
-      if (advanced.kind === 'OFFER')
-        return {
-          kind: 'CAST_PENDING' as const,
-          continuation: advanced.continuation,
-          rollerActorId: advanced.reactor.id,
-          pause: { kind: 'CAST_REACTION' as const, payload: advanced.offer },
-          reactionChildren,
-          reactionChild: null
-        }
+      const held = await hearMoment(reactionChildren, moment)
+      if (held) return held
     }
     return { kind: 'NONE' as const, reactionChildren }
   }
+  /**
+   * The one moment before an attack roll's d20, for an attack whose cast was heard already: each ray
+   * of a list is aimed, and heard, in its own turn (D217). The answer in hand and the offer resumed
+   * from are that ray's.
+   */
+  const advanceAimed = async () => {
+    const reactionChildren = resumedOffer ? await resolveReactionChildren() : children.recorded
+    return (
+      (await hearMoment(reactionChildren, aimedMoment(input.answer))) ?? {
+        kind: 'NONE' as const,
+        reactionChildren
+      }
+    )
+  }
   return {
     advance,
-    applyReactionChildren,
+    advanceAimed,
     planResolvedOffers,
     launchReactionChild,
     resolveReactionChildren

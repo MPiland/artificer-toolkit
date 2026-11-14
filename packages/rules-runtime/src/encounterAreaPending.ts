@@ -204,13 +204,15 @@ type SaveList = Pick<AreaContext, 'casterActorId'> & { targets: readonly SavePro
 
 /**
  * The offer a ray's roll is held on while a creature answers it (D219), whatever came of it: its
- * rolled d20, offered to each creature that may react to it, or its hit, offered to the creature it hit.
+ * aim at its creature, offered before its d20 to each creature that may react to it (D217), its
+ * rolled d20, offered to each of those in turn, or its hit, offered to the creature it hit.
  */
 const rayReactionOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
   const context = target.snapshot.applicationContext
   return context.kind === 'ENCOUNTER_ACTION' &&
     context.pause?.kind === 'CAST_REACTION' &&
-    (context.pause.payload.kind === 'ATTACK_ROLL_BY_OTHER' ||
+    (context.pause.payload.kind === 'ATTACK_ON_OTHER' ||
+      context.pause.payload.kind === 'ATTACK_ROLL_BY_OTHER' ||
       context.pause.payload.kind === 'HIT_BY_ATTACK')
     ? context
     : null
@@ -222,7 +224,7 @@ const heldOnHitOffer = (target: Pick<SaveProgress, 'snapshot'>) => {
   return context.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'ON_HIT'
 }
 
-/** Whether a ray is held on a choice made between its roll and its outcome: the reactions to its d20 and to its hit, then its rider. */
+/** Whether a ray is held on a choice made around its roll: the reactions to its aim, to its d20 and to its hit, then its rider. */
 const heldOnHitChoice = (target: Pick<SaveProgress, 'snapshot'>) =>
   rayReactionOffer(target) !== null || heldOnHitOffer(target)
 
@@ -247,8 +249,8 @@ const awaitingTurn = (area: SaveList, target: SaveProgress) =>
 
 /**
  * What an entry of `area` waits on from its roller: its roll, the choice at its open d20 window, the
- * decision its ray is held on (a reaction to its rolled d20 or of the creature it hit, D219, then its caster's
- * on-hit rider), or nothing (settled, rolled and waiting its turn at the window, a ray behind an
+ * decision its ray is held on (a reaction to its aim, D217, to its rolled d20 or of the creature it
+ * hit, D219, then its caster's on-hit rider), or nothing (settled, rolled and waiting its turn at the window, a ray behind an
  * unanswered one, or a ray whose chosen reaction is running as a child action).
  */
 export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) => {
@@ -263,7 +265,7 @@ export const encounterAreaSaveAwaiting = (area: SaveList, target: SaveProgress) 
 }
 
 /**
- * The ray of `snapshot` that is held: on a reaction offer of its roll or its hit (D219), answered or awaiting its
+ * The ray of `snapshot` that is held: on a reaction offer of its aim (D217), its roll or its hit (D219), answered or awaiting its
  * child, or on its caster's on-hit rider offer; null if none.
  */
 export function encounterAreaHeldRay(snapshot: ServerAggregateChoicePendingSnapshotDto) {
@@ -358,9 +360,9 @@ export function openEncounterAreaSaveWindow(
 
 /**
  * Holds the ray with `requestId` on `hold`, an offer its roll raised: the ray stays unanswered while
- * each creature that may react to its d20, then the creature it hit, answers a reaction offer (D219),
- * then while its caster answers the on-hit
- * rider offer. The same ray is held again as the reaction offer records the child action of the
+ * each creature that may react to its aim answers a reaction offer before its d20 (D217), while each
+ * that may react to its d20, then the creature it hit, answers one after it (D219), then while its
+ * caster answers the on-hit rider offer. The same ray is held again as the reaction offer records the child action of the
  * reaction chosen from it, and as the resume from that child resolves it. Every other entry stays
  * exactly as sealed, except that a chosen reaction keeps, with each answered ray in `testBindings`
  * (by occurrence), the facts its roll was made against: the child action is about to change them,
@@ -407,7 +409,8 @@ export function holdEncounterAreaRay(
 /**
  * Seals every entry again once a reaction's child action changed the Run under the pending list
  * (D219): each entry keeps its place, its occurrence and its answer, and takes the sealed roll
- * prepared against the creatures as that child left them.
+ * prepared against the creatures as that child left them. A ray that leaves its aim's offers (D217)
+ * is sealed again the same way, for the roll its caster makes under the mode they imposed.
  */
 export function resealEncounterAreaTargets(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
