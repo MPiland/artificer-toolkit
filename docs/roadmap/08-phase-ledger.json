@@ -26658,7 +26658,7 @@
             },
             {
               "id": "QUALITY-14.T2d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26667,8 +26667,24 @@
                 "size": 8,
                 "after": ["QUALITY-14.T2c"]
               },
-              "text": "Movement damage owes massive-damage saves like action damage (movement child kind, port of settleMassiveDamageSave), and movement damage ends release temporary hit points and incoming-damage grants as the action ends stage does.",
-              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "text": "Movement damage owes massive-damage saves like action damage (movement MASSIVE_DAMAGE_SAVE child kind through planDamageSaveChain, reusing the action massive-save evidence).",
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at delivery (whole task about 13): the temporary hit point and incoming-damage grant releases on movement damage ends moved to QUALITY-14.T2d2. Review ruling: with the rule on every reached actor interrupts the move, but the trace and a guard journey show the interrupt is a no-op re-plan (no pause, record or occurrence) for a creature that owes no save; no change.",
+              "mergedAt": "2026-11-14",
+              "proof": "m757 (f3d4736ee); slice tip daea82904: Tests 43596476456, Live 43597963629, Browser journeys 43596476459 green. Red proof: nativeMovementZoneDamageMassiveSave RED (SRD Cat, Raven, Wolf: save made and failed; no save with the rule off, below half max HP or dropped to 0; a manual save pauses for the mover then settles; forged replayed, cross-command and MANUAL-Run steps refused), movementSettlementPersistence RED (retained save settles; omitted, differing or unretained refused). Guard journey: a move that owes no save records as with the rule off. No assertions restated. D196 persisted-shape change: optional massiveDamageSaves on the spatial movement execution, MASSIVE_DAMAGE_SAVE_EVIDENCE pending phase, MASSIVE_DAMAGE_SAVE settlement kind and a larger settlement maxLength; existing rows parse."
+            },
+            {
+              "id": "QUALITY-14.T2d2",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2d"]
+              },
+              "text": "Movement damage ends release temporary hit points and give incoming-damage grants as the action ends stage does, shared through spatialDamageEnds (movementDamageEndedEffects, nativeMovementSettlementInputs and persistLiveMovementDamageEnd carry the releases and grant triggers); room journeys for both and a forged-step refusal.",
+              "note": "Registered 2026-11-14 from the T2d split under the user standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -26680,7 +26696,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["QUALITY-14.T2c", "QUALITY-14.T2d"]
+                "after": ["QUALITY-14.T2c", "QUALITY-14.T2d", "QUALITY-14.T2d2"]
               },
               "text": "DAMAGED(AFTER) is raised once per command and holder across the ends stage (targetEndedEffects) and the save-chain stage (planDamageSaveChain) over every damage root, with persistence re-derivations threaded through one discovery and an end-to-end count proof.",
               "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13)."
@@ -26711,7 +26727,7 @@
           "tasks": [
             {
               "id": "QUALITY-15.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -26720,7 +26736,51 @@
                 "size": 8,
                 "after": ["QUALITY-6.T1", "QUALITY-18.T6"]
               },
-              "text": "Compiler composition replacing the shape ladders."
+              "text": "Compiler composition, first increment: activation and targeting compile as independent aspects (compileDnd5eActivation, compileDnd5eTargeting) composed in activatedAction; SRD golden ratchet.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": " Split 2026-11-14 at delivery (full five-aspect composition about 25 to 30): test aspect to QUALITY-15.T1b, lifetime aspect to QUALITY-15.T1c, outcome and path composition to QUALITY-15.T1d."
+            },
+            {
+              "id": "QUALITY-15.T1b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-15.T1"]
+              },
+              "text": "Test aspect: testPlan, supportedTestPhaseKind and the check/contest paths unified into one test compiler composed with activation and targeting; golden parity.",
+              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T1c",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-15.T1b"]
+              },
+              "text": "Lifetime aspect: one follow-up model choosing among the recurring, timed, repeat-save, relationship and concealment plans (compileEffectActionGraph, dnd5eActiveEffectPlans); golden parity.",
+              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T1d",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-15.T1b"]
+              },
+              "text": "Outcome and path composition: direct and test entries compose outcomes independently (the one-fixed-direct-result and unique-direct-outcome refusals become aspect rules); golden parity.",
+              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T2",
@@ -26731,9 +26791,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["QUALITY-15.T1"]
+                "after": ["QUALITY-15.T1", "QUALITY-15.T1b", "QUALITY-15.T1c", "QUALITY-15.T1d"]
               },
-              "text": "Refusal triage: implement unimplemented combinations; each remaining refusal names a game rule or invalid input."
+              "text": "Refusal triage: implement unimplemented combinations; each remaining refusal names a game rule or invalid input. Includes the reaction-over-an-area refusal (game rule or unbuilt path) from the T1 review."
             }
           ]
         },

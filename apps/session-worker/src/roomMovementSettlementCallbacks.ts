@@ -13,6 +13,7 @@ import { persistLiveMovementSpatial } from '@artificer-toolkit/encounter-persist
 import {
   persistLiveMovementConcentration,
   persistLiveMovementConcentrationEnd,
+  persistLiveMovementMassiveDamageSave,
   persistLiveMovementRepeatSave
 } from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
 import {
@@ -114,6 +115,8 @@ export function roomMovementSettlementCallbacks(input: {
     persistConcentration: (step) =>
       persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
     persistRepeatSave: (step) => persistLiveMovementRepeatSave(ctx, step, concentrationCallbacks),
+    persistMassiveDamageSave: (step) =>
+      persistLiveMovementMassiveDamageSave(ctx, step, concentrationCallbacks),
     persistConcentrationEnd: (step) =>
       persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
     persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),

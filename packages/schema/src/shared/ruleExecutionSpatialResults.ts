@@ -6,8 +6,6 @@ import { encounterSpatialRuleEffectRecordSchema } from '../projections/spatialRu
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
 import {
   movementDamageSaveChildren,
-  type MovementConcentrationEndDto,
-  type MovementConcentrationExecutionDto,
   type MovementRepeatSaveExecutionDto
 } from './ruleExecutionMovementConcentration.js'
 import {
@@ -352,11 +350,9 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           children: readonly {
             path: (string | number)[]
             releasePath: string[]
-            check:
-              | MovementConcentrationExecutionDto
-              | MovementConcentrationEndDto
-              | MovementRepeatSaveExecutionDto
+            parentOccurrenceId: string
             release: MovementRepeatSaveExecutionDto['release']
+            ownerTransitions: MovementRepeatSaveExecutionDto['ownerTransitions']
             /** A release changes derived conditions; a Concentration check keeps the exact state. */
             derivesConditions: boolean
           }[]
@@ -364,19 +360,19 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           for (const {
             path: checkPath,
             releasePath,
-            check,
+            parentOccurrenceId,
             release,
+            ownerTransitions: childOwnerTransitions,
             derivesConditions
           } of children) {
-            const output = check.result.applicationOutputs
-            if (output.parentOccurrenceId !== batch.occurrenceId)
+            if (parentOccurrenceId !== batch.occurrenceId)
               context.addIssue({
                 code: 'custom',
                 path: [...checkPath, 'result', 'applicationOutputs', 'parentOccurrenceId'],
                 message: 'Movement Concentration children must bind their terminal movement batch.'
               })
             if (release === null) {
-              if (check.ownerTransitions.length > 0)
+              if (childOwnerTransitions.length > 0)
                 context.addIssue({
                   code: 'custom',
                   path: [...checkPath, 'ownerTransitions'],
@@ -420,8 +416,8 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
                 cleanupTransition.afterStreamVersion
               )
             }
-            const ownerTransitions = new Map<string, (typeof check.ownerTransitions)[number]>()
-            for (const [ownerIndex, ownerTransition] of check.ownerTransitions.entries()) {
+            const ownerTransitions = new Map<string, (typeof childOwnerTransitions)[number]>()
+            for (const [ownerIndex, ownerTransition] of childOwnerTransitions.entries()) {
               const ownerPath = [...checkPath, 'ownerTransitions', ownerIndex]
               ownerTransitions.set(ownerTransition.targetActorId, ownerTransition)
               if (ownerTransition.characterId !== null) {
@@ -540,15 +536,17 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           if (
             execution.concentrationEnds !== undefined ||
             execution.concentrationChecks !== undefined ||
-            execution.repeatSaves !== undefined
+            execution.repeatSaves !== undefined ||
+            execution.massiveDamageSaves !== undefined
           ) {
             finishSpatialGroups()
             applyMovementChildren([
-              ...(execution.concentrationEnds ?? []).map((check, childIndex) => ({
+              ...(execution.concentrationEnds ?? []).map((end, childIndex) => ({
                 path: ['executions', index, 'concentrationEnds', childIndex],
                 releasePath: ['result', 'applicationOutputs', 'cleanup'],
-                check,
-                release: check.result.applicationOutputs.cleanup,
+                parentOccurrenceId: end.result.applicationOutputs.parentOccurrenceId,
+                release: end.result.applicationOutputs.cleanup,
+                ownerTransitions: end.ownerTransitions,
                 derivesConditions: true
               })),
               ...movementDamageSaveChildren(execution).map((child) => ({
@@ -557,8 +555,9 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
                   child.kind === 'CONCENTRATION'
                     ? ['result', 'applicationOutputs', 'cleanup']
                     : ['release'],
-                check: child.execution,
+                parentOccurrenceId: child.execution.result.applicationOutputs.parentOccurrenceId,
                 release: child.release,
+                ownerTransitions: child.ownerTransitions,
                 derivesConditions: child.kind === 'REPEAT_SAVE'
               }))
             ])

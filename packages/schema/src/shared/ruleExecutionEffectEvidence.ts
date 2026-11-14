@@ -33,6 +33,7 @@ import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
 import {
   movementConcentrationEndsDtoSchema,
   movementConcentrationExecutionsDtoSchema,
+  movementMassiveDamageSavesDtoSchema,
   movementRepeatSavesDtoSchema
 } from './ruleExecutionMovementConcentration.js'
 
@@ -337,6 +338,7 @@ export const spatialMovementExecutionDtoSchema = lazySchema(() =>
       concentrationEnds: z.optional(movementConcentrationEndsDtoSchema),
       concentrationChecks: z.optional(movementConcentrationExecutionsDtoSchema),
       repeatSaves: z.optional(movementRepeatSavesDtoSchema),
+      massiveDamageSaves: z.optional(movementMassiveDamageSavesDtoSchema),
       ...spatialExecutionEvidenceFields()
     })
     .check(z.superRefine(refineSpatialExecutionEvidence))

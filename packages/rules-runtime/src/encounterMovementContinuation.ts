@@ -159,7 +159,7 @@ export async function prepareEncounterMovementContinuation<
       executionOrdinal: number
       retainedSaves?: Pick<
         FrozenMovementReactionRemainder['completedSpatialExecutions'][number],
-        'concentrationChecks' | 'repeatSaves'
+        'concentrationChecks' | 'repeatSaves' | 'massiveDamageSaves'
       >
     }): Promise<{
       remainder: FrozenMovementReactionRemainder
