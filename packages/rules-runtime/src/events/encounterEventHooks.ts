@@ -222,6 +222,23 @@ function subscriptionMet(
         sourceActorIdOf(effect) === event.sourceActorId &&
         event.feet > subscription.beyondFeet + REACH_EPSILON_FEET
       )
+    case 'SOURCE_DEPARTED':
+      return (
+        event.kind === 'SOURCE_DEPARTED' &&
+        effect !== null &&
+        effect.definition.origin.kind === 'ENCOUNTER' &&
+        effect.definition.origin.sourceAggregateId === event.encounterId &&
+        effect.definition.origin.sourceActorId === event.sourceActorId
+      )
+    case 'CAMPAIGN_CLOCK': {
+      const expiry = effect?.lifecycle.expiresAtCampaignMinute
+      return event.kind === 'CAMPAIGN_CLOCK' && typeof expiry === 'number' && expiry <= event.minute
+    }
+    case 'CONCENTRATION_STARTED':
+      return (
+        event.kind === 'CONCENTRATION_STARTED' &&
+        effect?.lifecycle.concentrationCasterCharacterId === event.casterCharacterId
+      )
     case 'AREA_LEFT':
       return (
         event.kind === 'AREA_LEFT' &&

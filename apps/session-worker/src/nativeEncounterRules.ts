@@ -263,7 +263,7 @@ export async function planNativeLiveEncounterAction(
   const reactionChildWindow = {
     recorded: pendingContext?.reactionChildren ?? [],
     // The committed child action of each reaction chosen against this action, if it is pending.
-    committed: pendingAdmission?.reactionChildren ?? [],
+    committed: 'reactionChildren' in admission ? admission.reactionChildren : [],
     resumedOffer,
     ancestors: 'reactionAncestors' in admission ? admission.reactionAncestors : []
   }
