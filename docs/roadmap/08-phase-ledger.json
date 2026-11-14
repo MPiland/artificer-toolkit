@@ -26732,7 +26732,7 @@
             },
             {
               "id": "QUALITY-18.T2b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26743,11 +26743,12 @@
               },
               "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together.",
               "text": "Orchestration behind the choice: a member OPTION on a move CHOICE records the reaction child and raises it in one room transaction (rolled back on a refused child); the room issues the owner REACTION_CHILD_RESUME after the child commits and from the alarm; STOP or a mover at 0 HP ends the move at the contact point; child command ids include the parent occurrence version; decoys salt from the child occurrence; token at contact and the re-pin of the move Scene save verified (ruling 15). New room tests.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-13",
+              "proof": "m737 (5c16e851e), fast path from slice tip d186da859: Tests 43522608821, Live 43522608785, Browser journeys 43522608773 and the movement passage dispatch 43522609671 green. Red proof (job 132221336408): 25 files RED, movementResolution ALREADY-PASSING, no RED-IMPORT. Slice total 63 files (+2537/-710; production 27 files +658/-119). A member OPTION on a move CHOICE records and raises the reaction child in one room transaction; ruling 17: repinReactionChildParent keeps the move SUSPENDED while another occurrence (the child check chain) is PENDING, and resumeSettledReactionChildParent (roomEncounterAfterCommit stage 9) returns it to PENDING pinned to the Run version once no PENDING remains and every recorded child committed; countRunVoidVersions renamed countRunSettlementVersions (also counts RESOLVE_RULE_OCCURRENCE); readHeldRecords unified with ray-list parents. No persisted shape change (no D196 refresh)."
             },
             {
               "id": "QUALITY-18.T2b3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26757,25 +26758,29 @@
                 "after": ["QUALITY-18.T2b2"]
               },
               "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together. The 28 is held as T2b3 20 (test restatement) plus T2b4 8 (web), since 20 is the largest size.",
-              "text": "Restate every movement-reaction flow for the flip (worker nativeMovement* and nativeRoom*, Convex scenes and encounters, encounter-persistence reactionChildren), each restated assertion with its reason. Built on the T2b2 branch and merged with it."
+              "text": "Restate every movement-reaction flow for the flip (worker nativeMovement* and nativeRoom*, Convex scenes and encounters, encounter-persistence reactionChildren), each restated assertion with its reason. Built on the T2b2 branch and merged with it.",
+              "mergedAt": "2026-11-13",
+              "proof": "m737 (5c16e851e), fast path from slice tip d186da859: Tests 43522608821, Live 43522608785, Browser journeys 43522608773 and the movement passage dispatch 43522609671 green. Red proof (job 132221336408): 25 files RED, movementResolution ALREADY-PASSING, no RED-IMPORT. Slice total 63 files (+2537/-710; production 27 files +658/-119). Restated with reasons: movementConcentration (the Assisted Concentration check is read through pendingOccurrence as the Bite action's own check; occurrence set move SUSPENDED, Bite COMPLETED, check PENDING; a new test answers it and the room completes the move); nativeMovementCuttingWords (four flows follow m735: the opportunity attack d20 opens a held REACTION_CHOICE with the child die instead of a ROLL_WINDOW; the Cutting Words label stays asserted in nativeRoomCuttingWords); worker, Convex and persistence movement flows per the T2b report."
             },
             {
               "id": "QUALITY-18.T2b4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 2,
                 "after": ["QUALITY-18.T2b2"]
               },
-              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together. The 28 is held as T2b3 20 (test restatement) plus T2b4 8 (web), since 20 is the largest size.",
-              "text": "The web client shows a child reaction prompt while its move is SUSPENDED and no longer expects the option answer to return the movement result; browser journeys green. Built on the T2b2 branch and merged with T2b2 and T2b3."
+              "note": "Re-split 2026-11-13 at the seam trace (13 to about 51-59); user approved T2b1 13, T2b2 13, T2b3 28 (net +41 over 13, in two approvals: +20 then +21). User ruling: widen the persisted action-economy consumption with the allowance refresh boundary so a free per-turn opportunity reaction does not spend the Reaction. T2b2 and T2b3 merge together. The 28 is held as T2b3 20 (test restatement) plus T2b4 8 (web), since 20 is the largest size. Resized 8 to 2 at delivery: the decision drawer already renders the child REACTION_CHOICE from the pending occurrence, so the web needed no product change; only the live-backend movement journey (encounterMovement.ts) stopped expecting the option answer to return the movement result.",
+              "text": "The web client shows a child reaction prompt while its move is SUSPENDED and no longer expects the option answer to return the movement result; browser journeys green. Built on the T2b2 branch and merged with T2b2 and T2b3.",
+              "mergedAt": "2026-11-13",
+              "proof": "m737 (5c16e851e), fast path from slice tip d186da859: Tests 43522608821, Live 43522608785, Browser journeys 43522608773 and the movement passage dispatch 43522609671 green. Red proof (job 132221336408): 25 files RED, movementResolution ALREADY-PASSING, no RED-IMPORT. Slice total 63 files (+2537/-710; production 27 files +658/-119). apps/web/tests/live-backend/encounterMovement.ts restated; Browser journeys green including the movement passage proof."
             },
             {
               "id": "QUALITY-18.T2c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -26785,7 +26790,8 @@
                 "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
               "note": "Split 2026-11-13 at the seam trace (13 to about 30); user approved T2a 5, T2b 13, T2c 8, net +13.",
-              "text": "Delete the inline movement reaction engine: the ACTION_EVIDENCE, LEGENDARY_RESISTANCE_CHOICE and reaction-sourced CONCENTRATION_EVIDENCE phases, completedReactionExecutions, the move receipt reactionExecutions, the replay code, the web drawer stories and tests, and the regenerated Convex files."
+              "text": "Delete the inline movement reaction engine: the ACTION_EVIDENCE, LEGENDARY_RESISTANCE_CHOICE and reaction-sourced CONCENTRATION_EVIDENCE phases, completedReactionExecutions, the move receipt reactionExecutions, the replay code, the web drawer stories and tests, and the regenerated Convex files.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-18.T3",
@@ -26798,7 +26804,7 @@
                 "size": 5,
                 "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Parity items from QUALITY-18.T2b2-T2b4 (2026-11-13): a resumed move re-prices its remaining path against the mover's current state (a reaction that knocked it Prone means crawl or stand cost) and ends at contact if it no longer fits; plus the parity gaps listed in the T2b report (retried OPTION beyond the journal, a child moving the mover's token, OPTION or resume on an unpresented Scene, frozen spatialCurrentnessChecksum at a TERMINAL stop, single-use item and target policy refusals, sweep early return, member OPTION source revalidation, transient parent CHOICE read).",
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Parity items from QUALITY-18.T2b2-T2b4 (2026-11-13): a resumed move re-prices its remaining path against the mover's current state (a reaction that knocked it Prone means crawl or stand cost) and ends at contact if it no longer fits; plus the parity gaps listed in the T2b report (retried OPTION beyond the journal, a child moving the mover's token, OPTION or resume on an unpresented Scene, frozen spatialCurrentnessChecksum at a TERMINAL stop, single-use item and target policy refusals, sweep early return, member OPTION source revalidation, transient parent CHOICE read). Further T2b risks to cover: the action-host and ray-list hold and return under ruling 17 are proved only at persistence level (add room proofs); roots raised in after-commit run before a held parent returns; a departed mover's check answer and resume.",
               "text": "Movement riders on the child path: window die, Legendary Resistance, concentration, damage-ends, grants, once-per-turn riders, decoys, sight, flyby, Escape the Horde; tests restated, gaps fixed."
             },
             {
