@@ -3,7 +3,6 @@ import type {
   ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
-  ROLL_MODE_RULE_SOURCE_IDS,
   checksumRuleDocument,
   compareCanonicalD20Contributors
 } from '@artificer-toolkit/shared/rules'
@@ -82,20 +81,21 @@ export function encounterAttackD20Belief(input: {
 
 /**
  * Whether sight decides this d20, so the server applies the true mode whatever mode the roller
- * rolled with: the roller's belief differs from the truth, or an unseen contributor is in play.
+ * rolled with: the roller's belief differs from the truth, or a contributor the System gives an
+ * unseen attacker or target is in play.
  */
 export function isEncounterSightGovernedD20(input: {
+  gameSystemId: string
   policy: Pick<D20Policy, 'contributors'>
   belief: EncounterAttackD20Belief | null
 }): boolean {
-  return (
-    input.belief !== null ||
-    input.policy.contributors.some(
-      ({ source }) =>
-        source.kind === 'RULE' &&
-        (source.id === ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER ||
-          source.id === ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET)
-    )
+  if (input.belief !== null) return true
+  const sightRuleIds = rollModeCapabilityRegistry
+    .ruleContributors(input.gameSystemId)
+    .filter(({ trigger }) => trigger === 'ATTACKER_UNSEEN' || trigger === 'TARGET_UNSEEN')
+    .map(({ id }) => id)
+  return input.policy.contributors.some(
+    ({ source }) => source.kind === 'RULE' && sightRuleIds.includes(source.id)
   )
 }
 

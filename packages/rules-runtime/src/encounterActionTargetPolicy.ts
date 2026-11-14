@@ -5,7 +5,6 @@ import type {
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { lengthMeasurementInFeet, type LengthUnitCode } from '@artificer-toolkit/shared/core'
-import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
   classifySquareGridFacingArc,
   classifySquareGridFootprintFacingArcs,
@@ -22,11 +21,7 @@ import {
 } from '@artificer-toolkit/shared/vtt/facingArc'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { FacingRule } from './optionalCombatPolicyCapability.js'
-import {
-  ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
-  ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
-  encounterRuleContributorSource
-} from './encounterRollModeReasons.js'
+import { encounterSystemRuleContributor } from './encounterRollModeReasons.js'
 
 type DispositionActor = {
   id: string
@@ -298,13 +293,14 @@ function policyRangeLengths(range: MeasuredRange) {
 }
 
 /**
- * The disadvantage an attack's range itself gives, a contributor derived like any other roll-mode
- * reason: a ranged weapon attack against a target beyond its normal range and within its long
- * range (D62), or an attack against a target within its close range (a Lance, D217). None without
- * a long or close range or a Scene to measure on; beyond the long range the target policy warns
- * instead.
+ * The contributor an attack's range itself gives, derived like any other roll-mode reason: the one
+ * the System's rules give a ranged weapon attack against a target beyond its normal range and
+ * within its long range (D62), or an attack against a target within its close range (a Lance,
+ * D217). None without a long or close range or a Scene to measure on; beyond the long range the
+ * target policy warns instead.
  */
 export function encounterActionRangeContributor(input: {
+  gameSystemId: string
   targetPolicy: CompiledActionTargetPolicy
   sceneContext: EncounterActionSceneContext | null
 }): EncounterRelationshipD20Contributor | null {
@@ -316,28 +312,14 @@ export function encounterActionRangeContributor(input: {
     range.closeAmount === undefined
       ? null
       : measuredDistance(sceneContext, { amount: range.closeAmount, unit: range.unit })
-  const rule =
+  const trigger =
     range.longAmount !== undefined &&
     sceneRangeBand(grid, sourceToken, targetToken, policyRangeLengths(range)) === 'LONG'
-      ? {
-          sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
-          id: ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE
-        }
+      ? 'BEYOND_NORMAL_RANGE'
       : close && close.measured <= close.maximum
-        ? {
-            sourceId: ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
-            id: ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE
-          }
+        ? 'WITHIN_CLOSE_RANGE'
         : null
-  return rule
-    ? {
-        sourceId: rule.sourceId,
-        grantId: null,
-        domainKey: rule.sourceId,
-        influence: 'DISADVANTAGE',
-        source: encounterRuleContributorSource(rule.id)
-      }
-    : null
+  return trigger ? encounterSystemRuleContributor(input.gameSystemId, trigger) : null
 }
 
 /** A range in Scene units and the token footprints' measured distance. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
@@ -13,9 +14,7 @@ import {
   withoutCreatureTypeRestrictions
 } from '../encounterActionTargetPolicy.js'
 import {
-  ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
-  ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource,
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
@@ -371,7 +370,10 @@ describe('a creature’s own facing arcs (ATTACK-12)', () => {
     const behind = { source: token(2, 3), target: token(2, 2) }
     expect(positional(srdFacing, behind)).toEqual([fromArc('REAR', 'ADVANTAGE')])
     expect(
-      labelEncounterRollModeReasons(new Map())({
+      labelEncounterRollModeReasons(
+        DND5E_SYSTEM_ID,
+        new Map()
+      )({
         rollMode: 'ADVANTAGE',
         contributors: positional(srdFacing, behind)
       })
@@ -624,6 +626,7 @@ describe('encounter action target range', () => {
     }
     const contributor = (column: number | null) =>
       encounterActionRangeContributor({
+        gameSystemId: DND5E_SYSTEM_ID,
         targetPolicy,
         sceneContext:
           column === null
@@ -631,11 +634,11 @@ describe('encounter action target range', () => {
             : { grid: FEET_GRID, sourceToken: token(0, 0), targetToken: token(column, 0) }
       })
     const longRange = {
-      sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+      sourceId: 'rule:long-range',
       grantId: null,
-      domainKey: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+      domainKey: 'rule:long-range',
       influence: 'DISADVANTAGE' as const,
-      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
+      source: encounterRuleContributorSource('long-range')
     }
     expect(contributor(16)).toBeNull()
     expect(contributor(17)).toEqual(longRange)
@@ -646,6 +649,7 @@ describe('encounter action target range', () => {
     // A range without a long range never gives disadvantage.
     expect(
       encounterActionRangeContributor({
+        gameSystemId: DND5E_SYSTEM_ID,
         targetPolicy: {
           ...targetPolicy,
           range: { id: 'range', rangeKind: 'DISTANCE', amount: 80, unit: 'FEET' }
@@ -655,7 +659,10 @@ describe('encounter action target range', () => {
     ).toBeNull()
     // Assisted names the reason.
     expect(
-      labelEncounterRollModeReasons(new Map())({
+      labelEncounterRollModeReasons(
+        DND5E_SYSTEM_ID,
+        new Map()
+      )({
         rollMode: 'DISADVANTAGE',
         contributors: [longRange]
       })
@@ -677,6 +684,7 @@ describe('encounter action target range', () => {
     }
     const contributor = (column: number | null) =>
       encounterActionRangeContributor({
+        gameSystemId: DND5E_SYSTEM_ID,
         targetPolicy,
         sceneContext:
           column === null
@@ -684,11 +692,11 @@ describe('encounter action target range', () => {
             : { grid: FEET_GRID, sourceToken: token(0, 0), targetToken: token(column, 0) }
       })
     const closeRange = {
-      sourceId: ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
+      sourceId: 'rule:close-range',
       grantId: null,
-      domainKey: ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID,
+      domainKey: 'rule:close-range',
       influence: 'DISADVANTAGE' as const,
-      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE)
+      source: encounterRuleContributorSource('close-range')
     }
     // An adjacent target is within 5 ft; one a square further is at the full 10 ft reach.
     expect(contributor(1)).toEqual(closeRange)
@@ -697,6 +705,7 @@ describe('encounter action target range', () => {
     // The same weapon without a close range has no disadvantage up close.
     expect(
       encounterActionRangeContributor({
+        gameSystemId: DND5E_SYSTEM_ID,
         targetPolicy: {
           ...targetPolicy,
           range: { id: 'range', rangeKind: 'DISTANCE', amount: 10, unit: 'FEET' }
@@ -706,7 +715,10 @@ describe('encounter action target range', () => {
     ).toBeNull()
     // Assisted names the reason.
     expect(
-      labelEncounterRollModeReasons(new Map())({
+      labelEncounterRollModeReasons(
+        DND5E_SYSTEM_ID,
+        new Map()
+      )({
         rollMode: 'DISADVANTAGE',
         contributors: [closeRange]
       })
@@ -736,6 +748,7 @@ describe('encounter action target range', () => {
           bandsSeen.add(band)
           const warnings = rangeWarnings({ range, scene: { grid, source, target } })
           const contributor = encounterActionRangeContributor({
+            gameSystemId: DND5E_SYSTEM_ID,
             targetPolicy: {
               range,
               targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
@@ -767,6 +780,7 @@ describe('encounter action target range', () => {
     }
     const contributorAt = (column: number) =>
       encounterActionRangeContributor({
+        gameSystemId: DND5E_SYSTEM_ID,
         targetPolicy,
         sceneContext: {
           grid: FEET_GRID,

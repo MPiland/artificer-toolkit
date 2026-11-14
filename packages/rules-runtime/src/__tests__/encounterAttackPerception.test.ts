@@ -1,4 +1,3 @@
-import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import {
   SRD_BLINDSIGHT_SENSE_ID,
   SRD_DARKVISION_SENSE_ID,
@@ -8,6 +7,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import { describe, expect, it } from 'vitest'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 import {
   encounterAttackPerceptionContributors,
@@ -18,8 +18,6 @@ import {
   type EncounterAttackPerception
 } from '../encounterAttackPerception.js'
 import {
-  ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-  ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource,
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
@@ -101,33 +99,44 @@ describe('encounter attack perception: contributors', () => {
   })
 
   it('gives advantage for an attacker its target cannot see and disadvantage against a target it cannot see', () => {
-    expect(encounterAttackPerceptionContributors(sight({ targetSeesAttacker: 'UNSEEN' }))).toEqual([
+    expect(
+      encounterAttackPerceptionContributors(
+        DND5E_SYSTEM_ID,
+        sight({ targetSeesAttacker: 'UNSEEN' })
+      )
+    ).toEqual([
       {
-        sourceId: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
+        sourceId: 'rule:unseen-attacker',
         grantId: null,
-        domainKey: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
+        domainKey: 'rule:unseen-attacker',
         influence: 'ADVANTAGE',
-        source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER)
+        source: encounterRuleContributorSource('unseen-attacker')
       }
     ])
-    expect(encounterAttackPerceptionContributors(sight({ attackerSeesTarget: 'UNSEEN' }))).toEqual([
+    expect(
+      encounterAttackPerceptionContributors(
+        DND5E_SYSTEM_ID,
+        sight({ attackerSeesTarget: 'UNSEEN' })
+      )
+    ).toEqual([
       {
-        sourceId: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
+        sourceId: 'rule:unseen-target',
         grantId: null,
-        domainKey: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
+        domainKey: 'rule:unseen-target',
         influence: 'DISADVANTAGE',
-        source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET)
+        source: encounterRuleContributorSource('unseen-target')
       }
     ])
   })
 
   it('adds nothing when both sides see', () => {
-    expect(encounterAttackPerceptionContributors(sight({}))).toEqual([])
+    expect(encounterAttackPerceptionContributors(DND5E_SYSTEM_ID, sight({}))).toEqual([])
   })
 
   it('drops a contributor that exempts a Sense the attacker sees the target through (Blur)', () => {
     const exempting = (attackerSenseDefinitionIds: string[]) =>
       encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: sight({ attackerSenseDefinitionIds }),
         attacksAgainst: [
           {
@@ -147,6 +156,7 @@ describe('encounter attack perception: contributors', () => {
   it('keeps Dodge only while the target can see the attacker, beside the sight contributors', () => {
     const merged = (value: Partial<EncounterAttackPerception>) =>
       encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: sight(value),
         attacksAgainst: [
           {
@@ -158,20 +168,20 @@ describe('encounter attack perception: contributors', () => {
         ]
       }).map((contributor) => contributor.sourceId)
     expect(merged({})).toEqual([DODGE_SOURCE_ID])
-    expect(merged({ targetSeesAttacker: 'UNSEEN' })).toEqual([
-      ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
-    ])
+    expect(merged({ targetSeesAttacker: 'UNSEEN' })).toEqual(['rule:unseen-attacker'])
     expect(merged({ attackerSeesTarget: 'UNSEEN' })).toEqual(
-      [DODGE_SOURCE_ID, ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID].sort()
+      [DODGE_SOURCE_ID, 'rule:unseen-target'].sort()
     )
   })
 
   it('labels both contributors for the roll reasons', () => {
-    const reasons = labelEncounterRollModeReasons(new Map())
+    const reasons = labelEncounterRollModeReasons(DND5E_SYSTEM_ID, new Map())
     const [advantage] = encounterAttackPerceptionContributors(
+      DND5E_SYSTEM_ID,
       sight({ targetSeesAttacker: 'UNSEEN' })
     )
     const [disadvantage] = encounterAttackPerceptionContributors(
+      DND5E_SYSTEM_ID,
       sight({ attackerSeesTarget: 'UNSEEN' })
     )
     expect(reasons({ rollMode: 'ADVANTAGE', contributors: [advantage!] })).toEqual([
@@ -187,11 +197,11 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
   it('rolls with advantage against a target that cannot see an Invisible attacker', async () => {
     const prepared = await volleyAt({ attackerConditionIds: [INVISIBLE] })
     expect(prepared.relationshipContributors).toContainEqual({
-      sourceId: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
+      sourceId: 'rule:unseen-attacker',
       grantId: null,
-      domainKey: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
+      domainKey: 'rule:unseen-attacker',
       influence: 'ADVANTAGE',
-      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER)
+      source: encounterRuleContributorSource('unseen-attacker')
     })
     const { execution } = await settleCreatureAction({ prepared, rolls: [5, 9] })
     expect(execution.d20).toMatchObject({ derivedRollMode: 'ADVANTAGE', selectedNatural: 10 })
@@ -199,21 +209,21 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
 
   it('rolls with disadvantage when the attacker is Blinded and cannot see its target', async () => {
     const prepared = await volleyAt({ attackerConditionIds: [BLINDED] })
-    expect(sourceIds(prepared)).toContain(ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID)
-    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).toContain('rule:unseen-target')
+    expect(sourceIds(prepared)).not.toContain('rule:unseen-attacker')
   })
 
   it('rolls with disadvantage against an Invisible target the attacker cannot see', async () => {
     const prepared = await volleyAt({ targetConditionIds: [INVISIBLE] })
-    expect(sourceIds(prepared)).toContain(ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).toContain('rule:unseen-target')
     const { execution } = await settleCreatureAction({ prepared, rolls: [15, 2] })
     expect(execution.d20).toMatchObject({ derivedRollMode: 'DISADVANTAGE', selectedNatural: 3 })
   })
 
   it('adds no sight contributor when both sides see', async () => {
     const prepared = await volleyAt({})
-    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
-    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).not.toContain('rule:unseen-attacker')
+    expect(sourceIds(prepared)).not.toContain('rule:unseen-target')
   })
 
   it('adds no sight contributor to a flow that does not load perception', async () => {
@@ -228,7 +238,7 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
       featureId: QUILL_VOLLEY_ID,
       overridable: true
     })
-    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).not.toContain('rule:unseen-attacker')
   })
 
   it('drops the Dodge disadvantage against an attacker the dodger cannot see', async () => {
@@ -255,14 +265,14 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
 
   it("decides a Creature's sight by its authored Senses: Darkvision does not reveal an Invisible attacker", async () => {
     const prepared = await dodgingSrdTargetAgainstInvisible('Ogre')
-    expect(sourceIds(prepared)).toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).toContain('rule:unseen-attacker')
     expect(sourceIds(prepared)).not.toContain(DODGE_SOURCE_ID)
   })
 
   it('lets a Creature with Truesight see an Invisible attacker, so Dodge stays', async () => {
     const prepared = await dodgingSrdTargetAgainstInvisible('Couatl')
     expect(sourceIds(prepared)).toContain(DODGE_SOURCE_ID)
-    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).not.toContain('rule:unseen-attacker')
   })
 })
 
@@ -287,6 +297,7 @@ describe('encounter attacks against: negated advantage and attack occasion', () 
   it('drops the advantage of an unseen attacker and keeps the disadvantage of an unseen target', () => {
     const contributors = (value: Partial<EncounterAttackPerception>) =>
       encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: {
           targetSeesAttacker: 'SEES',
           attackerSeesTarget: 'SEES',
@@ -298,9 +309,7 @@ describe('encounter attacks against: negated advantage and attack occasion', () 
         attacksAgainst: [negateAgainst]
       }).map((contributor) => contributor.sourceId)
     expect(contributors({ targetSeesAttacker: 'UNSEEN' })).toEqual([])
-    expect(contributors({ attackerSeesTarget: 'UNSEEN' })).toEqual([
-      ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
-    ])
+    expect(contributors({ attackerSeesTarget: 'UNSEEN' })).toEqual(['rule:unseen-target'])
   })
 
   it('rolls an Invisible attacker’s attack normally against a target that negates advantage', async () => {
@@ -317,7 +326,7 @@ describe('encounter attacks against: negated advantage and attack occasion', () 
       attackPerception: true,
       targetAttacksAgainst: [negateAgainst]
     })
-    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).not.toContain('rule:unseen-attacker')
     const { execution } = await settleCreatureAction({ prepared, rolls: [5] })
     expect(execution.d20).toMatchObject({ derivedRollMode: 'NORMAL', selectedNatural: 6 })
   })

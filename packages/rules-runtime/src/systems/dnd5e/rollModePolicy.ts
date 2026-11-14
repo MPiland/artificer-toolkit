@@ -55,5 +55,34 @@ export const dnd5eRollModeCapabilityAdapter: RollModeCapabilityAdapter = {
   keepFor: (rollMode) => DND5E_KEEP_BY_ROLL_MODE[requireDnd5eRollMode(rollMode)],
   /** 10 plus the skill's check modifier, 5 more with advantage and 5 less with disadvantage. */
   passiveScore: (skillModifier, rollMode) =>
-    10 + skillModifier + DND5E_PASSIVE_ADJUSTMENT_BY_ROLL_MODE[requireDnd5eRollMode(rollMode)]
+    10 + skillModifier + DND5E_PASSIVE_ADJUSTMENT_BY_ROLL_MODE[requireDnd5eRollMode(rollMode)],
+  // A ranged attack beyond its normal range (D62) or a target within its close range (a Lance,
+  // D217) has disadvantage; an attacker its target cannot see has advantage, and a target its
+  // attacker cannot see gives disadvantage (SRD).
+  ruleContributors: [
+    {
+      trigger: 'BEYOND_NORMAL_RANGE',
+      id: 'long-range',
+      label: 'Long range',
+      influence: 'DISADVANTAGE'
+    },
+    {
+      trigger: 'WITHIN_CLOSE_RANGE',
+      id: 'close-range',
+      label: 'Close range',
+      influence: 'DISADVANTAGE'
+    },
+    {
+      trigger: 'ATTACKER_UNSEEN',
+      id: 'unseen-attacker',
+      label: 'Unseen attacker',
+      influence: 'ADVANTAGE'
+    },
+    {
+      trigger: 'TARGET_UNSEEN',
+      id: 'unseen-target',
+      label: 'Unseen target',
+      influence: 'DISADVANTAGE'
+    }
+  ]
 }

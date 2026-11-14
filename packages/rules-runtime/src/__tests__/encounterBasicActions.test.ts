@@ -258,7 +258,10 @@ describe('basic action mechanics (Q11)', () => {
       },
       { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
     ])
-    const reasons = labelEncounterRollModeReasons(new Map([[rollModeSourceKey(source), 'Dodge']]))
+    const reasons = labelEncounterRollModeReasons(
+      DND5E_SYSTEM_ID,
+      new Map([[rollModeSourceKey(source), 'Dodge']])
+    )
     expect(
       reasons({
         rollMode: 'DISADVANTAGE',

@@ -388,7 +388,9 @@ current).** Every recorded d20 contributor (`D20Contributor`) carries a `source:
 `domainKey`; the checksum covers it. A reason label is a lookup by `rollModeSourceKey(source)`; no
 consumer parses `sourceId` or `domainKey`. An active effect has one `sourceId`
 (`createCharacterMechanicSourceKey`) and one typed source whichever holder, perception or relationship
-path names it. Rules-owned contributors use kind `RULE` with an id from `ROLL_MODE_RULE_SOURCE_IDS`.
+path names it. Rules-owned contributors use kind `RULE`: the platform's own (facing, spell modifier,
+reaction) take an id from `ROLL_MODE_RULE_SOURCE_IDS`, and a System's take the id of its roll-mode
+`ruleContributors` (below).
 **Roll-mode capability (RULES-2.T7, current).** A contributor's `influence` is an opaque System
 vocabulary code. Neutral runtime resolves a d20's contributors to a roll mode and the face to keep
 (`FIRST | HIGHER | LOWER`) through `rollModeCapabilityRegistry.resolveRollMode({ gameSystemId,
@@ -396,7 +398,17 @@ contributors })` (`rollModeCapabilityRegistry.ts`, installed in `platformPolicyM
 closed on a System with no roll-mode policy, an influence code the System does not define, and a
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
-`resolveDnd5eRollMode` directly.
+`resolveDnd5eRollMode` directly. **Kernel rule contributors (QUALITY-16.T2, current).** The Kernel
+measures four situations, `RollModeRuleTrigger`: an attack beyond its normal range
+(`BEYOND_NORMAL_RANGE`) or within its close range (`WITHIN_CLOSE_RANGE`), an attacker its target cannot
+see (`ATTACKER_UNSEEN`) and a target its attacker cannot see (`TARGET_UNSEEN`). The adapter's
+`ruleContributors` give each trigger the System's rules answer with a contributor `{ trigger, id, label,
+influence }`, read through `rollModeCapabilityRegistry.ruleContributors(gameSystemId)`; registration
+refuses a repeated trigger or id and an influence outside the System's `rollInfluence` vocabulary.
+`encounterSystemRuleContributor` builds the recorded contributor (`sourceId` and `domainKey`
+`rule:<id>`, source kind `RULE`), a trigger with no entry gives none, and
+`labelEncounterRollModeReasons(gameSystemId, ...)` labels it with the entry's `label`. D&D's entries keep
+the persisted ids `long-range`, `close-range`, `unseen-attacker` and `unseen-target`.
 **System vocabulary (RULES-2.T9a, current).** Policy vocabulary is System code strings, not UUID rows:
 the wire types a code as `systemCoreCodeSchema` (`schema/shared/systemCoreCode.ts`, shape
 only), and the one seam that decides membership is `systemCoreCodeRegistry.requireCode(gameSystemId,
@@ -498,7 +510,8 @@ content (a `dnd5e` string or a System rule code; `scripts/systemLiteralAllowlist
 Legendary discovery matches the eligibility adapter's `lifecycleDefinitionFamilyKey`, an Actor
 relationship's conditions read the rule-action adapter's `actorRelationship` fact and operation keys,
 a maintenance barring grant is the maintenance-link adapter's `barringDomain` (null when none), and the
-idle-turn exemption reads the event vocabulary's `lifecycleEndCodes('IDLE_TURN')`.
+idle-turn exemption reads the event vocabulary's `lifecycleEndCodes('IDLE_TURN')`, and the range and
+sight contributors are the roll-mode adapter's `ruleContributors` (QUALITY-16.T2).
 Each composition root builds its registries from one installed-Systems list per load tier (D195,
 RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
 (`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`

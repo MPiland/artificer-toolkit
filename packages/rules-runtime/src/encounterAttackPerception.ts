@@ -1,5 +1,4 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import type {
   CampaignSceneState,
   SceneGrid,
@@ -11,11 +10,7 @@ import type { EncounterAttackAgainstContributor } from './encounterActiveGrants.
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { encounterConcealmentOf, isConcealedFrom } from './encounterConcealment.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import {
-  ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-  ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
-  encounterRuleContributorSource
-} from './encounterRollModeReasons.js'
+import { encounterSystemRuleContributor } from './encounterRollModeReasons.js'
 import {
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
@@ -289,34 +284,19 @@ export async function resolveEncounterBelievedAttackPerception(
   }
 }
 
-/** The attack-roll contributors the SRD gives unseen attackers (advantage) and unseen targets (disadvantage). */
+/**
+ * The attack-roll contributors the System's rules give an attacker its target cannot see and a
+ * target its attacker cannot see (in the SRD, advantage and disadvantage).
+ */
 export function encounterAttackPerceptionContributors(
+  gameSystemId: string,
   perception: EncounterAttackPerception
 ): readonly EncounterRelationshipD20Contributor[] {
-  return [
-    ...(perception.targetSeesAttacker === 'UNSEEN'
-      ? [
-          {
-            sourceId: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-            grantId: null,
-            domainKey: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-            influence: 'ADVANTAGE' as const,
-            source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER)
-          }
-        ]
-      : []),
-    ...(perception.attackerSeesTarget === 'UNSEEN'
-      ? [
-          {
-            sourceId: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
-            grantId: null,
-            domainKey: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
-            influence: 'DISADVANTAGE' as const,
-            source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET)
-          }
-        ]
-      : [])
+  const triggers = [
+    ...(perception.targetSeesAttacker === 'UNSEEN' ? (['ATTACKER_UNSEEN'] as const) : []),
+    ...(perception.attackerSeesTarget === 'UNSEEN' ? (['TARGET_UNSEEN'] as const) : [])
   ]
+  return triggers.flatMap((trigger) => encounterSystemRuleContributor(gameSystemId, trigger) ?? [])
 }
 
 /**
@@ -327,6 +307,7 @@ export function encounterAttackPerceptionContributors(
  * holds drops every contributor of that influence among them. True and believed perception build theirs with this one rule.
  */
 export function encounterAttackSightContributors(input: {
+  gameSystemId: string
   perception: EncounterAttackPerception
   attacksAgainst: readonly SightDecidedAttackAgainst[]
 }): readonly EncounterRelationshipD20Contributor[] {
@@ -334,7 +315,7 @@ export function encounterAttackSightContributors(input: {
   const held = input.attacksAgainst.filter((entry) => attackAgainstHolds(entry, perception))
   const contributors = mergeCanonicalD20Contributors(
     held.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
-    encounterAttackPerceptionContributors(perception)
+    encounterAttackPerceptionContributors(input.gameSystemId, perception)
   )
   const suppressed = held.flatMap(({ suppressedInfluence }) =>
     suppressedInfluence === null ? [] : [suppressedInfluence]

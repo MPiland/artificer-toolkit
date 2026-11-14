@@ -12,7 +12,6 @@ import {
   observersHiddenFrom,
   passiveSkillDefinitionId
 } from '../encounterConcealment.js'
-import { ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
 import { concealmentRecord } from '../testing/concealmentFixture.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -166,7 +165,7 @@ describe('attacking from hiding', () => {
   it('rolls with advantage against an observer the attacker is hidden from', async () => {
     const prepared = await volley([FOOLED_ID])
     expect(prepared.relationshipContributors.map(({ sourceId }) => sourceId)).toContain(
-      ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
+      'rule:unseen-attacker'
     )
     const { execution } = await settleCreatureAction({ prepared, rolls: [5, 9] })
     expect(execution.d20).toMatchObject({ derivedRollMode: 'ADVANTAGE', selectedNatural: 10 })
@@ -175,7 +174,7 @@ describe('attacking from hiding', () => {
   it('rolls normally against an observer that sees the attacker', async () => {
     const prepared = await volley([SEEING_ID])
     expect(prepared.relationshipContributors.map(({ sourceId }) => sourceId)).not.toContain(
-      ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
+      'rule:unseen-attacker'
     )
   })
 })

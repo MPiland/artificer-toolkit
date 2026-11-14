@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
@@ -257,6 +258,7 @@ describe('encounter action range from SRD actions', () => {
     })
     const influenceAt = (column: number) =>
       encounterActionRangeContributor({
+        gameSystemId: DND5E_SYSTEM_ID,
         targetPolicy: policy,
         sceneContext: {
           grid: FEET_GRID,

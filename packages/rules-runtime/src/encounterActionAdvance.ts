@@ -440,7 +440,14 @@ export async function advanceNativeActionGraphs(input: {
       heldD20: EncounterActionHeldD20Dto | null
     }
   ) {
-    const sight = policy ? sightGovernedStageD20({ attackSight, policy, stored }) : null
+    const sight = policy
+      ? sightGovernedStageD20({
+          gameSystemId: published.gameSystemId,
+          attackSight,
+          policy,
+          stored
+        })
+      : null
     const response = actionResponse({
       gameSystemId: published.gameSystemId,
       continuation,

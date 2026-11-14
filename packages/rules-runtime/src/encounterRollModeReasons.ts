@@ -6,6 +6,9 @@ import {
 import { facingArcLabel } from '@artificer-toolkit/shared/vtt/facingArc'
 
 import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
+import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+import type { RollModeRuleTrigger } from './rollModeCapabilityRegistry.js'
 
 /** One recorded d20 contributor, as the evidence policies store it. */
 export type EncounterD20Contributor = Pick<
@@ -27,20 +30,8 @@ export type EncounterRollModeReasons = (input: {
   contributors: readonly EncounterD20Contributor[]
 }) => string[]
 
-/** A ranged attack beyond its normal range (D62): a rules-owned contributor with no authored source. */
-export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE}`
-
-/** An attack against a target within its close range (a Lance, D217): disadvantage. */
-export const ENCOUNTER_CLOSE_RANGE_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE}`
-
 /** An attacker standing in an arc of its target's facing that the Facing rule names (ATTACK-12). */
 export const ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.FACING}`
-
-/** An attacker its target cannot see (SRD): advantage on the attack roll. */
-export const ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER}`
-
-/** A target its attacker cannot see (SRD): disadvantage on the attack roll. */
-export const ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET}`
 
 /** A paid cast modifier that gives a named creature's save disadvantage (Heightened Spell). */
 export const ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.CAST_MODIFIER}`
@@ -48,20 +39,36 @@ export const ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_R
 /** A bystander's reaction that set an attack roll's mode before it was rolled (D217, Protection). */
 export const ENCOUNTER_REACTION_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.REACTION}`
 
-/** The typed source of a rules-owned contributor. */
-export function encounterRuleContributorSource(
-  id: (typeof ROLL_MODE_RULE_SOURCE_IDS)[keyof typeof ROLL_MODE_RULE_SOURCE_IDS]
-): RollModeContributorSource {
+/** The typed source of a rules-owned contributor: a platform rule or a System's rule contributor. */
+export function encounterRuleContributorSource(id: string): RollModeContributorSource {
   return { kind: 'RULE', id, holderActorId: null }
 }
 
-/** The reason labels of rules-owned contributors, which no authored source names. */
-const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
+/**
+ * The d20 contributor a System's rules give a Kernel trigger (D62, D217, the SRD's unseen attacker
+ * and target), persisted under `rule:<id>`; null when its rules give that situation none.
+ */
+export function encounterSystemRuleContributor(
+  gameSystemId: string,
+  trigger: RollModeRuleTrigger
+): EncounterRelationshipD20Contributor | null {
+  const rule = rollModeCapabilityRegistry
+    .ruleContributors(gameSystemId)
+    .find((contributor) => contributor.trigger === trigger)
+  if (!rule) return null
+  const sourceId = `rule:${rule.id}`
+  return {
+    sourceId,
+    grantId: null,
+    domainKey: sourceId,
+    influence: rule.influence,
+    source: encounterRuleContributorSource(rule.id)
+  }
+}
+
+/** The reason labels of platform-owned contributors, which no authored source names. */
+const PLATFORM_RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
   [ROLL_MODE_RULE_SOURCE_IDS.FACING, 'Facing'],
-  [ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE, 'Long range'],
-  [ROLL_MODE_RULE_SOURCE_IDS.CLOSE_RANGE, 'Close range'],
-  [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER, 'Unseen attacker'],
-  [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET, 'Unseen target'],
   [ROLL_MODE_RULE_SOURCE_IDS.CAST_MODIFIER, 'Spell modifier'],
   [ROLL_MODE_RULE_SOURCE_IDS.REACTION, 'Reaction']
 ])
@@ -91,21 +98,28 @@ export function collectEncounterRollModeContributors(
 
 /**
  * Labels the mode's contributors by their typed source (`labels` is keyed by `rollModeSourceKey`),
- * or by their rules-owned label; unlabeled sources are left out, duplicates merged. A contributor
- * from an actor hidden from the viewer keeps its place under the generic unseen-source reason,
- * never its own label.
+ * or a rule's by the platform's label or the label its System gives it; unlabeled sources are left
+ * out, duplicates merged. A contributor from an actor hidden from the viewer keeps its place under
+ * the generic unseen-source reason, never its own label.
  */
 export function labelEncounterRollModeReasons(
+  gameSystemId: string,
   labels: ReadonlyMap<string, string>,
   hidden: (contributor: EncounterD20Contributor) => boolean = () => false
 ): EncounterRollModeReasons {
+  const ruleLabels = new Map([
+    ...PLATFORM_RULE_CONTRIBUTOR_LABELS,
+    ...rollModeCapabilityRegistry
+      .ruleContributors(gameSystemId)
+      .map(({ id, label }) => [id, label] as const)
+  ])
   return (input) => [
     ...new Set(
       modeContributors(input).flatMap((contributor) => {
         const label = hidden(contributor)
           ? ENCOUNTER_UNSEEN_SOURCE_REASON
           : contributor.source.kind === 'RULE'
-            ? RULE_CONTRIBUTOR_LABELS.get(contributor.source.id)
+            ? ruleLabels.get(contributor.source.id)
             : labels.get(rollModeSourceKey(contributor.source))
         if (!label) return []
         return contributor.positional && !hidden(contributor)

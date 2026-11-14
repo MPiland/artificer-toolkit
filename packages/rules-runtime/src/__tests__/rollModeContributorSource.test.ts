@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import {
   rollModeContributorSourceOfMechanicSource,
   type D20Contributor
@@ -29,9 +29,13 @@ describe('roll-mode contributor source', () => {
   it('labels a contributor by its typed source, not by its opaque source id', () => {
     const typed = contributor({})
     const labelledByTypedSource = labelEncounterRollModeReasons(
+      DND5E_SYSTEM_ID,
       new Map([[rollModeSourceKey(typed.source), 'Dodge']])
     )
-    const labelledByOpaqueId = labelEncounterRollModeReasons(new Map([[typed.sourceId, 'Dodge']]))
+    const labelledByOpaqueId = labelEncounterRollModeReasons(
+      DND5E_SYSTEM_ID,
+      new Map([[typed.sourceId, 'Dodge']])
+    )
     const input = { rollMode: 'DISADVANTAGE', contributors: [typed] } as const
 
     expect(labelledByTypedSource(input)).toEqual(['Dodge'])
@@ -42,11 +46,14 @@ describe('roll-mode contributor source', () => {
     const longRange = contributor({
       sourceId: 'unrelated',
       domainKey: null,
-      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
+      source: encounterRuleContributorSource('long-range')
     })
 
     expect(
-      labelEncounterRollModeReasons(new Map())({
+      labelEncounterRollModeReasons(
+        DND5E_SYSTEM_ID,
+        new Map()
+      )({
         rollMode: 'DISADVANTAGE',
         contributors: [longRange]
       })
@@ -56,6 +63,7 @@ describe('roll-mode contributor source', () => {
   it('keeps a hidden holder behind the generic reason, never its own label', () => {
     const typed = contributor({})
     const reasons = labelEncounterRollModeReasons(
+      DND5E_SYSTEM_ID,
       new Map([[rollModeSourceKey(typed.source), 'Dodge']]),
       () => true
     )

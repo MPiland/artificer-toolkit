@@ -15,15 +15,17 @@
 // node, roll a d20, resolve its answer, keep its face or resume its graph. `handSettled` lists the modules
 // that still do one of these by hand.
 //
-// System content (QUALITY-16.1): in the neutral rules runtime (outside `systems/`), the Kernel
-// (`packages/shared/src/domains/rules`), Encounter persistence and the Session Worker, no string names a
-// System: nothing spelled `dnd5e`, and none of `SYSTEM_RULE_LITERALS`, the System rule codes a neutral
-// module would otherwise branch on. Neutral code reads them from System data through a capability registry
-// (ADR 0039 decision 5 and its 2026-10-22 amendment). Import specifiers belong to the import fence and are
-// not counted. `scripts/systemLiteralAllowlist.json` names each module that still does, with its reason.
+// System content (QUALITY-16.1): in the modules under the `fenced` prefixes of
+// `scripts/systemLiteralAllowlist.json` (the rules runtime outside `systems/`, the Kernel, Encounter
+// persistence, the Session Worker, the schema and Convex), no string names a System: nothing spelled
+// `dnd5e`, and none of `SYSTEM_RULE_LITERALS`, the System rule codes a neutral module would otherwise
+// branch on. Neutral code reads them from System data through a capability registry (ADR 0039 decision 5
+// and its 2026-10-22 amendment). Import specifiers belong to the import fence and are not counted, nor
+// are `EXTERNAL_FORMAT_LITERALS`. Its `allowed` map names each module that still does, with its reason.
 //
 // With `--base <ref>` the lists are also compared with the ones at the merge base: a cap may not rise and
-// no list may gain an entry, so a slice cannot buy itself room.
+// no list may gain an entry, so a slice cannot buy itself room. The System content fence only grows, and
+// a module it newly reaches may enter `allowed` as debt in the same change.
 //
 //   node scripts/sourceRatchets.mjs [--base <ref>]   (`yarn lint:ratchets`, part of `yarn lint`)
 import { execFileSync } from 'node:child_process'
@@ -163,12 +165,6 @@ export const handSettledD20 = (file, source) => {
   return [...found].sort()
 }
 
-const CONTENT_FENCED = [
-  RULES_RUNTIME,
-  'packages/shared/src/domains/rules/',
-  'packages/encounter-persistence/src/',
-  'apps/session-worker/src/'
-]
 // System rule codes a neutral module must read from System data rather than spell. Neutral core codes
 // (outcome paths such as `ON_SAVE_SUCCESS`, event kinds, roll modes) live in schema or shared core and
 // are not listed.
@@ -180,9 +176,12 @@ export const SYSTEM_RULE_LITERALS = [
   'unseen-attacker',
   'unseen-target'
 ]
+// Identifiers of third-party file formats the importers read. They name another product's export, not
+// a System rule, so they are not System content even when they spell `dnd5e`.
+export const EXTERNAL_FORMAT_LITERALS = ['FOUNDRY_DND5E']
 
-const contentFencedModule = (file) =>
-  CONTENT_FENCED.some((prefix) => file.startsWith(prefix)) && !file.startsWith(`${SYSTEMS}/`)
+const contentFencedModule = (fenced) => (file) =>
+  fenced.some((prefix) => file.startsWith(prefix)) && !file.startsWith(`${SYSTEMS}/`)
 
 /** The distinct strings and template text of a module that name System content, outside its import specifiers. */
 export const systemLiterals = (file, source) => {
@@ -207,7 +206,11 @@ export const systemLiterals = (file, source) => {
         : node.type === 'TemplateElement'
           ? node.value.cooked
           : null
-    if (text !== null && (/dnd5e/i.test(text) || SYSTEM_RULE_LITERALS.includes(text)))
+    if (
+      text !== null &&
+      !EXTERNAL_FORMAT_LITERALS.includes(text) &&
+      (/dnd5e/i.test(text) || SYSTEM_RULE_LITERALS.includes(text))
+    )
       found.add(text)
     for (const [key, value] of Object.entries(node))
       if (key !== 'parent' && value && typeof value === 'object') visit(value)
@@ -310,10 +313,13 @@ export const ratchetProblems = (root, { base } = {}) => {
     if (!d20ByHand.has(file))
       problems.push(`${D20_ALLOWLIST}: ${file} no longer settles a d20 by hand; remove it.`)
 
-  const contentAllowlist = readJson(root, SYSTEM_LITERAL_ALLOWLIST)
+  const { fenced: contentFenced, allowed: contentAllowlist } = readJson(
+    root,
+    SYSTEM_LITERAL_ALLOWLIST
+  )
   const contentByModule = new Map(
     files
-      .filter(contentFencedModule)
+      .filter(contentFencedModule(contentFenced))
       .map((file) => [file, systemLiterals(file, source(file))])
       .filter(([, found]) => found.length > 0)
   )
@@ -330,10 +336,21 @@ export const ratchetProblems = (root, { base } = {}) => {
 
   if (base) {
     const baseContent = baseJson(root, base, SYSTEM_LITERAL_ALLOWLIST)
-    if (baseContent)
+    if (baseContent?.fenced) {
+      // The fence only grows. A module it newly reaches may be listed as debt; an entry for a module
+      // the base already fenced is new debt.
+      for (const prefix of baseContent.fenced)
+        if (!contentFenced.includes(prefix))
+          problems.push(
+            `${SYSTEM_LITERAL_ALLOWLIST}: the fence no longer covers ${prefix}; it only grows.`
+          )
       for (const file of Object.keys(contentAllowlist))
-        if (!Object.hasOwn(baseContent, file))
+        if (
+          !Object.hasOwn(baseContent.allowed, file) &&
+          contentFencedModule(baseContent.fenced)(file)
+        )
           problems.push(`${SYSTEM_LITERAL_ALLOWLIST}: ${file} is new; the allowlist only shrinks.`)
+    }
     const baseD20 = baseJson(root, base, D20_ALLOWLIST)
     if (baseD20) {
       const baseEntries = [...Object.keys(baseD20.settlement), ...baseD20.handSettled]

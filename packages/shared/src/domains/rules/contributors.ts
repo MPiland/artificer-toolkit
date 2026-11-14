@@ -11,9 +11,10 @@ export const ROLL_MODE_CONTRIBUTOR_SOURCE_KINDS = [
 /**
  * Where a d20 roll-mode contributor comes from, as identities: reason labels are a lookup by `kind`
  * and `id`, never a parse of the contributor's opaque `sourceId` or `domainKey`. `id` is the active
- * effect, System condition or authored definition that names the contributor, or the platform rule
- * (`ROLL_MODE_RULE_SOURCE_IDS`); `holderActorId` is the Encounter actor the contributor applies to,
- * when the producer knows it.
+ * effect, System condition or authored definition that names the contributor, or the rule: a
+ * platform rule (`ROLL_MODE_RULE_SOURCE_IDS`) or a System's rule contributor for a Kernel trigger
+ * (its roll-mode capability's `ruleContributors`); `holderActorId` is the Encounter actor the
+ * contributor applies to, when the producer knows it.
  */
 export interface RollModeContributorSource {
   kind: (typeof ROLL_MODE_CONTRIBUTOR_SOURCE_KINDS)[number]
@@ -21,13 +22,9 @@ export interface RollModeContributorSource {
   holderActorId: string | null
 }
 
-/** The rules-owned contributors that no authored source names. */
+/** The platform-owned contributors that no authored source names. */
 export const ROLL_MODE_RULE_SOURCE_IDS = {
   FACING: 'facing',
-  LONG_RANGE: 'long-range',
-  CLOSE_RANGE: 'close-range',
-  UNSEEN_ATTACKER: 'unseen-attacker',
-  UNSEEN_TARGET: 'unseen-target',
   CAST_MODIFIER: 'cast-modifier',
   /** A bystander's reaction that set the roll's mode before it was rolled (D217). */
   REACTION: 'reaction'
