@@ -150,8 +150,8 @@ The zones module imports the test-phase, outcome and lifetime modules above dire
 **Aspect composition (current, QUALITY-15.T1; ADR 0039 decision 1).** Activation and targeting compile independently
 and are composed in the compiler's `activatedAction`, which the direct path (`supported`), the test paths (`testPlan`,
 `supportedTestPhaseKind`) and nothing else read. Each aspect refuses with its own rule, so a refusal names the aspect
-that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a
-Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
+that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a reaction aims no area (its trigger's
+pending decision carries no aim), a Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
 accepts (a grant, condition, link, form or check). A single target on a Self range is its user, as the room's
 single-target evaluator holds it. The test, outcome and lifetime selection still run as plan ladders; they are the
 QUALITY-15 follow-up tasks.

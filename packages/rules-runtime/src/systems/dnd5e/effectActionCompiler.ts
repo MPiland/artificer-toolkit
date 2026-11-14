@@ -1808,9 +1808,10 @@ function validateDiceOutcomeGroup(
 }
 
 /**
- * The activation and targeting aspects of an action, each compiled on its own, and the one rule that
- * reads both: an uncharged free action is bounded only by its holder's restrictions, so it is taken
- * on its user alone (Frenzy).
+ * The activation and targeting aspects of an action, each compiled on its own, and the rules that
+ * read both: an uncharged free action is bounded only by its holder's restrictions, so it is taken
+ * on its user alone (Frenzy); and a reaction resolves on its trigger's pending decision, which aims
+ * no area.
  */
 function activatedAction(
   action: Dnd5eCompiledEffectActionSource,
@@ -1825,6 +1826,8 @@ function activatedAction(
   const targeting = compileDnd5eTargeting(action, test)
   if (activation.code === 'FREE' && !activation.charged && targeting.kind !== 'SELF')
     unsupported('D&D free action with no charge is taken on its user alone.')
+  if (activation.code === 'REACTION' && targeting.kind === 'AREA')
+    unsupported('D&D reaction resolves on its trigger and aims no area.')
   return { invocation, targeting }
 }
 
