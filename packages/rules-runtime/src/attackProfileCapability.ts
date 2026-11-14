@@ -80,11 +80,15 @@ export interface AttackProfileCapabilityAdapter {
     domain: AttackDomainCode,
     attack: CharacterAttack
   ): AttackCriticalRulesDto
-  /** The attack-roll contributors of one domain that apply to a Character attack, canonically ordered. */
+  /**
+   * The attack-roll contributors of one domain that apply to a Character attack, canonically
+   * ordered. `heldConditionTypeIds` are the conditions the Character holds the target with.
+   */
   characterAttackRollContributors(
     policy: CharacterRulePolicyOutput,
     domain: AttackDomainCode,
-    attack: CharacterAttack
+    attack: CharacterAttack,
+    heldConditionTypeIds?: ReadonlySet<string>
   ): RollContributor[]
   /** The defenses one damage roll meets; `traits` is null for damage that is not from an attack. */
   attackDamageDefenses(

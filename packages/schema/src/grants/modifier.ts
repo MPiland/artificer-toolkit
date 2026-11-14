@@ -57,7 +57,12 @@ const attackRollRollModeParamDtoSchema = lazySchema(() =>
     attackDomain: attackDomainCodeSchema,
     ability: z.optional(systemCoreCodeSchema),
     /** Only attacks against the source of the effect holding the grant (Bestow Curse). */
-    againstEffectSource: z.optional(z.boolean())
+    againstEffectSource: z.optional(z.boolean()),
+    /**
+     * Only attacks against a creature the holder holds through an actor relationship it applied
+     * that imposes this condition (a creature the holder is grappling).
+     */
+    againstHeldConditionTypeId: z.optional(authoredIdentifierSchema)
   })
 )
 

@@ -535,11 +535,14 @@ export type ValueDomainParamByCode = {
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed. Only advantage and
   // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength), or
-  // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse).
+  // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse), or
+  // against a creature the holder holds through a relationship imposing a condition
+  // (`againstHeldConditionTypeId`, Grappler).
   ATTACK_ROLL: {
     attackDomain: AttackDomainCode
     ability?: string
     againstEffectSource?: boolean
+    againstHeldConditionTypeId?: string
   }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the

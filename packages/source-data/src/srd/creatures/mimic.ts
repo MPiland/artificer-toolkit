@@ -1,5 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
+import { heldCreatureAttackAdvantageGrants } from '../classes/mechanics.js'
 import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const mimic: CreatureAuthored = {
@@ -79,19 +79,12 @@ export const mimic: CreatureAuthored = {
       label: 'Grappler',
       description:
         'Grappler. The mimic has advantage on attack rolls against any creature grappled by it.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(197, 504),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(197, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_GRAPPLER
-        })
-      ],
+      grants: {
+        modifiers: heldCreatureAttackAdvantageGrants(
+          (entry) => S.grantId(197, 1 + entry),
+          S.GRAPPLED_CONDITION_ID
+        )
+      },
       order: 4
     },
     {
@@ -100,82 +93,15 @@ export const mimic: CreatureAuthored = {
       description:
         'Pseudopod. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) bludgeoning damage. If the mimic is in object form, the target is subjected to its Adhesive trait.',
       effects: [
-        {
-          id: S.actionId(197, 3),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(197, 4),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(197, 5),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(197, 5) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(197, 5),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d8',
-                    bonuses: [
-                      {
-                        id: S.actionId(197, 6),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        S.manualAdjudicationEffect({
-          id: S.actionId(197, 505),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(197, 605),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          label: 'Adhesive',
-          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-          instructions:
-            'If the mimic is in object form, the target is subjected to its Adhesive trait: it is grappled (escape DC 13), and ability checks made to escape this grapple have disadvantage.'
+        S.weaponAttack({
+          creatureIndex: 197,
+          localIndex: 3,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'BLUDGEONING',
+          diceConfig: '1d8',
+          ability: 'STRENGTH',
+          grapple: { localIndex: 1, escapeDc: 13, heldAtOnce: 1, largestTarget: S.SIZE_CODE.HUGE }
         })
       ],
       order: 5

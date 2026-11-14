@@ -16,9 +16,10 @@ import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
- * SPELLS-33 T4s3 (D156, D187a): Immutable Form, Duergar Enlarge and the Mimic Pseudopod's Adhesive
- * rider are GM rulings. Each creature must pass its node map exactly as authored, and the five
- * closed rule kinds are gone.
+ * SPELLS-33 T4s3 (D156, D187a): Immutable Form and Duergar Enlarge are GM rulings. Each creature must pass its node map exactly as
+ * authored, and the five closed rule kinds are gone. SPELLS-33.T8a (Q30c): the Mimic Pseudopod's Adhesive
+ * rider is no longer a ruling (the hit grapples from core options), so the Mimic is in the node-map
+ * round trip only; its grapple is proved in srdHeldCreatureAttackAdvantage.test.ts.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -33,11 +34,15 @@ const CREATURES: [string, CreatureAuthored, string, string][] = [
   ['Flesh Golem', fleshGolem, 'Immutable Form', 'PASSIVE'],
   ['Iron Golem', ironGolem, 'Immutable Form', 'PASSIVE'],
   ['Stone Golem', stoneGolem, 'Immutable Form', 'PASSIVE'],
-  ['Duergar', duergar, 'Enlarge (Recharges after a Short or Long Rest)', 'ACTION'],
-  ['Mimic', mimic, 'Pseudopod', 'ACTION']
+  ['Duergar', duergar, 'Enlarge (Recharges after a Short or Long Rest)', 'ACTION']
 ]
 
-describe('Immutable Form, Duergar Enlarge and Mimic Adhesive rider as GM rulings (D187a)', () => {
+const ROUND_TRIP_CREATURES: [string, CreatureAuthored][] = [
+  ...CREATURES.map(([name, creature]): [string, CreatureAuthored] => [name, creature]),
+  ['Mimic', mimic]
+]
+
+describe('Immutable Form and Duergar Enlarge as GM rulings (D187a)', () => {
   it.each(CREATURES)('%s authors a ruling on %s', (_name, creature, label, kind) => {
     const feature = creature.features?.find((candidate) => candidate.label === label)
     const rulings = (feature?.effects ?? [])
@@ -48,7 +53,7 @@ describe('Immutable Form, Duergar Enlarge and Mimic Adhesive rider as GM rulings
     expect(feature?.effects?.some((effect) => effect.invocation.kind === kind)).toBe(true)
   })
 
-  it.each(CREATURES)(
+  it.each(ROUND_TRIP_CREATURES)(
     'keeps %s exactly as authored through the creature node map',
     async (_name, creature) => {
       const result = await normalizeNodeRuntimeValues(reader, {
