@@ -280,7 +280,7 @@ describe('the compiler composes outcomes by the aspect (QUALITY-15.T1d admission
   it('compiles a Hide held by a named maintained effect, whose concealment plan holds it', () => {
     const hide = catalogueBasicActionEffect(SRD_BASIC_ACTION_IDS.HIDE)
     const [path] = hide.paths
-    if (!path) throw new Error('Hide has no authored path.')
+    if (!path || !('resultBlock' in path)) throw new Error('Hide has no direct result block.')
     const maintenanceDefinitionId = testUuid(0x15d0b)
     const maintained = {
       ...hide,
