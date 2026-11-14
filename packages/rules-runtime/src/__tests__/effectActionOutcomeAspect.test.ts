@@ -296,3 +296,42 @@ describe('the compiler composes outcomes by the aspect (QUALITY-15.T1d admission
     )
   })
 })
+
+describe('the outcome aspect names the rule each refused result breaks (QUALITY-15.T2)', () => {
+  const onUse = entryOf(action(ACTIVATED, PATH_CODE.ON_USE))
+  const failed = entryOf(action(SAVING_THROW, PATH_CODE.ON_SAVE_FAIL))
+
+  it('a direct action with no result, more than one, or a repeated save with nothing before it', () => {
+    const second = { ...onUse, id: testUuid(0x15d0c), entryId: testUuid(0x15d0c) }
+    expect(() => directEntry([])).toThrow(`${ONE_RESULT} It has no result.`)
+    expect(() => directEntry([onUse, second])).toThrow(
+      `${ONE_RESULT} It applies more than one result.`
+    )
+    expect(() => directEntry([onUse], NOTHING_CARRIED, true)).toThrow(
+      `${ONE_RESULT} Its repeated save must follow its one result.`
+    )
+  })
+
+  it('each composition rule an entry breaks, on a direct action and on a test path', () => {
+    const lasting = entryOf(action(ACTIVATED, PATH_CODE.ON_USE, TEN_ROUNDS))
+    const ranged = entryOf(action(ACTIVATED, PATH_CODE.ON_USE, {}, { rangeOverride: THIRTY_FEET }))
+    expect(() => directEntry([{ ...onUse, groupKind: PATH_GROUP_TYPE.SEQUENTIAL }])).toThrow(
+      `${ONE_RESULT} Its sequence has no plan that holds its later outcomes.`
+    )
+    expect(() => directEntry([{ ...onUse, groupKind: PATH_GROUP_TYPE.CHOICE }])).toThrow(
+      `${ONE_RESULT} Its choice has no plan that holds its options.`
+    )
+    expect(() => directEntry([entryOf(action(ACTIVATED, PATH_CODE.ON_HIT))])).toThrow(
+      `${ONE_RESULT} Its path is not one its test resolves to.`
+    )
+    expect(() => directEntry([ranged], ALL_CARRIED)).toThrow(
+      `${ONE_RESULT} Its result names a range or targeting of its own.`
+    )
+    expect(() => directEntry([lasting])).toThrow(
+      `${ONE_RESULT} Its duration, lifecycle or maintenance has no plan that holds it.`
+    )
+    expect(() => saveEntries([{ ...failed, pathCode: PATH_CODE.ON_HIT }])).toThrow(
+      `${TEST_PATHS} Its path is not one its test resolves to.`
+    )
+  })
+})

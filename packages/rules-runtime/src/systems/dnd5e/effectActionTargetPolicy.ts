@@ -46,8 +46,7 @@ export function compileDnd5eTargeting(
   const { targeting, range, shape } = invocation
   switch (targeting?.selectionKind) {
     case 'AREA_CONTENTS':
-      if (!isSupportedArea(invocation, action.zoneAppearSave))
-        unsupported('D&D area must be one fixed-size shape the area target policy measures.')
+      requireSupportedArea(invocation, targeting, action.zoneAppearSave === true)
       return { kind: 'AREA', pooled: hitPointPoolIsAuthored(targeting) }
     case 'SELF':
       return selfTargeting(invocation, test)
@@ -78,8 +77,11 @@ export function compileDnd5eTargeting(
       requireTargetRange(invocation)
       return { kind: 'CHOSEN', willing: targeting.dispositionKind === 'WILLING' }
     }
-    default:
-      unsupported('D&D action targeting is not a supported selection.')
+    case undefined:
+      // An action with a Self range that names no targeting is taken on its user alone, as a single
+      // target on a Self range is (Change Shape).
+      if (range.rangeKind === 'SELF') return selfTargeting(invocation, test)
+      unsupported('D&D action off a Self range must name its targeting.')
   }
 }
 
@@ -150,45 +152,56 @@ function requireTargetRange(invocation: Dnd5eActionInvocation): void {
  * the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
  * domes, a Self sphere, Touch origins and breakpoint-scaled sizes stay refused. The area only
  * decides who is caught: each caught creature runs the same
- * per-creature test plan a single target does.
+ * per-creature test plan a single target does. Each part an area breaks refuses with its own rule.
  */
-function isSupportedArea(invocation: Dnd5eActionInvocation, overZone = false): boolean {
-  const { shape, targeting, range } = invocation
-  if (targeting?.selectionKind !== 'AREA_CONTENTS') return false
-  const pooled = hitPointPoolIsAuthored(targeting)
+function requireSupportedArea(
+  invocation: Dnd5eActionInvocation,
+  targeting: Extract<
+    NonNullable<Dnd5eActionInvocation['targeting']>,
+    { selectionKind: 'AREA_CONTENTS' }
+  >,
+  overZone: boolean
+): void {
+  const { shape, range } = invocation
+  if (targeting.dispositionKind !== 'ANY')
+    unsupported('D&D area catches every creature in it: its disposition must be Any.')
+  if (hitPointPoolIsAuthored(targeting)) {
+    if (invocation.triggerCode !== 'ACTIVATED')
+      unsupported('D&D hit-point pool tests no one: its action rolls no attack or save.')
+    if (!hitPointPoolDiceOptions(targeting).every(isBoundedDice))
+      unsupported('D&D hit-point pool must roll bounded dice.')
+  } else if (invocation.triggerCode !== 'SAVING_THROW')
+    unsupported('D&D area with no hit-point pool tests each creature it catches with a save.')
+  // A zone's later entry saves do not filter by creature type, so its appear save may not either.
   if (
-    targeting.dispositionKind !== 'ANY' ||
-    (pooled
-      ? invocation.triggerCode !== 'ACTIVATED' ||
-        !hitPointPoolDiceOptions(targeting).every(isBoundedDice)
-      : invocation.triggerCode !== 'SAVING_THROW') ||
-    // A zone's later entry saves do not filter by creature type, so its appear save may not either.
-    (overZone &&
-      (targeting.allowedCreatureTypeIds?.length || targeting.excludedCreatureTypeIds?.length))
+    overZone &&
+    (targeting.allowedCreatureTypeIds?.length || targeting.excludedCreatureTypeIds?.length)
   )
-    return false
+    unsupported('D&D zone appear save cannot filter by creature type: its entry saves do not.')
   // A Self action that names no shape reaches the creatures in the caster's own space.
-  if (!shape) return range.rangeKind === 'SELF' && !overZone
+  if (!shape) {
+    if (range.rangeKind === 'SELF' && !overZone) return
+    unsupported("D&D area outside its user's own space must name its shape.")
+  }
   // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
   if (
     !(overZone && shape.shapeKind === 'WALL') &&
     encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
   )
-    return false
+    unsupported('D&D area shape is not one its range places.')
   if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED' && !isPlainDistance(range))
-    return false
+    unsupported('D&D area needs a Self, unlimited or plain distance range.')
   const size = shapeExtent(shape)
-  return (
-    size !== null &&
-    size.scaling === undefined &&
-    size.amount > 0 &&
-    !(
-      shape.shapeKind === 'LINE' &&
+  if (
+    size === null ||
+    size.scaling !== undefined ||
+    !(size.amount > 0) ||
+    (shape.shapeKind === 'LINE' &&
       shape.width !== undefined &&
-      (shape.width.scaling !== undefined || !(shape.width.amount > 0))
-    ) &&
-    !(shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
+      (shape.width.scaling !== undefined || !(shape.width.amount > 0))) ||
+    (shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
   )
+    unsupported('D&D area size must be a fixed positive extent.')
 }
 
 function isBoundedDice(value: string): boolean {
