@@ -14,6 +14,7 @@ import { changedFields, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
+import { readCommittedReactionChildren } from './reactionChildren.js'
 import type { EncounterPersistenceTransaction, EncounterReadTransaction } from './ports.js'
 
 /**
@@ -71,12 +72,21 @@ export async function readAreaRemovalCommitAdmission(
   userId: string
 ) {
   const removal = await readAreaRemovalAdmission(ctx, args, userId)
-  const { command } = await readNativeAreaActionPending(ctx, removal.occurrence)
+  const { command, targets } = await readNativeAreaActionPending(ctx, removal.occurrence)
   const admission = await readNativeEncounterActionAdmission(ctx, command, userId, {
     occurrence: removal.occurrence,
     initiatorUserId: removal.context.initiatorUserId
   })
-  return { removal, admission }
+  return {
+    removal,
+    admission,
+    // The commit replays every answered ray under the reactions chosen against that ray.
+    reactionChildren: await readCommittedReactionChildren(ctx, {
+      campaignId: removal.campaign.id,
+      gameSystemId: admission.state.gameSystemId,
+      recorded: targets.flatMap(({ context }) => context.reactionChildren ?? [])
+    })
+  }
 }
 
 /**
