@@ -81,8 +81,7 @@ import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { applyNativeReactionChildren, createNativeCastPause } from './nativeEncounterCastPause.js'
 import {
   discoverNativeRollReactions,
-  nativeRollReactionTurns,
-  planNativeWindowReactions
+  nativeRollReactionTurns
 } from './nativeEncounterRollReaction.js'
 import {
   readNativePendingActionAnswer,
@@ -1130,22 +1129,6 @@ export async function planNativeLiveEncounterAction(
           }).passiveWeaponHits
         : []
   })
-  // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207);
-  // the target's rides its own mechanics.
-  const windowReactions = planNativeWindowReactions({
-    reactions: rollReactions,
-    execution,
-    state,
-    occurrenceId,
-    commandId: command.commandId,
-    occurredAt,
-    userId: initial.expectedUserId
-  })
-  const windowTarget = windowReactions.find(
-    ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
-  )
-  const spentTargetEconomy = windowTarget?.economy ?? null
-  const targetReactorSpend = Boolean(windowTarget?.resourceConsumption)
   const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -1277,9 +1260,7 @@ export async function planNativeLiveEncounterAction(
     maintainedState,
     grants: gateImmunityGrant ? [gateImmunityGrant] : [],
     formCreature: null,
-    targetSpends: targetReactorSpend,
     charge: resistance?.charge ?? null,
-    reactionEconomy: spentTargetEconomy,
     mechanics: {
       sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       damageReleases: actionEnded?.releases,
@@ -1403,7 +1384,6 @@ export async function planNativeLiveEncounterAction(
     attackAction: settledAttackAction,
     delegation: settledDelegation,
     resistance,
-    targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
     grantEffectTransitions: outcome.grantEffectTransitions,
     // A passed ward's immunity is among the grant effects; this record is the gate's roll, carded at the commit.
@@ -1468,7 +1448,6 @@ export async function planNativeLiveEncounterAction(
         ? await castPause.planResolvedOffers(hit)
         : [],
     spentUseGrants: uses.spentUseGrants,
-    windowReactions,
     forcedMovements,
     revisions,
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.

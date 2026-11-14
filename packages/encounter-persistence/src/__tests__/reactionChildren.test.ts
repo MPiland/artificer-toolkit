@@ -1027,20 +1027,20 @@ describe('the die a pending action records for a child it resumed from (QUALITY-
     )
   })
 
-  it('is the child’s own: never a die the action spends from a held effect or a window reaction', async () => {
-    for (const spent of [
-      { spentEffectId: testUuid(0x8a20) },
-      { spentReaction: { reactorActorId: PROTECTOR_ID, selectionChecksum: checksum('d') } }
-    ])
-      await expect(
-        pausedAttack({
-          reactionChildren: [
-            { commandId: child, resumeOutcome: null, rolledDie: { ...ROLLED_DIE, ...spent } }
-          ]
-        })
-      ).rejects.toThrow(
-        'Only a child the action resumed from records its die, which the child itself spent.'
-      )
+  it('is the child’s own: never a die the action spends from a held effect', async () => {
+    await expect(
+      pausedAttack({
+        reactionChildren: [
+          {
+            commandId: child,
+            resumeOutcome: null,
+            rolledDie: { ...ROLLED_DIE, spentEffectId: testUuid(0x8a20) }
+          }
+        ]
+      })
+    ).rejects.toThrow(
+      'Only a child the action resumed from records its die, which the child itself spent.'
+    )
   })
 
   it('records one face per die, each within its size', async () => {

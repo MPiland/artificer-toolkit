@@ -7,14 +7,11 @@ import {
   type EncounterD20WindowPendingContextDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
 import {
-  d20WindowReactionOptionId,
   d20WindowRolledChecksum,
   d20WindowUseOptionId,
-  isD20WindowReactionDie,
   type D20HeldDieDto,
   type D20WindowOptionDto,
-  type D20WindowPausePayloadDto,
-  type D20WindowReactionDieDto
+  type D20WindowPausePayloadDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -64,9 +61,6 @@ export function encounterD20WindowTrigger(context: EncounterD20WindowPendingCont
 /** One die a roller holds for after its d20: the effect that holds it and the grant that gives it. */
 export type EncounterD20WindowHeldDie = D20HeldDieDto
 
-/** One die a window offers its decider: one the roller holds, or one a reactor rolls against the roll (D207). */
-export type EncounterD20WindowDie = D20HeldDieDto | D20WindowReactionDieDto
-
 /**
  * What the roller answers: keeping the roll, or spending one offered option on it. A damage roll's
  * option names the dice it rolls again (D208).
@@ -109,32 +103,21 @@ export function encounterHeldCheckDice(
 /** The options offered for one roll: each die, identified by the roll it was offered for. */
 export function encounterD20WindowOptions(
   executionChecksum: string,
-  dice: readonly EncounterD20WindowDie[]
+  dice: readonly EncounterD20WindowHeldDie[]
 ): D20WindowOptionDto[] {
-  return dice.map((die) =>
-    isD20WindowReactionDie(die)
-      ? {
-          ...die,
-          optionId: d20WindowReactionOptionId({
-            executionChecksum,
-            selectionChecksum: die.reaction.selectionChecksum
-          })
-        }
-      : {
-          ...die,
-          optionId: d20WindowUseOptionId({
-            executionChecksum,
-            effectId: die.effectId,
-            grantId: die.grantId
-          })
-        }
-  )
+  return dice.map((die) => ({
+    ...die,
+    optionId: d20WindowUseOptionId({
+      executionChecksum,
+      effectId: die.effectId,
+      grantId: die.grantId
+    })
+  }))
 }
 
 /**
- * Holds a rolled d20 for one decider to spend a die on it: the sealed bounded choice they answer, and
- * the pause payload that freezes the roll and the options. `dice` must not be empty, and all belong to
- * the roller or all to one reactor not yet asked about this roll.
+ * Holds a rolled d20 for its roller to spend a die on it: the sealed bounded choice they answer, and
+ * the pause payload that freezes the roll and the options. `dice` must not be empty.
  */
 export async function openEncounterD20WindowPause(input: {
   runtime: RulesRuntimeService
@@ -142,9 +125,7 @@ export async function openEncounterD20WindowPause(input: {
   gameSystemId: string
   rolled: D20WindowPausePayloadDto['rolled']
   appRollId: string | null
-  dice: readonly EncounterD20WindowDie[]
-  /** The reactors earlier windows of this roll already asked. */
-  answeredReactorActorIds?: readonly string[]
+  dice: readonly EncounterD20WindowHeldDie[]
 }): Promise<{
   continuation: ServerRuleExecutionContinuationDto
   payload: D20WindowPausePayloadDto
@@ -167,7 +148,6 @@ export async function openEncounterD20WindowPause(input: {
     payload: {
       rolled,
       appRollId: input.appRollId,
-      answeredReactorActorIds: [...(input.answeredReactorActorIds ?? [])],
       offer: {
         executionChecksum,
         options: encounterD20WindowOptions(executionChecksum, input.dice)
@@ -279,17 +259,6 @@ export function chosenEncounterD20WindowOption(
   return chosen
 }
 
-/** The held die a decision spends, or null for a decline, on a window no reactor answers (D207). */
-export function chosenEncounterD20WindowHeldOption(
-  window: Pick<D20WindowPausePayloadDto, 'offer'>,
-  selection: EncounterD20WindowSelection
-) {
-  const chosen = chosenEncounterD20WindowOption(window, selection)
-  if (chosen && isD20WindowReactionDie(chosen))
-    throw new EncounterValidationError('Only an attack roll’s window offers a reaction.')
-  return chosen
-}
-
 /** The kernel index a selection answers the window's choice with: 0 keeps the roll. */
 export function encounterD20WindowSelectedIndex(
   window: Pick<D20WindowPausePayloadDto, 'offer'>,
@@ -348,14 +317,7 @@ export function spendEncounterD20WindowDie(
     count: option.count,
     faces: option.faces,
     sign: option.sign,
-    ...(isD20WindowReactionDie(option)
-      ? {
-          spentReaction: {
-            reactorActorId: option.reaction.reactorActorId,
-            selectionChecksum: option.reaction.selectionChecksum
-          }
-        }
-      : { spentEffectId: option.effectId }),
+    spentEffectId: option.effectId,
     rolledFaces: [...rolledFaces]
   }
   const addedDice = [...(d20.addedDice ?? []), die]
@@ -372,7 +334,7 @@ export function spendEncounterD20WindowDie(
 }
 
 type SpentDiceHolder =
-  | { addedDice?: readonly Pick<D20RolledAddedDieDto, 'spentEffectId' | 'spentReaction'>[] }
+  | { addedDice?: readonly Pick<D20RolledAddedDieDto, 'spentEffectId'>[] }
   | null
   | undefined
 
@@ -391,13 +353,4 @@ export function windowSpentEffects(
       if (!spent) throw new Error('The d20 window die is no longer held.')
       return [spent]
     })
-}
-
-/** The reactions a window spent on the action's settled rolls (D207); each reactor pays at the action's commit. */
-export function windowSpentReactions(
-  execution: Readonly<Record<'d20' | 'nestedD20', SpentDiceHolder>>
-) {
-  return [execution.d20, execution.nestedD20]
-    .flatMap((d20) => d20?.addedDice ?? [])
-    .flatMap(({ spentReaction }) => (spentReaction ? [spentReaction] : []))
 }

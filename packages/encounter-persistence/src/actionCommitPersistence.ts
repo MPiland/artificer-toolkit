@@ -11,7 +11,6 @@ import {
 import { clearHolderDamageTypes } from './damageTypesClearing.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -27,11 +26,6 @@ import {
   sourceSpendMutation,
   settleActionSourceSpend
 } from './actionSourceSpend.js'
-import {
-  applyUsedReactionSpends,
-  usedReactionSpends,
-  requireUsedReactionReceipt
-} from './usedReactionSpend.js'
 import {
   completeActionOccurrence,
   recordActionCommit,
@@ -117,7 +111,6 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
-    (!resume && input.windowReactions.length > 0) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
         // A gate passed earlier, or by the roll this commit answers, stays passed through the commit.
@@ -162,17 +155,6 @@ export async function persistEncounterActionCommit(
       : gateBehind
   )
     throw new Error('Live Session action incoming gate mismatch.')
-  // Each reaction rolled against the attack roll is the one a die of its settled d20 names (D207).
-  const spentReactions = windowSpentReactions(batch)
-  if (
-    input.windowReactions.length !== spentReactions.length ||
-    input.windowReactions.some(
-      ({ receipt: { reaction } }, index) =>
-        reaction.reactorActorId !== spentReactions[index]?.reactorActorId ||
-        reaction.selectionChecksum !== spentReactions[index]?.selectionChecksum
-    )
-  )
-    throw new Error('Live Session window reactions do not match the rolled dice.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
   const target = actors.find((actor) => actor.id === targetActorId)
@@ -233,14 +215,6 @@ export async function persistEncounterActionCommit(
     spell: input.spellConsumption,
     receipts: batch
   })
-  // Every reaction rolled against the attack roll spends its reaction and charge with the action (D207).
-  const reactionSpends = usedReactionSpends({
-    windowReactions: input.windowReactions,
-    actors,
-    source
-  })
-  // The action's target pays its own reaction in its single mechanics call.
-  const targetUsed = reactionSpends.find(({ reactor }) => reactor.id === target.id)
   // The source's own batch carries its spend and the conditions its ended effects released.
   const sourceMechanics =
     (spends || batch.sourceApplications.length) && source.id !== target.id
@@ -270,7 +244,6 @@ export async function persistEncounterActionCommit(
     commandId: command.commandId,
     occurredAt: input.occurredAt,
     forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
-    used: targetUsed,
     sourceMutation: source.id === target.id ? sourceMutation : {},
     extra: {
       ...(targetRelease
@@ -293,7 +266,6 @@ export async function persistEncounterActionCommit(
     },
     applyMechanics: callbacks.applyMechanics
   })
-  if (targetUsed) requireUsedReactionReceipt(targetUsed, mechanics)
   if (
     checksumCanonicalJson(mechanics.itemReleaseTransition) !==
       checksumCanonicalJson(targetRelease) ||
@@ -338,16 +310,6 @@ export async function persistEncounterActionCommit(
           economyOverridden: false
         })
       : null
-  const settledReactors = await applyUsedReactionSpends(ctx, {
-    state,
-    occurrenceId: execution.occurrenceId,
-    sourceCommandId: command.commandId,
-    occurredAt: input.occurredAt,
-    spends: reactionSpends,
-    exceptActorIds: [source.id, target.id],
-    applyMechanics: callbacks.applyMechanics,
-    currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
-  })
   let nextActors = actors.map((actor) =>
     actor.id === source.id
       ? settledSource
@@ -355,7 +317,7 @@ export async function persistEncounterActionCommit(
         ? settledTarget
         : actor.id === settledCommander?.id
           ? settledCommander
-          : (settledReactors.get(actor.id) ?? actor)
+          : actor
   )
   nextActors = await callbacks.persistActionEffects({
     ...effectInput,
@@ -555,7 +517,6 @@ export async function persistEncounterActionCommit(
       forcedMovementLandings: settledMovements.landings,
       turnUses,
       clearedDamageTypes,
-      windowReactions: input.windowReactions.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },
     occurredAt: input.occurredAt

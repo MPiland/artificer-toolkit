@@ -36,7 +36,6 @@ import {
 } from './encounterEvidenceAnswer.js'
 import {
   heldWindowedSave,
-  nextActionWindowDice,
   openActionSaveWindow,
   rolledActionTest,
   windowedSaveResponse,
@@ -61,7 +60,6 @@ import {
   type SettledActionResponse
 } from './encounterD20Settlement.js'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { D20WindowPausePayloadDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
   isDamageRollWindow,
   type DamageRerollCostDto
@@ -349,35 +347,28 @@ export async function prepareNativeActionTest(
   }
 
   /**
-   * A rolled TEST d20 that a die could still change is shown to its next decider before it resolves:
-   * as rolled, or as the window just answered settled it, for the next reactor (D207). A d20 that
-   * sight governs settles its true mode first, as in `advanceNativeActionGraphs`, so it opens none.
+   * A rolled TEST d20 that a held die could still change is shown to its roller before it resolves. A
+   * d20 that sight governs settles its true mode first, as in `advanceNativeActionGraphs`, so it
+   * opens none.
    */
   async function windowRolledSave(
     rolledContinuation: ServerRuleExecutionContinuationDto,
     rolledPolicy: ServerRuleExecutionD20PolicyDto,
     sightGoverned: boolean,
-    rolled:
-      | { response: SettledActionResponse; appRollId: string | null }
-      | { previous: D20WindowPausePayloadDto; d20: EncounterActionWindowAnswer['d20'] }
+    rolled: { response: SettledActionResponse; appRollId: string | null }
   ) {
-    const next = await nextActionWindowDice({
-      saveWindow: input.saveWindow,
-      policy: rolledPolicy,
-      previous: 'previous' in rolled ? rolled.previous : null
-    })
-    if (next.dice.length > 0) mayAddDice = true
+    const dice = input.saveWindow?.heldDice(rolledPolicy) ?? []
+    if (dice.length > 0) mayAddDice = true
     const window =
-      next.dice.length > 0 && !sightGoverned
+      dice.length > 0 && !sightGoverned
         ? await openActionSaveWindow({
             runtime: input.runtime,
             occurrenceId: input.occurrenceId,
             gameSystemId: current.published.gameSystemId,
-            dice: next.dice,
-            answeredReactorActorIds: next.answeredReactorActorIds,
-            ...('previous' in rolled
-              ? rolled
-              : { continuation: rolledContinuation, policy: rolledPolicy, ...rolled })
+            dice,
+            continuation: rolledContinuation,
+            policy: rolledPolicy,
+            ...rolled
           })
         : null
     return window
@@ -533,16 +524,11 @@ export async function prepareNativeActionTest(
       )
         throw new Error('The native action TEST evidence is stale.')
       const previous = pending.pause.payload
-      // The next reactor, if any, is asked about the roll as the window just answered settled it.
-      const held =
-        (await windowRolledSave(heldContinuation, policy, false, {
-          previous,
-          d20: resolution.d20
-        })) ??
-        (await holdRolledAttack(policy, false, () => ({
-          test: { ...windowed, d20: resolution.d20 },
-          appRollId: previous.appRollId
-        })))
+      // The roller's window is answered; the roll as it settled is shown to whoever may react to it.
+      const held = await holdRolledAttack(policy, false, () => ({
+        test: { ...windowed, d20: resolution.d20 },
+        appRollId: previous.appRollId
+      }))
       if (held) return held
     }
     if (input.windowDice) mayAddDice = true
@@ -842,9 +828,7 @@ export async function continueNativeActionAfterTest(
   async function answer(
     continuation: ServerRuleExecutionContinuationDto,
     policy: ServerRuleExecutionD20PolicyDto | null,
-    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer,
-    /** The window a `ROLL_WINDOW` answer settled. */
-    previous: D20WindowPausePayloadDto | null
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
   ) {
     const response =
       resolution.kind === 'ROLL_WINDOW'
@@ -856,25 +840,20 @@ export async function continueNativeActionAfterTest(
             resolution,
             random
           })
-    const next = policy
-      ? await nextActionWindowDice({ saveWindow: input.saveWindow, policy, previous })
-      : null
+    // A window answered once is not opened again on the roll it settled.
+    const dice =
+      policy && resolution.kind !== 'ROLL_WINDOW' ? (input.saveWindow?.heldDice(policy) ?? []) : []
     const window =
-      policy && next && next.dice.length > 0
+      policy && dice.length > 0
         ? await openActionSaveWindow({
             runtime: input.runtime,
             occurrenceId: input.occurrenceId,
             gameSystemId: published.gameSystemId,
-            dice: next.dice,
-            answeredReactorActorIds: next.answeredReactorActorIds,
-            ...(resolution.kind === 'ROLL_WINDOW' && previous
-              ? { previous, d20: resolution.d20 }
-              : {
-                  continuation,
-                  policy,
-                  response,
-                  appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
-                })
+            dice,
+            continuation,
+            policy,
+            response,
+            appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
           })
         : null
     if (window)
@@ -889,7 +868,7 @@ export async function continueNativeActionAfterTest(
     const resumed = await settleEncounterD20Test({
       continuation,
       roll: { natural: response.value, addedDice: response.addedDice },
-      mayAddDice: resolution.kind === 'ROLL_WINDOW' || (next?.dice.length ?? 0) > 0,
+      mayAddDice: resolution.kind === 'ROLL_WINDOW' || dice.length > 0,
       resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode && response.keep) {
@@ -960,12 +939,7 @@ export async function continueNativeActionAfterTest(
       const policy = actionD20Policy({ phase: 'OUTCOME', continuation, bound, twoPhase })
       if (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
         throw new Error('The native action OUTCOME policy is stale.')
-      const answered = await answer(
-        continuation,
-        policy,
-        resolution,
-        window && !isDamageRollWindow(window) ? window : null
-      )
+      const answered = await answer(continuation, policy, resolution)
       if ('kind' in answered) return answered
       result = answered
     }
@@ -984,12 +958,10 @@ export async function continueNativeActionAfterTest(
         twoPhase,
         phaseReceipts: input.boundary.phaseReceipts
       }
-    const answered = await answer(
-      continuation,
-      policy,
-      { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
-      null
-    )
+    const answered = await answer(continuation, policy, {
+      kind: 'AUTO_ROLL',
+      requestId: continuation.request.requestId
+    })
     if ('kind' in answered) return answered
     result = answered
   }

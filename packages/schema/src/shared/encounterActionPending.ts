@@ -9,7 +9,7 @@ import {
   serverRuleExecutionD20BeliefDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
-import { d20WindowReactorActorId, isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
+import { isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
 import { isDamageRollWindow } from './ruleExecutionDamageRollWindow.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
@@ -77,9 +77,7 @@ export const encounterReactionChildrenDtoSchema = lazySchema(() =>
           z.superRefine((child, context) => {
             if (
               child.rolledDie &&
-              (child.resumeOutcome === undefined ||
-                child.rolledDie.spentEffectId !== undefined ||
-                child.rolledDie.spentReaction !== undefined)
+              (child.resumeOutcome === undefined || child.rolledDie.spentEffectId !== undefined)
             )
               context.addIssue({
                 code: 'custom',
@@ -277,17 +275,10 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                   issue('A damage roll window belongs to a settled phase held for its caster.')
                 break
               }
-              const reactor = d20WindowReactorActorId(pause.payload)
               if (holdsActionD20 || !value.twoPhase || isD20RolledCheck(pause.payload.rolled))
                 issue(
                   'A d20 window belongs to a TEST or nested OUTCOME save held for the roller who holds a die.'
                 )
-              // A reactor's window is answered by that reactor, never by the creature that rolled.
-              if (
-                reactor !== null &&
-                (reactor !== value.rollerActorId || value.twoPhase?.phase !== 'TEST')
-              )
-                issue('A reactor window belongs to an attack TEST held for that reactor.')
               break
             }
           }

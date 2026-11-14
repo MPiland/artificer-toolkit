@@ -295002,10 +295002,6 @@ export declare const api: {
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
                         spentEffectId?: string;
-                        spentReaction?: {
-                          reactorActorId: string;
-                          selectionChecksum: string;
-                        };
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -295541,8 +295537,6 @@ export declare const api: {
                 allowedResponses: Array<
                   "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                 >;
-                answerBy?: string;
-                attackerActorId?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
                 kind: "ROLL_WINDOW";
@@ -296537,8 +296531,6 @@ export declare const api: {
                   allowedResponses: Array<
                     "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                   >;
-                  answerBy?: string;
-                  attackerActorId?: string;
                   d20: { selectedNatural: number; total: number };
                   encounterVersion: number;
                   kind: "ROLL_WINDOW";
@@ -297360,10 +297352,6 @@ export declare const api: {
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
                         spentEffectId?: string;
-                        spentReaction?: {
-                          reactorActorId: string;
-                          selectionChecksum: string;
-                        };
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -298207,8 +298195,6 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE">;
-            answerBy?: string;
-            attackerActorId?: string;
             d20: { selectedNatural: number; total: number };
             encounterVersion: number;
             kind: "ROLL_WINDOW";
@@ -298957,10 +298943,6 @@ export declare const api: {
                     rolledFaces: Array<number>;
                     sign: "ADD" | "SUBTRACT";
                     spentEffectId?: string;
-                    spentReaction?: {
-                      reactorActorId: string;
-                      selectionChecksum: string;
-                    };
                   }>;
                   contributorChecksum: string;
                   contributors: Array<{
@@ -299397,10 +299379,6 @@ export declare const api: {
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
                         spentEffectId?: string;
-                        spentReaction?: {
-                          reactorActorId: string;
-                          selectionChecksum: string;
-                        };
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -299895,8 +299873,6 @@ export declare const api: {
                 allowedResponses: Array<
                   "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                 >;
-                answerBy?: string;
-                attackerActorId?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
                 kind: "ROLL_WINDOW";
@@ -300708,10 +300684,6 @@ export declare const api: {
                   rolledFaces: Array<number>;
                   sign: "ADD" | "SUBTRACT";
                   spentEffectId?: string;
-                  spentReaction?: {
-                    reactorActorId: string;
-                    selectionChecksum: string;
-                  };
                 }>;
                 contributorChecksum: string;
                 contributors: Array<{

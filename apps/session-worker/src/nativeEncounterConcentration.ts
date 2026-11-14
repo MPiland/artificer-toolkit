@@ -79,7 +79,6 @@ import {
   settleEncounterD20Window
 } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
-import { isD20WindowReactionDie } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterD20Roll } from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -570,10 +569,7 @@ export async function planNativeLiveConcentration(input: {
         random
       })
       const { option } = settled
-      const spent =
-        option && !isD20WindowReactionDie(option)
-          ? site.effects.find(({ id }) => id === option.effectId)
-          : undefined
+      const spent = option ? site.effects.find(({ id }) => id === option.effectId) : undefined
       if (option && !spent) throw new Error('The d20 window die is no longer held.')
       if (spent) {
         spentDiceIds.add(spent.id)

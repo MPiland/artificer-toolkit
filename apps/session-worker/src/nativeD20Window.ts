@@ -4,7 +4,6 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
 import {
   isD20RolledCheck,
-  isD20WindowReactionDie,
   type D20RolledCheckDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -66,10 +65,9 @@ export async function answerNativeD20Check(input: {
       // A d20 that paused keeps the version it was recorded under.
       occurrenceVersion: command.expectedOccurrenceVersion,
       window: {
-        spentEffect:
-          option && !isD20WindowReactionDie(option)
-            ? (input.rollerEffects.find(({ id }) => id === option.effectId) ?? null)
-            : null
+        spentEffect: option
+          ? (input.rollerEffects.find(({ id }) => id === option.effectId) ?? null)
+          : null
       }
     }
   }

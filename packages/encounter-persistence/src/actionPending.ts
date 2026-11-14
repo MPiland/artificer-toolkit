@@ -5,7 +5,6 @@ import {
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingApplication'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
@@ -479,7 +478,6 @@ export function projectNativeActionPending(
         occurrenceVersion: occurrence.version,
         encounterVersion: occurrence.expectedEncounterVersion,
         rollerActorId: context.rollerActorId,
-        ...(d20WindowReactorActorId(pause.payload) ? { attackerActorId: command.actorId } : {}),
         requestId: snapshot.request.requestId,
         d20: { selectedNatural: rolled.d20.selectedNatural, total: rolled.d20.total },
         options: offer.options.map(({ optionId, label, count, faces, sign }) => ({

@@ -85,10 +85,6 @@ export function buildNativeLiveEncounterActionCommitInput(
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
     itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
-    windowReactions: plan.windowReactions.map(({ receipt, resourceConsumption }) => ({
-      receipt,
-      resourceConsumption
-    })),
     label: encounterActionSourceLabel(plan.prepared.source),
     ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,

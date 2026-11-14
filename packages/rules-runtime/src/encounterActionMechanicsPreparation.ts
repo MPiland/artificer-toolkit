@@ -617,11 +617,6 @@ export async function prepareEncounterActionMechanics<
    * dice then widen the save graph's allowed added dice. Only the single-target RESOLVE_ACTION asks.
    */
   saveWindow?: boolean
-  /**
-   * The dice other creatures may roll against this attack roll by their reactions (D207), offered in
-   * its d20 window after the attacker's own held dice; they widen the attack graph's allowed added dice.
-   */
-  windowReactionDice?: readonly D20AddedDieDto[]
   loadRelationshipFacts: (input: {
     state: EncounterRunState
     actors: readonly EncounterRunActorState[]
@@ -1113,13 +1108,13 @@ export async function prepareEncounterActionMechanics<
     input.saveWindow && attackDomain !== null
       ? activeAfterRollAttackRollDice(sourceFacts.activeEffects, attackDomain, attackAbility)
       : []
-  // Every die the attack's window may add after its d20: the attacker's own, then its reactors'.
-  const afterRollDice =
-    input.saveWindow && attackDomain !== null
-      ? [...attackWindowDice, ...(input.windowReactionDice ?? [])].map(
-          ({ label, count, faces, sign }) => ({ label, count, faces, sign })
-        )
-      : []
+  // Every die the attack's window may add after its d20: the attacker's own.
+  const afterRollDice = attackWindowDice.map(({ label, count, faces, sign }) => ({
+    label,
+    count,
+    faces,
+    sign
+  }))
   return {
     state,
     actor,

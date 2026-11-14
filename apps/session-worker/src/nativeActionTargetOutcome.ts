@@ -4,7 +4,6 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import type { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
@@ -62,12 +61,8 @@ export function planNativeActionTargetOutcome(input: {
   grants: readonly PlannedEffect[]
   /** The creature the lasting effect turns the target into. */
   formCreature: EncounterActorFormCreature | null
-  /** The target spends something of its own with the outcome, so its Character versions. */
-  targetSpends: boolean
   /** The Legendary Resistance charge the target used against the outcome. */
   charge: NonNullable<ReturnType<typeof encounterTargetLegendaryResistance>>['charge'] | null
-  /** The reaction allowance the target spent against the outcome. */
-  reactionEconomy: Parameters<typeof consumeEncounterActionEconomy>[0]['consumption'] | null
   /** The source's and the target's other writes that ride the same mechanics. */
   mechanics: Pick<
     NativeEncounterActionMechanicsInput,
@@ -144,32 +139,22 @@ export function planNativeActionTargetOutcome(input: {
       occurredAt,
       applications: input.applications,
       grantedMaximumHitPoints: effects.hitPointMaximumRaise,
-      forceTargetVersionAdvance:
-        target.kind === 'CHARACTER' && (createdEffects.length > 0 || input.targetSpends),
+      forceTargetVersionAdvance: target.kind === 'CHARACTER' && createdEffects.length > 0,
       ...input.mechanics,
       damageReleases: [...damageEnded.releases, ...(input.mechanics.damageReleases ?? [])],
       ...(enterForm ? { enterForm } : {})
     },
     input.userId
   )
-  // A Legendary Resistance the target used spends its own charge, and a reaction die its allowance,
-  // with the outcome.
-  const { charge, reactionEconomy } = input
-  const spent = (actor: EncounterRunActorState) => {
-    const charged = charge
+  // A Legendary Resistance the target used spends its own charge with the outcome.
+  const { charge } = input
+  const spent = (actor: EncounterRunActorState) =>
+    charge
       ? encounterRunActorStateSchema.parse({
           ...actor,
           resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.afterUsed)
         })
       : actor
-    return reactionEconomy
-      ? consumeEncounterActionEconomy({
-          actor: charged,
-          consumption: reactionEconomy,
-          overridden: false
-        })
-      : charged
-  }
   const transition = (effect: ActiveRuleEffectRecord | null) =>
     projectNativeActionEffectTransitions({
       state: null,

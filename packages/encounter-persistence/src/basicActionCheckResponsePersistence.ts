@@ -29,7 +29,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
-  chosenEncounterD20WindowHeldOption,
+  chosenEncounterD20WindowOption,
   encounterD20WindowSelectedIndex,
   encounterD20WindowSelection
 } from '@artificer-toolkit/rules-runtime/encounterD20Window'
@@ -206,7 +206,7 @@ export function requireD20WindowAnswer(input: {
 }) {
   const { offered, spentEffect, settled } = input
   const selection = encounterD20WindowSelection(input.resolution)
-  const option = chosenEncounterD20WindowHeldOption(offered, selection)
+  const option = chosenEncounterD20WindowOption(offered, selection)
   const rolledDice = offered.rolled.d20.addedDice ?? []
   const addedDie = settled.d20.addedDice?.at(rolledDice.length)
   if (
