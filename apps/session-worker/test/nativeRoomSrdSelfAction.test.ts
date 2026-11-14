@@ -144,10 +144,14 @@ describe('an unmodified SRD Duergar acting on itself off a Self range (QUALITY-1
       'RESOURCE_UNAVAILABLE'
     ])
     expect(forced.answer.type, JSON.stringify(forced.answer)).toBe('COMMAND_COMMITTED')
-    await undo(room)
-    await undo(room)
+  })
 
-    expect(await warningsOf()).not.toContainEqual(
+  it('clears the spent-use warning when the GM’s one undo gives the use back', async () => {
+    const room = await selfActionRoom('Enlarge')
+    await useOnItself(room)
+    await undo(room)
+    const offered = (await room.actionChoices()).actions.find(({ id }) => id === room.actionId)
+    expect(offered?.warnings).not.toContainEqual(
       expect.objectContaining({ code: 'RESOURCE_UNAVAILABLE' })
     )
   })
