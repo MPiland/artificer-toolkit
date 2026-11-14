@@ -286,7 +286,10 @@ export async function readNativeEncounterActionResponseAdmission(
     reactionChildren: await readCommittedReactionChildren(ctx, {
       campaignId: run.campaignId,
       gameSystemId: admission.state.gameSystemId,
-      recorded: pending.context.reactionChildren ?? []
+      // A list replays every answered ray under the reactions chosen against that ray.
+      recorded: area
+        ? area.targets.flatMap(({ context }) => context.reactionChildren ?? [])
+        : (pending.context.reactionChildren ?? [])
     })
   }
 }
@@ -345,9 +348,17 @@ export async function readNativeEncounterActionResumeAdmission(
   const reactionChildren = await readCommittedReactionChildren(ctx, {
     campaignId: run.campaignId,
     gameSystemId: admission.state.gameSystemId,
-    recorded
+    // A list replays every answered ray under the reactions chosen against that ray.
+    recorded: area
+      ? area.targets.flatMap(({ context }) => context.reactionChildren ?? [])
+      : recorded
   })
-  if (reactionChildren.length !== recorded.length) rejectDomain('DECISION_NOT_PENDING')
+  if (
+    recorded.some(
+      ({ commandId }) => !reactionChildren.some((child) => child.commandId === commandId)
+    )
+  )
+    rejectDomain('DECISION_NOT_PENDING')
   return {
     kind: 'READY' as const,
     admission,

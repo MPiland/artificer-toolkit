@@ -122,7 +122,7 @@ import {
   sealedListAttack
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
-import { advanceAreaRay } from './nativeAreaRayAdvance.js'
+import { advanceAreaRay, advanceAreaRayAim } from './nativeAreaRayAdvance.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
 
@@ -456,12 +456,23 @@ export async function sealReachSaves(
     ...(unaffectedActorIds.length > 0 ? { unaffectedActorIds: [...unaffectedActorIds] } : {}),
     targets
   })
-  for (const [index, target] of targets.entries())
+  for (const [index, { actor, prepared }] of reached.entries()) {
+    // A ray's aim is heard as its turn comes, before its d20 (D217).
+    snapshot = (
+      await advanceAreaRayAim(
+        input,
+        snapshot,
+        { prepared, sealed: sealedAt(snapshot, index) },
+        reach,
+        { kind: 'OPEN' }
+      )
+    ).snapshot
     snapshot = await autoRollAreaSave(input, snapshot, occurrenceId, {
-      actor: reached[index]!.actor,
-      prepared: reached[index]!.prepared,
-      sealed: target
+      actor,
+      prepared,
+      sealed: sealedAt(snapshot, index)
     })
+  }
   snapshot = await openNextAreaSaveWindow(input, snapshot)
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
@@ -480,6 +491,14 @@ export async function sealReachSaves(
     initiatorUserId,
     occurrenceId
   }
+}
+
+/** The entry at `index` of a pending area as `snapshot` holds it now. */
+function sealedAt(snapshot: ServerAggregateChoicePendingSnapshotDto, index: number) {
+  const context = snapshot.applicationContext
+  const sealed = context.kind === 'ENCOUNTER_AREA_ACTION' ? context.targets[index] : undefined
+  if (!sealed) throw new Error('The pending action evidence is invalid.')
+  return sealed
 }
 
 /**
@@ -700,16 +719,34 @@ export async function planNativeLiveEncounterAreaAnswer(
   const revalidated = answered.collision
     ? await revalidateStruckTarget(input, context, answered, answered.collision, reach)
     : await revalidateAreaTarget(input, context, answered, reach)
-  const snapshot = await openNextAreaSaveWindow(
+  let snapshot = await recordAreaRoll(
     input,
-    await recordAreaRoll(
-      input,
-      areaSnapshot,
-      areaSnapshot.occurrenceId,
-      { ...revalidated, prepared: revalidated.target.prepared, sealed: answered },
-      resolution
-    )
+    areaSnapshot,
+    areaSnapshot.occurrenceId,
+    { ...revalidated, prepared: revalidated.target.prepared, sealed: answered },
+    resolution
   )
+  // An answered ray hands the turn to the next, whose aim is heard before its d20 (D217).
+  const answeredAt = context.targets.indexOf(answered)
+  const following = context.targets[answeredAt + 1]
+  if (
+    revalidated.target.prepared.makesAttackRoll &&
+    following &&
+    sealedAt(snapshot, answeredAt).testedJson !== undefined
+  )
+    snapshot = (
+      await advanceAreaRayAim(
+        input,
+        snapshot,
+        {
+          prepared: (await revalidateAreaTarget(input, context, following, reach)).target.prepared,
+          sealed: following
+        },
+        reach,
+        { kind: 'OPEN' }
+      )
+    ).snapshot
+  snapshot = await openNextAreaSaveWindow(input, snapshot)
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
       ...input,
@@ -833,6 +870,10 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
  * the child left them, then runs the ray past its offer against them. The rider decision runs the
  * ray's outcome with it and is kept with the ray's answer. The rays behind it whose roller auto-rolls
  * follow, each stopping the list at its own hit's offer.
+ *
+ * A ray held before its d20 on an offer of its aim (D217) moves the same way: the answer of a
+ * creature beside its aim, or the resume from that creature's child, hands it to the next creature
+ * or seals it again for its caster's roll, and each ray behind it is heard in its own turn.
  */
 export async function planNativeLiveEncounterAreaRayOffer(
   input: ReachPlanInput & {
@@ -929,38 +970,54 @@ export async function planNativeLiveEncounterAreaRayOffer(
       })
     )
   }
-  const sealedAt = (index: number) => {
-    const current = snapshot.applicationContext
-    const sealed = current.kind === 'ENCOUNTER_AREA_ACTION' ? current.targets[index] : undefined
-    if (!sealed) throw new Error('The pending action evidence is invalid.')
-    return sealed
-  }
-  const advanced = await advanceAreaRay(
-    input,
-    snapshot,
-    { prepared: heldEntry.target.prepared, sealed: sealedAt(heldIndex) },
-    'resume' in continuation
-      ? { kind: 'RESUMED', offer: continuation.offer }
-      : {
-          kind: 'ANSWER',
-          answer: continuation.answer,
-          testBindings: new Map(
-            entries.flatMap(({ sealed, target }) =>
-              sealed.testedJson !== undefined && sealed.testBindingJson === undefined
-                ? [[sealed.snapshot.occurrenceId, JSON.stringify(target.prepared.binding)] as const]
-                : []
-            )
-          )
-        }
+  const heldRay = { prepared: heldEntry.target.prepared, sealed: sealedAt(snapshot, heldIndex) }
+  const testBindings = new Map(
+    entries.flatMap(({ sealed, target }) =>
+      sealed.testedJson !== undefined && sealed.testBindingJson === undefined
+        ? [[sealed.snapshot.occurrenceId, JSON.stringify(target.prepared.binding)] as const]
+        : []
+    )
   )
+  // An offer of the ray's aim is heard before its d20 (D217); every other is one its roll raised.
+  const aimStep =
+    'resume' in continuation
+      ? continuation.offer.kind === 'ATTACK_ON_OTHER'
+        ? ({ kind: 'RESUMED' } as const)
+        : null
+      : continuation.answer.kind === 'CAST_REACTION' &&
+          continuation.answer.answer.offer.kind === 'ATTACK_ON_OTHER'
+        ? ({ kind: 'ANSWER', answer: continuation.answer.answer, testBindings } as const)
+        : null
+  const advanced = aimStep
+    ? await advanceAreaRayAim(input, snapshot, heldRay, reach, aimStep)
+    : await advanceAreaRay(
+        input,
+        snapshot,
+        heldRay,
+        'resume' in continuation
+          ? { kind: 'RESUMED', offer: continuation.offer }
+          : { kind: 'ANSWER', answer: continuation.answer, testBindings }
+      )
   snapshot = advanced.snapshot
-  for (const [index, { actor, target }] of entries.entries())
+  // The held ray, once past its aim, and the rays behind it go on for a roller who auto-rolls.
+  for (const [index, { actor, target }] of entries.entries()) {
+    if (index < heldIndex) continue
     if (index > heldIndex)
-      snapshot = await autoRollAreaSave(input, snapshot, areaSnapshot.occurrenceId, {
-        actor,
-        prepared: target.prepared,
-        sealed: sealedAt(index)
-      })
+      snapshot = (
+        await advanceAreaRayAim(
+          input,
+          snapshot,
+          { prepared: target.prepared, sealed: sealedAt(snapshot, index) },
+          reach,
+          { kind: 'OPEN' }
+        )
+      ).snapshot
+    snapshot = await autoRollAreaSave(input, snapshot, areaSnapshot.occurrenceId, {
+      actor,
+      prepared: target.prepared,
+      sealed: sealedAt(snapshot, index)
+    })
+  }
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({ ...input, response, resume, areaSnapshot: snapshot })
   return {
@@ -1263,7 +1320,9 @@ export async function planNativeLiveEncounterAreaCommit(
     ? (
         await advanceEncounterListAttacks({
           ...source,
-          attacks: kept.map(({ sealed, target }) => sealedListAttack(sealed, target.prepared))
+          attacks: kept.map(({ sealed, target }) =>
+            sealedListAttack(sealed, target.prepared, input.reactionChildren.committed)
+          )
         })
       ).settled
     : await settleEncounterAreaAction({

@@ -1,14 +1,19 @@
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { advanceEncounterListAttacks } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
+  advanceEncounterListAttacks,
+  prepareEncounterAreaTests
+} from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import {
+  encounterAreaSaveAwaiting,
   holdEncounterAreaRay,
-  markEncounterAreaSaveTested
+  markEncounterAreaSaveTested,
+  resealEncounterAreaTargets
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
-import { withEncounterReactionDice } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { encounterOnHitAudit } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   buildEncounterActionPendingSnapshot,
+  buildEncounterHeldActionPendingSnapshot,
   restoreEncounterActionPending
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -24,8 +29,130 @@ import {
   reachCastPause,
   reachRollReactions
 } from './nativeAreaPreparation.js'
-import { type AreaTargetRecord, sealedListAttack } from './nativeAreaRevalidation.js'
+import {
+  type AreaTargetRecord,
+  discoverNativeLegendaryResistance,
+  sealedListAttack
+} from './nativeAreaRevalidation.js'
+import { applyNativeReactionChildren } from './nativeEncounterCastPause.js'
+import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
+
+/**
+ * Hears the creatures beside a ray's aim at another creature before its d20 (D217), in the window
+ * one attack's aim is heard in: as the ray's turn comes (`OPEN`), with a creature's answer to the
+ * offer, or past the offer once the reaction chosen from it committed as its holder's own child
+ * action (D219). The ray is held in its own snapshot on each creature's offer in turn, and on the
+ * answered offer while its child runs. Once nobody is left to ask, a ray that was held is sealed
+ * again for its caster's roll, under the roll mode its reactions imposed.
+ */
+export async function advanceAreaRayAim(
+  input: ReachPlanInput,
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  entry: { prepared: AreaPrepared; sealed: AreaTargetRecord },
+  reach: AreaReach,
+  step:
+    | { kind: 'OPEN' }
+    | {
+        kind: 'ANSWER'
+        answer: NativeCastReactionAnswer
+        /** The facts each answered ray was rolled against, kept if a reaction is used. */
+        testBindings: ReadonlyMap<string, string>
+      }
+    | { kind: 'RESUMED' }
+) {
+  const { prepared } = entry
+  const context = snapshot.applicationContext
+  const ray =
+    context.kind === 'ENCOUNTER_AREA_ACTION'
+      ? context.targets.find(
+          (target) => target.snapshot.occurrenceId === entry.sealed.snapshot.occurrenceId
+        )
+      : undefined
+  const inner = ray?.snapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_AREA_ACTION' || !ray || inner?.kind !== 'ENCOUNTER_ACTION')
+    throw new Error('The pending action evidence is invalid.')
+  // A ray is aimed once, as its turn to be rolled comes; a save is never aimed.
+  if (
+    step.kind === 'OPEN' &&
+    (!prepared.makesAttackRoll || encounterAreaSaveAwaiting(context, ray) !== 'ROLL')
+  )
+    return { snapshot, reactionChild: null }
+  const aimed = await reachCastPause(input, {
+    reach,
+    lead: prepared,
+    chosenActorIds: null,
+    occurrenceId: ray.snapshot.occurrenceId,
+    occurredAt: new Date().toISOString(),
+    answer: step.kind === 'ANSWER' ? step.answer : null,
+    ray: {
+      recorded: inner.reactionChildren ?? [],
+      resumedOffer: step.kind === 'RESUMED' ? input.reactionChildren.resumedOffer : null
+    }
+  }).advanceAimed()
+  if (aimed.kind === 'CAST_PENDING')
+    return {
+      snapshot: holdEncounterAreaRay(
+        snapshot,
+        ray.snapshot.request.requestId,
+        buildEncounterHeldActionPendingSnapshot({
+          continuation: aimed.continuation,
+          pause: aimed.pause,
+          rollerActorId: aimed.rollerActorId,
+          optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+          commandJson: context.commandJson,
+          commandFingerprint: context.commandFingerprint,
+          initiatorUserId: context.initiatorUserId,
+          currentnessChecksum: inner.currentnessChecksum,
+          reactionChildren: aimed.reactionChildren
+        }),
+        // Only a chosen reaction's child changes the creature under the answered rays.
+        aimed.reactionChild && step.kind === 'ANSWER' ? step.testBindings : undefined
+      ),
+      reactionChild: aimed.reactionChild
+    }
+  // Nobody was asked, so the ray's sealed roll stands.
+  if (step.kind === 'OPEN') return { snapshot, reactionChild: null }
+  const [test] = await prepareEncounterAreaTests({
+    runtime: input.runtime,
+    random: input.random,
+    adapter: prepared.adapter,
+    plan: prepared.plan,
+    occurrenceId: snapshot.occurrenceId,
+    targets: [
+      {
+        actorId: ray.actorId,
+        occurrenceId: ray.snapshot.occurrenceId,
+        binding: applyNativeReactionChildren(
+          input.reactionChildren.committed,
+          aimed.reactionChildren
+        )(prepared).binding,
+        attackSight: prepared.attackSight,
+        autoRoll: { SOURCE: false, TARGET: false },
+        discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
+      }
+    ]
+  })
+  if (test?.kind !== 'PENDING') throw new Error('An area roll must wait for its roller.')
+  const sealedAgain = buildEncounterActionPendingSnapshot({
+    execution: test.pending,
+    optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+    commandJson: context.commandJson,
+    commandFingerprint: context.commandFingerprint,
+    initiatorUserId: context.initiatorUserId,
+    sourceActorId: context.casterActorId,
+    targetActorId: ray.actorId,
+    currentnessChecksum: inner.currentnessChecksum,
+    reactionChildren: aimed.reactionChildren
+  })
+  return {
+    snapshot: resealEncounterAreaTargets(
+      snapshot,
+      context.targets.map((target) => (target === ray ? sealedAgain : target.snapshot))
+    ),
+    reactionChild: null
+  }
+}
 
 /**
  * Advances the ray whose turn it is through the single-target function, on the hit points the earlier
@@ -76,12 +203,16 @@ export async function advanceAreaRay(
           resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
-  // The dice the ray's own children rolled against its d20, as its snapshot records them: they join
-  // the dice its roll may total (D219).
+  // The ray's own children, as its snapshot records them, change its roll as one attack's do: the
+  // mode one imposed before its d20 (D217), and the dice they rolled against it, which join the dice
+  // its roll may total (D219).
   const rolledChildDice = (inner.reactionChildren ?? []).flatMap(({ rolledDie }) =>
     rolledDie ? [rolledDie] : []
   )
-  const ray = withEncounterReactionDice(prepared, rolledChildDice)
+  const ray = applyNativeReactionChildren(
+    input.reactionChildren.committed,
+    inner.reactionChildren ?? []
+  )(prepared)
   let reach: Promise<AreaReach> | undefined
   const readReach = () => (reach ??= prepareReach(input))
   let rollReactions: ReturnType<typeof reachRollReactions> | undefined
@@ -100,7 +231,7 @@ export async function advanceAreaRay(
       ...context.targets
         .slice(0, index)
         .filter((target) => target.actorId === sealed.actorId)
-        .map((earlier) => sealedListAttack(earlier, prepared)),
+        .map((earlier) => sealedListAttack(earlier, prepared, input.reactionChildren.committed)),
       {
         actorId: sealed.actorId,
         occurrenceId: sealed.snapshot.occurrenceId,
