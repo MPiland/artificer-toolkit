@@ -70,7 +70,8 @@ function damageRepeatingSpray(): SpellAuthored {
           amount: 10
         }
       row.resultBlock.outcomes = row.resultBlock.outcomes.map((outcome): OutcomeAuthored => {
-        if (outcome.effectKind === 'DAMAGE')
+        if (outcome.effectKind === 'DAMAGE') {
+          if (outcome.damageTypeId === undefined) throw new Error('Each ray names its damage type.')
           return {
             id: outcome.id,
             effectKind: 'DAMAGE',
@@ -80,6 +81,7 @@ function damageRepeatingSpray(): SpellAuthored {
             valueKind: 'FIXED',
             amount: 3
           }
+        }
         if (outcome.effectKind === 'FOLLOW_UP_SAVE' && outcome.timing === 'TARGET_TURN_END')
           return {
             id: outcome.id,
