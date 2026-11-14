@@ -6,7 +6,10 @@ import { encounterReactionChildrenDtoSchema } from './encounterActionPending.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
-import { encounterConcentrationDamageCheckPendingContextDtoSchema } from './ruleExecutionDirectActionPendingContexts.js'
+import {
+  encounterConcentrationDamageCheckPendingContextDtoSchema,
+  encounterEffectRepeatSavePendingContextDtoSchema
+} from './ruleExecutionDirectActionPendingContexts.js'
 import { storedRuleExecutionResultDtoSchema } from './ruleExecutionResults.js'
 import {
   compareSpatialPendingCandidates,
@@ -141,9 +144,26 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       /** The spatial contact whose damage owes the Concentration check. */
       damageSource: z.strictObject({ executionOrdinal: nonNegativeIntegerSchema }),
       concentration: encounterConcentrationDamageCheckPendingContextDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('REPEAT_SAVE_EVIDENCE'),
+      /** The spatial contact whose damage owes the effect repeat save (D167). */
+      damageSource: z.strictObject({ executionOrdinal: nonNegativeIntegerSchema }),
+      repeatSave: encounterEffectRepeatSavePendingContextDtoSchema
     })
   ])
 )
+
+/** The sealed damage-save child a pending move waits on, whichever save its contact owes next. */
+export function movementPendingDamageSave(
+  phase: z.infer<typeof movementReactionPendingPhaseDtoSchema>
+) {
+  return phase.kind === 'CONCENTRATION_EVIDENCE'
+    ? { damageSource: phase.damageSource, context: phase.concentration }
+    : phase.kind === 'REPEAT_SAVE_EVIDENCE'
+      ? { damageSource: phase.damageSource, context: phase.repeatSave }
+      : null
+}
 
 export const movementReactionPendingContextDtoSchema = lazySchema(() =>
   z
@@ -172,8 +192,9 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
       z.superRefine((value, context) => {
         validateSpatialMovementPendingRoot(value.root, context, ['root'])
         const currentEntry = value.reactionTimeline[0]
+        const damageSave = movementPendingDamageSave(value.phase)
         const allowsEmptyTimeline =
-          value.phase.kind === 'CONCENTRATION_EVIDENCE' ||
+          damageSave !== null ||
           (value.phase.kind === 'SPATIAL_EVIDENCE' &&
             value.appliedSpatialPrefix !== null &&
             value.appliedSpatialPrefix.status === 'BATCH_COMPLETE' &&
@@ -190,7 +211,7 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
         const phaseDistance =
           (value.phase.kind === 'SPATIAL_EVIDENCE'
             ? value.phase.currentCandidate.candidate.pathDistance
-            : value.phase.kind === 'CONCENTRATION_EVIDENCE'
+            : damageSave !== null
               ? value.completedSpatialExecutions.at(-1)?.candidate.candidate.pathDistance
               : currentOption!.candidate.pathDistance) ?? Number.NaN
         if (
@@ -213,7 +234,7 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
             path: ['phase', 'currentCandidate'],
             message: 'Pending spatial evidence may not follow the next frozen reaction contact.'
           })
-        if (value.phase.kind === 'CONCENTRATION_EVIDENCE') {
+        if (damageSave !== null) {
           const execution = value.completedSpatialExecutions.at(-1)
           const applications = execution?.applications
           const envelope =
@@ -222,26 +243,26 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
               const {
                 concentrationChecks: _concentrationChecks,
                 concentrationEnds: _concentrationEnds,
+                repeatSaves: _repeatSaves,
                 ...damageEnvelope
               } = execution
               return damageEnvelope
             })()
           if (
             !execution ||
-            execution.ordinal !== value.phase.damageSource.executionOrdinal ||
+            execution.ordinal !== damageSave.damageSource.executionOrdinal ||
             !applications?.some(
               (application) => application.kind === 'DAMAGE' && application.appliedAmount > 0
             ) ||
             !envelope ||
-            checksumRuleDocument(envelope) !==
-              value.phase.concentration.finalizedDamageEnvelopeChecksum ||
-            value.phase.concentration.parentCommandFingerprint !== value.root.commandFingerprint
+            checksumRuleDocument(envelope) !== damageSave.context.finalizedDamageEnvelopeChecksum ||
+            damageSave.context.parentCommandFingerprint !== value.root.commandFingerprint
           )
             context.addIssue({
               code: 'custom',
               path: ['phase'],
               message:
-                'Concentration evidence must bind the final positive-damage movement execution and its sealed child continuation.'
+                'Damage-save evidence must bind the final positive-damage movement execution and its sealed child continuation.'
             })
         }
         if (checksumRuleDocument(value.reactionTimeline) !== value.reactionSelectionChecksum)
@@ -295,14 +316,14 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
         let priorSpatial: z.infer<typeof spatialPendingCandidateDtoSchema> | null =
           value.phase.kind === 'SPATIAL_EVIDENCE'
             ? value.phase.currentCandidate
-            : value.phase.kind === 'CONCENTRATION_EVIDENCE'
+            : damageSave !== null
               ? (value.completedSpatialExecutions.at(-1)?.candidate ?? null)
               : null
         for (const [index, candidate] of value.remainingSpatialCandidates.entries()) {
           if (
             candidate.ordinal !==
               value.completedSpatialExecutions.length + spatialOrdinalOffset + index ||
-            (value.phase.kind === 'CONCENTRATION_EVIDENCE'
+            (damageSave !== null
               ? candidate.candidate.pathDistance + 1e-8 < value.root.pathStartDistance
               : value.phase.kind !== 'SPATIAL_EVIDENCE' &&
                 candidate.candidate.pathDistance <= currentOption!.candidate.pathDistance + 1e-8) ||

@@ -12,7 +12,8 @@ import { endHolderStateGrants } from '@artificer-toolkit/encounter-persistence/c
 import { persistLiveMovementSpatial } from '@artificer-toolkit/encounter-persistence/liveMovementSpatialPersistence'
 import {
   persistLiveMovementConcentration,
-  persistLiveMovementConcentrationEnd
+  persistLiveMovementConcentrationEnd,
+  persistLiveMovementRepeatSave
 } from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
 import {
   persistLiveMovementAreaDeparture,
@@ -112,6 +113,7 @@ export function roomMovementSettlementCallbacks(input: {
     },
     persistConcentration: (step) =>
       persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
+    persistRepeatSave: (step) => persistLiveMovementRepeatSave(ctx, step, concentrationCallbacks),
     persistConcentrationEnd: (step) =>
       persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
     persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),

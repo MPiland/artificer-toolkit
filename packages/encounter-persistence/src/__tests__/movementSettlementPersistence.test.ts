@@ -39,13 +39,15 @@ const contact = {
 const { concentrationEnds: _end, ...contactEvidence } = contact
 const spatialStep = { kind: 'SPATIAL', executions: [contactEvidence], transitions: [] }
 
-function settle(settlements: unknown[], automationMode?: 'MANUAL') {
+function settle(settlements: unknown[], automationMode?: 'MANUAL', executed: object = contact) {
   const callbacks = {
     persistSpatial: vi.fn(async () => ({
       actors: [{ id: 'mover' }, { id: 'bystander' }],
       characterTransitions: []
     })),
     persistConcentrationEnd: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
+    persistConcentration: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
+    persistRepeatSave: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     endHolderGrants: vi.fn(async () => {})
   }
   const persisted = persistMovementSettlements(
@@ -60,7 +62,7 @@ function settle(settlements: unknown[], automationMode?: 'MANUAL') {
         occurredAt: '2026-10-08T00:00:00.000Z',
         outcome: {
           kind: 'TERMINAL',
-          result: { status: 'BATCH_COMPLETE', executions: [contact] }
+          result: { status: 'BATCH_COMPLETE', executions: [executed] }
         }
       },
       settlements,
@@ -111,5 +113,103 @@ describe('persistMovementSettlements holder-state grant ends', () => {
 
     await persisted
     expect(callbacks.endHolderGrants).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * QUALITY-14.T2c: a contact's damage saves (its Concentration checks and its effect repeat saves)
+ * settle through their own steps, in the chain order the damage owed them.
+ */
+describe('persistMovementSettlements damage saves', () => {
+  const application = {
+    ordinal: 0,
+    sourceNodeId: 'damage',
+    sourceOperationKey: 'damage',
+    targetActorId: 'mover',
+    appliedAmount: 1,
+    damageTypeId: null
+  }
+  const check = {
+    sourceCommandId: COMMAND_ID,
+    result: {
+      occurrenceId: 'check',
+      applicationOutputs: {
+        source: 'CONCENTRATION',
+        application: { ...application, maintainedStateId: 'state', castAt: '2026-10-01T00:00:00Z' },
+        cleanup: null
+      }
+    },
+    ownerTransitions: []
+  }
+  const repeatSave = {
+    sourceCommandId: COMMAND_ID,
+    result: {
+      occurrenceId: 'repeat-save',
+      applicationOutputs: {
+        source: 'EFFECT_REPEAT_SAVE',
+        application,
+        activeEffect: { id: 'held-effect' }
+      }
+    },
+    release: null,
+    ownerTransitions: []
+  }
+  const damaged = {
+    candidate: {
+      candidate: { pathDistance: 1, targetActorId: 'mover', sourceActorId: 'zone-source' },
+      effect: { effectId: 'effect' }
+    },
+    concentrationChecks: [check],
+    repeatSaves: [repeatSave]
+  }
+  const { concentrationChecks: _checks, repeatSaves: _saves, ...evidence } = damaged
+  const spatial = { kind: 'SPATIAL', executions: [evidence], transitions: [] }
+  const checkStep = { kind: 'CONCENTRATION', execution: check }
+  const saveStep = { kind: 'REPEAT_SAVE', execution: repeatSave }
+
+  it('settles the Concentration check, then the repeat save with the zone source as its damager', async () => {
+    const { persisted, callbacks } = settle([spatial, checkStep, saveStep], undefined, damaged)
+
+    await expect(persisted).resolves.toMatchObject({ mechanicsChanged: true })
+    expect(callbacks.persistConcentration).toHaveBeenCalledOnce()
+    expect(callbacks.persistRepeatSave).toHaveBeenCalledOnce()
+    expect(callbacks.persistRepeatSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution: repeatSave,
+        damagerActorId: 'zone-source',
+        parentOccurrenceId: OCCURRENCE_ID,
+        sourceCommandId: COMMAND_ID
+      })
+    )
+    expect(callbacks.persistConcentration.mock.invocationCallOrder[0]).toBeLessThan(
+      callbacks.persistRepeatSave.mock.invocationCallOrder[0]!
+    )
+  })
+
+  it.each([
+    {
+      name: 'a repeat save settled before the check its damage owed first',
+      settlements: [spatial, saveStep, checkStep],
+      error: 'Movement Concentration differs from its retained contact.'
+    },
+    {
+      name: 'a repeat save that differs from the retained one',
+      settlements: [spatial, checkStep, { ...saveStep, execution: { ...repeatSave, release: {} } }],
+      error: 'Movement Concentration differs from its retained contact.'
+    },
+    {
+      name: 'a settlement list that omits the retained repeat save',
+      settlements: [spatial, checkStep],
+      error: 'Movement settlement is incomplete.'
+    },
+    {
+      name: 'a repeat save the contact did not retain',
+      settlements: [spatial, checkStep, saveStep, saveStep],
+      error: 'Movement Concentration differs from its retained contact.'
+    }
+  ])('refuses $name', async ({ settlements, error }) => {
+    const { persisted } = settle(settlements, undefined, damaged)
+
+    await expect(persisted).rejects.toThrow(error)
   })
 })

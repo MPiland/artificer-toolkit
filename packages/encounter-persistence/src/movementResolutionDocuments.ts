@@ -7,6 +7,7 @@ import {
   serverRuleExecutionPendingOccurrenceId,
   type ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { movementPendingDamageSave } from '@artificer-toolkit/schema/shared/ruleExecutionSpatialPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -147,6 +148,8 @@ export async function readMovementResponseAuthority(
     (snapshot.optionalCombatSnapshotChecksum ?? null) !== state.optionalCombatSnapshotChecksum
   )
     throw new Error('Stored movement response evidence is inconsistent.')
+  const damageSave =
+    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ? movementPendingDamageSave(context.phase) : null
   let decisionActorIds: string[]
   if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE') {
     decisionActorIds = [context.sourceActorId]
@@ -162,8 +165,8 @@ export async function readMovementResponseAuthority(
     decisionActorIds = [participantActorId]
   } else if (context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT') {
     decisionActorIds = [spatialPendingRollerActorId(context.currentCandidate)]
-  } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
-    decisionActorIds = [context.phase.concentration.application.targetActorId]
+  } else if (damageSave !== null) {
+    decisionActorIds = [damageSave.context.application.targetActorId]
   } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
     decisionActorIds = [spatialPendingRollerActorId(context.phase.currentCandidate)]
   } else {

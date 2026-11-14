@@ -18,7 +18,8 @@ import {
 } from '../shared/ruleExecutionEffectEvidence.js'
 import {
   movementConcentrationEndDtoSchema,
-  movementConcentrationExecutionDtoSchema
+  movementConcentrationExecutionDtoSchema,
+  movementRepeatSaveExecutionDtoSchema
 } from '../shared/ruleExecutionMovementConcentration.js'
 import { movementPassageContestReceiptDtoSchema } from '../shared/ruleExecutionSpatial.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
@@ -43,6 +44,11 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CONCENTRATION'),
       execution: movementConcentrationExecutionDtoSchema
+    }),
+    /** A repeat save a contact's damage owed one of its holder's effects (D167); a made save ends it. */
+    z.strictObject({
+      kind: z.literal('REPEAT_SAVE'),
+      execution: movementRepeatSaveExecutionDtoSchema
     }),
     /** The Concentration a contact ended with no check (D95); it settles before that contact's checks. */
     z.strictObject({
@@ -144,12 +150,17 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     rules: z.nullable(encounterActorRuleOutputSchema),
     /**
      * At most one batch, one Concentration outcome, one zone departure and one damage end for each
-     * spatial candidate, and one passage and one move end for each actor. A reaction settles in its
-     * own child action's commit (D219), never here.
+     * spatial candidate, one repeat save for each effect its target holds, and one passage and one
+     * move end for each actor. A reaction settles in its own child action's commit (D219), never here.
      */
     settlements: z
       .array(liveSessionMovementSettlementSchema)
-      .check(z.maxLength(4 * MAX_SPATIAL_CANDIDATES + 2 * MAX_ENCOUNTER_ACTORS))
+      .check(
+        z.maxLength(
+          (4 + MAX_ACTIVE_RULE_EFFECTS_PER_OWNER) * MAX_SPATIAL_CANDIDATES +
+            2 * MAX_ENCOUNTER_ACTORS
+        )
+      )
   })
 )
 

@@ -7,9 +7,11 @@ import type { SceneStoredGeometrySave } from '@artificer-toolkit/schema/projecti
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type {
-  MovementConcentrationEndDto,
-  MovementConcentrationExecutionDto
+import {
+  movementDamageSaveChildren,
+  type MovementConcentrationEndDto,
+  type MovementConcentrationExecutionDto,
+  type MovementRepeatSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { retainedMovementSpatialExecutions } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementResult'
@@ -41,17 +43,24 @@ import type {
 } from './escapedEffectEndPersistence.js'
 import type {
   persistLiveMovementConcentration,
-  persistLiveMovementConcentrationEnd
+  persistLiveMovementConcentrationEnd,
+  persistLiveMovementRepeatSave
 } from './liveMovementConcentrationPersistence.js'
 
-/** A contact's Concentration children, which a response may append to but never rewrite. */
+/** A contact's Concentration ends and damage saves, which a response may append to but never rewrite. */
 type ContactChildren = {
   concentrationEnds?: MovementConcentrationEndDto[]
   concentrationChecks?: MovementConcentrationExecutionDto[]
+  repeatSaves?: MovementRepeatSaveExecutionDto[]
 }
 
 function contactEvidence<T extends ContactChildren>(value: T) {
-  const { concentrationChecks: _checks, concentrationEnds: _ends, ...contact } = value
+  const {
+    concentrationChecks: _checks,
+    concentrationEnds: _ends,
+    repeatSaves: _saves,
+    ...contact
+  } = value
   return contact
 }
 
@@ -66,7 +75,7 @@ function checksumOnce(value: object): string {
   return checksum
 }
 
-/** A retained contact's evidence, without its Concentration checks, checksummed once. */
+/** A retained contact's evidence, without its children, checksummed once. */
 const evidenceChecksums = new WeakMap<object, string>()
 function evidenceChecksum(value: object & ContactChildren): string {
   let checksum = evidenceChecksums.get(value)
@@ -111,8 +120,30 @@ function appliedSpatialPrefix(outcome: MovementOutcome) {
   return prefix
 }
 
-/** A response may append child checks to its latest damage, but never rewrite committed contacts. */
-function retainedContactChildren<T extends object & ContactChildren>(
+/** The children a response appended to one retained list; it may never rewrite those already there. */
+function appendedChildren<T extends object>(previous: readonly T[] = [], next: readonly T[] = []) {
+  if (
+    next.length < previous.length ||
+    !sameChecksums(previous, next.slice(0, previous.length), checksumOnce)
+  )
+    throw new Error('Movement response changed its retained Concentration history.')
+  return next.slice(previous.length)
+}
+
+type DamagingContact = ContactChildren & {
+  candidate: { candidate: { sourceActorId: string | null } }
+}
+
+/** A contact's damage saves in chain order, each with the zone source that dealt its damage. */
+function contactDamageSaves(contact: DamagingContact, children: ContactChildren = contact) {
+  return movementDamageSaveChildren(children).map((save) => ({
+    ...save,
+    damagerActorId: contact.candidate.candidate.sourceActorId
+  }))
+}
+
+/** A response may append children to its latest damage, but never rewrite committed contacts. */
+function retainedContactChildren<T extends DamagingContact>(
   prior: readonly T[],
   next: readonly T[]
 ) {
@@ -122,25 +153,18 @@ function retainedContactChildren<T extends object & ContactChildren>(
   )
     throw new Error('Movement response changed its retained contact history.')
   const ends: MovementConcentrationEndDto[] = []
-  const checks = prior.flatMap((entry, index) => {
-    const previousEnds = entry.concentrationEnds ?? []
-    const nextEnds = next[index]!.concentrationEnds ?? []
-    if (
-      nextEnds.length < previousEnds.length ||
-      !sameChecksums(previousEnds, nextEnds.slice(0, previousEnds.length), checksumOnce)
-    )
-      throw new Error('Movement response changed its retained Concentration history.')
-    ends.push(...nextEnds.slice(previousEnds.length))
-    const previousChecks = entry.concentrationChecks ?? []
-    const nextChecks = next[index]!.concentrationChecks ?? []
-    if (
-      nextChecks.length < previousChecks.length ||
-      !sameChecksums(previousChecks, nextChecks.slice(0, previousChecks.length), checksumOnce)
-    )
-      throw new Error('Movement response changed its retained Concentration history.')
-    return nextChecks.slice(previousChecks.length)
+  const saves = prior.flatMap((entry, index) => {
+    const appended = next[index]!
+    ends.push(...appendedChildren(entry.concentrationEnds, appended.concentrationEnds))
+    return contactDamageSaves(entry, {
+      concentrationChecks: appendedChildren(
+        entry.concentrationChecks,
+        appended.concentrationChecks
+      ),
+      repeatSaves: appendedChildren(entry.repeatSaves, appended.repeatSaves)
+    })
   })
-  return { ends, checks }
+  return { ends, saves }
 }
 
 type MovementSettlementCallbacks = {
@@ -150,6 +174,9 @@ type MovementSettlementCallbacks = {
   persistConcentration: (
     input: Parameters<typeof persistLiveMovementConcentration>[1]
   ) => ReturnType<typeof persistLiveMovementConcentration>
+  persistRepeatSave: (
+    input: Parameters<typeof persistLiveMovementRepeatSave>[1]
+  ) => ReturnType<typeof persistLiveMovementRepeatSave>
   persistConcentrationEnd: (
     input: Parameters<typeof persistLiveMovementConcentrationEnd>[1]
   ) => ReturnType<typeof persistLiveMovementConcentrationEnd>
@@ -264,8 +291,9 @@ export async function persistMovementContacts(
   const priorSpatialCount = priorPrefix?.executions.length ?? 0
   retainedContactChildren(priorSpatial, nextSpatial)
   const retainedSpatial = retainedContactChildren(priorPrefix?.executions ?? [], nextSpatial)
-  const checks = [...retainedSpatial.checks]
-  // A contact's end settles before its checks, so at most one end is ever awaiting settlement.
+  // The damage saves awaiting settlement, in the chain order their contact owed them.
+  const saves = [...retainedSpatial.saves]
+  // A contact's end settles before its saves, so at most one end is ever awaiting settlement.
   const ends = [...retainedSpatial.ends]
   if ((appliedPrefix?.executions.length ?? 0) < priorSpatialCount)
     throw new Error('Movement response lost its applied spatial prefix.')
@@ -300,9 +328,10 @@ export async function persistMovementContacts(
       : undefined
   let passageSettled = false
   const damagedActorIds = new Set<string>()
-  const mechanicsChanged = input.settlements.some(
-    (step) =>
-      step.kind !== 'CONCENTRATION' || step.execution.result.applicationOutputs.cleanup !== null
+  const mechanicsChanged = input.settlements.some((step) =>
+    step.kind === 'CONCENTRATION'
+      ? step.execution.result.applicationOutputs.cleanup !== null
+      : step.kind !== 'REPEAT_SAVE' || step.execution.release !== null
   )
   const effectOriginals = new Map<string, EncounterSpatialRuleEffectRecord>()
   if (spatial.length) {
@@ -359,7 +388,8 @@ export async function persistMovementContacts(
     if (
       step.kind !== 'CONCENTRATION' &&
       step.kind !== 'CONCENTRATION_END' &&
-      (checks.length || ends.length)
+      step.kind !== 'REPEAT_SAVE' &&
+      (saves.length || ends.length)
     )
       throw new Error('Movement Concentration must settle before the next contact.')
     if (
@@ -396,7 +426,7 @@ export async function persistMovementContacts(
       actors = committed.actors
       transitions.push({ kind: 'SPATIAL_PREFIX', result: committed })
       spatialIndex += expected.length
-      checks.push(...expected.flatMap((entry) => entry.concentrationChecks ?? []))
+      saves.push(...expected.flatMap((entry) => contactDamageSaves(entry)))
       ends.push(...expected.flatMap((entry) => entry.concentrationEnds ?? []))
     } else if (step.kind === 'PASSAGE') {
       if (
@@ -550,10 +580,13 @@ export async function persistMovementContacts(
       transitions.push({ kind: 'CONCENTRATION_END', execution: step.execution })
     } else {
       if (ends.length) throw new Error('Movement Concentration end must settle before its checks.')
-      const expected = checks.shift()
-      if (!expected || checksumOnce(expected) !== checksumCanonicalJson(step.execution))
+      const expected = saves.shift()
+      if (
+        expected?.kind !== step.kind ||
+        checksumOnce(expected.execution) !== checksumCanonicalJson(step.execution)
+      )
         throw new Error('Movement Concentration differs from its retained contact.')
-      actors = await callbacks.persistConcentration({
+      const child = {
         ...common,
         state: {
           ...input.state,
@@ -562,12 +595,21 @@ export async function persistMovementContacts(
             (preparation.outcome.kind === 'TERMINAL' || mechanicsChanged ? 1 : 0)
         },
         actors,
-        execution: step.execution,
         parentOccurrenceId: preparation.occurrenceId,
         userId,
         authorizedCharacterIds: input.authorizedCharacterIds
-      })
-      transitions.push({ kind: 'CONCENTRATION', execution: step.execution })
+      }
+      if (step.kind === 'REPEAT_SAVE') {
+        actors = await callbacks.persistRepeatSave({
+          ...child,
+          execution: step.execution,
+          damagerActorId: expected.damagerActorId
+        })
+        transitions.push({ kind: 'REPEAT_SAVE', execution: step.execution })
+      } else {
+        actors = await callbacks.persistConcentration({ ...child, execution: step.execution })
+        transitions.push({ kind: 'CONCENTRATION', execution: step.execution })
+      }
     }
   }
   if (
@@ -575,7 +617,7 @@ export async function persistMovementContacts(
     departureIndex !== departures.length ||
     moveEndIndex !== moveEnds.length ||
     damageEndIndex !== damageEnds.length ||
-    checks.length ||
+    saves.length ||
     ends.length ||
     Boolean(passage) !== passageSettled
   )

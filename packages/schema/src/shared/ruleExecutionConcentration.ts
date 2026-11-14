@@ -132,17 +132,6 @@ export function unboundDamageSaveApplication(
   return damage
 }
 
-/** The Concentration checks of a chain that can only hold them (movement); an effect check there is stale. */
-export function requireMaintainedDamageApplications(
-  entries: readonly DamageSaveApplicationDto[]
-): ConcentrationMaintainedDamageApplicationDto[] {
-  return entries.map((entry) => {
-    if (!isMaintainedDamageApplication(entry))
-      throw new Error('A movement damage chain holds only Concentration checks.')
-    return entry
-  })
-}
-
 export function compareConcentrationDamageApplications(
   left: ConcentrationDamageApplicationDto,
   right: ConcentrationDamageApplicationDto

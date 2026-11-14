@@ -27,6 +27,7 @@ import {
   type EncounterReactionOfferPendingContextDto
 } from './ruleExecutionReactionOffer.js'
 import {
+  movementPendingDamageSave,
   movementReactionPendingContextDtoSchema,
   spatialPendingContextDtoSchema
 } from './ruleExecutionSpatialPendingContexts.js'
@@ -349,16 +350,18 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((snapshot, context) => {
-        const concentration =
-          snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-          snapshot.applicationContext.phase.kind === 'CONCENTRATION_EVIDENCE'
-            ? snapshot.applicationContext.phase.concentration
+        const movementDamageSave =
+          snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+            ? movementPendingDamageSave(snapshot.applicationContext.phase)
             : null
         if (
-          concentration &&
-          (snapshot.occurrenceId === concentration.parentOccurrenceId ||
-            snapshot.graph.source.definitionId !== concentration.concentrationDefinition.id ||
-            snapshot.graph.source.checksum !== concentration.concentrationDefinition.checksum ||
+          movementDamageSave &&
+          (snapshot.occurrenceId === movementDamageSave.context.parentOccurrenceId ||
+            (movementDamageSave.context.source === 'CONCENTRATION' &&
+              (snapshot.graph.source.definitionId !==
+                movementDamageSave.context.concentrationDefinition.id ||
+                snapshot.graph.source.checksum !==
+                  movementDamageSave.context.concentrationDefinition.checksum)) ||
             snapshot.request.kind !== 'INTEGER_RANGE' ||
             snapshot.request.min !== 1 ||
             snapshot.request.max !== 20)
@@ -367,7 +370,7 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
             code: 'custom',
             path: ['applicationContext', 'phase'],
             message:
-              'Concentration movement evidence must retain its child continuation identity, exact graph, and d20 request.'
+              'Movement damage-save evidence must retain its child continuation identity, exact graph, and d20 request.'
           })
         // A damage save's d20 window pends in the save's place, so it keeps the save's deferred choice.
         const concentrationParent =
@@ -1089,13 +1092,14 @@ export function requireServerAggregateChoicePendingSnapshot(
   return snapshot
 }
 
-/** Returns the aggregate occurrence that owns a pending movement concentration child. */
+/** Returns the aggregate occurrence that owns a pending movement damage-save child. */
 export function serverRuleExecutionPendingOccurrenceId(
   snapshot: ServerRuleExecutionPendingSnapshotDto
 ): string {
-  return snapshot.snapshotKind === 'KERNEL_EVIDENCE' &&
-    snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-    snapshot.applicationContext.phase.kind === 'CONCENTRATION_EVIDENCE'
-    ? snapshot.applicationContext.phase.concentration.parentOccurrenceId
-    : snapshot.occurrenceId
+  return (
+    (snapshot.snapshotKind === 'KERNEL_EVIDENCE' &&
+    snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+      ? movementPendingDamageSave(snapshot.applicationContext.phase)?.context.parentOccurrenceId
+      : undefined) ?? snapshot.occurrenceId
+  )
 }
