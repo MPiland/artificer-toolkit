@@ -126,7 +126,7 @@ export async function canControlEvidenceRoller(
   return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
 }
 
-type CastPendingContext = {
+type CastPendingContext<Gate extends PendingGate = PendingGate> = {
   rollerActorId?: string
   pause?:
     | {
@@ -142,7 +142,7 @@ type CastPendingContext = {
     /** The gate whose roll the action's source owes; the pause is held on that roll. */
     | { kind: 'INCOMING_GATE'; payload: PendingGate }
     /** The failed ward save whose attacker is offered another creature to turn the action on. */
-    | { kind: 'ATTACK_RETARGET'; payload: { gate: PendingGate } }
+    | { kind: 'ATTACK_RETARGET'; payload: { gate: Gate } }
     | {
         kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'ON_HIT' | 'FORCED_MOVEMENT'
         payload: unknown
@@ -150,6 +150,8 @@ type CastPendingContext = {
   reactionChildren?: readonly { commandId: string; resumeOutcome?: object | null }[]
   /** The gate the action's source already passed. */
   passedIncomingGate?: PendingGate
+  /** The failed ward saves that turned the action on the creature it now stands on, in order. */
+  retargeted?: readonly Gate[]
 }
 
 /** A gate as a pending context names it: a ward's save or a reaction trigger's check, by its origin. */
@@ -174,8 +176,20 @@ const castReactionOf = ({ pause }: CastPendingContext) =>
 const incomingGateOf = ({ pause }: CastPendingContext) =>
   pause?.kind === 'INCOMING_GATE' ? pause.payload : null
 
-const attackRetargetOf = ({ pause }: CastPendingContext) =>
+const attackRetargetOf = <Gate extends PendingGate>({ pause }: CastPendingContext<Gate>) =>
   pause?.kind === 'ATTACK_RETARGET' ? pause.payload : null
+
+/**
+ * The failed ward saves that turned an action before the creature its answer would choose: those its
+ * earlier turns carried, and, while it is held on a retarget offer, the save that earned the offer
+ * (choosing a creature answers it). One rule for the carried chain, its continuation and its cards.
+ */
+export const failedWardsBehind = <Gate extends PendingGate>(
+  context: CastPendingContext<Gate>
+): Gate[] => {
+  const offer = attackRetargetOf(context)
+  return [...(context.retargeted ?? []), ...(offer ? [offer.gate] : [])]
+}
 
 /** The same unique ids in any order. */
 const sameMembers = (left: readonly string[], right: readonly string[]) => {

@@ -55,7 +55,12 @@ import type {
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { castPendingContinues, passedGateAfter, sameGate } from './actionPending.js'
+import {
+  castPendingContinues,
+  failedWardsBehind,
+  passedGateAfter,
+  sameGate
+} from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import {
@@ -486,7 +491,11 @@ export async function persistEncounterActionCommit(
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
     roller: source,
-    gates: batch.passedGate ? [batch.passedGate] : [],
+    // The saves that turned the action, then the ward its chosen creature passed.
+    gates: [
+      ...(resume ? failedWardsBehind(resume.pending.context) : []),
+      ...(batch.passedGate ? [batch.passedGate] : [])
+    ],
     response: input.response,
     responderUserId: userId,
     initiatorUserId,

@@ -666,7 +666,10 @@ child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and react
 gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
 reactor's `Counter` check on the child's occurrence (`recordIncomingGateRollCards`, the one card path of every
 incoming gate: a ward's save is carded the same way as a `Ward` save, from the attacker or the caster, for a single
-attack at its commit and for each ray of a list, passed, lost or turned, at the area commit), and the cancelled cast
+attack at its commit and for each ray of a list, passed, lost or turned, at the area commit; a single attack turned
+to another creature carries the saves that turned it in the optional `retargeted` list of its `ENCOUNTER_ACTION`
+pending context, as a turned ray does, and `failedWardsBehind` is the one rule that reads it, for the carry, its
+integrity check and the cards), and the cancelled cast
 records no counter: its child (`systemTrigger.parentCommandId`) holds the check. Every host's counter
 runs as a child since QUALITY-9.T1b3a (area and chosen-list casts) and QUALITY-9.T1c2 (single-target casts).
 QUALITY-9.T1b3c deleted the inline check on the parent: the `CAST_REACTION` offer carries no `check` and its

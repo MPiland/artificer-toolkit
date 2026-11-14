@@ -165,7 +165,8 @@ export async function persistEncounterGatedActionCommit(
     gameSystemId: state.gameSystemId,
     occurrenceId: root.occurrenceId,
     roller: source,
-    gates: [root.gate],
+    // The saves that turned the action before this one, then the one that lost it.
+    gates: [...(resume?.pending.context.retargeted ?? []), root.gate],
     response,
     responderUserId: input.expectedUserId,
     initiatorUserId,

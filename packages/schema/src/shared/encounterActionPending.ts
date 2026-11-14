@@ -13,6 +13,7 @@ import { d20WindowReactorActorId, isD20RolledCheck } from './ruleExecutionD20Win
 import { isDamageRollWindow } from './ruleExecutionDamageRollWindow.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
+  encounterFailedWardGateDtoSchema,
   encounterSettledIncomingGateDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -130,6 +131,12 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * carried by every later pause of the action so its replay does not ask for the roll again.
        */
       passedIncomingGate: z.optional(encounterSettledIncomingGateDtoSchema),
+      /**
+       * The failed ward saves that turned this action on another creature, in order: the creature it
+       * now stands on was chosen at the last of them. Carried by every later pause so the commit can
+       * card each save, as a ray in a list keeps its own (`retargeted` on the target).
+       */
+      retargeted: z.optional(z.array(encounterFailedWardGateDtoSchema)),
       /** The child actions of the reactions chosen against this action (D219). */
       reactionChildren: z.optional(encounterReactionChildrenDtoSchema),
       /**

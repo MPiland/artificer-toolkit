@@ -174,6 +174,143 @@ describe('a single attack’s ward save is one roll card', () => {
   })
 })
 
+describe('a turned single attack keeps the ward save that turned it as one roll card', () => {
+  function turnedRoom(config: {
+    autoRoll: 'BOTH' | 'PLAYER'
+    rolls: number[]
+    wardedIds: readonly string[]
+  }) {
+    return actionRoom({
+      actors: [
+        srdCreatureActor({ id: ATTACKER_ID, creature: bite, disposition: 'HOSTILE' }),
+        srdCreatureActor({ id: WARDED_ID, creature: plainWolf, disposition: 'FRIENDLY' }),
+        srdCreatureActor({ id: OPEN_ID, creature: plainWolf, disposition: 'FRIENDLY' }),
+        characterActor({ id: WARDER_ACTOR_ID, characterId: WARDER_ID })
+      ],
+      ownerFeatureId: creatureFeature(bite, 'Bite').id,
+      autoRoll: config.autoRoll,
+      rolls: config.rolls,
+      fallbackRoll: 0,
+      characterSpellcasting: { spells: [sanctuary], prepared: [sanctuary.id] },
+      seed: async (context) => {
+        for (const holderId of config.wardedIds) await ward(holderId)(context)
+      }
+    })
+  }
+  type Room = Awaited<ReturnType<typeof turnedRoom>>
+
+  async function startBite(room: Room) {
+    const { answer } = await room.startAction(WARDED_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+
+  async function enter(room: Room, face: number) {
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'D20_EVIDENCE') throw new Error('No d20 request is pending.')
+    const answer = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: decision.pending.request.requestId,
+        rawFaces: [face],
+        rollMode: 'NORMAL'
+      })
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    return decision
+  }
+
+  async function turnToOpen(room: Room) {
+    const offer = await readPendingActionDecision(room.room.base.stub)
+    if (offer?.pending.kind !== 'ATTACK_RETARGET_CHOICE') throw new Error('No retarget is pending.')
+    const optionId = offer.pending.options.find(
+      ({ targetActorId }) => targetActorId === OPEN_ID
+    )?.optionId
+    if (!optionId) throw new Error('The open creature is not offered.')
+    const sent = await room.resolve(offer, { kind: 'OPTION', optionId })
+    expect(sent.type, JSON.stringify(sent)).toBe('COMMAND_COMMITTED')
+    return offer
+  }
+
+  it('cards the failed save once when the attack is turned to a creature under no ward', async () => {
+    const room = await turnedRoom({
+      autoRoll: 'BOTH',
+      rolls: [SAVE_FAILS - 1, HIT - 1],
+      wardedIds: [WARDED_ID]
+    })
+    await startBite(room)
+    const offer = await turnToOpen(room)
+
+    const cards = await wardCards(room)
+    expect(cards.map(({ roll }) => roll.id)).toEqual([
+      ruleCheckRollId(offer.occurrence.id, 0, 'ward-save')
+    ])
+    expect(cards[0]!.roll.evidence.terms[0]).toMatchObject({ die: 20, rolls: [SAVE_FAILS] })
+    expect(cards[0]!.roll.characterLabel).toBe(await labelOf(room, ATTACKER_ID))
+  })
+
+  it('cards a prompted attacker’s failed save once when the attack is turned', async () => {
+    const room = await turnedRoom({ autoRoll: 'PLAYER', rolls: [], wardedIds: [WARDED_ID] })
+    await startBite(room)
+    const asked = await enter(room, SAVE_FAILS)
+    await turnToOpen(room)
+    await enter(room, HIT)
+
+    const cards = await wardCards(room)
+    expect(cards.map(({ roll }) => roll.id)).toEqual([
+      ruleCheckRollId(asked.occurrence.id, 0, 'ward-save')
+    ])
+    expect(cards[0]!.roll.evidence.terms[0]).toMatchObject({ die: 20, rolls: [SAVE_FAILS] })
+  })
+
+  it('cards the failed save and the new creature’s own passed save, in order', async () => {
+    const room = await turnedRoom({
+      autoRoll: 'BOTH',
+      rolls: [SAVE_FAILS - 1, SAVE_PASSES - 1, HIT - 1],
+      wardedIds: [WARDED_ID, OPEN_ID]
+    })
+    await startBite(room)
+    const offer = await turnToOpen(room)
+
+    const cards = await wardCards(room)
+    expect(cards.map(({ roll }) => roll.id)).toEqual([
+      ruleCheckRollId(offer.occurrence.id, 0, 'ward-save'),
+      ruleCheckRollId(offer.occurrence.id, 1, 'ward-save')
+    ])
+    expect(cards.map(({ roll }) => roll.evidence.terms[0])).toMatchObject([
+      { die: 20, rolls: [SAVE_FAILS] },
+      { die: 20, rolls: [SAVE_PASSES] }
+    ])
+  })
+
+  it('cards both saves of a prompted attacker, and keeps them when the attack is undone', async () => {
+    const room = await turnedRoom({
+      autoRoll: 'PLAYER',
+      rolls: [],
+      wardedIds: [WARDED_ID, OPEN_ID]
+    })
+    await startBite(room)
+    const asked = await enter(room, SAVE_FAILS)
+    await turnToOpen(room)
+    await enter(room, SAVE_PASSES)
+    await enter(room, HIT)
+
+    const cards = await wardCards(room)
+    expect(cards.map(({ roll }) => roll.id)).toEqual([
+      ruleCheckRollId(asked.occurrence.id, 0, 'ward-save'),
+      ruleCheckRollId(asked.occurrence.id, 1, 'ward-save')
+    ])
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    // A roll card is a table record: undoing the action does not unsay the roll (D173).
+    expect(await wardCards(room)).toEqual(cards)
+  })
+})
+
 describe('each ray’s ward save is one roll card', () => {
   const rayRoom = (config: { autoRoll?: 'EVERYONE'; rolls?: readonly number[] }) =>
     actionRoom({

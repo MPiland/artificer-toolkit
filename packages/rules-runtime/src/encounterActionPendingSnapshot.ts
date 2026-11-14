@@ -1,6 +1,9 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
-import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterFailedWardGateDto,
+  EncounterSettledIncomingGateDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -61,6 +64,10 @@ const recordedReactionChildren = (
         ...(typeof input.castSlotKey === 'string' && { castSlotKey: input.castSlotKey })
       }
     : {}
+
+/** The failed ward saves that turned an action, recorded in every later pause of it. */
+const recordedRetargets = (input: { retargeted?: readonly EncounterFailedWardGateDto[] }) =>
+  input.retargeted?.length ? { retargeted: [...input.retargeted] } : {}
 
 /** The cast of an action that records reaction children. */
 type PendingCast = {
@@ -130,6 +137,7 @@ export function buildEncounterActionPendingSnapshot(
     targetActorId: string
     currentnessChecksum: string
     passedIncomingGate?: EncounterSettledIncomingGateDto
+    retargeted?: readonly EncounterFailedWardGateDto[]
     reactionChildren?: PendingReactionChildren
   }
 ): ServerKernelRuleExecutionPendingSnapshotDto {
@@ -160,6 +168,7 @@ export function buildEncounterActionPendingSnapshot(
       ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
       ...(execution.pause ? { pause: execution.pause } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
+      ...recordedRetargets(input),
       ...recordedReactionChildren(input)
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
@@ -186,6 +195,7 @@ export function buildEncounterHeldActionPendingSnapshot(
     initiatorUserId: string
     currentnessChecksum: string
     passedIncomingGate?: EncounterSettledIncomingGateDto
+    retargeted?: readonly EncounterFailedWardGateDto[]
     reactionChildren?: PendingReactionChildren
   }
 ): ServerKernelRuleExecutionPendingSnapshotDto {
@@ -205,6 +215,7 @@ export function buildEncounterHeldActionPendingSnapshot(
       twoPhase: null,
       pause: input.pause,
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {}),
+      ...recordedRetargets(input),
       ...recordedReactionChildren(input)
     }
   }
