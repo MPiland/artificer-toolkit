@@ -10,6 +10,7 @@ import {
   serverRuleExecutionReceiptCommandMetadataDtoSchema,
   storedRuleExecutionResultDtoSchema
 } from '../shared/rulesExecution.js'
+import { movementReactionChoiceOptionDtoSchema } from '../shared/reaction.js'
 import { spatialMovementExecutionDtoSchema } from '../shared/ruleExecutionEffectEvidence.js'
 import type { ServerRuleExecutionPendingApplicationContextDto } from '../shared/ruleExecutionPendingApplication.js'
 import {
@@ -305,7 +306,8 @@ function spatialEffectTransition(effectId: string = ids.effect) {
   }
 }
 
-const reactionOption = {
+// Parsed so the option carries the schema's own normal form, which the selection checksum binds.
+const reactionOption = movementReactionChoiceOptionDtoSchema.parse({
   optionId: checksum('7'),
   contactSourceId: checksum('8'),
   actionId: 'reaction-action',
@@ -338,7 +340,7 @@ const reactionOption = {
   eligibilityEvidenceChecksum: checksum('a'),
   authority: { kind: 'CHARACTER_CONTROLLER' as const, characterId: ids.characterTwo },
   visibility: 'CONTROLLER' as const
-}
+})
 
 function bridgedSpatialResult() {
   const first = completedExecution(0, 5)
