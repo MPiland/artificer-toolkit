@@ -26503,7 +26503,7 @@
           "tasks": [
             {
               "id": "QUALITY-14.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 3,
@@ -26512,7 +26512,8 @@
                 "size": 8,
                 "after": ["QUALITY-11.T1b", "QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
-              "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table."
+              "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2",
