@@ -177,6 +177,7 @@ describe('a movement contact owes the repeat saves its holder effects offer on d
                   damageTypeId: FIRE,
                   sourceNodeId: 'damage',
                   sourceOperationKey: 'damage',
+                  resolvedAmount: 4,
                   appliedAmount: 4
                 }
               ]

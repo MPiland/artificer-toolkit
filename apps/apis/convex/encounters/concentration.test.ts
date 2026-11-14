@@ -182,7 +182,7 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
     expect(await pendingFor(fixture, member)).toBeNull()
 }, 60_000)
 
-it('does not create a concentration child when finalized applied damage is zero', async () => {
+it('creates a concentration child for damage taken that applied no hit points (D132)', async () => {
   const { fixture, seeded } = await roomFixture('PROMPT')
   await fixture.t.run(async (ctx) => {
     const characterRow = await readCharacterRow(ctx, fixture.character.id)
@@ -207,9 +207,14 @@ it('does not create a concentration child when finalized applied damage is zero'
   const settled = await executeInRoom(fixture.owner.caller, {
     command: concentrationAction(fixture)
   })
-  // No concentration child was raised: the action completed and nothing is waiting on a roll.
+  // The bite's damage survived the holder's defenses, so it is a hit (D132) although the holder
+  // was already at 0 hit points: the action completed and its Concentration check waits on a roll.
   expect(settled.occurrence?.status).toBe('COMPLETE')
-  expect(await pendingFor(fixture, fixture.owner)).toBeNull()
+  expect(await pendingFor(fixture, fixture.owner)).toMatchObject({
+    kind: 'D20_EVIDENCE',
+    request: { min: 1, max: 20, rollMode: 'NORMAL' },
+    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+  })
   const after = await records(fixture)
   expect(after.states.map((state) => state.id)).toContain(seeded.state.id)
 }, 60_000)

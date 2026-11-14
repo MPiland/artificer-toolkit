@@ -219,8 +219,9 @@ describe('room Concentration checks', () => {
     }
   )
 
-  it('raises no Concentration check when the finalized applied damage is zero', async () => {
-    // The Character is already at 0 hit points, so the Wolf's hit applies no damage.
+  it('raises the Concentration check for damage taken that applied no hit points (D132)', async () => {
+    // The Character is already at 0 hit points, so the Wolf's hit applies no hit points, yet its
+    // damage survived the holder's defenses: a hit, whose Concentration check waits on a roll.
     const room = await concentratingRoom({
       autoRoll: 'GAME_MASTER',
       rolls: [18],
@@ -228,7 +229,7 @@ describe('room Concentration checks', () => {
     })
     const before = await readRoomHistory(room.room.base.stub)
     await startedBite(room)
-    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await readPendingActionDecision(room.room.base.stub)).not.toBeNull()
     const after = await readRoomHistory(room.room.base.stub)
     expect(concentrationChecks(after)).toEqual([])
     expect(after.maintainedStates.map((state) => state.id)).toEqual(
