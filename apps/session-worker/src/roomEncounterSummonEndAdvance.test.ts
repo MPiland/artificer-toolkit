@@ -94,6 +94,27 @@ describe('advancing past an ended summon (D200)', () => {
     expect(advances).toEqual([])
   })
 
+  it('leaves the creature standing while its move is held behind a reaction child (QUALITY-18.T3d)', async () => {
+    const { memory, run, advances, advance } = await advancingRun([done])
+    const now = '2026-11-14T00:00:00.000Z'
+    // The held move after its reaction child committed: suspended, the Run waiting on no decision.
+    await memory.store.insert('encounterRuleOccurrences', {
+      id: uuid(0xb77),
+      campaignId: uuid(0xb72),
+      encounterId: run.encounterId,
+      rootCommandId: PARENT_ID,
+      state: 'SUSPENDED',
+      version: 1,
+      expectedEncounterVersion: memory.documents('encounterRuns')[0]!.version,
+      pendingSnapshotChecksum: 'a'.repeat(64),
+      completedAt: null,
+      createdAt: now,
+      updatedAt: now
+    })
+    expect(await advance()).toBe(false)
+    expect(advances).toEqual([])
+  })
+
   it('does nothing in a Run that is not active', async () => {
     const { memory, advances, advance } = await advancingRun([done])
     const [row] = memory.documents('encounterRuns')

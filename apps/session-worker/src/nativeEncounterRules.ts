@@ -681,9 +681,18 @@ export async function planNativeLiveEncounterAction(
       : prepared.source.capability.mechanicFacts
   const heldOnTarget = activeEffectsByActorId.get(prepared.target.id) ?? []
   const endPlan = planEndEffects(mechanicFacts.outcomes, heldOnTarget, command.target, prepared)
+  // A source or target that reacted under the child the action resumes from stands as that child's
+  // tree left it (D219): the Run moved only by those actions and the roots their commits raised, each
+  // of which held its own creatures to its own currentness until it committed.
+  const standsAsChildLeftIt = reactedUnderAwaitedChild(
+    reactionChildWindow.recorded,
+    reactionChildWindow.committed,
+    [prepared.actor.id, prepared.target.id]
+  )
   const ruleOverrides = targetRuleOverrides({
     prepared,
     command,
+    targetStandsAsChildLeftIt: standsAsChildLeftIt,
     evaluation: { activationCode, economy, suppressed },
     endWarnings: endPlan.warnings,
     scene: { sceneContext, facing: encounterFacingRule(state), rangeProven: !!triggerMovement },
@@ -834,13 +843,7 @@ export async function planNativeLiveEncounterAction(
     snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
     // The retargeted action's facts are the new creature's, not the ones the offer was made against.
     !retargetOption &&
-    // A source or target that reacted under the child the action resumes from stands as that child's
-    // tree left it (D219): the Run moved only by those actions, each of which held its own creatures to
-    // its own currentness until it committed.
-    !reactedUnderAwaitedChild(reactionChildWindow.recorded, reactionChildWindow.committed, [
-      prepared.actor.id,
-      prepared.target.id
-    ])
+    !standsAsChildLeftIt
   )
     throw new Error('The pending action source or target changed.')
   const resume =

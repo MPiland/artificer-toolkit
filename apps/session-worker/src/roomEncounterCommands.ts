@@ -23,6 +23,7 @@ import { roomEncounterReadTransaction, type RoomSceneTokens } from './roomEncoun
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { prepareRoomLiveCharacterSheet, readRoomOwnerCharacterRules } from './roomCharacterRules.js'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readLastCommittedReactionChild } from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
@@ -258,9 +259,11 @@ export async function executeRoomEncounterCommand(input: {
       actor.kind === 'CHARACTER' && !actor.frozenState ? [actor.sourceId] : []
     )
   )
-  const defeatedBefore = new Set(
-    actorsBefore.flatMap((actor) => (actor.kind === 'CREATURE' && actor.defeated ? [actor.id] : []))
-  )
+  const defeatedCreatureIds = (actors: typeof actorsBefore) =>
+    new Set(
+      actors.flatMap((actor) => (actor.kind === 'CREATURE' && actor.defeated ? [actor.id] : []))
+    )
+  const defeatedBefore = defeatedCreatureIds(actorsBefore)
   const outOfPlayBefore = actorIdsOutOfPlayByEffect(actorsBefore)
   for (const characterId of characters) {
     if (inputs.characterIsCurrent(characterId, observed, transaction)) continue
@@ -300,10 +303,6 @@ export async function executeRoomEncounterCommand(input: {
             .unique()
         )?.rootCommandId
       : undefined
-  // The command the roots raised after this one name as their parent: the command itself, or the
-  // child a reaction chosen at a paused Scene move commits, since that answer records no Run command
-  // or rule receipt of its own (D219).
-  let raisedRootParentCommandId = command.commandId
   const rawResult =
     command.type === 'START' || command.type === 'ADVANCE_TURN'
       ? await executeTurn(command)
@@ -330,11 +329,15 @@ export async function executeRoomEncounterCommand(input: {
                           ? await executeTokenBinding(command)
                           : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
-  const currentRun = await context.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (query) => query.eq('id', state.id))
-    .unique()
-  if (!currentRun) throw new Error('Committed room Encounter is unavailable.')
+  const readCommittedRun = async () => {
+    const run = await context.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (query) => query.eq('id', state.id))
+      .unique()
+    if (!run) throw new Error('Committed room Encounter is unavailable.')
+    return run
+  }
+  const currentRun = await readCommittedRun()
   if (beforeRun.status !== 'ACTIVE' && currentRun.status === 'ACTIVE') {
     // The store fences the Runs it holds; a Run already ACTIVE in Convex when this one loaded is
     // not held here, and still holds the Campaign's one active Encounter.
@@ -373,26 +376,67 @@ export async function executeRoomEncounterCommand(input: {
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
     (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
-  const changedRun = await settleRoomEncounterAfterCommit({
-    ctx: context,
-    store,
-    transaction,
-    inputs,
-    campaignId,
-    epoch,
-    userId,
-    observed,
-    encounterId: currentRun.id,
-    random: input.random,
-    command: { type: command.type, commandId: raisedRootParentCommandId },
+  const settle = (
+    committed: Pick<
+      Parameters<typeof settleRoomEncounterAfterCommit>[0],
+      'command' | 'turnRootCommandId' | 'active' | 'defeatedBefore' | 'outOfPlayBefore'
+    >
+  ) =>
+    settleRoomEncounterAfterCommit({
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      campaignId,
+      epoch,
+      userId,
+      observed,
+      encounterId: currentRun.id,
+      random: input.random,
+      raisesRoots: input.turnExecution !== undefined,
+      executeAction,
+      executeTurn,
+      ...committed
+    })
+  let settled = await settle({
+    command: {
+      type: command.type,
+      // The roots raised after this command name it as their parent, or the reaction child it
+      // committed (D219): the answer that chose a reaction records no Run command or rule receipt.
+      commandId:
+        (currentRun.version > beforeRun.version
+          ? await readLastCommittedReactionChild(context, currentRun)
+          : null) ?? command.commandId
+    },
     turnRootCommandId: answeredRootCommandId ?? command.commandId,
     active: currentRun.status === 'ACTIVE',
-    raisesRoots: input.turnExecution !== undefined,
     defeatedBefore,
-    outOfPlayBefore,
-    executeAction,
-    executeTurn
+    outOfPlayBefore
   })
+  let changedRun = settled.changed
+  // A held action whose reaction child has settled resumes in the same command (D219), after the
+  // roots that child's commit raised. What the resume commits is settled as a command of its own,
+  // which may return the action above it in turn.
+  let resumed: Awaited<ReturnType<typeof executeAction>> | null = null
+  while (settled.resume) {
+    const { resume } = settled
+    const actorsBeforeResume = await readRunActors(context, readRunState(await readCommittedRun()))
+    resumed = await executeAction({
+      type: 'RESUME_ACTION',
+      encounterId: currentRun.id,
+      expectedVersion: resume.runVersion,
+      occurrenceId: resume.occurrenceId,
+      expectedOccurrenceVersion: resume.occurrenceVersion
+    })
+    changedRun = true
+    settled = await settle({
+      command: { type: 'RESOLVE_ACTION', commandId: resume.rootCommandId },
+      turnRootCommandId: resume.rootCommandId,
+      active: (await readCommittedRun()).status === 'ACTIVE',
+      defeatedBefore: defeatedCreatureIds(actorsBeforeResume),
+      outOfPlayBefore: actorIdsOutOfPlayByEffect(actorsBeforeResume)
+    })
+  }
   // Commands that can put a concealed zone in a Character's sight without a move (MOVE-3.5). The
   // sightings are GM bookkeeping that leaves the Run and its projection unchanged.
   if (
@@ -415,15 +459,12 @@ export async function executeRoomEncounterCommand(input: {
       encounterId: currentRun.id,
       random: input.random
     })
-  const raisedRun = changedRun
-    ? await context.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (query) => query.eq('id', state.id))
-        .unique()
-    : null
-  if (changedRun && !raisedRun) throw new Error('Committed room Encounter is unavailable.')
-  const presented = raisedRun
-    ? { ...result, projection: await readEncounterGmProjection(context, readRunState(raisedRun)) }
+  // The answer that settled a reaction child presents what the action it resumed came to.
+  const presented = changedRun
+    ? {
+        ...(resumed ?? result),
+        projection: await readEncounterGmProjection(context, readRunState(await readCommittedRun()))
+      }
     : result
   const recipients = new Map<string, EncounterCommandResultDto>()
   for (const recipient of new Set([userId, ...input.recipientUserIds])) {
@@ -655,10 +696,7 @@ export async function executeRoomEncounterCommand(input: {
         ctx: context,
         transaction,
         command,
-        executeAction: (child) => {
-          raisedRootParentCommandId = child.commandId
-          return executeAction(child)
-        }
+        executeAction
       })
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =

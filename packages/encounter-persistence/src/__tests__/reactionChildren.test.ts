@@ -708,8 +708,14 @@ describe('admitting a reaction child (D219)', () => {
 
 describe('re-pinning the pending action to the Run its reaction child left (D219)', () => {
   it('moves the pin, and the pending action still reads as the same root', async () => {
-    const { ctx, occurrence } = await pausedAttack(recorded)
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION + 1)
+    // Restated (QUALITY-18.T3d): the re-pin leaves the action suspended, so it reads as the pending
+    // root once the room has settled the child's commit (the re-pin alone left it pending before).
+    await settleChildCommit(paused, ROOT_VERSION + 1)
     expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION + 1)
     const pending = await readNativeActionPending(ctx, occurrence())
     expect(pending.command).toEqual(parentCommand)
@@ -1117,9 +1123,16 @@ describe('suspending the pending action while its reaction child is the pending 
   })
 
   it('returns the suspended action to pending when the child commits and re-pins it', async () => {
-    const { ctx, occurrence } = await pausedAttack(recorded)
+    const paused = await pausedAttack(recorded)
+    const { ctx, memory, state, occurrence } = paused
     await suspendReactionChildParent(ctx, link)
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    // Restated (QUALITY-18.T3d): an action stays SUSPENDED at its child's commit as a move does (it
+    // was PENDING at once), so the roots that commit raises run before the action resumes; the
+    // room's settlement of the commit then returns it to PENDING.
+    expect(occurrence().state).toBe('SUSPENDED')
+    await settleChildCommit(paused, ROOT_VERSION + 1)
     expect(occurrence().state).toBe('PENDING')
     expect(occurrence().expectedEncounterVersion).toBe(ROOT_VERSION + 1)
     expect((await readNativeActionPending(ctx, occurrence())).context.reactionChildren).toEqual(
@@ -1364,8 +1377,10 @@ describe('a reaction chosen against a held reaction child (QUALITY-9.T1c1, D219)
     const paused = await pausedAttack(recorded)
     const child = await holdReactionChild(paused, nested.reactionChildren)
     await repinReactionChildParent(paused.ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    // Restated (QUALITY-18.T3d): the held child stays SUSPENDED at the nested child's commit (it was
+    // PENDING) until the room has settled that commit.
     expect(child()).toMatchObject({
-      state: 'PENDING',
+      state: 'SUSPENDED',
       expectedEncounterVersion: ROOT_VERSION + 1
     })
     expect(paused.occurrence()).toMatchObject({
@@ -1380,9 +1395,13 @@ describe('a reaction chosen against a held reaction child (QUALITY-9.T1c1, D219)
     const child = await holdReactionChild(paused, nested.reactionChildren)
     await insertCommittedAction(memory, state, nestedChild(), ROOT_VERSION + 1)
     await repinReactionChildParent(ctx, { ...nestedLink, version: ROOT_VERSION + 1 })
+    // Restated (QUALITY-18.T3d): each held action stays SUSPENDED at its child's commit, so each is
+    // read as pending once the room has settled that commit (the re-pin alone left it pending before).
+    await settleChildCommit(paused, ROOT_VERSION + 1)
     expect((await readNativeActionPending(ctx, child())).command).toEqual(reactionChild())
 
     await commitHeldChild(paused, child, ROOT_VERSION + 2)
+    await settleChildCommit(paused, ROOT_VERSION + 2)
     expect(occurrence()).toMatchObject({
       state: 'PENDING',
       expectedEncounterVersion: ROOT_VERSION + 2
@@ -1414,8 +1433,10 @@ describe('a reaction chosen against a held reaction child (QUALITY-9.T1c1, D219)
       expectedEncounterVersion: ROOT_VERSION + 1
     })
 
-    // The child then commits, and the attack reads past the void and its child.
+    // The child then commits, and the attack reads past the void and its child. Restated
+    // (QUALITY-18.T3d): it reads as pending once the room has settled the child's commit.
     await commitHeldChild(paused, child, ROOT_VERSION + 2)
+    await settleChildCommit(paused, ROOT_VERSION + 2)
     expect((await readNativeActionPending(ctx, occurrence())).command).toEqual(parentCommand)
   })
 
@@ -1828,6 +1849,18 @@ async function pausedMove(
   return { ...paused, move, choice: async () => (await move()).choice }
 }
 
+/**
+ * The room's settlement of a committed reaction child, once the Run its commit left at `version`
+ * waits on nothing: the held action the child answered is the Run's pending decision again.
+ */
+async function settleChildCommit(
+  { ctx, memory }: Awaited<ReturnType<typeof pausedAttack>>,
+  version: number
+) {
+  await memory.store.patch(memory.documents('encounterRuns')[0]!._id, { version })
+  expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).not.toBeNull()
+}
+
 const CHECK_OCCURRENCE_ID = testUuid(0x8a46)
 
 /**
@@ -1911,11 +1944,11 @@ describe('a reaction child whose commit leaves a check of its own pending (QUALI
       })
       expect(pendingOccurrenceIds(memory)).toEqual([CHECK_OCCURRENCE_ID])
       expect(await readReactionChildParent(ctx, link)).toEqual(occurrence())
-      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(false)
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBeNull()
       expect(occurrence().state).toBe('SUSPENDED')
 
       await settleCheck(settled, ROOT_VERSION + 2)
-      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).not.toBeNull()
       // Pinned to the Run the settled check left; its history and version do not change.
       expect(occurrence()).toMatchObject({
         state: 'PENDING',
@@ -1924,7 +1957,7 @@ describe('a reaction child whose commit leaves a check of its own pending (QUALI
         pendingSnapshotChecksum: held.pendingSnapshotChecksum
       })
       expect(pendingOccurrenceIds(memory)).toEqual([OCCURRENCE_ID])
-      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(false)
+      expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBeNull()
     }
   )
 
@@ -1939,7 +1972,7 @@ describe('a reaction child whose commit leaves a check of its own pending (QUALI
       expectedEncounterVersion: ROOT_VERSION + 1
     })
     await settleCheck('COMPLETED', ROOT_VERSION + 2)
-    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).not.toBeNull()
     expect(occurrence()).toMatchObject({
       state: 'PENDING',
       expectedEncounterVersion: ROOT_VERSION + 2
@@ -1966,7 +1999,7 @@ describe('a reaction child whose commit leaves a check of its own pending (QUALI
     })
 
     await settleCheck('COMPLETED', ROOT_VERSION + 2)
-    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).not.toBeNull()
     expect(child()).toMatchObject({ state: 'PENDING', expectedEncounterVersion: ROOT_VERSION + 2 })
     expect(occurrence()).toMatchObject({
       state: 'SUSPENDED',
@@ -1976,10 +2009,10 @@ describe('a reaction child whose commit leaves a check of its own pending (QUALI
 
   it('returns nothing while a child is itself the pending decision, or when nothing is held', async () => {
     const open = await pausedAttack(recorded)
-    expect(await resumeSettledReactionChildParent(open.ctx, ENCOUNTER_ID)).toBe(false)
+    expect(await resumeSettledReactionChildParent(open.ctx, ENCOUNTER_ID)).toBeNull()
     const paused = await pausedAttack(recorded)
     await holdReactionChild(paused)
-    expect(await resumeSettledReactionChildParent(paused.ctx, ENCOUNTER_ID)).toBe(false)
+    expect(await resumeSettledReactionChildParent(paused.ctx, ENCOUNTER_ID)).toBeNull()
     expect(paused.occurrence().state).toBe('SUSPENDED')
   })
 })
@@ -2306,7 +2339,7 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).rejects.toThrow(
       'Movement response occurrence is stale.'
     )
-    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).not.toBeNull()
     await expect(answer(held, ROOT_VERSION + 1, 1, RESUME)).resolves.toMatchObject({
       occurrence: occurrence(),
       root: { resolutionCommands: [chosenOption(MOVE_OPTIONS[0]!.optionId)] }
@@ -2322,7 +2355,7 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
     // Restated (QUALITY-18.T3c): the move is the Run's pending decision again once the room has
     // settled the child's commit (the re-pin alone returned it before).
-    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).toBe(true)
+    expect(await resumeSettledReactionChildParent(ctx, ENCOUNTER_ID)).not.toBeNull()
     const pinned = occurrence()
     await expect(
       revertLastEncounterAction(
@@ -2338,6 +2371,33 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
     ).rejects.toMatchObject({ data: { reason: 'PENDING_DECISION' } })
     // Nothing of the child is taken back, and the move still waits on the Run the child left.
     expect(occurrence()).toEqual(pinned)
+    expect(memory.documents('encounterRunCommands')).toHaveLength(1)
+  })
+
+  it('refuses the GM’s undo of a committed child while the move is suspended and nothing is pending (QUALITY-18.T3d)', async () => {
+    const held = await pausedMove(recorded.reactionChildren)
+    const { ctx, memory, state, occurrence } = held
+    await insertCommittedAction(memory, state, reactionChild(), ROOT_VERSION + 1)
+    await advanceRun(held, ROOT_VERSION + 1)
+    await repinReactionChildParent(ctx, { ...link, version: ROOT_VERSION + 1 })
+    // The window between the child's commit and the room's settlement of it: the move is suspended
+    // and the Run waits on no decision.
+    const suspended = occurrence()
+    expect(suspended.state).toBe('SUSPENDED')
+    expect(pendingOccurrenceIds(memory)).toEqual([])
+    await expect(
+      revertLastEncounterAction(
+        gmTransaction(held),
+        {
+          type: 'REVERT_LAST_ACTION',
+          encounterId: ENCOUNTER_ID,
+          commandId: testUuid(0x8a4a),
+          expectedVersion: ROOT_VERSION + 1
+        },
+        GM_USER_ID
+      )
+    ).rejects.toMatchObject({ data: { reason: 'PENDING_DECISION' } })
+    expect(occurrence()).toEqual(suspended)
     expect(memory.documents('encounterRunCommands')).toHaveLength(1)
   })
 
