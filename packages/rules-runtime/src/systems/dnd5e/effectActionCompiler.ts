@@ -72,7 +72,6 @@ import {
 import {
   boundedTestOutcome,
   damageSourceOutcomeId,
-  hasLifecycleOverride,
   specializedTestOutcome,
   fixedHealAmount,
   healDiceConfiguration,
@@ -235,6 +234,11 @@ import {
   isDnd5eRolledTest,
   type Dnd5eTest
 } from './effectActionTest.js'
+import {
+  dnd5eDirectOutcomeEntry,
+  dnd5eTestOutcomeEntries,
+  type Dnd5eOutcomeEntry
+} from './effectActionOutcomeAspect.js'
 import {
   dnd5eEffectScalingFacts,
   dnd5eAttackTargetFacts,
@@ -1119,6 +1123,17 @@ function ownsTimedSaveCondition(
   )
 }
 
+/**
+ * Whether a plan holds a test outcome's lifetime: a failed save's timed condition, or the save's
+ * recurring result its recurring plan repeats.
+ */
+function testOutcomeLifetimeHeld(action: Dnd5eCompiledEffectActionSource) {
+  return (entry: Dnd5eOutcomeEntry) =>
+    ownsTimedSaveCondition(action, entry) ||
+    (dnd5eTestKind(action.compiledEffect.invocation) === 'SAVE' &&
+      supportedRecurringPlan(action)?.compiledEntryId === entry.resultBlockId)
+}
+
 /** The action's entries without a successful save's immunity, which is planned beside the effect it rides, not held by it. */
 function entriesBesideSourceImmunity(action: Dnd5eCompiledEffectActionSource) {
   return action.compiledEffect.entries.filter(
@@ -1848,13 +1863,6 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const { entries } = action.compiledEffect
   const kind = rolledTest(action)
   if (!kind) return null
-  const allowedPaths: readonly string[] = DND5E_TEST_RESULT_PATHS[kind]
-  const relationshipEntries = entries.filter(
-    (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
-  )
-  const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry, action))
-  if (relationshipEntries.length > 1)
-    unsupported('D&D action has more than one relationship outcome.')
   // A failed save's creature form is left to its active-effect plan; one the plan cannot carry
   // must not silently vanish.
   if (
@@ -1870,26 +1878,22 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
     unsupported('D&D creature form after a saving throw must be one bounded timed form.')
   const branches = new Map<string, Outcome>()
   const branchResultBlocks = new Map<string, string>()
-  const recurringPlan = supportedRecurringPlan(action)
-  for (const entry of executableEntries) {
-    if (
-      entry.resolutionKind !== 'DIRECT' ||
-      (entry.groupKind !== 'SINGLE' &&
-        // The other results of a sequence ride the action's active-effect plan: a relationship, or
-        // a removal from play held beside the condition it follows (Banishment).
-        !(
-          entry.groupKind === 'SEQUENTIAL' &&
-          (relationshipEntries.length === 1 ||
-            timedConditionPlan(action)?.playAbsenceContribution != null)
-        )) ||
-      (hasLifecycleOverride(entry) &&
-        !ownsTimedSaveCondition(action, entry) &&
-        (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
-      entry.rangeOverride ||
-      entry.targetingOverride ||
-      !allowedPaths.includes(entry.pathCode)
-    )
-      unsupported('D&D test action branches must be unique fixed direct authored paths.')
+  const outcomeEntries = dnd5eTestOutcomeEntries(entries, {
+    test: kind,
+    carriers: {
+      // One graph holds one outcome per path, so a sequence's other results ride the action's
+      // active-effect plan: a relationship, or a removal from play held beside the condition it
+      // follows (Banishment).
+      sequence:
+        entries.some(
+          (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
+        ) || timedConditionPlan(action)?.playAbsenceContribution != null,
+      choice: false,
+      lifetime: testOutcomeLifetimeHeld(action)
+    },
+    planned: (entry) => isActiveEffectPlanOutcome(entry, action)
+  })
+  for (const entry of outcomeEntries) {
     const outcome = boundedTestOutcome(entry)
     if (
       outcome.kind === 'CONDITION_APPLY' &&
@@ -2076,7 +2080,6 @@ function supported(
       : linkPlan === null && formPlan === null)
   )
     unsupported('D&D willing target needs an outcome a creature accepts.')
-  const entry = effect.entries[0]
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
   const lastingPlan =
@@ -2086,19 +2089,16 @@ function supported(
     conditionPlan ||
     linkPlan ||
     formPlan
-  if (
-    effect.entries.length !== (repeatPlan ? 2 : 1) ||
-    !entry ||
-    entry.resolutionKind !== 'DIRECT' ||
+  const entry = dnd5eDirectOutcomeEntry(effect.entries, {
+    test: test.kind,
+    repeatsSave: repeatPlan !== null,
     // A sequence of one outcome (Haste) resolves as a single result does.
-    (entry.groupKind === 'CHOICE' && !repeatPlan) ||
-    !(DND5E_TEST_RESULT_PATHS[test.kind] as readonly string[]).includes(entry.pathCode) ||
-    (entry.maintenanceDefinitionId && !lastingPlan) ||
-    (hasLifecycleOverride(entry) && !lastingPlan && !concealmentPlan(action)) ||
-    entry.rangeOverride ||
-    entry.targetingOverride
-  )
-    unsupported('D&D Effect action must have one fixed direct result without lifecycle overrides.')
+    carriers: {
+      sequence: true,
+      choice: repeatPlan !== null,
+      lifetime: () => lastingPlan !== null || concealmentPlan(action) !== null
+    }
+  })
   if (
     invocation.resourceUse &&
     (invocation.resourceUse.chargeId !== invocation.resourceUse.chargeId.trim() ||
@@ -2168,11 +2168,6 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     return 'ATTACK'
   }
   if (repeatingDirectFollowUpSavePlan(action)) return 'SAVE'
-  const relationshipEntries = action.compiledEffect.entries.filter(
-    (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
-  )
-  if (relationshipEntries.length > 1)
-    unsupported('D&D action has more than one relationship outcome.')
   if (
     // A table row's repeated save is held by the row's plan, which admitRollTablePaths requires.
     action.compiledEffect.entries.some(
@@ -2190,23 +2185,14 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     lastingRowPlan
   )
   const conditionCounts = new Map<string, number>()
-  for (const entry of action.compiledEffect.entries) {
-    if (tablePaths.has(entry.pathCode)) continue
-    if (isActiveEffectPlanOutcome(entry, action)) continue
+  const outcomeEntries = dnd5eTestOutcomeEntries(action.compiledEffect.entries, {
+    test: kind,
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
-    if (
-      entry.resolutionKind !== 'DIRECT' ||
-      (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-      (!ownsTimedSaveCondition(action, entry) &&
-        (entry.duration || entry.lifecycle || entry.maintenanceDefinitionId)) ||
-      entry.rangeOverride ||
-      entry.targetingOverride ||
-      !allowedPaths.includes(entry.pathCode) ||
-      !('outcome' in entry)
-    ) {
-      unsupported('D&D test action paths must be unique direct outcomes.')
-    }
+    carriers: { sequence: true, choice: false, lifetime: testOutcomeLifetimeHeld(action) },
+    planned: (entry) => tablePaths.has(entry.pathCode) || isActiveEffectPlanOutcome(entry, action)
+  })
+  for (const entry of outcomeEntries) {
     paths.add(entry.pathCode)
     const outcome = specializedTestOutcome(entry, action)
     if (outcome.kind === 'CONDITION_APPLY') {
