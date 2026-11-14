@@ -4,6 +4,7 @@ import {
   holdEncounterAreaRay,
   markEncounterAreaSaveTested
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { withEncounterReactionDice } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { encounterOnHitAudit } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
@@ -20,17 +21,19 @@ import {
   type ReachPlanInput,
   prepareReach,
   prepareReachReaction,
-  reachCastPause
+  reachCastPause,
+  reachRollReactions
 } from './nativeAreaPreparation.js'
 import { type AreaTargetRecord, sealedListAttack } from './nativeAreaRevalidation.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 
 /**
  * Advances the ray whose turn it is through the single-target function, on the hit points the earlier
- * rays at its creature left it: with the caster's roll, with the answer to an offer its hit raised
- * (its creature's reaction, then its caster's on-hit rider), or past the reaction offer once the
- * chosen reaction's child action committed (D219). A hit its creature can react to, a reaction it
- * chose and a hit its caster can add a rider to leave the ray held on the offer in its own snapshot;
+ * rays at its creature left it: with the caster's roll, with the answer to an offer its roll raised
+ * (each creature's reaction to the rolled d20 in turn, its creature's reaction to the hit, then its
+ * caster's on-hit rider), or past a reaction offer once the chosen reaction's child action committed
+ * (D219). A roll or a hit a creature can react to, a reaction one chose and a hit its caster can add
+ * a rider to leave the ray held on the offer in its own snapshot;
  * any other outcome keeps the ray's answer with every die it rolled. A rider is offered per hit, and
  * one that spends a slot or a pool is not offered once an earlier ray of the list chose such a one:
  * the cast settles one slot and one pool.
@@ -73,8 +76,15 @@ export async function advanceAreaRay(
           resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
+  // The dice the ray's own children rolled against its d20, as its snapshot records them: they join
+  // the dice its roll may total (D219).
+  const rolledChildDice = (inner.reactionChildren ?? []).flatMap(({ rolledDie }) =>
+    rolledDie ? [rolledDie] : []
+  )
+  const ray = withEncounterReactionDice(prepared, rolledChildDice)
   let reach: Promise<AreaReach> | undefined
   const readReach = () => (reach ??= prepareReach(input))
+  let rollReactions: ReturnType<typeof reachRollReactions> | undefined
   const occurredAt = new Date().toISOString()
   const chosen: Pick<
     Awaited<ReturnType<typeof advanceNativeActionTarget>>,
@@ -94,7 +104,7 @@ export async function advanceAreaRay(
       {
         actorId: sealed.actorId,
         occurrenceId: sealed.snapshot.occurrenceId,
-        binding: prepared.binding,
+        binding: ray.binding,
         attackSight: prepared.attackSight,
         rolls: null,
         host: async (actionSource) => {
@@ -102,8 +112,19 @@ export async function advanceAreaRay(
             state: input.state,
             system: input.system,
             capture: input.capture,
-            attack: prepared,
-            actionSource,
+            attack: ray,
+            actionSource: {
+              ...actionSource,
+              // The ray's rolled d20 is held for each creature that may react to it, as one attack's is.
+              rollReaction: {
+                discover: async (heardReactorActorIds) =>
+                  (
+                    await (rollReactions ??= readReach().then((read) =>
+                      reachRollReactions(input, read)
+                    ))
+                  ).discover(heardReactorActorIds)
+              }
+            },
             targetStateChecksum: checksumRuleDocument(prepared.target),
             prepareReaction: prepareReachReaction(
               input,
@@ -114,10 +135,7 @@ export async function advanceAreaRay(
             onHitNow,
             pauseAnswer: step.kind === 'ANSWER' ? step.answer : null,
             resumedOffer: step.kind === 'RESUMED' ? step.offer : null,
-            // The dice the ray's own children rolled against its d20, as its snapshot records them.
-            rolledChildDice: (inner.reactionChildren ?? []).flatMap(({ rolledDie }) =>
-              rolledDie ? [rolledDie] : []
-            ),
+            rolledChildDice,
             resume:
               step.kind === 'ROLL'
                 ? {
@@ -145,7 +163,7 @@ export async function advanceAreaRay(
         }).launchReactionChild(
           input.reactionChildren.recorded,
           chosen.reactionChild,
-          chosen.reactionChild.holderActorId
+          chosen.reactionChild.targetActorId
         )
       : null
     return {
@@ -172,11 +190,11 @@ export async function advanceAreaRay(
       reactionChild: launched?.reactionChild ?? null
     }
   }
-  // A ray that left its hit's offer keeps the d20 the offer held as its answer.
+  // A ray that left an offer keeps the d20 the offer held as its answer.
   const onHitOffer = inner.pause?.kind === 'ON_HIT' ? inner.pause.payload : null
+  const reactionOffer = inner.pause?.kind === 'CAST_REACTION' ? inner.pause.payload : null
   const heldD20 =
-    onHitOffer?.testD20 ??
-    (inner.pause?.kind === 'CAST_REACTION' ? inner.pause.payload.hit?.originalD20 : undefined)
+    onHitOffer?.testD20 ?? reactionOffer?.hit?.originalD20 ?? reactionOffer?.rolled?.test.d20
   const answer: EncounterEvidenceAnswer | null =
     step.kind === 'ROLL'
       ? step.resolution

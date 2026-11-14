@@ -330,17 +330,31 @@ function withOpenedHold(
 
 type SealedAreaTarget = EncounterAreaActionPendingContextDto['targets'][number]
 
-/** The hit a ray's own snapshot holds a reaction offer on, if it holds one. */
-const hitReactionOf = (target: SealedAreaTarget | undefined) => {
+/**
+ * The reaction offer a ray's own snapshot holds its roll on, if it holds one (D219): of its rolled
+ * d20, made to each creature that may react to it, or of its hit, made to the creature it hit.
+ */
+const reactionOfferOf = (target: SealedAreaTarget | undefined) => {
   const context = target?.snapshot.applicationContext
-  return context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
-    ? (context.pause.payload.hit ?? null)
-    : null
+  const offer =
+    context?.kind === 'ENCOUNTER_ACTION' && context.pause?.kind === 'CAST_REACTION'
+      ? context.pause.payload
+      : null
+  return offer?.rolled || offer?.hit ? offer : null
 }
 
-/** Whether a ray still waits at the reaction offer its hit raised. */
+type RayReactionOffer = ReturnType<typeof reactionOfferOf>
+
+/** What a ray's reaction offer keeps of its roll: the rolled d20 or the hit. */
+const keptRollOf = (offer: RayReactionOffer) => [offer?.rolled ?? null, offer?.hit ?? null]
+
+/** The faces of the d20 a ray's reaction offer keeps. */
+const keptFacesOf = (offer: RayReactionOffer) =>
+  offer?.hit?.originalD20.rawFaces ?? offer?.rolled?.test.d20.rawFaces ?? null
+
+/** Whether a ray still waits at a reaction offer its roll raised. */
 const heldOnHitReaction = (target: SealedAreaTarget) =>
-  target.testedJson === undefined && hitReactionOf(target) !== null
+  target.testedJson === undefined && reactionOfferOf(target) !== null
 
 /** The on-hit rider offer a ray's own snapshot holds its hit on, if it holds one. */
 const onHitOfferOf = (target: SealedAreaTarget | undefined) => {
@@ -368,12 +382,14 @@ const rayIdentity = ({
 }: SealedAreaTarget) => ({ ...identity, occurrenceId: snapshot.occurrenceId })
 
 /**
- * Verifies the list a ray's step stores when that step is about an offer its hit raised: the reaction
- * of the creature it hit (D219), then its caster's on-hit rider. The ray's roll hit and raised an
- * offer; its creature declined, so the ray is answered with the d20 the offer kept; its creature chose
- * a reaction, so the ray stays held and records that reaction's child; or the room resumed from the
- * committed child, so the ray is answered and the child's outcome is written. A decline or a resume
- * may instead leave the ray held on its rider offer, for the same d20. The caster's answer to the
+ * Verifies the list a ray's step stores when that step is about an offer its roll raised: the
+ * reaction of each creature that may react to its rolled d20, then of the creature it hit (D219), then
+ * its caster's on-hit rider. The ray's roll raised an offer; the creature asked declined, so the ray
+ * is answered with the d20 the offer kept; it chose a reaction, so the ray stays held and records that
+ * reaction's child; or the room resumed from the committed child, so the ray is answered and the
+ * child's outcome is written. A decline or a resume of a rolled d20's offer may instead leave the ray
+ * held on the next creature's offer of that d20 or on the offer of the hit it made, and a decline or
+ * a resume may leave it held on its rider offer, for the same d20. The caster's answer to the
  * rider offer answers the ray and keeps the decision with it, on the offer as it was sealed. Nothing
  * else of the list changes but this: a ray answered before keeps its answer, its decision and, once
  * written, the facts it was rolled against; after a ray left its offers the rays behind may be
@@ -412,7 +428,7 @@ function requireAreaActionRayHit(
   )
     throw mismatch()
   const resumed = !response && awaitsReactionChild(previous)
-  const offer = hitReactionOf(before)
+  const offer = reactionOfferOf(before)
   const kind = response?.resolution.kind
   const held = heldOnHitReaction(after)
   const riderOffer = onHitOfferOf(before)
@@ -438,34 +454,41 @@ function requireAreaActionRayHit(
     )
       throw mismatch()
   } else if (riderHeld) {
-    // The hit left its reaction offer for its rider offer: by a decline, on the roll as it was
-    // tested, or by the resume, on the same d20 tested against the creature as the child left it.
+    // The ray left its reaction offer for its rider offer: by a decline, on the hit as it was
+    // tested (a rolled d20 is tested only once everyone was heard), or by the resume, on the same
+    // d20 tested against the creature as the child left it.
     if (
       before.testedJson !== undefined ||
       !reactionChildrenKept(previous, context) ||
       awaitsReactionChild(context) ||
       checksumCanonicalJson(riderHeld.testD20.rawFaces) !==
-        checksumCanonicalJson(offer.originalD20.rawFaces) ||
+        checksumCanonicalJson(keptFacesOf(offer)) ||
       (!resumed &&
         (kind !== 'DECLINE' ||
           awaitsReactionChild(previous) ||
-          riderHeld.testExecutionChecksum !== offer.originalExecutionChecksum))
+          (offer.hit !== undefined &&
+            riderHeld.testExecutionChecksum !== offer.hit.originalExecutionChecksum)))
     )
       throw mismatch()
   } else if (
     before.testedJson !== undefined ||
-    checksumCanonicalJson(hitReactionOf(after)) !== checksumCanonicalJson(offer) ||
     !reactionChildrenKept(previous, context) ||
     (held
-      ? kind !== 'OPTION' ||
+      ? // The ray stays held as one attack would (`castPendingContinues`): on the same offer with the
+        // chosen reaction's child recorded, or, a rolled d20 left by a decline or the resume, on the
+        // next creature's offer of it or on the offer of the hit that same d20 made.
         !heldActionContinues({
           resume,
           response,
           occurrenceId: input.next.occurrenceId,
           next: context,
           endpointActorIds: [stored.casterActorId, before.actorId]
-        })
-      : awaitsReactionChild(context) ||
+        }) ||
+        checksumCanonicalJson(keptFacesOf(reactionOfferOf(after))) !==
+          checksumCanonicalJson(keptFacesOf(offer))
+      : checksumCanonicalJson(keptRollOf(reactionOfferOf(after))) !==
+          checksumCanonicalJson(keptRollOf(offer)) ||
+        awaitsReactionChild(context) ||
         (resumed
           ? false
           : kind !== 'DECLINE' ||
@@ -548,7 +571,7 @@ export function requireAreaActionAnswer(input: {
     stored?.targets.findIndex((target) => target.snapshot.request.requestId === input.requestId) ??
     -1
   if (
-    hitReactionOf(stored?.targets[at]) ||
+    reactionOfferOf(stored?.targets[at]) ||
     onHitOfferOf(stored?.targets[at]) ||
     (next?.targets[at] && heldOnHit(next.targets[at]))
   )
