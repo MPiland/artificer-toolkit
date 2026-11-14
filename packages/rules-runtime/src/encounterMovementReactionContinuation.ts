@@ -60,8 +60,8 @@ export function appendEncounterMovementReactionResolutionCommand(input: {
   return [...input.history, command]
 }
 
-/** Appends one exact dice or integer response for a selected reaction action. */
-export function appendEncounterMovementReactionActionEvidenceCommand(input: {
+/** Appends the dice answer to a Concentration check the move's own contact caused. */
+export function appendEncounterMovementConcentrationEvidenceCommand(input: {
   history: MovementReactionPendingContext['root']['resolutionCommands']
   command: MovementReactionPendingContext['root']['resolutionCommands'][number]
   actorUserId: string
@@ -74,7 +74,7 @@ export function appendEncounterMovementReactionActionEvidenceCommand(input: {
     command.actorUserId !== input.actorUserId ||
     input.history.some((entry) => entry.commandId === command.commandId)
   ) {
-    throw new EncounterConflictError('The movement reaction action evidence command is stale.')
+    throw new EncounterConflictError('The movement Concentration evidence command is stale.')
   }
   return [...input.history, command]
 }

@@ -15,7 +15,7 @@ import type {
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
-  appendEncounterMovementReactionActionEvidenceCommand,
+  appendEncounterMovementConcentrationEvidenceCommand,
   appendEncounterMovementReactionResolutionCommand,
   movementReactionRemainderAfterCurrentChoice,
   resolveEncounterMovementReactionChoice
@@ -230,7 +230,7 @@ export async function evaluateEncounterMovementActionResponse<
   } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
     if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
       throw new Error('Movement response does not match the issued Concentration evidence.')
-    resolutionCommands = appendEncounterMovementReactionActionEvidenceCommand({
+    resolutionCommands = appendEncounterMovementConcentrationEvidenceCommand({
       history: root.resolutionCommands,
       command: responseCommand,
       actorUserId: input.userId,
