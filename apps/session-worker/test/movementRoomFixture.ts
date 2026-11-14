@@ -1056,7 +1056,7 @@ export async function movementRoom(config: MovementRoomConfig) {
             controlledActorIds: new Set(room.documents('encounterRunActors').map(({ id }) => id)),
             isOwner
           },
-          labelEncounterRollModeReasons(new Map())
+          labelEncounterRollModeReasons(SRD_SYSTEM_ID, new Map())
         ).pending
       })
     },

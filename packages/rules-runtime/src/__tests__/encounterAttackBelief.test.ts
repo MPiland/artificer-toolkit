@@ -3,7 +3,6 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -128,6 +127,7 @@ describe('encounter attack d20 belief', () => {
     expect(actual.targetSeesAttacker).toBe('SEES')
     expect(actual.targetSenseLabels).toContain(blindsightLabel)
     const trueSight = encounterAttackSightContributors({
+      gameSystemId: DND5E_SYSTEM_ID,
       perception: actual,
       attacksAgainst: []
     })
@@ -138,13 +138,16 @@ describe('encounter attack d20 belief', () => {
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: believed,
         attacksAgainst: []
       })
     })
     expect(belief).toMatchObject({ rollMode: 'ADVANTAGE' })
     expect(belief!.contributorChecksum).toBe(checksumRuleDocument(belief!.contributors))
-    expect(isEncounterSightGovernedD20({ policy, belief })).toBe(true)
+    expect(isEncounterSightGovernedD20({ gameSystemId: DND5E_SYSTEM_ID, policy, belief })).toBe(
+      true
+    )
   })
 
   it('drops Dodge from the belief while the true mode keeps it against a sensing target', async () => {
@@ -153,6 +156,7 @@ describe('encounter attack d20 belief', () => {
       targetBlindsight: true
     })
     const trueSight = encounterAttackSightContributors({
+      gameSystemId: DND5E_SYSTEM_ID,
       perception: actual,
       attacksAgainst: [
         {
@@ -170,6 +174,7 @@ describe('encounter attack d20 belief', () => {
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: believed,
         attacksAgainst: [
           {
@@ -196,9 +201,10 @@ describe('encounter attack d20 belief', () => {
       ...dodge,
       sourceId: 'rule:long-range',
       domainKey: 'rule:long-range',
-      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
+      source: encounterRuleContributorSource('long-range')
     }
     const trueSight = encounterAttackSightContributors({
+      gameSystemId: DND5E_SYSTEM_ID,
       perception: actual,
       attacksAgainst: []
     })
@@ -207,6 +213,7 @@ describe('encounter attack d20 belief', () => {
       policy: truePolicy(trueSight, [longRange]),
       trueSight,
       believedSight: encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: believed,
         attacksAgainst: []
       })
@@ -220,6 +227,7 @@ describe('encounter attack d20 belief', () => {
   it('has no belief when nothing sight-hidden differs, and is then not sight-governed', async () => {
     const { actual, believed } = await perceptions({})
     const trueSight = encounterAttackSightContributors({
+      gameSystemId: DND5E_SYSTEM_ID,
       perception: actual,
       attacksAgainst: [
         {
@@ -236,6 +244,7 @@ describe('encounter attack d20 belief', () => {
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: believed,
         attacksAgainst: [
           {
@@ -248,12 +257,15 @@ describe('encounter attack d20 belief', () => {
       })
     })
     expect(belief).toBeNull()
-    expect(isEncounterSightGovernedD20({ policy, belief })).toBe(false)
+    expect(isEncounterSightGovernedD20({ gameSystemId: DND5E_SYSTEM_ID, policy, belief })).toBe(
+      false
+    )
   })
 
   it('is sight-governed by an unseen contributor even when the belief agrees', async () => {
     const { actual, believed } = await perceptions({ attackerConditionIds: [BLINDED] })
     const trueSight = encounterAttackSightContributors({
+      gameSystemId: DND5E_SYSTEM_ID,
       perception: actual,
       attacksAgainst: []
     })
@@ -264,12 +276,15 @@ describe('encounter attack d20 belief', () => {
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: believed,
         attacksAgainst: []
       })
     })
     expect(belief).toBeNull()
-    expect(isEncounterSightGovernedD20({ policy, belief })).toBe(true)
+    expect(isEncounterSightGovernedD20({ gameSystemId: DND5E_SYSTEM_ID, policy, belief })).toBe(
+      true
+    )
   })
 })
 

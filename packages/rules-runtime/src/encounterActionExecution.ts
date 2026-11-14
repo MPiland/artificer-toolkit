@@ -472,6 +472,7 @@ export async function prepareNativeActionTest(
       resolution.kind === 'ROLL_WINDOW'
         ? null
         : sightGovernedStageD20({
+            gameSystemId: current.published.gameSystemId,
             attackSight,
             policy,
             stored: { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null }
@@ -581,7 +582,11 @@ export async function prepareNativeActionTest(
       resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
-    const sightGoverned = isEncounterSightGovernedD20({ policy: pendingPolicy, belief: null })
+    const sightGoverned = isEncounterSightGovernedD20({
+      gameSystemId: current.published.gameSystemId,
+      policy: pendingPolicy,
+      belief: null
+    })
     const held =
       (await windowRolledSave(result.continuation, pendingPolicy, sightGoverned, {
         response: automatic,

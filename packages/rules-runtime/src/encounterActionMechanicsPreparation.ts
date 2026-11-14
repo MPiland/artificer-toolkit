@@ -918,6 +918,7 @@ export async function prepareEncounterActionMechanics<
       })
   )
   const rangeContributor = encounterActionRangeContributor({
+    gameSystemId: state.gameSystemId,
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
@@ -982,7 +983,11 @@ export async function prepareEncounterActionMechanics<
       ? seen.targetSeesAttacker === 'SEES'
         ? sourceSightSaves.map(({ contributor }) => contributor)
         : []
-      : encounterAttackSightContributors({ perception: seen, attacksAgainst })
+      : encounterAttackSightContributors({
+          gameSystemId: state.gameSystemId,
+          perception: seen,
+          attacksAgainst
+        })
   const attackSight: EncounterPreparedAttackSight | null = perception && {
     ...perception,
     gameSystemId: state.gameSystemId,

@@ -94,6 +94,66 @@ describe('roll-mode capability registry', () => {
     ).toThrow('The Game System does not define the roll-mode influence "BOON".')
   })
 
+  it('names the rule contributors the System gives for each Kernel-measured trigger', () => {
+    // The rule ids are persisted as `rule:<id>` contributor sources, so they never change.
+    expect(rollModeCapabilityRegistry.ruleContributors(DND5E_SYSTEM_ID)).toEqual([
+      {
+        trigger: 'BEYOND_NORMAL_RANGE',
+        id: 'long-range',
+        label: 'Long range',
+        influence: 'DISADVANTAGE'
+      },
+      {
+        trigger: 'WITHIN_CLOSE_RANGE',
+        id: 'close-range',
+        label: 'Close range',
+        influence: 'DISADVANTAGE'
+      },
+      {
+        trigger: 'ATTACKER_UNSEEN',
+        id: 'unseen-attacker',
+        label: 'Unseen attacker',
+        influence: 'ADVANTAGE'
+      },
+      {
+        trigger: 'TARGET_UNSEEN',
+        id: 'unseen-target',
+        label: 'Unseen target',
+        influence: 'DISADVANTAGE'
+      }
+    ])
+  })
+
+  it('refuses a rule contributor that repeats a trigger or a rule id', () => {
+    const [longRange] = dnd5eRollModeCapabilityAdapter.ruleContributors
+    const register = (ruleContributors: typeof dnd5eRollModeCapabilityAdapter.ruleContributors) =>
+      createRollModeCapabilityRegistry(
+        [{ ...dnd5eRollModeCapabilityAdapter, ruleContributors }],
+        systemCoreCodeRegistry
+      )
+    expect(() => register([longRange!, { ...longRange!, id: 'far' }])).toThrow(
+      'The roll-mode rule contributor "far" repeats a trigger or rule id.'
+    )
+    expect(() => register([longRange!, { ...longRange!, trigger: 'WITHIN_CLOSE_RANGE' }])).toThrow(
+      'The roll-mode rule contributor "long-range" repeats a trigger or rule id.'
+    )
+  })
+
+  it('refuses a rule contributor whose influence the System does not define', () => {
+    const [longRange] = dnd5eRollModeCapabilityAdapter.ruleContributors
+    expect(() =>
+      createRollModeCapabilityRegistry(
+        [
+          {
+            ...dnd5eRollModeCapabilityAdapter,
+            ruleContributors: [{ ...longRange!, influence: 'BOON' }]
+          }
+        ],
+        systemCoreCodeRegistry
+      )
+    ).toThrow('The Game System does not define the roll-mode influence "BOON".')
+  })
+
   it('refuses a duplicate System adapter', () => {
     expect(() =>
       createRollModeCapabilityRegistry(

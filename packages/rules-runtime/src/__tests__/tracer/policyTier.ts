@@ -61,7 +61,8 @@ const tracerRollModeAdapter: RollModeCapabilityAdapter = {
     return { rollMode: TRACER_ROLL_MODE, keep: 'FIRST' }
   },
   keepFor: (rollMode) => (requireTracerRollMode(rollMode), 'FIRST'),
-  passiveScore: (skillModifier, rollMode) => (requireTracerRollMode(rollMode), 10 + skillModifier)
+  passiveScore: (skillModifier, rollMode) => (requireTracerRollMode(rollMode), 10 + skillModifier),
+  ruleContributors: []
 }
 
 /** An approach rating is its own bonus. */

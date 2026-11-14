@@ -19,7 +19,6 @@ import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability
 } from '../systems/dnd5e/modifierApplicability.js'
-import { ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
 import {
   QUILL_VOLLEY_ID,
   creatureActor,
@@ -103,15 +102,11 @@ const sourceIds = (prepared: Awaited<ReturnType<typeof volleyAtStalker>>) =>
 
 describe('the Invisible Stalker’s innate Invisibility in the attack flow', () => {
   it('rolls with disadvantage for an attacker that cannot see invisible creatures', async () => {
-    expect(sourceIds(await volleyAtStalker())).toContain(
-      ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
-    )
+    expect(sourceIds(await volleyAtStalker())).toContain('rule:unseen-target')
   })
 
   it('takes no disadvantage from an attacker whose Truesight sees invisible creatures', async () => {
-    expect(sourceIds(await volleyAtStalker(couatl))).not.toContain(
-      ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
-    )
+    expect(sourceIds(await volleyAtStalker(couatl))).not.toContain('rule:unseen-target')
   })
 })
 

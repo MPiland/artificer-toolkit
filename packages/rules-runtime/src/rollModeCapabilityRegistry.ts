@@ -10,6 +10,29 @@ export interface RollModeResolution {
 }
 
 /**
+ * A situation the Encounter Kernel measures on its own, for which a System may name a d20
+ * contributor: an attack beyond its normal range or within its close range, an attacker its target
+ * cannot see, and a target its attacker cannot see.
+ */
+export type RollModeRuleTrigger =
+  | 'BEYOND_NORMAL_RANGE'
+  | 'WITHIN_CLOSE_RANGE'
+  | 'ATTACKER_UNSEEN'
+  | 'TARGET_UNSEEN'
+
+/**
+ * A System's d20 contributor for a Kernel trigger: the rule id its contributors persist under
+ * (`rule:<id>`), the reason label a roller reads and its `rollInfluence` code. A trigger the
+ * System's rules give nothing has no entry.
+ */
+export interface RollModeRuleContributor {
+  trigger: RollModeRuleTrigger
+  id: string
+  label: string
+  influence: string
+}
+
+/**
  * System-owned roll-mode policy: how the influence codes of a test's contributors resolve to one
  * roll mode. The codes are the System's `rollInfluence` vocabulary; the Encounter layer never assigns
  * meaning to one.
@@ -22,13 +45,30 @@ export interface RollModeCapabilityAdapter {
   keepFor(rollMode: string): RollModeKeep
   /** Pure: the passive score a skill modifier gives under a roll mode. */
   passiveScore(skillModifier: number, rollMode: string): number
+  /** The contributors the System's rules give the Kernel triggers, at most one per trigger. */
+  ruleContributors: readonly RollModeRuleContributor[]
 }
 
 export function createRollModeCapabilityRegistry(
   adapters: readonly RollModeCapabilityAdapter[],
   vocabulary: SystemCoreCodeRegistry
 ) {
-  const registry = createSystemCapabilityRegistry('roll-mode', adapters)
+  const registry = createSystemCapabilityRegistry('roll-mode', adapters, (adapter) => {
+    const { gameSystemId, ruleContributors } = adapter
+    for (const [index, contributor] of ruleContributors.entries()) {
+      if (
+        ruleContributors.some(
+          (other, otherIndex) =>
+            otherIndex < index &&
+            (other.trigger === contributor.trigger || other.id === contributor.id)
+        )
+      )
+        throw new Error(
+          `The roll-mode rule contributor "${contributor.id}" repeats a trigger or rule id.`
+        )
+      vocabulary.requireCode(gameSystemId, 'rollInfluence', contributor.influence)
+    }
+  })
   const rollModeKeep = (input: { gameSystemId: string; rollMode: string }): RollModeKeep => {
     const adapter = registry.require(input.gameSystemId)
     vocabulary.requireCode(input.gameSystemId, 'rollMode', input.rollMode)
@@ -71,6 +111,10 @@ export function createRollModeCapabilityRegistry(
       const adapter = registry.require(input.gameSystemId)
       vocabulary.requireCode(input.gameSystemId, 'rollMode', input.rollMode)
       return adapter.passiveScore(input.skillModifier, input.rollMode)
+    },
+    /** The d20 contributors a System's rules give the Kernel triggers. */
+    ruleContributors(gameSystemId: string): readonly RollModeRuleContributor[] {
+      return registry.require(gameSystemId).ruleContributors
     }
   }
 }
