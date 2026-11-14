@@ -22,7 +22,6 @@ import type { SpellSlotExchangeAuthored } from './spellSlotExchange.js'
 import type { TelepathicLinkAuthored } from './telepathicLink.js'
 import type { PlantPortalAuthored } from './plantPortal.js'
 import type { TreeStrideAuthored } from './treeStride.js'
-import type { ClosedRuleAuthored } from './closedRule.js'
 import type { ActorRelationshipAuthored } from './actorRelationship.js'
 import type { ConcealFromObserversAuthored } from './concealFromObservers.js'
 import type { RemoveFromPlayAuthored } from './removeFromPlay.js'
@@ -75,7 +74,6 @@ export type OutcomeAuthored =
   | ReleaseChosenItemAuthored
   | EndEffectsAuthored
   | DegradeEquipmentAuthored
-  | ClosedRuleAuthored
   | ManualAdjudicationAuthored
 
 export type NonManifestOutcomeAuthored = Exclude<OutcomeAuthored, ManifestAuthored>

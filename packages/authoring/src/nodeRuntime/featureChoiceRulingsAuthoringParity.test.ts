@@ -9,7 +9,6 @@ import {
   srdFeature
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { draconicBloodlineOrigin } from '@artificer-toolkit/source-data/srd/classes/draconic-bloodline.js'
@@ -188,16 +187,6 @@ function compiledOptions(homebrew: FeatureAuthored, effectId: string) {
 }
 
 describe('feature choices and their rulings (SPELLS-31.T5k)', () => {
-  it('no longer lists the four closed rule kinds', () => {
-    for (const kind of [
-      'CLASS_RANGER_FAVORED_ENEMY',
-      'CLASS_RANGER_FOE_SLAYER',
-      'CLASS_DRACONIC_BLOODLINE_DRAGON_ANCESTOR',
-      'CLASS_FIEND_FIENDISH_RESILIENCE'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
-
   it('leaves Favored Enemy, Foe Slayer and Dragon Ancestor to their descriptions', () => {
     for (const [record, label] of [
       [ranger, 'Favored Enemy'],

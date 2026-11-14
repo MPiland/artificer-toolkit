@@ -1,4 +1,3 @@
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdClasses } from './classes/index.js'
 
@@ -228,13 +227,4 @@ describe('description-only SRD class features (D156, SPELLS-31.T2, class C)', ()
       expect(hasGrant(node)).toBe(resolvedBy === 'grant')
     }
   )
-
-  it('leaves none of their closed rule kinds', () => {
-    const kinds = Object.keys(CLOSED_RULE_KIND)
-    expect(
-      DESCRIPTION_ONLY_FEATURES.flatMap(({ kind }) => (kind ? [`CLASS_${kind}`] : [])).filter(
-        (kind) => kinds.includes(kind)
-      )
-    ).toEqual([])
-  })
 })

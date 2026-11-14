@@ -5,26 +5,19 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   TRIGGER,
-  type ClosedRuleKind,
   type ManualAdjudicationReason
 } from '@artificer-toolkit/shared/core'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 
 const SRD_MECHANIC_NAMESPACE = '34679767-1f66-4d2e-a4f5-b585488fa835'
 
-type ClosedRuleEffectConfig = {
-  id: string
-  invocation: EffectAuthored['invocation']
-  order?: number
-  pathCode?: NonNullable<EffectAuthored['paths']>[number]['pathCode']
-  ruleKind: ClosedRuleKind
-}
+type EffectInvocation = EffectAuthored['invocation']
 
 function mechanicId(effectId: string, kind: 'OUTCOME' | 'PATH' | 'RESULT'): string {
   return uuidv5(`${effectId}:${kind}`, SRD_MECHANIC_NAMESPACE)
 }
 
-function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode']) {
+function defaultPathCode(triggerCode: EffectInvocation['triggerCode']) {
   switch (triggerCode) {
     case TRIGGER.MELEE_WEAPON_ATTACK:
     case TRIGGER.UNARMED_ATTACK:
@@ -49,10 +42,10 @@ function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode'
   }
 }
 
-type ManualAdjudicationEffectConfig = Pick<
-  ClosedRuleEffectConfig,
-  'id' | 'invocation' | 'order'
-> & {
+type ManualAdjudicationEffectConfig = {
+  id: string
+  invocation: EffectInvocation
+  order?: number
   label: string
   reasonCode: ManualAdjudicationReason
   instructions: string
@@ -107,7 +100,9 @@ export function standingGrantedActionsEffect({
   id,
   invocation,
   grantedActions
-}: Pick<ClosedRuleEffectConfig, 'id' | 'invocation'> & {
+}: {
+  id: string
+  invocation: EffectInvocation
   grantedActions: GrantedActionOffers
 }): EffectAuthored {
   return {
@@ -128,41 +123,6 @@ export function standingGrantedActionsEffect({
           lifecycle: { grantedActions },
           outcomes: [
             { id: mechanicId(id, 'OUTCOME'), effectKind: EFFECT_KIND.APPLY_GRANT, grants: {} }
-          ]
-        }
-      }
-    ]
-  }
-}
-
-export function closedRuleEffect({
-  id,
-  invocation,
-  order = 1,
-  pathCode,
-  ruleKind
-}: ClosedRuleEffectConfig): EffectAuthored {
-  return {
-    id,
-    order,
-    invocation,
-    paths: [
-      {
-        id: mechanicId(id, 'PATH'),
-        order: 1,
-        pathCode: pathCode ?? defaultPathCode(invocation.triggerCode),
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: mechanicId(id, 'RESULT'),
-          resultKind: 'SINGLE',
-          outcomes: [
-            {
-              id: mechanicId(id, 'OUTCOME'),
-              effectKind: EFFECT_KIND.CLOSED_RULE,
-              ruleKind
-            }
           ]
         }
       }

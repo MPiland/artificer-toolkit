@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { EquipmentAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import {
@@ -77,15 +76,6 @@ const everyAbilityTo22: FeatureAuthored = {
     ]
   }
 }
-
-describe('the closed-rule kinds are deleted', () => {
-  it.each([
-    'CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20',
-    'CLASS_BARBARIAN_PRIMAL_CHAMPION_MAXIMUM_24'
-  ])('%s', (kind) => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain(kind)
-  })
-})
 
 describe('the default ability score maximum', () => {
   it('stops an Ability Score Improvement at 20', () => {

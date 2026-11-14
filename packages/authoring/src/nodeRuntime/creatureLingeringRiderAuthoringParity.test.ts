@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { androsphinx } from '@artificer-toolkit/source-data/srd/creatures/androsphinx.js'
@@ -118,17 +117,5 @@ describe('lingering creature riders from core options (D187a)', () => {
         lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } }
       }
     })
-  })
-
-  it('no longer lists the five lingering-rider closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_ANDROSPHINX_ROAR',
-      'CREATURE_COUATL_BITE_POISON',
-      'CREATURE_DRYAD_TREE_STRIDE',
-      'CREATURE_HORNED_DEVIL_INFERNAL_WOUND',
-      'CREATURE_VROCK_STUNNING_SCREECH'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
   })
 })

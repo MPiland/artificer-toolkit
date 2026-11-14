@@ -32,7 +32,7 @@ The application embeds the GoRules Zen Node runtime in `packages/functions`; the
 
 Rule documents allow only bounded declarative JDM nodes. Arbitrary Function/script nodes, wall-clock access, randomness, UUID generation, I/O, authentication, persistence, and mutation are rejected. ADR 0019 defines the exact repository-owned Character grant-fold and action-resolve Function exceptions; neither is available to Encounter models or Rule Studio authors. Application-owned dice remains external, is stored as evidence, and is supplied as facts. The evaluator proposes closed typed outcomes; Encounter orchestration reauthorizes actors/targets, applies them transactionally, and records the exact revision, checksum, normalized facts, traces, rolls, outcomes, and override.
 
-`CLOSED_RULE`, `MANUAL_ADJUDICATION`, and effect kinds without an explicit resolver remain fail-closed/manual. The rule platform does not claim blanket execution of existing authored effects. Spatial geometry, movement, walls, fog, doors, zones, and renderer state belong to the Phase 08 scene/Encounter boundary, not Zen.
+`MANUAL_ADJUDICATION` and effect kinds without an explicit resolver remain fail-closed/manual (the `CLOSED_RULE` kind this decision named is deleted, ADR 0038). The rule platform does not claim blanket execution of existing authored effects. Spatial geometry, movement, walls, fog, doors, zones, and renderer state belong to the Phase 08 scene/Encounter boundary, not Zen.
 
 ## Consequences
 

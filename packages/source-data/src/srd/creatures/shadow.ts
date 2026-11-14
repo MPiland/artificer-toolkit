@@ -1,6 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
-import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
+import { standingGrantedActionsEffect } from '../srd-effect-builders.js'
 import * as S from './shared.js'
 export const shadow: CreatureAuthored = {
   id: S.CREATURE_IDS.SHADOW,

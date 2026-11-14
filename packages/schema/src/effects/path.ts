@@ -27,7 +27,6 @@ import { spellSlotExchangeDtoSchema } from './spellSlotExchange.js'
 import { telepathicLinkDtoSchema } from './telepathicLink.js'
 import { plantPortalDtoSchema } from './plantPortal.js'
 import { treeStrideDtoSchema } from './treeStride.js'
-import { closedRuleDtoSchema } from './closedRule.js'
 import { actorRelationshipDtoSchema } from './actorRelationship.js'
 import { activationDtoSchema } from './activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from './check.js'
@@ -74,11 +73,10 @@ import {
 
 const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: boolean }) => {
   const outcomePayloadDtoSchema: z.ZodMiniType = z.lazy(() =>
-    // Common closed/manual leaves avoid failed parsing of the deeper recursive branches.
+    // Common manual leaves avoid failed parsing of the deeper recursive branches.
     z.union(
       includeManifest
         ? [
-            closedRuleDtoSchema,
             manualAdjudicationDtoSchema,
             damageDtoSchema,
             hitPointMaximumReductionDtoSchema,
@@ -116,7 +114,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             degradeEquipmentDtoSchema
           ]
         : [
-            closedRuleDtoSchema,
             manualAdjudicationDtoSchema,
             damageDtoSchema,
             hitPointMaximumReductionDtoSchema,

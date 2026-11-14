@@ -9,7 +9,6 @@ import {
   srdByLabel
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
@@ -53,16 +52,6 @@ function homebrewStyle(): FeatureAuthored {
 }
 
 describe('Martial Arts, Retaliation and Horde Breaker (SPELLS-31.T4l2)', () => {
-  it('no longer lists their closed rule kinds', () => {
-    for (const kind of [
-      'CLASS_MONK_MARTIAL_ARTS',
-      'CLASS_BERSERKER_RETALIATION',
-      'CLASS_HUNTER_HORDE_BREAKER'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
-  })
-
   it.each([monk, hunterConclave, pathOfTheBerserker])(
     'passes the class node map exactly as authored: $label',
     async (record) => {

@@ -13,12 +13,12 @@ const SAVE_FOR_HALF_TEXT =
 const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Call Lightning': 'MANUAL_ADJUDICATION: the recurring bolt action is not authored',
   'Control Water': 'MANUAL_ADJUDICATION: the whirlpool is not authored',
-  'Delayed Blast Fireball': 'CLOSED_RULE',
-  Earthquake: 'CLOSED_RULE',
+  'Delayed Blast Fireball': 'MANUAL_ADJUDICATION: the detonation is not authored',
+  Earthquake: 'ZONE manifest without damage',
   'Flaming Sphere': 'MANUAL_ADJUDICATION: the sphere is not authored',
-  'Glyph of Warding': 'CLOSED_RULE',
-  'Storm of Vengeance': 'CLOSED_RULE',
-  Symbol: 'CLOSED_RULE',
+  'Glyph of Warding': 'MANUAL_ADJUDICATION: the glyph trigger is not authored',
+  'Storm of Vengeance': 'MANUAL_ADJUDICATION: the storm is not authored',
+  Symbol: 'MANUAL_ADJUDICATION: the glyph trigger is not authored',
   'Wall of Ice': 'ZONE manifest without interactions'
 }
 

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 
 import { effectDtoSchema } from '../effects/effect.js'
 import { createFollowUpSaveDtoSchema } from '../effects/followUpSave.js'
@@ -116,57 +115,56 @@ describe('effect schema parsing', () => {
   it.each([
     ['path', pathDtoSchema],
     ['manifest behavior path', manifestBehaviorPathDtoSchema]
-  ] as const)('accepts closed-rule and manual outcomes through the %s schema', (_name, schema) => {
-    const outcomes = [
-      {
-        id: 'closed-rule-outcome',
-        effectKind: 'CLOSED_RULE',
-        ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_SURVIVOR
-      },
-      {
-        id: 'manual-adjudication-outcome',
-        effectKind: 'MANUAL_ADJUDICATION',
-        label: 'Resolve manually',
-        instructions: 'Resolve at the table.',
-        reasonCode: 'NARRATIVE_JUDGMENT'
+  ] as const)(
+    'accepts manual outcomes and rejects closed rules through the %s schema',
+    (_name, schema) => {
+      const outcomes = [
+        {
+          id: 'manual-adjudication-outcome',
+          effectKind: 'MANUAL_ADJUDICATION',
+          label: 'Resolve manually',
+          instructions: 'Resolve at the table.',
+          reasonCode: 'NARRATIVE_JUDGMENT'
+        }
+      ]
+      const malformedOutcomes: Record<string, unknown>[] = [
+        // The retired closed-rule outcome (SPELLS-4.T4e): no rule kind makes it authorable again.
+        { id: 'closed-rule-outcome', effectKind: 'CLOSED_RULE', ruleKind: 'ANY_RULE' },
+        { id: 'closed-rule-outcome', effectKind: 'CLOSED_RULE' }
+      ]
+      for (const missingField of ['label', 'instructions', 'reasonCode'] as const) {
+        const outcome: Record<string, unknown> = { ...outcomes[0] }
+        delete outcome[missingField]
+        malformedOutcomes.push(outcome)
       }
-    ]
-    const malformedOutcomes: Record<string, unknown>[] = [
-      { ...outcomes[0], ruleKind: undefined },
-      { ...outcomes[0], ruleKind: 'NOT_A_RULE' }
-    ]
-    for (const missingField of ['label', 'instructions', 'reasonCode'] as const) {
-      const outcome: Record<string, unknown> = { ...outcomes[1] }
-      delete outcome[missingField]
-      malformedOutcomes.push(outcome)
-    }
 
-    for (const outcome of outcomes) {
-      const parsed = schema.parse(
-        fixedPath(
-          `${outcome.id}-path`,
-          1,
-          'ON_USE',
-          singleResultBlock(`${outcome.id}-result`, outcome)
-        )
-      )
-      expect(parsed).toMatchObject({
-        resultBlock: { outcomes: [{ effectKind: outcome.effectKind }] }
-      })
-    }
-    for (const outcome of malformedOutcomes) {
-      expect(
-        schema.safeParse(
+      for (const outcome of outcomes) {
+        const parsed = schema.parse(
           fixedPath(
-            'invalid-outcome-path',
+            `${outcome.id}-path`,
             1,
             'ON_USE',
-            singleResultBlock('invalid-outcome-result', outcome)
+            singleResultBlock(`${outcome.id}-result`, outcome)
           )
-        ).success
-      ).toBe(false)
+        )
+        expect(parsed).toMatchObject({
+          resultBlock: { outcomes: [{ effectKind: outcome.effectKind }] }
+        })
+      }
+      for (const outcome of malformedOutcomes) {
+        expect(
+          schema.safeParse(
+            fixedPath(
+              'invalid-outcome-path',
+              1,
+              'ON_USE',
+              singleResultBlock('invalid-outcome-result', outcome)
+            )
+          ).success
+        ).toBe(false)
+      }
     }
-  })
+  )
 
   it.each([
     ['path', pathDtoSchema],

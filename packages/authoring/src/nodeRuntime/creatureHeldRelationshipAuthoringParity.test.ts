@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbedDevil } from '@artificer-toolkit/source-data/srd/creatures/barbed-devil.js'
@@ -232,20 +231,5 @@ describe('held-creature riders from core options (D187a)', () => {
     expect(feature(creature, label).effects ?? []).toEqual([])
     const result = await normalize(creature)
     expect(result.clearedPaths).toEqual([])
-  })
-
-  it('no longer lists the eight held-creature closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_BARBED_HIDE',
-      'CREATURE_CHAIN_DEVIL_CHAIN',
-      'CREATURE_CHUUL_TENTACLES',
-      'CREATURE_CLOAKER_DAMAGE_TRANSFER',
-      'CREATURE_MARILITH_TAIL',
-      'CREATURE_MIMIC_ADHESIVE',
-      'CREATURE_STIRGE_BLOOD_DRAIN',
-      'ROPER_REEL'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
   })
 })

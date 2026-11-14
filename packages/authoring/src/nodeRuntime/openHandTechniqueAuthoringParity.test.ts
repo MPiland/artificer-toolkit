@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { collectOnHitRiders } from '@artificer-toolkit/rules-runtime/character/characterOnHitRiders'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
@@ -65,10 +64,6 @@ function collect(record: ClassAuthored) {
 }
 
 describe('Open Hand Technique (SPELLS-31.T4l2b)', () => {
-  it('no longer lists its closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_WAY_OF_THE_OPEN_HAND_TECHNIQUE')
-  })
-
   it('passes the class node map exactly as authored', async () => {
     const result = await normalize(wayOfTheOpenHand)
     expect(result.clearedPaths).toEqual([])

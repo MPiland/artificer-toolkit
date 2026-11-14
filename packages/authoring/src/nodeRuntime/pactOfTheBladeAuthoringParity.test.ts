@@ -14,7 +14,6 @@ import {
 import { facetDtoSchema } from '@artificer-toolkit/schema/shared/facet'
 import type { EffectAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
@@ -132,15 +131,6 @@ function riderOwed(rider: EffectAuthored, bindingEffectIds: readonly string[]) {
 }
 
 describe('Pact of the Blade, Lifedrinker and Voice of the Chain Master (SPELLS-31.T4v)', () => {
-  it('no longer lists their closed rule kinds', () => {
-    for (const kind of [
-      'CLASS_WARLOCK_PACT_OF_BLADE',
-      'CLASS_WARLOCK_LIFEDRINKER',
-      'CLASS_WARLOCK_VOICE_OF_CHAIN_MASTER'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
-
   it('authors Voice of the Chain Master as a GM ruling', () => {
     const path = optionOf('Eldritch Invocations', 'Voice of the Chain Master').effects?.[0]
       ?.paths[0]

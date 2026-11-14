@@ -11,7 +11,6 @@ import {
   type SrdCharacter
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
@@ -119,10 +118,6 @@ function spellDamage(character: SrdCharacter, labels: readonly string[]) {
 }
 
 describe('save-success damage modifiers (SPELLS-31.T5i4)', () => {
-  it('no longer lists the closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_SCHOOL_OF_EVOCATION_POTENT_CANTRIP')
-  })
-
   it('keeps the SRD record and a homebrew grace exactly as authored through the class node map', async () => {
     const withGrace: ClassAuthored = {
       ...structuredClone(schoolOfEvocation),
