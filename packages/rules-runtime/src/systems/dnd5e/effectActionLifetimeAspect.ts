@@ -79,12 +79,27 @@ export function holdsEntryLifetime(lifetime: Dnd5eLifetime | null): boolean {
 }
 
 /**
- * A result that fires again at the start or end of each of its holder's turns for a counted number of
- * rounds: a failed save's (repeated against the same DC) or a use's. Exported for the execution
- * plan's routing alone: a failed save that recurs compiles as one graph, which it decides before any
- * other plan is built.
+ * Whether a rolled test's lifetime holds the whole action as one graph, its test and outcomes not
+ * split into templates: a result that recurs, or a hold that is the action's only result.
  */
-export function dnd5eRecurringPlan(action: Dnd5eCompiledEffectActionSource): LifetimePlan | null {
+export function holdsWholeGraph(
+  action: Dnd5eCompiledEffectActionSource,
+  lifetime: Dnd5eLifetime | null
+): boolean {
+  return (
+    lifetime?.kind === 'RECURRING' ||
+    (lifetime?.kind === 'RELATIONSHIP' &&
+      action.compiledEffect.entries.every(
+        (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
+      ))
+  )
+}
+
+/**
+ * A result that fires again at the start or end of each of its holder's turns for a counted number of
+ * rounds: a failed save's (repeated against the same DC) or a use's.
+ */
+function dnd5eRecurringPlan(action: Dnd5eCompiledEffectActionSource): LifetimePlan | null {
   const { invocation, entries } = action.compiledEffect
   const entry = entries[0]
   if (!entry || !('outcome' in entry)) return null

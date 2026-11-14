@@ -26,8 +26,8 @@ import {
 } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   dnd5eLifetime,
-  dnd5eRecurringPlan,
   holdsEntryLifetime,
+  holdsWholeGraph,
   type Dnd5eLifetime,
   type Dnd5eLifetimeCandidates
 } from '../systems/dnd5e/effectActionLifetimeAspect.js'
@@ -141,6 +141,11 @@ function lasting(lifetime: Dnd5eLifetime | null) {
   return lifetime
 }
 
+/** The burn's recurring plan, as the aspect builds it when no compiler plan holds the action. */
+function burningPlan() {
+  return lasting(dnd5eLifetime(burning, NO_COMPILER_PLAN)).plan
+}
+
 describe('the lifetime aspect chooses one plan for what an action leaves behind (QUALITY-15.T1c)', () => {
   it('holds a failed save that recurs each turn in a recurring plan frozen as its failure node', () => {
     const { kind, plan } = lasting(dnd5eLifetime(burning, NO_COMPILER_PLAN))
@@ -166,7 +171,7 @@ describe('the lifetime aspect chooses one plan for what an action leaves behind 
   })
 
   it('prefers a repeated save to a duration, and asks for no duration once it has one', () => {
-    const repeat = dnd5eRecurringPlan(burning)
+    const repeat = burningPlan()
     const lifetime = dnd5eLifetime(burning, {
       ...NO_COMPILER_PLAN,
       repeatSave: () => repeat,
@@ -178,7 +183,7 @@ describe('the lifetime aspect chooses one plan for what an action leaves behind 
   })
 
   it('prefers a plan the compiler builds to a recurrence of the same result', () => {
-    const timed = dnd5eRecurringPlan(burning)
+    const timed = burningPlan()
     expect(dnd5eLifetime(burning, { ...NO_COMPILER_PLAN, timed: () => timed })?.kind).toBe('TIMED')
   })
 
@@ -188,7 +193,7 @@ describe('the lifetime aspect chooses one plan for what an action leaves behind 
     const { kind, plan } = lasting(dnd5eLifetime(grapple, relationshipOnly))
     expect(kind).toBe('RELATIONSHIP')
     expect(plan).toBe(hold)
-    const timed = dnd5eRecurringPlan(burning)
+    const timed = burningPlan()
     for (const beside of [{ timed: () => timed }, { repeatSave: () => timed }])
       expect(() => dnd5eLifetime(grapple, { ...relationshipOnly, ...beside })).toThrow(
         'D&D relationship cannot share an action with another lasting effect.'
@@ -196,14 +201,24 @@ describe('the lifetime aspect chooses one plan for what an action leaves behind 
   })
 
   it('holds an entry lifetime in every plan but a relationship, whose hold ends on its own release', () => {
-    const plan = dnd5eRecurringPlan(burning)
-    if (!plan) throw new Error('Expected the burn to recur.')
+    const plan = burningPlan()
     const hold = relationshipPlan(grapple)
     if (!hold) throw new Error('Expected Grapple to hold its target.')
     expect(holdsEntryLifetime(null)).toBe(false)
     expect(holdsEntryLifetime({ kind: 'RELATIONSHIP', plan: hold })).toBe(false)
     for (const kind of ['REPEAT_SAVE', 'TIMED', 'RECURRING', 'CONCEALMENT'] as const)
       expect(holdsEntryLifetime({ kind, plan })).toBe(true)
+  })
+
+  it('holds a recurrence, or a hold that is the only result, as one graph, and nothing else', () => {
+    const plan = burningPlan()
+    const hold = relationshipPlan(grapple)
+    if (!hold) throw new Error('Expected Grapple to hold its target.')
+    expect(holdsWholeGraph(burning, { kind: 'RECURRING', plan })).toBe(true)
+    expect(holdsWholeGraph(grapple, { kind: 'RELATIONSHIP', plan: hold })).toBe(true)
+    expect(holdsWholeGraph(burning, { kind: 'RELATIONSHIP', plan: hold })).toBe(false)
+    expect(holdsWholeGraph(burning, { kind: 'TIMED', plan })).toBe(false)
+    expect(holdsWholeGraph(burning, null)).toBe(false)
   })
 })
 

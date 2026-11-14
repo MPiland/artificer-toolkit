@@ -193,8 +193,10 @@ duration plan beside it is refused. A Hide's check settles its concealment (`cre
 `concealmentCheckSettlement`) with no maintenance link, so a concealment under Concentration or a named maintained
 effect is refused by the aspect. The model refused two shapes the ladders admitted: a concealment under Concentration,
 whose plan carried a maintenance its settlement dropped, and a used hold whose result block authors a recurrence its
-relationship plan dropped (`effectActionLifetimeAspect.test.ts`). The execution plan's routing asks only whether a
-failed save recurs (`dnd5eRecurringPlan`), before any other plan is built.
+relationship plan dropped (`effectActionLifetimeAspect.test.ts`). The execution plan's routing asks the model too, and
+only for a rolled test: a recurring lifetime, or a relationship that is the action's only result, compiles as one graph
+(the aspect's `holdsWholeGraph`). An action with no rolled test is one graph before any plan is built, so its source (which carries
+no cast level) never reaches a candidate that needs one.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
 and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a

@@ -49,8 +49,8 @@ import {
 } from './effectActionLifetime.js'
 import {
   dnd5eLifetime,
-  dnd5eRecurringPlan,
   holdsEntryLifetime,
+  holdsWholeGraph,
   type Dnd5eLifetimeCandidates
 } from './effectActionLifetimeAspect.js'
 import {
@@ -3160,11 +3160,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (
       (!isDnd5eRolledTest(dnd5eTestKind(source.compiledEffect.invocation)) &&
         !isCheckOutcomeAction(source)) ||
-      dnd5eRecurringPlan(source) !== null ||
-      (source.compiledEffect.entries.every(
-        (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
-      ) &&
-        relationshipPlan(source))
+      holdsWholeGraph(source, dnd5eLifetime(source, LIFETIME_CANDIDATES))
     ) {
       return {
         kind: 'SINGLE_GRAPH',
