@@ -136,7 +136,7 @@ export async function withEncounterRollModeReasons<T>(
       hiddenContributors.add(contributorKey(contributor))
   }
   return build(
-    labelEncounterRollModeReasons(labels, (contributor) =>
+    labelEncounterRollModeReasons(run.gameSystemId, labels, (contributor) =>
       hiddenContributors.has(contributorKey(contributor))
     )
   )

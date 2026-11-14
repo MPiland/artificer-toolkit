@@ -2,7 +2,7 @@ import { labelEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -14,7 +14,7 @@ import { readPendingActionDecision } from './roomHistoryReads.js'
 /** An opportunity attack rolls with the sight its reactor and mover have of each other (ATTACK-10.4, D100). */
 
 /** The rules-owned labels of a roll's mode reasons, as the room's pending read adds them. */
-const rollModeReasons = labelEncounterRollModeReasons(new Map())
+const rollModeReasons = labelEncounterRollModeReasons(SRD_SYSTEM_ID, new Map())
 
 const MOVER_ID = testUuid(0x200)
 const REACTOR_ID = testUuid(0x201)

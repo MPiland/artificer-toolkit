@@ -8,7 +8,6 @@ import {
   encounterAttackSightContributors,
   type EncounterAttackPerception
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
-import { ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import {
   SRD,
@@ -126,6 +125,7 @@ describe('an authored suppression of a roll influence (RULES-2.T9b)', () => {
     }
     const contributors = (value: Partial<EncounterAttackPerception>) =>
       encounterAttackSightContributors({
+        gameSystemId: srdSystemRecord.id,
         perception: {
           targetSeesAttacker: 'SEES',
           attackerSeesTarget: 'SEES',
@@ -137,8 +137,6 @@ describe('an authored suppression of a roll influence (RULES-2.T9b)', () => {
         attacksAgainst
       }).map((contributor) => contributor.sourceId)
     expect(contributors({ attackerSeesTarget: 'UNSEEN' })).toEqual([])
-    expect(contributors({ targetSeesAttacker: 'UNSEEN' })).toEqual([
-      ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
-    ])
+    expect(contributors({ targetSeesAttacker: 'UNSEEN' })).toEqual(['rule:unseen-attacker'])
   })
 })

@@ -107,6 +107,7 @@ describe('ATTACKS_AGAINST on a Creature holder', () => {
     const melee = attackAgainstContributors.filter(({ attackDomain }) => attackDomain === 'MELEE')
     const sight = (targetSeesAttacker: 'SEES' | 'UNSEEN') =>
       encounterAttackSightContributors({
+        gameSystemId: DND5E_SYSTEM_ID,
         perception: {
           targetSeesAttacker,
           attackerSeesTarget: 'SEES',

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -57,6 +57,13 @@ const d20Allowlist = (handSettled) => ({
 })
 const KERNEL = 'packages/shared/src/domains/rules/probeContributors.ts'
 const KERNEL_SOURCE = "export const RULE_IDS = ['long-range']\n"
+// The committed System content fence, so the fixtures fence what production does.
+const { fenced: CONTENT_FENCE } = JSON.parse(
+  readFileSync(new URL('./systemLiteralAllowlist.json', import.meta.url), 'utf8')
+)
+const contentAllowlist = (allowed, fenced = CONTENT_FENCE) => ({ fenced, allowed })
+const SCHEMA_MODULE = 'packages/schema/src/shared/probeResults.ts'
+const CONVEX_MODULE = 'apps/apis/convex/probe.ts'
 const allowlist = (importers, compositionRoots = { [ROOT]: 'Installs the probe adapters.' }) => ({
   compositionRoots,
   importers
@@ -127,7 +134,7 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     write(HAND_SETTLED, 'export const natural = rollModeKeptFace(keep, faces)\n')
     writeJson(D20_ALLOWLIST, d20Allowlist([HAND_SETTLED]))
     write(KERNEL, KERNEL_SOURCE)
-    writeJson(SYSTEM_LITERAL_ALLOWLIST, { [KERNEL]: 'Moves in a later slice.' })
+    writeJson(SYSTEM_LITERAL_ALLOWLIST, contentAllowlist({ [KERNEL]: 'Moves in a later slice.' }))
     commitAll(root, 'phase')
     git(root, 'switch', '--quiet', '-c', 'slice')
   })
@@ -377,7 +384,7 @@ describe('ratchetProblems (RULES-2.T1)', () => {
   })
 
   it('fails a content allowlist entry without a reason', () => {
-    writeJson(SYSTEM_LITERAL_ALLOWLIST, { [KERNEL]: ' ' })
+    writeJson(SYSTEM_LITERAL_ALLOWLIST, contentAllowlist({ [KERNEL]: ' ' }))
     commitAll(root, 'drop the reason')
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([
       `${SYSTEM_LITERAL_ALLOWLIST}: ${KERNEL} needs a reason.`
@@ -386,11 +393,55 @@ describe('ratchetProblems (RULES-2.T1)', () => {
 
   it('fails a content allowlist entry added since the merge base', () => {
     write(NEUTRAL, "export const code = 'ON_IDLE_TURN'\n")
-    writeJson(SYSTEM_LITERAL_ALLOWLIST, { [KERNEL]: 'Moves in a later slice.', [NEUTRAL]: 'New.' })
+    writeJson(
+      SYSTEM_LITERAL_ALLOWLIST,
+      contentAllowlist({ [KERNEL]: 'Moves in a later slice.', [NEUTRAL]: 'New.' })
+    )
     commitAll(root, 'allowlist new System content')
     expect(ratchetProblems(root)).toEqual([])
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([
       `${SYSTEM_LITERAL_ALLOWLIST}: ${NEUTRAL} is new; the allowlist only shrinks.`
+    ])
+  })
+
+  it('fences System content in the schema and Convex, but not their tests or generated files (QUALITY-16.T2)', () => {
+    write(SCHEMA_MODULE, "export const key = 'dnd5e.save-test-resolution'\n")
+    write(CONVEX_MODULE, "export const lock = 'SPELLCASTING_LOCK'\n")
+    write('packages/schema/src/__tests__/probe.test.ts', "const key = 'dnd5e.x'\n")
+    write('apps/apis/convex/_generated/api.js', "export const key = 'dnd5e.x'\n")
+    commitAll(root, 'System content in the schema and Convex')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${CONVEX_MODULE}: names System content "SPELLCASTING_LOCK" outside systems/; read it from System data through a capability registry.`,
+      `${SCHEMA_MODULE}: names System content "dnd5e.save-test-resolution" outside systems/; read it from System data through a capability registry.`
+    ])
+  })
+
+  it('lets a module the fence newly reaches enter the allowlist as debt', () => {
+    const narrower = CONTENT_FENCE.filter((prefix) => prefix !== 'packages/schema/src/')
+    writeJson(
+      SYSTEM_LITERAL_ALLOWLIST,
+      contentAllowlist({ [KERNEL]: 'Moves in a later slice.' }, narrower)
+    )
+    write(SCHEMA_MODULE, "export const key = 'dnd5e.save-test-resolution'\n")
+    commitAll(root, 'phase without the schema fence')
+    git(root, 'branch', '--quiet', '-f', 'phase')
+    writeJson(
+      SYSTEM_LITERAL_ALLOWLIST,
+      contentAllowlist({ [KERNEL]: 'Moves in a later slice.', [SCHEMA_MODULE]: 'Debt.' })
+    )
+    commitAll(root, 'widen the fence')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+
+  it('fails a fence that no longer covers a prefix the merge base fenced', () => {
+    const narrower = CONTENT_FENCE.filter((prefix) => prefix !== 'apps/apis/convex/')
+    writeJson(
+      SYSTEM_LITERAL_ALLOWLIST,
+      contentAllowlist({ [KERNEL]: 'Moves in a later slice.' }, narrower)
+    )
+    commitAll(root, 'narrow the fence')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${SYSTEM_LITERAL_ALLOWLIST}: the fence no longer covers apps/apis/convex/; it only grows.`
     ])
   })
 })
@@ -412,6 +463,11 @@ describe('systemLiterals (QUALITY-16.1)', () => {
       'unseen-attacker',
       'unseen-target'
     ])
+  })
+
+  it('does not count a third-party import format identifier (QUALITY-16.T2)', () => {
+    const source = "export const source = z.enum(['DND_BEYOND', 'FOUNDRY_DND5E', 'ARTIFICER_JSON'])"
+    expect(systemLiterals('packages/schema/src/api/imports.ts', source)).toEqual([])
   })
 })
 

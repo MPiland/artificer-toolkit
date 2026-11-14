@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 
 import { rollRuleCheckDtoSchema } from '../api/rolls.js'
 import { encounterActionPendingContextDtoSchema } from '../shared/encounterActionPending.js'
@@ -20,7 +19,7 @@ const advantage = {
   influence: 'ADVANTAGE' as const,
   source: {
     kind: 'RULE' as const,
-    id: ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER,
+    id: 'unseen-attacker',
     holderActorId: null
   }
 }

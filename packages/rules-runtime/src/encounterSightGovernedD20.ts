@@ -32,6 +32,7 @@ export type SightGovernedD20 = {
  * held die and the captions that explain a settled mode change.
  */
 export function sightGovernedStageD20(input: {
+  gameSystemId: string
   attackSight: EncounterPreparedAttackSight | null
   policy: Pick<ServerRuleExecutionD20PolicyDto, 'contributors'>
   stored: {
@@ -39,8 +40,8 @@ export function sightGovernedStageD20(input: {
     heldD20: EncounterActionHeldD20Dto | null
   }
 }): SightGovernedD20 | null {
-  const { attackSight, policy, stored } = input
-  if (!isEncounterSightGovernedD20({ policy, belief: stored.d20Belief })) return null
+  const { gameSystemId, attackSight, policy, stored } = input
+  if (!isEncounterSightGovernedD20({ gameSystemId, policy, belief: stored.d20Belief })) return null
   if (stored.d20Belief && !attackSight) throw new Error('The action d20 belief is stale.')
   return {
     held: stored.heldD20,

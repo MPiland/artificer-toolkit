@@ -602,6 +602,7 @@ export async function planNativeLiveContestRolls(input: {
             initiatorSight:
               participant === 'INITIATOR'
                 ? sightGovernedStageD20({
+                    gameSystemId: state.gameSystemId,
                     attackSight,
                     policy: contest.initiator,
                     stored: {

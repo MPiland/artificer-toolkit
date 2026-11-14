@@ -149,6 +149,7 @@ export function resolutionForRetainedEvidence(input: {
       recordedD20Natural(evidence) !== evidence.selectedNatural ||
       // A roll sight decides is settled in the rules-derived mode; a chosen mode never replaces it.
       (isEncounterSightGovernedD20({
+        gameSystemId: input.gameSystemId,
         policy: input.pending.d20Policy,
         belief: input.pending.d20Belief ?? null
       }) &&
