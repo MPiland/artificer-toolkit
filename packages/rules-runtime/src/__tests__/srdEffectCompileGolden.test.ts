@@ -322,9 +322,9 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
     'UNBUILT',
   'D&D test action paths must be unique direct outcomes. Its choice has no plan that holds its options.':
     'UNBUILT',
-  'D&D Effect action outcome is not a supported hit-point or condition outcome. Its manifestation is not one timed creature form.':
+  'D&D Effect action outcome is not a supported hit-point or condition outcome. It is no timed creature form.':
     'UNBUILT',
-  'D&D Effect action outcome is not a supported hit-point or condition outcome. Its kind has no result the System applies.':
+  'D&D Effect action outcome is not a supported hit-point or condition outcome. Its kind has none.':
     'UNBUILT',
   'D&D test action has an unsupported bounded shape.': 'UNBUILT',
   'D&D test action outcome is not supported.': 'UNBUILT',

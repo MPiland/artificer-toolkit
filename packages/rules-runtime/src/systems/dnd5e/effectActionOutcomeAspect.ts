@@ -25,6 +25,13 @@ const DIRECT_RESULT =
   'D&D Effect action must have one fixed direct result without lifecycle overrides.'
 const TEST_PATHS = 'D&D test action paths must be unique direct outcomes.'
 
+/** Refuses a direct outcome whose kind compiles to no result here, naming why. */
+export function refuseDirectOutcome(reason: string): never {
+  unsupported(
+    `D&D Effect action outcome is not a supported hit-point or condition outcome. ${reason}`
+  )
+}
+
 /**
  * The outcome aspect's rule for one entry (ADR 0039 decision 1): it resolves directly, as one
  * outcome or as a sequence or choice its carriers hold, on a result path its test resolves to, with
