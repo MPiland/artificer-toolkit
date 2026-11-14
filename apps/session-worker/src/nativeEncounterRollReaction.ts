@@ -1,3 +1,4 @@
+import type { LiveSessionReactionAncestor } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -13,6 +14,7 @@ import {
   type NativeEncounterActionMechanicsInput
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { EncounterActionRollReaction } from '@artificer-toolkit/rules-runtime/encounterActionRollReaction'
 import { buildEncounterWindowReactionReceipt } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import {
@@ -38,6 +40,28 @@ type PreparationInput = Parameters<typeof prepareEncounterActionMechanics>[0]
 export type NativeRollReaction = NativeReaction<EncounterReactionCandidate, Prepared> & {
   die: D20WindowReactionDieDto
 }
+
+/**
+ * The turns `reactions` take at a rolled attack d20 (D219): the roll is held for each reactor in turn,
+ * by actor id. A creature whose reaction a held action above this one spent (`ancestors`) has been
+ * heard, like one that declined.
+ */
+export const nativeRollReactionTurns = (
+  reactions: readonly NativeRollReaction[],
+  ancestors: readonly Pick<LiveSessionReactionAncestor, 'actorId' | 'reaction'>[]
+): EncounterActionRollReaction => ({
+  discover: async (heardReactorActorIds) => {
+    const heard = [
+      ...heardReactorActorIds,
+      ...ancestors.flatMap(({ actorId, reaction }) => (reaction ? [actorId] : []))
+    ]
+    const next = reactions.find(({ candidate }) => !heard.includes(candidate.reactorActorId))
+      ?.candidate.reactorActorId
+    return reactions
+      .filter(({ candidate }) => candidate.reactorActorId === next)
+      .map(({ candidate }) => candidate)
+  }
+})
 
 /**
  * Every reaction, by reactor actor id, that a Character other than the roller could roll against its

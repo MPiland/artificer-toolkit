@@ -153,6 +153,7 @@ export async function advanceNativeActionGraphs(input: {
    * `DECLINE` and `RESUMED` (which follows that commit) hold the same roll for the next creature; when
    * nobody is left, the kept faces are tested against the binding as it stands now, with `childDice`,
    * the dice the reactions' actions rolled against the roll, and the action continues from that TEST.
+   * `SETTLED` replays a roll kept with its answer: everybody was heard, so it resolves at once.
    */
   heldRoll?: {
     offer: EncounterRolledReactionOffer
@@ -160,6 +161,7 @@ export async function advanceNativeActionGraphs(input: {
       | { kind: 'USE'; candidate: EncounterReactionCandidate }
       | { kind: 'DECLINE' }
       | { kind: 'RESUMED' }
+      | { kind: 'SETTLED' }
     childDice: readonly D20RolledAddedDieDto[]
   }
   /**
@@ -264,15 +266,17 @@ export async function advanceNativeActionGraphs(input: {
       }
       if (answer.kind === 'USE')
         return heldOnRollReaction({ ...held, offer, candidate: answer.candidate })
-      if (!rollReaction || !offered) throw new Error('Reaction evidence is stale.')
-      // The creature that answered has been heard; the same roll is held for the next one.
-      const next = await holdForRollReaction({
-        ...held,
-        rollReaction,
-        rolled: offer.rolled,
-        heardReactorActorIds: [...offer.declinedReactorActorIds, offered.reactorActorId]
-      })
-      if (next) return next
+      if (answer.kind !== 'SETTLED') {
+        if (!rollReaction || !offered) throw new Error('Reaction evidence is stale.')
+        // The creature that answered has been heard; the same roll is held for the next one.
+        const next = await holdForRollReaction({
+          ...held,
+          rollReaction,
+          rolled: offer.rolled,
+          heardReactorActorIds: [...offer.declinedReactorActorIds, offered.reactorActorId]
+        })
+        if (next) return next
+      }
     }
     const test = heldHit
       ? await reconstructNativeActionTest({
