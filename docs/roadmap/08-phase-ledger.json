@@ -26477,6 +26477,22 @@
             },
             {
               "id": "QUALITY-13.T1c5c",
+              "status": "DONE",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-13.T1c5b"]
+              },
+              "text": "An incoming-gate ward save is shown as a roll card for single attacks and for each ray (recordCounterCheckRollCards cards only TRIGGER gates today), one card path for both.",
+              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13). Resized 5 to 8 at delivery. Review 2026-11-14: sent back twice, once for a turned single attack losing its failed ward save card (now carried as retargeted[] on the ENCOUNTER_ACTION pending context through failedWardsBehind) and once for an 'in' guard that could drop the chain (the area/chosen CAST_PENDING plan now carries retargeted: []) plus the fail, turn, fail, decline journey.",
+              "mergedAt": "2026-11-14",
+              "proof": "m758 (3a97b2f0b); slice tip ffed9ef96: Tests 43597916577, Live 43598999588, Browser journeys 43597916580 green. One card path recordIncomingGateRollCards (replaces recordCounterCheckRollCards; TRIGGER cards unchanged, WARD cards labelled Ward, scope ward-save, SAVING_THROW). Red proof: nativeRoomIncomingGateCards 12/12 RED (SRD Sanctuary, Bite, Scorching Ray: single attack auto and prompted pass and fail, undo keeps cards; rays pass plus lost, unwarded ray no card, auto-rolled list, turned ray failed save under its entry, list undo; turned single attack to an unwarded and to a warded creature, prompted with undo); fail, turn, fail, decline journey added after. No assertions restated. D196: optional transient retargeted on the ENCOUNTER_ACTION pending context; passedGate now populated for WARD origins and ray child batches; no reseed needed."
+            },
+            {
+              "id": "QUALITY-13.T1c5d",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
@@ -26486,23 +26502,9 @@
                 "size": 5,
                 "after": ["QUALITY-13.T1c5b"]
               },
-              "text": "An incoming-gate ward save is shown as a roll card for single attacks and for each ray (recordCounterCheckRollCards cards only TRIGGER gates today), one card path for both.",
+              "text": "A ray that passes an incoming ward writes the ward's authored success grant like a single attack: the held ward (id and successImmunity) is re-derived per passed ray at commit and passed to planAreaOutcomes grants, deduplicated per creature.",
               "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
-            },
-            {
-              "id": "QUALITY-13.T1c5d",
-              "status": "TODO",
-              "closes": ["QUALITY-13.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 3,
-                "rr": 5,
-                "size": 5,
-                "after": ["QUALITY-13.T1c5b"]
-              },
-              "text": "A ray that passes an incoming ward writes the ward's authored success grant like a single attack: the held ward (id and successImmunity) is re-derived per passed ray at commit and passed to planAreaOutcomes grants, deduplicated per creature.",
-              "note": "Registered 2026-11-14 from the T1c5b split under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-13.T2c",

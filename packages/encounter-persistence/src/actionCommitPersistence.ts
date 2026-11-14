@@ -49,12 +49,17 @@ import type {
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { castPendingContinues, passedGateAfter, sameGate } from './actionPending.js'
+import {
+  castPendingContinues,
+  failedWardsBehind,
+  passedGateAfter,
+  sameGate
+} from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import {
   recordActionRollCards,
-  recordCounterCheckRollCards,
+  recordIncomingGateRollCards,
   settledD20s
 } from './actionRollCards.js'
 
@@ -136,16 +141,20 @@ export async function persistEncounterActionCommit(
     batch.occurrenceId !== execution.occurrenceId
   )
     throw new Error('Live Session action result scope mismatch.')
-  // A reaction child that passed its trigger's check records it, and it is the check its pending asked.
+  // An action that passed a gate records it, and it is the gate its pending asked: a reaction child's
+  // trigger check, or the ward of the creature it attacked.
   const gateBehind = resume ? passedGateAfter(resume.pending.context) : undefined
+  const { passedGate } = batch
   if (
-    batch.passedGate
-      ? batch.passedGate.origin.kind !== 'TRIGGER' ||
-        command.systemTrigger?.trigger !== 'REACTION' ||
-        (resume && !sameGate(batch.passedGate, gateBehind))
-      : gateBehind?.origin.kind === 'TRIGGER'
+    passedGate
+      ? (passedGate.origin.kind === 'TRIGGER'
+          ? command.systemTrigger?.trigger !== 'REACTION'
+          : passedGate.origin.holderActorId !== targetActorId) ||
+        // A gate its pending already passed is the one recorded; a retargeted action's is new.
+        (gateBehind && !sameGate(passedGate, gateBehind))
+      : gateBehind
   )
-    throw new Error('Live Session action trigger check mismatch.')
+    throw new Error('Live Session action incoming gate mismatch.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
   const target = actors.find((actor) => actor.id === targetActorId)
@@ -438,12 +447,17 @@ export async function persistEncounterActionCommit(
       dice: settledD20s(batch)
     })
   })
-  await recordCounterCheckRollCards(ctx, {
+  await recordIncomingGateRollCards(ctx, {
     campaign,
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: batch.passedGate ? [{ reactor: source, check: batch.passedGate }] : [],
+    roller: source,
+    // The saves that turned the action, then the ward its chosen creature passed.
+    gates: [
+      ...(resume ? failedWardsBehind(resume.pending.context) : []),
+      ...(batch.passedGate ? [batch.passedGate] : [])
+    ],
     response: input.response,
     responderUserId: userId,
     initiatorUserId,

@@ -135,6 +135,8 @@ names.
 | `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                |
 | `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                   |
 | `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)    |
+| `effectActionActivation`         | The activation aspect, `compileDnd5eActivation`: one action, bonus action or registered-trigger reaction, or a free action and whether a Feature charge is its cost                                               |
+| `effectActionTargetPolicy`       | The targeting aspect, `compileDnd5eTargeting`: Self (with a teleport reach), single, chosen list or fixed-size area, its range rules and whether the target must be willing                                       |
 | `effectActionPublishedGraph`     | `publishedGraph`: the published DTO (identity, checksum, definition) of a graph the compiler built                                                                                                                |
 | `effectActionLifetime`           | `maintenancePlan` (the source actor's Concentration or named maintained effect), `durationPublishedGraph` (the graph a timed plan's duration publishes) and the grant consume and end trigger events              |
 | `effectActionModifierGrants`     | `modifierGrantEntryPlan`: a modifier grant entry's active-effect plan, with its cast-level amounts, lifetime and maintenance                                                                                      |
@@ -144,6 +146,19 @@ names.
 | `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant |
 
 The zones module imports the test-phase, outcome and lifetime modules above directly, as the compiler does.
+
+**Aspect composition (current, QUALITY-15.T1; ADR 0039 decision 1).** Activation and targeting compile independently
+and are composed in the compiler's `activatedAction`, which the direct path (`supported`), the test paths (`testPlan`,
+`supportedTestPhaseKind`) and nothing else read. Each aspect refuses with its own rule, so a refusal names the aspect
+that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a reaction aims no area (its trigger's
+pending decision carries no aim), a Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
+accepts: one creature a grant, timed condition or check; a list a grant, bond or form. A single target on a Self range is its user, as the room's
+single-target evaluator holds it. The targeting aspect (`compileDnd5eTargeting`) also holds the room's evaluator limits: a creature
+target names its disposition (any, willing or hostile), and a chosen-creature list needs a measured range, not Sight. Within those
+limits the aspects admit combinations the shape ladders refused: a save its user makes under any activation, an area save as a bonus
+action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
+(`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). The test, outcome and lifetime selection still run as plan ladders; they are the
+QUALITY-15 follow-up tasks.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
 and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
@@ -244,9 +259,9 @@ outcomes that act on the actor or the triggering event (a Dash's added speed, a 
 cancel). Every compiled graph is published through one helper, `publishedGraph`. Two
 admissions changed:
 
-- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
-  `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
-  check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
+- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. The activation aspect
+  (`compileDnd5eActivation`) marks such an option `charged`; the composition (`activatedAction`) refuses an uncharged
+  free action on anyone but its user, for direct and test actions alike (QUALITY-15.T1). So a charged free save option (Wing Attack's authored shape) compiles under
   its save. When its area is centered on its owner, or is a point or direction its controller aims, the turn end
   delegates it to the area coordinator as its own rule-raised root (SPELLS-33.T4l3, SPELLS-15.T1, D197;
   `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`). An aimed option carries its `area`, the answer
@@ -2975,7 +2990,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
 - **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
-- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
+- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. The activation aspect (`compileDnd5eActivation`) admits a `BONUS_ACTION`, so a `BONUS_ACTION` saving throw (a repeat's charge) compiles through `activatedAction`.
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
 - **Carrier kinds (SPELLS-4.T2n2, D181):** a repeat offer on a grant with no chosen item is an ordinary grant's offer: `modifierGrantPlan` plans it (an offer counts as grant content) and the generic modifier-grant path freezes it, so an attack's carrier works (Vampiric Touch). Only a chosen-item grant takes the Heat Metal rider (`effectActionRepeatCarrier.ts`: save, bound to the item, ends on release). An attack grant authored alike on the hit and the miss applies on either result; two grants on hit results are still refused.
 

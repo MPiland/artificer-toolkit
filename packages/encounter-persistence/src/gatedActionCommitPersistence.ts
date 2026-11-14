@@ -24,7 +24,7 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { sameGate } from './actionPending.js'
-import { recordCounterCheckRollCards } from './actionRollCards.js'
+import { recordIncomingGateRollCards } from './actionRollCards.js'
 
 /**
  * Commits an action its incoming gate stopped, in the transaction of the roll that failed it: the root
@@ -158,20 +158,21 @@ export async function persistEncounterGatedActionCommit(
     occurredAt: input.occurredAt
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
-  // A failed trigger check is carded as the reactor's counter check, as a passed one is.
-  if (origin.kind === 'TRIGGER')
-    await recordCounterCheckRollCards(ctx, {
-      campaign,
-      encounterId: state.id,
-      gameSystemId: state.gameSystemId,
-      occurrenceId: root.occurrenceId,
-      checks: [{ reactor: source, check: root.gate }],
-      response,
-      responderUserId: input.expectedUserId,
-      initiatorUserId,
-      visibility: command.visibility,
-      createdAt: input.occurredAt
-    })
+  // A failed gate is carded as a passed one is, from the source who rolled it.
+  await recordIncomingGateRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: root.occurrenceId,
+    roller: source,
+    // The saves that turned the action before this one, then the one that lost it.
+    gates: [...(resume?.pending.context.retargeted ?? []), root.gate],
+    response,
+    responderUserId: input.expectedUserId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
+  })
   return recordActionCommit(ctx, {
     admission,
     command,

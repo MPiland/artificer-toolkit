@@ -28,12 +28,6 @@ import type {
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
 import {
-  chosenCreaturesAreaSupported,
-  chosenCreaturesCap,
-  hitPointPoolIsAuthored,
-  resolveChosenCreaturesTargeting
-} from '../../encounterAreaAction.js'
-import {
   challengeRatingGateCap,
   challengeRatingGateOwed,
   directGates,
@@ -46,7 +40,6 @@ import {
 } from './effectActionGates.js'
 import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
-import { reactionTriggerRow } from '../../events/reactionTriggers.js'
 import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
   activeEffectGraphNodeId,
@@ -181,6 +174,7 @@ import {
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   UUID,
   Dnd5eEffectActionCompilerError,
+  type Dnd5eActionInvocation,
   type Dnd5eCompiledEffectActionSource,
   type Outcome,
   type TestKind,
@@ -232,13 +226,8 @@ import {
   repeatSaveGated,
   tallyEnds
 } from './effectActionRepeatSaveEvidence.js'
-import {
-  isChargedFreeActivation,
-  isSupportedArea,
-  isSupportedTestActivation,
-  isSupportedTestTargetPolicy,
-  namesOnlyItsUser
-} from './effectActionTargetPolicy.js'
+import { compileDnd5eActivation } from './effectActionActivation.js'
+import { compileDnd5eTargeting, type Dnd5eTargeting } from './effectActionTargetPolicy.js'
 import {
   dnd5eEffectScalingFacts,
   dnd5eAttackTargetFacts,
@@ -465,7 +454,6 @@ function supportedRecurringPlan(
   if (
     invocation.kind === 'ACTION' &&
     invocation.triggerCode === 'SAVING_THROW' &&
-    isSupportedTestActivation(invocation) &&
     entries.length === 1 &&
     entry.resolutionKind === 'DIRECT' &&
     entry.groupKind === 'SINGLE' &&
@@ -503,8 +491,6 @@ function supportedRecurringPlan(
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== 'ACTIVATED' ||
-    invocation.activation.code !== 'ACTION' ||
-    invocation.activation.amount !== 1 ||
     entries.length !== 1 ||
     entry.resolutionKind !== 'DIRECT' ||
     entry.groupKind !== 'SINGLE' ||
@@ -1821,21 +1807,50 @@ function validateDiceOutcomeGroup(
   }
 }
 
+/**
+ * The activation and targeting aspects of an action, each compiled on its own, and the rules that
+ * read both: an uncharged free action is bounded only by its holder's restrictions, so it is taken
+ * on its user alone (Frenzy); and a reaction resolves on its trigger's pending decision, which aims
+ * no area.
+ */
+function activatedAction(
+  action: Dnd5eCompiledEffectActionSource,
+  test: TestKind | null
+): {
+  invocation: Dnd5eActionInvocation
+  targeting: Dnd5eTargeting
+} {
+  const { invocation } = action.compiledEffect
+  if (invocation.kind !== 'ACTION') unsupported('D&D Effect is not an activated action.')
+  const activation = compileDnd5eActivation(invocation)
+  const targeting = compileDnd5eTargeting(action, test)
+  if (activation.code === 'FREE' && !activation.charged && targeting.kind !== 'SELF')
+    unsupported('D&D free action with no charge is taken on its user alone.')
+  if (activation.code === 'REACTION' && targeting.kind === 'AREA')
+    unsupported('D&D reaction resolves on its trigger and aims no area.')
+  return { invocation, targeting }
+}
+
+/**
+ * The targeting a test is rolled against. A Self action's distance bounds only its user's teleport,
+ * and a test is rolled by any creature in its targeting, never only a willing one.
+ */
+function testTargeting(action: Dnd5eCompiledEffectActionSource, kind: TestKind): void {
+  const { targeting } = activatedAction(action, kind)
+  if (targeting.kind === 'SELF' && targeting.reachFeet !== null)
+    unsupported('D&D Self action range of distance bounds only its user teleporting.')
+  if ((targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') && targeting.willing)
+    unsupported('D&D test targets any creature, not only a willing one.')
+}
+
 function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
-  const { invocation, entries } = action.compiledEffect
+  const { entries } = action.compiledEffect
   const kind = testPhaseKindOrNull(action)
   if (!kind) return null
   const allowedPaths =
     kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  if (
-    invocation.kind !== 'ACTION' ||
-    !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(action) ||
-    entries.length < 1
-  )
-    unsupported(
-      'D&D test actions must use one bounded single-target action or movement-reaction shape.'
-    )
+  testTargeting(action, kind)
+  if (entries.length < 1) unsupported('D&D test action has no authored result.')
   const relationshipEntries = entries.filter(
     (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
   )
@@ -2023,102 +2038,47 @@ function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind'
 function supported(
   action: Dnd5eCompiledEffectActionSource
 ): Dnd5eDirectOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CHECK_OUTCOME' } {
+  const { invocation, targeting } = activatedAction(action, null)
   const effect = action.compiledEffect
-  const invocation = effect.invocation
+  // A direct action tests nothing; a CHECK action rolls its authored check against a fixed DC, each
+  // observer's passive score, the concealments that hide creatures from the checker, or the target's
+  // own check in a contest.
+  const checkAction = invocation.triggerCode === 'CHECK'
+  if (invocation.triggerCode !== 'ACTIVATED' && !checkAction)
+    unsupported('D&D action trigger is not a test the Effect action compiler runs.')
+  const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
   const formPlan = creatureFormPlan(action)
-  // A CHECK action rolls its authored check against a fixed DC, each observer's passive score, the
-  // concealments that hide creatures from the checker, or the target's own check in a contest.
-  const checkAction = invocation.triggerCode === 'CHECK'
-  const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
-  const supportsSelf = namesOnlyItsUser(invocation, conditionPlan?.playAbsenceContribution != null)
-  // A plain distance: a positive whole amount, with no long or close range of disadvantage.
-  const { range } = invocation
-  const plainDistance =
-    range.rangeKind === 'DISTANCE' &&
-    Number.isSafeInteger(range.amount) &&
-    range.amount > 0 &&
-    range.longAmount === undefined &&
-    range.closeAmount === undefined
-  // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
-  // the range bounds the teleport, not a target.
-  const teleportReachFeet =
-    plainDistance && invocation.targeting?.selectionKind === 'SELF' && range.unit === 'FEET'
-      ? range.amount
-      : null
   const firstEntry = effect.entries[0]
   const firstOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : undefined
+  // A teleport spell (Misty Step) names its reach as a distance range on a Self action: the range
+  // bounds the teleport, not a target.
   const selfTeleport =
-    teleportReachFeet !== null &&
+    targeting.kind === 'SELF' &&
+    targeting.reachFeet !== null &&
     firstOutcome?.effectKind === 'TELEPORT' &&
     firstOutcome.targetKind === 'SELF' &&
     (firstOutcome.destinationKind === 'VISIBLE' ||
       firstOutcome.destinationKind === 'SPECIFIED_POINT')
-      ? { maxFeet: teleportReachFeet, destinationKind: firstOutcome.destinationKind }
+      ? { maxFeet: targeting.reachFeet, destinationKind: firstOutcome.destinationKind }
       : null
-  // A DISTANCE or Touch range only warns when the target is out of range (D11); a Sight range bounds
-  // no distance.
-  const supportsTargetRange =
-    range.rangeKind === 'UNLIMITED' ||
-    range.rangeKind === 'SIGHT' ||
-    range.rangeKind === 'TOUCH' ||
-    plainDistance
-  // Excluded creature types stay on the invocation: the room warns for an excluded target and the
-  // table can override it, so they never make an action unsupported.
-  const supportsSingleTarget =
-    supportsTargetRange &&
-    invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
-    // A grant (Help), a timed condition (Invisibility) or a check (First Aid) may ask for a willing
-    // target: an unwilling one only warns, and the table can override it.
-    (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' &&
-        (grantPlan !== null || conditionPlan !== null || checkAction)))
-  // A resolved list of chosen creatures, capped (Mass Healing Word) or naming each creature once
-  // (Pass without Trace), inside a round area when it names one (Mass Cure Wounds), resolves the one
-  // outcome on each (Magic Missile's darts, Pass without Trace's one active effect per creature);
-  // an outcome that lands on the actor instead is refused once it is read.
-  const supportsChosenCreatures =
-    supportsTargetRange &&
-    invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
-    // A bond (Telepathic Bond) asks for willing creatures: an unwilling one only warns.
-    (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' &&
-        (grantPlan !== null || linkPlan !== null || formPlan !== null))) &&
-    chosenCreaturesCap(resolveChosenCreaturesTargeting(invocation.targeting, action)) !== null &&
-    (!invocation.shape ||
-      chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
-  // A hit-point pool area (Sleep) rolls one pool for the cast and puts the creatures it reaches under
-  // the one outcome, a timed condition, with no test.
-  const supportsHitPointPoolArea =
-    invocation.targeting?.selectionKind === 'AREA_CONTENTS' &&
-    hitPointPoolIsAuthored(invocation.targeting) &&
-    isSupportedArea(invocation)
-  // A free action on its user alone (Frenzy) needs no charge: its use path's holder restrictions
-  // bound it.
-  const supportedActivation =
-    invocation.kind === 'ACTION' &&
-    (invocation.activation.code === 'FREE'
-      ? isChargedFreeActivation(invocation) || supportsSelf
-      : (invocation.activation.code === 'ACTION' ||
-          invocation.activation.code === 'BONUS_ACTION' ||
-          // A reaction to a registered trigger; the triggering event's pending decision offers it
-          // (never a direct action).
-          (invocation.activation.code === 'REACTION' && reactionTriggerRow(invocation) !== null)) &&
-        invocation.activation.amount === 1)
+  if (targeting.kind === 'SELF' && targeting.reachFeet !== null && !selfTeleport)
+    unsupported('D&D Self action range of distance bounds only its user teleporting.')
+  // A willing target only warns when unwilling, and the table can override it. One creature may be
+  // asked to accept a grant (Help), a timed condition (Invisibility) or a check (First Aid); a list
+  // a grant, a bond (Telepathic Bond) or a form. Widening either set is QUALITY-15.T2 triage. Both
+  // refuse with one reason, so a list is refused for the reason its single-target cast is.
   if (
-    invocation.kind !== 'ACTION' ||
-    (invocation.triggerCode !== 'ACTIVATED' && invocation.triggerCode !== 'CHECK') ||
-    !supportedActivation ||
-    (!supportsSelf &&
-      !selfTeleport &&
-      !supportsSingleTarget &&
-      !supportsChosenCreatures &&
-      !supportsHitPointPoolArea) ||
-    (invocation.shape && !supportsChosenCreatures && !supportsHitPointPoolArea)
+    (targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') &&
+    targeting.willing &&
+    grantPlan === null &&
+    (targeting.kind === 'SINGLE'
+      ? conditionPlan === null && !checkAction
+      : linkPlan === null && formPlan === null)
   )
-    unsupported('D&D Effect action is not the supported activated self action shape.')
+    unsupported('D&D willing target needs an outcome a creature accepts.')
   const entry = effect.entries[0]
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
@@ -2153,7 +2113,7 @@ function supported(
       'D&D Effect action resource use must use a normalized charge identity and positive safe cost.'
     )
   const outcome = entry.outcome
-  if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
+  if (targeting.kind === 'AREA' && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
   if (
     !checkAction &&
@@ -2210,7 +2170,7 @@ function supported(
   }
   return specializedDirectOutcome(outcome.effectKind, outcome, {
     action,
-    onList: supportsChosenCreatures,
+    onList: targeting.kind === 'CHOSEN',
     selfTeleport,
     plans: {
       grant: grantPlan !== null,
@@ -2222,19 +2182,13 @@ function supported(
 }
 
 function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKind {
-  const invocation = action.compiledEffect.invocation
   const kind = testPhaseKindOrNull(action)
   if (!kind) unsupported('D&D action has no supported test phase.')
   const allowedPaths =
     kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  if (
-    invocation.kind !== 'ACTION' ||
-    !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(action) ||
-    action.compiledEffect.entries.length < 1
-  ) {
-    unsupported('D&D test action has an unsupported bounded shape.')
-  }
+  testTargeting(action, kind)
+  if (action.compiledEffect.entries.length < 1)
+    unsupported('D&D test action has no authored result.')
   if (isExactImmediateFollowUpSaveAction(action)) {
     // A band the registry cannot compose is refused here, before the hit is ever rolled.
     immediateFollowUpSaveGraphDefinition(action)

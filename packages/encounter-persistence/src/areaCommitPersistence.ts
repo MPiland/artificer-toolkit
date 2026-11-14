@@ -21,6 +21,7 @@ import { buildEncounterLostRayStoredExecution } from '@artificer-toolkit/rules-r
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   encounterAreaNamedActorId,
+  encounterAreaRayPassedGate,
   encounterAreaTargetCommandId,
   encounterChosenActorEntries,
   encounterCollisionSaveOccurrenceId,
@@ -79,7 +80,11 @@ import {
 import { castPendingContinues } from './actionPending.js'
 import { settleActionTargetOutcome } from './actionTargetOutcomeSettlement.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
-import { recordActionRollCards, settledD20s } from './actionRollCards.js'
+import {
+  recordActionRollCards,
+  recordIncomingGateRollCards,
+  settledD20s
+} from './actionRollCards.js'
 import { rollerAsPerceivedByCaster } from './ruleRollCards.js'
 import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
@@ -155,6 +160,8 @@ type CommitScope = {
     lost?: { gate: EncounterSettledIncomingGateDto }
     /** The failed ward saves that turned a ray on this creature; the first ward's holder was named. */
     retargeted?: EncounterFailedWardGateDto[]
+    /** The gate a ray passed at its creature, which its outcome records. */
+    passedGate?: EncounterSettledIncomingGateDto
   }[]
   caughtChecksum: string
   removedActorIds: readonly string[]
@@ -341,7 +348,10 @@ export async function persistEncounterAreaCommit(
     )
       throw new Error('Live Session area forced movement mismatch.')
     scope = {
-      targets: context.targets,
+      targets: context.targets.map((sealed) => ({
+        ...sealed,
+        passedGate: encounterAreaRayPassedGate(sealed)
+      })),
       caughtChecksum: context.caughtChecksum,
       removedActorIds: context.removedActorIds,
       unaffectedActorIds: context.unaffectedActorIds ?? [],
@@ -353,7 +363,8 @@ export async function persistEncounterAreaCommit(
   // A ray lost at its creature's gate keeps its ordinal among that creature's entries and commits
   // no outcome, so the kept entries skip it.
   const caught = scope.targets.filter(({ collision }) => !collision)
-  const caughtKeptCount = caught.filter(({ lost }) => !lost).length
+  const caughtKept = caught.filter(({ lost }) => !lost)
+  const caughtKeptCount = caughtKept.length
   const struck = scope.targets.flatMap(({ actorId, collision }) =>
     collision ? [{ actorId, moverActorId: collision.moverActorId }] : []
   )
@@ -427,6 +438,9 @@ export async function persistEncounterAreaCommit(
       batch.parentOccurrenceId !== areaOccurrenceId ||
       batch.sourceActorId !== source.id ||
       batch.targetActorId !== actor.id ||
+      // A ray records the gate it passed at its creature, and only that.
+      checksumCanonicalJson(batch.passedGate ?? null) !==
+        checksumCanonicalJson(caughtKept[index]?.passedGate ?? null) ||
       batch.activeEffectTransitions.length +
         batch.stateEffectTransitions.length +
         batch.grantEffectTransitions.length !==
@@ -914,6 +928,26 @@ export async function persistEncounterAreaCommit(
     response: input.response,
     responderUserId: userId
   })
+  // Each ray's saves at its creatures' wards are the caster's cards, before the ray's own: the saves
+  // that turned it, then the one it was lost at or passed.
+  for (const [index, sealed] of caught.entries())
+    await recordIncomingGateRollCards(ctx, {
+      campaign,
+      encounterId: state.id,
+      gameSystemId: state.gameSystemId,
+      occurrenceId: areaOccurrenceId,
+      rollScope: sealedEntries[index]!.occurrenceId,
+      roller: source,
+      gates: [
+        ...(sealed.retargeted ?? []),
+        ...(sealed.lost ? [sealed.lost.gate] : sealed.passedGate ? [sealed.passedGate] : [])
+      ],
+      response: input.response,
+      responderUserId: userId,
+      initiatorUserId,
+      visibility: command.visibility,
+      createdAt: input.occurredAt
+    })
   for (const [index, { actor, batch, occurrenceId }] of children.entries())
     await recordActionRollCards(ctx, {
       campaign,

@@ -73,6 +73,12 @@ type AreaTarget = AreaContext['targets'][number]
 export const encounterAreaNamedActorId = (target: Pick<AreaTarget, 'actorId' | 'retargeted'>) =>
   target.retargeted?.[0]?.origin.holderActorId ?? target.actorId
 
+/** The incoming gate a ray passed at its creature, which its sealed attack carries on to its outcome. */
+export const encounterAreaRayPassedGate = (target: Pick<AreaTarget, 'snapshot'>) =>
+  target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION'
+    ? target.snapshot.applicationContext.passedIncomingGate
+    : undefined
+
 /**
  * The answer of a ray lost at a ward: the d20 its caster rolled against that ward, and nothing else.
  */

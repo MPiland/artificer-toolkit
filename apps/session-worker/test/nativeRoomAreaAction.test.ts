@@ -8,6 +8,10 @@ import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/m
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import {
+  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
+} from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -945,6 +949,78 @@ describe('room area commit', () => {
     })
     expect(vitalsOf(history)).toEqual(vitalsOf(before))
     expect(await readCharacterHitPoints(room)).toBe(hitPointsBefore)
+  })
+})
+
+describe('room area action taken as a bonus action (QUALITY-15.T1)', () => {
+  /** The point-area Wolf of `fireballWolf`, its area save taken as one bonus action. */
+  function bonusAreaWolf() {
+    const base = fireballWolf()
+    return creatureAuthoredDtoSchema.parse({
+      ...base,
+      features: base.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                invocation: {
+                  ...effect.invocation,
+                  activation: { code: 'BONUS_ACTION' as const, amount: 1 }
+                }
+              }))
+            }
+      )
+    })
+  }
+
+  it('spends the bonus action, not the action, and resolves the area once', async () => {
+    const caster = bonusAreaWolf()
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: caster }),
+        ...[...CAUGHT_IDS, FAR_ID].map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      ownerFeatureId: caster.features?.find((feature) => feature.label === 'Bite')?.id
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    const { command, answer } = await room.startAreaAction({ x: 50, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const { roots, children } = areaReceipts(history)
+    expect(roots.map(({ receipt }) => receipt.commandId)).toEqual([command.commandId])
+    expect(roots[0]?.outputs.actionEconomyTransition).toMatchObject({
+      definitionId: SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+      maximum: 1,
+      beforeUsed: 0,
+      afterUsed: 1
+    })
+    expect(children).toHaveLength(4)
+    // Every caught creature failed its save and took the 1 damage; the Wolf outside did not.
+    const hitPoints = (rows: RoomHistory) =>
+      Object.fromEntries(vitalsOf(rows).map(({ id, currentHitPoints }) => [id, currentHitPoints]))
+    const hitPointsBefore = hitPoints(before)
+    expect(hitPoints(history)).toEqual({
+      ...hitPointsBefore,
+      ...Object.fromEntries(
+        [CASTER_ID, ...CAUGHT_IDS].map((id) => [id, (hitPointsBefore[id] ?? 0) - 1])
+      )
+    })
+    const spent = vitalsOf(history).find(({ id }) => id === CASTER_ID)?.spent
+    expect(spent).toContainEqual([SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID, 1])
+    expect(spent?.map(([definitionId]) => definitionId)).not.toContain(
+      SRD_ACTION_ALLOWANCE_DEFINITION_ID
+    )
+
+    // The turn's one bonus action is spent: a second area is refused and changes nothing.
+    const settled = await readRoomHistory(room.room.base.stub)
+    const refused = await room.startAreaAction({ x: 50, y: 150 })
+    expect(refused.answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused.answer)).toContain('ACTION_ECONOMY_UNAVAILABLE')
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(settled)
   })
 })
 
