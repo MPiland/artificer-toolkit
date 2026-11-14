@@ -1453,22 +1453,13 @@ const fledWardenFixtures: TabletopFixtures = {
     )
   },
   pending: validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
-    kind: 'MOVEMENT_REACTION',
+    kind: 'REACTION_CHOICE',
     occurrenceId: '12121212-1212-4121-8121-121212121213',
     occurrenceVersion: 2,
     encounterVersion: tabletopGmEncounter.version,
-    choice: {
-      pathDistance: 5,
-      reactorActorId: emberActorId,
-      reactorTokenId: emberToken.id,
-      options: [
-        {
-          optionId: 'a'.repeat(64),
-          actionId: 'opportunity-attack',
-          actionSourceKind: 'CHARACTER_ACTION'
-        }
-      ]
-    },
+    targetActorId: emberActorId,
+    reactorTokenId: emberToken.id,
+    options: [{ optionId: 'a'.repeat(64), actionId: 'opportunity-attack' }],
     allowedResponses: ['DECLINE', 'OPTION']
   })
 }

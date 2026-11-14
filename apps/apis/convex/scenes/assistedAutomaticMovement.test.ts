@@ -89,13 +89,12 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     const choice = root.result?.occurrence?.pending
     expect(root.result?.occurrence?.status).toBe('PENDING')
     expect(await actorChecksums(value)).toEqual(beforePause)
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+    if (!choice || choice.kind !== 'REACTION_CHOICE')
       throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
-    expect(choice.choice).toMatchObject({
-      reactorActorId: base.reactor.id,
-      options: [expect.objectContaining({ actionSourceKind: 'ENCOUNTER_FEATURE' })]
-    })
-    expect(choice.choice.options).toHaveLength(1)
+    // Restated (QUALITY-18.T5): the unified Reaction choice names the reactor as its target and no
+    // longer labels an option's action source kind, which nothing read.
+    expect(choice.targetActorId).toBe(base.reactor.id)
+    expect(choice.options).toHaveLength(1)
     // The decision is addressed to the reactor's controller (the GM), not the mover's token player,
     // and the read carries the offer's deadline (D207).
     expect(
@@ -107,7 +106,7 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     const use = command({
       encounterId: base.run.id,
       pending: choice,
-      resolution: { kind: 'OPTION', optionId: choice.choice.options[0]!.optionId }
+      resolution: { kind: 'OPTION', optionId: choice.options[0]!.optionId }
     })
     await expect(executeInRoom(value.player.caller, { command: use })).rejects.toThrow()
     const used = await executeInRoom(value.owner.caller, { command: use })
@@ -207,7 +206,7 @@ it('skips a declined System-automatic reaction in Assisted mode without rolling 
   const reactorBefore = await reactorChecksum(value, base.reactor.id)
   const root = await executeSceneInRoom(value.owner.caller, value.rootInput)
   const choice = root.result?.occurrence?.pending
-  if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+  if (!choice || choice.kind !== 'REACTION_CHOICE')
     throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
   const complete = await executeInRoom(value.owner.caller, {
     command: command({ encounterId: base.run.id, pending: choice, resolution: { kind: 'DECLINE' } })

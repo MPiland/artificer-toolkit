@@ -116,7 +116,7 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected second spatial save evidence at contact 270.')
   pending = (await failSave(value, pending)).occurrence?.pending
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION')
+  if (!pending || pending.kind !== 'REACTION_CHOICE')
     throw new Error('Expected first retained reaction after spatial evidence.')
   const snapshot = await readRoomPendingSnapshot(value.base.t, {
     campaignId: value.base.campaign.id,
@@ -132,7 +132,7 @@ it('publishes two assisted spatial save contacts before both retained reactions'
     )
   ).toEqual([45, 120])
   pending = (await answer(value, pending, { kind: 'DECLINE' })).occurrence?.pending
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION')
+  if (!pending || pending.kind !== 'REACTION_CHOICE')
     throw new Error('Expected second retained reaction.')
   const completed = await answer(value, pending, { kind: 'DECLINE' })
   expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -160,7 +160,7 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected prefix spatial evidence at contact 220.')
   pending = (await failSave(value, pending)).occurrence?.pending
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION')
+  if (!pending || pending.kind !== 'REACTION_CHOICE')
     throw new Error(
       `Expected reaction after the entered prefix save; received ${pending?.kind ?? 'none'}.`
     )
@@ -180,7 +180,7 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   expect(firstReaction.group.pathDistance).toBe(150)
   expect(reactionContext.remainingSpatialCandidates[0]?.candidate.pathDistance).toBe(270)
   pending = (await answer(value, pending, { kind: 'DECLINE' })).occurrence?.pending
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION')
+  if (!pending || pending.kind !== 'REACTION_CHOICE')
     throw new Error('Expected second reaction after the entered prefix save.')
   pending = (await answer(value, pending, { kind: 'DECLINE' })).occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')

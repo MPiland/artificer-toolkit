@@ -632,9 +632,8 @@ describe('native Character movement-decision authority', () => {
       const value = await setup(false, false, true, stop)
       const root = await startPending(value)
       const choice = root.pending
-      if (choice.kind !== 'MOVEMENT_REACTION')
-        throw new Error('Expected Character reaction choice.')
-      const option = choice.choice.options[0]
+      if (choice.kind !== 'REACTION_CHOICE') throw new Error('Expected Character reaction choice.')
+      const option = choice.options[0]
       if (!option) throw new Error('Expected Character reaction option.')
       const selected: ResolveRuleOccurrenceInputDto = {
         type: 'RESOLVE_RULE_OCCURRENCE',
@@ -710,7 +709,7 @@ describe('native Character movement-decision authority', () => {
           }
         ])
       }
-      const source = completed.actors.find((actor) => actor.id === choice.choice.reactorActorId)
+      const source = completed.actors.find((actor) => actor.id === choice.targetActorId)
       if (!source) throw new Error('Expected selected Character reactor.')
       expect(readStoredRunActor(source).resources).toMatchObject({
         ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
@@ -730,15 +729,10 @@ describe('native Character movement-decision authority', () => {
     const value = await setup(false, false, true, true)
     const root = await startPending(value)
     const choice = root.pending
-    if (choice.kind !== 'MOVEMENT_REACTION') throw new Error('Expected Character reaction choice.')
+    if (choice.kind !== 'REACTION_CHOICE') throw new Error('Expected Character reaction choice.')
     const [origin, destination] = value.rootInput.path
     if (!origin || !destination) throw new Error('Expected Character movement path.')
-    const pathLength = Math.hypot(destination.x - origin.x, destination.y - origin.y)
-    const expectedContact = {
-      x: origin.x + ((destination.x - origin.x) * choice.choice.pathDistance) / pathLength,
-      y: origin.y + ((destination.y - origin.y) * choice.choice.pathDistance) / pathLength
-    }
-    const option = choice.choice.options[0]
+    const option = choice.options[0]
     if (!option) throw new Error('Expected Character reaction option.')
     let result = await executeInRoom(value.player.caller, {
       command: {
@@ -808,9 +802,25 @@ describe('native Character movement-decision authority', () => {
     const after = await gameplayRows(value)
     if (!before) throw new Error('Expected a pre-settlement read.')
     expect(after.liveEntities).toEqual(before.liveEntities)
-    expect(after.liveEntities).toMatchObject([
-      { entityId: value.tokens.at(-1)?.id, value: { entity: { position: expectedContact } } }
-    ])
+    // Restated (QUALITY-18.T5): the offer no longer carries the contact's path distance (the
+    // unified Reaction choice), so the stop is proved as the mover's point on its path, short of the
+    // destination; the equality with the pre-settlement rows above keeps it where the move paused.
+    expect(after.liveEntities).toMatchObject([{ entityId: value.tokens.at(-1)?.id }])
+    const stop = after.liveEntities[0]?.value
+    if (stop?.collection !== 'tokens') throw new Error('Missing mover token.')
+    const pathLength = Math.hypot(destination.x - origin.x, destination.y - origin.y)
+    const along =
+      ((stop.entity.position.x - origin.x) * (destination.x - origin.x) +
+        (stop.entity.position.y - origin.y) * (destination.y - origin.y)) /
+      pathLength
+    expect(along).toBeGreaterThan(0)
+    expect(along).toBeLessThan(pathLength)
+    expect(
+      Math.hypot(
+        stop.entity.position.x - (origin.x + ((destination.x - origin.x) * along) / pathLength),
+        stop.entity.position.y - (origin.y + ((destination.y - origin.y) * along) / pathLength)
+      )
+    ).toBeLessThan(0.001)
     // Restated (QUALITY-18.T2b3): the reaction's action commits, then the room's resume ends the
     // move at the contact (D219), so the Run advances twice where one answer committed both.
     expect(after.runs[0]?.version).toBe(before.runs[0]!.version + 2)
@@ -932,9 +942,9 @@ describe('native Character movement-decision authority', () => {
     const next = await declineAs(value, value.player, root)
     expect(next.occurrence).toMatchObject({ status: 'PENDING', pending: null })
     const futurePending = await checkpointedPendingFor(value, value.futurePlayer)
-    if (futurePending?.kind !== 'MOVEMENT_REACTION')
+    if (futurePending?.kind !== 'REACTION_CHOICE')
       throw new Error('Expected the future Character reaction choice.')
-    const option = futurePending.choice.options[0]
+    const option = futurePending.options[0]
     if (!option) throw new Error('Expected a freshly discovered future Character option.')
     // The fresh option is current: choosing it is not refused as stale.
     const chosen = await executeInRoom(value.futurePlayer.caller, {
@@ -966,8 +976,8 @@ describe('native Character movement-decision authority', () => {
     const value = await setup(false, false, true)
     const root = await startPending(value)
     const choice = root.pending
-    if (choice.kind !== 'MOVEMENT_REACTION') throw new Error('Expected Character reaction choice.')
-    const option = choice.choice.options[0]
+    if (choice.kind !== 'REACTION_CHOICE') throw new Error('Expected Character reaction choice.')
+    const option = choice.options[0]
     if (!option) throw new Error('Expected Character reaction option.')
     await advanceCharacterSource(value, value.first, value.player)
     const chosen = await executeInRoom(value.player.caller, {
@@ -984,7 +994,7 @@ describe('native Character movement-decision authority', () => {
     })
     expect(chosen.occurrence).toMatchObject({
       status: 'PENDING',
-      pending: { kind: 'D20_EVIDENCE', rollerActorId: choice.choice.reactorActorId }
+      pending: { kind: 'D20_EVIDENCE', rollerActorId: choice.targetActorId }
     })
     expect(chosen.occurrence?.occurrenceId).not.toBe(choice.occurrenceId)
   }, 30000)

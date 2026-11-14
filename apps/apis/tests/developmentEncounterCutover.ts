@@ -894,7 +894,7 @@ async function executeCutoverWorkloadReaction(
   const pending = await reactor
     .pending(
       (candidate) =>
-        candidate.kind === 'MOVEMENT_REACTION' &&
+        candidate.kind === 'REACTION_CHOICE' &&
         (issuedOccurrenceId
           ? candidate.occurrenceId === issuedOccurrenceId
           : candidate.encounterVersion >= priorRunVersion),
@@ -911,12 +911,12 @@ async function executeCutoverWorkloadReaction(
         { cause: error }
       )
     })
-  if (pending.kind !== 'MOVEMENT_REACTION')
+  if (pending.kind !== 'REACTION_CHOICE')
     throw new Error('V15 workload movement did not create one reaction occurrence.')
-  assert.equal(pending.choice.reactorActorId, reactorActorId)
-  assert.equal(pending.choice.reactorTokenId, aggregate.tokenIds[reactorIndex])
-  assert.equal(pending.choice.options.length, 1)
-  const option = pending.choice.options[0]
+  assert.equal(pending.targetActorId, reactorActorId)
+  assert.equal(pending.reactorTokenId, aggregate.tokenIds[reactorIndex])
+  assert.equal(pending.options.length, 1)
+  const option = pending.options[0]
   assert.equal(option?.actionId, cutoverWorkloadActionId(reactorActorId, 'REACTION'))
   if (!option) throw new Error('V15 workload reaction option is unavailable.')
   await inspectPending?.(pending)
@@ -1759,10 +1759,10 @@ export async function verifyEncounterReactionContention({
     // Races both rivals on one decision and returns the continuation the room holds next, if any.
     const respond = async (current: HeldPending): Promise<HeldPending | null> => {
       const resolution =
-        current.kind === 'MOVEMENT_REACTION' && current.choice.options[0]
+        current.kind === 'REACTION_CHOICE' && current.options[0]
           ? {
               kind: 'OPTION' as const,
-              optionId: current.choice.options[0].optionId
+              optionId: current.options[0].optionId
             }
           : current.kind === 'D20_EVIDENCE'
             ? {

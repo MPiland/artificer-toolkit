@@ -410,7 +410,7 @@ it('settles present and detached Character maintenance once per used automatic c
   await queueRoomRolls(value.campaign.id, { rolls: [], repeat: 0 })
   const firstUse = await useMovementReactionsInRoom(next, 1)
   const secondChoice = firstUse.occurrence?.pending
-  if (secondChoice?.kind !== 'MOVEMENT_REACTION' || !secondChoice.choice.options[0])
+  if (secondChoice?.kind !== 'REACTION_CHOICE' || !secondChoice.options[0])
     throw new Error('Expected the second Use/Decline reaction choice.')
   const lastUse = {
     type: 'RESOLVE_RULE_OCCURRENCE' as const,
@@ -420,7 +420,7 @@ it('settles present and detached Character maintenance once per used automatic c
     occurrenceId: secondChoice.occurrenceId,
     expectedOccurrenceVersion: secondChoice.occurrenceVersion,
     correlationId: null,
-    resolution: { kind: 'OPTION' as const, optionId: secondChoice.choice.options[0].optionId }
+    resolution: { kind: 'OPTION' as const, optionId: secondChoice.options[0].optionId }
   }
   // The planner's two ordered reaction executions (both for the moving Character) are covered by the
   // producer test "retains each used reaction in order and ends at the destination" in

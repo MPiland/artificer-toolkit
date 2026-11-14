@@ -96,8 +96,7 @@ export function CampaignTabletopDecisionDrawer({
   const { gmRollVisibility } = useGmRollVisibilityPreference()
   const disabled = !connected || submitting || localPending
   // The GM skips a pending movement choice for its player; the movement continues (D26).
-  const movementChoice =
-    pending.kind === 'MOVEMENT_REACTION' || pending.kind === 'MOVEMENT_PASSAGE_CHOICE'
+  const movementChoice = pending.kind === 'MOVEMENT_PASSAGE_CHOICE'
 
   const [trackedOccurrence, setTrackedOccurrence] = useState({
     id: pending.occurrenceId,
@@ -346,27 +345,6 @@ export function CampaignTabletopDecisionDrawer({
               onRoll={rollEvidence}
               onSubmit={(resolution) => void resolve(resolution)}
             />
-          ) : pending.kind === 'MOVEMENT_REACTION' ? (
-            <Stack gap='xs'>
-              {pending.choice.options.map((option) => (
-                <Button
-                  disabled={disabled}
-                  key={option.optionId}
-                  size='lg'
-                  onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
-                >
-                  Use {option.actionId}
-                </Button>
-              ))}
-              <Button
-                disabled={disabled}
-                size='lg'
-                variant='default'
-                onClick={() => void resolve({ kind: 'DECLINE' })}
-              >
-                Decline reaction
-              </Button>
-            </Stack>
           ) : pending.kind === 'MOVEMENT_PASSAGE_CHOICE' ? (
             <Stack gap='xs'>
               {pending.options.map((option) => (

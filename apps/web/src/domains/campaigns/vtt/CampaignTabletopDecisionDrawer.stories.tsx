@@ -69,22 +69,13 @@ const areaPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
 })
 
 const reactionPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
-  kind: 'MOVEMENT_REACTION',
+  kind: 'REACTION_CHOICE',
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
-  choice: {
-    pathDistance: 5,
-    reactorActorId: tabletopGmEncounter.actors[0]!.id,
-    reactorTokenId: '77777777-7777-4777-8777-777777777791',
-    options: [
-      {
-        optionId: 'a'.repeat(64),
-        actionId: 'opportunity-attack',
-        actionSourceKind: 'CHARACTER_ACTION'
-      }
-    ]
-  },
+  targetActorId: tabletopGmEncounter.actors[0]!.id,
+  reactorTokenId: '77777777-7777-4777-8777-777777777791',
+  options: [{ optionId: 'a'.repeat(64), actionId: 'opportunity-attack' }],
   allowedResponses: ['DECLINE', 'OPTION']
 })
 

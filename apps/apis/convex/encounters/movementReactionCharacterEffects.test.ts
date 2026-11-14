@@ -94,13 +94,13 @@ it('creates one Character reaction effect after the public choice and preserves 
   // (the planner's PENDING outcome), and the reaction's result below is its terminal outcome.
   const pendingRoot = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
   const pending = pendingRoot?.occurrence?.pending
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
+  if (!pending || pending.kind !== 'REACTION_CHOICE' || !pending.options[0])
     throw new Error('Expected public movement reaction choice.')
   const afterPending = await snapshot(value)
   expect(afterPending.effects).toEqual([])
   expect(conditionSources(afterPending)).toEqual(conditionSources(beforeRoot))
 
-  const reaction = response(value.base.run.id, pending, pending.choice.options[0].optionId)
+  const reaction = response(value.base.run.id, pending, pending.options[0].optionId)
   const beforeSettlement = afterPending
   const settled = await executeInRoom(value.owner.caller, { command: reaction })
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -143,9 +143,9 @@ it('projects the first used automatic Character reaction into the second reactio
   // Assisted play offers the authored automatic reaction as Use/Decline; the GM uses it.
   const automatic = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     ?.occurrence?.pending
-  if (!automatic || automatic.kind !== 'MOVEMENT_REACTION' || !automatic.choice.options[0])
+  if (!automatic || automatic.kind !== 'REACTION_CHOICE' || !automatic.options[0])
     throw new Error('Expected the automatic reaction Use/Decline choice.')
-  const first = response(value.base.run.id, automatic, automatic.choice.options[0].optionId)
+  const first = response(value.base.run.id, automatic, automatic.options[0].optionId)
   const beforeRoot = await snapshot(value)
   // Each Use draws its own attack: a natural 20, then minimal damage dice.
   await queueRoomRolls(value.base.campaign.id, hitThenMinimumDice)
@@ -157,7 +157,7 @@ it('projects the first used automatic Character reaction into the second reactio
     occurrence: await readResumedMovement(value.owner.caller, value.base.campaign.id, automatic)
   }
   const pending = pendingRoot.occurrence.pending
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
+  if (!pending || pending.kind !== 'REACTION_CHOICE' || !pending.options[0])
     throw new Error('Expected second movement reaction choice.')
   const afterFirstReaction = await snapshot(value)
   if (
@@ -184,7 +184,7 @@ it('projects the first used automatic Character reaction into the second reactio
   })
   expect(await snapshot(value)).toEqual(afterFirstReaction)
 
-  const second = response(value.base.run.id, pending, pending.choice.options[0].optionId)
+  const second = response(value.base.run.id, pending, pending.options[0].optionId)
   await queueRoomRolls(value.base.campaign.id, hitThenMinimumDice)
   const settled = await executeInRoom(value.owner.caller, { command: second })
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })

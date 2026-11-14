@@ -5,7 +5,6 @@ import {
   useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
 import {
-  checkpointLiveRoom,
   executeSceneInRoom,
   queueRoomRolls,
   useLocalRoomWorker
@@ -46,26 +45,34 @@ it.each([false, true])(
     // root commit at that choice already settled any spatial prefix.
     const root = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
     const choice = root?.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+    if (!choice || choice.kind !== 'REACTION_CHOICE')
       throw new Error('Expected the automatic reaction choice.')
-    expect(choice.choice.reactorActorId).toBe(value.base.reactors[0]!.id)
+    expect(choice.targetActorId).toBe(value.base.reactors[0]!.id)
     const [origin, destination] = value.rootInput.path
     if (!origin || !destination) throw new Error('Expected Character movement path.')
     const pathLength = Math.hypot(destination.x - origin.x, destination.y - origin.y)
-    const { pathDistance } = choice.choice
-    const contact = {
-      x: origin.x + ((destination.x - origin.x) * pathDistance) / pathLength,
-      y: origin.y + ((destination.y - origin.y) * pathDistance) / pathLength
-    }
-    expect(pathDistance).toBeGreaterThan(0)
-    expect(pathDistance).toBeLessThan(pathLength)
     // Nothing is checkpointed yet, so the baseline is Convex's pre-move state.
     const before = await readRows()
     const beforeCharacter = before.characters.find((row) => row.id === value.base.character.id)
     const beforeRun = before.runs.find((row) => row.id === value.base.run.id)
     if (!beforeCharacter || !beforeRun) throw new Error('Automatic Character state is unavailable.')
-    // Production checkpoints periodically, including while a reaction choice is pending.
-    await checkpointLiveRoom(value.base.campaign.id)
+    // Production checkpoints periodically, including while a reaction choice is pending; the mover's
+    // token waits at the contact then (D219). Restated (QUALITY-18.T5): the offer no longer carries
+    // the contact's path distance (the unified Reaction choice), so the contact is read here and
+    // proved to lie on the path, short of the destination.
+    const contact = await readCheckpointedTokenPosition(value, value.moverTokenId)
+    const along =
+      ((contact.x - origin.x) * (destination.x - origin.x) +
+        (contact.y - origin.y) * (destination.y - origin.y)) /
+      pathLength
+    expect(along).toBeGreaterThan(0)
+    expect(along).toBeLessThan(pathLength)
+    expect(
+      Math.hypot(
+        contact.x - (origin.x + ((destination.x - origin.x) * along) / pathLength),
+        contact.y - (origin.y + ((destination.y - origin.y) * along) / pathLength)
+      )
+    ).toBeLessThan(0.001)
 
     const used = await useMovementReactionsInRoom(value, 1, root)
     expect(used.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })

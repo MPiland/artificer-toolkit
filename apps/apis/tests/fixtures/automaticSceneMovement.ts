@@ -361,7 +361,7 @@ export async function useMovementReactionsInRoom(
   let responseCommandId: string | null = null
   for (let uses = 0; uses < maxUses; uses++) {
     const pending = occurrence?.pending
-    if (pending?.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0]) break
+    if (pending?.kind !== 'REACTION_CHOICE' || !pending.options[0]) break
     responseCommandId = crypto.randomUUID()
     const answered = await executeInRoom(owner.caller, {
       command: {
@@ -372,7 +372,7 @@ export async function useMovementReactionsInRoom(
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
         correlationId: null,
-        resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
+        resolution: { kind: 'OPTION', optionId: pending.options[0].optionId }
       }
     })
     occurrence =

@@ -78,7 +78,7 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     ).result
     const respond = async (resolution: 'DECLINE' | 'USE') => {
       const pending = current?.occurrence?.pending
-      if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
+      if (!pending || pending.kind !== 'REACTION_CHOICE' || !pending.options[0])
         throw new Error('Expected a controller reaction choice.')
       return executeInRoom(value.owner.caller, {
         command: {
@@ -92,7 +92,7 @@ it.each(['ROOT', 'RESPONSE'] as const)(
           resolution:
             resolution === 'DECLINE'
               ? { kind: 'DECLINE' }
-              : { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
+              : { kind: 'OPTION', optionId: pending.options[0].optionId }
         }
       })
     }
@@ -108,7 +108,7 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     // Restated (QUALITY-18.T2b3): a Use answers with its reaction's own action (D219), so the next
     // choice is read from the move as the room resumed it, not from the Use answer.
     const resumed = await readResumedMovement(value.owner.caller, value.base.campaign.id, offered)
-    expect(resumed.pending?.kind).toBe('MOVEMENT_REACTION')
+    expect(resumed.pending?.kind).toBe('REACTION_CHOICE')
     const after = await snapshot(value)
     // The Use is exactly one more command on the room's timeline.
     expect((await readRoomTimeline(value.owner.caller, value.base.campaign.id)).length).toBe(
@@ -137,7 +137,7 @@ it('replays player movement with the original private projection before and afte
   const pending = await value.owner.caller.query(pendingRuleOccurrence, {
     encounterId: value.base.run.id
   })
-  if (!pending || pending.kind !== 'MOVEMENT_REACTION')
+  if (!pending || pending.kind !== 'REACTION_CHOICE')
     throw new Error('Expected private GM reaction choice.')
   const replayMove = () =>
     executeSceneInRoom(value.player.caller, rootInput, initial.expectedSessionSequence)

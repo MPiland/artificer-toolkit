@@ -73,21 +73,19 @@ export async function readEncounterWaitingOn(
       ? decision.rollerActorId
       : decision.kind === 'INITIATIVE_DECLARATION'
         ? decision.actorId
-        : decision.kind === 'MOVEMENT_REACTION'
-          ? decision.choice.reactorActorId
-          : decision.kind === 'REACTION_OFFER'
-            ? decision.reactorActorId
-            : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
-                decision.kind === 'FORCED_MOVEMENT_DESTINATION'
-              ? decision.sourceActorId
-              : decision.kind === 'LEGENDARY_ACTION_CHOICE'
-                ? decision.ownerActorId
-                : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
-                    decision.kind === 'REACTION_CHOICE'
-                  ? decision.targetActorId
-                  : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
-                    ? decision.attackerActorId
-                    : null
+        : decision.kind === 'REACTION_OFFER'
+          ? decision.reactorActorId
+          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
+              decision.kind === 'FORCED_MOVEMENT_DESTINATION'
+            ? decision.sourceActorId
+            : decision.kind === 'LEGENDARY_ACTION_CHOICE'
+              ? decision.ownerActorId
+              : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
+                  decision.kind === 'REACTION_CHOICE'
+                ? decision.targetActorId
+                : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
+                  ? decision.attackerActorId
+                  : null
   if (!actorId) return 'GM'
   const actor = await readRunActor(ctx, readRunState(row), actorId)
   return (await readEncounterActorPrimaryController(ctx, campaign, actor)) === campaign.ownerUserId
@@ -143,14 +141,12 @@ function reactionOffer(
 ): {
   offer: Extract<
     PendingEncounterRuleOccurrenceSummaryDto,
-    { kind: 'REACTION_CHOICE' | 'MOVEMENT_REACTION' | 'ROLL_WINDOW' }
+    { kind: 'REACTION_CHOICE' | 'ROLL_WINDOW' }
   >
   reactorActorId: string
 } | null {
   if (pending.kind === 'REACTION_CHOICE')
     return { offer: pending, reactorActorId: pending.targetActorId }
-  if (pending.kind === 'MOVEMENT_REACTION')
-    return { offer: pending, reactorActorId: pending.choice.reactorActorId }
   const context = pendingSnapshot.applicationContext
   // Only a reactor's die against another creature's roll is a reaction; a roller's own window waits.
   const reactorActorId =

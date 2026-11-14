@@ -373,7 +373,7 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
     if (!next) throw new Error('Shared-effect continuation pending summary is unavailable.')
     // Reactions now pause for Use and their rolls, so find the hazard save by its sealed context.
     let respondingToHazard = false
-    if (next.kind === 'MOVEMENT_REACTION') usedChoice = next
+    if (next.kind === 'REACTION_CHOICE') usedChoice = next
     // A reaction's own roll is its action's evidence, not the move's sealed context.
     if (next.kind === 'D20_EVIDENCE' && next.occurrenceId === pending.occurrenceId) {
       const staged = await records(value)
@@ -414,9 +414,9 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
       }
     }
     const resolution =
-      next.kind === 'MOVEMENT_REACTION'
-        ? next.choice.options[0]
-          ? { kind: 'OPTION' as const, optionId: next.choice.options[0].optionId }
+      next.kind === 'REACTION_CHOICE'
+        ? next.options[0]
+          ? { kind: 'OPTION' as const, optionId: next.options[0].optionId }
           : null
         : next.kind === 'D20_EVIDENCE'
           ? {
@@ -515,7 +515,7 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
   await queueRoomRolls(value.base.campaign.id, { rolls: [], repeat: 0 })
   const move = await executeSceneInRoom(value.owner.caller, value.rootInput)
   const published = move.result
-  expect(published?.occurrence?.pending).toMatchObject({ kind: 'MOVEMENT_REACTION' })
+  expect(published?.occurrence?.pending).toMatchObject({ kind: 'REACTION_CHOICE' })
   const staged = await records(value)
   const root = staged.occurrences.find(
     (occurrence) => occurrence.id === published?.occurrence?.pending?.occurrenceId
@@ -793,13 +793,13 @@ it('ends Concentration without a check when a movement reaction defeats the hold
 
   const choice = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result?.occurrence
     ?.pending
-  if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+  if (!choice || choice.kind !== 'REACTION_CHOICE' || !choice.options[0])
     throw new Error('Expected the Assisted Use/Decline reaction choice.')
   const used = await executeInRoom(value.owner.caller, {
     command: response({
       encounterId: value.base.run.id,
       pending: choice,
-      resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+      resolution: { kind: 'OPTION', optionId: choice.options[0].optionId }
     })
   })
   expect(used.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
