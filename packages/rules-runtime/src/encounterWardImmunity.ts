@@ -1,5 +1,23 @@
-import type { HeldIncomingGate } from './encounterIncomingAttackGate.js'
+import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import { heldIncomingGate, type HeldIncomingGate } from './encounterIncomingAttackGate.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
+
+/**
+ * The ward the holder carries now, from stored state, that the gate an attack passed names; null when
+ * the pass names none of the wards it holds. The commit re-derives it, so a pass never carries the
+ * ward's payload itself.
+ */
+export function passedHeldWard(
+  input: Parameters<typeof heldIncomingGate>[0] & {
+    passed: Pick<EncounterSettledIncomingGateDto, 'origin'> | undefined
+  }
+): HeldIncomingGate | null {
+  const { passed, ...held } = input
+  const ward = heldIncomingGate(held)
+  return ward && passed?.origin.kind === 'WARD' && passed.origin.effectId === ward.wardId
+    ? ward
+    : null
+}
 
 /**
  * The immunity a creature that passed a ward carrying a success immunity (Nature's Sanctuary) leaves

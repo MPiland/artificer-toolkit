@@ -94,7 +94,8 @@ import { insertRunActor, readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { storedInitiativeReceipt } from './initiativeReceipt.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
-import { createActiveRuleEffectStore } from './effectStore.js'
+import { createActiveRuleEffectStore, readActiveEffectsByActorId } from './effectStore.js'
+import { createdWardImmunities, requireRayWardImmunities } from './areaRayWardImmunity.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -491,6 +492,23 @@ export async function persistEncounterAreaCommit(
     })
   )
     throw new Error('Live Session area lost ray mismatch.')
+  // The immunity a passed ward leaves is re-derived from the holder's stored ward, never taken as sent.
+  await requireRayWardImmunities({
+    caster: source,
+    entries: children.map(({ actor, batch, createdEffects }, index) => ({
+      actorId: actor.id,
+      passedGate: index < caughtKeptCount ? caughtKept[index]?.passedGate : undefined,
+      immunities: createdWardImmunities(
+        createdEffects,
+        batch.grantEffectTransitions.map(({ activeEffectId }) => activeEffectId)
+      )
+    })),
+    readHolderEffects: async (actorId) => {
+      const holder = actors.find(({ id }) => id === actorId)
+      if (!holder) throw new Error('Live Session area actor scope mismatch.')
+      return (await readActiveEffectsByActorId(ctx, state.id, [holder])).get(actorId) ?? []
+    }
+  })
   const casterIsCharacter = source.kind === 'CHARACTER'
   // A caster named again (a second dart) spends once, with their first outcome.
   const mergedChildIndex = casterIsCharacter
