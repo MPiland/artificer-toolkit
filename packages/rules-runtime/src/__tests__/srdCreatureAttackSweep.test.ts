@@ -398,7 +398,9 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(550)
+    // SPELLS-33.T8a (Q30c): the Mimic Pseudopod's hit and Adhesive grapple are one weaponAttack effect now, so
+    // the sibling Adhesive-ruling effect is gone and the swept attack count is one lower (550 to 549).
+    expect(effectIds.size).toBe(549)
     expect(failures).toEqual({})
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)
