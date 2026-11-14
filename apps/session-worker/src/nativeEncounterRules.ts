@@ -1254,6 +1254,7 @@ export async function planNativeLiveEncounterAction(
     held: heldOnTarget,
     grantTriggers,
     damagerActorId: prepared.actor.id,
+    damageBySource: [{ damagerActorId: prepared.actor.id, applications }],
     dispositions,
     currentEffects: targetEffects,
     recurringEffectId,

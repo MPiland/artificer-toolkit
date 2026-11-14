@@ -1722,10 +1722,17 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   supplies `MaintenanceLinkHook`s in priority order: `BREAK` on `DEFEATED`, `INCAPACITATED` of the holder or
   `MAINTENANCE_BARRED` (a held casting lock), each naming its persisted end reason, and `SAVE` on any `DAMAGED`. Discovery
   returns `maintenanceBreakReason` (the first break met) and `maintenanceSaveHits` (the indexes of the `DAMAGED` event's
-  hits that owe a save). `DAMAGED(AFTER)` carries `hits` (one per damage source: damager and damage types) and is raised
-  once per command and holder (QUALITY-14.T2): `planDamageSaveChain` discovers once per damaged holder and reads the
-  Concentration checks (`maintenanceSaveHits`), effect repeat saves (`repeatSaves`, per hit) and massive-damage saves off
-  it, from the Worker, persistence's re-derivation and the movement path. `encounterConcentrationEndReason` raises
+  hits that owe a save). `DAMAGED(AFTER)` names its `holderActorId` and carries `hits` (one per damage source: damager
+  and damage types). Each stage raises it once per command and holder (QUALITY-14.T2): `planDamageSaveChain` discovers
+  once per damaged holder and reads the Concentration checks (`maintenanceSaveHits`), effect repeat saves
+  (`repeatSaves`, per hit) and massive-damage saves off it, from the Worker, persistence's re-derivation and the
+  movement path. The ends stage (`targetEndedEffects`) raises it once per holder too: a move's zone contacts through
+  `damageBySource`, and a list or area that names a creature again (darts, rays, beams) at that creature's first
+  outcome, with a hit per entry, its later outcomes raising none (QUALITY-14.T2e). A turn's effects stay one raise per
+  effect execution, since each settles on its own and may pause between them (D132 amendment). Transitional: the ends
+  stage and the chain stage each raise their own `DAMAGED(AFTER)` (they read disjoint hooks: `END` and grants
+  against `REPEAT_SAVE` and the maintenance `SAVE`), on different holder snapshots (before the command and after it
+  settles); one shared discovery threaded through the chain's resume and persistence re-derivation is the follow-up. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`

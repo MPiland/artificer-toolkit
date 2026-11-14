@@ -134,6 +134,15 @@ export async function planAreaOutcomes(args: {
   let maintenanceCarried = false
   // A creature named again meets the hit points and Character record its earlier entries left it.
   const advanced = new Map<string, AreaPrepared>()
+  const outcomes = kept.map((_, index) => {
+    const { occurrenceId } = entries[index]!
+    const complete = settled.find((entry) => entry.occurrenceId === occurrenceId)?.complete
+    if (!complete) throw new Error('The area outcome is unavailable.')
+    return complete
+  })
+  // A creature named again (darts, rays, beams) is damaged once by the command: its first outcome
+  // raises one DAMAGED(AFTER) with a hit per entry, and its later outcomes raise none.
+  const damagedHolders = new Set<string>()
   for (const [index, { actor, target }] of kept.entries()) {
     const earlier = advanced.get(actor.id)
     // Each entry runs its own action on the hit points and Character record its earlier entries left.
@@ -147,8 +156,7 @@ export async function planAreaOutcomes(args: {
         }
       : target.prepared
     const { occurrenceId } = entries[index]!
-    const complete = settled.find((entry) => entry.occurrenceId === occurrenceId)?.complete
-    if (!complete) throw new Error('The area outcome is unavailable.')
+    const complete = outcomes[index]!
     const commandId = encounterAreaTargetCommandId(occurrenceId)
     const effects = prepareNativeActionEffectsPlan({
       prepared,
@@ -242,6 +250,13 @@ export async function planAreaOutcomes(args: {
         activeEffectsByActorId: input.activeEffectsByActorId
       }),
       damagerActorId: caster.id,
+      damageBySource: damagedHolders.has(actor.id)
+        ? []
+        : kept.flatMap((entry, entryIndex) =>
+            entry.actor.id === actor.id
+              ? [{ damagerActorId: caster.id, applications: outcomes[entryIndex]!.applications }]
+              : []
+          ),
       dispositions,
       currentEffects: targetEffects,
       maintainedState: joined,
@@ -252,6 +267,7 @@ export async function planAreaOutcomes(args: {
         ? { sourceSpend: 'WITH_OUTCOME', sourceReleases }
         : { sourceSpend: 'NONE' }
     })
+    damagedHolders.add(actor.id)
     const { mechanics, createdEffects: created, effectTransitions } = outcome
     for (const ended of outcome.damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
     const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(

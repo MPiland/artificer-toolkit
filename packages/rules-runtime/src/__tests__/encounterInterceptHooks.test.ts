@@ -45,6 +45,7 @@ describe('damage interception hooks', () => {
         {
           kind: 'DAMAGED',
           phase: 'AFTER',
+          holderActorId: 'holder',
           hits: [{ damagerActorId: null, damageTypeIds: [] }],
           dispositions: new Map()
         }

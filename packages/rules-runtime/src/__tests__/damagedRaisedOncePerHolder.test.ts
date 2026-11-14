@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
+import { targetEndedEffects } from '../encounterEndedEffectRelease.js'
 import { movementDamageEnds, spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
@@ -96,7 +97,67 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
     const raises = damagedRaises()
     expect(raises).toHaveLength(1)
     expect(raises[0]).toMatchObject({
+      holderActorId: HOLDER_ID,
       hits: [{ damagerActorId: ZONE_A }, { damagerActorId: ZONE_B }]
+    })
+  })
+
+  describe('a list or area that names a holder again (QUALITY-14.T2e)', () => {
+    const untilFire = activeEffect({
+      id: EFFECT_ID,
+      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: HOLDER_ID },
+      createdOrdinal: 1,
+      endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: [FIRE] }],
+      sourceActorId: OTHER_ID,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+    /** Damage that reached the holder, as an outcome's applications name it. */
+    const dealt = (resolvedAmount: number) => ({
+      ...damage(),
+      targetActorId: HOLDER_ID,
+      resolvedAmount
+    })
+    const outcome = (damageBySource: Parameters<typeof targetEndedEffects>[0]['damageBySource']) =>
+      targetEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [untilFire],
+        attack: { melee: false },
+        testEvidence: [],
+        turnActorId: null,
+        applications: [dealt(4)],
+        damagerActorId: ZONE_A,
+        damageBySource,
+        dispositions: new Map()
+      })
+
+    it('raises one event at the first outcome with a hit per entry that damaged the holder', () => {
+      const { endedEffects } = outcome([
+        { damagerActorId: ZONE_A, applications: [dealt(4)] },
+        { damagerActorId: ZONE_A, applications: [dealt(0)] },
+        { damagerActorId: ZONE_A, applications: [dealt(4)] }
+      ])
+      expect(endedEffects).toEqual([untilFire])
+      expect(damagedRaises()).toEqual([
+        {
+          kind: 'DAMAGED',
+          phase: 'AFTER',
+          holderActorId: HOLDER_ID,
+          hits: [
+            { damagerActorId: ZONE_A, damageTypeIds: [FIRE] },
+            { damagerActorId: ZONE_A, damageTypeIds: [FIRE] }
+          ],
+          dispositions: new Map()
+        }
+      ])
+    })
+
+    it('raises no damage at a later outcome, which still meets its attack', () => {
+      const { endedEffects } = outcome([])
+      expect(endedEffects).toEqual([])
+      expect(damagedRaises()).toEqual([])
+      expect(raised.events.flat().map(({ kind }) => kind)).toEqual(['ATTACKED'])
     })
   })
 
@@ -144,8 +205,11 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
       const raises = damagedRaises()
       expect(raises).toHaveLength(2)
       expect(raises).toMatchObject([
-        { hits: [{ damagerActorId: ZONE_A }, { damagerActorId: ZONE_B }] },
-        { hits: [{ damagerActorId: ZONE_A }] }
+        {
+          holderActorId: HOLDER_ID,
+          hits: [{ damagerActorId: ZONE_A }, { damagerActorId: ZONE_B }]
+        },
+        { holderActorId: OTHER_ID, hits: [{ damagerActorId: ZONE_A }] }
       ])
     })
 
@@ -181,7 +245,7 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
     ])
     const raises = damagedRaises()
     expect(raises).toHaveLength(1)
-    expect(raises[0]).toMatchObject({ hits: [{}, {}] })
+    expect(raises[0]).toMatchObject({ holderActorId: HOLDER_ID, hits: [{}, {}] })
   })
 
   it('raises nothing for a holder that holds nothing the damage could end or check', () => {

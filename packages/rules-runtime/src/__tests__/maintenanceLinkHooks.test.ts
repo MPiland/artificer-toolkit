@@ -31,6 +31,7 @@ describe('maintenance link hooks', () => {
     const damaged: EncounterEvent = {
       kind: 'DAMAGED',
       phase: 'AFTER',
+      holderActorId: 'holder',
       hits: [{ damagerActorId: null, damageTypeIds: [null] }],
       dispositions: new Map()
     }

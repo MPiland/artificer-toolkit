@@ -63,6 +63,7 @@ export type EncounterEvent =
   | {
       kind: 'DAMAGED'
       phase: 'AFTER'
+      holderActorId: string
       hits: readonly EncounterDamageHit[]
       dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
     }
