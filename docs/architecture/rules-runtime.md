@@ -1889,7 +1889,11 @@ perhaps the Scene, so the rule service skips its frozen currentness comparison o
 `REACTION` movement settlement and its replay code. The movement pending context's phases are `SPATIAL_EVIDENCE`,
 `CHOICE` and a spatial-only `CONCENTRATION_EVIDENCE`, whose `damageSource` is `{ executionOrdinal }`. A reaction's
 save window, its Legendary Resistance and its reactor windows run in the child action (the action host's own
-`ACTION_EVIDENCE` transition and public `LEGENDARY_RESISTANCE_CHOICE` pending stay).
+`ACTION_EVIDENCE` transition and public `LEGENDARY_RESISTANCE_CHOICE` pending stay). QUALITY-18.T6 deleted the
+last leftover of the retired path, the `MOVEMENT_REACTION` pending summary kind: the move's offer is the
+`REACTION_CHOICE` summary. The `encounterMovementReaction*` modules that remain are discovery, facts, perception
+and the child's continuation, all live; no movement window-die field and no `liveMovementReactionPersistence`
+module exist any more.
 
 **Higher-level check (current, D127; the child's incoming gate since QUALITY-9.T1b2).**
 `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`) makes a reaction cast below the triggering cast's

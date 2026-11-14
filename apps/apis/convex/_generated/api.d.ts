@@ -295483,24 +295483,6 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
-                answerBy?: string;
-                choice: {
-                  options: Array<{
-                    actionId: string;
-                    actionSourceKind: "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                    optionId: string;
-                  }>;
-                  pathDistance: number;
-                  reactorActorId: string;
-                  reactorTokenId: string;
-                };
-                encounterVersion: number;
-                kind: "MOVEMENT_REACTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
                 encounterVersion: number;
                 kind: "LEGENDARY_RESISTANCE_CHOICE";
                 occurrenceId: string;
@@ -296494,25 +296476,6 @@ export declare const api: {
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
                   rollerActorId: string | null;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  answerBy?: string;
-                  choice: {
-                    options: Array<{
-                      actionId: string;
-                      actionSourceKind:
-                        "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                      optionId: string;
-                    }>;
-                    pathDistance: number;
-                    reactorActorId: string;
-                    reactorTokenId: string;
-                  };
-                  encounterVersion: number;
-                  kind: "MOVEMENT_REACTION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -298185,24 +298148,6 @@ export declare const api: {
             occurrenceVersion: number;
             request: { max: number; min: number; requestId: string };
             rollerActorId: string | null;
-          }
-        | {
-            allowedResponses: Array<"DECLINE" | "OPTION">;
-            answerBy?: string;
-            choice: {
-              options: Array<{
-                actionId: string;
-                actionSourceKind: "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                optionId: string;
-              }>;
-              pathDistance: number;
-              reactorActorId: string;
-              reactorTokenId: string;
-            };
-            encounterVersion: number;
-            kind: "MOVEMENT_REACTION";
-            occurrenceId: string;
-            occurrenceVersion: number;
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -299889,24 +299834,6 @@ export declare const api: {
                 occurrenceVersion: number;
                 request: { max: number; min: number; requestId: string };
                 rollerActorId: string | null;
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
-                answerBy?: string;
-                choice: {
-                  options: Array<{
-                    actionId: string;
-                    actionSourceKind: "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                    optionId: string;
-                  }>;
-                  pathDistance: number;
-                  reactorActorId: string;
-                  reactorTokenId: string;
-                };
-                encounterVersion: number;
-                kind: "MOVEMENT_REACTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
