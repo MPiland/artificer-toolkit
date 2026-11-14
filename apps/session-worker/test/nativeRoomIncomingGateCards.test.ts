@@ -282,6 +282,33 @@ describe('a turned single attack keeps the ward save that turned it as one roll 
     ])
   })
 
+  it('cards both failed saves, in order, when the attack is turned and lost at the next ward', async () => {
+    const room = await turnedRoom({
+      autoRoll: 'BOTH',
+      rolls: [SAVE_FAILS - 1, SAVE_FAILS - 1],
+      wardedIds: [WARDED_ID, OPEN_ID]
+    })
+    await startBite(room)
+    const first = await turnToOpen(room)
+    const second = await readPendingActionDecision(room.room.base.stub)
+    if (second?.pending.kind !== 'ATTACK_RETARGET_CHOICE')
+      throw new Error('The second ward offered no retarget.')
+    const lost = await room.resolve(second, { kind: 'DECLINE' })
+    expect(lost.type, JSON.stringify(lost)).toBe('COMMAND_COMMITTED')
+
+    const cards = await wardCards(room)
+    expect(cards.map(({ roll }) => roll.id)).toEqual([
+      ruleCheckRollId(first.occurrence.id, 0, 'ward-save'),
+      ruleCheckRollId(first.occurrence.id, 1, 'ward-save')
+    ])
+    expect(cards.map(({ roll }) => roll.evidence.terms[0])).toMatchObject([
+      { die: 20, rolls: [SAVE_FAILS] },
+      { die: 20, rolls: [SAVE_FAILS] }
+    ])
+    // The attack is lost: nothing is left pending.
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeFalsy()
+  })
+
   it('cards both saves of a prompted attacker, and keeps them when the attack is undone', async () => {
     const room = await turnedRoom({
       autoRoll: 'PLAYER',

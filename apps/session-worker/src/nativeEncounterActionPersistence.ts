@@ -27,8 +27,7 @@ export function buildNativeLiveEncounterActionPendingInput(
     initiatorUserId: plan.initiatorUserId,
     currentnessChecksum: plan.currentnessChecksum,
     reactionChildren: plan.reactionChildren,
-    // A list cast's plans keep the saves that turned a ray on the ray, not on the pause.
-    ...('retargeted' in plan && { retargeted: plan.retargeted }),
+    retargeted: plan.retargeted,
     castLevel: preparedSpellCastLevel(plan.prepared),
     castSlotKey: plan.prepared.characterActionState?.spellConsumption?.slotKey ?? null
   }
@@ -107,3 +106,9 @@ export function buildNativeLiveEncounterActionCommitInput(
     reactionOffers: plan.reactionOffers
   })
 }
+
+type ProbePlan = Parameters<typeof buildNativeLiveEncounterActionPendingInput>[1]
+export type ProbeA = Extract<ProbePlan, { kind: 'PENDING' }>['retargeted']
+export type ProbeB = Extract<ProbePlan, { kind: 'CAST_PENDING' }>['retargeted']
+export type ProbeC = Extract<ProbePlan, { kind: 'GATE_PENDING' }>['retargeted']
+export type ProbeD = Extract<ProbePlan, { kind: 'RETARGET_PENDING' }>['retargeted']
