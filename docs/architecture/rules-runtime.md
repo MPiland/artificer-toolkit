@@ -1463,14 +1463,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED` (melee or not, from the attack's classification, never its distance), `HIT`, `TEST`
   (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (`AFTER` it lands: damager,
   damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
-  `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT`, and the events a reaction answers:
+  `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT` (the zone left), the lifetime events
+  (QUALITY-14.1) `TURN_BOUNDARY` (the stage of a turn the effect counts on), `SEPARATED` (the feet measured from a
+  source) and `REST` (short or long), and the events a reaction answers:
   `TURN_STARTED` and `SAVE_FAILED` (a rule definition's failed save), which with `DEFEATED` raise actions (below),
   `HIT_BY_ATTACK` (melee or not, attacker seen or not, the damage types the hit deals), `SPELL_CAST_BY_OTHER` and
   `TARGETED_BY_CAST` (with the spell cast), and the events an intercept answers before they resolve: the `BEFORE`-phase
   `DAMAGED`, `KILLED` (an outright kill) and `HARMFUL_ACTION_AIMED` (an attack or harmful spell, by an attacker of a
   Creature type or a Character). `EncounterEventSubscription`
-  is what a hook listens for, with its filters; `EncounterEffectHook` is what it does when met (`END`, or `REPEAT_SAVE`
-  with its trigger). Ending and consuming are the same hook: the effect is gone, restored by the same receipt.
+  is what a hook listens for, with its filters; `EncounterEffectHook` is what it does when met (`END`, `REPEAT_SAVE`
+  with its trigger, or `COUNT_DOWN`). Ending and consuming are the same hook: the effect is gone, restored by the same receipt.
+  `COUNT_DOWN` is structural, not vocabulary: `effectHooks` gives it to every effect whose expiration is `TICKS`,
+  subscribed to the `TURN_BOUNDARY` of its `decrementStage`, so no System authors the count.
   `EncounterReactionHook` is the reaction an event offers, by the event and the authored trigger it met.
 - **Event vocabulary** (System capability `event-vocabulary`, `EventVocabularyCapabilityAdapter`, registered through
   `createSystemCapabilityRegistry` in `platformPolicyModules.ts`). The System maps its authored codes to subscriptions:
@@ -1489,8 +1493,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   meets: a spell attack is an attack roll and a cast), the effects whose save repeats with the first trigger met, and
   the passive damage grants a `DAMAGED` event of their types meets. `endSubscriptions` (`effectHooks.ts`, which reads
   the vocabulary and stays clear of Encounter rules for the browser, ADR 0036 S6) reads an effect's end subscriptions
-  where a caller only asks what it listens for (`stateBoundGrants`, a zone's `AREA_LEFT` hold). A rest is the Sheet's
-  event: `activeEffectEndsOnRest` reads the `REST` subscription there, and no Encounter raises one.
+  where a caller only asks what it listens for (`stateBoundGrants`, the zones `leavingAreaHolds` lists).
+  **One lifetime model (QUALITY-14.1):** every ending is an event raised through discovery. A met `COUNT_DOWN` ends an
+  effect on its last tick and otherwise returns it in `countedDown` with one tick fewer; the caller chooses whose
+  boundary it is (the anchor and liveness rules stay with `planEncounterGrantTicks` and the turn-effect kernel, whose
+  `turnBoundaryCount` its persistence fold re-reads). The post-commit sweep (`encounterEndedRelationships`) raises the
+  measured distance as `SEPARATED` and an unable source as `INCAPACITATED` on each relationship hold, passed as
+  `relationshipHolds` (the sealed reach is the subscription), and `SEPARATED` on each effect for its authored
+  `beyondFeet`. A rest is raised by the Sheet (`activeEffectEndsOnRest` raises `REST` on each held effect), and a
+  departure from a zone by `endsOnLeavingZone` (`AREA_LEFT`, met only by the effect that zone holds). Not yet events:
+  a departed source (`planDepartedSourceGrantRemovals`), carried effects (`expiredCarriedOverGrants`,
+  `planResumedCarriedEffects`, `planConcentrationCarriedGrantEnds`) and a rest's recovery of a scalar or hit-point-maximum
+  reduction.
   `effectEventScope` (whose events and turn an effect meets), `damageTriggerMet` and `damagerOnSourceSide` live here too.
   Given the holder's `reactions` too, it returns the reactions the events offer, in held order, each once with the first
   hook met. A reaction's authored `reactionTrigger` is its subscription, already structural, so no vocabulary reads it:
@@ -1567,8 +1581,8 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   copy of it is stale; `RoomEncounterStore.transact` fails a command that collected a mirror it never settled. A source
   absent from the Run, or a Run no longer ACTIVE, takes nothing. A mirror that landed marks the root `damageMirrored`,
   and undo of that root is a typed refusal (it can't give the source its damage back). Distance and source-at-0-hp are
-  authored end triggers (`SEPARATED` with `beyondFeet`, measured by the post-commit relationship sweep
-  `encounterSeparatedEffects`; `INCAPACITATED` of the `SOURCE`), so separation ends the whole effect. Known limits:
+  authored end triggers (`SEPARATED` with `beyondFeet`, raised as an event by the post-commit relationship sweep
+  `encounterEndedRelationships`; `INCAPACITATED` of the `SOURCE`), so separation ends the whole effect. Known limits:
   mirrored damage applies hit points and defeat only (no concentration check or damage-ended effect on the source), and
   a voluntary move's undo transitions omit the mirror's change.
 - **Maintenance link** (RULES-2.T8; System capability `maintenance-link`, `MaintenanceLinkCapabilityAdapter`). Concentration
@@ -3388,8 +3402,8 @@ A relationship outcome is held on one bounded result path: an attack's `ON_HIT`/
 the plan with `resultGate` on that path, so a target that makes the save is never held. The Water Elemental's Whelm is the SRD case (D202): a Self area over its own space, like the Whirlwind,
 whose failed save damages and holds the target. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
 still a GM ruling: the nested save's result path is not yet a gate.
-`planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
-such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
+`planEncounterGrantTicks` (`encounterGrantLifetimes`) raises the boundary as a `TURN_BOUNDARY` event (see "Event hooks") on every
+such effect anchored to the boundary actor, which counts it down or expires it, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `CONSUME` lifecycle triggers (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) name the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`discoverEncounterEventHooks`, `consumedGrantPersistence` in encounter-persistence). Help is the

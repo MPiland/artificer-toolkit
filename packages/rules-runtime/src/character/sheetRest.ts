@@ -27,7 +27,7 @@ import {
   clearEmptyStateArrays,
   getHitPointAdjustment
 } from './sheetCommandReducer.js'
-import { endSubscriptions } from '../events/effectHooks.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 
@@ -46,20 +46,20 @@ export function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
 }
 
 /**
- * Whether finishing a rest deletes this Character active effect: one that ends on a long rest
- * (Contact Other Plane's madness), a scalar reduction whose recovery triggers match, or a hit point
- * maximum reduction that ends on a long rest (Life Drain, D62).
+ * Whether finishing a rest deletes this Character active effect: one the rest, raised on it as a
+ * `REST` event, ends (Contact Other Plane's madness ends on a long rest), a scalar reduction whose
+ * recovery triggers match, or a hit point maximum reduction that ends on a long rest (Life Drain,
+ * D62).
  */
 export function activeEffectEndsOnRest(
-  effect: Pick<ActiveRuleEffectRecord, 'definition'>,
+  effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>,
   restKind: 'SHORT' | 'LONG'
 ): boolean {
-  if (
-    endSubscriptions(effect).some(
-      (subscription) => subscription.event === 'REST' && subscription.restKind === restKind
-    )
-  )
-    return true
+  const rest = discoverEncounterEventHooks({
+    effects: [effect],
+    events: [{ kind: 'REST', restKind }]
+  })
+  if (rest.ended.length > 0) return true
   const triggers = getRestRecoveryTriggers(restKind)
   return effect.definition.stateContributions.some(
     (contribution) =>

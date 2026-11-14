@@ -55,6 +55,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   requireTurnMaintainedStates,
   selectTurnEffectCandidates,
+  turnBoundaryCount,
   turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
@@ -202,11 +203,13 @@ export function activeEffectTargetFacts(
 
 function lifecycle(
   effect: ActiveRuleEffectRecord,
+  stage: TurnEffectBoundary['stage'],
   terminal: boolean,
   saveTally?: ActiveEffectSaveTally
 ) {
   const remaining = effect.lifecycle.remainingTicks
-  if (terminal || remaining === 1)
+  const count = turnBoundaryCount(effect, stage)
+  if (terminal || count.runsOut)
     return {
       kind: 'EXPIRE' as const,
       expectedVersion: effect.version,
@@ -214,7 +217,7 @@ function lifecycle(
       afterRemainingTicks: remaining === null ? null : (0 as const),
       beforeLifecycleChecksum: effect.lifecycleChecksum
     }
-  const afterRemainingTicks = remaining === null ? null : remaining - 1
+  const afterRemainingTicks = count.remainingTicks
   return {
     kind: 'UPDATE' as const,
     expectedVersion: effect.version,
@@ -361,7 +364,7 @@ function completeExecution(input: {
       after: folded.after
     },
     applications: folded.applications,
-    lifecycle: lifecycle(effect, result.terminal, result.saveTally)
+    lifecycle: lifecycle(effect, input.boundary.stage, result.terminal, result.saveTally)
   }
   return {
     execution,
@@ -619,7 +622,7 @@ async function evaluateEncounterTurnEffects(input: {
       applications: [
         ...result.applications,
         ...ended.releases,
-        ...(lifecycle(effect, terminal).kind === 'EXPIRE'
+        ...(lifecycle(effect, input.boundary.stage, terminal).kind === 'EXPIRE'
           ? expiredEffectReleases(effect, target.actor.id)
           : [])
       ]

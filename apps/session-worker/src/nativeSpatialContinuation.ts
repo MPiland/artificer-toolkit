@@ -12,7 +12,7 @@ import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules
 import { moveEndHolds } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { spatialEffectTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import {
-  heldUntilLeavingZoneId,
+  endsOnLeavingZone,
   leavingAreaHolds
 } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import {
@@ -242,8 +242,7 @@ export function nativeMovementSettlementInputs(input: {
       kind: 'AREA_DEPARTURE' as const,
       key: { departure },
       holderActorId: departure.holderActorId,
-      isHeld: (effect: ActiveRuleEffectRecord) =>
-        heldUntilLeavingZoneId(effect) === departure.zoneEffectId
+      isHeld: (effect: ActiveRuleEffectRecord) => endsOnLeavingZone(effect, departure.zoneEffectId)
     })),
     ...(outcome?.moveEnds ?? []).map((moveEnd) => ({
       kind: 'MOVE_END' as const,

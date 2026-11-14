@@ -77,7 +77,8 @@ import {
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
 import { targetEndedEffects } from '../encounterEndedEffectRelease.js'
-import { isTurnEffectEligible } from '../encounterTurnEffectState.js'
+import { endsOnLeavingZone } from '../encounterSpatialHeldCondition.js'
+import { isTurnEffectEligible, turnBoundaryCount } from '../encounterTurnEffectState.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
@@ -1245,7 +1246,75 @@ describe('discoverEncounterEventHooks', () => {
   })
 })
 
+describe('a turn boundary counts a timed effect down through the event table (QUALITY-14.1)', () => {
+  const timed = (id: number, remainingTicks: number) =>
+    grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks
+    })
+  const boundary = (effects: ActiveRuleEffectRecord[], stage: 'START_OF_TURN' | 'END_OF_TURN') => {
+    const { ended, countedDown } = discoverEncounterEventHooks({
+      effects,
+      events: [{ kind: 'TURN_BOUNDARY', stage }]
+    })
+    return { ended, countedDown }
+  }
+
+  it('ends an effect on its last tick and counts one off any other, at its own stage only', () => {
+    const last = timed(0xc370, 1)
+    const lasting = timed(0xc371, 3)
+    expect(boundary([last, lasting], 'END_OF_TURN')).toEqual({
+      ended: [last],
+      countedDown: [{ effect: lasting, remainingTicks: 2 }]
+    })
+    expect(boundary([last, lasting], 'START_OF_TURN')).toEqual({ ended: [], countedDown: [] })
+  })
+
+  it('counts nothing off an effect that stores no count, and no other event counts a tick', () => {
+    const uncounted = timed(0xc372, 3)
+    const stored: ActiveRuleEffectRecord = {
+      ...uncounted,
+      lifecycle: { ...uncounted.lifecycle, remainingTicks: null }
+    }
+    expect(boundary([stored], 'END_OF_TURN')).toEqual({ ended: [], countedDown: [] })
+    const moved = discoverEncounterEventHooks({ effects: [uncounted], events: [{ kind: 'MOVED' }] })
+    expect(moved.ended).toEqual([])
+    expect(moved.countedDown).toEqual([])
+  })
+
+  it('gives the turn-effect kernel and its persistence fold the same count', () => {
+    expect(turnBoundaryCount(timed(0xc373, 1), 'END_OF_TURN')).toEqual({
+      runsOut: true,
+      remainingTicks: null
+    })
+    expect(turnBoundaryCount(timed(0xc374, 3), 'END_OF_TURN')).toEqual({
+      runsOut: false,
+      remainingTicks: 2
+    })
+  })
+
+  it('plans the grant tick from what the boundary event sets off', () => {
+    const last = timed(0xc375, 1)
+    const lasting = timed(0xc376, 3)
+    const ticks = planEncounterGrantTicks({
+      encounterId: ENCOUNTER_ID,
+      stage: 'END_OF_TURN',
+      turnActorId: TARGET_ID,
+      holders: [{ actor: holder(TARGET_ID).actor, effects: [last, lasting] }]
+    })
+    const { ended, countedDown } = boundary([last, lasting], 'END_OF_TURN')
+    expect(ticks.filter(({ kind }) => kind === 'EXPIRE').map(({ effect }) => effect)).toEqual(ended)
+    expect(
+      ticks.flatMap((tick) =>
+        tick.kind === 'UPDATE' ? [{ effect: tick.effect, remainingTicks: tick.remainingTicks }] : []
+      )
+    ).toEqual(countedDown)
+  })
+})
+
 describe('discoverEncounterEventHooks over every authored subscription', () => {
+  const ZONE_ID = testUuid(0xc360)
   const HELP = SRD_BASIC_ACTION_IDS.HELP
   const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
   const dispositions = new Map([
@@ -1352,16 +1421,16 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
       { kind: 'MOVED' }
     ],
     [
-      'ON_LEAVING_AREA',
-      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }] },
-      { kind: 'AREA_LEFT' },
-      { kind: 'MOVED' }
+      'ON_LONG_REST',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }] },
+      { kind: 'REST', restKind: 'LONG' },
+      { kind: 'REST', restKind: 'SHORT' }
     ],
     [
       'ON_MOVE',
       { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' }] },
       { kind: 'MOVED' },
-      { kind: 'AREA_LEFT' }
+      { kind: 'AREA_LEFT', zoneEffectId: ZONE_ID }
     ],
     [
       'DAMAGE_TAKEN from the source side',
@@ -1413,11 +1482,41 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
       ...DND5E_EFFECT_END_EVENTS.map(({ code }) => code)
     ])
     codes.delete('ON_CHOSEN_ITEM_RELEASED')
-    const names = [...rows.map(([name]) => name), 'ON_LONG_REST']
+    // `ON_LEAVING_AREA` needs the zone holding the effect; the test below covers it.
+    const names = [...rows.map(([name]) => name), 'ON_LEAVING_AREA']
     expect(new Set(names.filter((name) => name.startsWith('ON_')))).toEqual(codes)
   })
 
-  // A rest is the Sheet's event, so the Sheet reads its subscription rather than the discovery.
+  it('ends an effect subscribed to ON_LEAVING_AREA as its holder leaves the zone holding it, and no other', () => {
+    const { definition } = subscribed({
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }]
+    })
+    const effect: ActiveRuleEffectRecord = {
+      ...plain,
+      definition: activeRuleEffectDefinitionDtoSchema.parse({
+        ...definition,
+        stateContributions: [
+          {
+            kind: 'CONDITION_OWNERSHIP',
+            conditionId: DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID,
+            baselinePresent: false,
+            heldBySpatialEffectId: ZONE_ID
+          }
+        ]
+      })
+    }
+    const ended = (events: EncounterEvent[]) =>
+      discoverEncounterEventHooks({ effects: [effect], events }).ended
+    expect(ended([{ kind: 'AREA_LEFT', zoneEffectId: ZONE_ID }])).toEqual([effect])
+    expect(ended([{ kind: 'AREA_LEFT', zoneEffectId: testUuid(0xc361) }])).toEqual([])
+    expect(ended([{ kind: 'MOVED' }])).toEqual([])
+    expect(endsOnLeavingZone(effect, ZONE_ID)).toBe(true)
+    expect(endsOnLeavingZone(effect, testUuid(0xc361))).toBe(false)
+    // An effect no zone holds leaves no area, whatever it subscribes to.
+    expect(endsOnLeavingZone({ ...effect, definition }, ZONE_ID)).toBe(false)
+  })
+
+  // The Sheet raises a rest on each effect its Character holds.
   it('ends an effect subscribed to ON_LONG_REST on a long rest alone', () => {
     const effect = subscribed({
       endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }]
@@ -1442,7 +1541,9 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     const ended = (events: EncounterEvent[]) =>
       discoverEncounterEventHooks({ effects: [effect], events }).ended
     expect(ended([{ kind: 'MOVED' }])).toEqual([effect])
-    expect(ended([{ kind: 'AREA_LEFT' }])).toEqual([])
+    expect(ended([{ kind: 'AREA_LEFT', zoneEffectId: ZONE_ID }])).toEqual([])
+    expect(ended([{ kind: 'REST', restKind: 'LONG' }])).toEqual([effect])
+    expect(ended([{ kind: 'REST', restKind: 'SHORT' }])).toEqual([])
   })
 
   it.each(rows)(

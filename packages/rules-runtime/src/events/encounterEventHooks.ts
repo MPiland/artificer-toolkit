@@ -21,11 +21,15 @@ import type {
   EncounterReactionHook,
   IncomingGateSubscription,
   MaintenanceLinkHook,
+  RelationshipHoldSubscription,
   ZoneEventSubscription
 } from './encounterEventTable.js'
 import { REACTION_TRIGGERS } from './reactionTriggers.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
+
+/** Rounding slack on a measured distance, so a creature exactly at a reach is still within it. */
+export const REACH_EPSILON_FEET = 1e-6
 
 /** The actor an event comes from and the actor whose turn it is; null when there is none. */
 export type EffectEventScope = { actorId: string | null; turnActorId: string | null }
@@ -210,11 +214,26 @@ function subscriptionMet(
         subscription.actionDefinitionIds.includes(event.basicActionDefinitionId)
       )
     case 'REST':
-      // A rest is the Sheet's event, read there (activeEffectEndsOnRest); no Encounter raises it.
-      return false
+      return event.kind === 'REST' && event.restKind === subscription.restKind
     case 'SEPARATED':
-      // Separation is measured on the Scene by the relationship sweep, not raised as an event.
-      return false
+      return (
+        event.kind === 'SEPARATED' &&
+        effect !== null &&
+        sourceActorIdOf(effect) === event.sourceActorId &&
+        event.feet > subscription.beyondFeet + REACH_EPSILON_FEET
+      )
+    case 'AREA_LEFT':
+      return (
+        event.kind === 'AREA_LEFT' &&
+        effect !== null &&
+        effect.definition.stateContributions.some(
+          (contribution) =>
+            contribution.kind === 'CONDITION_OWNERSHIP' &&
+            contribution.heldBySpatialEffectId === event.zoneEffectId
+        )
+      )
+    case 'TURN_BOUNDARY':
+      return event.kind === 'TURN_BOUNDARY' && event.stage === subscription.stage
     case 'SAVE_FAILED':
       return (
         event.kind === 'SAVE_FAILED' &&
@@ -394,6 +413,21 @@ function incomingGateMet({ payload }: IncomingGateSubscription, event: Encounter
   )
 }
 
+/** Whether a relationship hold breaks on the event: its source can't act, or stands beyond its sealed reach. */
+function relationshipHoldBroken(hold: RelationshipHoldSubscription, event: EncounterEvent) {
+  switch (event.kind) {
+    case 'SEPARATED':
+      return (
+        event.sourceActorId === hold.sourceActorId &&
+        event.feet > hold.sealedReachFeet + REACH_EPSILON_FEET
+      )
+    case 'INCAPACITATED':
+      return event.of === 'SOURCE' && event.sourceActorIds.has(hold.sourceActorId)
+    default:
+      return false
+  }
+}
+
 /** Whether a zone acts on the event: a movement, a turn boundary or a melee hit on its source it subscribes to. */
 function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
   switch (event.kind) {
@@ -412,7 +446,9 @@ function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
  * The one discovery entry point for event hooks (ADR 0039 decision 4): what these events, raised on
  * the holder of `effects` and `reactions`, set off. `ended` are the effects one of whose `END`
  * subscriptions an event meets, in held order, each once however many events it meets (a spell attack
- * is an attack roll and a cast). `repeatSaves` are the effects a `DAMAGED` event makes repeat their
+ * is an attack roll and a cast), and those whose last tick a turn boundary counts off. `countedDown`
+ * are the other effects a turn boundary counts a tick off, with the ticks they keep.
+ * `relationshipHolds` are the holds an event breaks. `repeatSaves` are the effects a `DAMAGED` event makes repeat their
  * save, with the first repeat trigger met. `grants` are the grants whose subscription an event meets.
  * `reactions` are the held reactions an event offers, in held order, each once
  * with the first hook met; whether one is affordable is decided when it is prepared.
@@ -429,10 +465,12 @@ export function discoverEncounterEventHooks<
   Interception extends DamageInterceptionSubscription = never,
   Gate extends IncomingGateSubscription = never,
   Zone extends ZoneEventSubscription = never,
-  Raised extends { hook: EncounterRaiseActionHook } = never
+  Raised extends { hook: EncounterRaiseActionHook } = never,
+  Hold extends RelationshipHoldSubscription = never
 >(input: {
   raisedActions?: readonly Raised[]
   effects?: readonly Effect[]
+  relationshipHolds?: readonly Hold[]
   zones?: readonly Zone[]
   reactions?: readonly Reaction[]
   damageInterceptions?: readonly Interception[]
@@ -442,17 +480,31 @@ export function discoverEncounterEventHooks<
   grantSubscriptions?: readonly Grant[]
 }) {
   const endedByEvent: Effect[] = []
+  const counted: { effect: Effect; remainingTicks: number }[] = []
   const repeatSaves: { effect: Effect; trigger: ActiveEffectRepeatTrigger }[] = []
   for (const effect of input.effects ?? []) {
-    const hooks: readonly EncounterEffectHook[] = effectHooks(effect)
+    const hooks = effectHooks(effect)
     const met = (hook: EncounterEffectHook) =>
       input.events.some((event) => subscriptionMet(effect, hook.subscription, event))
-    if (hooks.some((hook) => hook.hook === 'END' && met(hook))) endedByEvent.push(effect)
+    // The ticks a met count takes one off; an effect that stores no count counts no tick.
+    const remaining = hooks.some((hook) => hook.hook === 'COUNT_DOWN' && met(hook))
+      ? effect.lifecycle.remainingTicks
+      : null
+    if (
+      (remaining !== null && remaining <= 1) ||
+      hooks.some((hook) => hook.hook === 'END' && met(hook))
+    )
+      endedByEvent.push(effect)
+    else if (remaining !== null) counted.push({ effect, remainingTicks: remaining - 1 })
     const repeat = hooks.find((hook) => hook.hook === 'REPEAT_SAVE' && met(hook))
     if (repeat?.hook === 'REPEAT_SAVE') repeatSaves.push({ effect, trigger: repeat.trigger })
   }
   // An effect linked to an ended one ends with it (D172).
   const ended = withLinkedDependents(endedByEvent, input.effects ?? [])
+  const countedDown = counted.filter(({ effect }) => !ended.includes(effect))
+  const relationshipHolds = (input.relationshipHolds ?? []).filter((hold) =>
+    input.events.some((event) => relationshipHoldBroken(hold, event))
+  )
   const grants = (input.grantSubscriptions ?? []).filter((grant) =>
     input.events.some((event) => grantSubscriptionMet(grant.subscription, event))
   )
@@ -487,6 +539,8 @@ export function discoverEncounterEventHooks<
   return {
     raisedActions,
     ended,
+    countedDown,
+    relationshipHolds,
     repeatSaves,
     grants,
     reactions,
