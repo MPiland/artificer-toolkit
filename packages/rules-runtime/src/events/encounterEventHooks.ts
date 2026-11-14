@@ -155,7 +155,7 @@ type DamagedAfterEvent = Extract<EncounterEvent, { kind: 'DAMAGED'; phase: 'AFTE
 function damagedHitsMet(
   effect: HookedEffect | null,
   subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>,
-  event: DamagedAfterEvent
+  event: Pick<DamagedAfterEvent, 'hits' | 'dispositions'>
 ): number[] {
   const sourceActorId = effect ? sourceActorIdOf(effect) : null
   return event.hits.flatMap((hit, index) =>
@@ -182,9 +182,11 @@ export function damagedHitRepeatTrigger(
   hit: EncounterDamageHit,
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 ): ActiveEffectRepeatTrigger | undefined {
-  const event: DamagedAfterEvent = { kind: 'DAMAGED', phase: 'AFTER', hits: [hit], dispositions }
   for (const hook of effectHooks(effect))
-    if (hook.hook === 'REPEAT_SAVE' && subscriptionMet(effect, hook.subscription, event))
+    if (
+      hook.hook === 'REPEAT_SAVE' &&
+      damagedHitsMet(effect, hook.subscription, { hits: [hit], dispositions }).length > 0
+    )
       return hook.trigger
   return undefined
 }

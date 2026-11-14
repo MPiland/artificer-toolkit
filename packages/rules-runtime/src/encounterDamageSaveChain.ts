@@ -67,7 +67,9 @@ export function planDamageSaveChain(input: {
     const { maintenanceSaveHits, repeatSaves } = discoverEncounterEventHooks({
       maintenanceHooks: held.length > 0 ? hooks : [],
       effects,
-      events: [{ kind: 'DAMAGED', phase: 'AFTER', hits, dispositions: input.dispositions }]
+      events: [
+        { kind: 'DAMAGED', phase: 'AFTER', holderActorId, hits, dispositions: input.dispositions }
+      ]
     })
     for (const index of maintenanceSaveHits)
       for (const { id, createdAt } of held)

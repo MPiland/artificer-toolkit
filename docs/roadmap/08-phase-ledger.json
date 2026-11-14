@@ -2165,7 +2165,7 @@
             "tc": 2,
             "rr": 5,
             "size": 8,
-            "after": ["QUALITY-16.T1"]
+            "after": ["QUALITY-16.T1", "QUALITY-16.T2"]
           },
           "tasks": [
             {
@@ -2177,7 +2177,7 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 8,
-                "after": ["QUALITY-16.T1"]
+                "after": ["QUALITY-16.T1", "QUALITY-16.T2"]
               },
               "text": "Seam audit first (stories that query, write, need a test identity or a seed-impossible state; fixture modules; CI setup reuse with Browser journeys), then split: wire Storybook to the seeded backend and the CI stack, migrate story files by domain, delete the DTO fixtures.",
               "note": "Re-split into domain tasks at the seam audit; re-score WSJF then."
@@ -26698,18 +26698,90 @@
             },
             {
               "id": "QUALITY-14.T2e",
+              "status": "DONE",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2c", "QUALITY-14.T2d", "QUALITY-14.T2d2"]
+              },
+              "text": "A creature named again in a chosen list or area is damaged once per command: one DAMAGED(AFTER) per holder (holderActorId on the event) with a hit per entry at its first outcome, ending the duplicate incoming-damage grant.",
+              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at delivery (whole task about 2 to 3 slices of 13): the cross-stage single discovery moved to QUALITY-14.T2e2. Sent back once for a merge conflict with m762 (nativeAreaCommitPlan.ts; both sides kept).",
+              "mergedAt": "2026-11-14",
+              "proof": "m764 (2991bb5a9); slice tip b3bcebf9c: Tests 43612719236, Live 43612719245, Browser journeys 43612719239 green. Red proof: nativeRoomDamagedOncePerHolder RED (SRD Scorching Ray, two rays on one Aversion of Fire Wolf held 2 grants), damagedRaisedOncePerHolder RED. Three toMatchObject expectations gained holderActorId (strengthened). No D196 change; transient holderActorId only."
+            },
+            {
+              "id": "QUALITY-14.T2e2",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
-                "after": ["QUALITY-14.T2c", "QUALITY-14.T2d", "QUALITY-14.T2d2"]
+                "size": 5,
+                "after": ["QUALITY-14.T2e"]
               },
-              "text": "DAMAGED(AFTER) is raised once per command and holder across the ends stage (targetEndedEffects) and the save-chain stage (planDamageSaveChain) over every damage root, with persistence re-derivations threaded through one discovery and an end-to-end count proof.",
-              "note": "Registered 2026-11-14 from the T2b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "text": "One damage hit model (D220): a damage-save application carries every damage type it dealt (D196, development data migrated), so the ends stage and the save chain read the same hit; a fire-and-slashing hit owes a fire-triggered repeat save.",
+              "note": "Registered 2026-11-14 from the T2e split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 before any edit (whole task about 26 to 31; seam trace in D220) into T2e2a (this task), T2e2b, T2e2c, T2e2d and T2e2e.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-14.T2e2b",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2e2"]
+              },
+              "text": "One pre-command damaged-holder discovery per command in the ends stage (action, area, Legendary Action, melee retaliation) consumed by the room save chain; the placed-by-this-command filter widens to the effects and grants the command created; persistence rebuilds the pre-command snapshot with an agreement test.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2c",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2b"]
+              },
+              "text": "A resumed save chain reads the sealed pre-command discovery on its damage-save context (D220, D196) instead of re-deriving from a snapshot earlier saves changed; forged and replayed steps refused.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2d",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2e2b"]
+              },
+              "text": "A move takes damage per contact (D220): each contact raises one DAMAGED(AFTER) per holder settling ends and the Concentration chain together, replacing the terminal ends settle; a Concentration lost mid-move stops that zone later damage.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2e",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2c", "QUALITY-14.T2e2d"]
+              },
+              "text": "Room count proofs on SRD fixtures that DAMAGED(AFTER) is raised once per command and holder (single target, list or area multi-hit, multi-zone move, a damaged Concentration holder, a resumed chain); the transitional note leaves rules-runtime.md.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
             }
           ]
         },
@@ -26753,7 +26825,7 @@
             },
             {
               "id": "QUALITY-15.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -26764,7 +26836,8 @@
               },
               "text": "Test aspect: testPlan, supportedTestPhaseKind and the check/contest paths unified into one test compiler composed with activation and targeting; golden parity.",
               "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m762 (fde4bb0b7); slice tip b76f22475: Tests 43606833496, Live 43606833457, Browser journeys 43606833492 green. compileDnd5eTest (effectActionTest.ts) owns what an action rolls (NONE, ATTACK, SAVE, CHECK with FIXED, CONTEST, PASSIVE or CONCEALMENT DC) and the check rules; DND5E_TEST_RESULT_PATHS replaces four path lists; dnd5eTestHoldPaths replaces TEST_HOLD_PATHS. Red proof: effectActionTestAspect RED-IMPORT (new module); SRD golden byte-identical. No assertions restated. No D196 change."
             },
             {
               "id": "QUALITY-15.T1c",
@@ -26833,7 +26906,7 @@
           "tasks": [
             {
               "id": "QUALITY-16.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-16.1"],
               "wsjf": {
                 "bv": 1,
@@ -26843,6 +26916,23 @@
                 "after": ["QUALITY-14.T2"]
               },
               "text": "Move System literals behind System data; content ratchet.",
+              "note": " Split 2026-11-14 at delivery: the Kernel rule contributor ids and widening the ratchet to packages/schema and apps/apis/convex moved to QUALITY-16.T2.",
+              "mergedAt": "2026-11-14",
+              "proof": "m763 (85c9a48bb); slice tip 364776a53: Tests 43608375140 (Convex replay flake in actionCharacterTargets.test.ts passed on a failed-job rerun), Live 43608375093, Browser journeys 43608375177 green. Fourth source ratchet (CONTENT_FENCED over rules-runtime outside systems/, shared rules, encounter-persistence and session-worker; SYSTEM_RULE_LITERALS; shrink-only systemLiteralAllowlist.json). Inventory 8 files / 12 literals to 1 file / 4 (contributors.ts allowlisted for T2). Legendary discovery, relationship paths, SPELLCASTING_LOCK and ON_IDLE_TURN read capability registries. Red proof: sourceRatchets.test.mjs RED. SRD golden unchanged. No assertions restated. No D196 change."
+            },
+            {
+              "id": "QUALITY-16.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-16.1"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-16.T1"]
+              },
+              "text": "Kernel rule contributor ids (range, unseen attacker and target) come from the rollMode capability, removing the contributors.ts allowlist entry; the System content ratchet covers packages/schema and apps/apis/convex.",
+              "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
