@@ -7,6 +7,8 @@
 // Import fence: a neutral rules-runtime module (outside `systems/` and `character/`) never imports
 // `systems/*`, and neither does a module of a rules-runtime consumer (`FENCED_CONSUMERS`) through
 // `@artificer-toolkit/rules-runtime/systems/*`; both reach System behaviour through a capability registry.
+// Likewise no neutral schema module (outside `systems/`) nor any of those imports a System's schema
+// extension (`packages/schema/src/systems/<id>/`); they read the installed lists beside it (QUALITY-16.T3).
 // `scripts/systemsImportAllowlist.json` names the composition roots that install System adapters, each with
 // its reason, and lists the `importers` that still import `systems/` directly.
 //
@@ -20,7 +22,8 @@
 // persistence, the Session Worker, the schema and Convex), no string names a System: nothing spelled
 // `dnd5e`, and none of `SYSTEM_RULE_LITERALS`, the System rule codes a neutral module would otherwise
 // branch on. Neutral code reads them from System data through a capability registry (ADR 0039 decision 5
-// and its 2026-10-22 amendment). Import specifiers belong to the import fence and are not counted, nor
+// and its 2026-10-22 amendment); a System's schema extension under `packages/schema/src/systems/<id>/` is
+// its own module. Import specifiers belong to the import fence and are not counted, nor
 // are `EXTERNAL_FORMAT_LITERALS`. Its `allowed` map names each module that still does, with its reason.
 //
 // With `--base <ref>` the lists are also compared with the ones at the merge base: a cap may not rise and
@@ -52,6 +55,11 @@ const FENCED_CONSUMERS = [
   'apps/web/src/'
 ]
 const SYSTEMS_PACKAGE = '@artificer-toolkit/rules-runtime/systems'
+const SCHEMA = 'packages/schema/src/'
+const SCHEMA_SYSTEMS = `${SCHEMA}systems/`
+const SCHEMA_SYSTEMS_PACKAGE = '@artificer-toolkit/schema/systems/'
+// A System's own schema extension (`systems/<id>/...`), not the installed lists that name every System.
+const systemSchemaExtension = (pathAfterSystems) => pathAfterSystems.includes('/')
 
 const sourceModule = (file) =>
   /\.[cm]?[jt]sx?$/.test(file) &&
@@ -62,6 +70,7 @@ const sourceModule = (file) =>
 
 const fencedModule = (file) =>
   (file.startsWith(RULES_RUNTIME) && !UNFENCED.some((prefix) => file.startsWith(prefix))) ||
+  (file.startsWith(SCHEMA) && !file.startsWith(SCHEMA_SYSTEMS)) ||
   FENCED_CONSUMERS.some((prefix) => file.startsWith(prefix))
 
 /** Non-blank lines once comments are blanked out. */
@@ -73,8 +82,8 @@ export const codeLines = (filename, source) => {
 }
 
 /**
- * Import, re-export and dynamic import specifiers of a module that resolve into rules-runtime `systems/`:
- * relative ones from inside the package, `@artificer-toolkit/rules-runtime/systems/*` from anywhere.
+ * Import, re-export and dynamic import specifiers of a module that resolve into rules-runtime `systems/`
+ * or a System's schema extension: relative ones from inside the package, the package paths from anywhere.
  */
 export const systemsImports = (file, source) => {
   const specifiers = []
@@ -97,9 +106,16 @@ export const systemsImports = (file, source) => {
   visit(parseSync(file, source).program)
   return specifiers.filter((specifier) => {
     if (specifier === SYSTEMS_PACKAGE || specifier.startsWith(`${SYSTEMS_PACKAGE}/`)) return true
+    if (specifier.startsWith(SCHEMA_SYSTEMS_PACKAGE))
+      return systemSchemaExtension(specifier.slice(SCHEMA_SYSTEMS_PACKAGE.length))
     if (!specifier.startsWith('.')) return false
     const target = path.posix.join(path.posix.dirname(file), specifier)
-    return target === SYSTEMS || target.startsWith(`${SYSTEMS}/`)
+    return (
+      target === SYSTEMS ||
+      target.startsWith(`${SYSTEMS}/`) ||
+      (target.startsWith(SCHEMA_SYSTEMS) &&
+        systemSchemaExtension(target.slice(SCHEMA_SYSTEMS.length)))
+    )
   })
 }
 
@@ -180,8 +196,11 @@ export const SYSTEM_RULE_LITERALS = [
 // a System rule, so they are not System content even when they spell `dnd5e`.
 export const EXTERNAL_FORMAT_LITERALS = ['FOUNDRY_DND5E']
 
+// A System's own modules may name its content: rules-runtime `systems/` and its schema extension.
 const contentFencedModule = (fenced) => (file) =>
-  fenced.some((prefix) => file.startsWith(prefix)) && !file.startsWith(`${SYSTEMS}/`)
+  fenced.some((prefix) => file.startsWith(prefix)) &&
+  !file.startsWith(`${SYSTEMS}/`) &&
+  !(file.startsWith(SCHEMA_SYSTEMS) && systemSchemaExtension(file.slice(SCHEMA_SYSTEMS.length)))
 
 /** The distinct strings and template text of a module that name System content, outside its import specifiers. */
 export const systemLiterals = (file, source) => {

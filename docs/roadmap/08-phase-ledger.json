@@ -2165,12 +2165,12 @@
             "tc": 2,
             "rr": 5,
             "size": 8,
-            "after": ["QUALITY-16.T1", "QUALITY-16.T2", "QUALITY-16.T3"]
+            "after": ["QUALITY-16.T1", "QUALITY-16.T2", "QUALITY-16.T3", "QUALITY-16.T4"]
           },
           "tasks": [
             {
               "id": "PLATFORM-28.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2180,7 +2180,8 @@
                 "after": ["QUALITY-16.T1", "QUALITY-16.T2", "QUALITY-16.T3"]
               },
               "text": "Seam audit first (stories that query, write, need a test identity or a seed-impossible state; fixture modules; CI setup reuse with Browser journeys), then split: wire Storybook to the seeded backend and the CI stack, migrate story files by domain, delete the DTO fixtures.",
-              "note": "Re-split into domain tasks at the seam audit; re-score WSJF then."
+              "note": "Re-split into domain tasks at the seam audit; re-score WSJF then.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "internalReason": "Developer tooling: changes where Storybook stories get their data, not a product flow."
@@ -27117,7 +27118,7 @@
             },
             {
               "id": "QUALITY-16.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-16.1"],
               "wsjf": {
                 "bv": 1,
@@ -27128,6 +27129,22 @@
               },
               "text": "A System extension seam in packages/schema: System-registered grant kinds (SPELLCASTING_LOCK), reusable definition family keys and stored result refinements move behind System data, emptying the systemLiteralAllowlist.json allowed map without weakening persisted validation.",
               "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-14",
+              "proof": "m774 (38f7fc2cc); slice tip 4f631b94e: Tests 43646583973, Live 43646583979, Browser journeys 43646583965 green. System extension seam (shared/systemSchemaExtension.ts; systems/dnd5e/schemaExtension.ts, definitionDocuments.ts; installedSystemSchemas.ts) holds grant kinds, definition family keys and receipt bindings; systemLiteralAllowlist allowed is {} (ADR 0042 amendment). First merge refused: merge-slice judged the merged tree with the phase copy of sourceRatchets.mjs; mergeSlice.mjs now loads the merged tree own ratchets (regression test in mergeSlice.test.mjs). Red proof: sourceRatchets.test.mjs, mergeSlice.test.mjs RED; system-schema-extension, dnd5eSchemaExtension RED-IMPORT. No D196 change."
+            },
+            {
+              "id": "QUALITY-16.T4",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-16.1"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-16.T3"]
+              },
+              "text": "The content ratchet fences packages/authoring: reusableDefinitionService reads definition family keys from the installed System extension instead of naming the D&D keys; installed receipt-binding operation keys are enforced unique; merge-slice loads the merged tree redProof.mjs as well as sourceRatchets.mjs.",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]

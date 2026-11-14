@@ -1,3 +1,9 @@
+import {
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
@@ -13,14 +19,10 @@ import {
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,

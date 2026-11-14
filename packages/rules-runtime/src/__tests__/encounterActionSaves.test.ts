@@ -1,3 +1,4 @@
+import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 import {
   EFFECT_KIND,
@@ -19,7 +20,6 @@ import { encounterAutoFailRequest } from '../encounterRollModeReasons.js'
 import { actionD20RollRecord } from '../encounterRuleCheckRolls.js'
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
-import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import {
   creatureActor,
   type CreatureFeature,

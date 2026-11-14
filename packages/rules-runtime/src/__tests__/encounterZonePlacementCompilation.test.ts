@@ -1,3 +1,4 @@
+import { DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -17,7 +18,6 @@ import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
 import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS,
   DND5E_SAVE_DC_FACT_KEY
 } from '../systems/dnd5e/effectActionContracts.js'

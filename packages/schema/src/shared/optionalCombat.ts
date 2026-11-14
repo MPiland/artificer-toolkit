@@ -13,7 +13,6 @@ import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUui
 import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
 export { dnd5eOptionalCombatRuleKindDtoSchema }
-export { DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY } from './reusableDefinitionIdentity.js'
 
 const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
 const positiveVersionSchema = lazySchema(() =>

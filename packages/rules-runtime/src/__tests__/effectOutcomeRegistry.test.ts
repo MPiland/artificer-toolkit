@@ -1,3 +1,9 @@
+import {
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
 
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
@@ -25,21 +31,15 @@ import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { executionAddsSpeedToMovement } from '../systems/dnd5e/addSpeedToMovement.js'
 import { executionCancelsTriggeringEvent } from '../systems/dnd5e/cancelTriggeringEvent.js'
 import { dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
-import {
-  DND5E_SAVE_TEST_OPERATION_KEY,
-  dnd5eResolvedProposalTrace
-} from '../systems/dnd5e/dnd5eTestOperationKeys.js'
+import { dnd5eResolvedProposalTrace } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import {
   DND5E_CONDITION_IMMUNE_FACT_KEYS,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
-  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
-  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {

@@ -49,6 +49,7 @@ import {
   turnZoneEffectsEvidenceFields
 } from './ruleExecutionTurnPhaseEvidence.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { installedReceiptBindings } from '../systems/installedSystemSchemas.js'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,
   isEndedEffectRelease
@@ -430,7 +431,12 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
         let priorTraceIndex = -1
         const boundTraceIndexes = new Set<number>()
         for (const application of batch.applications) {
-          if (application.sourceOperationKey === 'dnd5e.actor-relationship-state') {
+          if (
+            installedReceiptBindings.some(
+              ({ relationshipStateOperationKey }) =>
+                relationshipStateOperationKey === application.sourceOperationKey
+            )
+          ) {
             // The effect planner applies a relationship's conditions from its frozen graph, which
             // lives in the relationship's active effect, not the action trace (D105).
             const relationshipEffect = batch.activeEffectTransitions[0]

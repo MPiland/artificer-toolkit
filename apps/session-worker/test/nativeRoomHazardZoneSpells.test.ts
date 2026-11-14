@@ -1,11 +1,9 @@
+import { DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
-  DND5E_SAVE_DC_FACT_KEY
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionContracts'
+import { DND5E_SAVE_DC_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionContracts'
 import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'

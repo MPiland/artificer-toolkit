@@ -1,3 +1,7 @@
+import {
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY
+} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { z } from '@artificer-toolkit/schema/zod'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
@@ -23,8 +27,7 @@ import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDi
 import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eD20TestNodes } from './d20AddedDiceGraph.js'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
-import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
-import { DND5E_TEST_OUTCOME_RULE_FACT_KEY, dnd5eSaveOutcomeRule } from './effectActionContracts.js'
+import { dnd5eSaveOutcomeRule } from './effectActionContracts.js'
 import { encounterConditionSaveAutoFails } from '../../conditionSaveAutoFail.js'
 import { resolveCharacterRuleSavingThrow } from './characterRuleRollProjection.js'
 import { DND5E_CHARACTER_WIDE_TARGET } from './modifierApplicability.js'

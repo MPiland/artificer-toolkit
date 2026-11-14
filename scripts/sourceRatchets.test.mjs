@@ -108,6 +108,19 @@ describe('systemsImports', () => {
       '@artificer-toolkit/rules-runtime/systems/dnd5e/h'
     ])
   })
+
+  it("finds imports of a System's schema extension, but not the installed lists (QUALITY-16.T3)", () => {
+    const source = [
+      "import { a } from '../systems/dnd5e/schemaExtension.js'",
+      "import { b } from '../systems/installedSystemSchemas.js'",
+      "import { c } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'",
+      "import { d } from '@artificer-toolkit/schema/systems/installedSystemSchemas'"
+    ].join('\n')
+    expect(systemsImports('packages/schema/src/shared/probe.ts', source)).toEqual([
+      '../systems/dnd5e/schemaExtension.js',
+      '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
+    ])
+  })
 })
 
 describe('ratchetProblems (RULES-2.T1)', () => {
@@ -413,6 +426,27 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([
       `${CONVEX_MODULE}: names System content "SPELLCASTING_LOCK" outside systems/; read it from System data through a capability registry.`,
       `${SCHEMA_MODULE}: names System content "dnd5e.save-test-resolution" outside systems/; read it from System data through a capability registry.`
+    ])
+  })
+
+  it("lets a System's schema extension name its content, but not the installed lists or a neutral schema module that imports it (QUALITY-16.T3)", () => {
+    const extension = 'packages/schema/src/systems/dnd5e/schemaExtension.ts'
+    const installed = 'packages/schema/src/systems/installedSystemSchemas.ts'
+    write(extension, "export const key = 'dnd5e.save-test-resolution'\n")
+    write(
+      installed,
+      "export { key } from './dnd5e/schemaExtension.js'\nexport const lock = 'SPELLCASTING_LOCK'\n"
+    )
+    write(SCHEMA_MODULE, "export { key } from '../systems/dnd5e/schemaExtension.js'\n")
+    write(
+      CONVEX_MODULE,
+      "export { key } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'\n"
+    )
+    commitAll(root, "a System's schema extension")
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${CONVEX_MODULE}: imports systems/ directly; reach it through a capability registry.`,
+      `${SCHEMA_MODULE}: imports systems/ directly; reach it through a capability registry.`,
+      `${installed}: names System content "SPELLCASTING_LOCK" outside systems/; read it from System data through a capability registry.`
     ])
   })
 
