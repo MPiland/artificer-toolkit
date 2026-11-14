@@ -7,6 +7,7 @@ import { encounterEndedRelationships } from '../encounterRelationshipEnds.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { plannedGrantEffect } from './antitoxinEffectFixture.js'
+import { activeEffect, scalarReduction } from './encounterActiveEffectFixtures.js'
 import { escapeGrappleEffectDefinition } from '../testing/escapeGrappleEffectFixture.js'
 
 /** 100px cells of 5 feet; a Medium token fills one cell and is anchored at its center. */
@@ -141,6 +142,42 @@ describe('a relationship ends on its own when its hold breaks (D152)', () => {
     })
     expect(ends).toEqual([])
     expect(asked).toEqual([])
+  })
+
+  it('ends an effect linked to a broken hold or bond with it (D172), on the same holder', async () => {
+    const dependent = (id: string, linkedEffectId: string) =>
+      activeEffect({
+        id,
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER, targetActorId: HELD },
+        createdOrdinal: 2,
+        linkedEffectId,
+        stateContributions: [scalarReduction('00000000-0000-4000-8000-00000000c0de', 1)]
+      })
+    const bond = plannedGrantEffect({
+      id: 'bond',
+      holderActorId: HELD,
+      effect: wardingBond.effects?.[0],
+      sourceLabel: wardingBond.label,
+      sourceActorId: GRAPPLER
+    })
+    const unlinked = dependent('unlinked', 'someone-else')
+    const held = await ended({
+      effects: [[HELD, [hold('effect'), dependent('rider', 'effect'), unlinked]]],
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 3)]
+    })
+    expect(held.ends).toEqual([
+      { sourceActorId: GRAPPLER, heldActorId: HELD, activeEffectId: 'effect' },
+      { sourceActorId: GRAPPLER, heldActorId: HELD, activeEffectId: 'rider' }
+    ])
+    const bonded = await ended({
+      effects: [[HELD, [bond, dependent('chain', 'bond'), dependent('rider', 'chain')]]],
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 13)]
+    })
+    expect(bonded.ends.map(({ activeEffectId }) => activeEffectId)).toEqual([
+      'bond',
+      'chain',
+      'rider'
+    ])
   })
 
   it('ends only the broken hold of a source holding two creatures', async () => {

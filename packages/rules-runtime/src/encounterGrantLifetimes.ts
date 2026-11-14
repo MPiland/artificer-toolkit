@@ -125,22 +125,26 @@ export function grantsEndedBySourceState<Effect extends ActiveRuleEffectRecord>(
 
 /**
  * Timed effects anchored to an actor that left the Run can no longer count down, so they end with
- * it. Holder-anchored effects, and those carried in from an earlier Run, keep their own lifetime.
+ * it, raised on each holder as a `SOURCE_DEPARTED` event. Holder-anchored effects, and those carried
+ * in from an earlier Run, keep their own lifetime.
  */
 export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
   departedActorId: string
   holders: readonly { actor: GrantHolder['actor']; effects: readonly Effect[] }[]
 }): Effect[] {
-  return input.holders.flatMap(({ effects }) =>
-    effects.filter(
-      (effect) =>
-        effect.definition.recurrence.expiration.kind === 'TICKS' &&
-        effect.definition.recurrence.anchor === 'SOURCE' &&
-        effect.definition.origin.kind === 'ENCOUNTER' &&
-        effect.definition.origin.sourceAggregateId === input.encounterId &&
-        effect.definition.origin.sourceActorId === input.departedActorId
-    )
+  return input.holders.flatMap(
+    ({ effects }) =>
+      discoverEncounterEventHooks({
+        effects,
+        events: [
+          {
+            kind: 'SOURCE_DEPARTED',
+            encounterId: input.encounterId,
+            sourceActorId: input.departedActorId
+          }
+        ]
+      }).ended
   )
 }
 
@@ -335,23 +339,47 @@ export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>
 }): CarriedEffectResume<Effect>[] {
   const { clockMinute } = input
   if (clockMinute === null) return []
-  return input.effects.flatMap((effect): CarriedEffectResume<Effect>[] => {
+  const carried = input.effects.flatMap((effect) => {
     const { expiration } = effect.definition.recurrence
     const { expiresAtCampaignMinute, ...lifecycle } = effect.lifecycle
-    if (
-      typeof expiresAtCampaignMinute !== 'number' ||
-      expiration.kind !== 'TICKS' ||
-      !(isModifierGrant(effect) || ownsCondition(effect))
-    )
-      return []
-    const remainingTicks = Math.min(
-      expiration.initialRemaining,
-      (expiresAtCampaignMinute - clockMinute) * ROUNDS_PER_CAMPAIGN_MINUTE
-    )
-    return remainingTicks <= 0
-      ? [{ kind: 'EXPIRE', effect }]
-      : [{ kind: 'UPDATE', effect, lifecycle: { ...lifecycle, remainingTicks } }]
+    return typeof expiresAtCampaignMinute === 'number' &&
+      expiration.kind === 'TICKS' &&
+      (isModifierGrant(effect) || ownsCondition(effect))
+      ? [
+          {
+            effect,
+            lifecycle,
+            expiresAtCampaignMinute,
+            initialRemaining: expiration.initialRemaining
+          }
+        ]
+      : []
   })
+  const { ended } = discoverEncounterEventHooks({
+    effects: carried.map(({ effect }) => effect),
+    events: [{ kind: 'CAMPAIGN_CLOCK', minute: clockMinute }]
+  })
+  return carried.map(
+    ({
+      effect,
+      lifecycle,
+      expiresAtCampaignMinute,
+      initialRemaining
+    }): CarriedEffectResume<Effect> =>
+      ended.includes(effect)
+        ? { kind: 'EXPIRE', effect }
+        : {
+            kind: 'UPDATE',
+            effect,
+            lifecycle: {
+              ...lifecycle,
+              remainingTicks: Math.min(
+                initialRemaining,
+                (expiresAtCampaignMinute - clockMinute) * ROUNDS_PER_CAMPAIGN_MINUTE
+              )
+            }
+          }
+  )
 }
 
 /**
@@ -406,26 +434,26 @@ export async function planReinstatedConcentrations<Effect extends ActiveRuleEffe
 
 /**
  * D99: a Character caster who starts another Concentration ends the carried-over Concentration
- * grants stamped with them. A grant with no stamp (a Creature caster) is never ended this way.
+ * grants stamped with them, raised as a `CONCENTRATION_STARTED` event. A grant with no stamp (a
+ * Creature caster) is never ended this way.
  */
 export function planConcentrationCarriedGrantEnds<Effect extends ActiveRuleEffectRecord>(input: {
   casterCharacterId: string
   effects: readonly Effect[]
 }) {
-  return input.effects.filter(
-    ({ owner, lifecycle }) =>
-      owner.kind === 'CHARACTER' &&
-      lifecycle.concentrationCasterCharacterId === input.casterCharacterId
-  )
+  return discoverEncounterEventHooks({
+    effects: input.effects.filter(({ owner }) => owner.kind === 'CHARACTER'),
+    events: [{ kind: 'CONCENTRATION_STARTED', casterCharacterId: input.casterCharacterId }]
+  }).ended
 }
 
-/** Carried-over effects whose Campaign-clock expiry the clock has reached. */
+/** Carried-over effects whose Campaign-clock expiry the clock has reached, raised as a `CAMPAIGN_CLOCK` event. */
 export function expiredCarriedOverGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   clockMinute: number
 ) {
-  return effects.filter(({ lifecycle }) => {
-    const expiry = lifecycle.expiresAtCampaignMinute
-    return typeof expiry === 'number' && expiry <= clockMinute
-  })
+  return discoverEncounterEventHooks({
+    effects,
+    events: [{ kind: 'CAMPAIGN_CLOCK', minute: clockMinute }]
+  }).ended
 }

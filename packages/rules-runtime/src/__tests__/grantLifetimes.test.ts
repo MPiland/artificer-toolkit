@@ -99,6 +99,7 @@ import {
 import { grantPublishedIdentity } from '../testing/modifierGrantFixture.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { grantOnly, protectionFromEnergyChoice } from './antitoxinEffectFixture.js'
+import { activeEffect, scalarReduction } from './encounterActiveEffectFixtures.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import type { EncounterEffectRecurrence, EncounterEvent } from '../events/encounterEventTable.js'
 
@@ -1546,6 +1547,62 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     expect(ended([{ kind: 'REST', restKind: 'SHORT' }])).toEqual([])
   })
 
+  describe('a reduction a rest recovers ends on that REST event (QUALITY-14.T1b)', () => {
+    const owner = { kind: 'CHARACTER', characterId: CHARACTER_ID } as const
+    const hitPointMaximumReduction = (
+      recoveryTags: ('RESTORE_HIT_POINT_MAXIMUM' | 'LONG_REST')[]
+    ) =>
+      activeEffect({
+        id: testUuid(0xc3b1),
+        owner,
+        createdOrdinal: 1,
+        stateContributions: [
+          {
+            kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+            amount: 3,
+            sourceDamageOutcomeId: '00000000-0000-4000-8000-00000000f2a9',
+            sourceDamageNodeId: 'damage',
+            sourceDamageOperationKey: 'damage',
+            recoveryTags,
+            sourceLabel: 'Life Drain',
+            sourceHidden: false
+          }
+        ]
+      })
+    const endedBy = (effect: ActiveRuleEffectRecord, restKind: 'SHORT' | 'LONG') =>
+      discoverEncounterEventHooks({ effects: [effect], events: [{ kind: 'REST', restKind }] }).ended
+
+    it('ends a scalar reduction whose recovery triggers the rest recovers, and no other', () => {
+      const reduction = activeEffect({
+        id: testUuid(0xc3b0),
+        owner,
+        createdOrdinal: 1,
+        stateContributions: [scalarReduction(testUuid(0xc3b2), 2)]
+      })
+      expect(endedBy(reduction, 'SHORT')).toEqual([reduction])
+      expect(endedBy(reduction, 'LONG')).toEqual([reduction])
+      expect(activeEffectEndsOnRest(reduction, 'SHORT')).toBe(true)
+      const longOnly = {
+        ...reduction,
+        definition: {
+          ...reduction.definition,
+          stateContributions: [
+            { ...scalarReduction(testUuid(0xc3b2), 2), recoveryTriggers: ['LONG_REST' as const] }
+          ]
+        }
+      }
+      expect(endedBy(longOnly, 'SHORT')).toEqual([])
+      expect(endedBy(longOnly, 'LONG')).toEqual([longOnly])
+    })
+
+    it('ends a hit point maximum reduction on a long rest alone, and only when it names one', () => {
+      const drain = hitPointMaximumReduction(['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST'])
+      expect(endedBy(drain, 'LONG')).toEqual([drain])
+      expect(endedBy(drain, 'SHORT')).toEqual([])
+      expect(endedBy(hitPointMaximumReduction(['RESTORE_HIT_POINT_MAXIMUM']), 'LONG')).toEqual([])
+    })
+  })
+
   it.each(rows)(
     'ends an effect subscribed to %s on its event alone',
     (_, recurrence, meets, misses) => {
@@ -2010,6 +2067,31 @@ describe('planDepartedSourceGrantRemovals', () => {
     }
     expect(plan([{ actor: holder(TARGET_ID).actor, effects: [foreign] }])).toEqual([])
   })
+
+  it('ends an effect linked to an ended one with it (D172), as every event-table end does', () => {
+    const primary = grant({ id: 0xc356, holderId: TARGET_ID })
+    const holderAnchored = grant({ id: 0xc357, holderId: TARGET_ID, lifecycle: {} })
+    const dependent = {
+      ...holderAnchored,
+      definition: { ...holderAnchored.definition, linkedEffectId: primary.id }
+    }
+    expect(
+      plan([{ actor: holder(TARGET_ID).actor, effects: [primary, dependent] }]).map(({ id }) => id)
+    ).toEqual([primary.id, dependent.id])
+  })
+
+  it('raises the departure as a SOURCE_DEPARTED event only the source-anchored effect meets', () => {
+    const anchored = grant({ id: 0xc358, holderId: TARGET_ID })
+    const holderAnchored = grant({ id: 0xc359, holderId: TARGET_ID, lifecycle: {} })
+    const ended = (sourceActorId: string, encounterId = ENCOUNTER_ID) =>
+      discoverEncounterEventHooks({
+        effects: [anchored, holderAnchored],
+        events: [{ kind: 'SOURCE_DEPARTED', encounterId, sourceActorId }]
+      }).ended
+    expect(ended(SOURCE_ID)).toEqual([anchored])
+    expect(ended(OTHER_ID)).toEqual([])
+    expect(ended(SOURCE_ID, testUuid(0xc3fe))).toEqual([])
+  })
 })
 
 describe('planCarriedOverEffects', () => {
@@ -2277,6 +2359,32 @@ describe('planResumedCarriedEffects (SPELLS-5.13, D151)', () => {
       planResumedCarriedEffects({ effects: [{ ...effect, lifecycle }], clockMinute: 2001 })
     ).toMatchObject([{ kind: 'UPDATE', lifecycle: { schemaVersion: 1, remainingTicks: 20 } }])
   })
+
+  it('ends an effect linked to an expired one with it (D172) instead of resuming it', () => {
+    const expired = carried(0xc398, { expiresAtCampaignMinute: 2001 })
+    const later = carried(0xc399, { expiresAtCampaignMinute: 2100 })
+    const dependent = { ...later, definition: { ...later.definition, linkedEffectId: expired.id } }
+    expect(planResumedCarriedEffects({ effects: [expired, dependent], clockMinute: 2001 })).toEqual(
+      [
+        { kind: 'EXPIRE', effect: expired },
+        { kind: 'EXPIRE', effect: dependent }
+      ]
+    )
+  })
+
+  it('raises the clock as a CAMPAIGN_CLOCK event that only a carried effect it has reached meets', () => {
+    const reached = carried(0xc39a, { expiresAtCampaignMinute: 2001 })
+    const later = carried(0xc39b, { expiresAtCampaignMinute: 2002 })
+    const uncarried = carried(0xc39c, { expiresAtCampaignMinute: null })
+    const ended = (minute: number) =>
+      discoverEncounterEventHooks({
+        effects: [reached, later, uncarried],
+        events: [{ kind: 'CAMPAIGN_CLOCK', minute }]
+      }).ended
+    expect(ended(2000)).toEqual([])
+    expect(ended(2001)).toEqual([reached])
+    expect(ended(2002)).toEqual([reached, later])
+  })
 })
 
 describe('a timed condition effect on a Character outlasting its Run (SPELLS-5.14)', () => {
@@ -2457,6 +2565,30 @@ describe('planConcentrationCarriedGrantEnds', () => {
     expect(
       planConcentrationCarriedGrantEnds({ casterCharacterId: CHARACTER_ID, effects: [unstamped] })
     ).toEqual([])
+  })
+
+  it('ends an effect linked to an ended one with it (D172)', () => {
+    const mine = carried(0xc385, CHARACTER_ID, 'CHARACTER')
+    const other = carried(0xc386, testUuid(0xc3f0), 'CHARACTER')
+    const dependent = { ...other, definition: { ...other.definition, linkedEffectId: mine.id } }
+    expect(
+      planConcentrationCarriedGrantEnds({
+        casterCharacterId: CHARACTER_ID,
+        effects: [mine, dependent]
+      })
+    ).toEqual([mine, dependent])
+  })
+
+  it('raises a Concentration as a CONCENTRATION_STARTED event only the stamped effect meets', () => {
+    const mine = carried(0xc387, CHARACTER_ID, 'CHARACTER')
+    const others = carried(0xc388, testUuid(0xc3f0), 'CHARACTER')
+    const ended = (casterCharacterId: string) =>
+      discoverEncounterEventHooks({
+        effects: [mine, others],
+        events: [{ kind: 'CONCENTRATION_STARTED', casterCharacterId }]
+      }).ended
+    expect(ended(CHARACTER_ID)).toEqual([mine])
+    expect(ended(testUuid(0xc3f1))).toEqual([])
   })
 })
 
