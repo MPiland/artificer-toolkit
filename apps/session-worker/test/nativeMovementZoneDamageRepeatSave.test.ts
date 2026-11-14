@@ -33,9 +33,9 @@ type HeldEffect = {
   /** The recurrence the effect is authored with, from the one the SRD cast plans. */
   authored(cast: Recurrence): Recurrence
 }
-const DAMAGE_ENDS = canonicalActiveEffectEndTriggers([
-  { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
-])
+const DAMAGE_ENDS = canonicalActiveEffectEndTriggers<
+  NonNullable<Recurrence['endTriggers']>[number]
+>([{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }])
 /** SRD Hideous Laughter as cast: a save on damage, and no end on damage. */
 const laughter: HeldEffect = {
   id: LAUGHTER_EFFECT_ID,

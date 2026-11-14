@@ -89,7 +89,7 @@ async function laughingRun() {
       recurrence: {
         ...planned.definition.recurrence,
         endTriggers: canonicalActiveEffectEndTriggers([
-          { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
+          { event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const, damageTypeIds: null }
         ])
       }
     },
