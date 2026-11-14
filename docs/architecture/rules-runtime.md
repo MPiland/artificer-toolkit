@@ -157,11 +157,15 @@ independently and are composed in the compiler's `activatedAction`, in that orde
 that failed. Only cross-aspect rules live in the composition: an uncharged free action is taken on its user alone, a reaction aims no area (its trigger's
 pending decision carries no aim), a Self range's teleport reach is read only by its user's own teleport, and a willing target needs an outcome a creature
 accepts: one creature a grant, timed condition or check; a list a grant, bond or form. A single target on a Self range is its user, as the room's
-single-target evaluator holds it. The targeting aspect (`compileDnd5eTargeting`) also holds the room's evaluator limits: a creature
+single-target evaluator holds it, and so is an action that names no targeting on a Self range (QUALITY-15.T2); off a Self range an action
+must name its targeting. The targeting aspect (`compileDnd5eTargeting`) also holds the room's evaluator limits: a creature
 target names its disposition (any, willing or hostile), and a chosen-creature list needs a measured range, not Sight. Within those
 limits the aspects admit combinations the shape ladders refused: a save its user makes under any activation, an area save as a bonus
 action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
-(`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). The test aspect (`compileDnd5eTest`) owns what an action rolls and the result paths each test resolves to
+(`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). An area refuses with the one part it breaks:
+its disposition, its hit-point pool or save, a zone save's creature-type filter, a missing shape, a shape its range does not
+place, its range, or a size that is not fixed. A reaction over an area stays refused as an unbuilt path, not a game rule:
+the rules let a reaction catch an area, but its trigger's pending decision carries no aim yet (no SRD record authors one). The test aspect (`compileDnd5eTest`) owns what an action rolls and the result paths each test resolves to
 (`DND5E_TEST_RESULT_PATHS`): a check lists the one check its user rolls, and a contest the checks its target may roll. The test
 paths, the direct and check path, the outcome-path guards and the relationship hold paths (`dnd5eTestHoldPaths`) all read it; a
 rolled test (an attack or save) adds the composition rules that its target is any creature and that a Self range bounds no
@@ -173,12 +177,19 @@ carriers hold, on a result path its test resolves to, with no range or targeting
 duration other than instantaneous, a lifecycle, or a maintained effect) only when a plan holds its lifetime. An action
 that rolls no attack or save applies exactly one such result, or two when the save it repeats follows it (Power Word
 Stun), and refuses with "one fixed direct result"; an attack or save composes every entry its plans and roll tables do
-not hold, and holds at most one relationship, and refuses with "unique direct outcomes". What the plans carry
+not hold, and holds at most one relationship, and refuses with "unique direct outcomes". Each refusal adds the one entry rule it breaks (no result, more than one
+result, an uncarried sequence or choice, a path its test does not resolve to, a range or targeting of its own, or an
+uncarried lifetime). What the plans carry
 (`Dnd5eOutcomeCarriers`: a sequence's later results, a choice, an entry's lifetime) is the compiler's input to the
 aspect: the single-graph test compile carries a sequence only when its plan holds the rest (a relationship or a removal
 from play), the TEST/OUTCOME compile specializes every sequence result, and a direct result's lifetime is held by any
 plan the lifetime aspect chooses other than a relationship. One rule set admitted one shape the separate ladders refused:
 an attack or save result authored as instantaneous (`effectActionOutcomeAspect.test.ts`).
+
+**Refusal classes (current, QUALITY-15.T2).** The SRD golden harness (`srdEffectCompileGolden.test.ts`) classes every
+refusal message the corpus meets as a game rule, invalid input (incomplete or contradictory authoring, or a fact binding
+given no resolved roll) or an unbuilt path, and fails on a message it has not classed. The unbuilt list may only shrink:
+building a path removes its message from the list.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
