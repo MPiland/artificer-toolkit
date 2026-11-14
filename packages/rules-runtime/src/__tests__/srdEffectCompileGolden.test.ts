@@ -288,6 +288,55 @@ function goldenLines(): Line[] {
   ]
 }
 
+/**
+ * Why each refusal the SRD corpus meets stands. `GAME_RULE`: the rules forbid the action as
+ * authored. `INVALID_INPUT`: the authored or bound input is incomplete or contradicts itself.
+ * `UNBUILT`: a rules-valid combination the compiler does not build yet.
+ */
+const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | 'UNBUILT'>> = {
+  'D&D free action with no charge is taken on its user alone.': 'GAME_RULE',
+  'D&D Self action range of distance bounds only its user teleporting.': 'GAME_RULE',
+
+  'D&D Effect is not an activated action.': 'INVALID_INPUT',
+  'D&D action off a Self range must name its targeting.': 'INVALID_INPUT',
+  "D&D area outside its user's own space must name its shape.": 'INVALID_INPUT',
+  'D&D creature target needs a distance, Touch, Sight or unlimited range.': 'INVALID_INPUT',
+  'D&D Self target needs a Self range, or a distance its own teleport may reach.': 'INVALID_INPUT',
+  'D&D Self target names no area shape.': 'INVALID_INPUT',
+  'D&D single target names no area shape.': 'INVALID_INPUT',
+  'D&D test action has no authored result.': 'INVALID_INPUT',
+  'D&D test action paths must be unique direct outcomes. Its path is not one its test resolves to.':
+    'INVALID_INPUT',
+  // The fact binding is given no rolled or spent amount: the room resolves one before it binds.
+  'D&D dice healing requires one exact resolved healing expression.': 'INVALID_INPUT',
+  'D&D spent healing requires one exact resolved amount and the units spent.': 'INVALID_INPUT',
+  'D&D recurring healing requires one exact resolved fixed amount.': 'INVALID_INPUT',
+  'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
+
+  'D&D area with no hit-point pool tests each creature it catches with a save.': 'UNBUILT',
+  'D&D Effect action must have one fixed direct result without lifecycle overrides. Its duration, lifecycle or maintenance has no plan that holds it.':
+    'UNBUILT',
+  'D&D Effect action must have one fixed direct result without lifecycle overrides. It applies more than one result.':
+    'UNBUILT',
+  'D&D test action paths must be unique direct outcomes. Its duration, lifecycle or maintenance has no plan that holds it.':
+    'UNBUILT',
+  'D&D test action paths must be unique direct outcomes. Its choice has no plan that holds its options.':
+    'UNBUILT',
+  'D&D Effect action outcome is not a supported hit-point or condition outcome. Its manifestation is not one timed creature form.':
+    'UNBUILT',
+  'D&D Effect action outcome is not a supported hit-point or condition outcome. Its kind has no result the System applies.':
+    'UNBUILT',
+  'D&D test action has an unsupported bounded shape.': 'UNBUILT',
+  'D&D test action outcome is not supported.': 'UNBUILT',
+  'D&D reaction must name a registered trigger.': 'UNBUILT',
+  'D&D direct results of one kind cannot share a cast.': 'UNBUILT',
+  'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.': 'UNBUILT',
+  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT',
+  'D&D willing target needs an outcome a creature accepts.': 'UNBUILT',
+  'D&D repeat offer needs a maintained chosen-item grant it can ride.': 'UNBUILT',
+  'D&D action activation must take exactly one action, bonus action or reaction.': 'UNBUILT'
+}
+
 describe('SRD effect compile golden', () => {
   const lines = goldenLines()
 
@@ -303,5 +352,23 @@ describe('SRD effect compile golden', () => {
       .map((entry) => entry.text)
       .join('\n')
     await expect(`${text}\n`).toMatchFileSnapshot('./__golden__/srdEffectCompile.golden.txt')
+  })
+
+  it('refuses an SRD effect only for a classified reason (QUALITY-15.1)', () => {
+    const reasons = new Set(
+      lines.flatMap(({ text }) =>
+        [...text.matchAll(/REFUSED [^:]+: (.+?)(?= \| |$)/g)].map(([, reason]) => reason)
+      )
+    )
+    const classOf = (reason: string | undefined) =>
+      reason === undefined ? 'UNCLASSIFIED' : (REFUSAL_CLASSES[reason] ?? 'UNCLASSIFIED')
+    expect([...reasons].filter((reason) => classOf(reason) === 'UNCLASSIFIED')).toEqual([])
+    // The unbuilt paths still refused, which only shrink: QUALITY-15 follow-up splits build them.
+    expect([...reasons].filter((reason) => classOf(reason) === 'UNBUILT').sort()).toEqual(
+      Object.entries(REFUSAL_CLASSES)
+        .filter(([, refusalClass]) => refusalClass === 'UNBUILT')
+        .map(([reason]) => reason)
+        .sort()
+    )
   })
 })

@@ -21,26 +21,44 @@ export type Dnd5eOutcomeCarriers = Readonly<{
   lifetime: (entry: Dnd5eOutcomeEntry) => boolean
 }>
 
+const DIRECT_RESULT =
+  'D&D Effect action must have one fixed direct result without lifecycle overrides.'
+const TEST_PATHS = 'D&D test action paths must be unique direct outcomes.'
+
 /**
  * The outcome aspect's rule for one entry (ADR 0039 decision 1): it resolves directly, as one
  * outcome or as a sequence or choice its carriers hold, on a result path its test resolves to, with
- * no range or targeting of its own, and outlasts its use only when a plan holds its lifetime.
+ * no range or targeting of its own, and outlasts its use only when a plan holds its lifetime. Each
+ * part it breaks names its own reason, so a refusal says which rule it rests on.
  */
-function composesOutcome(
+function outcomeRefusal(
+  entry: Dnd5eOutcomeEntry,
+  paths: readonly string[],
+  carriers: Dnd5eOutcomeCarriers
+): string | null {
+  if (entry.groupKind === 'SEQUENTIAL' && !carriers.sequence)
+    return 'Its sequence has no plan that holds its later outcomes.'
+  if (entry.groupKind === 'CHOICE' && !carriers.choice)
+    return 'Its choice has no plan that holds its options.'
+  if (!paths.includes(entry.pathCode)) return 'Its path is not one its test resolves to.'
+  if (entry.rangeOverride || entry.targetingOverride)
+    return 'Its result names a range or targeting of its own.'
+  if ((hasLifecycleOverride(entry) || entry.maintenanceDefinitionId) && !carriers.lifetime(entry))
+    return 'Its duration, lifecycle or maintenance has no plan that holds it.'
+  return null
+}
+
+function composedOutcome(
+  head: string,
   entry: CompiledEntry,
   paths: readonly string[],
   carriers: Dnd5eOutcomeCarriers
-): entry is Dnd5eOutcomeEntry {
-  if (entry.resolutionKind !== 'DIRECT') return false
-  return (
-    (entry.groupKind === 'SINGLE' ||
-      (entry.groupKind === 'SEQUENTIAL' && carriers.sequence) ||
-      (entry.groupKind === 'CHOICE' && carriers.choice)) &&
-    paths.includes(entry.pathCode) &&
-    !entry.rangeOverride &&
-    !entry.targetingOverride &&
-    (!(hasLifecycleOverride(entry) || entry.maintenanceDefinitionId) || carriers.lifetime(entry))
-  )
+): Dnd5eOutcomeEntry {
+  if (entry.resolutionKind !== 'DIRECT')
+    unsupported(`${head} Its result is rolled on a table, not applied.`)
+  const refusal = outcomeRefusal(entry, paths, carriers)
+  if (refusal !== null) unsupported(`${head} ${refusal}`)
+  return entry
 }
 
 /**
@@ -56,13 +74,14 @@ export function dnd5eDirectOutcomeEntry(
   }>
 ): Dnd5eOutcomeEntry {
   const entry = entries[0]
-  if (
-    entries.length !== (input.repeatsSave ? 2 : 1) ||
-    !entry ||
-    !composesOutcome(entry, DND5E_TEST_RESULT_PATHS[input.test], input.carriers)
-  )
-    unsupported('D&D Effect action must have one fixed direct result without lifecycle overrides.')
-  return entry
+  if (!entry) unsupported(`${DIRECT_RESULT} It has no result.`)
+  if (entries.length !== (input.repeatsSave ? 2 : 1))
+    unsupported(
+      input.repeatsSave
+        ? `${DIRECT_RESULT} Its repeated save must follow its one result.`
+        : `${DIRECT_RESULT} It applies more than one result.`
+    )
+  return composedOutcome(DIRECT_RESULT, entry, DND5E_TEST_RESULT_PATHS[input.test], input.carriers)
 }
 
 /**
@@ -87,8 +106,6 @@ export function dnd5eTestOutcomeEntries(
   return entries
     .filter((entry) => !input.planned(entry))
     .map((entry) =>
-      composesOutcome(entry, DND5E_TEST_RESULT_PATHS[input.test], input.carriers)
-        ? entry
-        : unsupported('D&D test action paths must be unique direct outcomes.')
+      composedOutcome(TEST_PATHS, entry, DND5E_TEST_RESULT_PATHS[input.test], input.carriers)
     )
 }

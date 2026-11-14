@@ -1812,10 +1812,15 @@ type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extrac
   { effectKind: Kind }
 >
 
-const unsupportedDirectOutcome: () => never = () =>
-  unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
+/** A direct outcome refused, with the reason its kind has no supported result here. */
+const unsupportedDirectOutcome: (reason: string) => never = (reason) =>
+  unsupported(
+    `D&D Effect action outcome is not a supported hit-point or condition outcome. ${reason}`
+  )
 function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOutcomeInput) {
-  const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
+  const targetOnly =
+    dnd5eTargetOnlyOutcome(outcome) ??
+    unsupportedDirectOutcome('Its kind has no result the System applies.')
   return targetOnly.kind === 'ADD_SPEED_TO_MOVEMENT' ? offList(targetOnly, input) : targetOnly
 }
 /**
@@ -1846,7 +1851,8 @@ const DND5E_DIRECT_OUTCOMES: {
     if (dnd5eTargetOnlyOutcome(outcome)) return targetOnlyDirectOutcome(outcome, input)
     // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
     // following TELEPORT move spends, bounded by the spell's range.
-    if (!input.selfTeleport) unsupportedDirectOutcome()
+    if (!input.selfTeleport)
+      unsupportedDirectOutcome('Its teleport moves only its user, within reach.')
     return offList({ kind: 'TELEPORT_ALLOWANCE', ...input.selfTeleport }, input)
   },
   CONCEAL_FROM_OBSERVERS: (_outcome, input) => offList({ kind: 'CONCEAL' }, input),
@@ -1855,13 +1861,21 @@ const DND5E_DIRECT_OUTCOMES: {
   // The commit ends the held effects its plan selects; nothing is stored on the target here.
   END_EFFECTS: (_outcome, input) => offList({ kind: 'END_EFFECTS' }, input),
   APPLY_GRANT: (_outcome, { plans }) =>
-    plans.grant ? { kind: 'MODIFIER_GRANT' } : unsupportedDirectOutcome(),
+    plans.grant
+      ? { kind: 'MODIFIER_GRANT' }
+      : unsupportedDirectOutcome('Its grant has no plan that holds it.'),
   TELEPATHIC_LINK: (_outcome, { plans }) =>
-    plans.link ? { kind: 'ACTOR_LINK' } : unsupportedDirectOutcome(),
+    plans.link
+      ? { kind: 'ACTOR_LINK' }
+      : unsupportedDirectOutcome('Its link has no plan that holds it.'),
   MANIFEST: (_outcome, { plans }) =>
-    plans.form ? { kind: 'CREATURE_FORM' } : unsupportedDirectOutcome(),
+    plans.form
+      ? { kind: 'CREATURE_FORM' }
+      : unsupportedDirectOutcome('Its manifestation is not one timed creature form.'),
   REMOVE_FROM_PLAY: (_outcome, { plans }) =>
-    plans.absence ? { kind: 'PLAY_ABSENCE' } : unsupportedDirectOutcome(),
+    plans.absence
+      ? { kind: 'PLAY_ABSENCE' }
+      : unsupportedDirectOutcome('Its removal from play has no plan that holds it.'),
   HEAL: (outcome, { action }) => {
     if (outcome.valueKind === 'DICE') {
       parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
