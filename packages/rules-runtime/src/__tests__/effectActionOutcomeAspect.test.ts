@@ -289,8 +289,10 @@ describe('the compiler composes outcomes by the aspect (QUALITY-15.T1d admission
     const plain = characterActionDescriptor(compileEffect(hide))
     expect(() => dnd5eCharacterRuleActionSystemAdapter.compile({ action: plain })).not.toThrow()
     const action = characterActionDescriptor(compileEffect(maintained))
+    // The lifetime aspect refuses the maintained concealment itself (QUALITY-15.T1c), so the
+    // refusal names it rather than the outcome aspect's one-result rule.
     expect(() => dnd5eCharacterRuleActionSystemAdapter.compile({ action })).toThrow(
-      'D&D Effect action must have one fixed direct result without lifecycle overrides.'
+      'D&D concealment cannot be maintained: its check settles it with no maintenance link.'
     )
   })
 })
