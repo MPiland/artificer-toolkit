@@ -323,12 +323,6 @@ export function entryDamagePrefix(pathCode: string): string {
     : ENTRY_DAMAGE_NODE_PREFIX
 }
 export type TestKind = 'ATTACK' | 'SAVE'
-
-/** The result paths on which a test holds its target: a hit, or a failed save. */
-export const TEST_HOLD_PATHS: Record<TestKind, readonly string[]> = {
-  ATTACK: ['ON_HIT', 'ON_CRIT'],
-  SAVE: ['ON_SAVE_FAIL']
-}
 export type SpecializedPath =
   | 'ON_USE'
   | 'ON_HIT'

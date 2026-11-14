@@ -11,9 +11,9 @@ import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import {
   unsupported,
   type Dnd5eActionInvocation,
-  type Dnd5eCompiledEffectActionSource,
-  type TestKind
+  type Dnd5eCompiledEffectActionSource
 } from './effectActionContracts.js'
+import type { Dnd5eTestKind } from './effectActionTest.js'
 
 /**
  * What an Effect action targets, apart from how it is taken, tested or what it leaves behind (ADR
@@ -33,13 +33,13 @@ export type Dnd5eTargeting =
   | Readonly<{ kind: 'AREA'; pooled: boolean }>
 
 /**
- * The targeting aspect of an activated Effect action, given the test that decides it (none for a
- * direct or check action). Excluded creature types stay on the invocation: the room warns for an
+ * The targeting aspect of an activated Effect action, given the test that decides it (see
+ * `compileDnd5eTest`). Excluded creature types stay on the invocation: the room warns for an
  * excluded target and the table can override it, so they never refuse an action.
  */
 export function compileDnd5eTargeting(
   action: Dnd5eCompiledEffectActionSource,
-  test: TestKind | null
+  test: Dnd5eTestKind
 ): Dnd5eTargeting {
   const { invocation } = action.compiledEffect
   if (invocation.kind !== 'ACTION') unsupported('D&D Effect is not an activated action.')
@@ -91,7 +91,7 @@ function requireDisposition(dispositionKind: 'ANY' | 'WILLING' | 'HOSTILE' | und
   if (dispositionKind === undefined) unsupported('D&D creature target must name its disposition.')
 }
 
-function selfTargeting(invocation: Dnd5eActionInvocation, test: TestKind | null): Dnd5eTargeting {
+function selfTargeting(invocation: Dnd5eActionInvocation, test: Dnd5eTestKind): Dnd5eTargeting {
   if (test === 'ATTACK') unsupported('D&D attack roll needs a target other than its user.')
   if (invocation.shape) unsupported('D&D Self target names no area shape.')
   const { range } = invocation
