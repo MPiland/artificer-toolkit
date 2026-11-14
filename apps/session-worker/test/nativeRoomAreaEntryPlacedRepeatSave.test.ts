@@ -53,7 +53,8 @@ afterEach(() => {
 function damageRepeatingSpray(): SpellAuthored {
   const spell = structuredClone(prismaticSpray)
   for (const path of spell.effects?.[0]?.paths ?? []) {
-    if (!('rows' in path)) throw new Error('Prismatic Spray resolves by a roll table.')
+    if (path.selectionKind !== 'ROLL_TABLE')
+      throw new Error('Prismatic Spray resolves by a roll table.')
     for (const row of path.rows) {
       if (row.resolutionKind !== 'RESULT') continue
       if (
