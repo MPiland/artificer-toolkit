@@ -179,28 +179,26 @@ export async function verifyEncounterPlayerBrowser(
         // Enter takes the first offered reaction.
         return submitDecision(() => page.keyboard.press('Enter'))
       },
-      answerRollWindow: async (reaction) => {
-        stage = reaction ? 'use ' + reaction + ' on the roll' : 'decline the roll window'
-        // A reactor's roll window is a timed offer, so it opens the drawer itself (D207).
+      answerRollReaction: async (use) => {
+        stage = use ? 'use the reaction on the roll' : 'decline the reaction to the roll'
+        // The rolled d20's reaction choice is a timed offer, so it opens the drawer itself (D207, D219).
         await expect(decisionDrawer).toBeVisible()
         await expect(decisionDrawer.getByRole('timer')).toContainText(/\d+ seconds? to react/)
-        await expect(decisionDrawer.getByText('Reaction available', { exact: true })).toBeVisible()
         await expect(
           decisionDrawer.getByText(new RegExp('^' + input.wolf.label + ' rolled \\d+, total \\d+$'))
         ).toBeVisible()
-        if (!reaction)
+        if (!use)
           return submitDecision(() =>
             decisionDrawer.getByRole('button', { name: 'Decline', exact: true }).click()
           )
         await page.screenshot({
           caret: 'initial',
-          path: input.evidenceDirectory + '/player-roll-window-offered.png',
+          path: input.evidenceDirectory + '/player-roll-reaction-offered.png',
           fullPage: true
         })
+        // One offered reaction reads "Use reaction".
         return submitDecision(() =>
-          decisionDrawer
-            .getByRole('button', { name: new RegExp('^Use ' + reaction + ' \\(') })
-            .click()
+          decisionDrawer.getByRole('button', { name: 'Use reaction', exact: true }).click()
         )
       },
       castThunderwaveFromMap: async () => {

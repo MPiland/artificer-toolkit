@@ -47,10 +47,10 @@ export type EncounterPlayerBrowserControls = {
   /** Takes the offered reaction from the pending decision. */
   useReaction: () => Promise<PlayerStep<ResolveRuleOccurrenceInputDto>>
   /**
-   * Answers the reaction window another combatant's attack roll opened: uses the reaction with this
-   * label, or declines it when the label is null.
+   * Answers the reaction choice another combatant's rolled attack d20 holds for the player (D219):
+   * uses the one offered reaction, or declines it.
    */
-  answerRollWindow: (reaction: string | null) => Promise<PlayerStep<ResolveRuleOccurrenceInputDto>>
+  answerRollReaction: (use: boolean) => Promise<PlayerStep<ResolveRuleOccurrenceInputDto>>
   /** Picks Thunderwave, aims it on the map from the Character toward the Wolf, and resolves it. */
   castThunderwaveFromMap: () => Promise<PlayerStep<ResolveEncounterActionInputDto>>
   /** Ends the player's own turn from the turn-order drawer. */
@@ -441,13 +441,13 @@ export async function verifyEncounterPlayer({
       await controls.endTurn()
       assert.equal((await readRun()).currentActorId, wolf.id)
 
-      // 2. The Wolf bites (owner stand-in). Its d20 opens the player's Heckle window before the result
-      // (D207); the player declines it, then spends their reaction on Shield, with no GM step.
+      // 2. The Wolf bites (owner stand-in). Its rolled d20 holds a reaction choice for the player's Heckle
+      // before the result (D207, D219); the player declines it, then spends their reaction on Shield,
+      // with no GM step.
       const bitten = await wolfBites(9)
-      const biteWindow = pendingOf(bitten, 'ROLL_WINDOW')
-      assert.equal(biteWindow.rollerActorId, hero.id)
-      assert.equal(biteWindow.attackerActorId, wolf.id)
-      const declined = await controls.answerRollWindow(null)
+      const biteChoice = pendingOf(bitten, 'REACTION_CHOICE')
+      assert.equal(biteChoice.attackRoll?.attackerActorId, wolf.id)
+      const declined = await controls.answerRollReaction(false)
       pendingOf(declined.result, 'REACTION_CHOICE')
       const shielded = await controls.useReaction()
       assert.equal(shielded.result.occurrence?.status, 'COMPLETE')
@@ -480,12 +480,15 @@ export async function verifyEncounterPlayer({
       await controls.endTurn()
       assert.equal((await readRun()).currentActorId, wolf.id)
 
-      // 4. The Wolf bites again (owner stand-in). The player Heckles the roll, which the server rolls and
-      // which spends the reaction Shield needs; a 1d4 off a natural 15 still hits, so the Character
-      // drops to 0.
-      pendingOf(await wolfBites(15), 'ROLL_WINDOW')
-      const heckled = await controls.answerRollWindow('Heckle')
-      const felled = await answerOwnerDice(heckled.result, 15)
+      // 4. The Wolf bites again (owner stand-in). The player Heckles the roll: it runs as the Character's
+      // own action, whose 1d4 the player enters, and spends the reaction Shield needs; a 1 off a natural
+      // 15 still hits, so the Character drops to 0.
+      pendingOf(await wolfBites(15), 'REACTION_CHOICE')
+      const heckled = await controls.answerRollReaction(true)
+      const heckleDie = pendingOf(heckled.result, 'ACTION_OUTCOME_EVIDENCE')
+      assert.equal(heckleDie.rollerActorId, hero.id)
+      const heckleRolled = await controls.answerEvidence(heckleDie.request.min)
+      const felled = await answerOwnerDice(heckleRolled.result, 15)
       assert.equal(
         felled.occurrence?.status,
         'COMPLETE',
