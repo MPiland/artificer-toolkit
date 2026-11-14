@@ -26503,7 +26503,7 @@
           "tasks": [
             {
               "id": "QUALITY-14.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 3,
@@ -26512,7 +26512,8 @@
                 "size": 8,
                 "after": ["QUALITY-11.T1b", "QUALITY-13.T2b", "QUALITY-13.T2c"]
               },
-              "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table."
+              "text": "One lifetime model; the grant-tick planner and direct sweeps go through the event table.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2",
@@ -26841,18 +26842,17 @@
             },
             {
               "id": "QUALITY-18.T5",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["QUALITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
-                "size": 3,
-                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4"]
+                "size": 13,
+                "after": ["QUALITY-18.T2b3", "QUALITY-18.T2b4", "QUALITY-18.T3"]
               },
-              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\".",
-              "text": "Web and timer: the movement offer is REACTION_CHOICE in the decision drawer and the token badge; timed decline through the encounter path; stories and the movement journey.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split 2026-11-12 from QUALITY-9.T2 at the seam trace (8 to 26); user approved the D187 growth as its own PBI. See the decision \"Movement reactions as children (QUALITY-18)\". Re-scoped 2026-11-14 at the seam trace: the server still emits MOVEMENT_REACTION (encounterSpatialOccurrenceSummary.ts), so a web-only change cannot meet AC QUALITY-18.1; the flip touches about 60 test files and the projection T3 edits. Resized 3 to 13 and sequenced after T3; QUALITY growth pre-approved by the user (2026-11-13). Orchestrator ruling: carry the reactor token id on the offer (additive optional field; the server knows which token reacts) rather than guessing actor to token in the web model, and do not render two kinds side by side.",
+              "text": "The movement offer is REACTION_CHOICE end to end: the spatial occurrence summary emits REACTION_CHOICE (targetActorId = reactor, options { optionId, actionId }) instead of MOVEMENT_REACTION; REACTION_CHOICE gains an optional reactor token id so the token badge works for movement and action offers alike; the drawer uses one wording for both; restate the movement tests (worker, Convex, schema, development drafts), stories and the encounterMovement journey. The timed decline already runs through the shared encounter path (pendingReads reactionOffer, roomReactionTimeout), proved by the restated tests. T6 then deletes the MOVEMENT_REACTION kind."
             },
             {
               "id": "QUALITY-18.T6",
