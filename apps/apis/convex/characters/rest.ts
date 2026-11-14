@@ -12,10 +12,10 @@ import { projectCharacterRestForViewer } from '@artificer-toolkit/rules-runtime/
 import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import {
-  activeEffectEndsOnRest,
   buildCharacterRestPreview,
   validateCharacterRestRollEvidence
 } from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import { activeEffectEndsOnRest } from '@artificer-toolkit/rules-runtime/character/sheetRestEndedEffects'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { characterHitPointMaximumFraction } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
 import { readDefinitionRoot } from '../content/definitionStore'

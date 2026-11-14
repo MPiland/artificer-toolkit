@@ -38,7 +38,7 @@ import {
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
 import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
-import { activeEffectEndsOnRest } from '../character/sheetRest.js'
+import { activeEffectEndsOnRest } from '../character/sheetRestEndedEffects.js'
 import {
   buildCharacterSpellCastActions,
   RITUAL_CAST_REFUSAL,

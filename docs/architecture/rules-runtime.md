@@ -1500,7 +1500,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `turnBoundaryCount` its persistence fold re-reads). The post-commit sweep (`encounterEndedRelationships`) raises the
   measured distance as `SEPARATED` and an unable source as `INCAPACITATED` on each relationship hold, passed as
   `relationshipHolds` (the sealed reach is the subscription), and `SEPARATED` on each effect for its authored
-  `beyondFeet`. A rest is raised by the Sheet (`activeEffectEndsOnRest` raises `REST` on each held effect), and a
+  `beyondFeet`. A rest is raised by the Sheet (`activeEffectEndsOnRest` in `character/sheetRestEndedEffects.ts`, server only since discovery is Encounter rules, raises `REST` on each held effect), and a
   departure from a zone by `endsOnLeavingZone` (`AREA_LEFT`, met only by the effect that zone holds). Not yet events:
   a departed source (`planDepartedSourceGrantRemovals`), carried effects (`expiredCarriedOverGrants`,
   `planResumedCarriedEffects`, `planConcentrationCarriedGrantEnds`) and a rest's recovery of a scalar or hit-point-maximum

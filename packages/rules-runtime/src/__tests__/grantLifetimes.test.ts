@@ -51,7 +51,7 @@ import {
 } from '../systems/dnd5e/lifecycleVocabulary.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
-import { activeEffectEndsOnRest } from '../character/sheetRest.js'
+import { activeEffectEndsOnRest } from '../character/sheetRestEndedEffects.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { resumeCharacterForm } from '../encounterActorForm.js'
 import { checksumRunActorPlayState } from '../encounterActorStorage.js'
