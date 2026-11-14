@@ -475,9 +475,11 @@ function withRaysBehindOpened(
   next: EncounterAreaActionPendingContextDto,
   from: number
 ) {
-  for (let index = from; index < next.targets.length; index += 1) {
+  // The answer that settles a list may add the creatures its movers struck (D159) behind its entries.
+  for (let index = from; index < stored.targets.length; index += 1) {
     const sealed = stored.targets[index]!
-    const opened = next.targets[index]!
+    const opened = next.targets[index]
+    if (!opened) return area
     const requestId = sealed.snapshot.request.requestId
     if (sealed.testedJson !== undefined) return area
     if (opened.lost && opened.testedJson !== undefined) {

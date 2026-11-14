@@ -60,7 +60,10 @@ function wardedRoom(config: { autoRoll?: 'EVERYONE'; rolls?: readonly number[] }
       characterActor({ id: WARDER_ACTOR_ID, characterId: WARDER_ID })
     ],
     characterSpellcasting: { spells: [scorchingRay], prepared: [scorchingRay.id] },
-    secondCharacter: { characterId: WARDER_ID },
+    secondCharacter: {
+      characterId: WARDER_ID,
+      spellcasting: { spells: [sanctuary], prepared: [sanctuary.id] }
+    },
     characterAction: (action) => action.label === 'Scorching Ray (2nd level)',
     ...(config.autoRoll && { autoRoll: config.autoRoll }),
     rolls: config.rolls ?? [],
@@ -176,7 +179,7 @@ describe('each ray of a chosen list owes its creature’s incoming gate (QUALITY
     expect(after.lost).toHaveLength(1)
     expect(after.lost[0]).toMatchObject({
       lost: 'SPELL',
-      actorId: CASTER_ACTOR_ID,
+      sourceActorId: CASTER_ACTOR_ID,
       gate: { origin: { kind: 'WARD', holderActorId: WARDED_ID } }
     })
     expect(after.lost[0]?.parentOccurrenceId).toBeDefined()
@@ -210,10 +213,11 @@ describe('each ray of a chosen list owes its creature’s incoming gate (QUALITY
   })
 
   it('rolls each gate for a caster who auto-rolls: the lost ray deals nothing and the rest land', async () => {
-    // The first ray's save fails; the second's passes and its attack hits; the third owes no save and hits.
+    // The first ray's save fails; the second's passes, its attack hits and its two damage dice roll;
+    // the third owes no save and hits.
     const room = await wardedRoom({
       autoRoll: 'EVERYONE',
-      rolls: [SAVE_FAILS - 1, SAVE_PASSES - 1, HIT - 1, HIT - 1]
+      rolls: [SAVE_FAILS - 1, SAVE_PASSES - 1, HIT - 1, 0, 0, HIT - 1]
     })
     const before = await standing(room)
 
