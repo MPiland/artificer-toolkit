@@ -13,7 +13,6 @@ import {
   type SrdCharacter
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
@@ -140,14 +139,6 @@ function spellDamage(character: SrdCharacter, labels: readonly string[]) {
 }
 
 describe('spell-scoped damage modifiers (SPELLS-31.T5i1)', () => {
-  it('no longer lists the two closed rule kinds', () => {
-    for (const kind of [
-      'CLASS_SCHOOL_OF_EVOCATION_EMPOWERED_EVOCATION',
-      'CLASS_DRACONIC_BLOODLINE_ELEMENTAL_AFFINITY'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
-
   it('keeps the SRD records and a homebrew focus exactly as authored through the class node map', async () => {
     const withFocus: ClassAuthored = {
       ...structuredClone(schoolOfEvocation),

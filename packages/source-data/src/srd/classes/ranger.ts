@@ -24,7 +24,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
-import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
+import { standingGrantedActionsEffect } from '../srd-effect-builders.js'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {

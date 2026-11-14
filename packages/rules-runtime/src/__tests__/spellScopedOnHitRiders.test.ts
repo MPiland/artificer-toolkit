@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
@@ -59,10 +58,6 @@ function forcedMovements(entry: ReturnType<typeof castOf>): unknown[] {
 }
 
 describe('spell-scoped on-hit riders (SPELLS-31.T5i2)', () => {
-  it('no longer lists the closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_WARLOCK_REPELLING_BLAST')
-  })
-
   it('collects the authored invocation as a rider scoped to Eldritch Blast', () => {
     expect(repellingBlastRiders()).toMatchObject([
       { triggerCode: 'RANGED_SPELL_ATTACK', ridesSpellIds: [spell('Eldritch Blast').id] }

@@ -40,8 +40,7 @@ const UNLABELED_RIDER = 'On-hit effect'
 /**
  * The `ON_HIT` outcomes of each passive Effect: they ride on the attack its trigger names. A rider
  * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
- * every Effect of that owner shares one. An Effect that still carries a closed rule is not yet
- * executable, so none of its outcomes ride: its gate or remainder would be lost (D156).
+ * every Effect of that owner shares one.
  *
  * A passive Effect that a `GRANTED_ACTION_OPTION` modifier of the owner names is not an ordinary
  * rider: it is a free optional one, labelled by the modifier, that only the attacks of the granted
@@ -70,12 +69,6 @@ export function collectOnHitRiders(
   )
   return (effects ?? []).flatMap((effect) => {
     const option = options.get(effect.id)
-    if (
-      effect.entries.some(
-        (entry) => 'outcome' in entry && entry.outcome.effectKind === 'CLOSED_RULE'
-      )
-    )
-      return []
     const entries = effect.entries
       .filter(isOnHitOutcome)
       .map((entry) => (entry.usage ? { ...entry, usageKey: ownerId } : entry))

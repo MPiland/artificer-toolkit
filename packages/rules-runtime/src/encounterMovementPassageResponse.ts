@@ -19,6 +19,7 @@ import {
 } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
 import { preparePassageAppliedEffects } from './encounterPassageAppliedEffects.js'
+import { terminalMovementDamageEnds } from './encounterSpatialDamageEnds.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
@@ -257,24 +258,31 @@ export async function evaluateEncounterMovementPassageResponse<
     // A won contest that enters the blocker's space ends the move there: one more token write.
     const entered =
       evaluated.kind === 'COMPLETE' ? evaluated.receipt.audit.enteredPosition : undefined
+    const result = stopSceneMovementResult({
+      occurrenceId: input.occurrenceId,
+      occurrenceVersion: input.occurrenceVersion + 1,
+      encounterId: state.id,
+      encounterVersion: state.version + 1,
+      sceneId: root.sceneId,
+      sceneVersion: root.currentSceneVersion + (entered ? 1 : 0),
+      tokenId: root.tokenId,
+      movementKind: root.movementKind,
+      terminalPosition: entered ?? root.currentPosition,
+      remainder
+    })
     return {
       outcome: {
         kind: 'TERMINAL' as const,
-        result: stopSceneMovementResult({
-          occurrenceId: input.occurrenceId,
-          occurrenceVersion: input.occurrenceVersion + 1,
-          encounterId: state.id,
-          encounterVersion: state.version + 1,
-          sceneId: root.sceneId,
-          sceneVersion: root.currentSceneVersion + (entered ? 1 : 0),
-          tokenId: root.tokenId,
-          movementKind: root.movementKind,
-          terminalPosition: entered ?? root.currentPosition,
-          remainder
-        }),
+        result,
         selectionChecksum: remainder.spatialSelectionChecksum,
         currentnessChecksum: remainder.spatialCurrentnessChecksum,
         terminalPathDistance: root.pathStartDistance,
+        ...terminalMovementDamageEnds({
+          result,
+          targets,
+          occurrenceId: input.occurrenceId,
+          turnActorId: state.currentActorId
+        }),
         resolutionCommands
       },
       settlements,

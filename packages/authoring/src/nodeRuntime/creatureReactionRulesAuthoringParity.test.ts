@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
@@ -113,16 +112,5 @@ describe('Creature reaction rules and Wing Attack (D187a)', () => {
       'The dragon can then fly up to half its flying speed.'
     )
     await expectAuthoringParity(dragon)
-  })
-
-  it('no longer lists the four closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_HYDRA_REACTIVE_HEADS',
-      'CREATURE_MARILITH_REACTIVE',
-      'CREATURE_STONE_GOLEM_SLOW',
-      'DRAGON_LEGENDARY_WING_ATTACK'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
   })
 })

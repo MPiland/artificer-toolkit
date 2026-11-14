@@ -1,4 +1,4 @@
-import { CLOSED_RULE_KIND, modifierRollInfluence } from '@artificer-toolkit/shared/core'
+import { modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -41,11 +41,6 @@ function attackMode(
 }
 
 describe('Assassinate authored as attack roll advantage on the SRD Assassin (SPELLS-33.T6d3b, D165)', () => {
-  it('no longer has the Assassinate or Surprise Attack closed rule kinds', () => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_ASSASSINATE')
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_SURPRISE_ATTACK')
-  })
-
   it('folds one target-has-not-taken-a-turn attack roll advantage per attack domain', () => {
     const grants = modifiersOf('Assassin').filter(
       (modifier) =>

@@ -1,4 +1,4 @@
-import { CLOSED_RULE_KIND, modifierRollInfluence } from '@artificer-toolkit/shared/core'
+import { modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -38,10 +38,6 @@ function attackMode(label: string, attackDomain: string, nearestEnemyFeet: numbe
 }
 
 describe('Pack Tactics authored as attack roll advantage on SRD Creatures (SPELLS-33.T6d3a)', () => {
-  it('no longer has a closed rule kind', () => {
-    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_PACK_TACTICS')
-  })
-
   it.each(PACK_TACTICS_CREATURES)(
     '%s folds one enemy-near-target attack roll advantage per attack domain',
     (label) => {

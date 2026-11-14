@@ -192,7 +192,7 @@ export function nativeSpatialStepCallbacks(
 
 /**
  * The receipts a continuation's settlements persist as, the releases a terminal move owes (a zone
- * left, a held effect ended by moving) and the rule output of the actors it leaves; `finalActors`
+ * left, a held effect ended by moving or by the move's zone damage) and the rule output of the actors it leaves; `finalActors`
  * gathers each actor those releases change.
  */
 export function nativeMovementSettlementInputs(input: {
@@ -249,12 +249,26 @@ export function nativeMovementSettlementInputs(input: {
       key: { moveEnd },
       holderActorId: moveEnd.holderActorId,
       isHeld: (effect: ActiveRuleEffectRecord) => effect.id === moveEnd.effectId
+    })),
+    ...(outcome?.damageEnds ?? []).map((damageEnd) => ({
+      kind: 'DAMAGE_END' as const,
+      key: { damageEnd },
+      holderActorId: damageEnd.holderActorId,
+      isHeld: (effect: ActiveRuleEffectRecord) => effect.id === damageEnd.effectId
     }))
   ]
+  // Each release sees the holder without the effects the releases before it ended, as the commit does.
+  const remainingEffects = new Map<string, ActiveRuleEffectRecord[]>()
   for (const release of releases) {
-    const holderEffects = targets.get(release.holderActorId)?.activeEffects
+    const holderEffects =
+      remainingEffects.get(release.holderActorId) ??
+      targets.get(release.holderActorId)?.activeEffects
     const endedEffect = holderEffects?.find(release.isHeld)
     if (!holderEffects || !endedEffect) throw new Error('Movement release holder is missing.')
+    remainingEffects.set(
+      release.holderActorId,
+      holderEffects.filter((effect) => effect.id !== endedEffect.id)
+    )
     settlementInputs.push(
       liveSessionMovementSettlementSchema.parse({
         kind: release.kind,

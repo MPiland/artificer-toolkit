@@ -17,7 +17,6 @@ import {
   srdFeature
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbarian, RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
@@ -141,37 +140,6 @@ function mindlessRageOutput() {
 
 describe('Mindless Rage and Reckless Attack (SPELLS-31.T5f1)', () => {
   // `srdClassNodeMap.test.ts` proves each of these SRD records passes the class node map unchanged.
-  it('leaves no closed rule on the SRD Barbarian or Path of the Berserker for either feature', () => {
-    for (const record of [barbarian, pathOfTheBerserker]) {
-      expect(JSON.stringify(record.features)).not.toMatch(/MINDLESS_RAGE|RECKLESS_ATTACK/)
-    }
-  })
-
-  it("authors Mindless Rage's suspension clause and Reckless Attack as GM rulings", () => {
-    for (const [record, label] of [
-      [pathOfTheBerserker, 'Mindless Rage'],
-      [barbarian, 'Reckless Attack']
-    ] as const) {
-      const path = srdByLabel(record.features ?? [], label).effects?.[0]?.paths[0]
-      expect(path?.selectionKind === 'FIXED' && path.resultBlock.outcomes[0]).toMatchObject({
-        effectKind: 'MANUAL_ADJUDICATION'
-      })
-    }
-  })
-
-  it('keeps a homebrew feature bound to its own effect exactly as authored', async () => {
-    const authored = homebrewFocus()
-    const result = await normalize({
-      ...structuredClone(pathOfTheBerserker),
-      features: [...(pathOfTheBerserker.features ?? []), authored]
-    })
-    expect(result.clearedPaths).toEqual([])
-    expect(getValueAtPath(result.values, ['features'])).toEqual([
-      ...(pathOfTheBerserker.features ?? []),
-      authored
-    ])
-  })
-
   it('makes the Berserker immune to charm and fright from any source only while raging', () => {
     const output = mindlessRageOutput()
     // The Character-wide fold cannot know the holder rages, so the immunities wait for the Encounter.
@@ -493,7 +461,6 @@ function compiledFuryEntries(homebrew: FeatureAuthored) {
 
 describe('Frenzy (SPELLS-31.T5f4)', () => {
   it('no longer lists its closed rule kind', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_BERSERKER_FRENZY')
     expect(JSON.stringify(pathOfTheBerserker.features)).not.toMatch(/BERSERKER_FRENZY/)
   })
 

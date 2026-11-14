@@ -20,7 +20,7 @@ The following records the baseline that Phase 07 replaced; it is not the current
 - Compiled Characters and Creatures provide useful static actor statistics, but no shared Encounter actor or mutable creature state exists.
 - The manual Encounter lifecycle, actors, initiative, rolls, reminders, visibility, idempotent commands, and correlated Character Sheet transaction spine already exist.
 - During convergence, the TypeScript Character engine was quarantined as a test-only parity oracle. It was deleted after the Character policy families passed their parity gates; production Character Builder and Sheet paths now resolve a pinned rule-pack revision and fail closed rather than falling back to TypeScript mechanics.
-- Existing authored effects compile into typed descriptions. Many kinds, including `CLOSED_RULE` and manual adjudication, have no explicit live resolver and must remain fail-closed.
+- Existing authored effects compile into typed descriptions. Many kinds, including manual adjudication, have no explicit live resolver and must remain fail-closed.
 - At phase start, no immutable rule-pack store, activation gate, administrative rule editor, exact Encounter rule binding, or typed action-resolution evidence existed.
 
 ## Requirements
@@ -175,7 +175,7 @@ Use the existing character command pattern as a reference, not as a universal ev
 
 - Automatic target selection, reactions, recharge/reset automation, general action-economy enforcement, automatic execution of the full authored-effect catalog, AI creatures, maps, tokens, fog, walls, doors, zones, and VTT interaction. The explicit GM action plus bounded typed tracer outcomes is in scope.
 - Arbitrary JavaScript/Function nodes, user-authored executable code, network/database access from rules, any Function beyond the exact reserved Character grant-fold, Character action-resolve, and Encounter actor-policy models, a custom BRMS, a Rust rules service, or a second rules implementation. ADR 0020's live-session host is an approved application boundary, not a rules service.
-- Blanket automatic execution of authored effects that still resolve to `CLOSED_RULE` or manual adjudication. Each newly executable mechanic requires an explicit typed model contract and fixtures before activation.
+- Blanket automatic execution of authored effects that still resolve to manual adjudication. Each newly executable mechanic requires an explicit typed model contract and fixtures before activation.
 - Native Encounter surfaces; Phase 11 consumes the proven contracts after web viability.
 - A generic cross-domain event framework. The Encounter event model is purpose-built and separate from Character history.
 

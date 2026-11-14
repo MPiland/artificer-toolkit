@@ -1,4 +1,3 @@
-export * from './closedRuleKind.js'
 export * from './outcomeRules.js'
 export * from './manifestKind.js'
 export * from './effectKind.js'

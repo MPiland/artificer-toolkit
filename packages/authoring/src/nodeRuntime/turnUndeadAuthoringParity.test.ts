@@ -6,7 +6,6 @@ import {
   srdByLabel,
   srdFeature
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
@@ -42,12 +41,6 @@ const turnedBlock = (record: ClassAuthored, label: string) => {
 }
 
 describe('Turn Undead and Turn the Unholy authored from generic options (SPELLS-31.T4m)', () => {
-  it('no longer lists their closed rule kinds, nor Destroy Undead', () => {
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_CLERIC_CHANNEL_DIVINITY_TURN_UNDEAD')
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_OATH_OF_DEVOTION_TURN_THE_UNHOLY')
-    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_CLERIC_DESTROY_UNDEAD')
-  })
-
   it('authors Destroy Undead as a level scaled challenge rating gate around a kill on the failed save', () => {
     const { effect } = turnedBlock(cleric, 'Channel Divinity')
     const [turned, destroy] = effect.paths

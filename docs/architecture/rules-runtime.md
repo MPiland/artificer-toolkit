@@ -589,9 +589,26 @@ array, one `CONCENTRATION_END` per state, persisted and checksummed with its con
 `concentrationChecks`. Incapacitation or defeat ends every held state with no save (D95). The movement
 chain plans through the same `planDamageSaveChain` as an action (current, QUALITY-14.T2): the zone's source
 is the damager and every actor's disposition is passed, so the System's maintenance hook gates a check
-exactly as for action damage. It is Concentration-only (`effectSaves: null`); movement repeat saves,
-massive-damage saves and damage-taken effect ends need new child kinds and persisted shapes and are
-tracked as QUALITY-14.T2b.
+exactly as for action damage. Its saves are Concentration-only (`effectSaves: null`).
+
+**Movement damage ends (current, QUALITY-14.T2b).** The damage a move's zones deal ends the effects the
+damaged creatures hold until damaged (`DAMAGE_TAKEN` end triggers), like action damage. They end once the
+move's last contact has settled, not at the contact: `terminalMovementDamageEnds`
+(`encounterSpatialDamageEnds.ts`) reads every applied contact of the move and each damaged creature's current
+effects, raises `DAMAGED(AFTER)` once per holder for the whole move (one hit per contact, the zone's source
+the damager) through `targetEndedEffects`, and lists the ends as `damageEnds` on the TERMINAL preparation
+outcome. Every terminal site calls it (the finished move, a stop at the terminal distance, a reaction's stop,
+a declined or lost passage). The room plans one `DAMAGE_END` settlement per end after every contact, beside
+`AREA_DEPARTURE` and `MOVE_END`; `persistLiveMovementDamageEnd` re-derives the ends with the same function
+(`movementDamageEndedEffects`) from the holder's current rows and the move's applied contacts, requires the
+step's effect among them, and ends it through the escape end path (the row, the conditions only it held,
+maintenance owners). The spatial receipt is unchanged. An effect the move itself placed never ends on the
+move's own damage, and an effect the move already releases (`areaDepartures`, `moveEnds`) is not listed
+twice. Not covered yet (transitional): a move left PENDING ends nothing until it finishes; the temporary hit
+points and incoming-damage grants an action's ends stage also releases; effect repeat saves and
+massive-damage saves on movement damage (they need movement child kinds and pending phases); and the save
+chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
+effect and owes a save raises twice.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
 (`domain.ruleDefinitionId`) is an ordinary roll-influence or bonus grant; two Equipment-context predicates
@@ -2742,7 +2759,7 @@ A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Shee
 
 The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System vocabulary ids) limits a grant to sources of certain creature types: the attacker for `ATTACKS_AGAINST`, the effect's origin for `CONDITION_IMMUNITY`. The grant fold keeps it a deferred requirement. `holderStateSourceQualifier` checks the grant's holder conditions when the holder is prepared and leaves the source conditions as a `sourceQualifier`, which `sourceQualifierAdmits` decides where the source is known: `prepareEncounterActionMechanics` filters `attackAgainstContributors` by the attacker's type and adds `sourceConditionImmunities` that admit it (`conditionImmunityIdsAgainstSource`). The trait `SOURCE_TRAIT` (`MAGICAL`) is decided at the same point: `conditionImmunityIdsAgainstSource` takes the System of the spell a condition comes from and adds that System's `spellCastSourceTraits` (the D&D 5e profile names `MAGICAL`), so every effect of a spell cast is magical without each path tagging it (Freedom of Movement, SPELLS-4.T2m2). Action preparation passes the System when `preparedCastsSpell` holds; `executeTargetBoundActiveRuleEffect` resolves the holder's `sourceConditionImmunities` against the effect's origin, a spell when `originLevel` is set, so spatial (a zone's held condition, which a placed zone records with its cast level), turn and repeat-save effects apply them too. Those paths do not know the origin's creature types, so a creature-type immunity still holds only at action preparation.
 
-`SOURCE_TRAIT` (selectable `traits`: `MAGICAL`, `SILVERED`, `ADAMANTINE`; SPELLS-4.T2j2a) is the same deferred source restriction for the attack's traits: `prepareEncounterActionMechanics` passes a `GrantSource` (creature type ids plus the traits of the attack) to `sourceQualifierAdmits`. Holy Aura (attack disadvantage from any attacker on every attack domain, plus advantage on every saving throw, on chosen creatures) and Dispel Evil and Good (the same disadvantage from celestials, elementals, fey, fiends and undead) are authored from these grants; their `CLOSED_RULE` outcomes are removed, and the `HOLY_AURA` kind stays until T2j2b supplies the retaliation. The `DISPEL_EVIL_AND_GOOD` kind is deleted (T2lb2b1, D187a): Break Enchantment and Dismissal ship as `MANUAL_ADJUDICATION` GM rulings, and the `EYEBITE` kind is deleted the same way (its per-turn retarget is a GM ruling; see future-enhancements "Deferred rules pieces (D187a)"). Proofs: `encounterHolyAuraDispelEvilGrants.test.ts`, `sourceTraitAuthoringParity.test.ts`, and the room journey `apps/session-worker/test/nativeRoomHolyAuraDispelEvil.test.ts`.
+`SOURCE_TRAIT` (selectable `traits`: `MAGICAL`, `SILVERED`, `ADAMANTINE`; SPELLS-4.T2j2a) is the same deferred source restriction for the attack's traits: `prepareEncounterActionMechanics` passes a `GrantSource` (creature type ids plus the traits of the attack) to `sourceQualifierAdmits`. Holy Aura (attack disadvantage from any attacker on every attack domain, plus advantage on every saving throw, on chosen creatures) and Dispel Evil and Good (the same disadvantage from celestials, elementals, fey, fiends and undead) are authored from these grants; their `CLOSED_RULE` outcomes are removed. Break Enchantment and Dismissal ship as `MANUAL_ADJUDICATION` GM rulings (T2lb2b1, D187a), and Eyebite is a GM ruling the same way (its per-turn retarget is a GM ruling; see future-enhancements "Deferred rules pieces (D187a)"). Proofs: `encounterHolyAuraDispelEvilGrants.test.ts`, `sourceTraitAuthoringParity.test.ts`, and the room journey `apps/session-worker/test/nativeRoomHolyAuraDispelEvil.test.ts`.
 
 Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVING_THROW_MODIFIER` grant with a source restriction and no `conditionTypeId` or `ruleDefinitionId` ("advantage on saves against magic") joins no save row when the holder is prepared; neither the Character fold nor `withCreatureActiveGrantSaves` applies it unconditionally. `encounterSourceSaves` collects such grants from the holder's active effects and own features (a Character's grant fold, a Creature's `featureModifiers`) into `MovementTarget.sourceSaves`, and `withSourceSaves` merges the ones the source admits into every save row of their ability, at the same two points as `sourceConditionImmunities`: action preparation (the attacker as source, a spell cast adding `spellCastSourceTraits`) and `executeTargetBoundActiveRuleEffect` (the effect's origin, magical when it is a spell). "Against poison" needs no source: it is the POISONED-scoped save row. Magic Resistance, Gnome Cunning, Duergar Resilience (POISONED, CHARMED and PARALYZED rows plus magic), Fey Ancestry (CHARMED rows plus a `MAGICAL` `CONDITION_IMMUNITY` to unconscious) and Dwarven Resilience are authored from these options with the data helpers `advantageGrants`/`magicResistanceGrants` (creatures) and `conditionSaveAdvantageGrants`/`magicSaveAdvantageGrants`/`magicConditionImmunityGrant` (`classes/mechanics.ts`); the angelic and hellish weapons are `magicWeaponsGrants`, and Turn Resistance is description-only. Their closed rule kinds are deleted. Proofs: `againstMagicSaveGrants.test.ts`, `againstMagicSaveAuthoringParity.test.ts`.
 
@@ -3209,8 +3226,7 @@ rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.cla
 other level-keyed dice (T12) reuse. A Character's riders are collected from class, subclass, race and feat
 Features only. A Creature's attack takes the riders of its own passive Features through the same collect, merge
 and `reduceEffectRestrictions` path in `encounterFeatureActionCapabilityDiscovery` (SPELLS-33.T3a5), with no
-Equipment facts, so a rider's weapon checks never hold. An Effect that still carries a `CLOSED_RULE` outcome
-contributes no rider, since its gate or remainder would be lost (D156).
+Equipment facts, so a rider's weapon checks never hold.
 A path restriction's `DAMAGE_TYPE` check on the `EQUIPMENT` subject ("an attack that deals bludgeoning
 damage") is settled with the weapon checks in `reduceEffectRestrictions`, against the types of the hit's
 `ON_HIT` damage that no restriction, use limit or player choice withholds.
@@ -3901,8 +3917,9 @@ on its `repeatTriggers` alone: it requires them, a once-only repeated save, and 
 `repeatAttemptGate`, and is never a `repeatTiming`. It compiles to the same frozen repeat-save graph, gated on the
 adapter fact `dnd5e.active-effect-repeat-save-triggers-only`; the turn tick refuses the attempt (`ATTEMPT_REFUSED`,
 no request, only the duration counts down) and the damage hook passes `onTrigger: true` so the attempt is allowed.
-Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
-per-step stack, and is not in the chain yet.
+Movement (zone contact) damage settles its Concentration saves through `MovementConcentrationSettlement`, a
+separate per-step stack, and its damage-taken effect ends as `DAMAGE_END` steps (QUALITY-14.T2b, see "Movement
+damage ends"); its effect repeat saves and massive-damage saves are not in the chain yet.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`
@@ -4101,7 +4118,7 @@ These are not current behavior:
 - Phase 8.3 "Player play parity" ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md)):
   spell casting and area targeting, death saves, Sheet-tabletop integration, map targeting, non-movement
   reactions. Core spell casting and the slot spend are current (SPELLS-8.T1); the Fireball journey, Spare the Dying and `APPLY_GRANT` spells are SPELLS-8.T2 to T4. The gaps by area (grapple,
-  conditions, `CLOSED_RULE` kinds with no resolver) are in
+  conditions) are in
   [the RUL-9 audit](../handoffs/rul-9-rules-audit.md).
 - Opposed-test, dice-pool and result-band, and level-less-track Kernel fixtures are conformance work, not
   current Kernel capabilities.

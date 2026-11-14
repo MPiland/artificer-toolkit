@@ -1,7 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
-import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
+import { standingGrantedActionsEffect } from '../srd-effect-builders.js'
 import * as S from './shared.js'
 
 export const orc: CreatureAuthored = {

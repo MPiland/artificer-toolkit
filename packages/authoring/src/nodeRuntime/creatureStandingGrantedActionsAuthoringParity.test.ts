@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { clayGolem } from '@artificer-toolkit/source-data/srd/creatures/clay-golem.js'
@@ -119,20 +118,5 @@ describe('Creature traits that offer basic actions (D160)', () => {
     const result = await normalize(vampire)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(vampire.features)
-  })
-
-  it('no longer lists their closed rule kinds', () => {
-    for (const kind of [
-      'CLAY_GOLEM_HASTE',
-      'CREATURE_GIANT_OCTOPUS_INK_CLOUD',
-      'CREATURE_GOBLIN_NIMBLE_ESCAPE',
-      'CREATURE_OCTOPUS_INK_CLOUD',
-      'CREATURE_ORC_AGGRESSIVE',
-      'CREATURE_SHADOW_STEALTH',
-      'CREATURE_SPY_CUNNING_ACTION',
-      'CREATURE_VAMPIRE_LEGENDARY_ACTIONS'
-    ]) {
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-    }
   })
 })

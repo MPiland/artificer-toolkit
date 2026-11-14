@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared/authored'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { mimic } from '@artificer-toolkit/source-data/srd/creatures/mimic.js'
 import { GRAPPLED_CONDITION_ID } from '@artificer-toolkit/source-data/srd/creatures/shared.js'
 import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
@@ -191,12 +190,6 @@ describe('the Grappler feat advantage on a Character (SPELLS-33 T8a)', () => {
 
   it('carries no closed rule', () => {
     expect(JSON.stringify(grappler)).not.toContain('CLOSED_RULE')
-    for (const kind of [
-      'CREATURE_MIMIC_GRAPPLER',
-      'GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET',
-      'GRAPPLER_PIN'
-    ])
-      expect(Object.keys(CLOSED_RULE_KIND)).not.toContain(kind)
   })
 
   it('has advantage on every attack domain against a creature it holds grappled', () => {

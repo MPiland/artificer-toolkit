@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { ghost } from '@artificer-toolkit/source-data/srd/creatures/ghost.js'
 import { guardianNaga } from '@artificer-toolkit/source-data/srd/creatures/guardian-naga.js'
@@ -58,17 +57,4 @@ describe('Rejuvenation and Etherealness as GM rulings (D187a)', () => {
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
-
-  it('no longer lists the seven closed rule kinds', () => {
-    for (const kind of [
-      'CREATURE_GHOST_ETHEREALNESS',
-      'CREATURE_GUARDIAN_NAGA_REJUVENATION',
-      'CREATURE_LEMURE_HELLISH_REJUVENATION',
-      'CREATURE_LICH_REJUVENATION',
-      'CREATURE_MUMMY_LORD_REJUVENATION',
-      'CREATURE_SPIRIT_NAGA_REJUVENATION',
-      'NIGHT_HAG_ETHEREALNESS'
-    ])
-      expect(CLOSED_RULE_KIND).not.toHaveProperty(kind)
-  })
 })
