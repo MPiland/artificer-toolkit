@@ -133,19 +133,26 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
   departedActorId: string
   holders: readonly { actor: GrantHolder['actor']; effects: readonly Effect[] }[]
 }): Effect[] {
-  return input.holders.flatMap(
-    ({ effects }) =>
-      discoverEncounterEventHooks({
-        effects,
-        events: [
-          {
-            kind: 'SOURCE_DEPARTED',
-            encounterId: input.encounterId,
-            sourceActorId: input.departedActorId
-          }
-        ]
-      }).ended
-  )
+  return input.holders.flatMap(({ effects }) => {
+    // Only effects counted on a source can follow it out, so only they have their hooks read; the
+    // effects linked to those that end go with them (D172).
+    const ended = discoverEncounterEventHooks({
+      effects: effects.filter(
+        ({ definition: { recurrence, origin } }) =>
+          recurrence.anchor === 'SOURCE' &&
+          recurrence.expiration.kind === 'TICKS' &&
+          origin.kind === 'ENCOUNTER'
+      ),
+      events: [
+        {
+          kind: 'SOURCE_DEPARTED',
+          encounterId: input.encounterId,
+          sourceActorId: input.departedActorId
+        }
+      ]
+    }).ended
+    return withLinkedDependents(ended, effects)
+  })
 }
 
 /**
@@ -441,10 +448,14 @@ export function planConcentrationCarriedGrantEnds<Effect extends ActiveRuleEffec
   casterCharacterId: string
   effects: readonly Effect[]
 }) {
-  return discoverEncounterEventHooks({
-    effects: input.effects.filter(({ owner }) => owner.kind === 'CHARACTER'),
+  const { ended } = discoverEncounterEventHooks({
+    effects: input.effects.filter(
+      ({ owner, lifecycle }) =>
+        owner.kind === 'CHARACTER' && lifecycle.concentrationCasterCharacterId !== undefined
+    ),
     events: [{ kind: 'CONCENTRATION_STARTED', casterCharacterId: input.casterCharacterId }]
-  }).ended
+  })
+  return withLinkedDependents(ended, input.effects)
 }
 
 /** Carried-over effects whose Campaign-clock expiry the clock has reached, raised as a `CAMPAIGN_CLOCK` event. */
@@ -452,8 +463,11 @@ export function expiredCarriedOverGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   clockMinute: number
 ) {
-  return discoverEncounterEventHooks({
-    effects,
+  const { ended } = discoverEncounterEventHooks({
+    effects: effects.filter(
+      ({ lifecycle }) => typeof lifecycle.expiresAtCampaignMinute === 'number'
+    ),
     events: [{ kind: 'CAMPAIGN_CLOCK', minute: clockMinute }]
-  }).ended
+  })
+  return withLinkedDependents(ended, effects)
 }

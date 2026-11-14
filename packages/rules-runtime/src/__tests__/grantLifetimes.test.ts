@@ -2044,6 +2044,24 @@ describe('planDepartedSourceGrantRemovals', () => {
     expect(plan([{ actor: holder(TARGET_ID).actor, effects: [holderAnchored] }])).toEqual([])
   })
 
+  it('reads no hooks from an effect that is not counted on a source', () => {
+    const holderAnchored = grant({ id: 0xc360, holderId: TARGET_ID, lifecycle: {} })
+    const unregistered = {
+      ...holderAnchored,
+      definition: {
+        ...holderAnchored.definition,
+        frozenGraph: {
+          ...holderAnchored.definition.frozenGraph,
+          source: {
+            ...holderAnchored.definition.frozenGraph.source,
+            gameSystemId: 'no-such-system'
+          }
+        }
+      }
+    }
+    expect(plan([{ actor: holder(TARGET_ID).actor, effects: [unregistered] }])).toEqual([])
+  })
+
   it('leaves a grant anchored to another source untouched', () => {
     const effect = grant({ id: 0xc354, holderId: TARGET_ID })
     const other = {
