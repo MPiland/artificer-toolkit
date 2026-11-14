@@ -1,7 +1,7 @@
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   ENCOUNTER_ID,
-  creatureActor,
+  srdCreatureActor,
   srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { knight } from '@artificer-toolkit/source-data/srd/creatures/knight.js'
@@ -58,7 +58,7 @@ const application = (damageTypeId: string, ordinal: number) => ({
 })
 
 describe('the persisted damage-save chain follows the maintenance hook (QUALITY-14.T2)', () => {
-  const holder = creatureActor({ id: HOLDER_ID, snapshot: knight })
+  const holder = srdCreatureActor({ id: HOLDER_ID, creature: knight })
   const state = srdEncounterState({ actors: [holder], currentActorId: HOLDER_ID })
   const bind = (applications: ReturnType<typeof application>[]) =>
     bindEncounterDamageSaveChain({} as EncounterCharacterWriteTransaction, {
