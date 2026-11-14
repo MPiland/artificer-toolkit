@@ -1402,8 +1402,8 @@ export async function planNativeLiveEncounterAction(
     targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
     grantEffectTransitions: outcome.grantEffectTransitions,
-    // A passed ward's record is its immunity among the grant effects; a trigger check has only this.
-    passedGate: passedIncomingGate?.origin.kind === 'TRIGGER' ? passedIncomingGate : null
+    // A passed ward's immunity is among the grant effects; this record is the gate's roll, carded at the commit.
+    passedGate: passedIncomingGate ?? null
   })
   const cleaving =
     storedExecution.status === 'COMPLETE' && actionRange.success && sceneContext

@@ -35,12 +35,20 @@ export function settledD20s(
   )
 }
 
+/** How a gate's card is named, scoped and filed, by why its check was owed. */
+const INCOMING_GATE_CARDS = {
+  TRIGGER: { actionLabel: 'Counter', scope: 'counter-check', sourceKind: 'SKILL_CHECK' },
+  WARD: { actionLabel: 'Ward', scope: 'ward-save', sourceKind: 'SAVING_THROW' }
+} as const
+
 /**
- * Cards the d20 of each spellcasting check a reactor rolled as its action's gate to counter a
- * higher-level cast (D127, D219), one card per check, from the reactor. A die the app rolled for a
- * `SYSTEM_ROLL` answer was carded as its app attempt; an entered or auto-rolled die is carded here.
+ * Cards the d20 of each incoming gate an action's source rolled before the action ran: the
+ * spellcasting check a reactor rolled to counter a higher-level cast (D127, D219), or the save a
+ * warded creature's ward asked of an attacker. One card per gate, from the source, whether the
+ * action went on or was lost. A die the app rolled for a `SYSTEM_ROLL` answer was carded as its app
+ * attempt; an entered or auto-rolled die is carded here.
  */
-export async function recordCounterCheckRollCards(
+export async function recordIncomingGateRollCards(
   ctx: EncounterCharacterWriteTransaction & {
     readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
@@ -48,9 +56,14 @@ export async function recordCounterCheckRollCards(
     campaign: CampaignAuthority['campaign']
     encounterId: string
     gameSystemId: string
-    /** The reactor's occurrence, which seeds the card ids and holds the answers that rolled the dice. */
+    /** The occurrence that holds the answers that rolled the dice. */
     occurrenceId: string
-    checks: readonly { reactor: EncounterRunActorState; check: EncounterSettledIncomingGateDto }[]
+    /** Seeds the card ids; an entry of a list gives its own, as `recordActionRollCards` does. */
+    rollScope?: string
+    /** The action's source, who rolled each gate. */
+    roller: EncounterRunActorState
+    /** The gates the source rolled, in the order they were rolled. */
+    gates: readonly EncounterSettledIncomingGateDto[]
     response: ResolveRuleOccurrenceInputDto | null | undefined
     responderUserId: string
     initiatorUserId: string
@@ -58,7 +71,7 @@ export async function recordCounterCheckRollCards(
     createdAt: string
   }
 ): Promise<void> {
-  if (input.checks.length === 0) return
+  if (input.gates.length === 0) return
   const system = await ctx.ports.requireSystem(input.gameSystemId)
   const ruleset = { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion }
   const appCarded = await readAppCardedDice(ctx, {
@@ -68,27 +81,29 @@ export async function recordCounterCheckRollCards(
       response: input.response,
       responderUserId: input.responderUserId
     }),
-    dice: input.checks.map(({ check }) => ({
-      requestId: check.d20.requestId,
-      value: check.d20.selectedNatural
+    dice: input.gates.map((gate) => ({
+      requestId: gate.d20.requestId,
+      value: gate.d20.selectedNatural
     }))
   })
-  for (const [index, { reactor, check }] of input.checks.entries()) {
+  for (const [index, gate] of input.gates.entries()) {
     if (appCarded.has(index)) continue
+    const card = INCOMING_GATE_CARDS[gate.origin.kind]
     const roll = basicActionCheckRollRecord({
       occurrenceId: input.occurrenceId,
-      rollId: ruleCheckRollId(input.occurrenceId, index, 'counter-check'),
-      d20: check.d20,
-      actionLabel: 'Counter',
-      checkLabel: encounterBasicActionCheckLabel(system, check.checkDefinitionId),
-      rollerLabel: reactor.label,
+      rollId: ruleCheckRollId(input.rollScope ?? input.occurrenceId, index, card.scope),
+      sourceKind: card.sourceKind,
+      d20: gate.d20,
+      actionLabel: card.actionLabel,
+      checkLabel: encounterBasicActionCheckLabel(system, gate.checkDefinitionId),
+      rollerLabel: input.roller.label,
       ruleset,
       createdAt: input.createdAt
     })
     await recordRuleRollCard(ctx, {
       campaign: input.campaign,
       encounterId: input.encounterId,
-      roller: reactor,
+      roller: input.roller,
       initiatorUserId: input.initiatorUserId,
       visibility: input.visibility,
       clientNonce: roll.id,

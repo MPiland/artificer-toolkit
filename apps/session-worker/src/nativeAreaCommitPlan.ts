@@ -1,4 +1,5 @@
 import { type ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { type EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
@@ -82,6 +83,8 @@ export async function planAreaOutcomes(args: {
   entries: readonly { actorId: string; occurrenceId: string }[]
   /** How many leading entries are the cast's own caught creatures; the rest are movers, then the struck. */
   caughtCount: number
+  /** The incoming gate each kept caught entry passed, in order; the sealed ray's own record. */
+  passedGates: readonly (EncounterSettledIncomingGateDto | undefined)[]
   struckStart: number
   tests: readonly Pick<Awaited<ReturnType<typeof replayAreaTargetSave>>, 'actorId' | 'boundary'>[]
   audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
@@ -107,6 +110,7 @@ export async function planAreaOutcomes(args: {
     settled,
     entries,
     caughtCount,
+    passedGates,
     struckStart,
     tests,
     audits,
@@ -292,6 +296,7 @@ export async function planAreaOutcomes(args: {
         actionEconomy: null,
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
+        passedGate: index < caughtCount ? (passedGates[index] ?? null) : null,
         resistance,
         grantEffectTransitions: outcome.grantEffectTransitions
       })

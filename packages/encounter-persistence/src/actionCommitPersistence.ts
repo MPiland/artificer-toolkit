@@ -60,7 +60,7 @@ import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import {
   recordActionRollCards,
-  recordCounterCheckRollCards,
+  recordIncomingGateRollCards,
   settledD20s
 } from './actionRollCards.js'
 
@@ -143,16 +143,20 @@ export async function persistEncounterActionCommit(
     batch.occurrenceId !== execution.occurrenceId
   )
     throw new Error('Live Session action result scope mismatch.')
-  // A reaction child that passed its trigger's check records it, and it is the check its pending asked.
+  // An action that passed a gate records it, and it is the gate its pending asked: a reaction child's
+  // trigger check, or the ward of the creature it attacked.
   const gateBehind = resume ? passedGateAfter(resume.pending.context) : undefined
+  const { passedGate } = batch
   if (
-    batch.passedGate
-      ? batch.passedGate.origin.kind !== 'TRIGGER' ||
-        command.systemTrigger?.trigger !== 'REACTION' ||
-        (resume && !sameGate(batch.passedGate, gateBehind))
-      : gateBehind?.origin.kind === 'TRIGGER'
+    passedGate
+      ? (passedGate.origin.kind === 'TRIGGER'
+          ? command.systemTrigger?.trigger !== 'REACTION'
+          : passedGate.origin.holderActorId !== targetActorId) ||
+        // A gate its pending already passed is the one recorded; a retargeted action's is new.
+        (gateBehind && !sameGate(passedGate, gateBehind))
+      : gateBehind
   )
-    throw new Error('Live Session action trigger check mismatch.')
+    throw new Error('Live Session action incoming gate mismatch.')
   // Each reaction rolled against the attack roll is the one a die of its settled d20 names (D207).
   const spentReactions = windowSpentReactions(batch)
   if (
@@ -476,12 +480,13 @@ export async function persistEncounterActionCommit(
       dice: settledD20s(batch)
     })
   })
-  await recordCounterCheckRollCards(ctx, {
+  await recordIncomingGateRollCards(ctx, {
     campaign,
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: batch.passedGate ? [{ reactor: source, check: batch.passedGate }] : [],
+    roller: source,
+    gates: batch.passedGate ? [batch.passedGate] : [],
     response: input.response,
     responderUserId: userId,
     initiatorUserId,
