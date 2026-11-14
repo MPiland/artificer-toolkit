@@ -9,6 +9,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { damagedHitRepeatTrigger } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
+import { placedByCommand } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema,
@@ -375,8 +376,7 @@ export async function persistLiveMovementRepeatSave(
   if (
     result.evidence.source.definitionId !== frozen.definitionId ||
     result.evidence.source.checksum !== frozen.checksum ||
-    (definition.origin.kind === 'ENCOUNTER' &&
-      definition.origin.sourceOccurrenceId === parentOccurrenceId) ||
+    placedByCommand(effect, [parentOccurrenceId]) ||
     !damagedHitRepeatTrigger(
       effect,
       {
@@ -481,7 +481,7 @@ export async function persistLiveMovementMassiveDamageSave(
     state,
     actors: input.actors,
     applications: [unboundDamageSaveApplication(application)],
-    parentOccurrenceId,
+    commandOccurrenceIds: [parentOccurrenceId],
     damagerActorId: null
   })
   if (!owed.some((entry) => checksumCanonicalJson(entry) === checksumCanonicalJson(application)))

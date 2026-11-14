@@ -4042,7 +4042,14 @@ saves: Concentration checks and effect repeat saves, in one canonical order (`co
 raised inside the damaging command and answered by the holder's controllers. `planDamageSaveChain` plans the whole
 chain (QUALITY-14.T2) and `damagedHitRepeatTrigger` (does this hit meet this effect's trigger) is the only reader of
 `repeatTriggers`: one per damaged, undefeated holder effect and hit; an effect the damaging command placed never
-repeats against its own damage. A damage source opts in on
+repeats against its own damage. `placedByCommand` is that one rule (QUALITY-14.T2e2b2): an effect of either origin kind
+whose `sourceOccurrenceId` names one of the command's occurrences, its own or an entry occurrence it made per creature
+(an area's children, the root's `targetOccurrenceIds`), was placed by it. Leaving those out rebuilds each holder as the
+damage met it, from the room's projection and from the committed rows alike: `planDamageSaveChain` and
+`bindEncounterDamageSaveChain` take `commandOccurrenceIds`, `planNativeLiveConcentration` takes the parent's
+`entryOccurrenceIds`, and a resumed chain reads them from the parent receipt
+(`nativeConcentrationParentEntryOccurrenceIds`, carried as the `CONCENTRATION_RESPONSE` capture's
+`parentEntryOccurrenceIds`). A damage source opts in on
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is

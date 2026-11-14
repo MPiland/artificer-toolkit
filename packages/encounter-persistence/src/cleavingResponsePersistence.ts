@@ -206,7 +206,7 @@ export async function persistEncounterCleavingResponse(
       state: nextState,
       actors: damagedActors,
       applications,
-      parentOccurrenceId: occurrence.id,
+      commandOccurrenceIds: [occurrence.id],
       damagerActorId: context.sourceActorId
     }),
     correlationId: occurrence.id,

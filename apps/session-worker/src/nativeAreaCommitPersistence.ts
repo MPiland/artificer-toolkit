@@ -206,6 +206,7 @@ export async function settleAreaCommit(args: {
     : null
   if (zoneSourceGrant)
     createdEffects.set(caster.id, [...(createdEffects.get(caster.id) ?? []), zoneSourceGrant])
+  const targetOccurrenceIds = children.map((child) => child.occurrenceId)
   const execution = buildEncounterAreaStoredExecution({
     occurrenceId: areaOccurrenceId,
     occurrenceVersion,
@@ -213,7 +214,7 @@ export async function settleAreaCommit(args: {
     sourceCharacterId: caster.kind === 'CHARACTER' ? caster.sourceId : null,
     caughtChecksum,
     removedActorIds,
-    targetOccurrenceIds: children.map((child) => child.occurrenceId),
+    targetOccurrenceIds,
     placedSpatialEffectIds: placedZones.map(({ id }) => id),
     maintenanceTransition: zoneMaintenanceTransition,
     sourceGrantTransition: zoneSourceGrant
@@ -323,6 +324,7 @@ export async function settleAreaCommit(args: {
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,
     parentOccurrenceId: areaOccurrenceId,
+    entryOccurrenceIds: targetOccurrenceIds,
     parentCommandFingerprint: input.fingerprint,
     applications: damage,
     sourceLabels: nativeConcentrationDamageSourceLabels(damageSources, false),

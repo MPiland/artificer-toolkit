@@ -89,7 +89,11 @@ export async function bindEncounterDamageSaveChain(
     state: OptionalCombatPolicyInput & { id: string }
     actors: readonly EncounterRunActorState[]
     applications: readonly ConcentrationDamageApplicationDto[]
-    parentOccurrenceId: string
+    /**
+     * The damaging command's occurrence, then each entry occurrence it made. Leaving out the effects
+     * they placed rebuilds the holders as the damage met them.
+     */
+    commandOccurrenceIds: readonly string[]
     damagerActorId: string | null
   }
 ) {
@@ -125,7 +129,7 @@ export async function bindEncounterDamageSaveChain(
     gameSystemId: input.state.gameSystemId,
     applications: input.applications,
     maintainedStates,
-    parentOccurrenceId: input.parentOccurrenceId,
+    commandOccurrenceIds: input.commandOccurrenceIds,
     damagerActorId: input.damagerActorId,
     dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
     effectSaves: { massiveRule, holders }

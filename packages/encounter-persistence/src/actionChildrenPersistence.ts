@@ -54,7 +54,7 @@ export async function persistEncounterActionChildren(
       state,
       actors: args.actors,
       applications,
-      parentOccurrenceId: execution.occurrenceId,
+      commandOccurrenceIds: [execution.occurrenceId],
       damagerActorId: input.command.actorId
     }),
     correlationId: execution.occurrenceId,
