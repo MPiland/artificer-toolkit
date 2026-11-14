@@ -8,11 +8,9 @@ import {
   damageSaveApplicationsAfterRelease,
   isMaintainedDamageApplication,
   unboundDamageSaveApplication,
-  type ConcentrationMaintainedDamageApplicationDto,
   type DamageSaveApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { damageSaveCheckBoundApplication } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
   grantsEndedByHolderState,
@@ -48,16 +46,12 @@ import { readEncounterActorMaximumHitPoints } from './characterMaximumHitPoints.
 import { readEffectRepeatSaveRow, releaseEffectRepeatSave } from './effectRepeatSavePersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import type { EncounterWriteContext } from './store.js'
 import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
 import type {
   concentrationCheckApplicationOutputDtoSchema,
   damageSaveCheckApplicationOutputDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 
-type ConcentrationDamageApplication = ReturnType<
-  typeof nativeConcentrationDamageApplications
->[number]
 type MaintainedSlot = NonNullable<
   Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectStore>['findMaintainedStateById']>>
 >
@@ -65,38 +59,6 @@ type CleanupOutput = ReturnType<
   typeof concentrationCheckApplicationOutputDtoSchema.parse
 >['cleanup']
 type DamageSaveCheckOutput = ReturnType<typeof damageSaveCheckApplicationOutputDtoSchema.parse>
-
-/**
- * Binds a parent's damage to the concentration each target currently maintains. The effect store
- * requires the owning write transaction; this binding performs only reads.
- */
-export async function bindEncounterConcentrationApplications(
-  ctx: EncounterWriteContext,
-  state: EncounterRunState,
-  applications: readonly ConcentrationDamageApplication[]
-): Promise<ConcentrationMaintainedDamageApplicationDto[]> {
-  const store = createActiveRuleEffectStore(ctx)
-  const bindings = new Map<string, { id: string; createdAt: string }[]>()
-  for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId)))
-    bindings.set(
-      targetActorId,
-      await store.findMaintainedStates({
-        encounterId: state.id,
-        ownerActorId: targetActorId,
-        maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
-          state.gameSystemId
-        )
-      })
-    )
-  // One check per held Concentration, each application's checks in casting order.
-  return applications.flatMap((application) =>
-    (bindings.get(application.targetActorId) ?? []).map(({ id, createdAt }) => ({
-      ...application,
-      maintainedStateId: id,
-      castAt: createdAt
-    }))
-  )
-}
 
 /**
  * Persists the settled concentration checks and next decision of one damage chain within the

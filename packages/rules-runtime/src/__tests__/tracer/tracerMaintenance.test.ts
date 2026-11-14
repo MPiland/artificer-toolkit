@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { concentrationSaveApplications } from '../../encounterConcentration.js'
+import { planDamageSaveChain } from '../../encounterDamageSaveChain.js'
 import { encounterConcentrationEndReason } from '../../encounterConcentrationEnd.js'
 import { maintenanceLinkCapabilityRegistry } from '../../platformPolicyModules.js'
 import { tracerCreatureActor, tracerDefinitions } from './encounter.js'
@@ -47,12 +47,14 @@ describe('the tracer maintenance link on the neutral event table (RULES-2.T12b)'
   })
 
   it('owes a defence only for stress taken by a holder of a stunt', () => {
-    const owed = concentrationSaveApplications({
+    const owed = planDamageSaveChain({
       gameSystemId: TRACER_SYSTEM_ID,
       applications: [stress(HOLDER_ID, 0), stress(BYSTANDER_ID, 1)],
       maintainedStates: new Map([[HOLDER_ID, [{ id: STUNT_STATE_ID, createdAt: STUNT_CAST_AT }]]]),
+      parentOccurrenceId: 'parent',
       damagerActorId: null,
-      dispositions: new Map()
+      dispositions: new Map(),
+      effectSaves: null
     })
     expect(owed).toEqual([
       { ...stress(HOLDER_ID, 0), maintainedStateId: STUNT_STATE_ID, castAt: STUNT_CAST_AT }

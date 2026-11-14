@@ -14,6 +14,7 @@ import { sizeInRange } from '../systemSizes.js'
 import { effectHooks } from './effectHooks.js'
 import type {
   DamageInterceptionSubscription,
+  EncounterDamageHit,
   EncounterEffectHook,
   EncounterEvent,
   EncounterEventSubscription,
@@ -148,6 +149,46 @@ function boundItemInstanceId({ definition }: HookedEffect) {
   return null
 }
 
+type DamagedAfterEvent = Extract<EncounterEvent, { kind: 'DAMAGED'; phase: 'AFTER' }>
+
+/** The indexes of a `DAMAGED` event's hits that a damage subscription meets. */
+function damagedHitsMet(
+  effect: HookedEffect | null,
+  subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>,
+  event: DamagedAfterEvent
+): number[] {
+  const sourceActorId = effect ? sourceActorIdOf(effect) : null
+  return event.hits.flatMap((hit, index) =>
+    damageTriggerMet(subscription, {
+      onSourceSide: damagerOnSourceSide({
+        damagerActorId: hit.damagerActorId,
+        sourceActorId,
+        dispositions: event.dispositions
+      }),
+      damageTypeIds: hit.damageTypeIds
+    })
+      ? [index]
+      : []
+  )
+}
+
+/**
+ * The first repeat trigger of an effect that one damage hit meets. It reads a hit of an event already
+ * raised (`discoverEncounterEventHooks` reports it per hit), so a settling save re-derives the trigger
+ * it was owed under without raising the event again.
+ */
+export function damagedHitRepeatTrigger(
+  effect: HookedEffect,
+  hit: EncounterDamageHit,
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+): ActiveEffectRepeatTrigger | undefined {
+  const event: DamagedAfterEvent = { kind: 'DAMAGED', phase: 'AFTER', hits: [hit], dispositions }
+  for (const hook of effectHooks(effect))
+    if (hook.hook === 'REPEAT_SAVE' && subscriptionMet(effect, hook.subscription, event))
+      return hook.trigger
+  return undefined
+}
+
 /** `effect` is null for a maintenance link, which has no effect record: effect-bound filters are unmet. */
 function subscriptionMet(
   effect: HookedEffect | null,
@@ -183,14 +224,7 @@ function subscriptionMet(
       return (
         event.kind === 'DAMAGED' &&
         event.phase === 'AFTER' &&
-        damageTriggerMet(subscription, {
-          onSourceSide: damagerOnSourceSide({
-            damagerActorId: event.damagerActorId,
-            sourceActorId: effect ? sourceActorIdOf(effect) : null,
-            dispositions: event.dispositions
-          }),
-          damageTypeIds: event.damageTypeIds
-        })
+        damagedHitsMet(effect, subscription, event).length > 0
       )
     case 'INCAPACITATED': {
       if (event.kind !== 'INCAPACITATED' || event.of !== subscription.of) return false
@@ -390,9 +424,11 @@ function grantSubscriptionMet(subscription: EncounterGrantSubscription, event: E
       return (
         event.kind === 'DAMAGED' &&
         event.phase === 'AFTER' &&
-        event.damageTypeIds.some(
-          (damageTypeId) =>
-            damageTypeId !== null && subscription.damageTypeIds.includes(damageTypeId)
+        event.hits.some(({ damageTypeIds }) =>
+          damageTypeIds.some(
+            (damageTypeId) =>
+              damageTypeId !== null && subscription.damageTypeIds.includes(damageTypeId)
+          )
         )
       )
     case 'ATTACKED':
@@ -466,7 +502,8 @@ function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
  * is an attack roll and a cast), and those whose last tick a turn boundary counts off. `countedDown`
  * are the other effects a turn boundary counts a tick off, with the ticks they keep.
  * `relationshipHolds` are the holds an event breaks. `repeatSaves` are the effects a `DAMAGED` event makes repeat their
- * save, with the first repeat trigger met. `grants` are the grants whose subscription an event meets.
+ * save, with the hits of the event that owe it one (each with the first repeat trigger it met).
+ * `maintenanceSaveHits` are the hits the System's maintenance hook owes a save for. `grants` are the grants whose subscription an event meets.
  * `reactions` are the held reactions an event offers, in held order, each once
  * with the first hook met; whether one is affordable is decided when it is prepared.
  * `damageInterceptions` and `incomingGates` are the held intercepts an event meets before it resolves,
@@ -498,7 +535,11 @@ export function discoverEncounterEventHooks<
 }) {
   const endedByEvent: Effect[] = []
   const counted: { effect: Effect; remainingTicks: number }[] = []
-  const repeatSaves: { effect: Effect; trigger: ActiveEffectRepeatTrigger }[] = []
+  const repeatSaves: {
+    effect: Effect
+    /** The hits of the `DAMAGED` event that owe this effect a save, each with the first trigger it met. */
+    hits: { index: number; trigger: ActiveEffectRepeatTrigger }[]
+  }[] = []
   for (const effect of input.effects ?? []) {
     const hooks = effectHooks(effect)
     const met = (hook: EncounterEffectHook) =>
@@ -513,8 +554,15 @@ export function discoverEncounterEventHooks<
     )
       endedByEvent.push(effect)
     else if (remaining !== null) counted.push({ effect, remainingTicks: remaining - 1 })
-    const repeat = hooks.find((hook) => hook.hook === 'REPEAT_SAVE' && met(hook))
-    if (repeat?.hook === 'REPEAT_SAVE') repeatSaves.push({ effect, trigger: repeat.trigger })
+    const repeatHits = input.events.flatMap((event) =>
+      event.kind === 'DAMAGED' && event.phase === 'AFTER'
+        ? event.hits.flatMap((hit, index) => {
+            const trigger = damagedHitRepeatTrigger(effect, hit, event.dispositions)
+            return trigger ? [{ index, trigger }] : []
+          })
+        : []
+    )
+    if (repeatHits.length > 0) repeatSaves.push({ effect, hits: repeatHits })
   }
   // An effect linked to an ended one ends with it (D172).
   const ended = withLinkedDependents(endedByEvent, input.effects ?? [])
@@ -548,7 +596,18 @@ export function discoverEncounterEventHooks<
   const maintenanceMet = (hook: MaintenanceLinkHook) =>
     input.events.some((event) => subscriptionMet(null, hook.subscription, event))
   const maintenanceBreak = maintenance.find((hook) => hook.hook === 'BREAK' && maintenanceMet(hook))
-  const maintenanceSave = maintenance.some((hook) => hook.hook === 'SAVE' && maintenanceMet(hook))
+  // The hits of a `DAMAGED` event the System owes a maintenance save for, in hit order.
+  const maintenanceSaveHits = [
+    ...new Set(
+      input.events.flatMap((event) =>
+        event.kind === 'DAMAGED' && event.phase === 'AFTER'
+          ? maintenance.flatMap((hook) =>
+              hook.hook === 'SAVE' ? damagedHitsMet(null, hook.subscription, event) : []
+            )
+          : []
+      )
+    )
+  ].sort((left, right) => left - right)
   // A raised action is its holder's own, so its hook meets an event with no effect scope.
   const raisedActions = (input.raisedActions ?? []).filter((raised) =>
     input.events.some((event) => subscriptionMet(null, raised.hook.subscription, event))
@@ -565,6 +624,6 @@ export function discoverEncounterEventHooks<
     incomingGates,
     zones,
     maintenanceBreakReason: maintenanceBreak?.hook === 'BREAK' ? maintenanceBreak.reason : null,
-    maintenanceSave
+    maintenanceSaveHits
   }
 }

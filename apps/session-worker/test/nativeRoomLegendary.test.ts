@@ -376,6 +376,55 @@ describe('a room ADVANCE_TURN with Legendary Action windows', () => {
     // The Character's Sheet advances once for the damage.
     expect(action.resolution.characterTransitions).toHaveLength(1)
   })
+
+  it('owes a Concentrating Character one Concentration check for the Legendary Action that damages it (QUALITY-14.T2)', async () => {
+    const room = await movementRoom({
+      actors: [
+        {
+          ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+          snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+        },
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: CHARACTER_ACTOR_ID,
+      positions: {
+        [CHARACTER_ACTOR_ID]: { x: 150, y: 150 },
+        [FIRST_DRAGON_ID]: { x: 250, y: 150 }
+      },
+      autoRoll: 'BOTH',
+      concentration: true,
+      concentrationDependentActorIds: [CHARACTER_ACTOR_ID],
+      characterPlay: { currentHitPoints: 30 },
+      // A natural 19 hits for 10 damage; the Character's auto-rolled Concentration save shows 20.
+      rolls: [18, 19]
+    })
+    const advanceId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: advanceId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected the dragon’s Legendary option.')
+    await respondToLegendaryChoice(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: CHARACTER_ACTOR_ID
+    })
+
+    const checks = (await room.receipts()).filter(
+      (entry) => entry.commandType === 'DAMAGE_SAVE_CHECK'
+    )
+    expect(checks).toHaveLength(1)
+    expect(checks[0]?.result).toMatchObject({
+      applicationOutputs: { kind: 'DAMAGE_SAVE_CHECK', outcome: 'SAVE_SUCCESS' }
+    })
+  })
 })
 
 describe('a unicorn using Shimmering Shield at another creature’s turn end', () => {

@@ -34,10 +34,7 @@ import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
-import type {
-  bindEncounterConcentrationApplications,
-  persistEncounterConcentrationChildren
-} from './concentrationChildrenPersistence.js'
+import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -65,10 +62,6 @@ export async function persistEncounterCleavingResponse(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>,
       damagerActorId: string
     ): Promise<EncounterMechanicsBatchResult>
-    bindConcentrationApplications(
-      state: EncounterRunState,
-      applications: Parameters<typeof bindEncounterConcentrationApplications>[2]
-    ): ReturnType<typeof bindEncounterConcentrationApplications>
     persistConcentrationChildren(
       input: Parameters<typeof persistEncounterConcentrationChildren>[1]
     ): ReturnType<typeof persistEncounterConcentrationChildren>
@@ -210,7 +203,6 @@ export async function persistEncounterCleavingResponse(
     parentCommandFingerprint: fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
     remaining: await bindEncounterDamageSaveChain(ctx, {
-      concentration: await callbacks.bindConcentrationApplications(nextState, applications),
       state: nextState,
       actors: damagedActors,
       applications,
