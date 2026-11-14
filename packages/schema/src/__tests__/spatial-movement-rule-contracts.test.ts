@@ -415,7 +415,7 @@ function lastReactionSpatialEvidenceContext() {
   }
 }
 
-function movementReactionChoicePendingContext() {
+function movementReactionChoicePendingContext(): MovementReactionPendingContext {
   const option = reactionOption
   const reactionTimeline = [
     {
@@ -428,7 +428,7 @@ function movementReactionChoicePendingContext() {
       }
     }
   ]
-  return serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+  const parsed = serverRuleExecutionPendingApplicationContextDtoSchema.parse({
     kind: 'ENCOUNTER_MOVEMENT_REACTION' as const,
     schemaVersion: 1 as const,
     root: {
@@ -444,6 +444,9 @@ function movementReactionChoicePendingContext() {
     remainingSpatialCandidates: [],
     reactionTimeline
   })
+  if (parsed.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+    throw new Error('Expected movement reaction pending context.')
+  return parsed
 }
 
 function concentrationContext(input: { finalizedDamageEnvelopeChecksum: string }) {
