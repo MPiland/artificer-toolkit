@@ -26419,6 +26419,22 @@
             },
             {
               "id": "QUALITY-13.T1c5",
+              "status": "DONE",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["QUALITY-13.T1c4", "QUALITY-13.T1c3", "QUALITY-13.T1c3b"]
+              },
+              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape. Sequenced after QUALITY-13.T1c3 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts. Sequenced after QUALITY-13.T1c3b on 2026-11-14 (no size change): same per-ray seam. Rider from T1c3b (2026-11-14, no size change): the AREA_REMOVAL admission (liveSessionEncounterRules.ts ~630, roomEncounterTurnCapture.ts ~262) carries no reactionChildren, so a GM removal that settles a ray list with a ROLL_MODE child throws \"Reaction evidence is stale.\" at commit replay; add committed children to that admission with a room proof. Same per-ray seam. Split 2026-11-14 at delivery: the seam trace put the per-ray incoming gate far above 13 (aim-phase hold, lost-ray state, receipt, fence transitions, SRD journey, D196 shape change), so the AREA_REMOVAL rider shipped alone (size 2) and the gate moved to QUALITY-13.T1c5a, with ATTACK_RETARGET for a lost ray in QUALITY-13.T1c5b. Orchestrator engineering ruling: a lost ray stays in the chosen list's targets with a lost marker and its gate evidence; commit skips its replay and writes a lost-ray child receipt.",
+              "text": "A GM AREA_REMOVAL that settles a ray list with a committed ROLL_MODE reaction child carries that child into its admission, so commit replay no longer throws \"Reaction evidence is stale.\"",
+              "mergedAt": "2026-11-14",
+              "proof": "m745 (88a18d568); slice tip 6a47db993: Tests 43559336892, Live 43561047984, Browser journeys 43559336865 green. Red proof: nativeRoomRayProtection 1/12 RED (the GM removal settling a ray list with a ROLL_MODE child threw at replay). No assertions restated; no persisted shape change."
+            },
+            {
+              "id": "QUALITY-13.T1c5a",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-13.1"],
               "wsjf": {
@@ -26426,11 +26442,25 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["QUALITY-13.T1c4", "QUALITY-13.T1c3", "QUALITY-13.T1c3b"]
+                "after": ["QUALITY-13.T1c5"]
               },
-              "note": "Registered 2026-11-13 from the T1c4 split under the user standing approval for QUALITY growth. Orchestrator rulings from the rules text: every ray is its own attack, so the incoming gate (Sanctuary shape) tests on every ray, and passing it once grants nothing to later rays; a ray lost at the gate deals nothing and the list continues; a list whose rays are all lost ends with no effect. Design option (a): keep the root command and fingerprint, add optional per-entry gate and retarget evidence and a lost-ray receipt shape. Sequenced after QUALITY-13.T1c3 on 2026-11-13 (no size change): both reshape the per-ray seam in nativeAreaRayAdvance.ts. Sequenced after QUALITY-13.T1c3b on 2026-11-14 (no size change): same per-ray seam. Rider from T1c3b (2026-11-14, no size change): the AREA_REMOVAL admission (liveSessionEncounterRules.ts ~630, roomEncounterTurnCapture.ts ~262) carries no reactionChildren, so a GM removal that settles a ray list with a ROLL_MODE child throws \"Reaction evidence is stale.\" at commit replay; add committed children to that admission with a room proof. Same per-ray seam.",
-              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate offers ATTACK_RETARGET for that ray only and re-seals its own entry; per-entry gate and retarget evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source.",
+              "text": "Incoming gate per ray: today a chosen list bypasses incoming gates. The gate is passed per attack TEST (a nested save pause inside the ray); a ray lost at the gate deals nothing and the list continues; per-entry gate evidence and a lost-ray receipt under the unchanged root command; the persistence fence covers the INCOMING_GATE and ATTACK_RETARGET holds; one room journey with an SRD incoming-gate source. The INCOMING_GATE hold sits in the aim phase per ray; a lost ray stays in targets with a lost marker and its gate evidence, and commit skips its replay and writes a lost-ray child receipt (D196 persisted-shape change).",
+              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13). Carries the T1c5 rulings (every ray its own attack; passing once grants nothing to later rays; an all-lost list ends with no effect).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-13.T1c5b",
+              "status": "TODO",
+              "closes": ["QUALITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-13.T1c5a"]
+              },
+              "text": "A ray lost at the incoming gate offers ATTACK_RETARGET for that ray only and re-seals its own entry with per-entry retarget evidence; the persistence fence covers the ATTACK_RETARGET hold.",
+              "note": "Registered 2026-11-14 from the T1c5 split under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-13.T2c",
@@ -26522,7 +26552,7 @@
             },
             {
               "id": "QUALITY-14.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 3,
@@ -26533,11 +26563,12 @@
               },
               "text": "Route the remaining direct effect enders through the event table: planDepartedSourceGrantRemovals, expiredCarriedOverGrants, the EXPIRE path of planResumedCarriedEffects, planConcentrationCarriedGrantEnds, and the rest recovery of SCALAR_REDUCTION and HIT_POINT_MAXIMUM_REDUCTION contributions inside activeEffectEndsOnRest; apply D172 linked dependents in the relationship sweep like the other enders.",
               "note": "Registered 2026-11-14 from the T1 split under the user standing approval for QUALITY growth (2026-11-13); listed as \"not yet events\" in rules-runtime.md.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m745 (88a18d568); slice tip cfa094f72: Tests 43559588261 (rerun after a Storybook Chromium install failure), Live 43559588223, Browser journeys 43559588245 green; red-proof job ran. New events SOURCE_DEPARTED, CAMPAIGN_CLOCK, CONCENTRATION_STARTED; departed-source, carried-over expiry, resume EXPIRE and concentration enders raise through discoverEncounterEventHooks; rest recovery of SCALAR_REDUCTION and HIT_POINT_MAXIMUM_REDUCTION are structural REST hooks; D172 linked dependents end in the relationship sweep and the departed, resume and concentration paths. Discovery pre-filters to reachable effects so an unregistered system's vocabulary is never read (regression test). rules-runtime.md \"not yet events\" list removed. No assertions restated; no persisted shape change."
             },
             {
               "id": "QUALITY-14.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26547,7 +26578,8 @@
                 "after": ["QUALITY-14.T1", "QUALITY-14.T1b"]
               },
               "text": "One concentration planner for action and movement damage; DAMAGED(AFTER) is raised once per command and holder and feeds effect ends, repeat saves and maintenance saves across every damage root.",
-              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\"."
+              "note": "Split 2026-11-12 at the seam trace; user approved the D187 growth (QUALITY-11 5 to 8 on the size scale, QUALITY-14.T2 5 to 8). See the decision \"One after-commit step (QUALITY-11 trace)\".",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },

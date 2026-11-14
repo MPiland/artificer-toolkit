@@ -107,6 +107,12 @@ export type EncounterEvent =
   | { kind: 'SEPARATED'; sourceActorId: string; feet: number }
   /** The holder finishes a rest of this kind. */
   | { kind: 'REST'; restKind: 'SHORT' | 'LONG' }
+  /** An actor of this Encounter, which effects counted on its turns may anchor to, leaves the Run. */
+  | { kind: 'SOURCE_DEPARTED'; encounterId: string; sourceActorId: string }
+  /** The Campaign clock stands at this minute, which ends the carried-over effects that expired by it. */
+  | { kind: 'CAMPAIGN_CLOCK'; minute: number }
+  /** This Character starts a Concentration, which ends the carried-over effects stamped with them. */
+  | { kind: 'CONCENTRATION_STARTED'; casterCharacterId: string }
   /**
    * An attack hits the holder: melee or ranged, a weapon or a spell attack, by an attacker it sees or
    * not, dealing these damage types.
@@ -178,6 +184,12 @@ export type EncounterEventSubscription =
   | { event: 'CONDITION_HELD'; conditionIds: readonly string[] }
   | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: readonly string[] }
   | { event: 'REST'; restKind: 'SHORT' | 'LONG' }
+  /** The effect's Encounter source, which it counts its lifetime on, leaves its Run. */
+  | { event: 'SOURCE_DEPARTED' }
+  /** The Campaign clock reaches the minute the effect was carried over until. */
+  | { event: 'CAMPAIGN_CLOCK' }
+  /** The Character whose Concentration stamps the carried-over effect starts another. */
+  | { event: 'CONCENTRATION_STARTED' }
   /** The failed save of the rule definition pinned at exactly this version and checksum. */
   | { event: 'SAVE_FAILED'; definition: { id: string; version: number; checksum: string } }
   | {

@@ -634,7 +634,9 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       command: resolveEncounterActionInputDtoSchema,
       fingerprint: projectionChecksumSchema,
       /** The pending area as stored, before the removal. */
-      areaSnapshot: serverAggregateChoicePendingSnapshotDtoSchema
+      areaSnapshot: serverAggregateChoicePendingSnapshotDtoSchema,
+      /** The committed child of each reaction chosen against a ray the list keeps (D219). */
+      reactionChildren: liveSessionReactionChildrenSchema
     }),
     z.strictObject({
       kind: z.literal('CLEAVING_RESPONSE'),

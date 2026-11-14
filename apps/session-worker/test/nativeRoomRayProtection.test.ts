@@ -56,6 +56,7 @@ const NEAR_ACTOR_ID = testUuid(0x9d3)
 const NEAR_ID = testUuid(0x9d4)
 const FAR_ACTOR_ID = testUuid(0x9d5)
 const FAR_ID = testUuid(0x9d6)
+const DISTANT_WOLF_ID = testUuid(0x9db)
 const WOLF_HIT_POINTS = 20
 // The first of a ray's 2d6 twice over: a raw die is its face less one.
 const RAY_DAMAGE = 1 + 2
@@ -87,7 +88,8 @@ const protector = { classFeatures: [protection], equipment: [shieldWood] }
 
 /**
  * A Caster with Scorching Ray, a Wolf 15 feet from it, and beside the Wolf one Character with
- * Protection and a shield, or two when `reactors` is 2 (each 100 px is 5 feet).
+ * Protection and a shield, or two when `reactors` is 2 (each 100 px is 5 feet). A second Wolf stands
+ * 40 feet from the Caster, beside nobody.
  */
 function protectorRoom(reactors: 1 | 2 = 1) {
   return actionRoom({
@@ -99,9 +101,11 @@ function protectorRoom(reactors: 1 | 2 = 1) {
         currentHitPoints: WOLF_HIT_POINTS
       }),
       characterActor({ id: NEAR_ACTOR_ID, characterId: NEAR_ID }),
-      ...(reactors === 2 ? [characterActor({ id: FAR_ACTOR_ID, characterId: FAR_ID })] : [])
+      ...(reactors === 2 ? [characterActor({ id: FAR_ACTOR_ID, characterId: FAR_ID })] : []),
+      srdCreatureActor({ id: DISTANT_WOLF_ID, creature: plainWolf })
     ],
     positions: {
+      [DISTANT_WOLF_ID]: { x: 950, y: 150 },
       [CASTER_ACTOR_ID]: { x: 150, y: 150 },
       [WOLF_ID]: { x: 450, y: 150 },
       [NEAR_ACTOR_ID]: { x: 350, y: 150 },
@@ -273,6 +277,23 @@ describe('a bystander answers each ray’s aim before its d20 (QUALITY-13.T1c3b,
     expect(await wolfHitPoints(room)).toBe(WOLF_HIT_POINTS)
     expect(await reactionUsed(room)).toBe(0)
     expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  }, 120000)
+
+  it('commits under the first ray’s imposed roll mode when the GM removes the creature the last ray waits on', async () => {
+    const room = await protectorRoom()
+    await cast(room, [WOLF_ID, DISTANT_WOLF_ID])
+    await use(room)
+    await rollRay(room, [HIT, MISS])
+    // The second ray, aimed beside nobody, waits for its d20.
+    const { decision } = await askedRay(room)
+
+    const removal = await room.send(room.removeAreaTargetCommand(decision, DISTANT_WOLF_ID))
+    expect(removal.type, JSON.stringify(removal)).toBe('COMMAND_COMMITTED')
+    // The removal settles the list: the first ray replays with the disadvantage its reaction gave it.
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await wolfHitPoints(room)).toBe(WOLF_HIT_POINTS)
+    expect(await reactionUsed(room)).toBe(1)
+    expect((await committedActions(room)).children).toHaveLength(1)
   }, 120000)
 
   it('rolls a declined ray as it was and asks again at the next ray, where the reaction is used', async () => {
