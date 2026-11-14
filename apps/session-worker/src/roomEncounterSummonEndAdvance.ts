@@ -2,7 +2,7 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import type { SummonSweep } from '@artificer-toolkit/encounter-persistence/summonRemoval'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { summonEndAdvanceCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
-import { readRoomRaisableRun } from './roomEncounterChildRaise.js'
+import { readRoomTurnEndableRun } from './roomEncounterChildRaise.js'
 
 /**
  * Ends the turn of a conjured creature whose carrier ended while it was acting (D200). The sweep
@@ -10,8 +10,8 @@ import { readRoomRaisableRun } from './roomEncounterChildRaise.js'
  * advances the turn as its own system command, keyed to the command that ended the carrier and the
  * Run version it left. The advance raises its turn start as any advance does, and the sweep then
  * removes the creature, which has acted. A creature the advance lands on whose carrier has ended too
- * (it comes first after a wrap) repeats this, and the repeat stops when a decision is pending, the
- * Run is not active, or no creature is left to end. Returns whether any turn advanced.
+ * (it comes first after a wrap) repeats this, and the repeat stops when a decision is pending or an
+ * action or move is held behind a reaction child, the Run is not active, or no creature is left to end. Returns whether any turn advanced.
  */
 export async function advanceRoomPastEndedSummon(input: {
   ctx: EncounterWriteTransaction
@@ -32,8 +32,9 @@ export async function advanceRoomPastEndedSummon(input: {
   let advanced = false
   let passes: number | null = null
   for (;;) {
-    // A turn start that paused on a decision keeps the creature standing until it is answered.
-    const run = await readRoomRaisableRun(ctx, encounterId)
+    // A turn start that paused on a decision keeps the creature standing until it is answered, and
+    // so does an action or move of its own that is held behind a reaction child.
+    const run = await readRoomTurnEndableRun(ctx, encounterId)
     if (!run || run.status !== 'ACTIVE') break
     // Every pass moves the cursor on and removes a creature that acted, so the actors bound the loop.
     passes ??= readRunState(run).actorIds.length

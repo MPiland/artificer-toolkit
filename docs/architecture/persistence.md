@@ -311,16 +311,23 @@ not committed, so the proof is the pending action's own record instead: `reactio
 the Run version the pending occurrence is pinned to (`expectedEncounterVersion`), for a holder that still
 stands, and is the one root admitted while that occurrence is pending. Its commit (`recordActionCommit`)
 advances the Run one version and re-pins the pending occurrence to it in the same transaction
-(`repinReactionChildParent`). A child is not complete until its own check chain is (QUALITY-18.T2b2,
-ruling 17): when the child's commit leaves a prompted check of its own PENDING, the parent takes the new pin
-but stays SUSPENDED, so the Run keeps one pending decision. The room's after-commit settlement returns it to
-PENDING on the Run's version (`resumeSettledReactionChildParent`) once that chain is answered or voided and
-the Run waits on no other decision; only then does the room issue a paused move's `REACTION_CHILD_RESUME`.
-A paused Scene move always stays SUSPENDED at its child's commit (QUALITY-18.T3c): the roots that commit
-raises in the room's after-commit settlement (the effect of a mover the child dropped to 0 hit points, say)
-need a Run that waits on nothing, and the move's resume runs through the Scene path, which raises none, so
-they would otherwise be lost. Those roots name the child command as their parent, since the option's answer
-records no Run command or rule receipt. A held action is unchanged: it still returns to PENDING at once.
+(`repinReactionChildParent`). The parent, a held action or a paused Scene move alike, takes the new pin and
+stays SUSPENDED (QUALITY-18.T3c for a move, QUALITY-18.T3d for an action): a child is not complete until its
+own check chain is (QUALITY-18.T2b2, ruling 17), nor until the roots its commit raises in the room's
+after-commit settlement have run (the effect of a creature the child dropped to 0 hit points, say). Those
+roots need a Run that waits on nothing, so they run, and take their own answers, while the parent is
+SUSPENDED. They name the child command as their parent; under a move, whose option answer records no Run
+command or rule receipt, the settlement reads that child from the Run (`readLastCommittedReactionChild`).
+The room's after-commit settlement returns the parent to PENDING on the Run's version
+(`resumeSettledReactionChildParent`) once nothing else is PENDING. Only then does the room resume it: a
+held action by a `RESUME_ACTION` the room command runs after that settlement, settling again after it; a
+paused move by its `REACTION_CHILD_RESUME`. Each rule-raised root advanced the Run one version, which
+`countRunSettlementVersions` counts beside the child's own descendants. While a parent is SUSPENDED the
+turn does not end under it: the delegated Legendary Action continuation and the summon advance both wait
+(`readRoomTurnEndableRun`), and a GM undo is refused `PENDING_DECISION`, whether or not anything is PENDING
+(a void's own undo of the occurrence it released excepted). A held action resumed from a child under which
+its target reacted goes on against that target as the child's tree left it, defeated or not, with no new
+`TARGET_DEFEATED` warning.
 The fences read as follows:
 
 - A resumed answer or the parent's own commit is fenced on the occurrence's pin, not on the root command's
@@ -650,10 +657,11 @@ moves the parent occurrence to the stored state `SUSPENDED` (`suspendReactionChi
 `actionPendingPersistence.ts`), so the Run still has at most one `PENDING` occurrence: the child's. A
 suspended occurrence keeps its sealed snapshot under PENDING's rules and takes no answer. `SUSPENDED` is a
 stored state only; the public occurrence summary does not carry it. The child's final commit re-pins the
-parent and returns it to `PENDING` in the same transaction (`repinReactionChildParent`; a Scene move returns
-through `resumeSettledReactionChildParent` in the same room command instead), and the room then
-resumes the parent from that commit, whoever's answer produced it. A child that never pauses never suspends
-its parent. The System decides what a reaction's own test may propose: the dnd5e compiler admits, on a
+parent, which stays `SUSPENDED` (`repinReactionChildParent`) until the room's after-commit settlement of
+that commit has run what it raised and returns the parent to `PENDING`
+(`resumeSettledReactionChildParent`); the room then resumes the parent in the same room command, whoever's
+answer produced the commit. A child that never pauses suspends its parent only from its commit to that
+settlement. The System decides what a reaction's own test may propose: the dnd5e compiler admits, on a
 result path of that test, the outcome its reaction trigger resumes by (`dnd5eTestPathResumeOutcome`), gated
 to the path, so a failed save imposes it and a passed one imposes nothing. Recovery after a crash between
 the child's commit and the resume is the GM's void.

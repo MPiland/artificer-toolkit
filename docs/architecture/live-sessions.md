@@ -201,7 +201,11 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   failed-save actions; (6) the flag on a creature that returned onto an occupied space; (7) the mirrors and
   rewards the roots raised in 2 to 5 collected; (8) the sweep of summons whose carrier ended and the advance
   past one that was acting; (9) the held action whose reaction child's own checks have all settled, which
-  returns to PENDING once the Run waits on no other decision (`resumeSettledReactionChildParent`, D219);
+  returns to PENDING once the Run waits on no other decision (`resumeSettledReactionChildParent`, D219),
+  and which the settlement hands back to the room command to resume when it is a held action
+  (QUALITY-18.T3d: the command runs that `RESUME_ACTION` and settles again, so stages 2 to 5 of a reaction
+  child's commit run before the action it answered goes on; stages 3 and 8 end no turn while a parent is
+  SUSPENDED);
   (10) the next queued reaction offer (D219). Stages 2 to 5 run only on an ACTIVE Run
   in a room that executes rules. Each raised root goes through `raiseRoomChild` (`roomEncounterChildRaise.ts`):
   read the Run, raise nothing while a decision is PENDING, then execute. The two loops that advance turns (the

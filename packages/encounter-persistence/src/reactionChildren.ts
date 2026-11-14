@@ -179,6 +179,24 @@ function storedReaction(row: EncounterDocument<'encounterRunCommands'>) {
 }
 
 /**
+ * The command id of the reaction child whose commit left the Run at its version (D219), or null when
+ * another command did. The roots the room raises after that commit name the child as their parent:
+ * the answer that chose the reaction records no Run command or rule receipt of its own.
+ */
+export async function readLastCommittedReactionChild(
+  ctx: EncounterReadContext,
+  run: Pick<EncounterDocument<'encounterRuns'>, 'id' | 'version'>
+) {
+  const row = await ctx.db
+    .query('encounterRunCommands')
+    .withIndex('by_encounterId_version', (query) =>
+      query.eq('encounterId', run.id).eq('version', run.version)
+    )
+    .first()
+  return row && storedReaction(row) ? row.commandId : null
+}
+
+/**
  * The held action a reaction's child action answers (D219), or null when no held action of this Run
  * records that child. The record is the proof: the action's own context names the child command of
  * each reaction chosen against it, so an open offer alone admits nothing. The action is pending, or
@@ -318,17 +336,16 @@ export async function suspendReactionChildParent(
 }
 
 /**
- * Moves the held action a committed reaction child answers to the Run version the child produced,
- * and returns it to pending if the child had paused. A pending action is pinned to one Run version,
- * so its later answers and its own commit are fenced on the Run as the child left it. The suspended
- * actions above it move with it.
+ * Moves the held action or move a committed reaction child answers to the Run version the child
+ * produced, and leaves it suspended. A held action is pinned to one Run version, so its later
+ * answers and its own commit are fenced on the Run as the child left it. The suspended actions above
+ * it move with it.
  *
- * A child is not complete until the checks it raised are. When its commit left one as the Run's
- * pending decision (its target's Concentration check, say), the action it answers stays suspended,
- * so the Run keeps one pending decision; `resumeSettledReactionChildParent` returns it to pending.
- * A Scene move always stays suspended here: the roots its child's commit raises (a creature it
- * dropped to 0 hit points, say) run after that commit and need a Run that waits on nothing, and the
- * move's resume runs no such roots of its own, so they would otherwise be lost.
+ * A child is not complete until what its commit raised is: the checks it left as the Run's pending
+ * decision (its target's Concentration check, say) and the roots the room raises after it (the
+ * effect of a creature it dropped to 0 hit points, say), which need a Run that waits on nothing and
+ * run before what the child answered goes on. So the held action or move stays suspended here,
+ * whatever hosts it, and `resumeSettledReactionChildParent` returns it to pending.
  */
 export async function repinReactionChildParent(
   ctx: EncounterWriteContext,
@@ -337,34 +354,32 @@ export async function repinReactionChildParent(
   if (await readReactionOfferChild(ctx, input)) return
   const recording = await readRecordingParent(ctx, input)
   if (!recording) throw new Error('The reaction’s pending action is gone.')
-  const pending = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_encounterId_state', (query) =>
-      query.eq('encounterId', input.encounterId).eq('state', 'PENDING')
-    )
-    .take(2)
   await ctx.db.patch(recording.parent._id, {
-    state:
-      recording.context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
-      pending.some(({ id }) => id !== recording.parent.id)
-        ? 'SUSPENDED'
-        : 'PENDING',
+    state: 'SUSPENDED',
     expectedEncounterVersion: input.version
   })
   await repinSuspendedAncestors(ctx, recording, input.version)
 }
 
 /**
- * Returns a held action to pending once every decision its committed reaction child left has
- * settled, answered or voided, pinned to the Run as it stands, and reports whether one returned.
- * Nothing returns while the Run waits on a decision. The action is the suspended one whose recorded
- * children have all committed: an action above it waits on a child that is itself still held. The
- * suspended actions above it move with it.
+ * Returns a held action or move to pending once everything its committed reaction child left has
+ * settled (each decision answered or voided, each raised root run), pinned to the Run as it stands,
+ * and answers the one that returned, or null. Nothing returns while the Run waits on a decision.
+ * It is the suspended one whose recorded children have all committed: an action above it waits on a
+ * child that is itself still held. The suspended actions above it move with it. `resumesInRoom`
+ * tells an action, which the room resumes at once in the same command, from a Scene move, which
+ * resumes through its Scene.
  */
 export async function resumeSettledReactionChildParent(
   ctx: EncounterWriteContext,
   encounterId: string
-): Promise<boolean> {
+): Promise<{
+  occurrenceId: string
+  occurrenceVersion: number
+  rootCommandId: string
+  runVersion: number
+  resumesInRoom: boolean
+} | null> {
   const held = (state: 'PENDING' | 'SUSPENDED') =>
     ctx.db
       .query('encounterRuleOccurrences')
@@ -372,7 +387,7 @@ export async function resumeSettledReactionChildParent(
         query.eq('encounterId', encounterId).eq('state', state)
       )
   const suspended = await held('SUSPENDED').take(MAX_ENCOUNTER_ACTORS)
-  if (suspended.length === 0 || (await held('PENDING').first())) return false
+  if (suspended.length === 0 || (await held('PENDING').first())) return null
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (query) => query.eq('id', encounterId))
@@ -399,9 +414,15 @@ export async function resumeSettledReactionChildParent(
     if (committed.includes(null)) continue
     await ctx.db.patch(parent._id, { state: 'PENDING', expectedEncounterVersion: run.version })
     await repinSuspendedAncestors(ctx, record, run.version)
-    return true
+    return {
+      occurrenceId: parent.id,
+      occurrenceVersion: parent.version,
+      rootCommandId: parent.rootCommandId,
+      runVersion: run.version,
+      resumesInRoom: record.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION'
+    }
   }
-  return false
+  return null
 }
 
 /**
@@ -485,10 +506,11 @@ export async function releaseReactionChildParent(
 
 /**
  * How many Run versions settled decisions made after one version, up to and including another: one
- * for each answer that settled a check a committed reaction raised, one for each GM void, and one for
- * the undo a void makes of the reactions that committed under the action it cancels. While an action
- * is held, the Run moves only by the reactions of its tree: each commit, each settled check one
- * raised, and each void of a held one.
+ * for each answer that settled a check a committed reaction raised, one for each root the rules raised
+ * after one committed (the effect of a creature it dropped to 0 hit points, say), one for each GM
+ * void, and one for the undo a void makes of the reactions that committed under the action it
+ * cancels. While an action is held, the Run moves only by the reactions of its tree: each commit,
+ * each settled check and each root one raised, and each void of a held one.
  */
 export async function countRunSettlementVersions(
   ctx: EncounterReadContext,
@@ -503,12 +525,19 @@ export async function countRunSettlementVersions(
         .lte('version', input.throughVersion)
     )
     .take(MAX_ENCOUNTER_ACTORS + 1)
-  return commands.filter(
-    ({ commandType }) =>
-      commandType === 'RESOLVE_RULE_OCCURRENCE' ||
-      commandType === 'VOID_RULE_OCCURRENCE' ||
-      commandType === 'REVERT_LAST_ACTION'
-  ).length
+  return commands.filter((row) => {
+    if (row.commandType !== 'RESOLVE_ACTION')
+      return (
+        row.commandType === 'RESOLVE_RULE_OCCURRENCE' ||
+        row.commandType === 'VOID_RULE_OCCURRENCE' ||
+        row.commandType === 'REVERT_LAST_ACTION'
+      )
+    // A rule-raised root; a reaction is counted with the reactions of the held action's tree.
+    const { systemTrigger } = resolveEncounterActionInputDtoSchema.parse(
+      JSON.parse(row.commandJson)
+    )
+    return systemTrigger !== undefined && systemTrigger.trigger !== 'REACTION'
+  }).length
 }
 
 /**

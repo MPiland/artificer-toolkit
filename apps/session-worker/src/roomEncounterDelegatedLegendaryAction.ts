@@ -6,7 +6,7 @@ import {
   systemTriggerAreaCommand
 } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { readRoomRaisableRun } from './roomEncounterChildRaise.js'
+import { readRoomTurnEndableRun } from './roomEncounterChildRaise.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
 
@@ -37,7 +37,9 @@ export async function raiseRoomDelegatedLegendaryAction(input: {
   let raisedFor: string | null = null
   let continuationCommandId: string | null = null
   for (;;) {
-    const run = await readRoomRaisableRun(ctx, encounterId)
+    // The option held behind a reaction child (D219) is neither raised again nor passed: its turn
+    // end continues once it has resumed and committed.
+    const run = await readRoomTurnEndableRun(ctx, encounterId)
     if (!run || run.status !== 'ACTIVE') break
     const state = readRunState(run)
     const delegation = state.delegatedLegendaryAction

@@ -11,11 +11,6 @@ import {
 import { persistEncounterActionChildren } from '@artificer-toolkit/encounter-persistence/actionChildrenPersistence'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
-import {
-  readReactionChildTrigger,
-  readReactionChildParent,
-  readReactionOfferChild
-} from '@artificer-toolkit/encounter-persistence/reactionChildren'
 import type {
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
@@ -206,8 +201,9 @@ export async function executeRoomEncounterAction(input: {
     )
     const reactionChild = 'reactionChild' in plan ? plan.reactionChild : null
     if (!reactionChild) return pending
-    // A chosen reaction runs as its own action in the same turn (D219). It commits and the room
-    // resumes the held action below, or it pauses on evidence of its own and suspends that action.
+    // A chosen reaction runs as its own action in the same turn (D219). It commits, and the room's
+    // after-commit settlement resumes the held action once what that commit raised has run, or it
+    // pauses on evidence of its own. Either way the held action is suspended meanwhile.
     return executeRoomEncounterAction({
       ...input,
       command: systemTriggerReactionCommand({
@@ -218,72 +214,33 @@ export async function executeRoomEncounterAction(input: {
       })
     })
   }
-  const committed =
-    plan.kind === 'AREA_COMMIT'
-      ? await persistEncounterAreaCommit(
+  return plan.kind === 'AREA_COMMIT'
+    ? await persistEncounterAreaCommit(
+        ctx,
+        { ...buildNativeLiveEncounterAreaCommitInput(scope, plan), revisions },
+        {
+          ...callbacks,
+          applySummonTokens: (summon) =>
+            applyRoomSummonTokens({ ctx, transaction, userId: scope.expectedUserId, summon }),
+          persistConcentrationChildren: (children) =>
+            persistRoomConcentrationChildren(ctx, children)
+        }
+      )
+    : plan.kind === 'COUNTERED'
+      ? await persistEncounterCounteredCastCommit(
           ctx,
-          { ...buildNativeLiveEncounterAreaCommitInput(scope, plan), revisions },
-          {
-            ...callbacks,
-            applySummonTokens: (summon) =>
-              applyRoomSummonTokens({ ctx, transaction, userId: scope.expectedUserId, summon }),
-            persistConcentrationChildren: (children) =>
-              persistRoomConcentrationChildren(ctx, children)
-          }
+          { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
+          callbacks
         )
-      : plan.kind === 'COUNTERED'
-        ? await persistEncounterCounteredCastCommit(
+      : plan.kind === 'GATED'
+        ? await persistEncounterGatedActionCommit(
             ctx,
-            { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
+            { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
             callbacks
           )
-        : plan.kind === 'GATED'
-          ? await persistEncounterGatedActionCommit(
-              ctx,
-              { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
-              callbacks
-            )
-          : await persistEncounterActionCommit(
-              ctx,
-              { ...buildNativeLiveEncounterActionCommitInput(scope, plan), revisions },
-              callbacks
-            )
-  const { systemTrigger } = captured.command
-  if (systemTrigger?.trigger !== 'REACTION') return committed
-  // A committed reaction child returns the room to the action it answered, in the same turn: at
-  // once when it never paused, or from the answer that completed it (D219).
-  const link = {
-    campaignId: scope.campaignId,
-    encounterId: scope.encounterId,
-    parentCommandId: systemTrigger.parentCommandId.toLowerCase(),
-    childCommandId: captured.command.commandId.toLowerCase()
-  }
-  const parent = await readReactionChildParent(ctx, link)
-  if (!parent) {
-    // A reaction chosen from a settled offer answers an attack that already committed: no action
-    // is held, so the room has nothing to resume.
-    const reactorActorId = captured.command.actorId.toLowerCase()
-    if (await readReactionOfferChild(ctx, { ...link, reactorActorId })) return committed
-    throw new Error('The reaction’s pending action is gone.')
-  }
-  // A paused Scene move settles through its Scene, so the room resumes it once this commit is
-  // published.
-  const { triggerMovement } = await readReactionChildTrigger(ctx, {
-    ...link,
-    reactorActorId: captured.command.actorId.toLowerCase(),
-    actionId: captured.command.actionId
-  })
-  if (triggerMovement) return committed
-  const expectedVersion = scope.expectedVersion + 1
-  return executeRoomEncounterAction({
-    ...input,
-    scope: { ...scope, expectedVersion },
-    command: {
-      type: 'RESUME_ACTION',
-      encounterId: scope.encounterId,
-      expectedVersion,
-      occurrenceId: parent.id,
-      expectedOccurrenceVersion: parent.version
-    }
-  })
+        : await persistEncounterActionCommit(
+            ctx,
+            { ...buildNativeLiveEncounterActionCommitInput(scope, plan), revisions },
+            callbacks
+          )
 }

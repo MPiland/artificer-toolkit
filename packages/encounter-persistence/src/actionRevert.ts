@@ -219,11 +219,18 @@ export async function revertLastEncounterAction(
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Only an active Encounter can undo an action.')
-  const pending = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
-    .first()
-  if (pending) rejectDomain('PENDING_DECISION', 'Resolve the pending decision before undoing.')
+  const held = (occurrenceState: 'PENDING' | 'SUSPENDED') =>
+    ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_encounterId_state', (q) =>
+        q.eq('encounterId', run.id).eq('state', occurrenceState)
+      )
+      .first()
+  // An action or move is suspended from its reaction child's commit until the room has settled that
+  // commit (D219): the child is not the Run's to undo while what it answered is still held. A void
+  // undoes the reactions under the action it cancelled, whose own parents stay suspended.
+  if ((await held('PENDING')) || (voidedOccurrenceId === undefined && (await held('SUSPENDED'))))
+    rejectDomain('PENDING_DECISION', 'Resolve the pending decision before undoing.')
 
   // The action must be the Run's latest change, followed only by its own child decisions.
   const recent = await ctx.db

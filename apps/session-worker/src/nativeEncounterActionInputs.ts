@@ -235,6 +235,12 @@ type RuleWarningInput = Parameters<typeof evaluateEncounterActionRuleWarnings>[0
 export function targetRuleOverrides(input: {
   prepared: Prepared
   command: Pick<ResolveEncounterActionInputDto, 'acknowledgedWarnings'>
+  /**
+   * Set when the held action resumes from a reaction child its source or target reacted under
+   * (D219). The action was aimed while its target stood, so a target that tree has since defeated
+   * raises no warning: the action goes on against it.
+   */
+  targetStandsAsChildLeftIt: boolean
   evaluation: Pick<
     Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>,
     'activationCode' | 'economy' | 'suppressed'
@@ -283,10 +289,12 @@ export function targetRuleOverrides(input: {
       actor: encounterActorEffectiveSize(actorTarget),
       target: targetMovement ? encounterActorEffectiveSize(targetMovement) : null
     },
-    targetDefeated: isEncounterActorDefeated(
-      prepared.target,
-      deadCharacterIdsOfTargets(movementTargets.values())
-    ),
+    targetDefeated:
+      !input.targetStandsAsChildLeftIt &&
+      isEncounterActorDefeated(
+        prepared.target,
+        deadCharacterIdsOfTargets(movementTargets.values())
+      ),
     targetPreconditions: {
       declared: prepared.adapter.outcomeTargetPreconditions({
         effectKinds: outcomes.flatMap((o) =>
