@@ -277,7 +277,7 @@ describe('the compiler composes outcomes by the aspect (QUALITY-15.T1d admission
     expect(instant.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_SAVE_FAIL'])
   })
 
-  it('compiles a Hide held by a named maintained effect, whose concealment plan holds it', () => {
+  it('refuses a Hide held by a named maintained effect, whose concealment settles unmaintained', () => {
     const hide = catalogueBasicActionEffect(SRD_BASIC_ACTION_IDS.HIDE)
     const [path] = hide.paths
     if (!path || !('resultBlock' in path)) throw new Error('Hide has no direct result block.')
@@ -286,11 +286,11 @@ describe('the compiler composes outcomes by the aspect (QUALITY-15.T1d admission
       ...hide,
       paths: [{ ...path, resultBlock: { ...path.resultBlock, maintenanceDefinitionId } }]
     }
+    const plain = characterActionDescriptor(compileEffect(hide))
+    expect(() => dnd5eCharacterRuleActionSystemAdapter.compile({ action: plain })).not.toThrow()
     const action = characterActionDescriptor(compileEffect(maintained))
-    const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
-    const [plan] =
-      dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []
-    expect(plan?.concealmentContribution).toBeDefined()
-    expect(plan?.maintenance?.definitionId).toBe(maintenanceDefinitionId)
+    expect(() => dnd5eCharacterRuleActionSystemAdapter.compile({ action })).toThrow(
+      'D&D Effect action must have one fixed direct result without lifecycle overrides.'
+    )
   })
 })

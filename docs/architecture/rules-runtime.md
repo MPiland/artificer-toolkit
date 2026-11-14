@@ -176,8 +176,9 @@ not hold, and holds at most one relationship, and refuses with "unique direct ou
 (`Dnd5eOutcomeCarriers`: a sequence's later results, a choice, an entry's lifetime) is the compiler's input to the
 aspect: the single-graph test compile carries a sequence only when its plan holds the rest (a relationship or a removal
 from play), the TEST/OUTCOME compile specializes every sequence result, and a direct result's lifetime is held by any
-lasting or concealment plan. One rule set admitted two shapes the separate ladders refused: an attack or save result
-authored as instantaneous, and a concealment held by a named maintained effect, which its concealment plan carries
+lasting plan, or by a concealment plan when it is not maintained: a Hide's check settles its concealment
+(`createEncounterConcealmentEffect`) with no maintenance link, so a maintained concealment stays refused. One rule set
+admitted one shape the separate ladders refused: an attack or save result authored as instantaneous
 (`effectActionOutcomeAspect.test.ts`). Lifetime selection still runs as plan ladders; it is the QUALITY-15.T1c task.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy

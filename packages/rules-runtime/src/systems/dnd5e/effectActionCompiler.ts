@@ -2096,7 +2096,9 @@ function supported(
     carriers: {
       sequence: true,
       choice: repeatPlan !== null,
-      lifetime: () => lastingPlan !== null || concealmentPlan(action) !== null
+      // A concealment holds its lifecycle but no maintenance: its check settles with no maintenance link.
+      lifetime: (held) =>
+        lastingPlan !== null || (!held.maintenanceDefinitionId && concealmentPlan(action) !== null)
     }
   })
   if (
