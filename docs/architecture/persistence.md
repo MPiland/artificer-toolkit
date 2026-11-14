@@ -369,7 +369,9 @@ as `repeatSaves` beside `concentrationChecks`, QUALITY-14.T2c); the context and 
 `reactionExecutions`, and `LiveSessionMovementSettlement` has no `REACTION` kind, so `persistMovementSettlements`
 persists spatial, Concentration, repeat-save (`REPEAT_SAVE`), passage and release settlements only. The reaction's own mechanics persist
 through its child action. D196: these are removed shapes of a held move's pending context and of move receipts;
-a local Run held on an old inline reaction is finished or cleared before use.
+a local Run held on an old inline reaction is finished or cleared before use. QUALITY-18.T6 also removed the
+`MOVEMENT_REACTION` pending summary kind (a move's reaction offer is the `REACTION_CHOICE` summary); no stored
+document carries a summary, so it is a transport-only removal.
 
 A member's `OPTION` answer to a move's choice records the child (`recordMovementReactionChild`,
 `movementReactionChild.ts`): it appends the `OPTION` entry to the move's history, one occurrence version on,

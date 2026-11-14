@@ -384,29 +384,6 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         allowedResponses: z.tuple([z.literal('ENTER_INTEGER'), z.literal('SYSTEM_ROLL')])
       }),
       z.strictObject({
-        kind: z.literal('MOVEMENT_REACTION'),
-        occurrenceId: uuidSchema,
-        occurrenceVersion: versionSchema,
-        encounterVersion: versionSchema,
-        choice: z.strictObject({
-          pathDistance: z.number().check(z.nonnegative()),
-          reactorActorId: uuidSchema,
-          reactorTokenId: uuidSchema,
-          options: z
-            .array(
-              z.strictObject({
-                optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-                actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-                actionSourceKind: z.enum(['CHARACTER_ACTION', 'ENCOUNTER_FEATURE'])
-              })
-            )
-            .check(z.minLength(1))
-            .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
-        }),
-        ...reactionAnswerByShape(),
-        allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
-      }),
-      z.strictObject({
         kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
         occurrenceId: uuidSchema,
         occurrenceVersion: versionSchema,
