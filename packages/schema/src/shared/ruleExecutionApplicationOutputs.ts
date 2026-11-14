@@ -106,8 +106,6 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       /** Present when the source attacked in place of an attack of its commanding actor's Attack action. */
       delegatingActorSpend: z.optional(encounterDelegatingActorSpendDtoSchema),
-      /** The target also spent its reaction on a failed counter (D127) or a die against the attack roll (D207): that spend rides in this batch's Character write. */
-      targetReactorSpend: z._default(z.boolean(), false),
       /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
@@ -462,8 +460,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['targetItemDegradation'],
             message: 'Target item degradation must match the target Character.'
           })
-        const hasTargetMutation =
-          value.targetReactorSpend || release !== null || degradation !== null
+        const hasTargetMutation = release !== null || degradation !== null
         if (
           stow &&
           (value.sourceCharacterId === null ||

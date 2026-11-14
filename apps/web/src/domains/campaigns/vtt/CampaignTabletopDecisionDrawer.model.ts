@@ -38,20 +38,8 @@ export function timedReactionOffer(pending: PendingEncounterRuleOccurrenceSummar
   take: ResolveRuleOccurrenceInputDto['resolution']
   decline: ResolveRuleOccurrenceInputDto['resolution']
 } | null {
-  if ((pending.kind !== 'REACTION_CHOICE' && pending.kind !== 'ROLL_WINDOW') || !pending.answerBy)
-    return null
+  if (pending.kind !== 'REACTION_CHOICE' || !pending.answerBy) return null
   const answerBy = Date.parse(pending.answerBy)
-  if (pending.kind === 'ROLL_WINDOW') {
-    const [first] = pending.options
-    const { requestId } = pending
-    return {
-      answerBy,
-      take: first
-        ? { kind: 'ROLL_WINDOW_USE', requestId, optionId: first.optionId }
-        : { kind: 'ROLL_WINDOW_DECLINE', requestId },
-      decline: { kind: 'ROLL_WINDOW_DECLINE', requestId }
-    }
-  }
   const [first] = pending.options
   return {
     answerBy,

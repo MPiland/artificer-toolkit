@@ -62,7 +62,6 @@ import {
   buildEncounterActionD20Evidence,
   settleEncounterD20Test
 } from './encounterD20Settlement.js'
-import { windowSpentReactions } from './encounterD20Window.js'
 import {
   holdEncounterDamageRoll,
   replayEncounterDamageRollWindow,
@@ -354,18 +353,12 @@ export async function advanceNativeActionGraphs(input: {
     }
     // An attack a decoy absorbed reaches nobody: its target is offered no reaction and its attacker no rider.
     const struck = !input.binding.absorbedByDecoy && isHitPath(test.d20.resultPath)
-    // A creature that spent its reaction in the roll's window has none left for the hit.
-    const windowReactors = windowSpentReactions({ d20: test.d20, nestedD20: null }).map(
-      ({ reactorActorId }) => reactorActorId
-    )
     // A held hit already made its offer, so it is offered no reaction again.
     const found =
       reaction && struck && !heldHit
         ? await reaction.discover(test.d20.resultPath === 'ON_CRIT')
         : null
-    const reactionCandidates = (found?.candidates ?? []).filter(
-      ({ reactorActorId }) => !windowReactors.includes(reactorActorId)
-    )
+    const reactionCandidates = found?.candidates ?? []
     const [firstReaction] = reactionCandidates
     if (reaction && found && firstReaction) {
       const hit = { ...sealedRoll(), targetStateChecksum: reaction.targetStateChecksum }

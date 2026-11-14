@@ -1,4 +1,3 @@
-import { isD20WindowReactionDie } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { describe, expect, it } from 'vitest'
 
 import { damageSaveRolledD20, damageSaveWindowRoll } from '../encounterConcentration.js'
@@ -77,7 +76,6 @@ describe('the roll a damage save freezes at its d20 window', () => {
 
 describe('the held die a window spends on a rolled save', () => {
   const option = offer.options[0]!
-  if (isD20WindowReactionDie(option)) throw new Error('A held die was offered.')
   const frozen = damageSaveRolledD20({
     requestId: 'request',
     save: { rollMode: 'NORMAL', modifier: 2, contributors: [], contributorChecksum: CHECKSUM },

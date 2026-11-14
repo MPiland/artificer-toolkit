@@ -484,10 +484,10 @@ each committed child left behind, so `readLiveEncounterActionAdmission` fences t
 as it does an answer's or a resume's; the removal admission pins that version to the Run and the occurrence.
 One undo of an area commit or a countered area cast restores the root and every child (`actionRevertGroups.ts`).
 
-The die a child rolls against a rolled attack (current on the action host, QUALITY-9.T1e1 and T1e2, D219
-"Roll-window reaction die"). Transitional: the movement host keeps the window reaction die until QUALITY-9.T2,
-and the window fields it uses (`spentReaction`, `windowReactions`, `usedReactionSpend`) stay until
-QUALITY-9.T1e3. Four contracts carry a reaction chosen after the attack d20 is rolled:
+The die a child rolls against a rolled attack (current, QUALITY-9.T1e1 to T1e3, D219 "Roll-window reaction
+die"). The window reaction die it replaced is deleted: `spentReaction`, `windowReactions`,
+`targetReactorSpend`, `answeredReactorActorIds` and `usedReactionSpend` no longer exist (D196: refresh local
+data when next used). Four contracts carry a reaction chosen after the attack d20 is rolled:
 
 - The offer. The `CAST_REACTION` pause's offer gains the kind `ATTACK_ROLL_BY_OTHER` and, for that kind
   only, `rolled`: the action's TEST as it froze with the roll (`test`: the paused continuation, its bound

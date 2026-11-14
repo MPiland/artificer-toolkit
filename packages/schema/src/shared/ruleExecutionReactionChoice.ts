@@ -6,7 +6,6 @@ import {
   MAX_ENCOUNTER_REACTION_OPTIONS
 } from './authoredLimits.js'
 import {
-  encounterActionEconomyTransitionDtoSchema,
   ruleCheckD20EvidenceDtoSchema,
   sourceSpendReceiptShape,
   validateSourceSpendReceipts,
@@ -19,7 +18,6 @@ import {
   type ServerRuleExecutionD20EvidenceDto,
   type ServerRuleExecutionD20PolicyDto
 } from './ruleExecutionEvidence.js'
-import { characterMechanicsResourceReceiptDtoSchema } from './ruleExecutionMechanics.js'
 import { d20RolledSaveDtoSchema, type D20RolledSaveDto } from './ruleExecutionD20WindowOffer.js'
 import {
   serverCompletedRuleExecutionDtoSchema,
@@ -252,59 +250,6 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
               code: 'custom',
               path: ['rolled'],
               message: 'Only an offer made after the attack roll keeps the rolled d20.'
-            })
-        })
-      )
-  )
-
-/**
- * What a reactor spent to roll a die against another creature's attack roll in its d20 window (D207),
- * settled with the action's terminal commit: its reaction allowance and the charge the reaction costs.
- */
-export type EncounterWindowReactionReceiptDto = {
-  reaction: EncounterReactionPinDto
-  resourceConsumption: z.infer<typeof characterMechanicsResourceReceiptDtoSchema> | null
-  /** The reactor's Character version once its charge was spent; null when the reaction costs none. */
-  characterStreamVersion: number | null
-  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema>
-}
-
-export const encounterWindowReactionReceiptDtoSchema: z.ZodMiniType<EncounterWindowReactionReceiptDto> =
-  lazySchema(() =>
-    z
-      .strictObject({
-        reaction: encounterReactionPinDtoSchema,
-        resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
-        characterStreamVersion: z.nullable(aggregateVersionSchema),
-        actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
-      })
-      .check(
-        z.superRefine((value, context) => {
-          validateEncounterReactionPin(value.reaction, context, ['reaction'])
-          const resource = value.resourceConsumption
-          if (
-            value.reaction.characterId === null ||
-            (value.characterStreamVersion === null) !== (resource === null) ||
-            (resource &&
-              (resource.afterUsed !== resource.beforeUsed + resource.cost ||
-                resource.afterRemaining !== resource.beforeRemaining - resource.cost ||
-                resource.afterRemaining < 0))
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['resourceConsumption'],
-              message: 'The reactor charge receipt must match its Character and stream version.'
-            })
-          const economy = value.actionEconomyTransition
-          if (
-            economy.definitionId !== value.reaction.allowanceDefinitionId ||
-            economy.beforeUsed !== value.reaction.allowanceBeforeUsed ||
-            economy.maximum !== value.reaction.allowanceMaximum
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['actionEconomyTransition'],
-              message: 'The reactor allowance spend must be the one the reaction pinned.'
             })
         })
       )

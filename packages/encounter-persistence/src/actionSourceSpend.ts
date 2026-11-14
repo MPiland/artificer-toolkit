@@ -141,20 +141,6 @@ function handMoveMutation(draw: NonNullable<SourceSpendReceipts['sourceItemDraw'
 
 export type SpendMutation = ReturnType<typeof sourceSpendMutation>['mutation']
 
-/**
- * One Character's spends in a terminal commit as a single mutation: its casts' slots apply in the order
- * given (a cast, then a counter to a Counterspell against it) on one Character version.
- */
-export function combineSpendMutations(...mutations: readonly SpendMutation[]): SpendMutation {
-  const characterSpellConsumptions = mutations.flatMap(
-    (mutation) => mutation.characterSpellConsumptions ?? []
-  )
-  return {
-    ...mutations.reduce<SpendMutation>((all, mutation) => ({ ...all, ...mutation }), {}),
-    ...(characterSpellConsumptions.length > 0 ? { characterSpellConsumptions } : {})
-  }
-}
-
 type SourceMechanicsReceipts = Pick<
   Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }>,
   'sourceApplications' | 'sourceCharacterStreamVersion' | 'sourceItemUseStateTransition'

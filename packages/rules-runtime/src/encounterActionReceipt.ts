@@ -1,8 +1,6 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import {
-  encounterWindowReactionReceiptDtoSchema,
-  type EncounterReactionPinDto,
   type EncounterSettledIncomingGateDto,
   type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -62,8 +60,6 @@ export function buildEncounterActionStoredExecution(input: {
   area?: { parentOccurrenceId: string }
   /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
   resistance?: ReturnType<typeof encounterTargetLegendaryResistance> | null
-  /** The target also spent a reaction another way (a failed counter, D127, or a die against the attack roll, D207), so its spend rides in this batch. */
-  targetReactorSpend?: boolean
   /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
   meleeRetaliation?: MeleeRetaliationEvidenceDto | null
   /** The timed effects the target's own rules made from this action: damage-trigger grants, a passed ward's immunity. */
@@ -150,7 +146,6 @@ export function buildEncounterActionStoredExecution(input: {
               characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,
-            targetReactorSpend: input.targetReactorSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
               : {}),
@@ -406,22 +401,5 @@ export function buildEncounterLostRayStoredExecution(
       sourceApplications: []
     },
     actionEconomy: null
-  })
-}
-
-/** What a reactor spends for the die it rolled against the attack roll (D207): its reaction and the charge it costs. */
-export function buildEncounterWindowReactionReceipt(input: {
-  reaction: EncounterReactionPinDto
-  spend: Pick<
-    ReturnType<typeof planNativeEncounterAreaSourceSpend>,
-    'resourceReceipt' | 'sourceCharacterStreamVersion'
-  >
-  economy: EncounterActionEconomyConsumption
-}) {
-  return encounterWindowReactionReceiptDtoSchema.parse({
-    reaction: input.reaction,
-    resourceConsumption: input.spend.resourceReceipt,
-    characterStreamVersion: input.spend.sourceCharacterStreamVersion,
-    actionEconomyTransition: actionEconomyReceipt(input.economy)
   })
 }

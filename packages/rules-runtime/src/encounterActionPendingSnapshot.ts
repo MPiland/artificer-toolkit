@@ -1,8 +1,6 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { EncounterSettledIncomingGateDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
-import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   PendingNativeActionGraphs,
@@ -144,12 +142,9 @@ export function buildEncounterActionPendingSnapshot(
       commandJson: input.commandJson,
       commandFingerprint: input.commandFingerprint,
       initiatorUserId: input.initiatorUserId,
-      // A reactor's d20 window is answered by the reactor, not the roller (D207), and so is the offer
-      // a rolled d20 or a hit holds for a creature that may react to it (D219).
+      // The offer a rolled d20 or a hit holds for a creature that may react to it is answered by that
+      // creature, not the roller (D219).
       rollerActorId:
-        (execution.pause?.kind === 'ROLL_WINDOW' &&
-          !isDamageRollWindow(execution.pause.payload) &&
-          d20WindowReactorActorId(execution.pause.payload)) ||
         (execution.pause?.kind === 'CAST_REACTION' &&
           execution.pause.payload.reactions[0]?.reactorActorId) ||
         (execution.roller === 'SOURCE' ? input.sourceActorId : input.targetActorId),

@@ -7,10 +7,7 @@ import type {
   ServerRuleExecutionD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  isD20RolledCheck,
-  isD20WindowReactionDie
-} from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { z } from 'zod'
 
@@ -219,12 +216,7 @@ export function windowAnswerForRetainedEvidence(input: {
     throw new Error('The retained action window evidence is stale.')
   input.used.add(d20.requestId)
   const option =
-    spent &&
-    window.offer.options.find((offered) =>
-      isD20WindowReactionDie(offered)
-        ? offered.reaction.selectionChecksum === spent.spentReaction?.selectionChecksum
-        : offered.effectId === spent.spentEffectId
-    )
+    spent && window.offer.options.find((offered) => offered.effectId === spent.spentEffectId)
   if (!spent || !option) return { kind: 'ROLL_WINDOW', d20 }
   const answered = spendEncounterD20WindowDie(d20, option, spent.rolledFaces)
   if (!same(answered.addedDice, dice.slice(0, held.length + 1)))
