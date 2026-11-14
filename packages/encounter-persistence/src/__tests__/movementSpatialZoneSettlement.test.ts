@@ -200,6 +200,7 @@ describe('persistMovementSettlements spatial zone currentness', () => {
           persistSpatial: unreachable,
           persistConcentration: unreachable,
           persistRepeatSave: unreachable,
+          persistMassiveDamageSave: unreachable,
           persistConcentrationEnd: unreachable,
           persistAreaDeparture: unreachable,
           persistMoveEnd: unreachable,

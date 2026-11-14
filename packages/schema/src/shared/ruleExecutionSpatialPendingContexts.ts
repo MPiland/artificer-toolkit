@@ -8,8 +8,10 @@ import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
 import {
   encounterConcentrationDamageCheckPendingContextDtoSchema,
-  encounterEffectRepeatSavePendingContextDtoSchema
+  encounterEffectRepeatSavePendingContextDtoSchema,
+  encounterMassiveDamageSavePendingContextDtoSchema
 } from './ruleExecutionDirectActionPendingContexts.js'
+import { movementContactDamageEnvelope } from './ruleExecutionMovementConcentration.js'
 import { storedRuleExecutionResultDtoSchema } from './ruleExecutionResults.js'
 import {
   compareSpatialPendingCandidates,
@@ -150,6 +152,12 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       /** The spatial contact whose damage owes the effect repeat save (D167). */
       damageSource: z.strictObject({ executionOrdinal: nonNegativeIntegerSchema }),
       repeatSave: encounterEffectRepeatSavePendingContextDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('MASSIVE_DAMAGE_SAVE_EVIDENCE'),
+      /** The spatial contact whose damage owes the massive-damage save (ATTACK-16). */
+      damageSource: z.strictObject({ executionOrdinal: nonNegativeIntegerSchema }),
+      massiveDamageSave: encounterMassiveDamageSavePendingContextDtoSchema
     })
   ])
 )
@@ -158,11 +166,16 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
 export function movementPendingDamageSave(
   phase: z.infer<typeof movementReactionPendingPhaseDtoSchema>
 ) {
-  return phase.kind === 'CONCENTRATION_EVIDENCE'
-    ? { damageSource: phase.damageSource, context: phase.concentration }
-    : phase.kind === 'REPEAT_SAVE_EVIDENCE'
-      ? { damageSource: phase.damageSource, context: phase.repeatSave }
-      : null
+  switch (phase.kind) {
+    case 'CONCENTRATION_EVIDENCE':
+      return { damageSource: phase.damageSource, context: phase.concentration }
+    case 'REPEAT_SAVE_EVIDENCE':
+      return { damageSource: phase.damageSource, context: phase.repeatSave }
+    case 'MASSIVE_DAMAGE_SAVE_EVIDENCE':
+      return { damageSource: phase.damageSource, context: phase.massiveDamageSave }
+    default:
+      return null
+  }
 }
 
 export const movementReactionPendingContextDtoSchema = lazySchema(() =>
@@ -237,17 +250,7 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
         if (damageSave !== null) {
           const execution = value.completedSpatialExecutions.at(-1)
           const applications = execution?.applications
-          const envelope =
-            execution &&
-            (() => {
-              const {
-                concentrationChecks: _concentrationChecks,
-                concentrationEnds: _concentrationEnds,
-                repeatSaves: _repeatSaves,
-                ...damageEnvelope
-              } = execution
-              return damageEnvelope
-            })()
+          const envelope = execution && movementContactDamageEnvelope(execution)
           if (
             !execution ||
             execution.ordinal !== damageSave.damageSource.executionOrdinal ||

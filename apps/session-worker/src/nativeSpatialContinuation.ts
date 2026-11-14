@@ -25,6 +25,7 @@ import {
   reconcileEncounterActorRuleOutput
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { repeatsSaveOnDamage } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
+import { encounterMassiveDamageRule } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import {
   prepareEncounterSpatialMovement,
@@ -134,6 +135,8 @@ export function nativeSpatialStepCallbacks(
           state.automationMode === 'MANUAL'
             ? undefined
             : async (actorIds, selected) => {
+                // Under a massive-damage rule any damaged actor may owe its save: the chain decides.
+                if (encounterMassiveDamageRule(state)) return new Set(actorIds)
                 // A damaged actor owes a save for Concentration it holds or an effect it may repeat.
                 const active = await Promise.all(
                   actorIds.map(async (targetActorId) =>
@@ -217,9 +220,9 @@ export function nativeMovementSettlementInputs(input: {
         kind:
           settlement.plan.kind === 'END'
             ? 'CONCENTRATION_END'
-            : settlement.plan.kind === 'REPEAT_SAVE'
-              ? 'REPEAT_SAVE'
-              : 'CONCENTRATION',
+            : settlement.plan.kind === 'CHECK'
+              ? 'CONCENTRATION'
+              : settlement.plan.kind,
         execution: settlement.plan.execution
       })
     if (settlement.kind === 'PASSAGE')
