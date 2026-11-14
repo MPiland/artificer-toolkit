@@ -40,25 +40,6 @@ export function retainedMovementSpatialExecutions(outcome: Outcome) {
   throw new Error('Retained Scene movement evidence is unavailable.')
 }
 
-export function retainedMovementReactionExecutions(outcome: Outcome) {
-  if (outcome.kind === 'TERMINAL') return outcome.result.reactionExecutions
-
-  const context = outcome.pendingSnapshot.applicationContext
-
-  if (context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT') return []
-
-  if (context.kind === 'ENCOUNTER_MOVEMENT_REACTION') return context.completedReactionExecutions
-
-  if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE')
-    return context.movement.completedReactionExecutions
-
-  const continuation =
-    context.kind === 'ENCOUNTER_CONTEST_CHECK' ? contestCheckMovementContinuation(context) : null
-  if (continuation) return continuation.completedReactionExecutions
-
-  throw new Error('Retained Scene movement reaction evidence is unavailable.')
-}
-
 /** Projects the exact spatial receipt from already planned, settled state. */
 export function projectSpatialMovementResult(input: {
   encounterId: string
@@ -79,9 +60,6 @@ export function projectSpatialMovementResult(input: {
     characterStreamVersion: number | null
   }[]
   appliedSpatialPrefix: SpatialBatch | null
-  completedReactionExecutions: Readonly<
-    FrozenMovementReactionRemainder['completedReactionExecutions']
-  >
   remainingEffectIds?: readonly string[]
 }): SpatialBatch {
   const historical = input.appliedSpatialPrefix
@@ -192,7 +170,6 @@ export function projectSpatialMovementResult(input: {
     sceneVersion: input.sceneVersion + (moved ? 1 : 0),
     tokenId: input.root.tokenId,
     movementKind: input.root.movementKind,
-    reactionExecutions: input.completedReactionExecutions,
     terminalPosition: position,
     executions: [...(historical?.executions ?? []), ...input.executions],
     spatialEffectTransitions: [...effectTransitions.values()].sort((left, right) =>

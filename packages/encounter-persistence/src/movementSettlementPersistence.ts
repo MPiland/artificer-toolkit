@@ -12,10 +12,7 @@ import type {
   MovementConcentrationExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  retainedMovementSpatialExecutions,
-  retainedMovementReactionExecutions
-} from '@artificer-toolkit/rules-runtime/encounterSpatialMovementResult'
+import { retainedMovementSpatialExecutions } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementResult'
 import { spatialMovementEffectBeforeTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import {
   movementCommandCharacterAggregateVersions,
@@ -37,7 +34,6 @@ import {
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
-import type { persistLiveMovementReaction } from './liveMovementReactionPersistence.js'
 import type {
   persistLiveMovementAreaDeparture,
   persistLiveMovementMoveEnd
@@ -150,9 +146,6 @@ type MovementSettlementCallbacks = {
   persistSpatial: (
     input: Parameters<typeof persistLiveMovementSpatial>[1]
   ) => ReturnType<typeof persistLiveMovementSpatial>
-  persistReaction: (
-    input: Parameters<typeof persistLiveMovementReaction>[1]
-  ) => ReturnType<typeof persistLiveMovementReaction>
   persistConcentration: (
     input: Parameters<typeof persistLiveMovementConcentration>[1]
   ) => ReturnType<typeof persistLiveMovementConcentration>
@@ -263,20 +256,16 @@ export async function persistMovementContacts(
   const appliedPrefix = appliedSpatialPrefix(preparation.outcome)
   // A dice pause may retain evaluated contacts that have not changed gameplay state yet.
   const nextSpatial = retainedMovementSpatialExecutions(preparation.outcome)
-  const nextReactions = retainedMovementReactionExecutions(preparation.outcome)
   const priorSpatial = priorOutcome ? retainedMovementSpatialExecutions(priorOutcome) : []
-  const priorReactions = priorOutcome ? retainedMovementReactionExecutions(priorOutcome) : []
   const priorSpatialCount = priorPrefix?.executions.length ?? 0
   retainedContactChildren(priorSpatial, nextSpatial)
   const retainedSpatial = retainedContactChildren(priorPrefix?.executions ?? [], nextSpatial)
-  const retainedReaction = retainedContactChildren(priorReactions, nextReactions)
-  const checks = [...retainedSpatial.checks, ...retainedReaction.checks]
+  const checks = [...retainedSpatial.checks]
   // A contact's end settles before its checks, so at most one end is ever awaiting settlement.
-  const ends = [...retainedSpatial.ends, ...retainedReaction.ends]
+  const ends = [...retainedSpatial.ends]
   if ((appliedPrefix?.executions.length ?? 0) < priorSpatialCount)
     throw new Error('Movement response lost its applied spatial prefix.')
   const spatial = (appliedPrefix?.executions ?? []).slice(priorSpatialCount)
-  const reactions = nextReactions.slice(priorReactions.length)
   const resolutionCommands =
     preparation.outcome.kind === 'PENDING'
       ? readEncounterMovementPendingContext(preparation.outcome.pendingSnapshot).root
@@ -343,7 +332,6 @@ export async function persistMovementContacts(
   const transitions: MovementCommandTransition[] = []
   let actors = input.actors
   let spatialIndex = 0
-  let reactionIndex = 0
   const departures =
     preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.areaDepartures ?? []) : []
   const moveEnds =
@@ -402,37 +390,12 @@ export async function persistMovementContacts(
       spatialIndex += expected.length
       checks.push(...expected.flatMap((entry) => entry.concentrationChecks ?? []))
       ends.push(...expected.flatMap((entry) => entry.concentrationEnds ?? []))
-    } else if (step.kind === 'REACTION') {
-      const expected = reactions[reactionIndex]
-      if (!expected || evidenceChecksum(expected) !== checksumCanonicalJson(step.execution))
-        throw new Error('Movement reaction settlement differs from its retained receipt.')
-      const nextDistance = expected.option.candidate.pathDistance
-      if (nextDistance + 1e-8 < distance) throw new Error('Movement contacts are out of order.')
-      distance = nextDistance
-      damagedActorIds.add(expected.option.candidate.movingActorId)
-      if (
-        (expected.application.kind === 'CHARACTER_MECHANICS_BATCH' ||
-          expected.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH') &&
-        expected.application.meleeRetaliation
-      )
-        damagedActorIds.add(expected.option.candidate.reactorActorId)
-      actors = await callbacks.persistReaction({
-        ...common,
-        actors,
-        step,
-        authorizedCharacterIds: input.authorizedCharacterIds
-      })
-      transitions.push({ kind: 'REACTION', execution: expected })
-      reactionIndex++
-      checks.push(...(expected.concentrationChecks ?? []))
-      ends.push(...(expected.concentrationEnds ?? []))
     } else if (step.kind === 'PASSAGE') {
       if (
         !resolution ||
         !passage ||
         passageSettled ||
         spatialIndex ||
-        reactionIndex ||
         step.actorId !== passage.audit.sourceActorId ||
         checksumCanonicalJson(step.consumption) !== checksumCanonicalJson(passage.actionEconomy)
       )
@@ -583,7 +546,6 @@ export async function persistMovementContacts(
   }
   if (
     spatialIndex !== spatial.length ||
-    reactionIndex !== reactions.length ||
     departureIndex !== departures.length ||
     moveEndIndex !== moveEnds.length ||
     checks.length ||

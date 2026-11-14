@@ -196,42 +196,11 @@ describe('movement reaction persisted choice contracts', () => {
       })
     ).toMatchObject({ phase: { kind: 'CHOICE' } })
     expect(
-      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
-        ...common,
-        phase: {
-          kind: 'ACTION_EVIDENCE',
-          selectedOptionId: currentChoice.options[0]!.optionId,
-          rollerActorId: ACTOR_ID,
-          d20Policy: {
-            requestNodeId: 'choice',
-            rollMode: 'NORMAL',
-            keep: 'FIRST',
-            contributors: [],
-            contributorChecksum: checksumRuleDocument([]),
-            modifier: 0,
-            dc: 10
-          }
-        }
-      })
-    ).toMatchObject({ phase: { kind: 'ACTION_EVIDENCE' } })
-    expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
         ...common,
         reactionSelectionChecksum: '5'.repeat(64),
-        phase: {
-          kind: 'ACTION_EVIDENCE',
-          selectedOptionId: '6'.repeat(64),
-          rollerActorId: ACTOR_ID,
-          d20Policy: {
-            requestNodeId: 'choice',
-            rollMode: 'NORMAL',
-            keep: 'FIRST',
-            contributors: [],
-            contributorChecksum: checksumRuleDocument([]),
-            modifier: 0,
-            dc: 10
-          }
-        }
+        // T2c: the ACTION_EVIDENCE phase is deleted; the checksum binding is proved on the choice.
+        phase: { kind: 'CHOICE' }
       }).success
     ).toBe(false)
   })

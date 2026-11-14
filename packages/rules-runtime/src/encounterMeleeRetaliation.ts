@@ -221,21 +221,3 @@ export async function planEncounterMeleeRetaliation<
     projectedAttacker: settled.projectedTargets.get(attacker.actor.id)!
   }
 }
-
-/** The attacker's Character span its retaliation batch advances, when the zones changed a Character. */
-export function meleeRetaliationCharacterTransition(
-  evidence: MeleeRetaliationEvidenceDto | undefined
-) {
-  const first = evidence?.executions[0]
-  const last = evidence?.executions.at(-1)
-  if (
-    !first ||
-    !last ||
-    first.candidate.target.kind !== 'CHARACTER' ||
-    checksumCanonicalJson(first.targetTransition.before) ===
-      checksumCanonicalJson(last.targetTransition.after)
-  )
-    return null
-  const { characterId, streamVersion } = first.candidate.target
-  return { characterId, beforeStreamVersion: streamVersion, afterStreamVersion: streamVersion + 1 }
-}

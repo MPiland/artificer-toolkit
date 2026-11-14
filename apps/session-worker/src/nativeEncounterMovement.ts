@@ -2,59 +2,30 @@ import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projecti
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { type LiveSessionMovementSettlement } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { prepareEncounterMovementContinuation } from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
 import { type PreparedSpatialMovementPlan } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPreparation'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
-import {
-  resolveEncounterAttackPerception,
-  resolveEncounterBelievedAttackPerception,
-  resolveEncounterObserversSeeing
-} from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
-import { resolveEncounterCover } from '@artificer-toolkit/rules-runtime/encounterCover'
-import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/encounterPositionalContributors'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import {
   discoverEncounterMovementReactionChoices,
   revalidateEncounterMovementReactionOption
 } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import { StaleMovementReactionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
-import { prepareEncounterMovementReactionAction } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPreparation'
-import {
-  executeEncounterMovementReactionAction,
-  resumeEncounterMovementLegendaryResistance
-} from '@artificer-toolkit/rules-runtime/encounterMovementReactionExecution'
-import { replayEncounterMovementReactionAction } from '@artificer-toolkit/rules-runtime/encounterMovementReactionReplay'
-import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
-import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
-import {
-  planEncounterMovementReactionAction,
-  type MovementReactionSettlementInput
-} from '@artificer-toolkit/rules-runtime/encounterMovementReactionPlan'
-import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { evaluateEncounterMovementActionResponse } from '@artificer-toolkit/rules-runtime/encounterMovementActionResponse'
 import { evaluateEncounterMovementPassageResponse } from '@artificer-toolkit/rules-runtime/encounterMovementPassageResponse'
 import { evaluateEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassageExecution'
 import { prepareEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
-import {
-  encounterActionSpentTurnUses,
-  prepareEncounterActionMechanics
-} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import { prepareAttackBehindDecoys } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
-import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { RULE_WARNINGS_MESSAGE } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   encounterConditionApproachWarnings,
   encounterConditionSources
 } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
-import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
   MovementBlockedError,
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
-import { refuseBlockedCover } from './nativeLiveCover.js'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { admitsEncounterFacing } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
@@ -62,27 +33,12 @@ import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
-import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
-import { measureHolderLight } from './nativeHolderLight.js'
-import { readNativeLiveHasNotTakenTurn, readNativeLiveTurnUses } from './nativeTurnUses.js'
-import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
-import {
-  discoverNativeRollReactions,
-  nextNativeRollReactionDice,
-  planNativeWindowReactions,
-  type NativeRollReaction
-} from './nativeEncounterRollReaction.js'
 import { prepareNativeLiveMovementConcentration } from './nativeEncounterMovementConcentration.js'
-import {
-  prepareNativeLiveActionMaintenance,
-  readNativeLiveMaintenanceCharacter,
-  type NativeLiveMovementMaintenanceProjection
-} from './nativeEncounterMaintenance.js'
+import { type NativeLiveMovementMaintenanceProjection } from './nativeEncounterMaintenance.js'
 import {
   nativeMovementSettlementInputs,
   nativeSpatialStepCallbacks,
   type CharacterFacts,
-  type CharacterRow,
   type ContinuationInput,
   type NativeLiveMovementSettlement
 } from './nativeSpatialContinuation.js'
@@ -110,10 +66,6 @@ export async function prepareNativeLiveMovement(
   // Each roll goes to its actor's controllers; the mover rolls for the actors they control.
   const autoRoll = captured.autoRollByActorId
   const finalActors = new Map(captured.actors.map((actor) => [actor.id, actor]))
-  const reactionSettlements = new Map<
-    MovementReactionSettlementInput<CharacterFacts, CharacterRow>,
-    Extract<LiveSessionMovementSettlement, { kind: 'REACTION' }>
-  >()
 
   function factsFor(targets: ReadonlyMap<string, MovementTarget<CharacterFacts>>) {
     if (!captured.facts) throw new Error('Movement reaction facts are unavailable.')
@@ -159,369 +111,6 @@ export async function prepareNativeLiveMovement(
       loadSpatialEffects: async () => spatialEffects
     })
     return { facts, resolvePerception }
-  }
-
-  const discoverResistance: Parameters<
-    typeof executeEncounterMovementReactionAction
-  >[0]['discoverResistance'] = async ({ prepared }) =>
-    prepared.target.kind === 'CREATURE'
-      ? discoverEncounterLegendaryResistanceCandidate({
-          encounter: prepared.state,
-          targetActor: prepared.target,
-          actorRules: prepared.actorRules,
-          definitions
-        })
-      : null
-
-  async function prepareReaction(
-    reaction: Parameters<typeof prepareEncounterMovementReactionAction>[0]['revalidate'] & {
-      targets: ReadonlyMap<string, MovementTarget<CharacterFacts>>
-      maintenanceProjection?: NativeLiveMovementMaintenanceProjection
-    }
-  ) {
-    // The reaction attack is made from where the mover is in contact with the reactor.
-    const contactTokens = scene.tokens.flatMap(({ coverTierOverride, ...token }) => {
-      const actorId = captured.actorIdByTokenId.get(token.id)
-      const moving = token.id === captured.token.id
-      // The mover has left the place the GM's cover override was set for.
-      return actorId
-        ? [
-            {
-              ...token,
-              ...(!moving && coverTierOverride && { coverTierOverride }),
-              actorId,
-              tokenId: token.id,
-              position: moving ? reaction.option.candidate.contact : token.position
-            }
-          ]
-        : []
-    })
-    const loadReactionTarget = async (actor: { id: string }) => {
-      const loaded = reaction.targets.get(actor.id)
-      if (!loaded) throw new Error('Movement reaction target is unavailable.')
-      return loaded
-    }
-    const tokenOf = (actorId: string) => {
-      const token = contactTokens.find((entry) => entry.actorId === actorId)
-      if (!token) throw new Error('Movement reaction perception facts are stale.')
-      return token
-    }
-    // Each attacker sees its target with the mover where the reaction caught it.
-    const loadContactPerception: NonNullable<
-      Parameters<typeof prepareEncounterActionMechanics>[0]['loadAttackPerception']
-    > = async ({ sourceFacts, targetFacts }) => {
-      const loaders = {
-        gameSystemId: state.gameSystemId,
-        loadDefinition,
-        loadSystem: async () => system
-      }
-      const [actual, believed] = await Promise.all([
-        resolveEncounterAttackPerception({
-          ...loaders,
-          attacker: sourceFacts,
-          target: targetFacts,
-          placement: {
-            scene: captured.perceptionScene,
-            sceneGrid: scene.grid,
-            attackerToken: tokenOf(sourceFacts.actor.id),
-            targetToken: tokenOf(targetFacts.actor.id),
-            spatialEffects
-          }
-        }),
-        resolveEncounterBelievedAttackPerception({
-          ...loaders,
-          attacker: sourceFacts,
-          target: targetFacts
-        })
-      ])
-      return { actual, believed }
-    }
-    const actionSources: Pick<
-      Parameters<typeof prepareEncounterActionMechanics>[0],
-      'loadSource' | 'loadRelationshipFacts'
-    > = {
-      loadSource: async (source) => resolveEncounterActionSource({ ...source, system, spells }),
-      loadRelationshipFacts: async (relationship) =>
-        lockedRelationshipActionFacts({
-          actionEffectId: relationship.actionEffectId,
-          sourceActorId: relationship.sourceActorId,
-          targetActorId: relationship.targetActorId,
-          targets: {
-            activeEffectsByActorId: new Map(
-              [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
-            )
-          }
-        })
-    }
-    // A reaction chosen from options that changed since they were issued is the client's stale view.
-    const prepared = await prepareEncounterMovementReactionAction({
-      facts: factsFor(reaction.targets),
-      revalidate: reaction,
-      maintenanceProjection: reaction.maintenanceProjection,
-      prepareMechanics: async (mechanics) => {
-        const prepareAs = (
-          attackDecoy: Parameters<typeof prepareEncounterActionMechanics>[0]['attackDecoy'],
-          windowReactionDice: NativeRollReaction['die'][]
-        ) =>
-          prepareEncounterActionMechanics({
-            ...mechanics,
-            attackDecoy,
-            windowReactionDice,
-            overridable: false,
-            saveWindow: true,
-            // The reactor attacks from its token; the mover is the target at the contact point.
-            loadAttackPerception: loadContactPerception,
-            ...actionSources,
-            loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
-              measureNativeEnemyProximity({
-                state,
-                actors: captured.actors,
-                attackerActorId: sourceFacts.actor.id,
-                targetActorId: targetFacts.actor.id,
-                grid: scene.grid,
-                tokens: contactTokens,
-                loadTarget: loadReactionTarget,
-                definitions
-              }),
-            // Each ally's sight of the mover is judged at the contact point too.
-            loadFlanking: ({ sourceFacts, targetFacts, capabilityDefinitionId }) =>
-              loadEncounterFlankingFacts({
-                gameSystemId: state.gameSystemId,
-                actors: captured.actors,
-                attacker: sourceFacts,
-                target: targetFacts,
-                grid: scene.grid,
-                tokens: contactTokens,
-                capabilityDefinitionId,
-                loadTarget: loadReactionTarget,
-                definitions,
-                observersSeeing: ({ subject, observers }) =>
-                  resolveEncounterObserversSeeing({
-                    gameSystemId: state.gameSystemId,
-                    loadDefinition,
-                    loadSystem: async () => system,
-                    subject,
-                    observers: observers.map((observer) => ({
-                      observer,
-                      placement: {
-                        scene: captured.perceptionScene,
-                        sceneGrid: scene.grid,
-                        observerToken: tokenOf(observer.actor.id),
-                        subjectToken: tokenOf(subject.actor.id),
-                        spatialEffects
-                      }
-                    }))
-                  })
-              }),
-            // The reactor's cover against the mover is judged with the mover at the contact point.
-            loadCover: async ({ sourceFacts, targetFacts }) => {
-              const reactorToken = contactTokens.find(
-                ({ actorId }) => actorId === sourceFacts.actor.id
-              )
-              const movingToken = contactTokens.find(
-                ({ actorId }) => actorId === targetFacts.actor.id
-              )
-              if (!reactorToken || !movingToken)
-                throw new Error('Movement reaction perception facts are stale.')
-              return refuseBlockedCover(
-                resolveEncounterCover({
-                  system,
-                  scene: { ...captured.perceptionScene, tokens: contactTokens },
-                  origin: { kind: 'TOKEN', token: reactorToken },
-                  targetTokenId: movingToken.id,
-                  automatic: state.automaticCover
-                }),
-                true
-              )
-            },
-            loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
-            loadTargetHasNotTakenTurn: ({ targetFacts }) =>
-              readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
-            // The reactor attacks from its own square.
-            loadHolderLight: async ({ sourceFacts }) => {
-              const reactorToken = scene.tokens.find(
-                (token) => captured.actorIdByTokenId.get(token.id) === sourceFacts.actor.id
-              )
-              return reactorToken
-                ? measureHolderLight(
-                    state.gameSystemId,
-                    captured.perceptionScene,
-                    reactorToken.position
-                  )
-                : null
-            }
-          })
-        // The reaction shares its move's occurrence, so each reactor's decoy roll is salted with it.
-        const unwindowed = await prepareAttackBehindDecoys({
-          occurrenceId: `${reaction.occurrenceId}:${mechanics.actor.id}`,
-          effects: reaction.targets.get(mechanics.target.id)?.activeEffects ?? [],
-          system,
-          prepare: (attackDecoy) => prepareAs(attackDecoy, [])
-        })
-        // The creatures that may roll a die against the reaction attack's roll by a reaction (D207);
-        // their dice join the windows the roll opens, so the attack is prepared again with them.
-        const rollReactions = unwindowed.makesAttackRoll
-          ? await discoverNativeRollReactions({
-              state,
-              actors: mechanics.actors,
-              system,
-              roller: unwindowed.actor,
-              movementTargets: reaction.targets,
-              loadTarget: loadReactionTarget,
-              loadScene: async () => ({
-                sceneGrid: scene.grid,
-                tokens: contactTokens,
-                rollerToken: tokenOf(unwindowed.actor.id)
-              }),
-              loadAttackPerception: loadContactPerception,
-              actionSources,
-              capture
-            })
-          : []
-        const windowed =
-          rollReactions.length > 0
-            ? await prepareAs(
-                unwindowed.attackDecoy,
-                rollReactions.map(({ die }) => die)
-              )
-            : unwindowed
-        return { ...windowed, rollReactions }
-      },
-      prepareMaintenance: (prepared, _actorUserId, maintenanceProjection) =>
-        prepareNativeLiveActionMaintenance({
-          prepared,
-          capture,
-          projection: maintenanceProjection,
-          targets: reaction.targets,
-          activeEffectsByActorId: new Map(
-            [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
-          ),
-          loadCarriedHolder: async (actor) => {
-            const holder = reaction.targets.get(actor.id)
-            if (!holder) throw new Error('Carried-grant holder is not in the movement reaction.')
-            return holder
-          }
-        })
-    }).catch((error: unknown) => {
-      if (error instanceof StaleMovementReactionError)
-        rejectDomain('VERSION_STALE', 'This reaction changed; refresh and choose again.')
-      throw error
-    })
-    return {
-      ...prepared,
-      windowReactionDice: async (answeredReactorActorIds: readonly string[]) =>
-        nextNativeRollReactionDice(prepared.prepared.rollReactions, answeredReactorActorIds)
-    }
-  }
-
-  async function planReaction(
-    plan: MovementReactionSettlementInput<CharacterFacts, CharacterRow> & {
-      prepared: Awaited<ReturnType<typeof prepareReaction>>
-    },
-    actorUserId: string,
-    retainedRetaliation: MeleeRetaliationEvidenceDto | null
-  ) {
-    // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207).
-    const windowReactions =
-      plan.execution.kind === 'COMPLETE'
-        ? planNativeWindowReactions({
-            reactions: plan.prepared.prepared.rollReactions,
-            execution: plan.execution,
-            state,
-            occurrenceId: plan.occurrenceId,
-            commandId: plan.commandId,
-            occurredAt: plan.occurredAt,
-            userId: actorUserId
-          })
-        : []
-    const reacted = planEncounterMovementReactionAction(
-      { ...plan, windowReactions: windowReactions.map(({ receipt }) => receipt) },
-      actorUserId,
-      (row) => readNativeLiveMaintenanceCharacter(row, state.gameSystemId)
-    )
-    // An opportunity attack that hits the mover in melee sets off the zones the mover holds
-    // against the reactor, with the mover where the attack caught it (D153).
-    const { prepared } = plan.prepared
-    const { candidate } = plan.prepared.option
-    const reactor = reacted.projectedTargets.get(candidate.reactorActorId)
-    const reactorToken = scene.tokens.find(({ id }) => id === candidate.reactorTokenId)
-    const retaliation =
-      reactor &&
-      reactorToken &&
-      isMeleeRetaliationHit({
-        gameSystemId: state.gameSystemId,
-        prepared,
-        // A hit on a decoy does not reach the mover.
-        resultPath:
-          plan.execution.kind === 'COMPLETE' && !prepared.attackDecoy
-            ? plan.execution.d20?.resultPath
-            : undefined
-      })
-        ? await planNativeLiveMeleeRetaliation({
-            state,
-            attackerToken: { ...reactorToken, tokenId: reactorToken.id, actorId: reactor.actor.id },
-            hitToken: {
-              ...captured.token,
-              tokenId: captured.token.id,
-              actorId: candidate.movingActorId,
-              position: candidate.contact
-            },
-            effects: spatialEffects,
-            initialActors: [...finalActors.values()],
-            attacker: reactor,
-            occurrenceId: plan.occurrenceId,
-            sourceCommandId: plan.commandId,
-            occurredAt: plan.occurredAt,
-            userId: actorUserId,
-            runtime,
-            random,
-            ...(retainedRetaliation ? { retained: retainedRetaliation } : {})
-          })
-        : null
-    if (retainedRetaliation && !retaliation)
-      throw new Error('Retained melee retaliation evidence is stale.')
-    const { application } = reacted.reactionExecution
-    const retaliated =
-      retaliation &&
-      (application.kind === 'CHARACTER_MECHANICS_BATCH' ||
-        application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
-        ? { ...application, meleeRetaliation: retaliation.evidence }
-        : null
-    if (retaliation && !retaliated)
-      throw new Error('Movement reaction retaliation requires a mechanics batch.')
-    const result =
-      retaliation && retaliated
-        ? {
-            ...reacted,
-            reactionExecution: { ...reacted.reactionExecution, application: retaliated },
-            projectedTargets: new Map(reacted.projectedTargets).set(
-              candidate.reactorActorId,
-              retaliation.projectedAttacker
-            )
-          }
-        : reacted
-    for (const target of result.projectedTargets.values())
-      finalActors.set(target.actor.id, target.actor)
-    reactionSettlements.set(plan, {
-      kind: 'REACTION',
-      // The same attack roll uses up the reactor's one-roll grants (Vicious Mockery's disadvantage)
-      // and releases the condition an ending effect alone held (Invisibility).
-      consumedGrants: result.consumedGrants,
-      spentUseGrants: result.spentUseGrants,
-      turnUses: encounterActionSpentTurnUses(
-        plan.prepared.prepared,
-        result.reactionExecution.execution.evidence
-      ),
-      execution: result.reactionExecution,
-      resourceConsumption: plan.prepared.prepared.characterActionState?.resourceConsumption ?? null,
-      createdEffects: result.effects.createdEffects,
-      maintainedState: result.effects.maintainedState,
-      windowReactions: windowReactions.map(({ receipt, resourceConsumption }) => ({
-        receipt,
-        resourceConsumption
-      }))
-    })
-    return result
   }
 
   async function continueMovement(step: ContinuationInput): Promise<{
@@ -700,7 +289,6 @@ export async function prepareNativeLiveMovement(
       targets: captured.targets
     })
   } else if (response.context.kind === 'ENCOUNTER_MOVEMENT_REACTION') {
-    const perception = await perceptionFor(captured.targets)
     const evaluated = await evaluateEncounterMovementActionResponse(
       {
         state,
@@ -717,20 +305,11 @@ export async function prepareNativeLiveMovement(
         sceneTokens: scene.tokens,
         sceneGrid: scene.grid,
         actorIdByTokenId: captured.actorIdByTokenId,
-        resolvePerception: perception.resolvePerception,
         targets: captured.targets,
         reactionChildren: response.reactionChildren,
         ...(input.retained ? { retained: input.retained } : {})
       },
       {
-        prepareReaction,
-        replayReaction: (reaction) =>
-          replayEncounterMovementReactionAction({ ...reaction, discoverResistance }),
-        executeReaction: (reaction) =>
-          executeEncounterMovementReactionAction({ ...reaction, discoverResistance, random }),
-        resumeResistance: (reaction) =>
-          resumeEncounterMovementLegendaryResistance({ ...reaction, discoverResistance, random }),
-        planReaction,
         prepareConcentration: async (args) => {
           const result = await prepareNativeLiveMovementConcentration({
             ...args,
@@ -884,8 +463,7 @@ export async function prepareNativeLiveMovement(
     actors: captured.actors,
     targets: captured.targets,
     finalActors,
-    planned,
-    reactionSettlements
+    planned
   })
   return { ...captured, ...planned, settlementInputs, rules }
 }

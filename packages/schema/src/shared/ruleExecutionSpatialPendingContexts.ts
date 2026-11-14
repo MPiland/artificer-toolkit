@@ -2,29 +2,11 @@ import { z, lazySchema } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
-import { encounterPauseVariants } from './encounterPause.js'
+import { encounterReactionChildrenDtoSchema } from './encounterActionPending.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
-import { isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
-import {
-  encounterActionHeldD20DtoSchema,
-  encounterReactionChildrenDtoSchema
-} from './encounterActionPending.js'
-import {
-  serverRuleExecutionD20BeliefDtoSchema,
-  serverRuleExecutionD20EvidenceDtoSchema,
-  serverRuleExecutionD20PolicyDtoSchema
-} from './ruleExecutionEvidence.js'
-import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
-import {
-  directActionTwoPhaseDtoSchema,
-  encounterConcentrationDamageCheckPendingContextDtoSchema,
-  encounterLegendaryResistancePinDtoSchema,
-  validateEncounterLegendaryResistancePin
-} from './ruleExecutionDirectActionPendingContexts.js'
-import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
+import { encounterConcentrationDamageCheckPendingContextDtoSchema } from './ruleExecutionDirectActionPendingContexts.js'
 import { storedRuleExecutionResultDtoSchema } from './ruleExecutionResults.js'
 import {
   compareSpatialPendingCandidates,
@@ -36,8 +18,7 @@ import {
 } from './ruleExecutionSpatial.js'
 import {
   ruleExecutionChecksumSchema as checksumSchema,
-  ruleExecutionNonNegativeIntegerSchema as nonNegativeIntegerSchema,
-  ruleExecutionUuidSchema as uuidSchema
+  ruleExecutionNonNegativeIntegerSchema as nonNegativeIntegerSchema
 } from './ruleExecutionPrimitives.js'
 
 export const spatialPendingContextDtoSchema = lazySchema(() =>
@@ -157,39 +138,9 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('CONCENTRATION_EVIDENCE'),
-      damageSource: z.strictObject({
-        kind: z.enum(['SPATIAL', 'REACTION']),
-        executionOrdinal: nonNegativeIntegerSchema
-      }),
+      /** The spatial contact whose damage owes the Concentration check. */
+      damageSource: z.strictObject({ executionOrdinal: nonNegativeIntegerSchema }),
       concentration: encounterConcentrationDamageCheckPendingContextDtoSchema
-    }),
-    z.strictObject({
-      kind: z.literal('ACTION_EVIDENCE'),
-      selectedOptionId: checksumSchema,
-      /**
-       * The actor whose decision this is: the reactor's attack or the mover's save, or the creature
-       * a d20 window asks whether to change the attack roll by its reaction (D207).
-       */
-      rollerActorId: uuidSchema,
-      maintenanceCurrentnessChecksum: z.optional(checksumSchema),
-      d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
-      /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.4). */
-      d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
-      /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
-      heldD20: z.optional(encounterActionHeldD20DtoSchema),
-      twoPhase: z.optional(z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema))),
-      /** The mover's save a d20 window holds for a die the mover keeps for after the roll (D168, D203). */
-      pause: z.optional(encounterPauseVariants().ROLL_WINDOW)
-    }),
-    z.strictObject({
-      kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
-      selectedOptionId: checksumSchema,
-      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-      originalExecutionChecksum: checksumSchema,
-      targetStateChecksum: checksumSchema,
-      maintenanceCurrentnessChecksum: z.optional(checksumSchema),
-      resistance: encounterLegendaryResistancePinDtoSchema
     })
   ])
 )
@@ -210,10 +161,6 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
       appliedSpatialPrefix: z._default(
         z.nullable(z.lazy(() => storedRuleExecutionResultDtoSchema)),
         null
-      ),
-      completedReactionExecutions: z._default(
-        z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        []
       ),
       phase: movementReactionPendingPhaseDtoSchema,
       remainingSpatialCandidates: z
@@ -240,14 +187,11 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
           return
         }
         const currentOption = currentEntry ? currentEntry.group.options[0]! : null
-        const currentOptions = currentEntry?.group.options ?? []
         const phaseDistance =
           (value.phase.kind === 'SPATIAL_EVIDENCE'
             ? value.phase.currentCandidate.candidate.pathDistance
             : value.phase.kind === 'CONCENTRATION_EVIDENCE'
-              ? value.phase.damageSource.kind === 'SPATIAL'
-                ? value.completedSpatialExecutions.at(-1)?.candidate.candidate.pathDistance
-                : value.completedReactionExecutions.at(-1)?.option.candidate.pathDistance
+              ? value.completedSpatialExecutions.at(-1)?.candidate.candidate.pathDistance
               : currentOption!.candidate.pathDistance) ?? Number.NaN
         if (
           !Number.isFinite(phaseDistance) ||
@@ -269,45 +213,9 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
             path: ['phase', 'currentCandidate'],
             message: 'Pending spatial evidence may not follow the next frozen reaction contact.'
           })
-        if (
-          value.phase.kind === 'ACTION_EVIDENCE' ||
-          value.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
-        ) {
-          const selectedOptionId = value.phase.selectedOptionId
-          if (!currentOptions.some((option) => option.optionId === selectedOptionId))
-            context.addIssue({
-              code: 'custom',
-              path: ['phase', 'selectedOptionId'],
-              message: 'Reaction action evidence must retain one exact issued choice option.'
-            })
-        }
-        if (
-          value.phase.kind === 'ACTION_EVIDENCE' &&
-          value.phase.pause &&
-          (value.phase.d20Policy !== null ||
-            !!value.phase.heldD20 ||
-            !value.phase.twoPhase ||
-            isD20RolledCheck(value.phase.pause.payload.rolled))
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['phase', 'pause'],
-            message: 'A d20 window belongs to a reaction save held for the roller who holds a die.'
-          })
         if (value.phase.kind === 'CONCENTRATION_EVIDENCE') {
-          const execution =
-            value.phase.damageSource.kind === 'SPATIAL'
-              ? value.completedSpatialExecutions.at(-1)
-              : value.completedReactionExecutions.at(-1)
-          const applications =
-            value.phase.damageSource.kind === 'SPATIAL'
-              ? value.completedSpatialExecutions.at(-1)?.applications
-              : (() => {
-                  const application = value.completedReactionExecutions.at(-1)?.application
-                  return application && 'applications' in application
-                    ? application.applications
-                    : undefined
-                })()
+          const execution = value.completedSpatialExecutions.at(-1)
+          const applications = execution?.applications
           const envelope =
             execution &&
             (() => {
@@ -336,41 +244,12 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
                 'Concentration evidence must bind the final positive-damage movement execution and its sealed child continuation.'
             })
         }
-        if (value.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
-          if (
-            checksumRuleDocument(value.phase.originalExecution) !==
-              value.phase.originalExecutionChecksum ||
-            value.phase.originalD20.resultPath !== 'ON_SAVE_FAIL' ||
-            value.phase.originalExecution.outputs.resultPath !== 'ON_SAVE_FAIL' ||
-            value.phase.resistance.poolBefore < value.phase.resistance.featureCost ||
-            value.phase.resistance.poolRemaining !==
-              value.phase.resistance.poolBefore - value.phase.resistance.featureCost
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['phase'],
-              message:
-                'Legendary Resistance must retain one exact failed-save action and available Feature cost.'
-            })
-          validateEncounterLegendaryResistancePin(value.phase.resistance, context, [
-            'phase',
-            'resistance'
-          ])
-        }
         if (checksumRuleDocument(value.reactionTimeline) !== value.reactionSelectionChecksum)
           context.addIssue({
             code: 'custom',
             path: ['reactionSelectionChecksum'],
             message: 'Reaction selection checksum must bind the exact frozen timeline suffix.'
           })
-        value.completedReactionExecutions.forEach((execution, index) => {
-          if (execution.ordinal !== index)
-            context.addIssue({
-              code: 'custom',
-              path: ['completedReactionExecutions', index, 'ordinal'],
-              message: 'Completed movement reactions must retain contiguous canonical order.'
-            })
-        })
         for (const [index, execution] of value.completedSpatialExecutions.entries()) {
           if (
             execution.ordinal !== index ||
@@ -416,8 +295,7 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
         let priorSpatial: z.infer<typeof spatialPendingCandidateDtoSchema> | null =
           value.phase.kind === 'SPATIAL_EVIDENCE'
             ? value.phase.currentCandidate
-            : value.phase.kind === 'CONCENTRATION_EVIDENCE' &&
-                value.phase.damageSource.kind === 'SPATIAL'
+            : value.phase.kind === 'CONCENTRATION_EVIDENCE'
               ? (value.completedSpatialExecutions.at(-1)?.candidate ?? null)
               : null
         for (const [index, candidate] of value.remainingSpatialCandidates.entries()) {
@@ -425,9 +303,7 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
             candidate.ordinal !==
               value.completedSpatialExecutions.length + spatialOrdinalOffset + index ||
             (value.phase.kind === 'CONCENTRATION_EVIDENCE'
-              ? value.phase.damageSource.kind === 'SPATIAL'
-                ? candidate.candidate.pathDistance + 1e-8 < value.root.pathStartDistance
-                : candidate.candidate.pathDistance <= value.root.pathStartDistance + 1e-8
+              ? candidate.candidate.pathDistance + 1e-8 < value.root.pathStartDistance
               : value.phase.kind !== 'SPATIAL_EVIDENCE' &&
                 candidate.candidate.pathDistance <= currentOption!.candidate.pathDistance + 1e-8) ||
             (priorSpatial !== null && compareSpatialPendingCandidates(priorSpatial, candidate) >= 0)
