@@ -193,7 +193,7 @@ building a path removes its message from the list.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
-save, a timed condition, grant, link or form, a relationship, a recurring result, then a concealment. The compiler
+save, a timed condition, grant, link, form or GM ruling, a relationship, a recurring result, then a concealment. The compiler
 supplies its own plan builders as `Dnd5eLifetimeCandidates`; the aspect builds the recurring and concealment plans.
 Every reader asks the model: the active-effect plans (`dnd5eActiveEffectPlans`, which freezes a repeated save or a
 turn-end gate as its save, a timed plan as its duration, a relationship as its own graph, and a recurring result or
@@ -3768,6 +3768,17 @@ counted at the end of the target's turn). The plan has no members of its own: th
 one `ACTOR_LINK` state contribution (members sorted) per target, or none when fewer than two were reached. The
 effects are persisted per child in `areaCommitPersistence.ts` and deleted with it on revert. The contribution
 has no gameplay effect; it is provenance that ends at the duration.
+
+**Timed GM rulings (D187a, QUALITY-15.T3).** A lone `MANUAL_ADJUDICATION` outcome with a duration (Suggestion's
+"8 hours" on a failed save, Detect Thoughts on use) still compiles to its manual-adjudication proposal, and its
+lifetime is a timed plan (`timedRulingPlan`) carrying a `rulingContribution` (the ruling outcome id, label and
+instructions), frozen as the duration graph. The plan is gated to the ruling's result path like a link or a form, and
+maintained by the spell's Concentration; the entry-point compiler admits it beside a TEST/OUTCOME plan, as it does a
+grant, repeated save or form. `prepareEncounterActionEffectPlans` writes one `GM_RULING` state contribution
+that freezes the ruling text for the GM; each counted turn applies nothing and the turn pass expires the effect after
+the last one, an until-dispelled ruling (Arcane Lock) lasting until the GM ends it. Ending the Concentration ends the
+effect, and the action's undo removes it. A ruling beside another result (Channel Divinity's kill, Light's manifest)
+is not held this way, nor is one longer than `MAX_ACTIVE_EFFECT_TURNS` (Geas's 30 days).
 
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form

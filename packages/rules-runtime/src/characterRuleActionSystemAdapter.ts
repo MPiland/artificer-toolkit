@@ -206,6 +206,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     excludesAbilityAtOrBelow: { ability: string; score: number }
   }
   /**
+   * Each target holds the GM's ruling for the duration (Suggestion): the effect freezes its text for
+   * the GM and applies no rule of its own.
+   */
+  rulingContribution?: { rulingOutcomeId: string; label: string; instructions: string }
+  /**
    * Each target swaps into the Creature of the form the caster chose (Giant Insect), for the
    * duration (D130). The chosen form is a cast-time input; every authored form is listed here.
    */

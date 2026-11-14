@@ -240,19 +240,20 @@ function compileActionPlans(
     )
   }
   // A grant freezes its own graph and reads only the TEST's hit path, a condition's repeated
-  // save is its own graph that reads only the cast's save DC, and a creature form is gated on
-  // the TEST's failed-save path, so only those join the two-phase execution.
+  // save is its own graph that reads only the cast's save DC, and a creature form or GM ruling is
+  // gated on the TEST's result path, so only those join the two-phase execution.
   if (
     executionPlan.kind === 'TEST_OUTCOME' &&
     activeEffectPlans.some(
       (plan) =>
         !plan.modifierGrantContribution &&
         !plan.conditionContributions?.length &&
-        !plan.creatureFormContribution
+        !plan.creatureFormContribution &&
+        !plan.rulingContribution
     )
   ) {
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'TEST/OUTCOME actions combine only with grant, repeated-save or creature-form active-effect plans.'
+      'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form or GM ruling active-effect plans.'
     )
   }
   return {

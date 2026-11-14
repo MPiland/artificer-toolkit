@@ -238,9 +238,11 @@ import {
   DND5E_TEST_RESULT_PATHS,
   dnd5eTestHoldPaths,
   dnd5eTestKind,
+  entryResultGate,
   isDnd5eRolledTest,
   type Dnd5eTest
 } from './effectActionTest.js'
+import { timedRulingPlan } from './effectActionTimedRuling.js'
 import {
   dnd5eDirectOutcomeEntry,
   dnd5eTestOutcomeEntries,
@@ -416,20 +418,6 @@ function isActiveEffectPlanOutcome(
       entry.pathCode !== 'ON_USE' &&
       creatureFormPlan(action) !== null)
   )
-}
-
-/**
- * The gate of an outcome an active-effect plan carries: none on use, and on a test's result path the
- * resolved paths that select it. Undefined for a path the action's test never resolves to.
- */
-function entryResultGate(
-  action: Dnd5eCompiledEffectActionSource,
-  pathCode: string
-): { paths: string[] } | null | undefined {
-  if (pathCode === 'ON_USE') return null
-  const kind = dnd5eTestKind(action.compiledEffect.invocation)
-  const testPaths: readonly string[] = isDnd5eRolledTest(kind) ? DND5E_TEST_RESULT_PATHS[kind] : []
-  return testPaths.includes(pathCode) ? dnd5eResultGate(pathCode) : undefined
 }
 
 /**
@@ -1032,12 +1020,13 @@ function ownsTimedSaveCondition(
 }
 
 /**
- * Whether a plan holds a test outcome's lifetime: a failed save's timed condition, or the save's
- * recurring result its recurring plan repeats.
+ * Whether a plan holds a test outcome's lifetime: a failed save's timed condition, a timed ruling on
+ * its result path, or the save's recurring result its recurring plan repeats.
  */
 function testOutcomeLifetimeHeld(action: Dnd5eCompiledEffectActionSource) {
   return (entry: Dnd5eOutcomeEntry) => {
     if (ownsTimedSaveCondition(action, entry)) return true
+    if (timedRulingPlan(action)?.compiledEntryId === entry.entryId) return true
     if (dnd5eTestKind(action.compiledEffect.invocation) !== 'SAVE') return false
     const lifetime = dnd5eLifetime(action, LIFETIME_CANDIDATES)
     return lifetime?.kind === 'RECURRING' && lifetime.plan.compiledEntryId === entry.resultBlockId
@@ -2665,7 +2654,8 @@ function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
     timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
     actorLinkPlan(action) ??
-    creatureFormPlan(action)
+    creatureFormPlan(action) ??
+    timedRulingPlan(action)
   )
 }
 
@@ -4051,15 +4041,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : { applications: [], terminal: false, emptyApplicationAllowed: true }
     }
-    // A link, a creature form or a source immunity holds state for its duration: each counted turn
-    // applies nothing, and the turn pass expires the effect after the last one.
+    // A link, a creature form, a source immunity or a ruling holds state for its duration: each
+    // counted turn applies nothing, and the turn pass expires the effect after the last one.
     if (
       definition.stateContributions.some(
         ({ kind }) =>
           kind === 'ACTOR_LINK' ||
           kind === 'CREATURE_FORM' ||
           kind === 'PLAY_ABSENCE' ||
-          kind === 'SOURCE_IMMUNITY'
+          kind === 'SOURCE_IMMUNITY' ||
+          kind === 'GM_RULING'
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }

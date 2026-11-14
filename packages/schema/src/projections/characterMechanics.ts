@@ -36,6 +36,7 @@ import {
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
 import { heldEscapeDcDtoSchema } from '../effects/check.js'
+import { manualAdjudicationTextDtoSchema } from '../effects/manualAdjudication.js'
 import { summonStatBlockDtoSchema } from '../effects/manifest.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -343,6 +344,9 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       null
     ),
     playAbsenceContribution: z.optional(z.strictObject({ keepsTurn: z.boolean() })),
+    rulingContribution: z.optional(
+      z.extend(manualAdjudicationTextDtoSchema, { rulingOutcomeId: serverUuidIdentityDtoSchema })
+    ),
     turnEndGate: z.optional(
       z.strictObject({
         minimumRoll: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)),
