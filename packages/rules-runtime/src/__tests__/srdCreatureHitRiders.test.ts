@@ -174,7 +174,9 @@ describe('SRD Creature attacks with several hit results', () => {
     ])
     expect(hit.hitPoints).toBe(59 - 18)
     // One damage source, so one Concentration check at the DC of its total.
-    expect(hit.concentrationChecks).toMatchObject([{ appliedAmount: 18, damageTypeId: null }])
+    expect(hit.concentrationChecks).toMatchObject([
+      { appliedAmount: 18, damageTypeIds: [srdDamageTypeId('PIERCING'), srdDamageTypeId('FIRE')] }
+    ])
   })
 })
 
@@ -742,7 +744,9 @@ describe('SRD Creature hits that force a saving throw', () => {
       [8, srdDamageTypeId('POISON')]
     ])
     expect(failed.hitPoints).toBe(59 - 15)
-    expect(failed.concentrationChecks).toMatchObject([{ appliedAmount: 15, damageTypeId: null }])
+    expect(failed.concentrationChecks).toMatchObject([
+      { appliedAmount: 15, damageTypeIds: [srdDamageTypeId('PIERCING'), srdDamageTypeId('POISON')] }
+    ])
 
     const saved = await attackOgre({
       attacker: 'Giant Spider',

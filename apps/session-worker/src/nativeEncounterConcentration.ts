@@ -647,7 +647,7 @@ export async function planNativeLiveConcentration(input: {
         effect,
         {
           damagerActorId: application.damagerActorId ?? repeatSaveDamager ?? null,
-          damageTypeIds: [application.damageTypeId]
+          damageTypeIds: application.damageTypeIds
         },
         dispositions
       )

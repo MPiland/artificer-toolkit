@@ -458,7 +458,7 @@ export async function prepareEncounterMovementConcentration<
           effect,
           {
             damagerActorId: application.damagerActorId ?? source.damagerActorId,
-            damageTypeIds: [application.damageTypeId]
+            damageTypeIds: application.damageTypeIds
           },
           dispositions
         )

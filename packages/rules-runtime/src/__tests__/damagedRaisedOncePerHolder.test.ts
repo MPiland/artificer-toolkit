@@ -224,7 +224,7 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
     sourceOperationKey: 'damage.apply',
     targetActorId,
     appliedAmount: 2,
-    damageTypeId: null
+    damageTypeIds: [FIRE]
   })
   const plan = (applications: ReturnType<typeof stress>[]) =>
     planDamageSaveChain({
