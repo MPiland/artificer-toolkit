@@ -21,3 +21,8 @@ export const manualAdjudicationDtoSchema = lazySchema(() =>
 )
 
 export type ManualAdjudicationDto = z.infer<typeof manualAdjudicationDtoSchema>
+
+/** A ruling's text as an effect that holds it freezes it for the GM. */
+export const manualAdjudicationTextDtoSchema = lazySchema(() =>
+  z.strictObject({ label: authoredShortTextSchema, instructions: authoredRichTextSchema })
+)

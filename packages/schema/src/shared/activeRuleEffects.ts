@@ -12,6 +12,7 @@ import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { checkChoiceDtoSchema } from '../effects/check.js'
+import { manualAdjudicationTextDtoSchema } from '../effects/manualAdjudication.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
   activeRuleEffectLifecycleDtoSchema,
@@ -565,6 +566,17 @@ const activeRuleEffectSourceImmunityContributionDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The holder is under a GM ruling while the effect lasts (D187a; Suggestion): the ruling's text,
+ * frozen at creation, for the GM to apply. It grants no mechanic; the effect ending ends it.
+ */
+const activeRuleEffectGmRulingContributionDtoSchema = lazySchema(() =>
+  z.extend(manualAdjudicationTextDtoSchema, {
+    kind: z.literal('GM_RULING'),
+    rulingOutcomeId: uuidSchema
+  })
+)
+
 /** Immutable definition of a stored active rule effect: a bounded (possibly empty) aggregate-state contribution list. */
 export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
   z
@@ -584,7 +596,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             activeRuleEffectActorLinkContributionDtoSchema,
             activeRuleEffectCreatureFormContributionDtoSchema,
             activeRuleEffectPlayAbsenceContributionDtoSchema,
-            activeRuleEffectSourceImmunityContributionDtoSchema
+            activeRuleEffectSourceImmunityContributionDtoSchema,
+            activeRuleEffectGmRulingContributionDtoSchema
           ])
         )
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
