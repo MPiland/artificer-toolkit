@@ -121,4 +121,38 @@ describe('an unmodified SRD Duergar acting on itself off a Self range (QUALITY-1
     await undo(room)
     expect(usedCharges(await readRoomHistory(stub), room.featureId)).toBe(0)
   })
+
+  it('keeps a spent Enlarge offered with the soft warning (D11), and the one undo clears it', async () => {
+    const room = await selfActionRoom('Enlarge')
+    const warningsOf = async () =>
+      (await room.actionChoices()).actions.find(({ id }) => id === room.actionId)?.warnings
+    expect(await warningsOf()).not.toContainEqual(
+      expect.objectContaining({ code: 'RESOURCE_UNAVAILABLE' })
+    )
+
+    await useOnItself(room)
+    expect(await warningsOf()).toContainEqual(
+      expect.objectContaining({ code: 'RESOURCE_UNAVAILABLE' })
+    )
+    // Without the GM's acknowledgement the spent use is refused, naming the reason.
+    const refused = await room.startAction(USER_ID)
+    expect(refused.answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused.answer)).toContain('RESOURCE_UNAVAILABLE')
+    // "Do it anyway" is accepted.
+    const forced = await room.startAction(USER_ID, [
+      'ACTION_ECONOMY_UNAVAILABLE',
+      'RESOURCE_UNAVAILABLE'
+    ])
+    expect(forced.answer.type, JSON.stringify(forced.answer)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('clears the spent-use warning when the GM’s one undo gives the use back', async () => {
+    const room = await selfActionRoom('Enlarge')
+    await useOnItself(room)
+    await undo(room)
+    const offered = (await room.actionChoices()).actions.find(({ id }) => id === room.actionId)
+    expect(offered?.warnings).not.toContainEqual(
+      expect.objectContaining({ code: 'RESOURCE_UNAVAILABLE' })
+    )
+  })
 })

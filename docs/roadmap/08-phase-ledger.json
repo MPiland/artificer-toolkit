@@ -26783,7 +26783,7 @@
             },
             {
               "id": "QUALITY-14.T2e2b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26794,11 +26794,12 @@
               },
               "text": "The placed-by-this-command filter of the damage-save chain widens to CHARACTER-origin effects and area-entry effects the command created (root command or entry occurrences), in the room and in persistence, with the pre-command snapshot rebuilt in persistence and an agreement test.",
               "note": "Registered 2026-11-14 from the T2e2b split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m772 (f65133d71); slice tip 4e9101742: Tests 43641152471, Live 43642975279, Browser journeys 43641152403 green. One kind-agnostic placedByCommand predicate over the command occurrence ids (root plus entries) in planDamageSaveChain, room and persistence; a resumed chain reads parentEntryOccurrenceIds from the stored parent receipt. Red proof: nativeRoomAreaEntryPlacedRepeatSave RED (an area entry restraint placed on a struck Wolf owed it a repeat save), damageSaveCommandPlacedEffects RED. No restated assertions. No D196 change (transport field parentEntryOccurrenceIds only)."
             },
             {
               "id": "QUALITY-14.T2e2b3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26808,7 +26809,8 @@
                 "after": ["QUALITY-14.T2e2b2"]
               },
               "text": "One ends-stage damaged-holder discovery carried into the damage-save chain across action, area, Legendary Action and melee retaliation roots, so the chain no longer re-discovers from the post-command projection.",
-              "note": "Registered 2026-11-14 from the T2e2b split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2e2b split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e2c",
@@ -27043,7 +27045,7 @@
             },
             {
               "id": "QUALITY-15.T3g",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27052,9 +27054,10 @@
                 "size": 2,
                 "after": ["QUALITY-15.T2"]
               },
-              "text": "An action whose limited uses are spent is no longer offered (or resolving it again is refused with a named reason); seen on SRD Duergar Enlarge after its one use.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "A Creature action whose limited uses are spent stays offered with the RESOURCE_UNAVAILABLE uses warning, as for a Character (D11 soft enforcement); resolving it needs the GM acknowledgement. A spent attack-slot filler stays hidden (D93).",
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13). Amended 2026-11-14 at delivery: the original premise (stop offering a spent action) conflicted with D11; ruled warning parity with Characters.",
+              "mergedAt": "2026-11-14",
+              "proof": "m773 (d01fb6200); slice tip 1d88de5a1: Tests 43642562351, Live 43643452145, Browser journeys 43642562330 green. actionChoiceReads Creature branch evaluates charged for every limited-use action; the hide stays only for a spent slot filler. nativeRoomSrdSelfAction: SRD Duergar Enlarge after use is offered with the warning, refused without acknowledgement, committed with it; undo clears the warning. No restated assertions. No D196 change."
             }
           ]
         },
