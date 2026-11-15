@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect, type Page, type Request } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
+import { routeFromClientAddress } from './clientAddress'
 
 type CampaignCollaborationStage =
   | 'table-sent'
@@ -60,17 +61,8 @@ export async function verifyCampaignCollaborationBrowser(
       viewport: { width: 1280, height: 900 },
       reducedMotion: 'reduce'
     })
-    // Each actor reaches the web app from its own client IP, as two players do behind the
-    // Cloudflare edge. Local workerd keeps a supplied CF-Connecting-IP, so the auth proxy signs it
-    // and sign-in rate limits key per actor. Only same-origin requests carry it.
-    for (const [context, clientIp] of [
-      [ownerContext, '198.51.100.11'],
-      [playerContext, '198.51.100.12']
-    ] as const) {
-      await context.route(`${origin}/**`, (route) =>
-        route.fallback({ headers: { ...route.request().headers(), 'cf-connecting-ip': clientIp } })
-      )
-    }
+    await routeFromClientAddress(ownerContext, origin, 0)
+    await routeFromClientAddress(playerContext, origin, 1)
     ownerContext.setDefaultTimeout(30_000)
     playerContext.setDefaultTimeout(30_000)
     ownerContext.setDefaultNavigationTimeout(90_000)
