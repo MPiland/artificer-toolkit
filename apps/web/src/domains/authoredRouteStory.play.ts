@@ -46,16 +46,20 @@ export async function expectCreateEmptyAuthoringRoute(canvasElement: HTMLElement
   await expect(canvas.queryByLabelText('Authoring preview')).not.toBeInTheDocument()
 
   await userEvent.click(canvas.getByRole('button', { name: /start from scratch/i }))
-  await expect(await findGuidedNameField(canvasElement)).toBeVisible()
+  await findGuidedNameField(canvasElement)
 }
 
-/** The Guided name field the author sees; other mounted fields can share its accessible name. */
+/**
+ * Waits until the Guided name field the author sees is visible and returns it; other mounted fields
+ * can share its accessible name, and the step can still be transitioning in.
+ */
 export async function findGuidedNameField(canvasElement: HTMLElement) {
-  return await waitFor(() => {
+  return await waitFor(async () => {
     const visibleName = within(canvasElement)
       .getAllByRole('textbox', { name: /name/i })
       .find((element) => element.getClientRects().length > 0)
     if (!visibleName) throw new Error('Expected a visible Guided name field.')
+    await expect(visibleName).toBeVisible()
     return visibleName
   })
 }
