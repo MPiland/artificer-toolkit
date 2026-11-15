@@ -142,6 +142,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }): EncounterGrantTrigger[] {
   const { holder } = input
+  if (holder.kind !== 'CREATURE') return []
   return passiveDamageGrantsOf(holder).map(({ capability, damageTypeIds, plan }) => {
     const effect = prepareRecurringActiveEffect({
       encounterId: input.encounter.id,

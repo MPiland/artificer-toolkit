@@ -408,7 +408,10 @@ export function movementContactDamageEnvelope<T extends MovementContactChildren>
  * versions it advanced (a massive-damage save advances none).
  */
 export function movementDamageSaveChildren(
-  contact: Omit<MovementContactChildren, 'concentrationEnds'>
+  contact: Pick<
+    MovementContactChildren,
+    'concentrationChecks' | 'repeatSaves' | 'massiveDamageSaves'
+  >
 ) {
   return [
     ...(contact.concentrationChecks ?? []).map((execution, index) => ({
