@@ -66,7 +66,8 @@ async function endTurn(input: {
             : stage.actors,
         movementTargets: new Map(),
         plan: null,
-        phase: { kind: 'NONE' }
+        phase: { kind: 'NONE' },
+        damagedDiscovery: new Map()
       }
     },
     zones: (stage) =>
@@ -82,8 +83,6 @@ async function endTurn(input: {
         random: () => 0
       }),
     async legendary(stage) {
-      const incoming = stage.root.proposedTerminalTransition.currentActorId
-      if (stage.refreshIncoming !== false && incoming) seen.refreshedActorIds.push(incoming)
       return {
         kind: 'COMPLETE',
         root: stage.root,
@@ -91,6 +90,11 @@ async function endTurn(input: {
         movementTargets: new Map(),
         damagedDiscovery: new Map()
       }
+    },
+    async refreshIncoming(stage) {
+      const incoming = stage.root.proposedTerminalTransition.currentActorId
+      if (incoming) seen.refreshedActorIds.push(incoming)
+      return { root: stage.root, actors: [...stage.actors] }
     },
     async initiative(stage) {
       initiativeAdvance = stage.root.initiativeAdvance

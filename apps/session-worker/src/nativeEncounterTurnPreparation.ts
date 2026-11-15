@@ -7,7 +7,10 @@ import {
   type EncounterPassiveZoneCharacterRules
 } from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
 import { plannedSpatialEffectRecord } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
-import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
+import {
+  prepareTurnLegendaryActions,
+  refreshIncomingTurnActors
+} from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { discoverTurnLegendaryWindows } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryDiscovery'
 import { prepareEncounterTurnRecharge } from '@artificer-toolkit/rules-runtime/encounterTurnRecharge'
@@ -227,6 +230,7 @@ export function createNativeLiveTurnStages(
         random
       })
     },
+    refreshIncoming: (stage) => refreshIncomingTurnActors({ ...stage, definitions }),
     legendary: (stage) =>
       prepareTurnLegendaryActions<CharacterFacts>({
         ...stage,

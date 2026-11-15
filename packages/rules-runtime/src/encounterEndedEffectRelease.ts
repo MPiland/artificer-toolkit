@@ -216,6 +216,11 @@ export function targetEndedEffects(input: {
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
   /** The grants this action's events may give the holder; none when omitted. */
   grantTriggers?: readonly EncounterGrantTrigger[]
+  /**
+   * The holder's effects the command already settled (a turn's executed effects): its events
+   * cannot end them, but its damage's one raise still finds the repeat saves they owe.
+   */
+  settled?: readonly ActiveRuleEffectRecord[]
 }) {
   const hits = (input.damageBySource ?? [input]).flatMap(({ applications, damagerActorId }) => {
     const dealt = applications.flatMap((application) =>
@@ -259,7 +264,7 @@ export function targetEndedEffects(input: {
       : [])
   ]
   const hooks = discoverEncounterEventHooks({
-    effects: input.held,
+    effects: [...input.held, ...(input.settled ?? [])],
     events,
     grantSubscriptions: input.grantTriggers ?? []
   })

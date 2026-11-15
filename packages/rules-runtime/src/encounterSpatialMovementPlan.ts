@@ -16,7 +16,11 @@ import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api
 import { prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
 import { incomingDamageGrantRecords } from './encounterEndedEffectRelease.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
-import { spatialDamageEnds, targetStateAfterEndedEffects } from './encounterSpatialDamageEnds.js'
+import {
+  spatialDamageEnds,
+  spatialDamageEndsPerExecution,
+  targetStateAfterEndedEffects
+} from './encounterSpatialDamageEnds.js'
 
 type MovementSpatialExecution =
   FrozenMovementReactionRemainder['completedSpatialExecutions'][number]
@@ -53,8 +57,8 @@ type Settlement = {
   /** The timed grants the target's passive features owe the zones' damage, made after the batch. */
   grants: ActiveRuleEffectRecord[]
   /**
-   * The target's damaged discovery from the ends stage (spatialDamageEnds): what its one raise found
-   * owing a repeat save, less the effects it ended. Null without damageEnds.
+   * The target's damaged discovery from the ends stage (spatialDamageEnds): what its raises found
+   * owing a repeat save, less the effects they ended. Null without damageEnds.
    */
   repeatSaveEffects: ActiveRuleEffectRecord[] | null
 }
@@ -90,6 +94,11 @@ export function planNativeSpatialMovementPrefix<
     dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
     /** Whether the zones' damage also gives the target the timed grants its passive features owe. */
     incomingDamageGrants?: boolean
+    /**
+     * The DAMAGED(AFTER) raise unit (D220): each execution its own raise (a turn zone), or one raise
+     * per target for the command (a melee retaliation).
+     */
+    raise: 'PER_EXECUTION' | 'PER_COMMAND'
   }
 }): {
   projectedTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -135,7 +144,9 @@ export function planNativeSpatialMovementPrefix<
     const executions = executionsByTarget.get(targetActorId)
     if (!target || !executions) throw new Error('Spatial execution target is unavailable.')
     const ends = input.damageEnds
-      ? spatialDamageEnds({
+      ? (input.damageEnds.raise === 'PER_EXECUTION'
+          ? spatialDamageEndsPerExecution
+          : spatialDamageEnds)({
           holderActorId: targetActorId,
           held: target.activeEffects,
           executions,

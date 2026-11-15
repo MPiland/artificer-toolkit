@@ -1819,8 +1819,17 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   still held, less those the command placed), which equals it because the command's ends are deleted there, and
   `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Melee retaliation's attacker carries its zones'
   ends stage discovery too (`spatialDamageEnds`, through the retaliation settlement's `repeatSaveEffects`), and its
-  settlement reads the attacker's effects after that stage; so does each holder only a turn's Legendary Actions
-  damaged (the turn preparation's `legendaryDiscovery`, current, QUALITY-14.T2e2b4). A zone's hit names the zone's
+  settlement reads the attacker's effects after that stage. A turn root carries its own discovery (current,
+  QUALITY-14.T2e2f2, D220, D132 amendment): `prepareEncounterTurn`'s `damagedDiscovery` joins
+  (`joinDamagedDiscoveries`), in turn order, each turn-effect execution's raise per holder (an executed effect is
+  settled, so it ends nothing but still owes the saves the raise finds), each turn-zone execution's raise per caught
+  holder (`spatialDamageEndsPerExecution`, QUALITY-14.T2e2f4: overlapping zones settle in the holder's one
+  mechanics batch, but each zone's damage raises on its own, the room and its commit alike), and each Legendary Action's raise per holder, less the effects a later stage ended. A Legendary Action is
+  its own command, so the answer that commits the turn re-derives an earlier window from its retained dice; the
+  incoming creature's refreshes run once, as their own stage (`refreshIncomingTurnActors`), not by replaying the
+  windows. The room's turn chain holds the turn zones' damage in the persistence order (outgoing effects and zones,
+  Legendary Actions, incoming effects and zones), and every damaged holder of a room root carries its discovery:
+  `planNativeLiveConcentration` refuses one without. A zone's hit names the zone's
   source as its damager in the chain (`meleeRetaliationDamage`, `zoneEffectDamage`), as the ends stage does, in the
   room and in persistence. A Cleaving step's target carries its own ends stage's discovery (current,
   QUALITY-14.T2e2f1): `cleavingDamageEnds` raises the carried damage once, with no attack roll and the Cleaving
@@ -1833,9 +1842,10 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `repeatSaveDamagerActorId`. A Concentration a check or an end lost drops its own later checks and the repeat saves
   of the effects it maintained (`damageSaveApplicationsAfterConcentrationEnd`, on the cleanup's
   `removedDependentEffectIds`), in the room, movement, the result's successor and both persistence paths, so the
-  sealed tail is exactly what the pre-command discovery still owes. Transitional: a root whose ends stage the chain
-  does not yet receive (a turn's effects, and a holder a turn effect damaged as well as its Legendary Actions)
-  derives the discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
+  sealed tail is exactly what the pre-command discovery still owes. Transitional: the room's roots all carry their
+  discovery (QUALITY-14.T2e2f2), but persistence still re-derives it for every root from the committed rows through
+  `settledRepeatSaveEffects`, until the turn, Cleaving and movement roots check against the raise their persistence
+  already re-runs (QUALITY-14.T2e2f3). `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
@@ -4136,8 +4146,9 @@ repeats against its own damage. `placedByCommand` is that one rule (QUALITY-14.T
 whose `sourceOccurrenceId` names one of the command's occurrences, its own or an entry occurrence it made per creature
 (an area's children, the root's `targetOccurrenceIds`), was placed by it. Leaving those out rebuilds each holder as the
 damage met it, from the room's projection and from the committed rows alike: `planDamageSaveChain` and
-`bindEncounterDamageSaveChain` take `commandOccurrenceIds`, and `planNativeLiveConcentration` takes the parent's
-`repeatSaves.entryOccurrenceIds` on its first plan; a resumed chain reads its sealed context instead (D220). A
+`bindEncounterDamageSaveChain` take `commandOccurrenceIds`; the room's roots raise before the command places
+anything, so `planNativeLiveConcentration` reads their discovery with no occurrence list (QUALITY-14.T2e2f2), and a
+resumed chain reads its sealed context instead (D220). A
 damage source opts in on
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
