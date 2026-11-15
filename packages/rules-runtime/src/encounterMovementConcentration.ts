@@ -20,10 +20,12 @@ import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema,
   movementContactDamageEnvelope,
+  movementDamageEndDtoSchema,
   movementMassiveDamageSaveExecutionDtoSchema,
   movementRepeatSaveExecutionDtoSchema,
   type MovementConcentrationEndDto,
   type MovementConcentrationExecutionDto,
+  type MovementDamageGrantDto,
   type MovementMassiveDamageSaveExecutionDto,
   type MovementRepeatSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
@@ -32,7 +34,10 @@ import {
   type FrozenMovementReactionRemainder
 } from './encounterSpatialMovementRuleService.js'
 import { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
-import { planDamageSaveChain, settledRepeatSaveEffects } from './encounterDamageSaveChain.js'
+import { planDamageSaveChain } from './encounterDamageSaveChain.js'
+import { incomingDamageGrantRecords } from './encounterEndedEffectRelease.js'
+import { movementContactDamageEnds } from './encounterSpatialDamageEnds.js'
+import { turnEffectOwner } from './encounterTurnEffectState.js'
 import {
   createNativeConcentrationContext,
   completeNativeConcentrationResult,
@@ -120,11 +125,22 @@ function movementConcentrationDamageSource(
 }
 
 /**
- * One contact's damage children settle in order: its Concentration ends first, then each save its
- * damage owes in chain order (a Concentration check, an effect's repeat save, D167, or a
- * massive-damage save, ATTACK-16).
+ * One contact's damage children settle in order: what its own `DAMAGED(AFTER)` raise ends and gives
+ * (D220), its Concentration ends, then each save its damage owes in chain order (a Concentration
+ * check, an effect's repeat save, D167, or a massive-damage save, ATTACK-16).
  */
 export type MovementConcentrationSettlement =
+  | {
+      kind: 'DAMAGE_END'
+      damageEnd: { effectId: string; holderActorId: string }
+      endedEffect: ActiveRuleEffectRecord
+      removedConditionIds: string[]
+    }
+  | {
+      kind: 'DAMAGE_GRANT'
+      damageGrant: MovementDamageGrantDto
+      createdEffect: ActiveRuleEffectRecord
+    }
   | { kind: 'END'; execution: MovementConcentrationEndDto }
   | { kind: 'REPEAT_SAVE'; execution: MovementRepeatSaveExecutionDto }
   | { kind: 'MASSIVE_DAMAGE_SAVE'; execution: MovementMassiveDamageSaveExecutionDto }
@@ -226,6 +242,8 @@ export async function prepareEncounterMovementConcentration<
   let targets = input.targets
   let projection = input.projection
   const settlements: MovementConcentrationSettlement[] = []
+  const damageEnds = [...(source.execution.damageEnds ?? [])]
+  const damageGrants = [...(source.execution.damageGrants ?? [])]
   const checks = [...(source.execution.concentrationChecks ?? [])]
   const ends = [...(source.execution.concentrationEnds ?? [])]
   const repeatSaves = [...(source.execution.repeatSaves ?? [])]
@@ -250,7 +268,7 @@ export async function prepareEncounterMovementConcentration<
    * removed makes none of its later contacts (D220), and the contacts after it close up their ordinals.
    */
   const adoptCleanup = (
-    ended: { targets: typeof targets; projection: TProjection },
+    ended: { targets: typeof targets; projection: TProjection | undefined },
     removedZoneIds: readonly string[]
   ) => {
     const candidates = projectSpatialMovementCandidates({
@@ -282,9 +300,11 @@ export async function prepareEncounterMovementConcentration<
     adoptCleanup(ended, ended.cleanup.removedZoneIds)
     remaining = damageSaveApplicationsAfterConcentrationEnd(remaining, ended.cleanup)
   }
-  /** The source contact retains its ends and saves beside its (unchanged) damage envelope. */
+  /** The source contact retains its ends, grants and saves beside its (unchanged) damage envelope. */
   const retainChildren = () => {
     const children = {
+      ...(damageEnds.length ? { damageEnds: [...damageEnds] } : {}),
+      ...(damageGrants.length ? { damageGrants: [...damageGrants] } : {}),
       ...(ends.length ? { concentrationEnds: [...ends] } : {}),
       ...(checks.length ? { concentrationChecks: [...checks] } : {}),
       ...(repeatSaves.length ? { repeatSaves: [...repeatSaves] } : {}),
@@ -335,6 +355,66 @@ export async function prepareEncounterMovementConcentration<
       )
         throw new Error('Movement Concentration retained damage is unavailable.')
   } else if (input.state.automationMode !== 'MANUAL') {
+    const holderActorId = source.holderActorId
+    const currentHolder = () => {
+      const target = targets.get(holderActorId)
+      if (!target) throw new Error('Movement damage holder is unavailable.')
+      return target
+    }
+    const raise = () =>
+      movementContactDamageEnds({
+        holder: currentHolder().actor,
+        held: currentHolder().activeEffects,
+        execution: source.execution,
+        encounter: input.state,
+        occurrenceId: input.occurrenceId,
+        commandId: input.sourceCommandId,
+        dispositions
+      })
+    // D220: the contact's own DAMAGED(AFTER) raise ends what its damage meets, then gives the grants
+    // the holder's passive damage triggers owe over what is left, before any of its saves.
+    const raised = raise()
+    for (const effect of raised.endedEffects) {
+      const removedConditionIds = encounterEscapeEndedConditionIds(
+        currentHolder().activeEffects,
+        effect.id
+      )
+      const released = await callbacks.projectRelease(effect, targets, projection)
+      const damageEnd = { effectId: effect.id, holderActorId }
+      damageEnds.push(
+        movementDamageEndDtoSchema.parse({
+          ...damageEnd,
+          release: { characterOwnerTransitions: released.characterOwnerTransitions },
+          ownerTransitions: released.ownerTransitions
+        })
+      )
+      settlements.push({ kind: 'DAMAGE_END', damageEnd, endedEffect: effect, removedConditionIds })
+      adoptCleanup(released, [])
+    }
+    for (const grant of raised.endedEffects.length ? raise().grants : raised.grants) {
+      const holder = currentHolder()
+      const [createdEffect] = incomingDamageGrantRecords({
+        grants: [grant],
+        owner: turnEffectOwner(holder.actor, input.state.id),
+        current: holder.activeEffects,
+        occurredAt: input.occurredAt
+      })
+      if (!createdEffect) throw new Error('Movement damage grant is unavailable.')
+      const damageGrant = { effectId: grant.id, holderActorId }
+      damageGrants.push(damageGrant)
+      settlements.push({ kind: 'DAMAGE_GRANT', damageGrant, createdEffect })
+      adoptCleanup(
+        {
+          targets: new Map(targets).set(holderActorId, {
+            ...holder,
+            activeEffects: [...holder.activeEffects, createdEffect]
+          }),
+          projection
+        },
+        []
+      )
+    }
+    if (damageEnds.length || damageGrants.length) retainChildren()
     // D95: a holder the contact defeated or left unable to act loses Concentration with no check,
     // so the checks below observe the lost slot and roll none for it.
     const found = await callbacks.findEnds(source.holderActorId, targets, projection)
@@ -389,26 +469,23 @@ export async function prepareEncounterMovementConcentration<
         dispositions,
         effectSaves: {
           massiveRule,
-          holders: new Map(
-            [...targets].map(([actorId, target]) => [
-              actorId,
+          // The contact's one holder, with what its own raise found owing a repeat save (D220),
+          // less any effect a Concentration end above released.
+          holders: new Map([
+            [
+              holderActorId,
               {
                 defeated: isEncounterActorDefeated(
-                  target.actor,
-                  deadCharacterIdsOfTargets([target])
+                  currentHolder().actor,
+                  deadCharacterIdsOfTargets([currentHolder()])
                 ),
-                repeatSaveEffects: settledRepeatSaveEffects({
-                  holderActorId: actorId,
-                  effects: target.activeEffects,
-                  commandOccurrenceIds: [input.occurrenceId],
-                  applications: source.applications,
-                  damagerActorId: source.damagerActorId,
-                  dispositions
-                }),
-                maximumHitPoints: target.effectiveMaximumHitPoints
+                repeatSaveEffects: currentHolder().activeEffects.filter((effect) =>
+                  raised.repeatSaveEffects.some(({ id }) => id === effect.id)
+                ),
+                maximumHitPoints: currentHolder().effectiveMaximumHitPoints
               }
-            ])
-          )
+            ]
+          ])
         }
       })
     )

@@ -9,12 +9,8 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import {
-  incomingDamageGrantRecords,
-  moveEndHolds
-} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { movementDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
-import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { moveEndHolds } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { passiveDamageGrantsOf } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { spatialEffectTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import {
   endsOnLeavingZone,
@@ -29,7 +25,7 @@ import {
   bindEncounterActorRuleOutputToFacts,
   reconcileEncounterActorRuleOutput
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { repeatsSaveOnDamage } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
+import { answersDamage } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { encounterMassiveDamageRule } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import {
@@ -145,22 +141,26 @@ export function nativeSpatialStepCallbacks(
             : async (actorIds, selected) => {
                 // Under a massive-damage rule any damaged actor may owe its save: the chain decides.
                 if (encounterMassiveDamageRule(state)) return new Set(actorIds)
-                // A damaged actor owes a save for Concentration it holds or an effect it may repeat.
+                // A damaged actor settles before the move goes on when it holds Concentration, an
+                // effect damage may end or repeat a save for, or a passive damage trigger (D220).
                 const active = await Promise.all(
-                  actorIds.map(async (targetActorId) =>
-                    selected.get(targetActorId)?.activeEffects.some(repeatsSaveOnDamage) ||
-                    (
-                      await readNativeLiveMovementConcentrationStates({
-                        state,
-                        targetActorId,
-                        targets: selected,
-                        projection: spatial.maintenanceProjection,
-                        capture
-                      })
-                    ).length
+                  actorIds.map(async (targetActorId) => {
+                    const target = selected.get(targetActorId)
+                    if (!target) throw new Error('Damaged movement target is unavailable.')
+                    return target.activeEffects.some(answersDamage) ||
+                      passiveDamageGrantsOf(target.actor).length ||
+                      (
+                        await readNativeLiveMovementConcentrationStates({
+                          state,
+                          targetActorId,
+                          targets: selected,
+                          projection: spatial.maintenanceProjection,
+                          capture
+                        })
+                      ).length
                       ? targetActorId
                       : null
-                  )
+                  })
                 )
                 return new Set(active.filter((id): id is string => id !== null))
               },
@@ -209,17 +209,15 @@ export function nativeSpatialStepCallbacks(
 }
 
 /**
- * The receipts a continuation's settlements persist as, the releases a terminal move owes (a zone
- * left, a held effect ended by moving or by the move's zone damage), the grants its zone damage
- * gives, and the rule output of the actors it leaves; `finalActors` gathers each actor those
- * releases change.
+ * The receipts a continuation's settlements persist as (a contact's damage ends and grants settle
+ * with it, D220), the releases a terminal move owes (a zone left, a held effect ended by moving),
+ * and the rule output of the actors it leaves; `finalActors` gathers each actor those releases
+ * change.
  */
 export function nativeMovementSettlementInputs(input: {
   state: EncounterRunState
   actors: readonly EncounterRunActorState[]
   finalActors: Map<string, EncounterRunActorState>
-  /** The move's occurrence and the command that settles it, which roots the grants it gives. */
-  step: Pick<ContinuationInput, 'occurrenceId' | 'executionCommandId' | 'occurredAt'>
   planned: {
     outcome: SceneSpatialPreparation['outcome']
     settlements: readonly NativeLiveMovementSettlement[]
@@ -227,9 +225,22 @@ export function nativeMovementSettlementInputs(input: {
     targets: ReadonlyMap<string, { activeEffects: ActiveRuleEffectRecord[] }>
   }
 }) {
-  const { state, actors, finalActors, step, planned } = input
+  const { state, actors, finalActors, planned } = input
   const { targets } = planned
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
+    if (settlement.kind === 'CONCENTRATION' && settlement.plan.kind === 'DAMAGE_END') {
+      const { kind, damageEnd, endedEffect, removedConditionIds } = settlement.plan
+      return liveSessionMovementSettlementSchema.parse({
+        kind,
+        damageEnd,
+        endedEffect,
+        removedConditionIds
+      })
+    }
+    if (settlement.kind === 'CONCENTRATION' && settlement.plan.kind === 'DAMAGE_GRANT') {
+      const { kind, damageGrant, createdEffect } = settlement.plan
+      return liveSessionMovementSettlementSchema.parse({ kind, damageGrant, createdEffect })
+    }
     if (settlement.kind === 'CONCENTRATION')
       return liveSessionMovementSettlementSchema.parse({
         kind:
@@ -277,12 +288,6 @@ export function nativeMovementSettlementInputs(input: {
       key: { moveEnd },
       holderActorId: moveEnd.holderActorId,
       isHeld: (effect: ActiveRuleEffectRecord) => effect.id === moveEnd.effectId
-    })),
-    ...(outcome?.damageEnds ?? []).map((damageEnd) => ({
-      kind: 'DAMAGE_END' as const,
-      key: { damageEnd },
-      holderActorId: damageEnd.holderActorId,
-      isHeld: (effect: ActiveRuleEffectRecord) => effect.id === damageEnd.effectId
     }))
   ]
   // Each release sees the holder without the effects the releases before it ended, as the commit does.
@@ -313,40 +318,6 @@ export function nativeMovementSettlementInputs(input: {
       activeEffectId: endedEffect.id
     }))
       finalActors.set(actor.id, actor)
-  }
-  // Each grant joins its holder once the move's damage ends have, as the commit re-derives it.
-  const dispositions = new Map(actors.map((actor) => [actor.id, actor.disposition]))
-  for (const damageGrant of outcome?.damageGrants ?? []) {
-    const holder = finalActors.get(damageGrant.holderActorId)
-    const holderEffects =
-      remainingEffects.get(damageGrant.holderActorId) ??
-      targets.get(damageGrant.holderActorId)?.activeEffects
-    if (!holder || !holderEffects) throw new Error('Movement damage grant holder is missing.')
-    const grant = movementDamageEnds({
-      holder,
-      held: holderEffects,
-      executions: outcome?.result.status === 'BATCH_COMPLETE' ? outcome.result.executions : [],
-      encounter: state,
-      occurrenceId: step.occurrenceId,
-      commandId: step.executionCommandId,
-      dispositions
-    }).grants.find(({ id }) => id === damageGrant.effectId)
-    if (!grant) throw new Error('Movement damage grant is not owed.')
-    const created = incomingDamageGrantRecords({
-      grants: [grant],
-      owner: turnEffectOwner(holder, state.id),
-      current: holderEffects,
-      occurredAt: step.occurredAt
-    })
-    const [createdEffect] = created
-    remainingEffects.set(damageGrant.holderActorId, [...holderEffects, ...created])
-    settlementInputs.push(
-      liveSessionMovementSettlementSchema.parse({
-        kind: 'DAMAGE_GRANT',
-        damageGrant,
-        createdEffect
-      })
-    )
   }
   const ruleFacts =
     planned.outcome.kind === 'TERMINAL' || settlementInputs.length

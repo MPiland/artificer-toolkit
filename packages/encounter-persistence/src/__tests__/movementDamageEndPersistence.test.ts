@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { encounterEscapeEndedConditionIds } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { incomingDamageGrantRecords } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { movementDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
+import { movementContactDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {
@@ -48,19 +48,17 @@ const owner = turnEffectOwner(actors[1]!, ENCOUNTER_ID)
 
 /** One zone contact of the move that dealt the holder `amount` damage. */
 const contact = (amount: number) =>
-  [
-    {
-      applications: [
-        {
-          kind: 'DAMAGE',
-          targetActorId: HOLDER_ID,
-          damageTypeId: DAMAGE_TYPE_ID,
-          resolvedAmount: amount
-        }
-      ],
-      candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: HOLDER_ID } }
-    }
-  ] as unknown as DamageEnd['executions']
+  ({
+    applications: [
+      {
+        kind: 'DAMAGE',
+        targetActorId: HOLDER_ID,
+        damageTypeId: DAMAGE_TYPE_ID,
+        resolvedAmount: amount
+      }
+    ],
+    candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: HOLDER_ID } }
+  }) as unknown as DamageEnd['execution']
 
 /** A Run holding the given actors, with no effects yet. */
 function runOf(runActors: readonly EncounterRunActorState[]) {
@@ -111,7 +109,7 @@ async function laughingRun() {
     lifecycle: planned.lifecycle,
     occurredAt: OCCURRED_AT
   })
-  const end = (executions: DamageEnd['executions']) =>
+  const end = (execution: DamageEnd['execution']) =>
     persistLiveMovementDamageEnd(ctx, {
       state: { id: ENCOUNTER_ID, currentActorId: HOLDER_ID },
       actors,
@@ -121,7 +119,7 @@ async function laughingRun() {
         endedEffect: effect,
         removedConditionIds: encounterEscapeEndedConditionIds([effect], effect.id)
       },
-      executions,
+      execution,
       occurrenceId: OCCURRENCE_ID,
       commandId: COMMAND_ID,
       occurredAt: OCCURRED_AT
@@ -135,10 +133,10 @@ describe('a DAMAGE_END step for an effect that both ends on damage and offers a 
     expect(run.effect.definition.recurrence.repeatTriggers?.length).toBeGreaterThan(0)
     // While the holder carries it, the move's damage does end it: the step is only stale.
     expect(
-      movementDamageEnds({
+      movementContactDamageEnds({
         holder: actors[1]!,
         held: await run.store.list(owner),
-        executions: contact(1),
+        execution: contact(1),
         encounter: { id: ENCOUNTER_ID, currentActorId: HOLDER_ID },
         occurrenceId: OCCURRENCE_ID,
         commandId: COMMAND_ID,
@@ -182,20 +180,16 @@ describe('a DAMAGE_GRANT step for an SRD Flesh Golem (Aversion of Fire)', () => 
   const state = { id: ENCOUNTER_ID, currentActorId: GOLEM_ID }
   /** One zone contact of the move that dealt the Golem 3 damage of the given type. */
   const golemContact = (damageTypeId: string) =>
-    [
-      {
-        applications: [
-          { kind: 'DAMAGE', targetActorId: GOLEM_ID, damageTypeId, resolvedAmount: 3 }
-        ],
-        candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: GOLEM_ID } }
-      }
-    ] as unknown as DamageEnd['executions']
+    ({
+      applications: [{ kind: 'DAMAGE', targetActorId: GOLEM_ID, damageTypeId, resolvedAmount: 3 }],
+      candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: GOLEM_ID } }
+    }) as unknown as DamageEnd['execution']
   /** The step the room plans for the grant the move's fire damage owes. */
   const plannedGrant = () => {
-    const [grant] = movementDamageEnds({
+    const [grant] = movementContactDamageEnds({
       holder: golem,
       held: [],
-      executions: golemContact(FIRE),
+      execution: golemContact(FIRE),
       encounter: state,
       occurrenceId: OCCURRENCE_ID,
       commandId: COMMAND_ID,
@@ -221,7 +215,7 @@ describe('a DAMAGE_GRANT step for an SRD Flesh Golem (Aversion of Fire)', () => 
         state,
         actors: golemActors,
         step: plannedGrant(),
-        executions: golemContact(damageTypeId),
+        execution: golemContact(damageTypeId),
         occurrenceId: OCCURRENCE_ID,
         commandId: COMMAND_ID,
         occurredAt: OCCURRED_AT

@@ -112,6 +112,18 @@ export function prepareNativeSourceEffect<
 
 const INCOMING_DAMAGE_GRANT_NAMESPACE = '8c1d4e0a-6b7f-4d2e-9a35-f0e2b7c41d68'
 
+/** The passive damage-trigger features of a holder's Creature; a Character holder has none. */
+export function passiveDamageGrantsOf(holder: EncounterRunActorState) {
+  return holder.kind === 'CREATURE'
+    ? discoverEncounterFeatureActions({
+        actor: holder,
+        conditionDefinitionIds: [],
+        abilityDefinitions: [],
+        spells: new Map()
+      }).passiveDamageGrants
+    : []
+}
+
 /**
  * The grants a creature gives itself when it takes damage, from its Creature's passive
  * damage-trigger features: each made now as the effect it would hold, for `targetEndedEffects` to
@@ -130,13 +142,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }): EncounterGrantTrigger[] {
   const { holder } = input
-  if (holder.kind !== 'CREATURE') return []
-  return discoverEncounterFeatureActions({
-    actor: holder,
-    conditionDefinitionIds: [],
-    abilityDefinitions: [],
-    spells: new Map()
-  }).passiveDamageGrants.map(({ capability, damageTypeIds, plan }) => {
+  return passiveDamageGrantsOf(holder).map(({ capability, damageTypeIds, plan }) => {
     const effect = prepareRecurringActiveEffect({
       encounterId: input.encounter.id,
       occurrenceId: input.occurrenceId,

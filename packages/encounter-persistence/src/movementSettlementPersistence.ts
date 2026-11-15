@@ -115,10 +115,12 @@ function appendedChildren<T extends object>(previous: readonly T[] = [], next: r
   return next.slice(previous.length)
 }
 
-/** A contact's Concentration ends and damage saves, which a response may append to but never rewrite. */
-type DamagingContact = MovementContactChildren & {
-  candidate: { candidate: { sourceActorId: string | null } }
-}
+/**
+ * A contact's damage ends and grants, Concentration ends and damage saves, which a response may
+ * append to but never rewrite, beside the damage its holder took.
+ */
+type DamagingContact = MovementContactChildren &
+  Parameters<typeof persistLiveMovementDamageEnd>[1]['execution']
 
 /** A contact's damage saves in chain order, each with the zone source that dealt its damage. */
 function contactDamageSaves(contact: DamagingContact, children: MovementContactChildren = contact) {
@@ -126,6 +128,24 @@ function contactDamageSaves(contact: DamagingContact, children: MovementContactC
     ...save,
     damagerActorId: contact.candidate.candidate.sourceActorId
   }))
+}
+
+/**
+ * The damage ends and grants one contact's own `DAMAGED(AFTER)` raise owes (D220), each with that
+ * contact, which settle before its Concentration ends and saves.
+ */
+function contactDamageChildren(
+  contact: DamagingContact,
+  children: Pick<MovementContactChildren, 'damageEnds' | 'damageGrants'> = contact
+) {
+  return [
+    ...(children.damageEnds ?? []).map(({ effectId, holderActorId }) => ({
+      kind: 'DAMAGE_END' as const,
+      key: { effectId, holderActorId },
+      contact
+    })),
+    ...(children.damageGrants ?? []).map((key) => ({ kind: 'DAMAGE_GRANT' as const, key, contact }))
+  ]
 }
 
 /** A response may append children to its latest damage, but never rewrite committed contacts. */
@@ -139,8 +159,15 @@ function retainedContactChildren<T extends DamagingContact>(
   )
     throw new Error('Movement response changed its retained contact history.')
   const ends: MovementConcentrationEndDto[] = []
+  const damage: ReturnType<typeof contactDamageChildren> = []
   const saves = prior.flatMap((entry, index) => {
     const appended = next[index]!
+    damage.push(
+      ...contactDamageChildren(entry, {
+        damageEnds: appendedChildren(entry.damageEnds, appended.damageEnds),
+        damageGrants: appendedChildren(entry.damageGrants, appended.damageGrants)
+      })
+    )
     ends.push(...appendedChildren(entry.concentrationEnds, appended.concentrationEnds))
     return contactDamageSaves(entry, {
       concentrationChecks: appendedChildren(
@@ -151,7 +178,7 @@ function retainedContactChildren<T extends DamagingContact>(
       massiveDamageSaves: appendedChildren(entry.massiveDamageSaves, appended.massiveDamageSaves)
     })
   })
-  return { ends, saves }
+  return { damage, ends, saves }
 }
 
 type MovementSettlementCallbacks = {
@@ -284,6 +311,8 @@ export async function persistMovementContacts(
   const priorSpatialCount = priorPrefix?.executions.length ?? 0
   retainedContactChildren(priorSpatial, nextSpatial)
   const retainedSpatial = retainedContactChildren(priorPrefix?.executions ?? [], nextSpatial)
+  // A contact's own damage ends and grants (D220) settle first, before its Concentration ends and saves.
+  const damage = [...retainedSpatial.damage]
   // The damage saves awaiting settlement, in the chain order their contact owed them.
   const saves = [...retainedSpatial.saves]
   // A contact's end settles before its saves, so at most one end is ever awaiting settlement.
@@ -365,14 +394,8 @@ export async function persistMovementContacts(
     preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.areaDepartures ?? []) : []
   const moveEnds =
     preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.moveEnds ?? []) : []
-  const damageEnds =
-    preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.damageEnds ?? []) : []
-  const damageGrants =
-    preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.damageGrants ?? []) : []
   let departureIndex = 0
   let moveEndIndex = 0
-  let damageEndIndex = 0
-  let damageGrantIndex = 0
   let distance = -1
   const appliedEffectIds = new Set(
     priorPrefix?.spatialEffectTransitions.map((entry) => entry.effectId) ?? []
@@ -389,19 +412,19 @@ export async function persistMovementContacts(
       step.kind !== 'CONCENTRATION_END' &&
       step.kind !== 'REPEAT_SAVE' &&
       step.kind !== 'MASSIVE_DAMAGE_SAVE' &&
-      (saves.length || ends.length)
+      step.kind !== 'DAMAGE_END' &&
+      step.kind !== 'DAMAGE_GRANT' &&
+      (damage.length || saves.length || ends.length)
     )
       throw new Error('Movement Concentration must settle before the next contact.')
+    if (step.kind !== 'DAMAGE_END' && step.kind !== 'DAMAGE_GRANT' && damage.length)
+      throw new Error('Movement damage ends and grants settle before their contact’s saves.')
     if (
       step.kind !== 'AREA_DEPARTURE' &&
       step.kind !== 'MOVE_END' &&
-      step.kind !== 'DAMAGE_END' &&
-      step.kind !== 'DAMAGE_GRANT' &&
-      (departureIndex || moveEndIndex || damageEndIndex || damageGrantIndex)
+      (departureIndex || moveEndIndex)
     )
       throw new Error('Movement releases settle after every contact.')
-    if (step.kind !== 'DAMAGE_GRANT' && damageGrantIndex)
-      throw new Error('Movement damage grants settle after every release.')
     if (step.kind === 'SPATIAL') {
       const expected = spatial.slice(spatialIndex, spatialIndex + step.executions.length)
       if (
@@ -429,6 +452,7 @@ export async function persistMovementContacts(
       actors = committed.actors
       transitions.push({ kind: 'SPATIAL_PREFIX', result: committed })
       spatialIndex += expected.length
+      damage.push(...expected.flatMap((entry) => contactDamageChildren(entry)))
       saves.push(...expected.flatMap((entry) => contactDamageSaves(entry)))
       ends.push(...expected.flatMap((entry) => entry.concentrationEnds ?? []))
     } else if (step.kind === 'PASSAGE') {
@@ -549,39 +573,31 @@ export async function persistMovementContacts(
         characterTransitions: committed.characterTransitions
       })
       moveEndIndex++
-    } else if (step.kind === 'DAMAGE_END') {
-      const expected = damageEnds[damageEndIndex]
-      if (!expected || checksumCanonicalJson(expected) !== checksumCanonicalJson(step.damageEnd))
-        throw new Error('Movement damage end differs from its retained move.')
-      const committed = await callbacks.persistDamageEnd({
+    } else if (step.kind === 'DAMAGE_END' || step.kind === 'DAMAGE_GRANT') {
+      const expected = damage.shift()
+      if (
+        expected?.kind !== step.kind ||
+        checksumCanonicalJson(expected.key) !==
+          checksumCanonicalJson(step.kind === 'DAMAGE_END' ? step.damageEnd : step.damageGrant)
+      )
+        throw new Error('Movement damage end or grant differs from its retained contact.')
+      const damageInput = {
         state: input.state,
         actors,
-        step,
-        executions: appliedPrefix?.executions ?? [],
+        execution: expected.contact,
         occurrenceId: preparation.occurrenceId,
         commandId: save.commandId,
         occurredAt: preparation.occurredAt
-      })
-      actors = committed.actors
-      transitions.push({
-        kind: 'DAMAGE_END',
-        characterTransitions: committed.characterTransitions
-      })
-      damageEndIndex++
-    } else if (step.kind === 'DAMAGE_GRANT') {
-      const expected = damageGrants[damageGrantIndex]
-      if (!expected || checksumCanonicalJson(expected) !== checksumCanonicalJson(step.damageGrant))
-        throw new Error('Movement damage grant differs from its retained move.')
-      await callbacks.persistDamageGrant({
-        state: input.state,
-        actors,
-        step,
-        executions: appliedPrefix?.executions ?? [],
-        occurrenceId: preparation.occurrenceId,
-        commandId: save.commandId,
-        occurredAt: preparation.occurredAt
-      })
-      damageGrantIndex++
+      }
+      if (step.kind === 'DAMAGE_GRANT') await callbacks.persistDamageGrant({ ...damageInput, step })
+      else {
+        const committed = await callbacks.persistDamageEnd({ ...damageInput, step })
+        actors = committed.actors
+        transitions.push({
+          kind: 'DAMAGE_END',
+          characterTransitions: committed.characterTransitions
+        })
+      }
     } else if (step.kind === 'CONCENTRATION_END') {
       const expected = ends.shift()
       if (!expected || checksumOnce(expected) !== checksumCanonicalJson(step.execution))
@@ -636,8 +652,7 @@ export async function persistMovementContacts(
     spatialIndex !== spatial.length ||
     departureIndex !== departures.length ||
     moveEndIndex !== moveEnds.length ||
-    damageEndIndex !== damageEnds.length ||
-    damageGrantIndex !== damageGrants.length ||
+    damage.length ||
     saves.length ||
     ends.length ||
     Boolean(passage) !== passageSettled

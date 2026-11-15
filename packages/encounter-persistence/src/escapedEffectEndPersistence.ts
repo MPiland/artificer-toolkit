@@ -2,7 +2,7 @@ import type { LiveSessionMovementSettlement } from '@artificer-toolkit/schema/ap
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterEscapeEndedConditionIds } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { endsOnLeavingZone } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
-import { movementDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
+import { movementContactDamageEnds } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -103,24 +103,24 @@ export function persistLiveMovementMoveEnd(
 type MovementDamageInput = {
   state: { id: string; currentActorId: string | null }
   actors: EncounterRunActorState[]
-  /** Every contact the move applied. */
-  executions: Parameters<typeof movementDamageEnds>[0]['executions']
+  /** The applied contact whose own `DAMAGED(AFTER)` raise owes the step (D220). */
+  execution: Parameters<typeof movementContactDamageEnds>[0]['execution']
   occurrenceId: string
   /** The move's own command, which roots the grants its damage gives. */
   commandId: string
   occurredAt: string
 }
 
-/** What the move's zone damage ends on and gives the holder, from the holder's current rows. */
+/** What the contact's zone damage ends on and gives the holder, from the holder's current rows. */
 function currentMovementDamageEnds(
   input: MovementDamageInput,
   holder: EncounterRunActorState,
   held: readonly ActiveRuleEffectRecord[]
 ) {
-  return movementDamageEnds({
+  return movementContactDamageEnds({
     holder,
     held,
-    executions: input.executions,
+    execution: input.execution,
     encounter: input.state,
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
@@ -129,10 +129,10 @@ function currentMovementDamageEnds(
 }
 
 /**
- * Settles an effect a move's zone damage ended on its holder: re-derives what that damage ends from
- * the holder's current rows and the move's applied contacts, requires the step's effect to be among
- * them, and ends it like an escape, releasing what it gave (its temporary hit points, the conditions
- * only it held).
+ * Settles an effect a contact's zone damage ended on its holder (D220): re-derives what that damage
+ * ends from the holder's current rows and the applied contact, requires the step's effect to be
+ * among them, and ends it like an escape, releasing what it gave (its temporary hit points, the
+ * conditions only it held).
  */
 export function persistLiveMovementDamageEnd(
   ctx: EncounterCharacterWriteTransaction,
@@ -154,9 +154,9 @@ export function persistLiveMovementDamageEnd(
 }
 
 /**
- * Settles a grant a move's zone damage gave its holder through a passive damage trigger: re-derives
- * the owed grants from the holder's current rows (after the move's damage ends) and the move's
- * applied contacts, requires the step's grant to be among them, and creates it as the room planned.
+ * Settles a grant a contact's zone damage gave its holder through a passive damage trigger (D220):
+ * re-derives the owed grants from the holder's current rows (after the contact's damage ends) and
+ * the applied contact, requires the step's grant to be among them, and creates it as the room planned.
  */
 export async function persistLiveMovementDamageGrant(
   ctx: EncounterCharacterWriteTransaction,
