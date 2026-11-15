@@ -25,6 +25,7 @@ import {
   nativeLiveSessionFrameSummary,
   traceNativeLiveSessionSockets
 } from './nativeSceneLive'
+import { routeFromClientAddress } from './clientAddress'
 
 const expect = playwrightExpect.configure({ timeout: 30_000 })
 
@@ -86,6 +87,8 @@ export async function verifySceneLiveBrowser(
       viewport: { width: 1280, height: 900 },
       reducedMotion: 'reduce'
     })
+    await routeFromClientAddress(ownerContext, origin, 0)
+    await routeFromClientAddress(playerContext, origin, 1)
     ownerContext.setDefaultTimeout(30_000)
     playerContext.setDefaultTimeout(30_000)
     ownerContext.setDefaultNavigationTimeout(90_000)

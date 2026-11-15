@@ -309,6 +309,9 @@ function localTargetMetadata(name, value) {
   return { host: url.hostname, name, port: url.port || null, protocol: url.protocol }
 }
 
+// A CI job log shows only the error, and the full log is an artifact, so carry its failing end.
+const LOG_TAIL_CHARACTERS = 4000
+
 export function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {
   return new Promise((resolveRun, rejectRun) => {
     const childEnvironment = localChildEnvironment(environment)
@@ -324,12 +327,14 @@ export function run(command, args, { environment = {}, logPath, sensitiveArgs = 
     })
     let settled = false
     let logFailure = null
-    const settle = async (error) => {
+    const settle = async (error, { showLogTail = false } = {}) => {
       if (settled) return
       settled = true
       log.end()
       try {
         await finished(log)
+        if (showLogTail)
+          error.message += `\n--- end of ${basename(logPath)} ---\n${(await readFile(logPath, 'utf8')).slice(-LOG_TAIL_CHARACTERS)}`
       } catch (logError) {
         rejectRun(logError)
         return
@@ -344,19 +349,18 @@ export function run(command, args, { environment = {}, logPath, sensitiveArgs = 
       if (child.exitCode === null) child.kill()
     })
     child.once('error', (error) => void settle(error))
-    child.once(
-      'close',
-      (code, signal) =>
+    child.once('close', (code, signal) => {
+      if (logFailure) void settle(logFailure)
+      else if (code === 0) void settle(null)
+      else
         void settle(
-          logFailure ??
-            (code === 0
-              ? null
-              : Object.assign(
-                  new Error(`${command} ${args.join(' ')} failed (${signal ?? `exit ${code}`}).`),
-                  { exitCode: code, signal }
-                ))
+          Object.assign(
+            new Error(`${command} ${args.join(' ')} failed (${signal ?? `exit ${code}`}).`),
+            { exitCode: code, signal }
+          ),
+          { showLogTail: true }
         )
-    )
+    })
   })
 }
 

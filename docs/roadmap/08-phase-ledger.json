@@ -2282,7 +2282,7 @@
             },
             {
               "id": "PLATFORM-28.T3d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2293,7 +2293,8 @@
               },
               "text": "EquipmentParentPreview reads the seeded SRD shortsword; SystemDetailPage reads a seeded reusable definition with after-write states as composed stories (D218); SystemDefinitionWorkspace.fixtures is replaced.",
               "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m806 (c81bee194); slice tip 5cca93717 (re-synced with m805): Tests 43771390338, Live 43771390365, Browser journeys 43771390307 green (storybook-backend-browser). System definition authoring stories read the seeded drafted and published definitions through the real paged queries (they page forward until the seeded label shows); writes go through the shared spies; storyData.test asserts the seed (assertions added only). SystemDefinitionWorkspace.fixtures stays because unit tests import it (D221). No enforced 20-story quota, so no new shard. No assertion weakened; no D196 change."
             },
             {
               "id": "PLATFORM-28.T4a",
@@ -2488,7 +2489,7 @@
             },
             {
               "id": "PLATFORM-28.T7b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2499,11 +2500,12 @@
               },
               "text": "A story host account owns a player Campaign the reader joins through the invitation commands (admitPlayers takes its host and capacity); the local R2 fixture allows the Storybook origins with a CORS preflight test; storyData.test asserts the player seed.",
               "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m805 (998dba205); slice tip cddd7c8fc: Tests 43744621028, Live 43744620892, Browser journeys 43744620881 green."
             },
             {
               "id": "PLATFORM-28.T7b3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2513,7 +2515,8 @@
                 "after": ["PLATFORM-28.T7b2"]
               },
               "text": "The backend preview spies the Scene renderer and records every client write frame (COMMAND and Scene fog writes) without sending it; GM and player window backend stories assert the presented Scene, tokens drawn, fog, the connection status and the Encounter, replacing RoomConnected and the base harness stories; DRAINING reconnect documented.",
-              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T7c",
@@ -28136,10 +28139,16 @@
           "acs": [
             {
               "id": "QUALITY-19.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
-              "text": "A failing proof prints its failing assertion in the job log, and the multi-actor live-backend proofs sign each actor in from its own client address, so a sign-in rate limit never fails a proof."
+              "text": "A failing proof prints its failing assertion in the job log, and the multi-actor live-backend proofs sign each actor in from its own client address, so a sign-in rate limit never fails a proof.",
+              "proof": [
+                "validatePreStagingLocal.test.mjs",
+                "encounterMovement.ts",
+                "sceneLive.ts",
+                "campaignMembership.ts"
+              ]
             },
             {
               "id": "QUALITY-19.2",
@@ -28152,8 +28161,7 @@
           "tasks": [
             {
               "id": "QUALITY-19.T1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-19.1"],
               "wsjf": {
                 "bv": 2,
@@ -28163,11 +28171,13 @@
                 "after": []
               },
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
-              "text": "The proof runner includes the tail of the proof log in its failure; one live-backend helper gives each browser context its own client address (campaignCollaboration moves onto it), used by every multi-actor proof (movement, passage and the others); no 429 diagnostic remains in those proofs."
+              "text": "The proof runner includes the tail of the proof log in its failure; one live-backend helper gives each browser context its own client address (campaignCollaboration moves onto it), used by every multi-actor proof (movement, passage and the others); no 429 diagnostic remains in those proofs.",
+              "mergedAt": "2026-11-15",
+              "proof": "m804 (80d221dec); slice tip ba48feff2: Tests 43742812940, Browser journeys 43742812873 green (no apps/apis change, so no Live run); dispatched proofs green on the tip: campaign-membership-custody 43743039084, campaign-membership-browser, campaign-custody-browser, social-browser, area-browser, effects-browser, disarm-browser, hide-browser, account-deletion-browser, recovery-browser (43745760495-43745808081); movement 43741365927 and passage 43742156117 green on 28447c542 (tip changed only a scripts unit test). routeFromClientAddress gives each browser context its own cf-connecting-ip; 13 multi-actor proofs use it; campaignMembership's sign-in 429 allow-list and v15WorkloadBrowser's 429 console filter are removed (the convex/token authRateLimit allow-list stays, cause unproven). validatePreStagingLocal run() appends the last 4000 characters of the proof log to its error; validatePreStagingLocal.test.mjs is RED against the old run(). runLocalConvexProof.ps1 already printed the tail."
             },
             {
               "id": "QUALITY-19.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-19.2"],
               "wsjf": {
                 "bv": 2,
@@ -28177,7 +28187,8 @@
                 "after": ["QUALITY-19.T1"]
               },
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
-              "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause."
+              "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         }

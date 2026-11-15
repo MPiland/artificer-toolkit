@@ -17,6 +17,7 @@ import {
   watchAuthenticatedSession,
   watchNavigationAbortedRequests
 } from './campaignCollaboration'
+import { routeFromClientAddress } from './clientAddress'
 
 type MembershipAccount = {
   email: string
@@ -113,6 +114,7 @@ export async function verifyCampaignMembershipBrowser<T>(
         reducedMotion: 'reduce'
       })
       contexts.push(context)
+      await routeFromClientAddress(context, origin, index)
       context.setDefaultTimeout(30_000)
       context.setDefaultNavigationTimeout(90_000)
       await context.tracing.start({ screenshots: true, snapshots: true, sources: true })
@@ -141,7 +143,7 @@ export async function verifyCampaignMembershipBrowser<T>(
           await route.abort('blockedbyclient')
           return
         }
-        await route.continue()
+        await route.fallback()
       })
       const page = await context.newPage()
       pages.push(page)
@@ -204,13 +206,6 @@ export async function verifyCampaignMembershipBrowser<T>(
             detail === 'Failed to load resource: the server responded with a status of 500 ()') ||
           (kind === 'console warning' &&
             detail.startsWith('Warning: Error in route match: /_authed/campaigns/'))
-        const boundedSignInRetry =
-          currentStage === 'start' &&
-          ((kind === 'response' && detail === '429 /api/auth/sign-in/email') ||
-            (kind === 'console error' &&
-              /^Failed to load resource: the server responded with a status of 429 \((?:Too Many Requests)?\)$/.test(
-                detail
-              )))
         const authRateLimit =
           currentStage !== 'start' &&
           !denialWindow &&
@@ -244,10 +239,9 @@ export async function verifyCampaignMembershipBrowser<T>(
                   'The above error occurred in the <MatchInnerImpl> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl.'
                 ))))
         if (
-          boundedSignInRetry ||
-          (denialWindow &&
-            ((kind === 'console error' && (queryDenial || denialBoundary || liveDenialBoundary)) ||
-              denialPageDiagnostic))
+          denialWindow &&
+          ((kind === 'console error' && (queryDenial || denialBoundary || liveDenialBoundary)) ||
+            denialPageDiagnostic)
         )
           expectedDenials.push(entry)
         else if (boundedAuthRetry) {
