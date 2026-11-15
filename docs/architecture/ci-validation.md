@@ -225,7 +225,7 @@ A page or route story named `*.backend.stories.tsx` reads the seeded deployment 
 - **Props-only stories.** These keep the default preview's fixture mocks and need no backend.
 - **Story data.** The story-data step, `seedStoryData` in `apps/apis/tests/developmentReviewData.ts`, makes through product commands whatever the stories read beyond the deploy and SRD seed. Stories find records by stable names. The local review-data CLI runs it after the review data, and the proof runs it before the stories.
 - **Proof.** `storybook-backend-browser` runs `yarn workspace @artificer-toolkit/web test:storybook:backend` (the `storybook-backend` Vitest project) on the throwaway stack, which reuses the same steps unchanged. The selector runs the proof when a change reaches a backend story, the Storybook config, the Vitest config, the guard or the story-data step (`PROOF_SPECS`).
-- **Guard.** `apps/web/src/test/storybook/missingQueryFnGuard.ts` fails a backend story on any TanStack Query "No queryFn" report.
+- **Guard.** TanStack Query rejects a read that has no query function and logs nothing, so a story could show a loading or empty state and still pass. The backend preview records those rejections from each story's query cache (`apps/web/src/test/storybook/missingQueryFnReports.ts`) and its `afterEach` fails the story on any.
 
 ## Red proof
 
