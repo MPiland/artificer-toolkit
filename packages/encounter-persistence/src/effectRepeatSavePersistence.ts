@@ -3,9 +3,11 @@ import type { effectRepeatSaveApplicationOutputDtoSchema } from '@artificer-tool
 import type { NativeEffectRepeatSaveContext } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
 import type { ConcentrationDamageApplicationDto } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
+  committedDamagedDiscovery,
   planDamageSaveChain,
-  settledRepeatSaveEffects,
+  type DamagedDiscovery,
   type DamageSaveEffectHolder
 } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { encounterMassiveDamageRule } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
@@ -78,13 +80,30 @@ export async function releaseEffectRepeatSave(
 }
 
 /**
+ * Where a commit's damaged discovery comes from (D220 and its amendment). `RAISED`: the raises its
+ * persistence already re-ran in its ends checks (a turn, a Cleaving blow, a movement contact), per
+ * holder. `COMMITTED`: an action or area re-derives each holder's from the committed effects
+ * (`committedDamagedDiscovery`), an independent check of the room's sealed discovery.
+ */
+export type CommitDamagedDiscovery =
+  | { kind: 'RAISED'; raised: DamagedDiscovery }
+  | {
+      kind: 'COMMITTED'
+      /**
+       * The damaging command's occurrence, then each entry occurrence it made. Leaving out the
+       * effects they placed rebuilds the holders as the damage met them.
+       */
+      commandOccurrenceIds: readonly string[]
+    }
+
+/**
  * Binds a damaging command's finalized damage to the one damage-save chain it owes (D95, D167,
  * ATTACK-16): each damaged holder's Concentration checks, effect repeat saves and massive-damage
- * saves, in canonical order, read from the committed rows. Each holder's damaged discovery is
- * re-derived from its committed effects (`settledRepeatSaveEffects`), which equals the ends stage's
- * discovery the room carried, and it plans through the same `planDamageSaveChain` the room planned
- * from, so a stale or invented chain is rejected by comparison. Every damage root persists through
- * this.
+ * saves, in canonical order, read from the committed rows. Each holder's damaged discovery is the
+ * commit's (`CommitDamagedDiscovery`), less the effects no longer committed, which equals the ends
+ * stage's discovery the room carried, and it plans through the same `planDamageSaveChain` the room
+ * planned from, so a stale or invented chain is rejected by comparison. Every damage root persists
+ * through this.
  */
 export async function bindEncounterDamageSaveChain(
   ctx: EncounterCharacterWriteTransaction,
@@ -92,11 +111,7 @@ export async function bindEncounterDamageSaveChain(
     state: OptionalCombatPolicyInput & { id: string }
     actors: readonly EncounterRunActorState[]
     applications: readonly ConcentrationDamageApplicationDto[]
-    /**
-     * The damaging command's occurrence, then each entry occurrence it made. Leaving out the effects
-     * they placed rebuilds the holders as the damage met them.
-     */
-    commandOccurrenceIds: readonly string[]
+    discovery: CommitDamagedDiscovery
     damagerActorId: string | null
   }
 ) {
@@ -118,16 +133,25 @@ export async function bindEncounterDamageSaveChain(
     )
     const actor = input.actors.find(({ id }) => id === actorId)
     if (!actor) continue
-    holders.set(actorId, {
-      defeated: isEncounterActorDefeated(actor, await readDeadCharacterIds(ctx, [actor])),
-      repeatSaveEffects: settledRepeatSaveEffects({
+    const effects = await store.list(turnEffectOwner(actor, input.state.id))
+    const { discovery } = input
+    let repeatSaveEffects: readonly ActiveRuleEffectRecord[]
+    if (discovery.kind === 'RAISED') {
+      const raised = discovery.raised.get(actorId)
+      if (!raised) throw new Error('A damaged holder has no damaged discovery.')
+      repeatSaveEffects = raised.filter(({ id }) => effects.some((effect) => effect.id === id))
+    } else
+      repeatSaveEffects = committedDamagedDiscovery({
         holderActorId: actorId,
-        effects: await store.list(turnEffectOwner(actor, input.state.id)),
-        commandOccurrenceIds: input.commandOccurrenceIds,
+        effects,
+        commandOccurrenceIds: discovery.commandOccurrenceIds,
         applications: input.applications,
         damagerActorId: input.damagerActorId,
         dispositions
-      }),
+      })
+    holders.set(actorId, {
+      defeated: isEncounterActorDefeated(actor, await readDeadCharacterIds(ctx, [actor])),
+      repeatSaveEffects,
       maximumHitPoints: massiveRule
         ? ((await readEncounterActorMaximumHitPoints(ctx, {
             encounterId: input.state.id,

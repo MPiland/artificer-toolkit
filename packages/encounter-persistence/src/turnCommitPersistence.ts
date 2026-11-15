@@ -41,6 +41,7 @@ import {
   persistEncounterInitiativeRestores,
   type EncounterInitiativeRestoreCharacterRules
 } from './initiativeRestorePersistence.js'
+import { joinDamagedDiscoveries } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { markTurnStarted, readTurnStartedBy } from './turnMovement.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
@@ -231,7 +232,7 @@ export async function persistEncounterTurnCommit(
       turnActorId: state.currentActorId,
       occurredAt: input.occurredAt
     })
-  await persistEncounterTurnResources(
+  const legendary = await persistEncounterTurnResources(
     ctx,
     {
       state,
@@ -334,7 +335,7 @@ export async function persistEncounterTurnCommit(
         actorId: incomingBoundary.actorId
       })) !== null)
   const incoming = incomingBegun
-    ? { result: null, actors: [] }
+    ? { result: null, actors: [], raises: [] }
     : await persistEncounterTurnEffects(
         ctx,
         {
@@ -444,7 +445,17 @@ export async function persistEncounterTurnCommit(
       state: nextState,
       actors: settledActors,
       applications,
-      commandOccurrenceIds: [input.occurrenceId],
+      // The raises each stage's ends check re-ran, joined in turn order (D220 amendment).
+      discovery: {
+        kind: 'RAISED',
+        raised: joinDamagedDiscoveries([
+          ...(outgoing?.raises ?? []),
+          ...(outgoingZones?.raises ?? []),
+          ...legendary.raises,
+          ...incoming.raises,
+          ...(incomingZones?.raises ?? [])
+        ])
+      },
       damagerActorId: null
     }),
     correlationId: input.occurrenceId,

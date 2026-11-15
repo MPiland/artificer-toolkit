@@ -38,6 +38,7 @@ import { createActiveRuleEffectStore } from './effectStore.js'
 import type { applyLiveConcentrationCleanup } from './concentrationCleanupPersistence.js'
 import { movementPersistedTransitionState } from './liveMovementTargetState.js'
 import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
+import type { raiseLiveMovementContactDamage } from './escapedEffectEndPersistence.js'
 import {
   bindEncounterDamageSaveChain,
   readEffectRepeatSaveRow,
@@ -428,9 +429,10 @@ export async function persistLiveMovementRepeatSave(
 
 /**
  * Persists one massive-damage save (ATTACK-16) a movement contact's damage owed its holder. The
- * save is re-derived from the committed rows through the chain every damage root binds: the
- * Encounter's rule must still be the pinned one and this damage must still owe its holder the save.
- * It records the outcome and changes no Run state.
+ * save is re-derived from the committed rows through the chain every damage root binds, against the
+ * contact's raise its settlement re-ran (D220 amendment): the Encounter's rule must still be the
+ * pinned one and this damage must still owe its holder the save. It records the outcome and changes
+ * no Run state.
  */
 export async function persistLiveMovementMassiveDamageSave(
   ctx: Parameters<typeof bindEncounterDamageSaveChain>[0] &
@@ -444,6 +446,8 @@ export async function persistLiveMovementMassiveDamageSave(
     userId: string
     authorizedCharacterIds: ReadonlySet<string>
     occurredAt: string
+    /** The raise of the contact whose damage owes the save (`raiseLiveMovementContactDamage`). */
+    raised: Awaited<ReturnType<typeof raiseLiveMovementContactDamage>>
   },
   callbacks: Pick<MovementConcentrationPersistenceCallbacks, 'currentCharacterStreamVersion'>
 ): Promise<void> {
@@ -481,7 +485,10 @@ export async function persistLiveMovementMassiveDamageSave(
     state,
     actors: input.actors,
     applications: [unboundDamageSaveApplication(application)],
-    commandOccurrenceIds: [parentOccurrenceId],
+    discovery: {
+      kind: 'RAISED',
+      raised: new Map([[target.id, input.raised.repeatSaveEffects]])
+    },
     damagerActorId: null
   })
   if (!owed.some((entry) => checksumCanonicalJson(entry) === checksumCanonicalJson(application)))
