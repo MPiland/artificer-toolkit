@@ -58,6 +58,7 @@ export function captureFake(
     return liveSessionEncounterRulesResponseSchema.parse(await answer(request))
   }
   const reads: LiveCaptureReads = {
+    readCampaignClockMinute: async () => null,
     encounterRules: (input: LiveSessionEncounterRulesInput) => capture(input.request),
     prepareCharacter: () => {
       throw new Error('This fake serves Encounter captures only.')

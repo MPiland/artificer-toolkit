@@ -61,7 +61,7 @@ export function createNativeLiveTurnStages(
     runtime: RulesRuntimeService
     random(maximum: number): number
     /** Reads the Campaign clock for a Legendary Action whose effect counts Campaign minutes (D222). */
-    readCampaignClockMinute?: LiveCaptureReads['readCampaignClockMinute']
+    readCampaignClockMinute: LiveCaptureReads['readCampaignClockMinute']
     onSceneRead: Parameters<typeof resolveNativeLiveTurnEffectPerception>[0]['onSceneRead']
   }
 ) {

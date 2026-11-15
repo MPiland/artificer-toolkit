@@ -650,9 +650,7 @@ describe('Legendary Action turn window', () => {
       ...(input.resolution ? { resolution: input.resolution } : {}),
       updatedAt: '2026-09-26T00:00:01.000Z',
       actors: input.actors,
-      ...(input.readCampaignClockMinute
-        ? { readCampaignClockMinute: input.readCampaignClockMinute }
-        : {}),
+      readCampaignClockMinute: input.readCampaignClockMinute ?? (async () => null),
       discoverWindows: ({ outgoingActorId, actors }) =>
         discoverWindows({
           actors,
@@ -837,7 +835,7 @@ describe('Legendary Action turn window', () => {
   })
 
   describe('an option that plants a Campaign-minute ruling (QUALITY-15.T3i3, D222)', () => {
-    async function curse(readCampaignClockMinute?: () => Promise<number | null>) {
+    async function curse(readCampaignClockMinute: () => Promise<number | null>) {
       const actors = [dragon({ creature: cursingDragon }), wolfActor]
       const {
         snapshot,
@@ -853,7 +851,7 @@ describe('Legendary Action turn window', () => {
           optionId: wingAttack.optionId,
           targetActorId: DRAGON_ID
         },
-        ...(readCampaignClockMinute ? { readCampaignClockMinute } : {})
+        readCampaignClockMinute
       })
     }
 
@@ -906,11 +904,8 @@ describe('Legendary Action turn window', () => {
       })
       expect(done.kind).toBe('COMPLETE')
     })
-
-    it('refuses when the turn has no way to read the clock', async () => {
-      await expect(curse()).rejects.toThrow('The Campaign clock cannot be read.')
-    })
   })
+
   it('runs the first option of the Vampire Unarmed Strike pick, since a Legendary Action cannot prompt (SPELLS-33.T4i1f)', async () => {
     const actors = [
       srdCreatureActor({

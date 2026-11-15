@@ -297,16 +297,14 @@ export async function readCampaignClockForEffects<
 >(input: {
   prepared: PreparedMechanics<TCharacterFacts>
   execution: Pick<CompleteExecution, 'published' | 'execution'>
-  readClockMinute?: () => Promise<number | null>
+  readClockMinute: () => Promise<number | null>
 }): Promise<number | null | undefined> {
   const countsCampaignMinutes = encounterActiveEffectPlans(
     input.prepared,
     input.execution.published,
     input.execution.execution.outputs
   ).some((plan) => plan.campaignMinutes !== undefined)
-  if (!countsCampaignMinutes) return undefined
-  if (!input.readClockMinute) throw new Error('The Campaign clock cannot be read.')
-  return input.readClockMinute()
+  return countsCampaignMinutes ? input.readClockMinute() : undefined
 }
 
 /**

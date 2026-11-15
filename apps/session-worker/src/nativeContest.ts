@@ -531,7 +531,7 @@ export async function planNativeLiveContestRolls(input: {
   /** The Attack action a contest that replaces one attack fills; null for any other contest. */
   attackAction?: EncounterAttackActionTransitionDto | null
   /** Reads the Campaign clock for the hold a won contest creates; the escape contest creates none. */
-  readCampaignClockMinute?: LiveCaptureReads['readCampaignClockMinute']
+  readCampaignClockMinute: LiveCaptureReads['readCampaignClockMinute']
   runtime: RulesRuntimeService
   random(maximum: number): number
   revisions: LiveSessionRulesRevisions

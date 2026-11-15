@@ -119,7 +119,7 @@ type TurnLegendaryActionInput<
   } | null>
   definitions: CurrentReusableDefinitionSource
   /** Reads the Campaign clock for an option whose effect counts Campaign minutes (D222). */
-  readCampaignClockMinute?: () => Promise<number | null>
+  readCampaignClockMinute: () => Promise<number | null>
   createRuntime(): Promise<RulesRuntimeService>
   random(maximum: number): number
 }

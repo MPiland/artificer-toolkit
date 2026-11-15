@@ -20,9 +20,9 @@ export interface LiveCaptureReads {
   readFormCreature?(gameSystemId: string, creatureId: string): Promise<EncounterActorFormCreature>
   /**
    * Reads the Campaign clock's absolute minute, null when the Campaign has no clock (D222). Read
-   * fresh because the clock is not room-owned; absent where no action stamps a Campaign-minute expiry.
+   * fresh because the clock is not room-owned.
    */
-  readCampaignClockMinute?(): Promise<number | null>
+  readCampaignClockMinute(): Promise<number | null>
 }
 
 /**
