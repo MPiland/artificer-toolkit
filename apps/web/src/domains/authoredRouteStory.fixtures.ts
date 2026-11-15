@@ -906,41 +906,6 @@ export const authoredEditRouteLoaderData = {
   vehicle: VehicleEditLoaderData
 }
 
-export const authoredRouteStoryParams = {
-  background: {
-    backgroundPublicId: 'acolyte',
-    backgroundSlug: 'acolyte'
-  },
-  class: {
-    classPublicId: 'wizard',
-    classSlug: 'wizard'
-  },
-  creature: {
-    creaturePublicId: 'acolyte',
-    creatureSlug: 'acolyte'
-  },
-  equipment: {
-    equipmentPublicId: 'longsword',
-    equipmentSlug: 'longsword'
-  },
-  feat: {
-    featPublicId: 'grappler',
-    featSlug: 'grappler'
-  },
-  race: {
-    racePublicId: 'dragonborn',
-    raceSlug: 'dragonborn'
-  },
-  spell: {
-    spellPublicId: 'fireball',
-    spellSlug: 'fireball'
-  },
-  vehicle: {
-    vehiclePublicId: 'sailing-ship',
-    vehicleSlug: 'sailing-ship'
-  }
-} as const
-
 export type AuthoredRouteStoryRecordMap = {
   background: BackgroundAuthoredDto
   class: ClassAuthoredDto

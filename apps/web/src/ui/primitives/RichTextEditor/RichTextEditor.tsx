@@ -108,8 +108,10 @@ const RichTextEditor = ({
     }
   })
 
+  // Toggling editability is not an edit: emitting it would write the document the editor still
+  // shows over a newer `value` before the sync below runs.
   useEffect(() => {
-    editor?.setEditable(!readOnly)
+    editor?.setEditable(!readOnly, false)
   }, [editor, readOnly])
 
   useEffect(() => {

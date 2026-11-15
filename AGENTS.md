@@ -349,7 +349,6 @@ Web workspace commands:
 - `yarn workspace @artificer-toolkit/web test:forms`
 - `yarn workspace @artificer-toolkit/web test:authoring`
 - `yarn workspace @artificer-toolkit/web test:e2e:app`
-- `yarn workspace @artificer-toolkit/web test:e2e:authoring-storybook`
 - `yarn workspace @artificer-toolkit/web test:e2e:storybook`
 
 Convex and Worker commands:
