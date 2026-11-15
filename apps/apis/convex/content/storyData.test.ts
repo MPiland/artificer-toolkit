@@ -41,9 +41,9 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     return reader
   }
   const characters = Object.values(STORY_CHARACTERS)
-  // Four copies per Character (race, background, class, equipment), a second class for the
-  // multiclass Character and three spells for the caster.
-  const characterCopyCount = characters.length * 4 + 1 + 3
+  // Four copies per Character (race, background, class, equipment) and three spells for the
+  // caster; the multiclass Character's Wizard is the SRD Class itself.
+  const characterCopyCount = characters.length * 4 + 3
   const stored = () =>
     t.run(async (ctx) => ({
       roots: (
@@ -119,5 +119,14 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       characterId === STORY_CHARACTERS.draftPending.characterId
     )
   }
+  const fighterSheet = await reader.query(api.characters.sheet.get, {
+    id: STORY_CHARACTERS.fighter.characterId
+  })
+  const poisoned = fighterSheet?.reference.conditionOptions.find(
+    ({ label }) => label === 'Poisoned'
+  )
+  expect(fighterSheet?.overview.conditions.map(({ conditionTypeId }) => conditionTypeId)).toEqual([
+    poisoned?.id
+  ])
   expect(await stored()).toEqual(seeded)
 }, 240_000)

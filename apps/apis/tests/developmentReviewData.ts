@@ -15,6 +15,15 @@ import type {
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { wizard as wizardClass } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { burningHands } from '@artificer-toolkit/source-data/srd/spells/burning-hands.js'
+import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { identify } from '@artificer-toolkit/source-data/srd/spells/identify.js'
+import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
+import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
+import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js'
+import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
+import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
@@ -161,14 +170,35 @@ async function seedStoryCharacters(reader: StoryClient) {
     Boolean(await reader.query(api.characters.sheet.get, { id: characterId }))
   if (!(await exists(fighter.characterId)))
     await createDevelopmentCharacter(reader, fighter.characterId, {}, fighter.label)
+  // The Status stories open a held Condition, which a Character gains through the Sheet command.
+  const sheet = await reader.query(api.characters.sheet.get, { id: fighter.characterId })
+  const poisoned = sheet?.reference.conditionOptions.find(({ label }) => label === 'Poisoned')
+  assert.ok(sheet && poisoned, 'The story Fighter must read the System Poisoned Condition.')
+  if (!sheet.overview.conditions.some(({ conditionTypeId }) => conditionTypeId === poisoned.id))
+    await reader.mutation(api.characters.sheetCommands.execute, {
+      id: fighter.characterId,
+      command: {
+        type: 'ADD_CONDITION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion,
+        conditionTypeId: poisoned.id
+      }
+    })
   if (!(await exists(multiclass.characterId)))
-    await createDevelopmentCharacter(
-      reader,
-      multiclass.characterId,
-      {},
-      multiclass.label,
-      wizardClass
-    )
+    await createDevelopmentCharacter(reader, multiclass.characterId, {}, multiclass.label, {
+      source: wizardClass,
+      spells: [
+        fireBolt,
+        light,
+        mageHand,
+        magicMissile,
+        shield,
+        burningHands,
+        sleep,
+        mageArmor,
+        identify
+      ]
+    })
   if (!(await exists(caster.characterId)))
     await createDevelopmentSpellCharacter(
       reader,
