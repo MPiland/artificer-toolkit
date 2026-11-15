@@ -8,11 +8,12 @@ import type {
   SceneCurrentEntityPage,
   SceneCurrentEntityPageInput
 } from '@artificer-toolkit/schema/api/sceneRecipient'
-import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
+import { actorTokenLights } from '@artificer-toolkit/rules-runtime/actorLight'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { EncounterReadContext } from './store.js'
 import { readRunActors } from './documents.js'
-import { readMaintainedState } from './effectReads.js'
+import { listActiveRuleEffects, readMaintainedState } from './effectReads.js'
 import { readSpatialEffect } from './spatialEffectStore.js'
 
 type TurnRequest = Extract<
@@ -98,10 +99,24 @@ export async function readEncounterTurnCapture(
     ])
     if (tokenBindings.length > MAX_ENCOUNTER_ACTORS)
       throw new Error('Turn effect perception token bindings exceed the supported bound.')
-    const tokenLights = creatureTokenLights(
-      tokenBindings.filter(({ sceneId }) => sceneId === binding.sceneId),
-      actors
+    const sceneBindings = tokenBindings.filter(({ sceneId }) => sceneId === binding.sceneId)
+    const sceneActorIds = new Set(sceneBindings.map(({ actorId }) => actorId))
+    const activeEffectsByActorId = new Map(
+      await Promise.all(
+        actors
+          .filter(({ id, kind }) => kind !== 'CUSTOM' && sceneActorIds.has(id))
+          .map(
+            async (actor) =>
+              [
+                actor.id,
+                await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id), {
+                  ownerVerified: true
+                })
+              ] as const
+          )
+      )
     )
+    const tokenLights = actorTokenLights(sceneBindings, actors, activeEffectsByActorId)
     return {
       kind: request.kind,
       context: {
