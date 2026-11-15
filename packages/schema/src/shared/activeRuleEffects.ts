@@ -331,6 +331,11 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
             .check(z.gte(1))
             .check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS)),
           decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN'])
+        }),
+        // A duration over the turn bound (D222): the Campaign clock ends it, so it counts no turns.
+        z.strictObject({
+          kind: z.literal('CAMPAIGN_MINUTES'),
+          minutes: integerSchema.check(z.gte(1)).check(z.lte(Number.MAX_SAFE_INTEGER))
         })
       ])
     })
@@ -788,6 +793,9 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
         }
         if (
           (configuredExpiration.kind === 'INDEFINITE' && remainingTicks !== null) ||
+          // The stamp is the absolute minute, or null for a Campaign with no clock (lasts until the GM ends it).
+          (configuredExpiration.kind === 'CAMPAIGN_MINUTES' &&
+            (remainingTicks !== null || state.lifecycle.expiresAtCampaignMinute === undefined)) ||
           (configuredExpiration.kind === 'TICKS' &&
             remainingTicks === null &&
             state.lifecycle.expiresAtCampaignMinute === undefined)

@@ -74,6 +74,26 @@ function compileDirect(spell: SpellAuthored) {
     dnd5eCharacterRuleActionSystemAdapter.compile({ action: characterActionDescriptor(effect) })
 }
 
+/** `spell` with its one result's duration replaced. */
+function withDuration(
+  spell: SpellAuthored,
+  duration: { durationKind: 'DAY' | 'MONTH'; amount: number }
+): SpellAuthored {
+  return {
+    ...spell,
+    effects: (spell.effects ?? []).map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => ({
+        ...path,
+        resultBlock: {
+          ...path.resultBlock,
+          duration: { ...path.resultBlock.duration, ...duration }
+        }
+      }))
+    }))
+  } as SpellAuthored
+}
+
 /** The GM ruling `effect` holds, by its stored state contributions. */
 const rulingOf = (effect: ReturnType<typeof landed>['recurringEffect']) =>
   effect?.definition.stateContributions.filter(({ kind }) => kind === 'GM_RULING')
@@ -117,9 +137,38 @@ describe('a GM ruling with a duration is held as a timed ruling (QUALITY-15.T3)'
     expect(recurringEffect?.lifecycle.remainingTicks).toBeNull()
   })
 
-  it('still refuses a ruling longer than an active effect can last', () => {
-    // Geas lasts 30 days, past the longest duration an active effect holds.
-    expect(compileDirect(geas)).toThrow(LIFETIME_REFUSAL)
+  it('holds Geas for 30 days by the Campaign clock, counting no turns (QUALITY-15.T3i, D222)', () => {
+    const { activeEffectPlan } = castOf(geas).compilation
+    expect(activeEffectPlan).toMatchObject({
+      recurrenceStage: 'NONE',
+      initialRemaining: null,
+      // 30 days of 1,440 Campaign minutes.
+      campaignMinutes: 43_200,
+      maintenance: null
+    })
+    const { recurringEffect } = landed(geas, 'ON_SAVE_FAIL')
+    expect(recurringEffect?.definition.recurrence.expiration).toEqual({
+      kind: 'CAMPAIGN_MINUTES',
+      minutes: 43_200
+    })
+    expect(rulingOf(recurringEffect)).toHaveLength(1)
+    // No Campaign clock is known at planning, which is the explicit lasts-until-the-GM-ends-it state.
+    expect(recurringEffect?.lifecycle).toMatchObject({
+      remainingTicks: null,
+      expiresAtCampaignMinute: null
+    })
+  })
+
+  it('keeps counting turns for a ruling that fits the bound, and refuses a calendar month', () => {
+    const oneDay = withDuration(geas, { durationKind: 'DAY', amount: 1 })
+    expect(castOf(oneDay).compilation.activeEffectPlan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 14_400
+    })
+    expect(castOf(oneDay).compilation.activeEffectPlan).not.toHaveProperty('campaignMinutes')
+    expect(compileDirect(withDuration(geas, { durationKind: 'MONTH', amount: 1 }))).toThrow(
+      LIFETIME_REFUSAL
+    )
   })
 })
 

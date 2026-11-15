@@ -93,6 +93,11 @@ export interface CharacterRuleActionActiveEffectPlan {
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /**
+   * Set instead of `initialRemaining` for a duration longer than the turn bound (D222): the
+   * Campaign minutes the effect lasts, counted by the Campaign clock.
+   */
+  campaignMinutes?: number
+  /**
    * The authored Effect the target already holds that this effect ends with (D172); the planner
    * links the held effect at creation.
    */

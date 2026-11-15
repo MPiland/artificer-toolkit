@@ -46,6 +46,30 @@ export function conditionDurationTurns(duration: CompiledDuration): number | nul
   return amountTurns(duration.durationKind, duration.amount)
 }
 
+const CAMPAIGN_MINUTES_PER_DURATION_UNIT: Partial<
+  Record<CompiledDuration['durationKind'], number>
+> = {
+  MINUTE: 1,
+  HOUR: 60,
+  DAY: 1440,
+  WEEK: 10_080
+}
+
+/**
+ * The Campaign minutes of a duration too long for the turn bound (D222: Geas, "30 days"); null for
+ * one that fits the bound, is scaled, or counts in calendar units the Campaign clock does not
+ * fix (months, years).
+ */
+export function overBoundDurationCampaignMinutes(duration: CompiledDuration): number | null {
+  if (conditionDurationTurns(duration) !== null || !('amount' in duration) || duration.scaling)
+    return null
+  const perUnit = CAMPAIGN_MINUTES_PER_DURATION_UNIT[duration.durationKind]
+  if (perUnit === undefined || !Number.isSafeInteger(duration.amount) || duration.amount < 1)
+    return null
+  const minutes = duration.amount * perUnit
+  return Number.isSafeInteger(minutes) ? minutes : null
+}
+
 export function amountTurns(
   durationKind: CompiledDuration['durationKind'],
   amount: number
