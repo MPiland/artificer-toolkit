@@ -13,22 +13,24 @@ import { STORY_RECORDS } from '../../../../../apis/tests/developmentReviewDataSc
 
 const { ownedActive, ownedDraft } = STORY_RECORDS.background
 
+/** The edit route opened at a subject id, which the loader redirects to its canonical handle. */
+function editRouter(subjectId: string, label: string) {
+  return {
+    route: Route,
+    path: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit' as const,
+    params: buildBackgroundRouteParams(subjectId, label)
+  }
+}
+
 // Reads the seeded backgrounds as the story account (D218, D221): the SRD Acolyte and the account's
-// own copies of it that `seedStoryData` activates and drafts. The loader redirects each subject id to
-// the record's canonical handle; writes are spies.
+// own copies of it that `seedStoryData` activates and drafts. Writes are spies.
 const meta = {
   title: 'Domains/Backgrounds/Routes/Edit',
   globals: authoringDesktopViewport.globals,
   parameters: {
     layout: 'fullscreen',
     viewport: { options: authoringDesktopViewport.options },
-    tanstack: {
-      router: {
-        route: Route,
-        path: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit',
-        params: buildBackgroundRouteParams(acolyte.id, acolyte.label)
-      }
-    }
+    tanstack: { router: editRouter(acolyte.id, acolyte.label) }
   }
 } satisfies Meta<typeof Route>
 
@@ -46,7 +48,7 @@ export const MasterLocked: Story = {
 export const OwnedActive: Story = {
   parameters: {
     tanstack: {
-      router: { params: buildBackgroundRouteParams(ownedActive.subjectId, ownedActive.label) }
+      router: editRouter(ownedActive.subjectId, ownedActive.label)
     }
   },
   play: async ({ canvasElement }) => {
@@ -58,7 +60,7 @@ export const OwnedActive: Story = {
 export const OwnedDraft: Story = {
   parameters: {
     tanstack: {
-      router: { params: buildBackgroundRouteParams(ownedDraft.subjectId, ownedDraft.label) }
+      router: editRouter(ownedDraft.subjectId, ownedDraft.label)
     }
   },
   play: async ({ canvasElement }) => {

@@ -18,22 +18,24 @@ import { STORY_RECORDS } from '../../../../../apis/tests/developmentReviewDataSc
 
 const { ownedActive, ownedDraft } = STORY_RECORDS.spell
 
+/** The edit route opened at a subject id, which the loader redirects to its canonical handle. */
+function editRouter(subjectId: string, label: string) {
+  return {
+    route: Route,
+    path: '/spells/$spellPublicId/$spellSlug/edit' as const,
+    params: buildSpellRouteParams(subjectId, label)
+  }
+}
+
 // Reads the seeded spells as the story account (D218, D221): the SRD Fireball and the account's own
-// copies of it that `seedStoryData` activates and drafts. The loader redirects each subject id to the
-// record's canonical handle; writes are spies.
+// copies of it that `seedStoryData` activates and drafts. Writes are spies.
 const meta = {
   title: 'Domains/Spells/Routes/Edit',
   globals: authoringDesktopViewport.globals,
   parameters: {
     layout: 'fullscreen',
     viewport: { options: authoringDesktopViewport.options },
-    tanstack: {
-      router: {
-        route: Route,
-        path: '/spells/$spellPublicId/$spellSlug/edit',
-        params: buildSpellRouteParams(fireball.id, fireball.label)
-      }
-    }
+    tanstack: { router: editRouter(fireball.id, fireball.label) }
   }
 } satisfies Meta<typeof Route>
 
@@ -42,7 +44,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const ownedDraftParameters = {
-  tanstack: { router: { params: buildSpellRouteParams(ownedDraft.subjectId, ownedDraft.label) } }
+  tanstack: { router: editRouter(ownedDraft.subjectId, ownedDraft.label) }
 }
 
 export const MasterLocked: Story = {
@@ -53,11 +55,7 @@ export const MasterLocked: Story = {
 }
 
 export const OwnedActive: Story = {
-  parameters: {
-    tanstack: {
-      router: { params: buildSpellRouteParams(ownedActive.subjectId, ownedActive.label) }
-    }
-  },
+  parameters: { tanstack: { router: editRouter(ownedActive.subjectId, ownedActive.label) } },
   play: async ({ canvasElement }) => {
     await findSeededAuthoringRecord(canvasElement, ownedActive.label)
     await expectOwnedActiveAuthoringRoute(canvasElement, ownedActive.label)
