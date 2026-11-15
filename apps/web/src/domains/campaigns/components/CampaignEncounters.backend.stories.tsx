@@ -101,10 +101,13 @@ export const NoEncountersYet: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const page = within(canvasElement.ownerDocument.body)
-    await expect(await canvas.findByText(NO_ENCOUNTERS)).toBeVisible()
+    await expect(await canvas.findByText(NO_ENCOUNTERS, {}, { timeout: 10_000 })).toBeVisible()
 
     await userEvent.click(canvas.getByRole('button', { name: 'Add encounter' }))
-    await userEvent.click(await canvas.findByLabelText('Encounter Blueprint'))
+    // The saved Blueprints load as a subscription after the adder opens; the select stays disabled until they do.
+    const blueprint = await canvas.findByLabelText('Encounter Blueprint')
+    await waitFor(() => expect(blueprint).toBeEnabled(), { timeout: 10_000 })
+    await userEvent.click(blueprint)
     await userEvent.click(
       await page.findByRole('option', { name: `${STORY_CAMPAIGN.blueprintName} · 1 enemy` })
     )
