@@ -7,6 +7,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { writesTo } from '#app/test/storybook/storyWrites'
 import type { StoryQueryOverride } from '#app/test/storybook/storyQueryOverride'
+import { STORY_CAMPAIGN } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededCampaign } from '../stories/SeededCampaign'
 import { CampaignSettings } from './CampaignSettings'
 import { CampaignTableSettings } from './CampaignTableSettings/CampaignTableSettings'
@@ -51,15 +52,14 @@ export const RulesAndAutomation: Story = {
     await userEvent.click(canvas.getByLabelText('Automation mode'))
     await userEvent.click(await page.findByRole('option', { name: 'Manual' }))
     await userEvent.click(canvas.getByRole('button', { name: 'Save table settings' }))
-    await waitFor(() =>
-      expect(writesTo(api.campaigns.playSettings.save)).toEqual([
-        expect.objectContaining({
-          campaignId: expect.stringMatching(/^[0-9a-f-]{36}$/),
-          expectedVersion: expect.any(Number),
-          automationMode: 'MANUAL'
-        })
-      ])
-    )
+    await waitFor(() => expect(writesTo(api.campaigns.playSettings.save)).toHaveLength(1))
+    const [write] = writesTo(api.campaigns.playSettings.save)
+    expect(write).toMatchObject({
+      ...STORY_CAMPAIGN.playSettings,
+      expectedVersion: 1,
+      automationMode: 'MANUAL'
+    })
+    expect(write).toHaveProperty('campaignId')
     await waitFor(async () =>
       expect(await canvas.findByLabelText('Automation mode')).toHaveValue('Manual')
     )

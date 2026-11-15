@@ -89,8 +89,10 @@ export const AuthorsTableAndRefusesOverlap: Story = {
     await userEvent.type(name!, 'Guard room')
     const table = within(editor).getByRole('group', { name: 'Loot table Guard room' })
     const first = within(table).getByRole('group', { name: 'Table 2 range 1' })
-    await waitFor(() =>
-      expect(within(first).getByRole('button', { name: 'Add item' })).toBeEnabled()
+    // The equipment catalogue loads from content snapshots after the manifest, so the picker fills late.
+    await waitFor(
+      () => expect(within(first).getByRole('button', { name: 'Add item' })).toBeEnabled(),
+      { timeout: 15_000 }
     )
     await userEvent.click(within(first).getByRole('button', { name: 'Add item' }))
     await userEvent.click(within(first).getByRole('button', { name: 'Add coins' }))
