@@ -2451,7 +2451,6 @@ a later Run's START (`planResumedCarriedEffects`) only expires it once the clock
 clock advance ends it, for every effect kind, through `expiredCampaignClockEffects` and the GM-only `END_ACTIVE_EFFECT`
 Sheet command in `campaigns/clockGrantExpiry.ts`.
 
-
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
 `endsWith: 'PRIMARY'` and refuses by name any other target, and any link where there is no such condition (the
