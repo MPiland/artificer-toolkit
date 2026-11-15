@@ -152,18 +152,22 @@ export async function seedStoryData(
       payload: active.item
     })
   }
-  const { subjectKind, subjectId, label, payload } = STORY_DRAFT_ONLY
-  if (!(await reader.query(api.content.drafts.get, { subjectKind, subjectId }))) {
-    await reader.mutation(api.content.drafts.save, {
-      subjectKind,
-      subjectId,
-      systemId: srdSystemRecord.id,
-      label,
-      payload
-    })
-  }
+  await seedStoryDraftOnly(reader)
   await seedStoryDefinitions(reader)
   await seedStoryCampaign(reader)
+}
+
+/** Saves `STORY_DRAFT_ONLY` as a never-activated draft unless a previous run already did. */
+async function seedStoryDraftOnly(client: StoryClient) {
+  const { subjectKind, subjectId, label, payload } = STORY_DRAFT_ONLY
+  if (await client.query(api.content.drafts.get, { subjectKind, subjectId })) return
+  await client.mutation(api.content.drafts.save, {
+    subjectKind,
+    subjectId,
+    systemId: srdSystemRecord.id,
+    label,
+    payload
+  })
 }
 
 /**
