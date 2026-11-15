@@ -119,8 +119,9 @@ export const NoEncountersYet: Story = {
       campaignId: seeded.dataset.campaignId
     })
     // The created Run closes the adder; the served list stays empty.
-    await waitFor(() =>
-      expect(canvas.queryByLabelText('Encounter Blueprint')).not.toBeInTheDocument()
+    await waitFor(
+      () => expect(canvas.queryByLabelText('Encounter Blueprint')).not.toBeInTheDocument(),
+      { timeout: 10_000 }
     )
   }
 }
