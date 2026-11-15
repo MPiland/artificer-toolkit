@@ -12,7 +12,11 @@ import {
   installQueryOverride,
   type StoryQueryOverride
 } from '../../src/test/storybook/storyQueryOverride'
-import { storyMutation, storyMutationHook } from '../../src/test/storybook/storyWrites'
+import {
+  bindStoryReads,
+  storyMutation,
+  storyMutationHook
+} from '../../src/test/storybook/storyWrites'
 import {
   REVIEW_PASSWORD,
   reviewAccountEmail,
@@ -84,6 +88,7 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       const backend = getStoryBackend(context.id)
+      bindStoryReads(backend.convex.convexClient)
       return (
         <StoryFrame theme={context.globals.theme} queryClient={backend.queryClient}>
           <ConvexBetterAuthProvider

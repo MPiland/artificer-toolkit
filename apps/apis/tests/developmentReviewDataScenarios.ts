@@ -74,6 +74,8 @@ export type StoryAccountKey = keyof typeof STORY_ACCOUNTS
 /** The Social Hub state around the story Campaign, which the reader hosts: see seedStorySocial. */
 export const STORY_SOCIAL = {
   applicationMessage: 'Our Rogue would love a seat at your table.',
+  /** The peer's own Campaign, whose listing stays a draft. */
+  peerTableName: 'Story Peer Table',
   reportDetails: 'Seeded report for the moderation queue.'
 } as const
 

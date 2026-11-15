@@ -151,4 +151,17 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     reports: [STORY_SOCIAL.reportDetails],
     feeds: ['SOCIAL_APPLICATION_SUBMITTED', 'SOCIAL_INVITATION_RECEIVED']
   })
+
+  // The reader's listing is open; the peer hosts its own Campaign whose listing is still a draft,
+  // which the listing editor stories open.
+  const hosted = async (client: StoryClient) =>
+    (
+      await client.query(api.social.listings.listOwned, {
+        paginationOpts: { cursor: null, numItems: 8 }
+      })
+    ).page.map(({ title, status }) => [title, status])
+  expect(await hosted(reader)).toEqual([[STORY_CAMPAIGN.name, 'OPEN']])
+  expect(await hosted(clients[REVIEW_STORY_PEER.key])).toEqual([
+    [STORY_SOCIAL.peerTableName, 'DRAFT']
+  ])
 }, 240_000)

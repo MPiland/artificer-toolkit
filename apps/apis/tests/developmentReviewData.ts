@@ -165,14 +165,8 @@ export async function seedStoryData(
   )
 }
 
-/**
- * Hosts the story Campaign and fills what its stories read, returning its id. Each step replays
- * harmlessly: the Blueprint and Run are keyed by fixed command ids, and settings and loot are
- * written only while unset.
- */
-async function seedStoryCampaign(client: StoryClient): Promise<string> {
-  const { name, blueprintName, enemyLabel, playSettings, lootTable } = STORY_CAMPAIGN
-  const campaignId =
+async function findOrCreateStoryCampaign(client: StoryClient, name: string): Promise<string> {
+  return (
     (await findCampaign(client, name)) ??
     (
       await client.mutation(api.campaigns.create.create, {
@@ -184,6 +178,17 @@ async function seedStoryCampaign(client: StoryClient): Promise<string> {
         primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
       })
     ).id
+  )
+}
+
+/**
+ * Hosts the story Campaign and fills what its stories read, returning its id. Each step replays
+ * harmlessly: the Blueprint and Run are keyed by fixed command ids, and settings and loot are
+ * written only while unset.
+ */
+async function seedStoryCampaign(client: StoryClient): Promise<string> {
+  const { name, blueprintName, enemyLabel, playSettings, lootTable } = STORY_CAMPAIGN
+  const campaignId = await findOrCreateStoryCampaign(client, name)
   const current = await client.query(api.campaigns.playSettings.get, { campaignId })
   if (current.quorum !== playSettings.quorum) {
     const { version, updatedAt: _updatedAt, ...fields } = current
@@ -264,6 +269,12 @@ async function seedStorySocial(
   // Another account's Social profile page resolves only for a public account.
   await peer.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
   const firstPage = { paginationOpts: { cursor: null, numItems: 8 } }
+  // The peer hosts a table of its own whose listing stays a draft: the state the listing editor
+  // stories open, which the reader's open listing cannot show.
+  const peerTable = await findOrCreateStoryCampaign(peer, STORY_SOCIAL.peerTableName)
+  const peerListings = await peer.query(api.social.listings.listOwned, firstPage)
+  if (!peerListings.page.some(({ title }) => title === STORY_SOCIAL.peerTableName))
+    await createReviewListingDraft(peer, peerTable, REVIEW_PLAYERS.length)
   const owned = await reader.query(api.social.listings.listOwned, firstPage)
   const listing =
     owned.page.find(({ title }) => title === STORY_CAMPAIGN.name) ??
@@ -434,7 +445,16 @@ async function isFinished(client: ReviewClient, campaignId: string): Promise<boo
 
 /** Opens the Social listing a review table shares: the host's draft with the table's expectations. */
 async function openReviewListing(host: ReviewClient, campaignId: string, capacity: number) {
-  const draft = await host.mutation(api.social.listingDrafts.create, {
+  const draft = await createReviewListingDraft(host, campaignId, capacity)
+  return host.mutation(api.social.listings.open, {
+    listingPublicId: draft.listingPublicId,
+    expectedVersion: draft.version
+  })
+}
+
+/** The host's draft listing for a review table, carrying the table's expectations. */
+function createReviewListingDraft(host: ReviewClient, campaignId: string, capacity: number) {
+  return host.mutation(api.social.listingDrafts.create, {
     input: {
       campaignId,
       summary: 'Review table',
@@ -458,10 +478,6 @@ async function openReviewListing(host: ReviewClient, campaignId: string, capacit
         safetyDetails: 'Pause and discuss when needed.'
       }
     }
-  })
-  return host.mutation(api.social.listings.open, {
-    listingPublicId: draft.listingPublicId,
-    expectedVersion: draft.version
   })
 }
 
