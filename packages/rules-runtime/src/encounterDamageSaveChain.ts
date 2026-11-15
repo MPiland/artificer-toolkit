@@ -89,8 +89,7 @@ export function settledRepeatSaveEffects(input: {
  * held Concentration for each hit the System's maintenance hook meets, an effect repeat save per hit
  * that meets a trigger of an effect in the holder's damaged discovery (D167; it reads the hits of the
  * raise that discovery came from and never raises the effects' event again), and the massive-damage
- * save of each source over the rule's share. `effectSaves` is null for a root that holds only
- * Concentration checks. The chain is in canonical order.
+ * save of each source over the rule's share. The chain is in canonical order.
  */
 export function planDamageSaveChain(input: {
   gameSystemId: string
@@ -103,7 +102,7 @@ export function planDamageSaveChain(input: {
   effectSaves: {
     massiveRule: Parameters<typeof massiveDamageSaveApplications>[0]['rule']
     holders: ReadonlyMap<string, DamageSaveEffectHolder>
-  } | null
+  }
 }): DamageSaveApplicationDto[] {
   const { hooks } = maintenanceLinkCapabilityRegistry.require(input.gameSystemId)
   const chain: DamageSaveApplicationDto[] = []
@@ -112,7 +111,7 @@ export function planDamageSaveChain(input: {
   )) {
     const damage = input.applications.filter(({ targetActorId }) => targetActorId === holderActorId)
     const held = input.maintainedStates.get(holderActorId) ?? []
-    const holder = input.effectSaves?.holders.get(holderActorId)
+    const holder = input.effectSaves.holders.get(holderActorId)
     const effects = holder && !holder.defeated ? holder.repeatSaveEffects : []
     if (held.length === 0 && effects.length === 0) continue
     const hits: EncounterDamageHit[] = damage.map((application) => ({
@@ -133,13 +132,12 @@ export function planDamageSaveChain(input: {
         if (damagedHitRepeatTrigger(effect, hit, input.dispositions))
           chain.push({ ...damage[index]!, activeEffectId: effect.id })
   }
-  if (input.effectSaves)
-    chain.push(
-      ...massiveDamageSaveApplications({
-        rule: input.effectSaves.massiveRule,
-        applications: input.applications,
-        holders: input.effectSaves.holders
-      })
-    )
+  chain.push(
+    ...massiveDamageSaveApplications({
+      rule: input.effectSaves.massiveRule,
+      applications: input.applications,
+      holders: input.effectSaves.holders
+    })
+  )
   return chain.sort(compareDamageSaveApplications)
 }

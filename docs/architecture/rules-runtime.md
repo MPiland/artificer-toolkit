@@ -4185,6 +4185,13 @@ settles as a `CONCENTRATION_END` movement settlement and persists through
 `persistLiveMovementConcentrationEnd`, which re-derives the reason (`encounterConcentrationEndReason`,
 shared with the direct planner). Known limit: a spatial effect that incapacitates only through a non-condition
 active effect, and a reaction that affects a creature other than the batch target, are not detected.
+A zone a mid-move Concentration loss removes (a failed check or an end; the cleanup's `removedZoneIds`) makes no
+later contact on that move (current, QUALITY-14.T2e2d1, D220). `prepareEncounterMovementConcentration`'s
+`adoptCleanup` drops the zone's candidates from the frozen remainder and closes up the ordinals after it
+(`completedSpatialExecutions.length + index`, the evaluator's own numbering), so the recomputed
+`spatialCurrentnessChecksum` and each candidate's currentness agree; the room's spatial scope
+(`nativeSpatialStepCallbacks`) stops listing the zone for the rest of the move, and persistence, which loads only
+executed contacts' originals, never reads it after the `CONCENTRATION` step deleted it.
 
 **Movement and reactions.** Contacts form one frozen path timeline ordered by distance
 (`encounterMovementPath`); spatial effects resolve before reaction candidates at the same distance, and a

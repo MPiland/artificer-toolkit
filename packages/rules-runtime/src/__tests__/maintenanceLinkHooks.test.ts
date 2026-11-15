@@ -64,7 +64,7 @@ describe('maintenance link hooks', () => {
         maintainedStates: new Map([['held', [{ id: 'state-1', createdAt: CAST_AT }]]]),
         damagerActorId: null,
         dispositions: new Map(),
-        effectSaves: null
+        effectSaves: { massiveRule: null, holders: new Map() }
       })
     ).toEqual([{ ...application('held'), maintainedStateId: 'state-1', castAt: CAST_AT }])
   })
@@ -94,7 +94,7 @@ describe('maintenance link hooks', () => {
         ]),
         damagerActorId: null,
         dispositions: new Map(),
-        effectSaves: null
+        effectSaves: { massiveRule: null, holders: new Map() }
       })
     ).toEqual([
       { ...damage, maintainedStateId: 'state-1', castAt: CAST_AT },
