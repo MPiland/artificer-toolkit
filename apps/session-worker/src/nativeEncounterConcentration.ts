@@ -33,10 +33,7 @@ import {
   effectRepeatSaveMade,
   evaluateEffectRepeatSaveEvidence
 } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
-import {
-  planDamageSaveChain,
-  settledRepeatSaveEffects
-} from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
+import { planDamageSaveChain } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { damagedHitRepeatTrigger } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
@@ -147,15 +144,12 @@ export async function planNativeLiveConcentration(
          * `discovered` is the damaged discovery the command's ends stage made per holder it raised
          * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
          * rest of the command released (D220): an action's or an area's targets, the attacker a melee hit's
-         * zones retaliated against, each holder only Legendary Actions damaged, and a Cleaving step's target. A holder no ends stage
-         * discovered (a root with none, or a holder a turn effect also damaged) is derived from the
-         * settled projection (`settledRepeatSaveEffects`), less the effects `entryOccurrenceIds` (the
-         * entries the parent made per creature: an area's children) placed.
+         * zones retaliated against, a Cleaving step's target, and each holder a turn's effects, zones or
+         * Legendary Actions damaged. Every damaged holder has one.
          */
         repeatSaves: {
           damagerActorId: string | null
           discovered: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
-          entryOccurrenceIds: readonly string[]
         }
         resume?: never
       }
@@ -510,29 +504,22 @@ export async function planNativeLiveConcentration(
         )
     }
     const { repeatSaves } = input
-    const commandOccurrenceIds = [input.parentOccurrenceId, ...repeatSaves.entryOccurrenceIds]
     const holders = new Map(
       [...targetActorIds].map((actorId) => {
         const actor = projection.actors.find(({ id }) => id === actorId)
         const target = projection.projectedTargets.get(actorId)
         const settled = projection.activeEffectsByActorId.get(actorId) ?? []
         const discovered = repeatSaves.discovered.get(actorId)
+        if (!discovered) throw new Error('A damaged holder has no damaged discovery.')
         return [
           actorId,
           {
             defeated:
               !actor ||
               isEncounterActorDefeated(actor, deadCharacterIdsOfTargets(target ? [target] : [])),
-            repeatSaveEffects: discovered
-              ? discovered.filter(({ id }) => settled.some((effect) => effect.id === id))
-              : settledRepeatSaveEffects({
-                  holderActorId: actorId,
-                  effects: settled,
-                  commandOccurrenceIds,
-                  applications: input.applications,
-                  damagerActorId: repeatSaveDamager ?? null,
-                  dispositions
-                }),
+            repeatSaveEffects: discovered.filter(({ id }) =>
+              settled.some((effect) => effect.id === id)
+            ),
             maximumHitPoints: target?.effectiveMaximumHitPoints ?? 0
           }
         ] as const

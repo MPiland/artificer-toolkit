@@ -247,10 +247,8 @@ export async function persistEncounterTurnEffects(
       effect,
       holderActorId: actor.id,
       held: effects,
-      excluded: new Set([
-        ...damageEnded.keys(),
-        ...candidates.slice(0, ordinal + 1).map(({ effect: { id } }) => id)
-      ]),
+      gone: new Set(damageEnded.keys()),
+      executed: new Set(candidates.slice(0, ordinal + 1).map(({ effect: { id } }) => id)),
       testEvidence: [execution.d20],
       applications: execution.applications.map((application) => ({
         ...application,

@@ -259,7 +259,8 @@ export async function prepareEncounterSpatialMovement<
           sourceCommandId: input.executionCommandId,
           occurredAt: input.occurredAt,
           userId,
-          projectTargets: false
+          projectTargets: false,
+          settle: 'CHANGED_OR_DAMAGED'
         })
       }
       return args.settleTerminal
@@ -294,7 +295,8 @@ export async function prepareEncounterSpatialMovement<
     occurrenceId: input.occurrenceId,
     sourceCommandId: input.executionCommandId,
     occurredAt: input.occurredAt,
-    userId
+    userId,
+    settle: 'CHANGED_OR_DAMAGED'
   })
   const prefixSettlementPlan: PreparedSpatialMovementPlan<TCharacterFacts> = {
     remainingEffectIds: evaluated.remainingCandidates.map((candidate) => candidate.effect.effectId),

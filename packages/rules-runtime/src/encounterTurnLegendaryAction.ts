@@ -52,6 +52,7 @@ import {
   retainedD20Evidence,
   retainedIntegerEvidence
 } from './encounterActionRetainedEvidence.js'
+import { joinDamagedDiscoveries } from './encounterDamageSaveChain.js'
 import { isMeleeRetaliationHit } from './encounterMeleeRetaliation.js'
 import type { discoverTurnLegendaryWindows } from './encounterTurnLegendaryDiscovery.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -77,7 +78,6 @@ type TurnLegendaryActionInput<
   pending?: ServerRuleExecutionPendingSnapshotDto
   resolution?: EncounterResponseAnswer
   updatedAt: string
-  refreshIncoming?: boolean
   actors: readonly EncounterRunActorState[]
   movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   startOutgoing?: boolean
@@ -208,33 +208,16 @@ export async function prepareTurnLegendaryActions<
   const completed = [...(root.completedLegendaryActions ?? [])]
   const seen = new Set<string>()
   /**
-   * The damaged discovery each window's ends stage made per holder its damage reached (the target's,
-   * and the owner's from the zones its melee hit set off), merged across the windows that reached it.
+   * Each window's raises (D220): what its ends stage found per holder its damage reached (the
+   * target, and the owner from the zones its melee hit set off).
    */
-  const discovered = new Map<string, ActiveRuleEffectRecord[]>()
-  const addDiscovery = (holderActorId: string, found: readonly ActiveRuleEffectRecord[]) =>
-    discovered.set(holderActorId, [
-      ...(discovered.get(holderActorId) ?? []).filter(
-        ({ id }) => !found.some((effect) => effect.id === id)
-      ),
-      ...found
-    ])
-  /** Each discovery less the effects a later window ended, from the holders as the windows left them. */
+  const raises: (readonly [string, ActiveRuleEffectRecord[]])[] = []
   const complete = () => ({
     kind: 'COMPLETE' as const,
     root,
     actors,
     movementTargets: targets,
-    damagedDiscovery: new Map(
-      [...discovered].map(([holderActorId, effects]) => {
-        const held = targets.get(holderActorId)?.activeEffects
-        if (!held) throw new Error('Legendary Action damaged holder is unavailable.')
-        return [
-          holderActorId,
-          effects.filter(({ id }) => held.some((effect) => effect.id === id))
-        ] as const
-      })
-    )
+    damagedDiscovery: joinDamagedDiscoveries(raises)
   })
 
   async function execute(
@@ -582,9 +565,9 @@ export async function prepareTurnLegendaryActions<
     if (retainedRetaliation && !retaliation)
       throw new Error('Retained melee retaliation evidence is stale.')
     if (retaliation) projected.set(actor.id, retaliation.projectedAttacker)
-    addDiscovery(target.id, damageEnded.repeatSaveEffects)
+    raises.push([target.id, damageEnded.repeatSaveEffects])
     if (retaliation?.settlement?.repeatSaveEffects)
-      addDiscovery(actor.id, retaliation.settlement.repeatSaveEffects)
+      raises.push([actor.id, retaliation.settlement.repeatSaveEffects])
     const stored = buildEncounterActionStoredExecution({
       prepared,
       execution: result,
@@ -802,54 +785,71 @@ export async function prepareTurnLegendaryActions<
     }
     root = { ...root, legendaryActionQueue: undefined }
   }
-  const currentActorId = root.proposedTerminalTransition.currentActorId
-  if (currentActorId && input.refreshIncoming !== false) {
-    const facts = buildEncounterActorRuleFacts({ actors })
-    const refresh = await stageEncounterLegendaryActionRefreshes({
-      actorId: currentActorId,
-      encounter: { ...state, actors },
-      actorRules: reconcileEncounterActorRuleOutput(
-        evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
-        facts
-      ),
-      definitions: {
-        requireCurrent: async (id) => {
-          const definition = await input.definitions.requireCurrent(id)
-          if (definition.gameSystemId !== state.gameSystemId)
-            throw new Error('Legendary Action refresh definition is unavailable.')
-          return definition
-        }
-      }
-    })
-    if (
-      root.stagedLegendaryActionRefreshes &&
-      !same(root.stagedLegendaryActionRefreshes, refresh.refreshes)
-    )
-      throw new Error('Legendary Action refresh is stale.')
-    if (refresh.refreshes.length)
-      root = { ...root, stagedLegendaryActionRefreshes: [...refresh.refreshes] }
-    if (refresh.refreshedActor)
-      actors = actors.map((actor) =>
-        actor.id === refresh.refreshedActor!.id ? refresh.refreshedActor! : actor
-      )
-    const entering = actors.find((actor) => actor.id === currentActorId)
-    if (!entering) throw new Error('Incoming action-economy actor is unavailable.')
-    const actionEconomy = await stageEncounterActionEconomyRefreshes({
-      actor: entering,
-      state,
-      definitions: input.definitions
-    })
-    if (
-      root.stagedActionEconomyRefreshes !== undefined &&
-      !same(root.stagedActionEconomyRefreshes, actionEconomy.refreshes)
-    )
-      throw new Error('Action-economy refresh is stale.')
-    if (actionEconomy.refreshes.length)
-      root = { ...root, stagedActionEconomyRefreshes: actionEconomy.refreshes }
-    if (actionEconomy.refreshedActor)
-      actors = actors.map((actor) =>
-        actor.id === actionEconomy.refreshedActor!.id ? actionEconomy.refreshedActor! : actor
-      )
-  }
   return complete()
+}
+
+/**
+ * Stages the incoming creature's Legendary Action and action-economy refreshes on the turn root,
+ * from the actors as the outgoing turn's windows left them. Read again from the same actors, it
+ * stages the same refreshes; a different one is stale.
+ */
+export async function refreshIncomingTurnActors(input: {
+  state: EncounterRunState
+  root: TurnCoordinatorRootDto
+  actors: readonly EncounterRunActorState[]
+  definitions: CurrentReusableDefinitionSource
+}) {
+  const { state } = input
+  let root = input.root
+  let actors = [...input.actors]
+  const currentActorId = root.proposedTerminalTransition.currentActorId
+  // A manual Run stages no refreshes, as it runs no Legendary Actions.
+  if (!currentActorId || state.automationMode === 'MANUAL') return { root, actors }
+  const facts = buildEncounterActorRuleFacts({ actors })
+  const refresh = await stageEncounterLegendaryActionRefreshes({
+    actorId: currentActorId,
+    encounter: { ...state, actors },
+    actorRules: reconcileEncounterActorRuleOutput(
+      evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
+      facts
+    ),
+    definitions: {
+      requireCurrent: async (id) => {
+        const definition = await input.definitions.requireCurrent(id)
+        if (definition.gameSystemId !== state.gameSystemId)
+          throw new Error('Legendary Action refresh definition is unavailable.')
+        return definition
+      }
+    }
+  })
+  if (
+    root.stagedLegendaryActionRefreshes &&
+    !same(root.stagedLegendaryActionRefreshes, refresh.refreshes)
+  )
+    throw new Error('Legendary Action refresh is stale.')
+  if (refresh.refreshes.length)
+    root = { ...root, stagedLegendaryActionRefreshes: [...refresh.refreshes] }
+  if (refresh.refreshedActor)
+    actors = actors.map((actor) =>
+      actor.id === refresh.refreshedActor!.id ? refresh.refreshedActor! : actor
+    )
+  const entering = actors.find((actor) => actor.id === currentActorId)
+  if (!entering) throw new Error('Incoming action-economy actor is unavailable.')
+  const actionEconomy = await stageEncounterActionEconomyRefreshes({
+    actor: entering,
+    state,
+    definitions: input.definitions
+  })
+  if (
+    root.stagedActionEconomyRefreshes !== undefined &&
+    !same(root.stagedActionEconomyRefreshes, actionEconomy.refreshes)
+  )
+    throw new Error('Action-economy refresh is stale.')
+  if (actionEconomy.refreshes.length)
+    root = { ...root, stagedActionEconomyRefreshes: actionEconomy.refreshes }
+  if (actionEconomy.refreshedActor)
+    actors = actors.map((actor) =>
+      actor.id === actionEconomy.refreshedActor!.id ? actionEconomy.refreshedActor! : actor
+    )
+  return { root, actors }
 }

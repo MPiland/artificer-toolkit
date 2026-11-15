@@ -12,6 +12,7 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
+import { deathWard } from '@artificer-toolkit/source-data/srd/spells/death-ward.js'
 import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
 import { unicorn as srdUnicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import {
@@ -1491,5 +1492,163 @@ describe('a Fire Shield’s burn owes the dragon its repeat save in the Legendar
       }
     ])
     expect(after.activeEffects.map(({ id }) => id)).not.toContain(charm.id)
+  })
+})
+
+describe('a warm Fire Shield’s burn a Legendary Action’s attacker takes none of (QUALITY-14.T2e2f2, D132, D220)', () => {
+  it('commits the fire-immune dragon’s Tail, which leaves the dragon unharmed', async () => {
+    const immuneDragon: CreatureAuthored = {
+      ...attackDragon,
+      id: testUuid(0x745),
+      damageImmunities: srdByLabel(SRD.creatures, 'Ancient Red Dragon').damageImmunities
+    }
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: immuneDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      // Every die shows a 19: the Tail hits.
+      fallbackRoll: 18,
+      seed: async ({ spatial, encounterId, tokenIdOf }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: 0x746,
+            sourceActorId: WOLF_ID,
+            sourceTokenId: tokenIdOf(WOLF_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+      }
+    })
+    const before = await readRoomHistory(room.base.stub)
+    const advanceId = crypto.randomUUID()
+    await room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: advanceId,
+        expectedVersion: before.runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected the dragon’s Legendary option.')
+    const { answer } = await respondToLegendaryChoice(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.base.stub)
+    expect(readActorHitPoints(after, FIRST_DRAGON_ID)).toBe(
+      readActorHitPoints(before, FIRST_DRAGON_ID)
+    )
+    expect(readActorHitPoints(after, WOLF_ID)).toBeLessThan(readActorHitPoints(before, WOLF_ID))
+    const receipt = after.receipts.find((candidate) => candidate.commandId === advanceId)
+    if (!receipt) throw new Error('The room holds no ADVANCE_TURN receipt.')
+    const result = parseReceiptExecution(receipt)
+    if (result.status !== 'INITIATIVE_COMPLETE')
+      throw new Error(`Expected an initiative receipt, got ${result.status}.`)
+    expect(result.legendaryActions).toMatchObject([
+      {
+        resolution: {
+          kind: 'EXECUTED',
+          application: {
+            meleeRetaliation: {
+              executions: [
+                {
+                  candidate: { candidate: { targetActorId: FIRST_DRAGON_ID } },
+                  applications: [expect.objectContaining({ kind: 'DAMAGE', resolvedAmount: 0 })]
+                }
+              ]
+            }
+          }
+        }
+      }
+    ])
+  })
+})
+describe('a warm Fire Shield’s burn a Death Ward holds off a Legendary Action’s attacker (QUALITY-14.T2e2f2, D132, D220)', () => {
+  it('commits the warded dragon’s Tail, which keeps it at 1 hit point and spends the ward', async () => {
+    const [deathWardEffect] = deathWard.effects ?? []
+    if (!deathWardEffect) throw new Error('The SRD Death Ward has no effect.')
+    const wardId = testUuid(0x747)
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon, currentHitPoints: 1 })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      // Every die shows a 19: the Tail hits, and the shield burns past the dragon's 1 hit point.
+      fallbackRoll: 18,
+      seed: async ({ spatial, effects, encounterId, tokenIdOf, occurredAt }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: 0x748,
+            sourceActorId: WOLF_ID,
+            sourceTokenId: tokenIdOf(WOLF_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+        const ward = plannedModifierGrant({
+          encounterId,
+          sourceActorId: FIRST_DRAGON_ID,
+          holderActorId: FIRST_DRAGON_ID,
+          lifecycle: {},
+          effect: deathWardEffect,
+          sourceLabel: deathWard.label
+        })
+        await effects.create({
+          id: wardId,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: FIRST_DRAGON_ID },
+          definition: ward.definition,
+          lifecycle: { ...ward.lifecycle, remainingUses: 1 },
+          occurredAt
+        })
+      }
+    })
+    const before = await readRoomHistory(room.base.stub)
+    const advanceId = crypto.randomUUID()
+    await room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: advanceId,
+        expectedVersion: before.runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected the dragon’s Legendary option.')
+    const { answer } = await respondToLegendaryChoice(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.base.stub)
+    expect(readActorHitPoints(after, FIRST_DRAGON_ID)).toBe(1)
+    expect(after.activeEffects.map(({ id }) => id)).not.toContain(wardId)
   })
 })

@@ -51,7 +51,6 @@ export async function restoreEncounterInitiativeTurnActors<
       | 'updatedAt'
       | 'actors'
       | 'movementTargets'
-      | 'refreshIncoming'
       | 'root'
     >
   ) => ReturnType<typeof prepareTurnLegendaryActions<TCharacterFacts>>
@@ -146,7 +145,6 @@ export async function restoreEncounterInitiativeTurnActors<
     updatedAt: input.updatedAt,
     actors: outgoing.actors,
     movementTargets: outgoing.movementTargets,
-    refreshIncoming: false,
     root: turnRoot
   })
   if (prepared.kind !== 'COMPLETE') throw new Error('Outgoing Legendary Actions are incomplete.')
