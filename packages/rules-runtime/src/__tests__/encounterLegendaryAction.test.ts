@@ -32,7 +32,8 @@ import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { resolveEncounterRuleCapabilityStates } from '../encounterRuleCapabilityState.js'
 import {
   delegatedLegendaryOption,
-  prepareTurnLegendaryActions
+  prepareTurnLegendaryActions,
+  refreshIncomingTurnActors
 } from '../encounterTurnLegendaryAction.js'
 import { discoverTurnLegendaryWindows } from '../encounterTurnLegendaryDiscovery.js'
 import { projectNativeLegendaryPending } from '../encounterTurnPending.js'
@@ -654,6 +655,21 @@ describe('Legendary Action turn window', () => {
     })
   }
 
+  /** A turn's windows, then the incoming creature's refreshes, as a turn stages them. */
+  async function prepareThenRefresh(input: Parameters<typeof prepare>[0]) {
+    const prepared = await prepare(input)
+    if (prepared.kind !== 'COMPLETE') return prepared
+    return {
+      ...prepared,
+      ...(await refreshIncomingTurnActors({
+        state: srdEncounterState({ actors: input.actors, currentActorId: WOLF_ID }),
+        root: prepared.root,
+        actors: prepared.actors,
+        definitions: srdDefinitions
+      }))
+    }
+  }
+
   /** The owner's paused Legendary Action choice and its option with this label. */
   async function pausedChoice(
     actors: readonly EncounterRunActorState[],
@@ -713,7 +729,7 @@ describe('Legendary Action turn window', () => {
     const context = paused.snapshot.applicationContext
     if (context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected a Legendary Action choice context.')
-    const declined = await prepare({
+    const declined = await prepareThenRefresh({
       actors,
       turnRoot: context.root,
       pending: paused.snapshot,
@@ -1386,7 +1402,7 @@ describe('Legendary Action turn window', () => {
         resolution: { kind: 'DECLINE' }
       })
     ).rejects.toThrow('Legendary Action choice is stale.')
-    const declined = await prepare({
+    const declined = await prepareThenRefresh({
       actors,
       turnRoot: context.root,
       pending: paused.snapshot,
@@ -1405,7 +1421,7 @@ describe('Legendary Action turn window', () => {
     })
     const allowance = await srdDefinitions.requireCurrent(SRD_ACTION_ALLOWANCE_DEFINITION_ID)
     const turnRoot = root({ currentActorId: WOLF_ID })
-    const staged = await prepare({ actors: [spent], turnRoot })
+    const staged = await prepareThenRefresh({ actors: [spent], turnRoot })
     if (staged.kind !== 'COMPLETE') throw new Error('A turn without owners completes.')
     const refreshes = [
       {
@@ -1424,11 +1440,11 @@ describe('Legendary Action turn window', () => {
     if (!refreshed) throw new Error('Expected the incoming actor.')
     expect(encounterRuleUsageUsed(refreshed, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
     // A replay of the same root reproduces the staged refresh exactly.
-    const replay = await prepare({ actors: [spent], turnRoot: staged.root })
+    const replay = await prepareThenRefresh({ actors: [spent], turnRoot: staged.root })
     if (replay.kind !== 'COMPLETE') throw new Error('A replayed turn completes.')
     expect(replay.root.stagedActionEconomyRefreshes).toEqual(refreshes)
     await expect(
-      prepare({
+      prepareThenRefresh({
         actors: [spent],
         turnRoot: {
           ...staged.root,
