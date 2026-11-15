@@ -1,3 +1,4 @@
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
@@ -123,7 +124,7 @@ const applications = nativeConcentrationDamageApplications([
   { targetActorId: HOLDER_ID, applications: [blow], damagerActorId: DAMAGER_ID }
 ])
 
-function plan(repeatSaveEffects: readonly (typeof held)[number][]) {
+function plan(repeatSaveEffects: readonly ActiveRuleEffectRecord[]) {
   return planDamageSaveChain({
     gameSystemId: DND5E_SYSTEM_ID,
     applications,
