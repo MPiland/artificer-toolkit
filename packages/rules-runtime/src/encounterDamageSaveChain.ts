@@ -17,10 +17,11 @@ import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
 export type DamageSaveEffectHolder = {
   defeated: boolean
   /**
-   * The holder's damaged discovery: the effects its one `DAMAGED(AFTER)` raise found owing a repeat
-   * save (D167, D220), less every effect the command ended. Every room root carries its stages' own
-   * discovery (`targetEndedEffects`); persistence re-derives it from the settled effects
-   * (`settledRepeatSaveEffects`), which equals it.
+   * The holder's damaged discovery: the effects its one `DAMAGED(AFTER)` raise found owing a
+   * repeat save (D167, D220), less every effect the command ended. Every room root carries its
+   * stages' own discovery (`targetEndedEffects`). Persistence checks a turn, Cleaving or movement
+   * commit against the raise its ends check re-runs, and re-derives an action's or area's from the
+   * committed effects (`committedDamagedDiscovery`, D220 amendment).
    */
   repeatSaveEffects: readonly ActiveRuleEffectRecord[]
   maximumHitPoints: number
@@ -29,13 +30,19 @@ export type DamageSaveEffectHolder = {
 /** A root's damaged discovery per holder: what each of its raises for the holder found. */
 export type DamagedDiscovery = ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 
+/** One `DAMAGED(AFTER)` raise: its holder and the effects it found owing a repeat save. */
+export type DamagedRaise = readonly [
+  holderActorId: string,
+  found: readonly ActiveRuleEffectRecord[]
+]
+
 /**
  * A root's raises joined into its damaged discovery, in raise order (D220): a root raises once per
  * holder for each turn-effect or turn-zone execution or Legendary Action that damaged it, and
  * the holder's damage-save chain consumes what all of them found, each effect once.
  */
 export function joinDamagedDiscoveries(
-  raises: Iterable<readonly [holderActorId: string, found: readonly ActiveRuleEffectRecord[]]>
+  raises: Iterable<DamagedRaise>
 ): Map<string, ActiveRuleEffectRecord[]> {
   const joined = new Map<string, ActiveRuleEffectRecord[]>()
   for (const [holderActorId, found] of raises)
@@ -61,12 +68,14 @@ export function placedByCommand(
 }
 
 /**
- * A holder's damaged discovery re-derived once its command settled: the effects it still carries,
- * less those the command placed, that one `DAMAGED(AFTER)` raise with a hit per damage application
- * finds owing a repeat save. An effect the command ended is gone from the settled effects, so this
- * equals the ends stage's discovery less what the command ended.
+ * An action's or area's damaged discovery for one holder, re-derived from its commit (D220
+ * amendment): the effects the holder still carries, less those the command placed, that one
+ * `DAMAGED(AFTER)` raise with a hit per damage application finds owing a repeat save. An effect the
+ * command ended is gone from the committed effects, so this equals the ends stage's discovery less
+ * what the command ended, and checks the room's sealed discovery independently. Roots whose
+ * persistence re-runs their ends (turn, Cleaving, movement) check against that raise instead.
  */
-export function settledRepeatSaveEffects(input: {
+export function committedDamagedDiscovery(input: {
   holderActorId: string
   /** The effects the holder carries once the command settled. */
   effects: readonly ActiveRuleEffectRecord[]

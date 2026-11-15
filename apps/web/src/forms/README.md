@@ -32,7 +32,7 @@ Character Builder is intentionally distinct from this Authoring Schema platform,
 
 ## Focused validation
 
-Use `yarn workspace @artificer-toolkit/web test:forms` and `test:authoring`, then `yarn turbo:typecheck:web` for shared type changes. For layout changes, run `yarn workspace @artificer-toolkit/web test:e2e:authoring-storybook`; use `yarn dev` and the authenticated app for final route-backed inspection when persistence or permissions are involved.
+Use `yarn workspace @artificer-toolkit/web test:forms` and `test:authoring`, then `yarn turbo:typecheck:web` for shared type changes. Layout changes are proved by the authoring route `*.backend.stories.tsx`, which run against the seeded deployment in CI's `storybook-backend-browser` proof (`gh workflow run browser-journeys.yml --ref ci/<slice> -f proof=storybook-backend-browser`); use `yarn dev` and the authenticated app for final route-backed inspection when persistence or permissions are involved.
 
 ## Canonical references
 
