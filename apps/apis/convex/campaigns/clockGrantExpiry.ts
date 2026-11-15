@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { expiredCarriedOverGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { expiredCampaignClockEffects } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { executeCharacterSheetCommand } from '../characters/sheetCommands'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
@@ -11,9 +11,10 @@ import { internalMutation } from '../lib/mutations'
 import { requireCampaignAuthority } from './authority'
 
 /**
- * D99: when the Campaign clock reaches a carried-over grant's expiry, the Campaign owner's pass
- * ends it. A fighting Character keeps it: the live room owns that Character's play state, and
- * the grant is checked again on the next advance after the Run completes.
+ * D99, D222: when the Campaign clock reaches the expiry of an effect of any kind (a carried-over
+ * grant, or a ruling counted in Campaign minutes), the Campaign owner's pass ends it. A fighting
+ * Character keeps it: the live room owns that Character's play state, and the effect is checked
+ * again on the next advance after the Run completes.
  */
 export const endExpired = internalMutation({
   args: () => ({ campaignId: v.string(), actorUserId: v.string(), clockMinute: v.number() }),
@@ -46,7 +47,7 @@ export const endExpired = internalMutation({
     assignments.sort((left, right) => left.characterId.localeCompare(right.characterId))
     for (const { characterId } of assignments) {
       if (fighting.has(characterId)) continue
-      const expired = expiredCarriedOverGrants(
+      const expired = expiredCampaignClockEffects(
         await store.list({ kind: 'CHARACTER', characterId }),
         args.clockMinute
       )

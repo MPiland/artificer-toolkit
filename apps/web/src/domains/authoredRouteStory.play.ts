@@ -9,7 +9,15 @@ async function findAuthoringRailItem(container: HTMLElement, name: RegExp) {
       scope
         .queryAllByRole('button', { name })
         .find((button) => !button.hasAttribute('aria-expanded'))
-    if (!target) throw new Error(`Unable to find authoring rail item matching ${name}.`)
+    if (!target) {
+      // Names what the rail does show, since the story's DOM dump is truncated before the rail.
+      const shown = [...scope.queryAllByRole('link'), ...scope.queryAllByRole('button')]
+        .map((item) => item.textContent?.trim() || item.getAttribute('aria-label'))
+        .join(' | ')
+      throw new Error(
+        `Unable to find authoring rail item matching ${name}. The rail shows: ${shown}`
+      )
+    }
     return target
   })
 }

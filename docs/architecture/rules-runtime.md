@@ -1704,7 +1704,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `REST` on each held effect), and a departure from a zone by `endsOnLeavingZone` (`AREA_LEFT`, met only by the effect that
   zone holds). Three more events complete the set (QUALITY-14.T1b): `SOURCE_DEPARTED` (an actor leaves the Run:
   `planDepartedSourceGrantRemovals`), `CAMPAIGN_CLOCK` (the clock reaches a carried-over effect's expiry:
-  `expiredCarriedOverGrants` and the expiring half of `planResumedCarriedEffects`, which still computes the rounds of an
+  `expiredCampaignClockEffects` and the expiring half of `planResumedCarriedEffects`, which still computes the rounds of an
   effect it keeps) and `CONCENTRATION_STARTED` (a Character begins a Concentration, ending the carried effects stamped with
   them: `planConcentrationCarriedGrantEnds`). Their hooks, and the `REST` hook of a scalar or hit-point-maximum reduction
   (recovered by the rest kinds `getRestRecoveryTriggers` names, or by a long rest for a `LONG_REST` tag), are structural
@@ -2448,13 +2448,20 @@ damage (`planDamageSaveChain`). Dominate Beast, Dominate Monster, Dominate Perso
 succubus Charm author it; the vampire Charm already did. The compiler names none of them, and a timed condition
 without the authored save is still refused. The effect-compile golden lists the five rows that moved from refused.
 
-**Ruling longer than the turn bound (current contract and compile, QUALITY-15.T3i, D222; stamping and expiry are
-T3i2).** The 14,400-turn bound (D188 amendment) stays. A timed GM ruling whose authored duration exceeds it (Geas,
-30 days) compiles with `campaignMinutes` on its plan (minute, hour, day and week durations only; a month or year is
-still refused) and `recurrence.expiration { kind: 'CAMPAIGN_MINUTES', minutes }` on its definition, with no recurrence
-stage and no tick count. The lifecycle must carry `expiresAtCampaignMinute`: the stamped absolute minute, or an
-explicit `null` for a Campaign with no clock, which lasts until the GM ends it. Until T3i2 the room stamps nothing, so
-a cast plans the `null` state.
+**Ruling longer than the turn bound (current, QUALITY-15.T3i and T3i2, D222).** The 14,400-turn bound (D188
+amendment) stays. A timed GM ruling whose authored duration exceeds it (Geas, 30 days) compiles with `campaignMinutes`
+on its plan (minute, hour, day and week durations only; a month or year is still refused) and
+`recurrence.expiration { kind: 'CAMPAIGN_MINUTES', minutes }` on its definition, with no recurrence stage and no tick
+count. The lifecycle must carry `expiresAtCampaignMinute`: the cast's absolute Campaign minute plus `minutes`, or an
+explicit `null` for a Campaign with no clock, which lasts until the GM ends it. The stamp is made at the cast:
+`prepareEncounterActionEffectPlans` takes `campaignClockMinute` and refuses a Campaign-minute plan planned without it;
+the room reads the clock fresh through `LiveCaptureReads.readCampaignClockMinute` (the `CAMPAIGN_CLOCK` room-inputs
+read), only for a cast whose plans count Campaign minutes. The effect survives Run completion unchanged
+(`planCarriedOverEffects` plans nothing for it: it holds no rounds, so its stamp is already the Campaign expiry), and
+a later Run's START (`planResumedCarriedEffects`) only expires it once the clock has reached the stamp. The Campaign
+clock advance ends it, for every effect kind, through `expiredCampaignClockEffects` and the GM-only `END_ACTIVE_EFFECT`
+Sheet command in `campaigns/clockGrantExpiry.ts`. The area, contest and Legendary Action funnels do not read the clock
+yet: a Campaign-minute plan reaching one fails loudly instead of stamping `null`.
 
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
@@ -3748,7 +3755,7 @@ an expiry (`isTurnEffectEligible`). A Creature's condition effect keeps `ENCOUNT
 Run. The condition leaves the Character's Sheet when the carried effect ends: the GM-only
 `END_ACTIVE_EFFECT` and the caster's `END_CONCENTRATION` Sheet commands strip the conditions only the ended
 effects held (`endedMaintenanceConditions`), and the Concentration-caster end paths reach the same helper
-through `reconcileNativeMaintenanceOwners`. `expiredCarriedOverGrants` lists the grants a clock minute has
+through `reconcileNativeMaintenanceOwners`. `expiredCampaignClockEffects` lists the effects (of any kind) a clock minute has
 reached. The room has no Campaign clock, so Convex converts them (see
 [persistence](persistence.md#encounter-run-storage)). Advancing the Campaign clock ends the carried grants
 it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;

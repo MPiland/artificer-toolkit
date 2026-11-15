@@ -42,6 +42,15 @@ type RiderEndsWith = NonNullable<
 
 export class EncounterActionEffectPlanError extends Error {}
 
+/** The Campaign minute a plan counted in Campaign minutes ends at; null for a Campaign with no clock. */
+function campaignExpiry(minutes: number, clockMinute: number | null | undefined) {
+  if (clockMinute === undefined)
+    throw new EncounterActionEffectPlanError(
+      'An effect counted in Campaign minutes requires the Campaign clock read.'
+    )
+  return clockMinute === null ? null : clockMinute + minutes
+}
+
 /**
  * Whether a condition an effect comes to own was present without it: the baseline the holder's
  * other owners of the condition already record, else whether the holder has the condition now.
@@ -159,6 +168,11 @@ export function prepareEncounterActionEffectPlans(input: {
   applications: readonly CharacterRuleActionApplication[]
   /** What triggered a reaction, which its effect may bind (resistance to the triggering damage). */
   trigger?: { damageTypeIds: readonly string[] }
+  /**
+   * The Campaign clock's absolute minute at the cast, or null when the Campaign has no clock (D222).
+   * Read only for a plan counted in Campaign minutes, which requires it; omitted for every other.
+   */
+  campaignClockMinute?: number | null
 }): {
   stateEffect: EffectPlan | null
   recurringEffect: EffectPlan | null
@@ -775,9 +789,11 @@ export function prepareRecurringActiveEffect(
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
       remainingTicks: initialRemaining,
-      // Counted by the Campaign clock, not turns. The room stamps the minute; until then no clock
-      // is known, so the effect lasts until the GM ends it.
-      ...(plan.campaignMinutes !== undefined && { expiresAtCampaignMinute: null }),
+      // Counted by the Campaign clock, not turns (D222): the cast's clock minute plus the authored
+      // minutes. A Campaign with no clock stamps null, so the effect lasts until the GM ends it.
+      ...(plan.campaignMinutes !== undefined && {
+        expiresAtCampaignMinute: campaignExpiry(plan.campaignMinutes, input.campaignClockMinute)
+      }),
       ...(grantContribution?.uses !== undefined && { remainingUses: grantContribution.uses }),
       ...(concealment
         ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }

@@ -2234,7 +2234,7 @@
             },
             {
               "id": "PLATFORM-28.T3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2245,25 +2245,28 @@
               },
               "text": "Class, feat and race create and edit route stories read seeded records, with their walkthrough steps on backend story ids.",
               "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m791 (b0a539865, batch); slice tip 13aad1746: Tests 43696211222, Live 43697313323, Browser journeys 43696211229 green (storybook-backend-browser covers the class, feat and race backend stories). STORY_RECORDS gains wizard, grappler and dragonborn active copies and drafts at fixed ids; activateStoryCopy publishes CLASS through classPublicationActions.publishDraft (as the web app does) and remaps the copy's self-references to the fixed id; six props-only route stories deleted; the walkthrough keeps creatures, equipment and vehicles. Red job ALREADY-PASSING (seed helpers ride along); storyData.test failed twice mid-slice on the CLASS publish and the Wizard self-reference before the fixes. Restated: the Dragonborn branch story reads the SRD record (option \"Red (Fire)\", rail \"Level 1 · Breath Weapon\", the SRD breath weapon text); intent unchanged. No D196 change."
             },
             {
               "id": "PLATFORM-28.T3c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": ["PLATFORM-28.T3b"]
               },
               "text": "Creature and vehicle create and edit route stories read seeded records, with their walkthrough steps on backend story ids.",
-              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221)."
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221). Resized 2026-11-15 at delivery from 8 to 5 (no branch stories; the generic seed needed no code change).",
+              "mergedAt": "2026-11-15",
+              "proof": "m791 (b0a539865, batch); slice tip d4ecba133: Tests 43698258707, Live 43698258726, Browser journeys 43698258730 green (storybook-backend-browser loads the four new backend story files). STORY_RECORDS gains the SRD Acolyte creature and Sailing Ship vehicle with active copies and drafts at fixed ids, through the generic duplicate, publish and save path; CreateEmpty, MasterLocked, OwnedActive and OwnedDraft backend stories; four props-only route stories deleted; the walkthrough keeps equipment only. No self-reference remap needed (only CLASS self-references; cloneAuthoredItem remaps id keys). Red job ALREADY-PASSING (seed helpers ride along). Restated: walkthrough checks moved to the shared play helpers with seeded labels; intent unchanged. No D196 change."
             },
             {
-              "id": "PLATFORM-28.T3d",
-              "status": "TODO",
+              "id": "PLATFORM-28.T3d1",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2272,8 +2275,23 @@
                 "size": 8,
                 "after": ["PLATFORM-28.T3c"]
               },
-              "text": "Equipment route stories (including the Shortsword +1 and Astral Tear structure and drawer stories), EquipmentParentPreview and SystemDetailPage read seeded records; the authored route loader overrides are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221)."
+              "text": "Equipment create and edit route stories (including the Shortsword +1 structure and drawer stories and the Astral Tear owned draft) read seeded records; the walkthrough layout checks move into play functions and the spec is deleted with a coverage map; the authored route loader overrides are deleted with a no-importer proof.",
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221). Split 2026-11-15 at the seam trace (whole about 12): EquipmentParentPreview and SystemDetailPage moved to T3d2.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T3d2",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T3d1"]
+              },
+              "text": "EquipmentParentPreview reads the seeded SRD shortsword; SystemDetailPage reads a seeded reusable definition with after-write states as composed stories (D218); SystemDefinitionWorkspace.fixtures is replaced.",
+              "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T4",
@@ -2346,7 +2364,7 @@
                   "PLATFORM-28.T5",
                   "PLATFORM-28.T6",
                   "PLATFORM-28.T7",
-                  "PLATFORM-28.T3d"
+                  "PLATFORM-28.T3d2"
                 ]
               },
               "text": "The remaining story-only fixture modules are deleted and a guard test fails when a story imports a fixture module; a Storybook run logs no \"No queryFn\" message.",
@@ -27075,22 +27093,23 @@
             },
             {
               "id": "QUALITY-14.T2e2f1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 3,
                 "after": ["QUALITY-14.T2e2e"]
               },
               "text": "Bug: a Cleaving blow ends no \"until it takes damage\" effect (no ends stage). The blow plans its ends, releases and grants, persistence checks them, and its damaged discovery is carried into the chain.",
-              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13). Resized 2026-11-15 at delivery from 5 to 3.",
+              "mergedAt": "2026-11-15",
+              "proof": "m793 (e669256b9); slice tip 8e1294240: Tests 43700479899, Live 43700479921, Browser journeys 43700479919 green (an earlier storybook-backend-browser failure on ab98801be reran green: flake). cleavingDamageEnds (encounterCleavingFacts.ts) makes one targetEndedEffects raise per blow; the room batches [DAMAGE, ...releases], projects the surviving effects plus incoming damage grants and carries the discovery; persistence re-derives the ends over stored rows, checks the transition checksum and receipt length, ends and creates grants before the save chain. Red proof: nativeRoomCleaving RED 1/8 (a Wolf asleep under SRD Sleep wakes when a Cleaving blow reaches it). No restated assertions; no D196 change. Grant replacement on this root deferred (future-enhancements, Deferred edge cases)."
             },
             {
               "id": "QUALITY-14.T2e2f2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27100,7 +27119,8 @@
                 "after": ["QUALITY-14.T2e2f1"]
               },
               "text": "The turn root carries its damaged discovery: one raise per turn-effect or turn-zone execution and holder (D220, D132 amendment) and one per Legendary Action and holder; the room stops deriving turnEffectHolders and the settledRepeatSaveEffects branch in nativeEncounterConcentration goes.",
-              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e2f3",
@@ -27318,7 +27338,7 @@
             },
             {
               "id": "QUALITY-15.T3i2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27329,7 +27349,23 @@
               },
               "text": "A CAMPAIGN_MINUTES effect is stamped with expiresAtCampaignMinute from the Campaign clock at cast, survives Run completion, and ends on the clock advance that passes it (END_ACTIVE_EFFECT through the clock-expiry pass); with no Campaign clock it lasts until the GM ends it (D222).",
               "note": "Registered 2026-11-15 from the T3i seam trace under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m792 (11b74d384); slice tip 102996af4: Tests 43699771667, Live 43701474245, Browser journeys 43699771662 green. The single-target action funnel reads the Campaign clock lazily (requireCampaignClockRead) and the planner stamps expiresAtCampaignMinute = clock + minutes, null with no clock; planCarriedOverEffects leaves the stamp; planResumedCarriedEffects expires a reached stamp at Run START; expiredCampaignClockEffects (renamed) ends any kind through END_ACTIVE_EFFECT. Red proof: clock.test RED 1/11, nativeRoomTimedRulingClock RED 2/2, grantLifetimes RED 6/188, timedRulingPlan RED 3/10, encounterAreaActionCompilation RED 3/98, rules-runtime-contracts RED 1/43. Proofs: Geas at clock 10,000 stamped 53,200; held at day 30 minus a minute and ended at day 30 through the real endExpired path; room Naga Geas stamped 63,200. No golden moves; no D196 change. Area, contest and Legendary Action funnels do not read the clock yet: moved to T3i3."
+            },
+            {
+              "id": "QUALITY-15.T3i3",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T3i2"]
+              },
+              "text": "The area, contest and Legendary Action funnels read the Campaign clock, so a CAMPAIGN_MINUTES effect they plan is stamped like a single-target one instead of refused (D222); proofs on an authored long-duration area effect.",
+              "note": "Registered 2026-11-15 from the T3i2 delivery (authorable from core options) under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3b",

@@ -271,6 +271,8 @@ type NativeActionEffectsInput<TCharacterFacts extends CharacterActionMovementFac
   form?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['form']
   /** What triggered a reaction, which its effect may bind. */
   trigger?: { damageTypeIds: readonly string[] }
+  /** The Campaign clock's minute at the cast (D222); required when a plan counts Campaign minutes. */
+  campaignClockMinute?: number | null
   /** The target's item the caster chose, for an action used on an item (Shillelagh, Heat Metal). */
   chosenItemInstanceId?: string
   /** The target Creature's passives that wear down the weapon that hits it. */
@@ -408,7 +410,8 @@ function prepareNativeActionEffectsForPlan<TCharacterFacts extends CharacterActi
     execution: execution.execution,
     d20: execution.d20,
     applications: execution.applications,
-    trigger: input.trigger
+    trigger: input.trigger,
+    campaignClockMinute: input.campaignClockMinute
   })
   const relationship =
     effects.recurringEffect?.definition.stateContributions.some(
