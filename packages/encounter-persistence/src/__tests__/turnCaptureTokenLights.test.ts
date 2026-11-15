@@ -84,16 +84,6 @@ async function boundScene() {
     ] as unknown as EncounterDocument<'encounterRuns'>[],
     { validate: false }
   )
-  memory.load(
-    'encounterRunActors',
-    actors.map(({ id }, index) => ({
-      _id: `actor-${index}`,
-      _creationTime: 2,
-      encounterId: ENCOUNTER_ID,
-      id
-    })) as unknown as EncounterDocument<'encounterRunActors'>[],
-    { validate: false }
-  )
   for (const actor of actors) await insertRunActor(ctx, actor)
   await memory.store.insert('encounterSceneBindings', {
     encounterId: ENCOUNTER_ID,
