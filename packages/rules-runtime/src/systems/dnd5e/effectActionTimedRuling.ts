@@ -23,6 +23,8 @@ export function timedRulingPlan(
   // a normal outcome; one with a duration, lifecycle or maintenance of its own has no plan here.
   const lasting = entries.filter(
     (candidate) =>
+      // A rolled table row is not an instant result: it has no plan here.
+      !('outcome' in candidate) ||
       candidate.duration !== undefined ||
       candidate.maintenanceDefinitionId !== undefined ||
       Object.values(candidate.lifecycle ?? {}).some((value) => value !== undefined)
