@@ -1,7 +1,6 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 
 import type { CharacterEndedEffectReleaseApplication } from './characterRuleActionSystemAdapter.js'
 import { prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
@@ -9,9 +8,6 @@ import type { FrozenMovementReactionRemainder } from './encounterSpatialMovement
 import { type TargetState, targetTemporaryHitPoints } from './encounterCharacterMechanicsBatch.js'
 import { targetEndedEffects, type EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
-import { endsOnLeavingZone } from './encounterSpatialHeldCondition.js'
-
-type TerminalMovementOutcome = Extract<SceneSpatialPreparation['outcome'], { kind: 'TERMINAL' }>
 
 /** What a spatial execution carries of the damage it dealt and the zone's source that dealt it. */
 type DamagingSpatialExecution = Pick<
@@ -67,23 +63,22 @@ export function spatialDamageEnds(input: {
 }
 
 /**
- * What a move's zone damage does to one creature it damaged, as the turn zone's does: the effects it
- * ends (a `DAMAGE_END` step each, which releases what they gave, their temporary hit points and the
- * conditions only they held) and the grants the creature's passive damage triggers owe it (a
- * `DAMAGE_GRANT` step each). They settle once the move's last contact has, so the holder has one
- * `DAMAGED(AFTER)` raise for the whole move however many contacts it crossed. An effect the move
- * itself placed (a zone's entry grant or held condition, or a grant this damage gave) never ends on
- * the move's own damage. Planning and persisting both call this over the holder's current actor and
- * effects, with the move's own command.
+ * What one contact of a move does to the creature it damaged (D220): its own `DAMAGED(AFTER)` raise
+ * ends the held effects whose `DAMAGE_TAKEN` end trigger the zone's damage meets (a `DAMAGE_END` step
+ * each, which releases what they gave, their temporary hit points and the conditions only they held),
+ * gives the grants the creature's passive damage triggers owe it (a `DAMAGE_GRANT` step each), and
+ * finds the effects owing a repeat save. They settle right after the contact, before its saves, so
+ * a later contact sees them. An effect the move itself placed (a zone's entry grant or held
+ * condition, or a grant an earlier contact gave) never ends on the move's own damage, and the move
+ * gives each grant once: a grant its creature already holds is not owed again. Planning and
+ * persisting both call this over the holder's current actor and effects, with the move's own command.
  */
-export function movementDamageEnds(input: {
+export function movementContactDamageEnds(input: {
   holder: EncounterRunActorState
   /** Every effect the holder carries at this point of the move's settlement. */
   held: readonly ActiveRuleEffectRecord[]
-  /** Every spatial execution of the move, whichever creature it reached. */
-  executions: readonly (DamagingSpatialExecution & {
-    candidate: { candidate: { targetActorId: string } }
-  })[]
+  /** The contact, which damaged the holder. */
+  execution: DamagingSpatialExecution & { candidate: { candidate: { targetActorId: string } } }
   encounter: { id: string; currentActorId: string | null }
   /** The move's occurrence. */
   occurrenceId: string
@@ -92,15 +87,15 @@ export function movementDamageEnds(input: {
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
   const { holder } = input
+  if (input.execution.candidate.candidate.targetActorId !== holder.id)
+    throw new Error('Movement damage holder is not the contact target.')
   const held = input.held.filter(
     ({ definition }) => definition.origin.sourceOccurrenceId !== input.occurrenceId
   )
-  return spatialDamageEnds({
+  const ends = spatialDamageEnds({
     holderActorId: holder.id,
     held,
-    executions: input.executions.filter(
-      ({ candidate }) => candidate.candidate.targetActorId === holder.id
-    ),
+    executions: [input.execution],
     turnActorId: input.encounter.currentActorId,
     dispositions: input.dispositions,
     grantTriggers: prepareNativeIncomingDamageGrantTriggers({
@@ -113,61 +108,9 @@ export function movementDamageEnds(input: {
       activeEffectsByActorId: new Map([[holder.id, held]])
     })
   })
-}
-
-/**
- * The `damageEnds` and `damageGrants` a finished move's outcome carries: what its zone damage ends
- * on and gives each creature it damaged, from the creatures as the move ends. An effect the move
- * already releases (it left the zone holding it, or it ends on moving) is not listed again. Empty
- * when the damage ends and gives nothing.
- */
-export function terminalMovementDamageEnds(input: {
-  result: TerminalMovementOutcome['result']
-  targets: ReadonlyMap<
-    string,
-    { actor: EncounterRunActorState; activeEffects: ActiveRuleEffectRecord[] }
-  >
-  encounter: { id: string; currentActorId: string | null }
-  occurrenceId: string
-  commandId: string
-  released?: Pick<TerminalMovementOutcome, 'areaDepartures' | 'moveEnds'>
-}): Pick<TerminalMovementOutcome, 'damageEnds' | 'damageGrants'> {
-  const { result, targets } = input
-  if (result.status !== 'BATCH_COMPLETE') return {}
-  const dispositions = new Map(
-    [...targets].map(([actorId, { actor }]) => [actorId, actor.disposition])
-  )
-  const isReleased = (holderActorId: string, effect: ActiveRuleEffectRecord) =>
-    (input.released?.moveEnds ?? []).some(({ effectId }) => effectId === effect.id) ||
-    (input.released?.areaDepartures ?? []).some(
-      (departure) =>
-        departure.holderActorId === holderActorId &&
-        endsOnLeavingZone(effect, departure.zoneEffectId)
-    )
-  const ends = [
-    ...new Set(result.executions.map(({ candidate }) => candidate.candidate.targetActorId))
-  ].map((holderActorId) => {
-    const target = targets.get(holderActorId)
-    if (!target) throw new Error('Movement damage holder is unavailable.')
-    const { endedEffects, grants } = movementDamageEnds({
-      holder: target.actor,
-      held: target.activeEffects.filter((effect) => !isReleased(holderActorId, effect)),
-      executions: result.executions,
-      encounter: input.encounter,
-      occurrenceId: input.occurrenceId,
-      commandId: input.commandId,
-      dispositions
-    })
-    return {
-      damageEnds: endedEffects.map(({ id }) => ({ effectId: id, holderActorId })),
-      damageGrants: grants.map(({ id }) => ({ effectId: id, holderActorId }))
-    }
-  })
-  const damageEnds = ends.flatMap((entry) => entry.damageEnds)
-  const damageGrants = ends.flatMap((entry) => entry.damageGrants)
   return {
-    ...(damageEnds.length ? { damageEnds } : {}),
-    ...(damageGrants.length ? { damageGrants } : {})
+    ...ends,
+    grants: ends.grants.filter(({ id }) => !input.held.some((effect) => effect.id === id))
   }
 }
 

@@ -1,16 +1,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-// Spells and backgrounds read the seeded deployment, so their walkthrough steps are the play functions
-// of their backend stories (`*.backend.stories.tsx`, the storybook-backend-browser proof), which this
-// props-only run cannot load.
-const domains = [
-  { id: 'classes', label: 'Wizard' },
-  { id: 'creatures', label: 'Acolyte' },
-  { id: 'equipment', label: 'Shortsword +1' },
-  { id: 'feats', label: 'Grappler' },
-  { id: 'races', label: 'Dragonborn' },
-  { id: 'vehicles', label: 'Sailing Ship' }
-] as const
+// Backgrounds, classes, creatures, feats, races, spells and vehicles read the seeded deployment, so
+// their walkthrough steps are the play functions of their backend stories (`*.backend.stories.tsx`,
+// the storybook-backend-browser proof), which this props-only run cannot load.
+const domains = [{ id: 'equipment', label: 'Shortsword +1' }] as const
 
 test.describe('route-backed authored domain workspace', () => {
   for (const domain of domains) {

@@ -12,8 +12,15 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
+import { takeDamagedRaises } from './damagedRaiseRecorder.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
+
+vi.mock('@artificer-toolkit/rules-runtime/events/encounterEventHooks', async (importOriginal) =>
+  (await import('./damagedRaiseRecorder.js')).recordingDamagedRaises(importOriginal)
+)
+// The rooms load their modules again, so they meet the recording discovery (damagedRaiseRecorder.ts).
+vi.resetModules()
 
 /**
  * QUALITY-14.T2e: a creature a command damages several times (rays, darts, beams named at it again)
@@ -60,12 +67,18 @@ describe('a creature a command damages several times (QUALITY-14.T2e)', () => {
       autoRoll: 'BOTH'
     })
 
+    takeDamagedRaises()
     const { answer } = await room.startActorsAction(
       [TWICE_HIT_ID, TWICE_HIT_ID, ONCE_HIT_ID],
       [],
       true
     )
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // QUALITY-14.T2e2e: the list raised DAMAGED(AFTER) once for each holder it damaged, and its
+    // commit re-derived each raise once to check the plan.
+    const raised = takeDamagedRaises()
+    expect(raised.room.sort()).toEqual([TWICE_HIT_ID, ONCE_HIT_ID].sort())
+    expect(raised.commit.sort()).toEqual([TWICE_HIT_ID, ONCE_HIT_ID].sort())
 
     const history = await readRoomHistory(room.room.base.stub)
     const { children } = areaReceipts(history)

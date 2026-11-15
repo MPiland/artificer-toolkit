@@ -76,30 +76,6 @@ export const sceneSpatialPreparationSchema = lazySchema(() =>
             .check(z.minLength(1))
             .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
         ),
-        /**
-         * The effects the move's zone damage ends on the creatures it damaged, each a `DAMAGE_END`
-         * step after every contact: one `DAMAGED(AFTER)` raise per holder for the whole move.
-         */
-        damageEnds: z.optional(
-          z
-            .array(
-              z.strictObject({ effectId: postgresUuidSchema, holderActorId: postgresUuidSchema })
-            )
-            .check(z.minLength(1))
-            .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
-        ),
-        /**
-         * The grants the damaged creatures' passive damage triggers owe them (`effectId` is the
-         * grant's own id), each a `DAMAGE_GRANT` step after the move's `DAMAGE_END` steps.
-         */
-        damageGrants: z.optional(
-          z
-            .array(
-              z.strictObject({ effectId: postgresUuidSchema, holderActorId: postgresUuidSchema })
-            )
-            .check(z.minLength(1))
-            .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
-        ),
         resolutionCommands: z.optional(spatialMovementPendingRootDtoSchema.shape.resolutionCommands)
       }),
       z.strictObject({

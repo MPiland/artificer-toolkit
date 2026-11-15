@@ -192,33 +192,35 @@ describe('zone damage against a mover holding a damage repeat save (QUALITY-14.T
 })
 
 describe('zone damage against an effect it both ends and offers a save against (QUALITY-14.T2c)', () => {
-  // The move commits only when persistence settles exactly the planned steps, so a damage end
-  // planned for an effect the save already released would refuse the whole move.
-  it('releases the effect once, by the made save', async () => {
+  // The move commits only when persistence settles exactly the planned steps, so a save planned
+  // against an effect the contact's damage already ended would refuse the whole move.
+  // Restated under D220 (QUALITY-14.T2e2d2): the contact's damage ends settle before its saves, so
+  // the damage ends the effect and no save is owed against it, whatever the die would show.
+  it('releases the effect once, by its damage, before the save it would offer (D220)', async () => {
     expect(await rolledWalk([firstZone], PAST_FIRST_ZONE, 20, [laughterEndedByDamage])).toEqual({
-      outcomes: ['SAVE_SUCCESS'],
+      outcomes: [],
       laughing: false,
       damageTaken: 1,
       pending: null
     })
   }, 60_000)
 
-  it('ends the effect by its damage when the save fails', async () => {
+  it('ends the effect by its damage where a save would fail (D220)', async () => {
     expect(await rolledWalk([firstZone], PAST_FIRST_ZONE, 1, [laughterEndedByDamage])).toEqual({
-      outcomes: ['SAVE_FAILURE'],
+      outcomes: [],
       laughing: false,
       damageTaken: 1,
       pending: null
     })
   }, 60_000)
 
-  it('ends a second hold of the same conditions after the made save released the first', async () => {
+  it('ends a second hold of the same conditions by damage, then the made save releases the first (D220)', async () => {
     const room = await laughingRoom([firstZone], { autoRoll: 'GAME_MASTER', fallbackRoll: 19 }, [
       laughter,
       secondHoldEndedByDamage
     ])
     const moved = await room.move(PAST_FIRST_ZONE)
-    // The damage end sees the holder without the released effect, as the commit does.
+    // The save sees the holder without the effect the contact's damage ended, as the commit does.
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
     const history = await readRoomHistory(room.base.stub)
     expect(repeatSaveChecks(history).map(({ outcome }) => outcome)).toEqual(['SAVE_SUCCESS'])
