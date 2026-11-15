@@ -14,8 +14,12 @@ type MutationReference = Parameters<typeof useMutation>[0]
 /** The story's read client, bound by the preview, for responses that echo a record the deployment holds. */
 let storyReads: ConvexReactClient | undefined
 
+/**
+ * Binds before the preview installs a query override, so these reads keep the deployment's own
+ * `watchQuery`: `client.query` waits on that subscription, and the override's inert one never answers.
+ */
 export function bindStoryReads(client: ConvexReactClient) {
-  storyReads = client
+  storyReads = Object.create(client, { watchQuery: { value: client.watchQuery.bind(client) } })
 }
 
 /**

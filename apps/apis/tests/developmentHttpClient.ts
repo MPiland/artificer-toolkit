@@ -254,7 +254,7 @@ const encounterCampaigns = new Map<string, string>()
  * The Session Worker's base URL (http or https), for the room sockets and the development-only
  * meter and barrier routes. A local Convex target requires a loopback Worker.
  */
-function liveSessionWorkerUrl(convexUrl: string): URL {
+export function liveSessionWorkerUrl(convexUrl: string): URL {
   const url = new URL(process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? 'ws://127.0.0.1:8787')
   if (url.protocol === 'ws:') url.protocol = 'http:'
   if (url.protocol === 'wss:') url.protocol = 'https:'
