@@ -1,7 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import type { FunctionReturnType } from 'convex/server'
 import { publicationFixture } from '../../tests/fixtures/publication'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
-import { seedStoryData } from '../../tests/developmentReviewData'
+import { seedStoryData, type StoryClient } from '../../tests/developmentReviewData'
+import type { ActionCtx } from '../_generated/server'
 import { REVIEW_STORY_READER, STORY_RECORDS } from '../../tests/developmentReviewDataScenarios'
 import { api, internal } from '../_generated/api'
 
@@ -19,7 +21,13 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     []
   )
   await t.action(internal.content.seed.seed, {})
-  const reader = convexDevelopmentClient(first.caller)
+  const reader: StoryClient = {
+    ...convexDevelopmentClient(first.caller),
+    action: (action, ...args) =>
+      first.caller.action<(ctx: ActionCtx) => Promise<FunctionReturnType<typeof action>>>((ctx) =>
+        ctx.runAction(action, ...args)
+      )
+  }
   const accounts: string[] = []
   const connect = async (spec: { key: string }) => {
     accounts.push(spec.key)
