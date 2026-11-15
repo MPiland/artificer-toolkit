@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { shortswordPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shortsword-plus-1.js'
+import { FormApi } from '@tanstack/react-form'
 import { useMatches } from '@tanstack/react-router'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { Shell } from '#app/shell'
@@ -182,6 +183,23 @@ export const AstralTearAwakenedStructure: Story = {
     }
   },
   render: () => <EditRouteInShell />,
+  beforeEach: () => {
+    // TEMPORARY diagnostic: records who writes the description.
+    const setFieldValue = FormApi.prototype.setFieldValue
+    FormApi.prototype.setFieldValue = function (
+      this: unknown,
+      ...args: Parameters<typeof setFieldValue>
+    ) {
+      if (String(args[0]) === 'description')
+        descriptionWrites.push(
+          `${JSON.stringify(args[1])?.slice(0, 80)} ${JSON.stringify(args[2])} ${new Error().stack?.slice(0, 1800)}`
+        )
+      return Reflect.apply(setFieldValue, this, args)
+    } as typeof setFieldValue
+    return () => {
+      FormApi.prototype.setFieldValue = setFieldValue
+    }
+  },
   play: async ({ canvasElement }) => {
     const story = getStoryDocument(canvasElement)
     // The first read crosses the network to the seeded deployment.
@@ -523,6 +541,8 @@ async function expectNoHorizontalOverflow(document: Document) {
   ).toBeLessThanOrEqual(1)
 }
 
+const descriptionWrites: string[] = []
+
 /** TEMPORARY diagnostic: names the dirty fields and the top-level values that moved from load. */
 function describeDirtyForm(element: Element | null): string {
   if (!element) return 'No save state.'
@@ -553,7 +573,7 @@ function describeDirtyForm(element: Element | null): string {
           (key) =>
             `${key}: ${JSON.stringify(defaults[key])?.slice(0, 600)} -> ${JSON.stringify(values[key])?.slice(0, 600)}`
         )
-      return `Dirty fields: ${dirty.join(', ')}. Moved: ${moved.join(' | ')}`
+      return `Dirty fields: ${dirty.join(', ')}. Description writes: ${descriptionWrites.join(' || ')}. Moved: ${moved.join(' | ').slice(0, 300)}`
     }
     fiber = Reflect.get(fiber, 'return')
   }
