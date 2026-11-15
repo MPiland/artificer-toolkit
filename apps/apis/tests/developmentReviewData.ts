@@ -12,6 +12,7 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
@@ -160,6 +161,8 @@ async function activateStoryCopy(
   })
   if (existing?.item) return
   // The copy gets a fresh id; its document moves to the record's fixed id and the copy is dropped.
+  // Duplication points the copy's self-references (a Class's own spell-slot budget) at its fresh id,
+  // so the move repoints them too.
   const copy = await client.mutation(api.content.drafts.duplicate, {
     subjectKind,
     subjectId: masterId
@@ -169,7 +172,9 @@ async function activateStoryCopy(
     subjectId: record.subjectId,
     systemId: copy.systemId,
     label: record.label,
-    payload: copy.payload
+    payload: unknownObjectSchema.parse(
+      JSON.parse(JSON.stringify(copy.payload).replaceAll(copy.subjectId, record.subjectId))
+    )
   })
   await client.mutation(api.content.drafts.discard, { subjectKind, subjectId: copy.subjectId })
   assert.ok(draft.updatedAt, `Story record ${record.label} has no draft to activate.`)
