@@ -2,7 +2,12 @@ import type { useMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
+import {
+  createEncounterInputDtoSchema,
+  encounterGmProjectionDtoSchema
+} from '@artificer-toolkit/schema/api/encounterData'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
+import { tabletopGmEncounter } from '#domains/campaigns/vtt/CampaignTabletop.stories.fixtures'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
@@ -16,6 +21,19 @@ function writeResponse(reference: MutationReference, input: unknown): unknown {
   if (getFunctionName(reference) === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
+  }
+  if (getFunctionName(reference) === getFunctionName(api.encounters.runs.create)) {
+    const { campaignId, blueprintId } = createEncounterInputDtoSchema.parse(input)
+    return encounterGmProjectionDtoSchema.parse({
+      ...tabletopGmEncounter,
+      id: crypto.randomUUID(),
+      campaignId,
+      blueprintId,
+      status: 'PREPARED',
+      currentActorId: null,
+      round: 1,
+      version: 1
+    })
   }
   return null
 }
