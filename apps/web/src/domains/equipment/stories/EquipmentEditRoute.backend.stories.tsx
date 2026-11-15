@@ -208,6 +208,12 @@ export const AstralTearAwakenedStructure: Story = {
       await story.findByText(/all changes saved/i, {}, { timeout: 15_000 })
     ).toBeInTheDocument()
     await expect(story.getByRole('button', { name: /save draft/i })).toBeInTheDocument()
+    // A never-activated draft opens in Guided authoring on the account's default experience; the
+    // structure rail is Advanced's.
+    await userEvent.click(story.getByRole('button', { name: /^switch to advanced$/i }))
+    await expect(
+      await story.findByRole('navigation', { name: /^authoring steps$/i })
+    ).toBeInTheDocument()
     await expandAuthoringBranch(canvasElement, /^effects\b/i)
     await expandAuthoringBranch(canvasElement, /^grants\b/i)
     await expandAuthoringBranch(canvasElement, /^features\b/i)
