@@ -43,6 +43,7 @@ import {
   savingThrowSpentEffects,
   targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import type { DamagedRaise } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -87,7 +88,13 @@ export async function persistEncounterTurnResources(
     ): Promise<EncounterMechanicsBatchResult>
     readSceneTokens(sceneId: string): Promise<readonly SpatialSceneToken[]>
   }
-): Promise<void> {
+): Promise<{
+  /**
+   * Each Legendary Action's `DAMAGED(AFTER)` raises (D220), in action order: its target's, then its
+   * owner's from the zones its melee hit set off.
+   */
+  raises: DamagedRaise[]
+}> {
   const { state, root, occurrenceId, occurredAt, userId } = input
   const actions = root.completedLegendaryActions ?? []
   const legendaryRefreshes = root.stagedLegendaryActionRefreshes ?? []
@@ -168,6 +175,7 @@ export async function persistEncounterTurnResources(
         : [null, null]
     })
   })
+  const raises: DamagedRaise[] = []
   const seenOwners = new Set<string>()
   for (const [ordinal, raw] of actions.entries()) {
     const evidence = turnLegendaryActionEvidenceDtoSchema.parse(raw)
@@ -288,6 +296,7 @@ export async function persistEncounterTurnResources(
       damagerActorId: ownerId,
       dispositions
     })
+    raises.push([targetActorId, damageEnded.repeatSaveEffects])
     if (
       damageEnded.releases.some(
         (release) =>
@@ -489,7 +498,7 @@ export async function persistEncounterTurnResources(
     const initialActors = await Promise.all(
       state.actorIds.map((actorId) => (actorId === targetActorId ? target : readActor(actorId)))
     )
-    await persistEncounterMeleeRetaliation(
+    const retaliated = await persistEncounterMeleeRetaliation(
       ctx,
       {
         state,
@@ -507,6 +516,7 @@ export async function persistEncounterTurnResources(
       },
       { applyMechanics: callbacks.applyMechanics }
     )
+    raises.push(...retaliated.raises)
   }
   if (legendaryRefreshes.length) {
     if (
@@ -655,6 +665,7 @@ export async function persistEncounterTurnResources(
       })
     }
   }
+  return { raises }
 }
 
 /**

@@ -237,7 +237,13 @@ export async function persistEncounterCleavingResponse(
       state: nextState,
       actors: damagedActors,
       applications,
-      commandOccurrenceIds: [occurrence.id],
+      // The blow's one raise, which its ends check above re-ran (D220 amendment).
+      discovery: {
+        kind: 'RAISED',
+        raised: new Map(
+          mechanics && ends ? [[mechanics.updatedActor.id, ends.repeatSaveEffects]] : []
+        )
+      },
       damagerActorId: context.sourceActorId
     }),
     correlationId: occurrence.id,

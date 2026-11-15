@@ -15,6 +15,9 @@ import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-perso
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { thunderwave } from '@artificer-toolkit/source-data/srd/spells/thunderwave.js'
 import { sailingShip } from '@artificer-toolkit/source-data/srd/vehicles/sailing-ship.js'
+import * as Equipment from '@artificer-toolkit/source-data/srd/equipment/shared.js'
+import { shortswordPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shortsword-plus-1.js'
+import type { BaseEquipmentAuthoringInputDto } from '@artificer-toolkit/schema/subjects/equipment'
 
 /**
  * Local-only review accounts. The seeded backend is the user's own Docker container, so these fixed
@@ -104,6 +107,18 @@ export const STORY_RECORDS = {
     ownedActive: { subjectId: '8a16ced6-023e-4453-93ff-948002be887e', label: 'Story Priest' },
     ownedDraft: { subjectId: '42aef54a-a60f-46e9-a5c3-cd6540f7b628', label: 'Story Priest Draft' }
   },
+  equipment: {
+    subjectKind: 'EQUIPMENT',
+    masterId: shortswordPlus1.id,
+    ownedActive: {
+      subjectId: '449a42f5-21ab-4c40-a4c7-91f7a83917e4',
+      label: 'Story Shortsword +1'
+    },
+    ownedDraft: {
+      subjectId: '0760f32e-79e8-492a-9d11-df78532bb9c1',
+      label: 'Story Shortsword +1 Draft'
+    }
+  },
   feat: {
     subjectKind: 'FEAT',
     masterId: grappler.id,
@@ -143,6 +158,84 @@ export const STORY_RECORDS = {
     ownedDraft: StoryRecordSpec
   }
 >
+
+const astralTearId = '4f37fd9c-8671-422b-b504-cf55c48fdbd1'
+
+/**
+ * A homebrew weapon the story account authored from scratch and saved without activating (D221):
+ * the dense equipment structure the authoring stories walk, with an attack, its magic bonuses,
+ * charges and features that spend them. The save stamps the account, System and draft status.
+ */
+export const STORY_DRAFT_ONLY = {
+  subjectKind: 'EQUIPMENT' as const,
+  subjectId: astralTearId,
+  label: 'The Astral Tear Awakened',
+  payload: {
+    kind: 'EQUIPMENT',
+    id: astralTearId,
+    label: 'The Astral Tear Awakened',
+    description:
+      'This mighty blade belongs to the Astral Champion of Vedur. While attuned to it, its wielder can call it to hand from a special demiplane.',
+    category: Equipment.EQUIPMENT_CATEGORY_CODE.WEAPON,
+    attributes: [Equipment.EQUIPMENT_ATTRIBUTE.LIMITED_USE],
+    properties: [
+      Equipment.EQUIPMENT_PROPERTY_CODE.FINESSE,
+      Equipment.EQUIPMENT_PROPERTY_CODE.LIGHT,
+      Equipment.EQUIPMENT_PROPERTY_CODE.VEX
+    ],
+    effects: Equipment.meleeWeaponEffects(
+      astralTearId,
+      'RADIANT',
+      '1d6',
+      Equipment.EQUIPMENT_GRIP.ONE_HANDED
+    ),
+    modifiers: Equipment.meleeMagicWeaponModifiers(astralTearId, 1),
+    charges: {
+      id: '7912761e-3fe6-4dc4-8bd7-d0e59e0e69cd',
+      resetKind: 'DAWN',
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      amount: 3
+    },
+    features: [
+      {
+        id: 'ec55fcfb-64b4-45f1-ae1c-93839b24881e',
+        label: 'Warping Strike',
+        description:
+          'While holding the sword, you can expend 1 of its charges as part of making an attack with it. You can teleport to an unoccupied space you can see within 30 feet either before or after the attack. On a hit, the target also takes 4d6 force damage.',
+        attributes: [Equipment.EQUIPMENT_ATTRIBUTE.LIMITED_USE],
+        charges: {
+          id: 'd0edc9c0-b0ff-4f4c-81c9-143fe15b3e25',
+          limitKind: 'SOURCE_CHARGES',
+          scalingKind: 'NONE',
+          cost: 1
+        },
+        section: 'OTHER',
+        order: 1
+      },
+      {
+        id: 'ec2d2727-7fb0-40ad-9e40-9582da99ec1a',
+        label: 'Spells',
+        description:
+          'While holding the sword, you can use an action to expend 1 of its charges to cast a 2nd-level or lower spell without expending a spell slot.',
+        attributes: [Equipment.EQUIPMENT_ATTRIBUTE.LIMITED_USE],
+        charges: {
+          id: '9bd76c0f-aa76-4625-a799-6adb05df20cc',
+          limitKind: 'SOURCE_CHARGES',
+          scalingKind: 'NONE',
+          cost: 1
+        },
+        section: 'ACTION',
+        order: 2
+      }
+    ],
+    cost: Equipment.gp(2000),
+    weight: Equipment.lbs(2),
+    requiresAttunement: true,
+    rarityId: Equipment.RARITY_VERY_RARE,
+    systemId: Equipment.SRD_SYSTEM_ID
+  } satisfies BaseEquipmentAuthoringInputDto
+}
 
 /**
  * The Campaign Storybook backend stories open by name (D221), because its id is random: the story

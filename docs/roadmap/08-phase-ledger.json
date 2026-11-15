@@ -2266,7 +2266,7 @@
             },
             {
               "id": "PLATFORM-28.T3d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2277,11 +2277,12 @@
               },
               "text": "Equipment create and edit route stories (including the Shortsword +1 structure and drawer stories and the Astral Tear owned draft) read seeded records; the walkthrough layout checks move into play functions and the spec is deleted with a coverage map; the authored route loader overrides are deleted with a no-importer proof.",
               "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221). Split 2026-11-15 at the seam trace (whole about 12): EquipmentParentPreview and SystemDetailPage moved to T3d2.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m801 (85061827d); slice tip c5c6b11aa (re-merged after conflicting with m799 in the story seed: draft-only seeding moved to its own idempotent step beside the Campaign seed, every storyData assertion kept): Tests 43728454801, Live 43728454885, Browser journeys 43728454879 green. Equipment authoring reads and writes through backend stories; authoringWalkthrough.spec and its test:e2e:authoring-storybook script and turbo task are deleted (no-importer proof; AGENTS.md, forms README, buildPhaseLedger and the AUTHORING-1 journey reference repointed to EquipmentEditRoute.backend.stories). Bug found: RichTextEditor setEditable(!readOnly) emitted an update that cleared authored text when a read-only editor became editable; fixed with setEditable(!readOnly, false) and a regression test RED before the fix. Restated: the walkthrough's equipment steps now run in the backend stories. Deferred: ?step= on a Guided draft (no change). Open for T3d2's seam trace: the storybook-backend proof is near its 20-story quota (19/20). No D196 change."
             },
             {
               "id": "PLATFORM-28.T3d2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2291,7 +2292,8 @@
                 "after": ["PLATFORM-28.T3d1"]
               },
               "text": "EquipmentParentPreview reads the seeded SRD shortsword; SystemDetailPage reads a seeded reusable definition with after-write states as composed stories (D218); SystemDefinitionWorkspace.fixtures is replaced.",
-              "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T4a",
@@ -2453,7 +2455,22 @@
               "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
             },
             {
-              "id": "PLATFORM-28.T7",
+              "id": "PLATFORM-28.T7a",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T2", "PLATFORM-28.T5a"]
+              },
+              "text": "The backend Storybook reaches the throwaway Session Worker (Storybook origin allowed, the live-session URL set for Storybook, real ticket and token flow); a first tabletop window backend story opens a real live session for the seeded Run and asserts the room connects and syncs. Live commands follow D218: the story spies the client COMMAND send and never sends it; after-command states are composed or seeded variants.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (27 stories, a 604-line fake transport harness and 422 lines of fixtures, whole about 21): presented Scene and started Encounter seed to T7b, renderer-heavy stories and siblings to T7c, harness deletion to T7d. Ruling: a Worker COMMAND is a write under D218, spied at the client send and not sent, so seeded state stays shared and no reset path is needed.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T7b",
               "status": "TODO",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
@@ -2461,10 +2478,38 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 8,
-                "after": ["PLATFORM-28.T2"]
+                "after": ["PLATFORM-28.T7a"]
               },
-              "text": "The tabletop window story runs a live session with the Session Worker in the Storybook stack.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "text": "The story seed builds a presented live Scene (real map asset, tokens, barriers, fog) and a started Encounter through product commands; the base GM and player window stories read them over the live session.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T7c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T7b"]
+              },
+              "text": "The renderer-heavy tabletop stories (auras, zones, morale, conditions, fog save, show scene, Encounter binding, command rejection) run as seeded or composed variants, with the drawer and live scene object editor siblings.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T7d",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["PLATFORM-28.T7c"]
+              },
+              "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T8",
@@ -2482,7 +2527,7 @@
                   "PLATFORM-28.T4d",
                   "PLATFORM-28.T5c",
                   "PLATFORM-28.T6d",
-                  "PLATFORM-28.T7",
+                  "PLATFORM-28.T7d",
                   "PLATFORM-28.T3d2"
                 ]
               },
@@ -3329,7 +3374,7 @@
           "journeyTests": [
             "apps/apis/convex/content/systems.test.ts",
             "apps/apis/convex/content/systemCapability.test.ts",
-            "apps/web/tests/e2e/storybook/authoringWalkthrough.spec.ts"
+            "apps/web/src/domains/equipment/stories/EquipmentEditRoute.backend.stories.tsx"
           ],
           "journeyStatus": "verified",
           "origin": ["C01", "PRF-8"],
@@ -26909,7 +26954,7 @@
         {
           "id": "QUALITY-14",
           "title": "One effect-lifetime model and one concentration planner",
-          "status": "TODO",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -26921,10 +26966,15 @@
           "acs": [
             {
               "id": "QUALITY-14.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R11.",
-              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner. DAMAGED is raised once per command and holder."
+              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner. DAMAGED is raised once per command and holder.",
+              "proof": [
+                "nativeRoomTurnDamagedOncePerHolder.test.ts",
+                "nativeMovementZoneDamageMassiveSave.test.ts",
+                "nativeZoneDamageDeathWard.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -27244,7 +27294,7 @@
             },
             {
               "id": "QUALITY-14.T2e2f3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27255,7 +27305,8 @@
               },
               "text": "Persistence checks each commit against the raise it already re-runs in its ends check (turn, Cleaving, movement); action and area keep one commit re-derivation per holder (D220 amendment), so settledRepeatSaveEffects is renamed and scoped to that check; the transitional note leaves rules-runtime.md; count proofs record at the persistence callback.",
               "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m800 (854f76e36); slice tip 668026de5: Tests 43724133238, Live 43724133245, Browser journeys 43724133208 green. bindEncounterDamageSaveChain takes a required CommitDamagedDiscovery: RAISED (a turn, Cleaving blow or movement contact checks its chain against the raises its ends checks re-ran, per holder, less effects no longer committed; a damaged holder with no raise throws) or COMMITTED (actions and areas re-derive through committedDamagedDiscovery, renamed from settledRepeatSaveEffects; D220 amendment). Turn effects, turn zones, melee retaliation and Legendary Actions return their raises and the turn commit joins them in turn order; the turn-root re-derivation is gone. A movement massive-damage save reads its contact's one raise. Red proof: nativeRoomTurnDamagedOncePerHolder RED (commit raises 3 to 2), movementSettlementPersistence RED (massive save never raised its contact), damagedHolderDiscoveryAgreement and damageSaveCommandPlacedEffects RED-IMPORT (rename), damageSaveChainPersistence and nativeMovementZoneDamageMassiveSave ALREADY-PASSING (call shape). Restated: nativeRoomTurnDamagedOncePerHolder commit count 3 to 2, expected at the f4 ruling (the re-derivation it counted is removed). No D196 change."
             },
             {
               "id": "QUALITY-14.T2e2f4",
@@ -27305,6 +27356,12 @@
               "mergedAt": "2026-11-15",
               "proof": "m798 (d10e611ba); slice tip 7531e1480: Tests 43720351257, Live 43720351249, Browser journeys 43720351239 green. spatialDamageReached moves to schema (ruleExecutionMechanics.ts, D132: any DAMAGE row with resolvedAmount > 0, so a Death Ward interception counts and immunity does not); planSpatialMovement takes a required settle ('EVERY_TARGET' for turn zones, 'CHANGED_OR_DAMAGED' for movement response, preparation and melee retaliation) in place of an optional boolean; movement persistence keeps reached creatures; the spatial result validator requires a transition for a reached or changed group. Turn zones already settled every caught creature. Red proof: spatial-movement-rule-contracts RED 1/20 (reached and settled Character rejected), nativeZoneDamageDeathWard RED (Spike Growth on a 1 HP Wolf holding SRD Death Ward and Dominate Beast: ward spent, DAMAGED raised, one SAVE_FAILURE repeat save; the Cloudkill case is ALREADY-PASSING against f4). Resized 3 to 2. No restated assertions; no D196 change."
             }
+          ],
+          "journeyStatus": "verified",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomTurnDamagedOncePerHolder.test.ts",
+            "apps/session-worker/test/nativeMovementZoneDamageMassiveSave.test.ts",
+            "apps/session-worker/test/nativeZoneDamageDeathWard.test.ts"
           ]
         },
         {

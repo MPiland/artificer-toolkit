@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
-import { planDamageSaveChain, settledRepeatSaveEffects } from '../encounterDamageSaveChain.js'
+import { planDamageSaveChain, committedDamagedDiscovery } from '../encounterDamageSaveChain.js'
 import { targetEndedEffects } from '../encounterEndedEffectRelease.js'
 import { spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
@@ -22,8 +22,8 @@ import { activeEffect } from './encounterActiveEffectFixtures.js'
  * its discovery is what the damage-save chain consumes. The room's chain once re-discovered from the
  * post-command projection, which still held the effects the damage ended, so an effect that both ends
  * on damage and repeats its save on damage was owed a save in the room and none in persistence, whose
- * committed rows no longer hold it. Persistence re-derives the discovery from those rows
- * (`settledRepeatSaveEffects`), and the two must agree.
+ * committed rows no longer hold it. An action's or area's persistence re-derives the discovery from
+ * those rows (`committedDamagedDiscovery`), and the two must agree.
  */
 
 const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
@@ -164,7 +164,7 @@ describe("the damage-save chain consumes the ends stage's discovery (QUALITY-14.
       ...held.filter((effect) => !ends.endedEffects.includes(effect)),
       laughter(PLACED_ID, { endsOnDamage: false, sourceOccurrenceId: COMMAND_OCCURRENCE_ID })
     ]
-    const settled = settledRepeatSaveEffects({
+    const settled = committedDamagedDiscovery({
       holderActorId: HOLDER_ID,
       effects: committed,
       commandOccurrenceIds: [COMMAND_OCCURRENCE_ID],
@@ -201,7 +201,7 @@ describe("the zones' ends stage and the chain name the zone's source as the dama
   })
   const committed = sideHeld.filter((effect) => !ends.endedEffects.includes(effect))
   const settledFrom = (zoneApplications: typeof applications) =>
-    settledRepeatSaveEffects({
+    committedDamagedDiscovery({
       holderActorId: HOLDER_ID,
       effects: committed,
       commandOccurrenceIds: [COMMAND_OCCURRENCE_ID],

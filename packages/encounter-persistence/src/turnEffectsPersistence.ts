@@ -44,6 +44,7 @@ import { sourceActorIdOf } from '@artificer-toolkit/rules-runtime/events/encount
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import type { DamagedRaise } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -69,7 +70,12 @@ export async function persistEncounterTurnEffects(
   applyMechanics: (
     input: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
   ) => Promise<EncounterMechanicsBatchResult>
-): Promise<{ result: StoredRuleExecutionResultDto | null; actors: EncounterRunActorState[] }> {
+): Promise<{
+  result: StoredRuleExecutionResultDto | null
+  actors: EncounterRunActorState[]
+  /** Each execution's `DAMAGED(AFTER)` raise (D220), in execution order: holder and what it found. */
+  raises: DamagedRaise[]
+}> {
   const { state, boundary, phase } = input
   if (
     (boundary.ordinal !== 0 && boundary.ordinal !== 1) ||
@@ -78,7 +84,7 @@ export async function persistEncounterTurnEffects(
     throw new Error('Turn effect boundary is invalid.')
   if (boundary.actorId === null) {
     if (phase.kind !== 'NONE') throw new Error('Turn effect selection is stale.')
-    return { result: null, actors: [] }
+    return { result: null, actors: [], raises: [] }
   }
   const turnActorId = boundary.actorId
   const store = createActiveRuleEffectStore(ctx)
@@ -100,7 +106,7 @@ export async function persistEncounterTurnEffects(
   })
   if (phase.kind === 'NONE') {
     if (candidates.length) throw new Error('Turn effect selection is stale.')
-    return { result: null, actors: [] }
+    return { result: null, actors: [], raises: [] }
   }
   if (!candidates.length || candidates.length > 128)
     throw new Error('Turn effect selection is unavailable.')
@@ -120,7 +126,7 @@ export async function persistEncounterTurnEffects(
       )
     )
       throw new Error('Manual turn effect selection is stale.')
-    return { result: phase.result, actors: [] }
+    return { result: phase.result, actors: [], raises: [] }
   }
   if (state.automationMode === 'MANUAL' || phase.plan.selectionChecksum !== selectionChecksum)
     throw new Error('Staged turn effect selection is stale.')
@@ -147,6 +153,7 @@ export async function persistEncounterTurnEffects(
     { effect: ActiveRuleEffectRecord; holder: EncounterRunActorState }
   >()
   const dispositions = new Map(runActors.map(({ id, disposition }) => [id, disposition] as const))
+  const raises: DamagedRaise[] = []
   const applications = new Map<string, CharacterRuleActionApplication[]>()
   const priorAfter = new Map<string, (typeof executions)[number]['targetTransition']['after']>()
   for (const [ordinal, { holder: actor, effect }] of candidates.entries()) {
@@ -275,6 +282,7 @@ export async function persistEncounterTurnEffects(
       throw new Error('Staged turn effect damage expiry is stale.')
     for (const endedEffect of ended.endedEffects)
       damageEnded.set(endedEffect.id, { effect: endedEffect, holder: actor })
+    raises.push([actor.id, ended.repeatSaveEffects])
     priorAfter.set(actor.id, transition.after)
     applications.set(actor.id, [
       ...(applications.get(actor.id) ?? []),
@@ -444,6 +452,7 @@ export async function persistEncounterTurnEffects(
   )
   return {
     actors: updatedActors,
+    raises,
     result: storedRuleExecutionResultDtoSchema.parse({
       status: 'BATCH_COMPLETE',
       batchKind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
