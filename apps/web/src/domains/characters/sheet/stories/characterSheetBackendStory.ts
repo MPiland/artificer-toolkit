@@ -9,7 +9,7 @@ export type StoryCharacter = (typeof STORY_CHARACTERS)[keyof typeof STORY_CHARAC
 export function sheetRouter({ characterId, label }: StoryCharacter) {
   return {
     route: Route,
-    path: '/characters/$characterPublicId/$characterSlug' as const,
+    path: '/characters/$characterPublicId/$characterSlug/' as const,
     params: buildCharacterRouteParams(characterId, label)
   }
 }
