@@ -1,13 +1,18 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
+import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readActorConditionIds,
+  readRoomHistory
+} from './roomHistoryReads.js'
 import { seedTurnSaveEffect } from './turnEvidenceFixture.js'
 
 /**
@@ -171,5 +176,71 @@ describe('a room ADVANCE_TURN whose START_OF_TURN damage names its source', () =
         : []
     })
     expect(repeatSaves).toHaveLength(expected)
+  })
+})
+
+function srdCondition(code: string) {
+  const type = SRD_CONDITION_TYPES.find((candidate) => candidate.code === code)
+  if (!type) throw new Error(`The SRD has no ${code} condition.`)
+  return type.id
+}
+
+describe('a room ADVANCE_TURN that ends a Hideous Laughter holder’s turn (QUALITY-14.T2e2f5)', () => {
+  it('commits its passed turn-end save, which ends the effect and both conditions it owns', async () => {
+    const prone = srdCondition('PRONE')
+    const incapacitated = srdCondition('INCAPACITATED')
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({
+          id: FIRST_ID,
+          creature: plainWolf,
+          conditionIds: [incapacitated, prone]
+        }),
+        srdCreatureActor({ id: SECOND_ID, creature: plainWolf })
+      ],
+      moverActorId: FIRST_ID,
+      positions: { [FIRST_ID]: { x: 150, y: 150 }, [SECOND_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      // A natural 20 passes the Wisdom save.
+      rolls: [],
+      fallbackRoll: 19,
+      definitions: [],
+      seed: async ({ effects, encounterId, occurredAt }) => {
+        const planned = plannedTimedCondition({
+          encounterId,
+          sourceActorId: SECOND_ID,
+          holderActorId: FIRST_ID,
+          spell: hideousLaughter,
+          lifetimeScope: 'ENCOUNTER'
+        })
+        await effects.create({
+          id: LAUGHTER_EFFECT_ID,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: FIRST_ID },
+          definition: planned.definition,
+          lifecycle: planned.lifecycle,
+          occurredAt
+        })
+      }
+    })
+    const before = await readRoomHistory(room.base.stub)
+    expect(readActorConditionIds(before, FIRST_ID)).toEqual(
+      expect.arrayContaining([incapacitated, prone])
+    )
+    const commandId = crypto.randomUUID()
+    const answer = await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: before.runs[0]!.version
+      }
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.base.stub)
+    expect(after.activeEffects.map(({ id }) => id)).not.toContain(LAUGHTER_EFFECT_ID)
+    expect(readActorConditionIds(after, FIRST_ID)).not.toContain(prone)
+    expect(readActorConditionIds(after, FIRST_ID)).not.toContain(incapacitated)
   })
 })

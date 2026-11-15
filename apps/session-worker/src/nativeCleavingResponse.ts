@@ -275,8 +275,7 @@ export async function planNativeLiveCleavingResponse(
     repeatSaves: {
       damagerActorId: context.sourceActorId,
       // The target's own ends stage found what owes a repeat save (D220).
-      discovered: new Map(chosen && ends ? [[chosen.target.actor.id, ends.repeatSaveEffects]] : []),
-      entryOccurrenceIds: []
+      discovered: new Map(chosen && ends ? [[chosen.target.actor.id, ends.repeatSaveEffects]] : [])
     }
   })
   const facts = buildEncounterActorRuleFacts({ actors: concentration.actors })

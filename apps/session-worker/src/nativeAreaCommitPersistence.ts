@@ -339,8 +339,7 @@ export async function settleAreaCommit(args: {
     random: input.random,
     repeatSaves: {
       damagerActorId: caster.id,
-      discovered: damagedHolderRepeatSaves,
-      entryOccurrenceIds: targetOccurrenceIds
+      discovered: damagedHolderRepeatSaves
     }
   })
   const casterTarget = movementTargets.get(caster.id)

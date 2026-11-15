@@ -18,12 +18,34 @@ export type DamageSaveEffectHolder = {
   defeated: boolean
   /**
    * The holder's damaged discovery: the effects its one `DAMAGED(AFTER)` raise found owing a repeat
-   * save (D167, D220), less every effect the command ended. A root with an ends stage carries that
-   * stage's own discovery (`targetEndedEffects`); persistence and a root without one re-derive it
-   * from the settled effects (`settledRepeatSaveEffects`), which equals it.
+   * save (D167, D220), less every effect the command ended. Every room root carries its stages' own
+   * discovery (`targetEndedEffects`); persistence re-derives it from the settled effects
+   * (`settledRepeatSaveEffects`), which equals it.
    */
   repeatSaveEffects: readonly ActiveRuleEffectRecord[]
   maximumHitPoints: number
+}
+
+/** A root's damaged discovery per holder: what each of its raises for the holder found. */
+export type DamagedDiscovery = ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+
+/**
+ * A root's raises joined into its damaged discovery, in raise order (D220): a root raises once per
+ * holder for each turn-effect or turn-zone execution or Legendary Action that damaged it, and
+ * the holder's damage-save chain consumes what all of them found, each effect once.
+ */
+export function joinDamagedDiscoveries(
+  raises: Iterable<readonly [holderActorId: string, found: readonly ActiveRuleEffectRecord[]]>
+): Map<string, ActiveRuleEffectRecord[]> {
+  const joined = new Map<string, ActiveRuleEffectRecord[]>()
+  for (const [holderActorId, found] of raises)
+    joined.set(holderActorId, [
+      ...(joined.get(holderActorId) ?? []).filter(
+        ({ id }) => !found.some((effect) => effect.id === id)
+      ),
+      ...found
+    ])
+  return joined
 }
 
 /**
