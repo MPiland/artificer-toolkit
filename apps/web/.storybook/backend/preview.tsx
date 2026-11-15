@@ -44,6 +44,26 @@ function getStoryBackend(storyId: string): StoryBackend {
 }
 
 /**
+ * Signs in, waiting out the auth proxy's sign-in rate limit for the delay it reports (the same
+ * bounded retry the review-data CLI uses), because switching between story accounts signs in again.
+ */
+async function signInStoryAccount(email: string): Promise<void> {
+  for (let retry = 0; ; retry++) {
+    let retrySeconds = 0
+    const signIn = await betterAuthClient.signIn.email(
+      { email, password: REVIEW_PASSWORD },
+      { onError: ({ response }) => (retrySeconds = Number(response.headers.get('X-Retry-After'))) }
+    )
+    if (!signIn.error) return
+    if (signIn.error.status !== 429 || retry === 3)
+      throw new Error(`The story account could not sign in: ${signIn.error.message}`)
+    if (!Number.isInteger(retrySeconds) || retrySeconds < 0 || retrySeconds > 10)
+      throw new Error("Auth rate limit requires the server's bounded retry delay.")
+    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000))
+  }
+}
+
+/**
  * Signs in as the story account through the web app auth proxy and opens a read client. The
  * browser session holds one identity at a time, so a sign-in happens only when the story needs a
  * different account than the one already signed in; stories sharing an account share its session.
@@ -58,15 +78,7 @@ async function connectStoryBackend(
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
   const email = reviewAccountEmail(STORY_ACCOUNTS[accountKey])
   const current = await betterAuthClient.getSession()
-  if (current.data?.user.email !== email) {
-    const signIn = await betterAuthClient.signIn.email({
-      email,
-      password: REVIEW_PASSWORD
-    })
-    if (signIn.error) {
-      throw new Error(`The story account could not sign in: ${signIn.error.message}`)
-    }
-  }
+  if (current.data?.user.email !== email) await signInStoryAccount(email)
   const convex = new ConvexQueryClient(url, { expectAuth: true })
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
   const queryClient = createAppQueryClient(convex)

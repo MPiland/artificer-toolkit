@@ -55,7 +55,7 @@ export const ExhaustedSearch: Story = {
       canvas.getByRole('textbox', { name: 'Search table titles and summaries' }),
       'zzzz no such table'
     )
-    await expect(await canvas.findByText('No tables match')).toBeVisible()
+    await expect(await canvas.findByText('No tables match', {}, { timeout: 5000 })).toBeVisible()
     await expect(canvas.queryByRole('button', { name: 'Load more tables' })).not.toBeInTheDocument()
   }
 }

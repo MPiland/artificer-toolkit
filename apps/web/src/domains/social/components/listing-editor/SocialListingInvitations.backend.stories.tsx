@@ -72,7 +72,7 @@ type Story = StoryObj<typeof meta>
 
 export const FocusedDeepLink: Story = {
   play: async ({ canvas }) => {
-    const row = await canvas.findByRole('article')
+    const row = await canvas.findByRole('article', {}, { timeout: 5000 })
     await waitFor(() => expect(row.ownerDocument.activeElement).toBe(row))
     await expect(row).toHaveAttribute('data-highlighted', 'true')
   }
@@ -94,10 +94,12 @@ export const RevokeInvitation: Story = {
       JSON.parse(z.string().parse(frame.dataset.invitation))
     )
     await userEvent.click(await canvas.findByRole('button', { name: 'Revoke invitation' }))
-    await waitFor(() =>
-      expect(writesTo(api.social.invitations.revoke)).toEqual([
-        { invitePublicId: invitation.invitePublicId, expectedVersion: invitation.version }
-      ])
+    await waitFor(
+      () =>
+        expect(writesTo(api.social.invitations.revoke)).toEqual([
+          { invitePublicId: invitation.invitePublicId, expectedVersion: invitation.version }
+        ]),
+      { timeout: 5000 }
     )
   }
 }
