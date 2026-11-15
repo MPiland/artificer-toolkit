@@ -9,7 +9,7 @@ import {
   encounterAreaTargetCommandId,
   encounterAreaTargetOccurrenceId
 } from '../encounterAreaPending.js'
-import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
+import { planDamageSaveChain, settledRepeatSaveEffects } from '../encounterDamageSaveChain.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
@@ -19,6 +19,8 @@ import { activeEffect } from './encounterActiveEffectFixtures.js'
  * QUALITY-14.T2e2b2 (D167): an area places each caught creature's effect under that creature's
  * entry occurrence. The chain once left out only effects whose origin named the area's own
  * occurrence, so an effect the area's entry had just placed repeated against the area's own damage.
+ * T2e2b3 moved that exclusion into the settled re-derivation of the holder's damaged discovery
+ * (`settledRepeatSaveEffects`), which persistence and a root with no ends stage feed the chain.
  */
 
 const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
@@ -78,13 +80,26 @@ describe('the save chain leaves out the effects the damaging command placed (QUA
       gameSystemId: DND5E_SYSTEM_ID,
       applications: [damage],
       maintainedStates: new Map(),
-      commandOccurrenceIds: [AREA_OCCURRENCE_ID, ENTRY_OCCURRENCE_ID],
       damagerActorId: CASTER_ID,
       dispositions: new Map(),
       effectSaves: {
         massiveRule: null,
         holders: new Map([
-          [HOLDER_ID, { defeated: false, effects: [placed, earlier], maximumHitPoints: 11 }]
+          [
+            HOLDER_ID,
+            {
+              defeated: false,
+              repeatSaveEffects: settledRepeatSaveEffects({
+                holderActorId: HOLDER_ID,
+                effects: [placed, earlier],
+                commandOccurrenceIds: [AREA_OCCURRENCE_ID, ENTRY_OCCURRENCE_ID],
+                applications: [damage],
+                damagerActorId: CASTER_ID,
+                dispositions: new Map()
+              }),
+              maximumHitPoints: 11
+            }
+          ]
         ])
       }
     })

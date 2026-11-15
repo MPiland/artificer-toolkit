@@ -3,6 +3,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -31,9 +32,10 @@ afterEach(() => {
 
 /**
  * A Wolf bites another Wolf, which holds Hideous Laughter cast by another Wolf (D167): the damage
- * owes the holder a repeat save with Advantage, answered by the GM.
+ * owes the holder a repeat save with Advantage, answered by the GM. With `endsOnDamage`, the
+ * Laughter is authored to end outright on damage as well (`endOnTriggers DAMAGE_TAKEN`).
  */
-async function laughingRoom(heldDie = false) {
+async function laughingRoom(heldDie = false, endsOnDamage = false) {
   const attacker = biteWolf('ATTACK')
   return actionRoom({
     actors: [
@@ -59,10 +61,22 @@ async function laughingRoom(heldDie = false) {
         spell: hideousLaughter,
         lifetimeScope: 'ENCOUNTER'
       })
+      const { recurrence } = planned.definition
       await effects.create({
         id: LAUGHTER_EFFECT_ID,
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
-        definition: planned.definition,
+        definition: endsOnDamage
+          ? {
+              ...planned.definition,
+              recurrence: {
+                ...recurrence,
+                endTriggers: canonicalActiveEffectEndTriggers([
+                  ...recurrence.endTriggers,
+                  { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null } as const
+                ])
+              }
+            }
+          : planned.definition,
         lifecycle: planned.lifecycle,
         occurredAt
       })
@@ -207,5 +221,29 @@ describe('room Hideous Laughter repeat save with a die the holder keeps for afte
       { outcome: 'SAVE_FAILURE', d20: { selectedNatural: 1, total: pending.d20.total } }
     ])
     expect(effectIds(after)).toEqual(effectIds(before))
+  })
+})
+
+describe('room damage that ends an effect owes it no repeat save (QUALITY-14.T2e2b3, D220)', () => {
+  it("ends the Laughter on the bite's damage and commits with no repeat save pending", async () => {
+    const room = await laughingRoom(false, true)
+    const before = await readRoomHistory(room.room.base.stub)
+    expect(effectIds(before)).toContain(LAUGHTER_EFFECT_ID)
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const attack = await room.pendingDecision()
+    if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected an attack roll.')
+    const hit = await room.resolve(attack, {
+      kind: 'ENTER_DICE',
+      requestId: attack.pending.request.requestId,
+      rawFaces: [19],
+      rollMode: attack.pending.request.rollMode
+    })
+    // The chain consumes the ends stage's discovery, which no longer holds the ended Laughter.
+    expect(hit.type, JSON.stringify(hit)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(repeatSaveChecks(after)).toEqual([])
+    expect(effectIds(after)).not.toContain(LAUGHTER_EFFECT_ID)
   })
 })
