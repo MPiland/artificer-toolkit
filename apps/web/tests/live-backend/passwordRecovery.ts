@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { chromium, expect, type Page } from '@playwright/test'
+import { routeFromClientAddress } from './clientAddress'
 
 // The driver supplies a fixture OTP; no inbox, credentials, or browser storage is persisted.
 export async function verifyPasswordRecoveryBrowser(input: {
@@ -25,6 +26,8 @@ export async function verifyPasswordRecoveryBrowser(input: {
     const recoveryContext = await browser.newContext({
       viewport: { width: 1280, height: 900 }
     })
+    await routeFromClientAddress(existingContext, origin, 0)
+    await routeFromClientAddress(recoveryContext, origin, 1)
     const existing = await existingContext.newPage()
     const page = await recoveryContext.newPage()
     for (const target of [existing, page]) {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect, type Page, type WebSocket } from '@playwright/test'
 import { signIn, waitForRouterIdle, watchAuthenticatedSession } from './campaignCollaboration'
+import { routeFromClientAddress } from './clientAddress'
 
 type Account = { email: string; password: string; username: string }
 type Preview = {
@@ -278,11 +279,12 @@ export async function openV15WorkloadBrowser(input: {
     )
   }
   try {
-    for (const account of [input.owner, ...input.players]) {
+    for (const [actorSlot, account] of [input.owner, ...input.players].entries()) {
       const context = await browser.newContext({
         viewport: { width: 1280, height: 900 },
         reducedMotion: 'reduce'
       })
+      await routeFromClientAddress(context, origin, actorSlot)
       context.setDefaultTimeout(30_000)
       const page = await context.newPage()
       await page.addInitScript({ content: proofInitScript })
@@ -318,14 +320,6 @@ export async function openV15WorkloadBrowser(input: {
         if (message.type() !== 'error') return
         // Name the failing resource without its query, which can carry signed credentials.
         const { url } = message.location()
-        // Six browsers share one IP, so Better Auth may throttle a sign-in; `signIn` waits out its
-        // `x-retry-after` and retries, and fails the run itself if that retry is refused.
-        if (
-          url &&
-          new URL(url).pathname === '/api/auth/sign-in/email' &&
-          message.text().includes('429')
-        )
-          return
         const resource = url ? ` (${url.split('?')[0]})` : ''
         client.errors.push(`${message.text()}${resource}`)
       })
