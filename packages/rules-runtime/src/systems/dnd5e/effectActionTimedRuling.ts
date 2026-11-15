@@ -18,8 +18,19 @@ import { entryResultGate } from './effectActionTest.js'
 export function timedRulingPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const [entry, ...otherEntries] = action.compiledEffect.entries
-  if (otherEntries.length > 0 || !entry || !('outcome' in entry)) return null
+  const { entries } = action.compiledEffect
+  // A sibling that lasts no longer than its use (Destroy Undead's kill beside "Turned") resolves as
+  // a normal outcome; one with a duration, lifecycle or maintenance of its own has no plan here.
+  const lasting = entries.filter(
+    (candidate) =>
+      // A rolled table row is not an instant result: it has no plan here.
+      !('outcome' in candidate) ||
+      candidate.duration !== undefined ||
+      candidate.maintenanceDefinitionId !== undefined ||
+      Object.values(candidate.lifecycle ?? {}).some((value) => value !== undefined)
+  )
+  const [entry] = lasting
+  if (lasting.length !== 1 || !entry || !('outcome' in entry)) return null
   const { outcome, duration } = entry
   if (outcome.effectKind !== 'MANUAL_ADJUDICATION' || !duration) return null
   const indefinite = duration.durationKind === 'UNTIL_DISPELLED'
