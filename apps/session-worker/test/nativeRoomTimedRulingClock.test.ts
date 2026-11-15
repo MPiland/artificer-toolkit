@@ -35,7 +35,14 @@ async function castGeas(campaignClockMinute: number | null) {
   })
   const geas = (await room.actionChoices()).actions.find(({ label }) => label.startsWith('Geas'))
   if (!geas) throw new Error('The room offers the Naga no Geas.')
-  const { answer } = await room.startAction(WOLF_ID, [], null, null, geas.id, NAGA_ID)
+  const { answer } = await room.startAction(
+    WOLF_ID,
+    ['TARGET_RANGE_UNCHECKED'],
+    null,
+    null,
+    geas.id,
+    NAGA_ID
+  )
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   const decision = await room.pendingDecision()
   if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the Wisdom save.')
