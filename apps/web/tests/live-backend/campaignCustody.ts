@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect, type Page } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
 import { watchNavigationAbortedRequests } from './campaignCollaboration'
+import { routeFromClientAddress } from './clientAddress'
 
 export type CampaignCustodyStage =
   | 'cargo-filled'
@@ -38,11 +39,12 @@ export async function verifyCampaignCustodyBrowser(
 
   try {
     contexts = await Promise.all(
-      ['owner', 'player-1', 'player-2'].map(async () => {
+      ['owner', 'player-1', 'player-2'].map(async (_actor, actorSlot) => {
         const context = await browser.newContext({
           viewport: { width: 1280, height: 900 },
           reducedMotion: 'reduce'
         })
+        await routeFromClientAddress(context, origin, actorSlot)
         context.setDefaultTimeout(30_000)
         context.setDefaultNavigationTimeout(90_000)
         await context.tracing.start({

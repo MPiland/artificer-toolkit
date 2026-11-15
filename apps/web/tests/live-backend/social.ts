@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect as playwrightExpect, type Locator, type Page } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
+import { routeFromClientAddress } from './clientAddress'
 
 export type SocialBrowserStage =
   | 'listing-open'
@@ -75,7 +76,7 @@ export async function verifySocialBrowser(input: SocialBrowserInput): Promise<vo
 
   try {
     const contexts = await Promise.all(
-      ['owner', 'player', 'invitee', 'moderator'].map(async (actor) => {
+      ['owner', 'player', 'invitee', 'moderator'].map(async (actor, actorSlot) => {
         const context = await browser.newContext({
           viewport:
             actor === 'player' || actor === 'invitee'
@@ -83,6 +84,7 @@ export async function verifySocialBrowser(input: SocialBrowserInput): Promise<vo
               : { width: 1280, height: 900 },
           reducedMotion: 'reduce'
         })
+        await routeFromClientAddress(context, origin, actorSlot)
         context.setDefaultTimeout(30_000)
         context.setDefaultNavigationTimeout(90_000)
         return context
