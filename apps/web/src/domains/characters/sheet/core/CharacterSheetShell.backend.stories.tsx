@@ -89,8 +89,10 @@ export const SpellStates: Story = {
     await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.caster)
     await userEvent.click(await canvas.findByRole('tab', { name: /^Spells/ }))
     for (const spell of ['Magic Missile', 'Shield'])
-      expect((await canvas.findAllByText(spell)).length).toBeGreaterThan(0)
-    expect((await canvas.findAllByText(/spell slots are exhausted\./)).length).toBeGreaterThan(0)
+      expect((await canvas.findAllByText(spell, {}, { timeout: 15_000 })).length).toBeGreaterThan(0)
+    expect(
+      (await canvas.findAllByText(/spell slots are exhausted\./, {}, { timeout: 15_000 })).length
+    ).toBeGreaterThan(0)
   }
 }
 

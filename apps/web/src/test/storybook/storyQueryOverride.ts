@@ -33,19 +33,32 @@ export function installQueryOverride(
 ) {
   const selects = (read: Record<string, unknown>) =>
     Object.entries(args).every(([name, value]) => read[name] === value)
+  const watchQuery = client.watchQuery.bind(client)
+  // `client.query` reads through `watchQuery`, which the override below silences, so the
+  // deployment's own answer is read through the original subscription: its first update.
+  const readServed = (variables: Record<string, Value>) =>
+    new Promise<unknown>((resolve, reject) => {
+      const watch = watchQuery(makeFunctionReference<'query'>(query), variables)
+      const settle = () => {
+        try {
+          const result = watch.localQueryResult()
+          if (result === undefined) return
+          stop()
+          resolve(result)
+        } catch (error) {
+          stop()
+          reject(error)
+        }
+      }
+      const stop = watch.onUpdate(settle)
+      settle()
+    })
   // ConvexQueryClient subscribes every `convexQuery` key through `watchQuery` and lets the server's
   // push replace the cache, so serving the value from the query function alone would not hold.
-  // A `convexQuery` key holds the read's Convex arguments, which is what `client.query` takes.
+  // A `convexQuery` key holds the read's Convex arguments, which is what `watchQuery` takes.
   queryClient.setQueryDefaults(['convexQuery', query, args], {
-    queryFn: async ({ queryKey }) =>
-      derive(
-        await client.query(
-          makeFunctionReference<'query'>(query),
-          queryKey[2] as Record<string, Value>
-        )
-      )
+    queryFn: async ({ queryKey }) => derive(await readServed(queryKey[2] as Record<string, Value>))
   })
-  const watchQuery = client.watchQuery.bind(client)
   Object.defineProperty(client, 'watchQuery', {
     value: ((reference, ...rest) =>
       getFunctionName(reference) === query && selects(rest[0] ?? {})

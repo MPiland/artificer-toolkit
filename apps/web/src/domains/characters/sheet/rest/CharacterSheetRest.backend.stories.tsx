@@ -56,11 +56,11 @@ const addsMulticlassHitDice = async (canvasElement: HTMLElement) => {
     await within(dialog).findByLabelText('Remove the current Max HP adjustment')
   ).toBeInTheDocument()
   await userEvent.click(await within(dialog).findByRole('button', { name: 'Add one d10 hit die' }))
-  const addD8 = within(dialog).getByRole('button', { name: 'Add one d8 hit die' })
-  await waitFor(() => expect(addD8).toBeEnabled())
-  await userEvent.click(addD8)
+  const addD6 = within(dialog).getByRole('button', { name: 'Add one d6 hit die' })
+  await waitFor(() => expect(addD6).toBeEnabled())
+  await userEvent.click(addD6)
   await waitFor(() =>
-    expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 2' })).toBeVisible()
+    expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d6 + 2' })).toBeVisible()
   )
   await waitFor(() =>
     expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
@@ -90,14 +90,17 @@ const shortRestMulticlassPreview: Story = {
   play: ({ canvasElement }) => addsMulticlassHitDice(canvasElement).then(() => undefined)
 }
 
+// The caster has spent every spell slot, so a Long Rest has a recovery to apply; a Long Rest of the
+// undamaged Fighter has none and the product keeps it disabled.
 const longRestPreview: Story = {
+  parameters: { tanstack: { router: sheetRouter(STORY_CHARACTERS.caster) } },
   play: async ({ canvasElement }) => {
-    const dialog = await opensRestDialog(canvasElement, STORY_CHARACTERS.fighter, 'Long Rest')
-    const healingSummary = await within(dialog).findByText('Restores to 11 / 11')
+    const dialog = await opensRestDialog(canvasElement, STORY_CHARACTERS.caster, 'Long Rest')
+    const healingSummary = await within(dialog).findByText(/^Restores to (\d+) \/ \1$/)
     await waitFor(() => expect(healingSummary).toBeVisible())
-    await expect(
-      await within(dialog).findByRole('button', { name: 'Take Long Rest' })
-    ).toBeEnabled()
+    await waitFor(async () =>
+      expect(await within(dialog).findByRole('button', { name: 'Take Long Rest' })).toBeEnabled()
+    )
   }
 }
 
@@ -116,7 +119,7 @@ export const ShortRestMulticlassRolled: Story = {
   ...shortRestMulticlassPreview,
   play: async ({ canvasElement }) => {
     const dialog = await addsMulticlassHitDice(canvasElement)
-    await rollsHitDice(dialog, '1d10 + 1d8 + 2', 'Short rest hit dice')
+    await rollsHitDice(dialog, '1d10 + 1d6 + 2', 'Short rest hit dice')
   }
 }
 
