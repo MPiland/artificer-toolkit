@@ -143,7 +143,7 @@ const manifestDestructionCriterionDtoSchema = lazySchema(() =>
   ])
 )
 
-const manifestLightDtoSchema = lazySchema(() =>
+export const manifestLightDtoSchema = lazySchema(() =>
   z.object({
     bright: z.object({
       amount: authoredLengthAmountSchema,
@@ -154,6 +154,22 @@ const manifestLightDtoSchema = lazySchema(() =>
       unit: lengthUnitCodeSchema
     })
   })
+)
+
+/** Where a manifestation sits: its caster, the primary target, a placed space or a touched object. */
+export const manifestAttachmentKindSchema = lazySchema(() =>
+  z.enum(['SOURCE', 'PRIMARY_TARGET', 'PLACED_SPACE', 'TOUCHED_OBJECT'])
+)
+
+/** The rules an object manifestation's authored properties name. */
+export const manifestPropertyKindSchema = lazySchema(() =>
+  z.enum([
+    'NO_HEAT',
+    'NO_OXYGEN_USE',
+    'CANNOT_BE_SMOTHERED',
+    'CANNOT_BE_QUENCHED',
+    'CAN_BE_COVERED_OR_HIDDEN'
+  ])
 )
 
 const manifestProximityRuleDtoSchema = lazySchema(() =>
@@ -235,12 +251,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       'START_OF_ATTACHED_TARGET_TURN',
       'END_OF_ATTACHED_TARGET_NEXT_TURN'
     ])
-    const attachmentKindSchema = z.enum([
-      'SOURCE',
-      'PRIMARY_TARGET',
-      'PLACED_SPACE',
-      'TOUCHED_OBJECT'
-    ])
+    const attachmentKindSchema = manifestAttachmentKindSchema
     const baseSchema = z.object({
       id: authoredIdentifierSchema,
       effectKind: z.literal('MANIFEST'),
@@ -329,17 +340,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       ),
       spreadsAroundCorners: z.optional(z.boolean()),
       obscurementKind: z.optional(z.enum(['LIGHT', 'HEAVY'])),
-      properties: z.optional(
-        authoredReferenceCollectionSchema(
-          z.enum([
-            'NO_HEAT',
-            'NO_OXYGEN_USE',
-            'CANNOT_BE_SMOTHERED',
-            'CANNOT_BE_QUENCHED',
-            'CAN_BE_COVERED_OR_HIDDEN'
-          ])
-        )
-      ),
+      properties: z.optional(authoredReferenceCollectionSchema(manifestPropertyKindSchema)),
       destructionCriteria: z.optional(
         authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
       ),

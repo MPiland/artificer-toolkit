@@ -434,6 +434,7 @@ export function prepareRecurringActiveEffect(
   if (linkContribution && linkMemberActorIds.length < 2) return null
   const absenceContribution = plan.playAbsenceContribution ?? null
   const rulingContribution = plan.rulingContribution ?? null
+  const manifestationContribution = plan.objectManifestationContribution ?? null
   const formContribution = plan.creatureFormContribution ?? null
   if (formContribution) {
     if (!input.form)
@@ -646,7 +647,8 @@ export function prepareRecurringActiveEffect(
         conditionContributions.length > 0 ||
         linkContribution ||
         absenceContribution ||
-        rulingContribution
+        rulingContribution ||
+        manifestationContribution
           ? input.target.lifetimeScope
           : 'ENCOUNTER',
       expiration:
@@ -676,6 +678,9 @@ export function prepareRecurringActiveEffect(
         ? [{ kind: 'PLAY_ABSENCE' as const, keepsTurn: absenceContribution.keepsTurn }]
         : []),
       ...(rulingContribution ? [{ kind: 'GM_RULING' as const, ...rulingContribution }] : []),
+      ...(manifestationContribution
+        ? [{ kind: 'OBJECT_MANIFESTATION' as const, ...manifestationContribution }]
+        : []),
       ...(linkContribution
         ? [
             {
