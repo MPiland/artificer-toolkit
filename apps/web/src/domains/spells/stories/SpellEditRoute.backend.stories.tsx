@@ -9,7 +9,6 @@ import { expectMasterLockedAuthoringRoute } from '#domains/authoredRouteStory.pl
 // id to the record's canonical handle.
 const meta = {
   title: 'Domains/Spells/Routes/Edit Seeded',
-  tags: ['backend'],
   parameters: {
     layout: 'fullscreen',
     tanstack: {

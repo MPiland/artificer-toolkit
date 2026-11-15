@@ -7,10 +7,9 @@ import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
 import type { BrowserConfigOptions } from 'vitest/node'
 import { sourceResolve, workspaceSourceAliases } from '../../scripts/vitestSource.mjs'
-import { storyAuthProxy } from './.storybook/authProxy'
+import { storyAuthProxy } from './.storybook/authProxy.ts'
 
 const configDir = join(dirname(fileURLToPath(import.meta.url)), '.storybook')
-const BACKEND_STORY_TAG = 'backend'
 
 const storyBrowser: BrowserConfigOptions = {
   // Vitest's default browser port (63315) sits in the dynamic range Windows reserves for Hyper-V,
@@ -98,8 +97,7 @@ export default defineConfig({
         plugins: [
           storybookTest({
             configDir,
-            storybookScript: 'yarn storybook',
-            tags: { exclude: [BACKEND_STORY_TAG] }
+            storybookScript: 'yarn storybook'
           })
         ],
         test: {
@@ -107,7 +105,7 @@ export default defineConfig({
           // `.storybook/main.ts`'s `stories`, relative to this directory. The plugin applies them only
           // when a run starts, so a tool that resolves this config without running it
           // (scripts/affectedTests.mjs) would otherwise list Vitest's default test files.
-          include: ['src/**/*.stories.@(ts|tsx)'],
+          include: ['src/**/!(*.backend).stories.@(ts|tsx)'],
           fileParallelism: false,
           maxWorkers: 1,
           browser: storyBrowser
@@ -118,14 +116,14 @@ export default defineConfig({
         server: { proxy: storyAuthProxy },
         plugins: [
           storybookTest({
-            configDir,
-            storybookScript: 'yarn storybook',
-            tags: { include: [BACKEND_STORY_TAG] }
+            configDir: join(configDir, 'backend'),
+            storybookScript: 'yarn storybook --config-dir .storybook/backend'
           })
         ],
         test: {
           // Stories that read the seeded local deployment (D221). They run only in the
           // `storybook-backend-browser` proof, which starts that deployment and the web app.
+          // `include` mirrors `.storybook/backend/main.ts`'s `stories`, as above.
           name: 'storybook-backend',
           include: ['src/**/*.backend.stories.@(ts|tsx)'],
           setupFiles: ['./src/test/storybook/missingQueryFnGuard.ts'],

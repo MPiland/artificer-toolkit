@@ -16,7 +16,7 @@ Every Vitest run CI makes is one suite in `SUITES` (`scripts/affectedTests.mjs`)
 | `web`       | `apps/web/vitest.config.ts`, `unit`      | `apps/web`            | Web tests                                                |
 | `storybook` | `apps/web/vitest.config.ts`, `storybook` | `apps/web`            | Storybook tests (each story's play function in Chromium) |
 
-The `storybook` project excludes stories tagged `backend` (`*.backend.stories.tsx`). They read the seeded deployment, so they run in the `storybook-backend-browser` [browser journey](#browser-journeys) instead, under the `storybook-backend` project (D218, D221). See [Backend stories](#backend-stories) below.
+The `storybook` project excludes backend stories (`*.backend.stories.tsx`). They read the seeded deployment, so they run in the `storybook-backend-browser` [browser journey](#browser-journeys) instead, under the `storybook-backend` project (D218, D221). See [Backend stories](#backend-stories) below.
 
 The selector fails the run when a tracked `*.test.*` or `*.spec.*` file belongs to no suite. Only `apps/web/tests/**` (Playwright) is exempt: the [Storybook end-to-end job](#storybook-end-to-end) and the [browser journeys](#browser-journeys) run those specs. This replaces the hand-kept package list, which left the `apps/apis/src` and `scripts/*.test.mjs` tests unrun.
 
@@ -217,12 +217,12 @@ node scripts/traceJourneyFailure.mjs --run <Browser journeys run id> --slices "c
 
 **Status:** current (PLATFORM-28.T2, D218, D221).
 
-A page or route story tagged `backend` (`*.backend.stories.tsx`) reads the seeded deployment instead of hand-typed DTO fixtures.
+A page or route story named `*.backend.stories.tsx` reads the seeded deployment instead of hand-typed DTO fixtures.
 
-- **Preview.** `apps/web/.storybook/preview.tsx` builds `new ConvexQueryClient(VITE_CONVEX_URL)` and `createAppQueryClient(convex)` for each backend story. It also restores the real `convex/react` hooks for that story, because the module is mocked with `{ spy: true }`, and it wraps the story in `ConvexBetterAuthProvider`.
+- **Preview.** Backend stories have their own Storybook config directory, `apps/web/.storybook/backend/`. Its `main.ts` reuses the default config with only the backend stories, and the default `main.ts` leaves them out. The props-only preview automocks `convex/react`, and a class spy cannot build a live client in the dev Storybook runtime, so the two previews cannot share that mock. The backend preview spies on `convex/react` with `{ spy: true }`, so its hooks stay real. For each story it builds `new ConvexQueryClient(VITE_CONVEX_URL)` and `createAppQueryClient(convex)`, hands the query client and user to route loaders through the router `context` factory, and wraps the story in `ConvexBetterAuthProvider`. Both previews render through `apps/web/.storybook/StoryFrame.tsx`.
 - **Writes.** Every write is an `fn()` spy and never reaches the deployment: `useMutation` and the client's `mutation`. Actions stay real, because some actions are reads.
 - **Sign-in.** The story signs in as the story account, `REVIEW_STORY_READER`, through the running web app's `/api/auth` proxy (`apps/web/.storybook/authProxy.ts`). Storybook holds no secret, and the proxy's own checks still run. The proxy rewrites the `Origin` header to the web app's origin, as the review-data CLI's requests do.
-- **Props-only stories.** These keep the fixture spies and need no backend.
+- **Props-only stories.** These keep the default preview's fixture mocks and need no backend.
 - **Story data.** The story-data step, `seedStoryData` in `apps/apis/tests/developmentReviewData.ts`, makes through product commands whatever the stories read beyond the deploy and SRD seed. Stories find records by stable names. The local review-data CLI runs it after the review data, and the proof runs it before the stories.
 - **Proof.** `storybook-backend-browser` runs `yarn workspace @artificer-toolkit/web test:storybook:backend` (the `storybook-backend` Vitest project) on the throwaway stack, which reuses the same steps unchanged. The selector runs the proof when a change reaches a backend story, the Storybook config, the Vitest config, the guard or the story-data step (`PROOF_SPECS`).
 - **Guard.** `apps/web/src/test/storybook/missingQueryFnGuard.ts` fails a backend story on any TanStack Query "No queryFn" report.

@@ -150,38 +150,44 @@ describe('browser journey selection', () => {
         ['builder-browser', 'vtt-browser']
       ],
       ['its Playwright config', 'apps/web/playwright.local-vtt.config.ts', ['vtt-browser']],
-      ['its own spec', 'apps/web/tests/e2e/app/characterBuilder.spec.ts', ['builder-browser']],
-      [
-        'a backend story',
-        'apps/web/src/domains/spells/stories/SpellEditRoute.backend.stories.tsx',
-        ['storybook-backend-browser']
-      ],
-      // The route a backend story renders reaches the story through the import graph.
-      [
-        'a route a backend story renders',
-        'apps/web/src/routes/_authed/spells/$spellPublicId/$spellSlug/edit.tsx',
-        ['storybook-backend-browser']
-      ],
-      [
-        'the story-data step',
-        'apps/apis/tests/developmentReviewData.ts',
-        ['storybook-backend-browser']
-      ]
+      ['its own spec', 'apps/web/tests/e2e/app/characterBuilder.spec.ts', ['builder-browser']]
     ])('runs a journey when %s changes, whatever the criteria name', (_, path, proofs) => {
       expect(pushProofs(graph, [path], ciProofs, {}, {}, []).proofs).toEqual(proofs)
     })
 
-    it('leaves props-only stories to the Tests Storybook job', () => {
-      expect(
-        pushProofs(
-          graph,
-          ['apps/web/src/domains/spells/stories/SpellEditRoute.stories.tsx'],
-          ciProofs,
-          {},
-          {},
-          []
-        ).proofs
-      ).toEqual([])
+    // D221: backend stories run in the Storybook backend proof, selected through the import graph.
+    describe('Storybook backend stories', () => {
+      const storyProofs = [...ciProofs, 'storybook-backend-browser']
+
+      it.each([
+        [
+          'a backend story',
+          'apps/web/src/domains/spells/stories/SpellEditRoute.backend.stories.tsx'
+        ],
+        // The route a backend story renders reaches the story through the import graph.
+        [
+          'a route a backend story renders',
+          'apps/web/src/routes/_authed/spells/$spellPublicId/$spellSlug/edit.tsx'
+        ],
+        ['the story-data step', 'apps/apis/tests/developmentReviewData.ts']
+      ])('runs the proof when %s changes', (_, path) => {
+        expect(pushProofs(graph, [path], storyProofs, {}, {}, []).proofs).toEqual([
+          'storybook-backend-browser'
+        ])
+      })
+
+      it('leaves props-only stories to the Tests Storybook job', () => {
+        expect(
+          pushProofs(
+            graph,
+            ['apps/web/src/domains/spells/stories/SpellEditRoute.stories.tsx'],
+            storyProofs,
+            {},
+            {},
+            []
+          ).proofs
+        ).toEqual([])
+      })
     })
 
     it('names only tracked proof specs', () => {
