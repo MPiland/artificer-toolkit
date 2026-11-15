@@ -291,8 +291,8 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     applications: [[STORY_SOCIAL.applicationMessage, 'SUBMITTED']],
     // The player Campaign's invitation, which the reader accepted, is the other one.
     invitations: [
-      [REVIEW_STORY_PEER.username, 'PENDING'],
-      [REVIEW_STORY_READER.username, 'ACCEPTED']
+      [REVIEW_STORY_READER.username, 'ACCEPTED'],
+      [REVIEW_STORY_PEER.username, 'PENDING']
     ],
     blocks: 1,
     reports: [STORY_SOCIAL.reportDetails]
