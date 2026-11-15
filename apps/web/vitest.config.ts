@@ -126,6 +126,9 @@ export default defineConfig({
           // `include` mirrors `.storybook/backend/main.ts`'s `stories`, as above.
           name: 'storybook-backend',
           include: ['src/**/*.backend.stories.@(ts|tsx)'],
+          // A story's first read crosses the network, and an authoring walkthrough then drives many
+          // steps; the Playwright walkthrough these replace allowed each one a minute.
+          testTimeout: 60_000,
           fileParallelism: false,
           maxWorkers: 1,
           browser: storyBrowser

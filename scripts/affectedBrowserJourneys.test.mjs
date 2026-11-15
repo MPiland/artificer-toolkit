@@ -180,7 +180,7 @@ describe('browser journey selection', () => {
         expect(
           pushProofs(
             graph,
-            ['apps/web/src/domains/spells/stories/SpellEditRoute.stories.tsx'],
+            ['apps/web/src/ui/primitives/Select/Select.stories.tsx'],
             storyProofs,
             {},
             {},
