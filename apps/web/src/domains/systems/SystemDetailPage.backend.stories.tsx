@@ -85,7 +85,7 @@ export const DefinitionAuthoring: Story = {
 export const DraftSaved: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await openDefinition(canvas, new RegExp(`^${STORY_DEFINITIONS.drafted.label}Draft$`))
+    await openDefinition(canvas, new RegExp(`^${STORY_DEFINITIONS.drafted.label}\\s*Draft$`))
     const publish = await canvas.findByRole('button', { name: 'Publish' })
     await waitFor(() => expect(publish).toBeEnabled())
     await userEvent.click(publish)
@@ -101,7 +101,7 @@ export const DraftSaved: Story = {
 export const Published: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await openDefinition(canvas, new RegExp(`^${STORY_DEFINITIONS.published.label}Published$`))
+    await openDefinition(canvas, new RegExp(`^${STORY_DEFINITIONS.published.label}\\s*Published$`))
     await expect(await canvas.findByRole('button', { name: 'Save draft' })).toBeEnabled()
     await expect(canvas.getByRole('button', { name: 'Publish' })).toBeDisabled()
   }

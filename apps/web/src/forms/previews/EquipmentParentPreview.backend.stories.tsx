@@ -13,7 +13,7 @@ import { EquipmentParentPreview } from './EquipmentParentPreview'
 function ShortswordPlus1Preview() {
   const { data: system } = useSuspenseQuery(getSystem(srdSystemRecord.id))
   const { data: variant } = useSuspenseQuery(getEquipment(shortswordPlus1.id))
-  if (!variant.item) throw new Error('The seeded deployment has no Shortsword +1.')
+  if (!variant || !variant.item) throw new Error('The seeded deployment has no Shortsword +1.')
   return (
     <EquipmentParentPreview
       context={{
