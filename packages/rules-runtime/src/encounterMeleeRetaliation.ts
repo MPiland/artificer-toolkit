@@ -122,7 +122,10 @@ export async function planEncounterMeleeRetaliation<
   runtime: RulesRuntimeService
   random: (maxExclusive: number) => number
   /** What the zones' damage ends on the attacker: the actor whose turn it is and every actor's side. */
-  damageEnds: NonNullable<Parameters<typeof planNativeSpatialMovementPrefix>[0]['damageEnds']>
+  damageEnds: Omit<
+    NonNullable<Parameters<typeof planNativeSpatialMovementPrefix>[0]['damageEnds']>,
+    'raise'
+  >
   retained?: MeleeRetaliationEvidenceDto
 }) {
   const { selected, attacker, retained } = input
@@ -190,7 +193,8 @@ export async function planEncounterMeleeRetaliation<
     userId: input.userId,
     commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 },
     settleUnchanged: spatialDamageReached(executions),
-    damageEnds: { ...input.damageEnds, incomingDamageGrants: true }
+    // A melee hit is one command: its zones raise once per attacker (D220).
+    damageEnds: { ...input.damageEnds, incomingDamageGrants: true, raise: 'PER_COMMAND' }
   })
   const settlement = settled.settlements[0] ?? null
   const evidence: MeleeRetaliationEvidenceDto = {

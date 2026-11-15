@@ -95,10 +95,10 @@ export function planNativeSpatialMovementPrefix<
     /** Whether the zones' damage also gives the target the timed grants its passive features owe. */
     incomingDamageGrants?: boolean
     /**
-     * Whether each execution is its own raise (a turn zone, D220) rather than one raise per target
-     * for the command (a melee retaliation).
+     * The DAMAGED(AFTER) raise unit (D220): each execution its own raise (a turn zone), or one raise
+     * per target for the command (a melee retaliation).
      */
-    raisePerExecution?: boolean
+    raise: 'PER_EXECUTION' | 'PER_COMMAND'
   }
 }): {
   projectedTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -144,7 +144,9 @@ export function planNativeSpatialMovementPrefix<
     const executions = executionsByTarget.get(targetActorId)
     if (!target || !executions) throw new Error('Spatial execution target is unavailable.')
     const ends = input.damageEnds
-      ? (input.damageEnds.raisePerExecution ? spatialDamageEndsPerExecution : spatialDamageEnds)({
+      ? (input.damageEnds.raise === 'PER_EXECUTION'
+          ? spatialDamageEndsPerExecution
+          : spatialDamageEnds)({
           holderActorId: targetActorId,
           held: target.activeEffects,
           executions,
