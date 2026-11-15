@@ -40,15 +40,16 @@ describe('run', () => {
     const directory = await mkdtemp(join(scratchRoot, 'lifecycle-run-'))
     try {
       const logPath = join(directory, 'proof.log')
+      // The script assembles the marker at run time, so only the child's output carries it, not its arguments.
       const script =
-        'console.log("early noise".repeat(1000)); console.log("assertion failed: marker-7f3a"); process.exit(1)'
+        'console.log("early noise".repeat(1000)); console.log(["assertion failed", "marker", "7f3a"].join(": ")); process.exit(1)'
 
       const failure = await lifecycle
         .run(process.execPath, ['-e', script], { logPath })
         .catch((error) => error)
 
       expect(failure.message).toContain('failed (exit 1)')
-      expect(failure.message).toContain('assertion failed: marker-7f3a')
+      expect(failure.message).toContain('assertion failed: marker: 7f3a')
       expect(failure.message.length).toBeLessThan(5000)
     } finally {
       await rm(directory, { force: true, recursive: true })
