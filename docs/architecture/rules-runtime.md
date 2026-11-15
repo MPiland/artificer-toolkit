@@ -1819,9 +1819,15 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   settlement reads the attacker's effects after that stage; so does each holder only a turn's Legendary Actions
   damaged (the turn preparation's `legendaryDiscovery`, current, QUALITY-14.T2e2b4). A zone's hit names the zone's
   source as its damager in the chain (`meleeRetaliationDamage`, `zoneEffectDamage`), as the ends stage does, in the
-  room and in persistence. Transitional: a root whose ends stage the chain does not yet receive (a turn's effects, a
-  holder a turn effect damaged as well as its Legendary Actions, Cleaving, movement, and a resumed chain) derives the
-  discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
+  room and in persistence. A resumed chain never re-derives the discovery (current, QUALITY-14.T2e2c, D220): the room
+  reads the chain sealed on its damage-save context (the answered check, then `context.remaining`), since the
+  projection already holds what the chain's earlier saves changed, and a resumed context keeps the sealed
+  `repeatSaveDamagerActorId`. A Concentration a check or an end lost drops its own later checks and the repeat saves
+  of the effects it maintained (`damageSaveApplicationsAfterConcentrationEnd`, on the cleanup's
+  `removedDependentEffectIds`), in the room, movement, the result's successor and both persistence paths, so the
+  sealed tail is exactly what the pre-command discovery still owes. Transitional: a root whose ends stage the chain
+  does not yet receive (a turn's effects, a holder a turn effect damaged as well as its Legendary Actions, Cleaving and
+  movement) derives the discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
@@ -4097,10 +4103,9 @@ repeats against its own damage. `placedByCommand` is that one rule (QUALITY-14.T
 whose `sourceOccurrenceId` names one of the command's occurrences, its own or an entry occurrence it made per creature
 (an area's children, the root's `targetOccurrenceIds`), was placed by it. Leaving those out rebuilds each holder as the
 damage met it, from the room's projection and from the committed rows alike: `planDamageSaveChain` and
-`bindEncounterDamageSaveChain` take `commandOccurrenceIds`, `planNativeLiveConcentration` takes the parent's
-`entryOccurrenceIds`, and a resumed chain reads them from the parent receipt
-(`nativeConcentrationParentEntryOccurrenceIds`, carried as the `CONCENTRATION_RESPONSE` capture's
-`parentEntryOccurrenceIds`). A damage source opts in on
+`bindEncounterDamageSaveChain` take `commandOccurrenceIds`, and `planNativeLiveConcentration` takes the parent's
+`repeatSaves.entryOccurrenceIds` on its first plan; a resumed chain reads its sealed context instead (D220). A
+damage source opts in on
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is

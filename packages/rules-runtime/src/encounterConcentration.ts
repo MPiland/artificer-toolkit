@@ -25,7 +25,8 @@ import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   concentrationDamageSourceLabel,
-  concentrationDamageTypeLabel
+  concentrationDamageTypeLabel,
+  damageSaveApplicationsAfterConcentrationEnd
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
@@ -499,7 +500,9 @@ export function completeNativeConcentrationResult(input: {
     entry: NativeConcentrationContext['remaining'][number]
   ): entry is Extract<typeof entry, { maintainedStateId: string }> =>
     'maintainedStateId' in entry && entry.maintainedStateId === context.maintainedState.id
-  const nextApplication = context.remaining.find((entry) => !failed || !endsThisState(entry))
+  const [nextApplication] = input.cleanup
+    ? damageSaveApplicationsAfterConcentrationEnd(context.remaining, input.cleanup)
+    : context.remaining
   const applicationOutputs = concentrationCheckApplicationOutputDtoSchema.parse({
     kind: 'DAMAGE_SAVE_CHECK',
     source: 'CONCENTRATION',

@@ -16,6 +16,7 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import {
   compareDamageSaveApplications,
+  damageSaveApplicationsAfterConcentrationEnd,
   damageSaveApplicationsAfterRelease,
   isMaintainedDamageApplication,
   unboundDamageSaveApplication,
@@ -326,7 +327,9 @@ export async function persistEncounterConcentrationResponse(
     const maintainedStateId = slot.id
     const ended = (entry: (typeof remaining)[number]) =>
       isMaintainedDamageApplication(entry) && entry.maintainedStateId === maintainedStateId
-    nextRemaining = remaining.filter((entry) => !failed || !ended(entry))
+    nextRemaining = output.cleanup
+      ? damageSaveApplicationsAfterConcentrationEnd(remaining, output.cleanup)
+      : remaining
     const next = nextRemaining[0]
     if (
       output.nextOccurrenceId !==

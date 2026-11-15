@@ -5,6 +5,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
+  damageSaveApplicationsAfterConcentrationEnd,
   damageSaveApplicationsAfterRelease,
   isMaintainedDamageApplication,
   unboundDamageSaveApplication,
@@ -279,10 +280,7 @@ export async function persistEncounterConcentrationChildren(
       occurrenceId,
       userId: args.userId
     })
-    remaining = remaining.filter(
-      (entry) =>
-        !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== end.maintainedStateId
-    )
+    remaining = damageSaveApplicationsAfterConcentrationEnd(remaining, end.cleanup)
   }
   await deleteGrants(ctx, args.endedGrants)
   for (const holder of actors) {
@@ -396,7 +394,6 @@ export async function persistEncounterConcentrationChildren(
       throw new Error('Live Session concentration receipt scope mismatch.')
     if (cleanup) {
       mutated = true
-      const lostSlotId = cleanup.slot.id
       actors = await callbacks.applyCleanup({
         state,
         actors,
@@ -405,9 +402,7 @@ export async function persistEncounterConcentrationChildren(
         authorizedCharacterIds: args.authorizedCharacterIds,
         occurredAt: args.occurredAt
       })
-      remaining = remaining.filter(
-        (entry) => !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== lostSlotId
-      )
+      remaining = damageSaveApplicationsAfterConcentrationEnd(remaining, cleanup.cleanup)
     } else if (output.source === 'EFFECT_REPEAT_SAVE' && output.released) {
       mutated = true
       actors = await releaseEffectRepeatSave(ctx, {

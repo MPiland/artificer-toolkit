@@ -4,9 +4,10 @@ import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import { useMutation } from 'convex/react'
-import { fn, mocked, sb } from 'storybook/test'
+import { expect, fn, mocked, sb } from 'storybook/test'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
+import { recordMissingQueryFnReports } from '../../src/test/storybook/missingQueryFnReports'
 import {
   REVIEW_PASSWORD,
   REVIEW_STORY_READER
@@ -19,6 +20,7 @@ sb.mock(import('convex/react'), { spy: true })
 type StoryBackend = {
   convex: ConvexQueryClient
   queryClient: ReturnType<typeof createAppQueryClient>
+  missingQueryFnReports: string[]
   user: AuthSessionUserDto
 }
 
@@ -57,7 +59,12 @@ async function connectStoryBackend(storyId: string): Promise<void> {
   )
   const { user } = await convex.convexClient.query(api.account.session, {})
   if (!user) throw new Error('The story account has no session on the seeded deployment.')
-  storyBackends.set(storyId, { convex, queryClient, user })
+  storyBackends.set(storyId, {
+    convex,
+    queryClient,
+    missingQueryFnReports: recordMissingQueryFnReports(queryClient),
+    user
+  })
 }
 
 const preview: Preview = {
@@ -79,6 +86,11 @@ const preview: Preview = {
   loaders: [(context) => connectStoryBackend(context.id)],
   beforeEach() {
     mocked(useMutation).mockImplementation(() => storyWrite)
+  },
+  // A read without a query function shows a loading or empty state instead of the seeded record,
+  // so it fails the story (D221).
+  afterEach(context) {
+    expect(getStoryBackend(context.id).missingQueryFnReports.splice(0)).toEqual([])
   },
   parameters: {
     layout: 'fullscreen',
