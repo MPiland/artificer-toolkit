@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   docsOnly,
@@ -751,6 +751,32 @@ describe('mergeSlice waiting on dispatched runs', () => {
           [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1650 })
         }
       )
+      const { tools } = platform(work)
+      const logs = []
+      await mergeSlice(input(tip), { ...tools, log: (message) => logs.push(message) })
+      expect(logs).toContain(`Resolved the ${BUDGET} conflict with ${before} to the lower caps.`)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(sh(origin, 'rev-parse', 'ci/merge-m1'))
+    })
+
+    it('judges the merged tree by its own redProof.mjs too, not the copy this process already loaded (QUALITY-16.T4)', async () => {
+      // The slice makes `.probe.` files test files in redProof.mjs and adds an unbudgeted 1550-line
+      // module of that kind: only its own redProof.mjs exempts it. The phase checkout's copy is already loaded, as
+      // the one this script loads statically is in production.
+      const { work, origin, tip, before } = diverge(
+        {
+          ...shrinkA,
+          'apps/c.probe.ts': module('c', 0, 1550),
+          'scripts/redProof.mjs': readFileSync(
+            new URL('./redProof.mjs', import.meta.url),
+            'utf8'
+          ).replace('/\\.test\\.', '/\\.(test|probe)\\.')
+        },
+        {
+          'apps/b.ts': module('b', 0, 1650),
+          [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1650 })
+        }
+      )
+      await import(pathToFileURL(join(work, 'scripts', 'redProof.mjs')).href)
       const { tools } = platform(work)
       const logs = []
       await mergeSlice(input(tip), { ...tools, log: (message) => logs.push(message) })

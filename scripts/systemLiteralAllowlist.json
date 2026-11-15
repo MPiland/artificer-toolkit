@@ -5,6 +5,7 @@
     "packages/encounter-persistence/src/",
     "apps/session-worker/src/",
     "packages/schema/src/",
+    "packages/authoring/src/",
     "apps/apis/convex/"
   ],
   "allowed": {}
