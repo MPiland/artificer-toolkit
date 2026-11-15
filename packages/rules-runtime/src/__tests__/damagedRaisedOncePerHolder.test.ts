@@ -6,7 +6,7 @@ import {
 
 import { planDamageSaveChain } from '../encounterDamageSaveChain.js'
 import { targetEndedEffects } from '../encounterEndedEffectRelease.js'
-import { movementDamageEnds, spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
+import { movementContactDamageEnds, spatialDamageEnds } from '../encounterSpatialDamageEnds.js'
 import type { EncounterEvent } from '../events/encounterEventTable.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID, creatureActor } from '../testing/dnd5eSrdEncounter.js'
@@ -161,7 +161,9 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
     })
   })
 
-  describe('a move whose zones damage two creatures (QUALITY-14.T2b)', () => {
+  // Restated under D220 (QUALITY-14.T2e2d2): a move raises one DAMAGED(AFTER) per contact and holder,
+  // which settles before the next contact, in place of one raise per holder for the whole move.
+  describe('a move whose zones damage two creatures (QUALITY-14.T2b, D220)', () => {
     const untilDamaged = (id: string, targetActorId: string) =>
       activeEffect({
         id,
@@ -186,29 +188,35 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
       contact(ZONE_B, HOLDER_ID),
       contact(ZONE_A, OTHER_ID)
     ]
-    const endedBy = (occurrenceId: string) =>
-      [...held].flatMap(
-        ([holderActorId, effects]) =>
-          movementDamageEnds({
-            holder: creatureActor({ id: holderActorId, kind: 'CUSTOM', snapshot: {} }),
-            held: effects,
-            executions,
-            encounter: { id: ENCOUNTER_ID, currentActorId: null },
-            occurrenceId,
-            commandId: MOVE_OCCURRENCE_ID,
-            dispositions: new Map()
-          }).endedEffects
-      )
+    /** Each contact settles in path order: a later contact sees its holder without what an earlier one ended. */
+    const endedBy = (occurrenceId: string) => {
+      const current = new Map(held)
+      return executions.flatMap((execution) => {
+        const holderActorId = execution.candidate.candidate.targetActorId
+        const { endedEffects } = movementContactDamageEnds({
+          holder: creatureActor({ id: holderActorId, kind: 'CUSTOM', snapshot: {} }),
+          held: current.get(holderActorId)!,
+          execution,
+          encounter: { id: ENCOUNTER_ID, currentActorId: null },
+          occurrenceId,
+          commandId: MOVE_OCCURRENCE_ID,
+          dispositions: new Map()
+        })
+        current.set(
+          holderActorId,
+          current.get(holderActorId)!.filter((effect) => !endedEffects.includes(effect))
+        )
+        return endedEffects
+      })
+    }
 
-    it('raises one event per holder for the whole move, with one hit per contact that reached it', () => {
+    it('raises one event per contact and holder, with that contact’s one hit (D220)', () => {
       expect(endedBy(MOVE_OCCURRENCE_ID).map(({ id }) => id)).toEqual([EFFECT_ID, STATE_ID])
       const raises = damagedRaises()
-      expect(raises).toHaveLength(2)
+      expect(raises).toHaveLength(3)
       expect(raises).toMatchObject([
-        {
-          holderActorId: HOLDER_ID,
-          hits: [{ damagerActorId: ZONE_A }, { damagerActorId: ZONE_B }]
-        },
+        { holderActorId: HOLDER_ID, hits: [{ damagerActorId: ZONE_A }] },
+        { holderActorId: HOLDER_ID, hits: [{ damagerActorId: ZONE_B }] },
         { holderActorId: OTHER_ID, hits: [{ damagerActorId: ZONE_A }] }
       ])
     })

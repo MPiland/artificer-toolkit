@@ -1,12 +1,13 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { concentrationDescriptor, plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, fireballWolf } from './actionRoomFixture.js'
 import { answerAllSaves } from './areaRoomReads.js'
+import { takeDamagedRaises } from './damagedRaiseRecorder.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { CONCENTRATION_STATE_ID } from './movementRoomFixture.js'
 import {
@@ -15,6 +16,12 @@ import {
   readRoomHistory,
   type RoomHistory
 } from './roomHistoryReads.js'
+
+vi.mock('@artificer-toolkit/rules-runtime/events/encounterEventHooks', async (importOriginal) =>
+  (await import('./damagedRaiseRecorder.js')).recordingDamagedRaises(importOriginal)
+)
+// The rooms load their modules again, so they meet the recording discovery (damagedRaiseRecorder.ts).
+vi.resetModules()
 
 /**
  * QUALITY-14.T2e2c (D220): a resumed damage-save chain reads the discovery sealed on its context.
@@ -94,6 +101,7 @@ async function damagedRoom() {
   expect(before.maintainedStates.map(({ id }) => id).sort()).toEqual(
     [CONCENTRATION_STATE_ID, CONCENTRATOR_STATE_ID].sort()
   )
+  takeDamagedRaises()
   await room.startAreaAction({ x: 50, y: 150 })
   await answerAllSaves(room)
   return room
@@ -102,6 +110,11 @@ async function damagedRoom() {
 describe('a resumed damage-save chain whose earlier check ended a Concentration (D220)', () => {
   it('asks exactly the checks the sealed discovery still owes', async () => {
     const room = await damagedRoom()
+    // QUALITY-14.T2e2e: the area raised DAMAGED(AFTER) once for each holder it damaged, the two
+    // Concentration holders among them, and its commit re-derived each raise once to check the plan.
+    const raised = takeDamagedRaises()
+    expect(raised.room.sort()).toEqual([CASTER_ID, CONCENTRATOR_ID, LAUGHING_ID].sort())
+    expect(raised.commit.sort()).toEqual([CASTER_ID, CONCENTRATOR_ID, LAUGHING_ID].sort())
 
     const caster = await pendingCheck(room)
     expect(caster.pending.rollerActorId).toBe(CASTER_ID)
@@ -123,6 +136,8 @@ describe('a resumed damage-save chain whose earlier check ended a Concentration 
     })
     expect(made.type, JSON.stringify(made)).toBe('COMMAND_COMMITTED')
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    // The resumed chain read its sealed discovery and raised no damage again.
+    expect(takeDamagedRaises()).toEqual({ room: [], commit: [] })
 
     const after = await readRoomHistory(room.room.base.stub)
     expect(damageSaveChecks(after).map(({ source, outcome }) => ({ source, outcome }))).toEqual([

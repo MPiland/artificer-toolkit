@@ -174,6 +174,45 @@ export const movementConcentrationEndDtoSchema = lazySchema(() =>
     )
 )
 
+/**
+ * An effect a contact's damage ended on the creature it damaged (D220): that contact's own
+ * `DAMAGED(AFTER)` raise met the effect's `DAMAGE_TAKEN` end trigger. It settles right after the
+ * contact, before its Concentration ends and saves; `release` keeps the Character versions it advanced.
+ */
+export const movementDamageEndDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      effectId: ruleExecutionUuidSchema,
+      holderActorId: ruleExecutionUuidSchema,
+      release: z.strictObject({
+        characterOwnerTransitions: concentrationCleanupDtoSchema.shape.characterOwnerTransitions
+      }),
+      ownerTransitions: movementOwnerTransitionsDtoSchema
+    })
+    .check(
+      z.superRefine((value, context) =>
+        validateMovementOwnerTransitions(value.ownerTransitions, value.release, context)
+      )
+    )
+)
+
+/** Every effect a contact's damage ended on its holder, in the order they settle. */
+export const movementDamageEndsDtoSchema = lazySchema(() =>
+  z.array(movementDamageEndDtoSchema).check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+)
+
+/**
+ * The grants a contact's damage gave its creature through a passive damage trigger (D220), each
+ * after the contact's damage ends; `effectId` is the grant's own id. They change no Character.
+ */
+export const movementDamageGrantsDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({ effectId: ruleExecutionUuidSchema, holderActorId: ruleExecutionUuidSchema })
+    )
+    .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+)
+
 /** Every Concentration a contact ended with no check, one per held state (D95), in casting order. */
 export const movementConcentrationEndsDtoSchema = lazySchema(() =>
   z
@@ -327,6 +366,10 @@ export type MovementConcentrationExecutionDto = z.infer<
 
 export type MovementConcentrationEndDto = z.infer<typeof movementConcentrationEndDtoSchema>
 
+export type MovementDamageEndDto = z.infer<typeof movementDamageEndDtoSchema>
+
+export type MovementDamageGrantDto = z.infer<typeof movementDamageGrantsDtoSchema>[number]
+
 export type MovementRepeatSaveExecutionDto = z.infer<typeof movementRepeatSaveExecutionDtoSchema>
 
 export type MovementMassiveDamageSaveExecutionDto = z.infer<
@@ -335,6 +378,8 @@ export type MovementMassiveDamageSaveExecutionDto = z.infer<
 
 /** The child receipts a movement contact retains beside its damage. */
 export type MovementContactChildren = {
+  damageEnds?: readonly MovementDamageEndDto[]
+  damageGrants?: readonly MovementDamageGrantDto[]
   concentrationEnds?: readonly MovementConcentrationEndDto[]
   concentrationChecks?: readonly MovementConcentrationExecutionDto[]
   repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
@@ -346,6 +391,8 @@ export function movementContactDamageEnvelope<T extends MovementContactChildren>
   contact: T
 ): Omit<T, keyof MovementContactChildren> {
   const {
+    damageEnds: _damageEnds,
+    damageGrants: _damageGrants,
     concentrationEnds: _ends,
     concentrationChecks: _checks,
     repeatSaves: _repeatSaves,
@@ -361,7 +408,10 @@ export function movementContactDamageEnvelope<T extends MovementContactChildren>
  * versions it advanced (a massive-damage save advances none).
  */
 export function movementDamageSaveChildren(
-  contact: Omit<MovementContactChildren, 'concentrationEnds'>
+  contact: Pick<
+    MovementContactChildren,
+    'concentrationChecks' | 'repeatSaves' | 'massiveDamageSaves'
+  >
 ) {
   return [
     ...(contact.concentrationChecks ?? []).map((execution, index) => ({

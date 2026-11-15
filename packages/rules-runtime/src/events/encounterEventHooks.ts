@@ -188,10 +188,15 @@ export function damagedHitRepeatTrigger(
   return undefined
 }
 
-/** Whether damage can owe the effect's holder a repeat save (D167), whoever deals it. */
-export function repeatsSaveOnDamage(effect: HookedEffect): boolean {
+/**
+ * Whether damage, whoever deals it, can end the effect (D220) or owe its holder a repeat save (D167):
+ * a held effect that answers damage makes a damaging contact settle before the move goes on.
+ */
+export function answersDamage(effect: HookedEffect): boolean {
   return effectHooks(effect).some(
-    (hook) => hook.hook === 'REPEAT_SAVE' && hook.subscription.event === 'DAMAGED'
+    (hook) =>
+      (hook.hook === 'END' || hook.hook === 'COUNT_DOWN' || hook.hook === 'REPEAT_SAVE') &&
+      hook.subscription.event === 'DAMAGED'
   )
 }
 

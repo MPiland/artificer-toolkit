@@ -91,8 +91,9 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
     /**
-     * The move's zone damage ended an effect its holder carried until damaged (`DAMAGE_TAKEN`): the
-     * commit re-derives that end from current rows, ends the effect and the conditions only it held.
+     * A contact's zone damage ended an effect its holder carried until damaged (`DAMAGE_TAKEN`, D220):
+     * it settles right after that contact, before its Concentration ends and saves. The commit
+     * re-derives that end from current rows, ends the effect and the conditions only it held.
      */
     z.strictObject({
       kind: z.literal('DAMAGE_END'),
@@ -106,8 +107,9 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
     /**
-     * The move's zone damage met a passive damage trigger of a creature it damaged: the commit
-     * re-derives the owed grant from current rows and creates it as the room planned.
+     * A contact's zone damage met a passive damage trigger of the creature it damaged (D220): it
+     * settles after that contact's damage ends. The commit re-derives the owed grant from current rows
+     * and creates it as the room planned.
      */
     z.strictObject({
       kind: z.literal('DAMAGE_GRANT'),
