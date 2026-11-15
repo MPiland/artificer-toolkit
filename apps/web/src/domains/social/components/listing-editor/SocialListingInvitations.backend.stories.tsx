@@ -75,6 +75,7 @@ export const FocusedDeepLink: Story = {
     const row = await canvas.findByRole('article', {}, { timeout: 5000 })
     await waitFor(() => expect(row.ownerDocument.activeElement).toBe(row))
     await expect(row).toHaveAttribute('data-highlighted', 'true')
+    await expect(canvas.queryByText('This item is no longer available.')).not.toBeInTheDocument()
   }
 }
 
