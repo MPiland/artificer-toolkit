@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { Route } from '#routes/_authed/spells/new'
 import {
   authoringDesktopViewport,
@@ -38,9 +38,9 @@ export const CreateEmpty: Story = {
       await getStoryDocument(canvasElement).findByRole('option', { name: 'Evocation' })
     )
     await userEvent.click(canvas.getByRole('button', { name: 'Next' }))
-    await expect(
-      await canvas.findByRole('heading', { name: 'What does the spell do?' })
-    ).toBeVisible()
+    await waitFor(() =>
+      expect(canvas.getByRole('heading', { name: 'What does the spell do?' })).toBeVisible()
+    )
     await expect(canvas.queryByLabelText('Authoring preview')).not.toBeInTheDocument()
 
     const damageOutcome = canvas.getByRole('button', { name: /^Damage\b/ })
@@ -49,8 +49,9 @@ export const CreateEmpty: Story = {
     await expect(damageOutcome).toHaveAttribute('aria-pressed', 'true')
     await expect(canvas.getByRole('button', { name: 'Next' })).toBeEnabled()
     await userEvent.click(canvas.getByRole('button', { name: 'Next' }))
-    await expect(await canvas.findByRole('textbox', { name: 'Damage dice' })).toBeVisible()
-    await expect(canvas.getByLabelText('Authoring preview')).toBeVisible()
+    // Retried like Playwright's web-first assertions, because the next step transitions in.
+    await waitFor(() => expect(canvas.getByRole('textbox', { name: 'Damage dice' })).toBeVisible())
+    await waitFor(() => expect(canvas.getByLabelText('Authoring preview')).toBeVisible())
     await expect(canvas.queryByTestId('authoring-action-bar')).not.toBeInTheDocument()
   }
 }
