@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
+import { spatialDamageReached } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -14,7 +15,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import {
   spatialDamageEnds,
-  spatialDamageReached,
   targetStateAfterEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'

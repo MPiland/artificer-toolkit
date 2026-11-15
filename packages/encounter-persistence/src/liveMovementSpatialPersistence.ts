@@ -4,6 +4,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import { spatialDamageReached } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   deriveEncounterCharacterMechanicsEventCommandId,
   targetTransitionChecksum
@@ -140,12 +141,14 @@ export async function persistLiveMovementSpatial(
       throw new Error('Spatial target state is stale.')
   }
 
+  // A creature the contacts changed or reached with damage settles, as the plan settled it.
   const changed = orderSpatialSettlementActors(
     [...byTarget].flatMap(([id, executions]) => {
       const first = executions[0]!
       const last = executions.at(-1)!
-      return checksumRuleDocument(first.targetTransition.before) ===
-        checksumRuleDocument(last.targetTransition.after)
+      return !spatialDamageReached(executions) &&
+        checksumRuleDocument(first.targetTransition.before) ===
+          checksumRuleDocument(last.targetTransition.after)
         ? []
         : [actors.get(id)!]
     })

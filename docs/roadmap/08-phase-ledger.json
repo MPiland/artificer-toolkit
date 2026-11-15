@@ -2295,7 +2295,7 @@
             },
             {
               "id": "PLATFORM-28.T4a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2305,7 +2305,8 @@
                 "after": ["PLATFORM-28.T2", "PLATFORM-28.T5a"]
               },
               "text": "Per-story sign-in in the backend Storybook preview (seeded second account and superadmin, sign-in reused to stay under the rate limit) and the seed extension through product commands (second account, an application and invitation, a block, a report and the notifications they trigger); SocialProfilePage, MatureContentPreference and NotificationShell stories read seeded data. NotificationFeedView and NotificationPreferencesView stay props-only.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (14 story files, whole about 18): listing stories to T4b, second-account views to T4c, moderation to T4d; depends on T5a for the single-query override and write spies (D218 amendments)."
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (14 story files, whole about 18): listing stories to T4b, second-account views to T4c, moderation to T4d; depends on T5a for the single-query override and write spies (D218 amendments).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T4b",
@@ -2351,7 +2352,7 @@
             },
             {
               "id": "PLATFORM-28.T5a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2362,11 +2363,12 @@
               },
               "text": "The story campaign seed (a Campaign, play settings, a Blueprint with a PREPARED Run, loot tables) through product commands, a name-lookup harness, the shared write-spy and single-query override mechanism (D218 amendment); Campaign Settings and Loot editor stories read seeded data.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (whole about 11): Encounter builder to T5b, Scene editor and the fake client deletion to T5c.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m799 (e3fea2245); slice tip 3cab8a5f4: Tests 43721573119, Live 43721651300, Browser journeys 43721573094 green (storybook-backend shard). The story campaign seed (Campaign, play settings, a Blueprint with a PREPARED Run, loot tables) runs through product commands and is idempotent (storyData.test); SeededCampaign finds it by name; one storyMutation spy records writes (writesTo); installQueryOverride serves one named convexQuery key and keeps it off the subscription (D218 amendments). Campaign Settings and Loot editor backend stories replace the fixture stories and loot.spec.ts (deleted with no-importer proofs). Review fixes: the Settings write asserts the seeded Campaign id exactly; the Loot item pick, first dropped, was diagnosed (the throwaway Session Worker refused the Storybook origin with 403 on content snapshots) and restored after the stack allow-list gained the loopback Storybook origins. Red proof: storyData.test ALREADY-PASSING (seed helper kept); stories proved by Browser journeys. Restated: the Settings write check (exact Campaign id, expectedVersion 1). No D196 change."
             },
             {
               "id": "PLATFORM-28.T5b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2376,7 +2378,8 @@
                 "after": ["PLATFORM-28.T5a"]
               },
               "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
-              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T5c",
@@ -27241,7 +27244,7 @@
             },
             {
               "id": "QUALITY-14.T2e2f3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27251,7 +27254,8 @@
                 "after": ["QUALITY-14.T2e2f2"]
               },
               "text": "Persistence checks each commit against the raise it already re-runs in its ends check (turn, Cleaving, movement); action and area keep one commit re-derivation per holder (D220 amendment), so settledRepeatSaveEffects is renamed and scoped to that check; the transitional note leaves rules-runtime.md; count proofs record at the persistence callback.",
-              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e2f4",
@@ -27287,18 +27291,19 @@
             },
             {
               "id": "QUALITY-14.T2e2f6",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 3,
+                "size": 2,
                 "after": ["QUALITY-14.T2e2f4"]
               },
               "text": "Bug: movement and turn-zone damage that reaches a creature without changing it (Death Ward at 1 HP) skips settlement, so the ward is not spent and the holder has no damaged discovery; both settle on spatialDamageReached like melee retaliation, in room, persistence and the spatial result validator; SRD proofs.",
               "note": "Registered 2026-11-15 from the T2e2f2 delivery under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m798 (d10e611ba); slice tip 7531e1480: Tests 43720351257, Live 43720351249, Browser journeys 43720351239 green. spatialDamageReached moves to schema (ruleExecutionMechanics.ts, D132: any DAMAGE row with resolvedAmount > 0, so a Death Ward interception counts and immunity does not); planSpatialMovement takes a required settle ('EVERY_TARGET' for turn zones, 'CHANGED_OR_DAMAGED' for movement response, preparation and melee retaliation) in place of an optional boolean; movement persistence keeps reached creatures; the spatial result validator requires a transition for a reached or changed group. Turn zones already settled every caught creature. Red proof: spatial-movement-rule-contracts RED 1/20 (reached and settled Character rejected), nativeZoneDamageDeathWard RED (Spike Growth on a 1 HP Wolf holding SRD Death Ward and Dominate Beast: ward spent, DAMAGED raised, one SAVE_FAILURE repeat save; the Cloudkill case is ALREADY-PASSING against f4). Resized 3 to 2. No restated assertions; no D196 change."
             }
           ]
         },

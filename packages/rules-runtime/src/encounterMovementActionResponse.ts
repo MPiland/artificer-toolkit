@@ -71,7 +71,8 @@ function projectedTargetsAfterSpatialPrefix<
     occurrenceId: input.occurrenceId,
     sourceCommandId: input.context.root.commandId,
     occurredAt: input.occurredAt,
-    userId: input.userId
+    userId: input.userId,
+    settle: 'CHANGED_OR_DAMAGED'
   }).projectedTargets
 }
 
