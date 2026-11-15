@@ -396,7 +396,7 @@ const OGRE_ID = testUuid(0x2258)
 const ogre = srdByLabel(SRD.creatures, 'Ogre')
 
 /** The `attacker` Wolf's bite against an Ogre that holds a warm Fire Shield. */
-async function wolfBitesShieldedOgre(attacker: Parameters<typeof srdCreatureActor>[0]) {
+async function wolfBitesShieldedOgre(attacker: ReturnType<typeof srdCreatureActor>) {
   return actionRoom({
     actors: [attacker, srdCreatureActor({ id: OGRE_ID, creature: ogre })],
     ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
