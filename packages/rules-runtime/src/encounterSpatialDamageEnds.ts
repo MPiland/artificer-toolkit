@@ -41,9 +41,11 @@ export function spatialDamageEnds(input: {
   endedEffects: ActiveRuleEffectRecord[]
   releases: CharacterEndedEffectReleaseApplication[]
   grants: ReturnType<typeof targetEndedEffects>['grants']
+  /** What the holder's one raise found owing a repeat save, less the effects it ended. */
+  repeatSaveEffects: ActiveRuleEffectRecord[]
 } {
   // One raise for the holder however many contacts damaged it, with one hit per contact's source.
-  const { endedEffects, releases, grants } = targetEndedEffects({
+  const { endedEffects, releases, grants, repeatSaveEffects } = targetEndedEffects({
     holderActorId: input.holderActorId,
     held: input.held,
     attack: null,
@@ -61,7 +63,7 @@ export function spatialDamageEnds(input: {
     dispositions: input.dispositions,
     ...(input.grantTriggers ? { grantTriggers: input.grantTriggers } : {})
   })
-  return { endedEffects, releases, grants }
+  return { endedEffects, releases, grants, repeatSaveEffects }
 }
 
 /**

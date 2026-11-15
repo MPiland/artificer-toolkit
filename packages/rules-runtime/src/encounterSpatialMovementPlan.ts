@@ -52,6 +52,11 @@ type Settlement = {
   endedEffects: ActiveRuleEffectRecord[]
   /** The timed grants the target's passive features owe the zones' damage, made after the batch. */
   grants: ActiveRuleEffectRecord[]
+  /**
+   * The target's damaged discovery from the ends stage (spatialDamageEnds): what its one raise found
+   * owing a repeat save, less the effects it ended. Null without damageEnds.
+   */
+  repeatSaveEffects: ActiveRuleEffectRecord[] | null
 }
 
 /** Plans a verified completed spatial prefix without publishing target or effect state. */
@@ -225,7 +230,13 @@ export function planNativeSpatialMovementPrefix<
           occurredAt: input.occurredAt
         })
       )
-    settlements.push({ batch, plan, endedEffects, grants })
+    settlements.push({
+      batch,
+      plan,
+      endedEffects,
+      grants,
+      repeatSaveEffects: ends?.repeatSaveEffects ?? null
+    })
   }
   return { projectedTargets, settlements }
 }

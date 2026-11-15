@@ -1333,6 +1333,10 @@ export async function planNativeLiveEncounterAction(
         projectedTargets: new Map(settlement.projectedTargets).set(
           prepared.actor.id,
           retaliation.projectedAttacker
+        ),
+        activeEffectsByActorId: new Map(settlement.activeEffectsByActorId).set(
+          prepared.actor.id,
+          retaliation.projectedAttacker.activeEffects
         )
       }
     : settlement
@@ -1364,7 +1368,14 @@ export async function planNativeLiveEncounterAction(
     random: executionOptions.random,
     repeatSaves: {
       damagerActorId: command.actorId,
-      discovered: new Map([[prepared.target.id, damageEnded.repeatSaveEffects]])
+      // The zones' ends stage discovered the attacker's effects owing a repeat save, the zone source
+      // as each hit's damager, as the target's ends stage did the target's.
+      discovered: new Map([
+        [prepared.target.id, damageEnded.repeatSaveEffects],
+        ...(retaliation?.settlement?.repeatSaveEffects
+          ? ([[prepared.actor.id, retaliation.settlement.repeatSaveEffects]] as const)
+          : [])
+      ])
     }
   })
   const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
