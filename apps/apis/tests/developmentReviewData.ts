@@ -13,9 +13,11 @@ import type {
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
+import { definitionReferences } from '../convex/content/definitionReferences'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { declarationCommand } from './fixtures/encounterInitiative'
@@ -25,12 +27,16 @@ import {
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
   REVIEW_STORY_BLOCKED,
+  REVIEW_STORY_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
   STORY_SOCIAL,
   STORY_CAMPAIGN,
+  STORY_DEFINITIONS,
+  STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
+  type StoryCampaignSpec,
   type ReviewAccountSpec,
   type ReviewBoard,
   type StoryRecordSpec,
@@ -158,7 +164,9 @@ export async function seedStoryData(
     })
   }
   await seedStoryDraftOnly(reader)
+  await seedStoryDefinitions(reader)
   const campaignId = await seedStoryCampaign(reader, room)
+  await seedStoryPlayerCampaign(await connect(REVIEW_STORY_HOST), reader, room)
   await seedStorySocial(
     {
       reader,
@@ -211,12 +219,86 @@ async function findOrCreateStoryCampaign(client: StoryClient, name: string): Pro
 }
 
 /**
- * Hosts the story Campaign and fills what its stories read, returning its id. Each step replays
- * harmlessly: the Blueprint and Run are keyed by fixed command ids, settings and loot are written
- * only while unset, and the Run is started, presented and bound only while it is still prepared.
+ * Authors the story Sense definitions: one left new, one with a saved draft, one published. A
+ * definition is created only while none carries its label, and each later step runs only while its
+ * state is unreached, so a re-run keeps what a previous run finished.
  */
-async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<string> {
-  const { name, blueprintName, enemyLabel, playSettings, lootTable } = STORY_CAMPAIGN
+async function seedStoryDefinitions(client: StoryClient) {
+  const { fresh, drafted, published } = STORY_DEFINITIONS
+  for (const { label, description } of [fresh, drafted, published]) {
+    const existing = await findStoryDefinition(client, label)
+    const workspace =
+      existing ??
+      (await client.mutation(definitionReferences.create, {
+        gameSystemId: srdSystemRecord.id,
+        definitionFamilyKey: 'sense',
+        label,
+        description
+      }))
+    if (label === fresh.label || workspace.currentVersion !== null) continue
+    const withDraft =
+      workspace.draftVersion === null
+        ? await client.mutation(definitionReferences.saveDraft, {
+            definitionId: workspace.id,
+            expectedDefinitionVersion: workspace.version,
+            expectedDraftVersion: null,
+            document: senseReusableDefinitionDocumentDtoSchema.parse({
+              schemaVersion: 1,
+              kind: 'SENSE',
+              id: workspace.id,
+              gameSystemId: srdSystemRecord.id,
+              capabilities: [
+                {
+                  channel: 'VISUAL',
+                  accessGrade: 'PRECISE',
+                  satisfies: ['DETECT', 'LOCATE', 'PRECISE', 'SEE'],
+                  illuminationAccess: 'DIM',
+                  obscurementAccess: 'NONE',
+                  perceivesInvisible: false,
+                  physicalConstraints: ['LINE_OF_EFFECT']
+                }
+              ]
+            })
+          })
+        : workspace
+    if (label !== published.label) continue
+    assert.ok(withDraft.draftVersion !== null, 'Story definition ${label} has no draft.')
+    await client.mutation(definitionReferences.publish, {
+      definitionId: withDraft.id,
+      expectedDefinitionVersion: withDraft.version,
+      expectedDraftVersion: withDraft.draftVersion
+    })
+  }
+}
+
+async function findStoryDefinition(client: StoryClient, label: string) {
+  let cursor: string | null = null
+  for (;;) {
+    const page: {
+      page: { id: string; label: string }[]
+      isDone: boolean
+      continueCursor: string
+    } = await client.query(api.content.definitions.list, {
+      gameSystemId: srdSystemRecord.id,
+      cursor,
+      limit: 10
+    })
+    const match = page.page.find((definition) => definition.label === label)
+    if (match) return client.query(definitionReferences.get, { definitionId: match.id })
+    if (page.isDone) return null
+    cursor = page.continueCursor
+  }
+}
+
+/**
+ * Hosts a story Campaign with its play settings, Encounter Blueprint and prepared Run. Each step
+ * replays harmlessly: the Blueprint and Run are keyed by fixed command ids and settings are
+ * written only while unset.
+ */
+async function prepareStoryRun(
+  client: StoryClient,
+  { slug, name, blueprintName, enemyLabel, playSettings }: StoryCampaignSpec
+) {
   const campaignId = await findOrCreateStoryCampaign(client, name)
   const current = await client.query(api.campaigns.playSettings.get, { campaignId })
   if (current.quorum !== playSettings.quorum) {
@@ -240,16 +322,27 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
   const blueprint = await client.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
     name: blueprintName,
-    commandId: reviewId('story-blueprint'),
+    commandId: reviewId(`${slug}-blueprint`),
     enemies: [{ kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 }]
   })
   const run = await client.mutation(api.encounters.runs.create, {
     campaignId,
     blueprintId: blueprint.id,
-    commandId: reviewId('story-run')
+    commandId: reviewId(`${slug}-run`)
   })
   const [actor] = run.actors
   assert.ok(actor, 'The story Run has no creature.')
+  return { campaignId, run, actor }
+}
+
+/**
+ * Hosts the story Campaign and fills what its stories read: a loot table on the Run's creature,
+ * then the Run started and presented, returning its id. The Run is started, presented and bound only while it is
+ * still prepared.
+ */
+async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<string> {
+  const { campaignId, run, actor } = await prepareStoryRun(client, STORY_CAMPAIGN)
+  const { lootTable } = STORY_CAMPAIGN
   const owner = {
     kind: 'ENCOUNTER_ACTOR',
     campaignId,
@@ -280,7 +373,41 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
       ]
     })
   }
-  if (run.status !== 'PREPARED') return campaignId
+  const { userId } = await client.query(api.account.identity, {})
+  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor }, userId)
+  return campaignId
+}
+
+/**
+ * Hosts the player Campaign: the story reader joins it through the invitation commands, and its
+ * presented Scene gives the reader a token it controls (the reader's own Character waits on the
+ * story Characters, so the token stands for none).
+ */
+async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, room: StoryRoom) {
+  const prepared = await prepareStoryRun(host, STORY_PLAYER_CAMPAIGN)
+  if (!(await findCampaign(reader, STORY_PLAYER_CAMPAIGN.name)))
+    await admitPlayers(
+      { client: host },
+      prepared.campaignId,
+      [{ client: reader, username: REVIEW_STORY_READER.username }],
+      1
+    )
+  const { userId } = await reader.query(api.account.identity, {})
+  await presentStoryRun(host, room, STORY_PLAYER_CAMPAIGN, prepared, userId)
+}
+
+/**
+ * Starts the prepared Run, presents the Campaign's Scene (the creature's token bound to its actor,
+ * an unbound ally token that allyUserId controls), binds the Run to it and publishes the room.
+ */
+async function presentStoryRun(
+  client: StoryClient,
+  room: StoryRoom,
+  { slug, name, scene }: StoryCampaignSpec,
+  { campaignId, run, actor }: Awaited<ReturnType<typeof prepareStoryRun>>,
+  allyUserId: string
+) {
+  if (run.status !== 'PREPARED') return
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
   const started = await startRun(
@@ -288,8 +415,6 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
     run,
     name
   )
-  const { userId } = await client.query(api.account.identity, {})
-  const { scene } = STORY_CAMPAIGN
   await presentRunScene(client, {
     campaignId,
     run: started,
@@ -300,7 +425,7 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
         actorId: actor.id,
         label: actor.label,
         position: scene.enemyPosition,
-        tokenId: reviewId('story-scene-enemy-token'),
+        tokenId: reviewId(`${slug}-scene-enemy-token`),
         controlledBy: [],
         squares: 1,
         hidden: false
@@ -309,8 +434,8 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
         actorId: null,
         label: scene.allyLabel,
         position: scene.allyPosition,
-        tokenId: reviewId('story-scene-ally-token'),
-        controlledBy: [userId],
+        tokenId: reviewId(`${slug}-scene-ally-token`),
+        controlledBy: [allyUserId],
         squares: 1,
         hidden: false
       }
@@ -318,7 +443,6 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
   })
   await room.checkpoint(campaignId)
   await room.releaseRoom?.(campaignId)
-  return campaignId
 }
 
 /**
@@ -550,16 +674,16 @@ function createReviewListingDraft(host: ReviewClient, campaignId: string, capaci
 }
 
 async function admitPlayers(
-  context: ReviewContext,
+  host: Pick<ReviewAccount, 'client'>,
   campaignId: string,
-  members: readonly ReviewAccount[]
+  members: readonly Pick<ReviewAccount, 'client' | 'username'>[],
+  capacity: number
 ) {
-  const { gm } = context
-  for (const account of [gm, ...members])
+  for (const account of [host, ...members])
     await account.client.mutation(api.social.profiles.initialize, {})
-  const listing = await openReviewListing(gm.client, campaignId, REVIEW_PLAYERS.length)
+  const listing = await openReviewListing(host.client, campaignId, capacity)
   for (const member of members) {
-    const invitation = await gm.client.mutation(api.social.invitations.create, {
+    const invitation = await host.client.mutation(api.social.invitations.create, {
       listingPublicId: listing.listingPublicId,
       expectedListingVersion: listing.version,
       username: member.username
@@ -611,7 +735,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   })
   const campaignId = campaign.id
   log(`${scenario.campaign}: Campaign created`)
-  await admitPlayers(context, campaignId, members)
+  await admitPlayers(gm, campaignId, members, REVIEW_PLAYERS.length)
 
   const settings = await gm.client.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings

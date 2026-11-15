@@ -24,22 +24,26 @@ import {
 } from '../../tests/developmentReviewData'
 import {
   REVIEW_STORY_BLOCKED,
+  REVIEW_STORY_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
+  STORY_DEFINITIONS,
   STORY_DRAFT_ONLY,
+  STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS,
   STORY_SOCIAL
 } from '../../tests/developmentReviewDataScenarios'
 import { api, components, internal } from '../_generated/api'
+import { definitionReferences } from './definitionReferences'
 
 useLocalRoomWorker()
 // The room needs a clock that moves; full-corpus work must not expire the fixture's auth session.
 useRealTimeClock()
 
 // Storybook backend stories open these records by id and expect each in its authoring state (D221).
-it('gives the story account an active copy and a copy with a waiting draft per domain, one never-activated draft and its Campaign, once', async () => {
-  const { t, first } = await publicationFixture(
+it('gives the story account an active copy and a copy with a waiting draft per domain, one never-activated draft, its Sense definitions and its Campaign, once', async () => {
+  const { t, first, second } = await publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
     []
@@ -53,15 +57,20 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     })
   )
   await t.action(internal.content.seed.seed, {})
-  // The room refuses a member with no username and hosting a Social listing needs one; the
-  // fixture's author has none.
+  // The room refuses a member with no username, hosting a Social listing needs one, and the
+  // fixture's accounts have none; the invitation names the reader's.
   await first.caller.mutation(api.account.updateProfile, {
     username: REVIEW_STORY_READER.username,
+    bio: null
+  })
+  await second.caller.mutation(api.account.updateProfile, {
+    username: REVIEW_STORY_HOST.username,
     bio: null
   })
   await attachRoomWorker(t)
   // START and the Scene binding go through the real room, as on the local backend.
   const roomReader = roomDevelopmentClient(first.caller)
+  const roomHost = roomDevelopmentClient(second.caller)
   const room: StoryRoom = {
     checkpoint: async (campaignId) => {
       await checkpointRoom(campaignId)
@@ -69,6 +78,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     buildSnapshots: seedRoomContentSnapshots,
     releaseRoom: async (campaignId) => {
       roomReader.closeRooms()
+      roomHost.closeRooms()
       await closeRoom(campaignId)
     }
   }
@@ -91,6 +101,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     )
   const clients = {
     [REVIEW_STORY_READER.key]: reader,
+    [REVIEW_STORY_HOST.key]: roomHost,
     [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
     [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED)
   }
@@ -127,7 +138,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   const seeded = await stored()
   await seedStoryData(connect, room, deliverNotifications)
 
-  const connected = [REVIEW_STORY_READER.key, REVIEW_STORY_PEER.key, REVIEW_STORY_BLOCKED.key]
+  const connected = [
+    REVIEW_STORY_READER.key,
+    REVIEW_STORY_HOST.key,
+    REVIEW_STORY_PEER.key,
+    REVIEW_STORY_BLOCKED.key
+  ]
   expect(accounts).toEqual([...connected, ...connected])
   const records = Object.values(STORY_RECORDS)
   expect(seeded).toEqual({
@@ -167,38 +183,39 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   // its actor, and the ally token the story account's own.
   const presentation = await reader.query(api.scenes.presentations.get, { campaignId })
   expect(presentation?.campaignId).toBe(campaignId)
-  const board = await t.run(async (ctx) => {
-    const saves = (await ctx.db.query('sceneDefinitionSaves').collect()).filter(
-      (row) => row.settings.campaignId === campaignId && row.status === 'PUBLISHED'
-    )
-    const entities = (
-      await Promise.all(
-        saves.map((save) =>
-          ctx.db
-            .query('sceneDefinitionEntities')
-            .withIndex('by_saveId', (query) => query.eq('saveId', save.id))
-            .collect()
+  const presentedBoard = (boardCampaignId: string) =>
+    t.run(async (ctx) => {
+      const saves = (await ctx.db.query('sceneDefinitionSaves').collect()).filter(
+        (row) => row.settings.campaignId === boardCampaignId && row.status === 'PUBLISHED'
+      )
+      const entities = (
+        await Promise.all(
+          saves.map((save) =>
+            ctx.db
+              .query('sceneDefinitionEntities')
+              .withIndex('by_saveId', (query) => query.eq('saveId', save.id))
+              .collect()
+          )
         )
       )
-    )
-      .flat()
-      .map((row) => row.value)
-    return {
-      saves: saves.length,
-      fogMode: saves[0]?.settings.fogMode,
-      barriers: entities
-        .flatMap((value) => (value.collection === 'barriers' ? [value.entity.kind] : []))
-        .sort(),
-      tokens: entities
-        .flatMap((value) =>
-          value.collection === 'tokens'
-            ? [[value.entity.label, value.entity.controlledByUserIds]]
-            : []
-        )
-        .sort()
-    }
-  })
-  expect(board).toEqual({
+        .flat()
+        .map((row) => row.value)
+      return {
+        saves: saves.length,
+        fogMode: saves[0]?.settings.fogMode,
+        barriers: entities
+          .flatMap((value) => (value.collection === 'barriers' ? [value.entity.kind] : []))
+          .sort(),
+        tokens: entities
+          .flatMap((value) =>
+            value.collection === 'tokens'
+              ? [[value.entity.label, value.entity.controlledByUserIds]]
+              : []
+          )
+          .sort()
+      }
+    })
+  expect(await presentedBoard(campaignId)).toEqual({
     saves: 1,
     fogMode: STORY_CAMPAIGN.scene.board.fogMode,
     barriers: ['DOOR', 'WALL', 'WALL'],
@@ -209,13 +226,51 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   })
   const bindings = await t.run(async (ctx) => ({
     scenes: (await ctx.db.query('encounterSceneBindings').collect()).length,
-    tokens: (await ctx.db.query('encounterActorTokenBindings').collect()).map(
-      ({ tokenId }) => tokenId
-    )
+    tokens: (await ctx.db.query('encounterActorTokenBindings').collect())
+      .map(({ tokenId }) => tokenId)
+      .sort()
   }))
   expect(bindings).toEqual({
-    scenes: 1,
-    tokens: [reviewId('story-scene-enemy-token')]
+    scenes: 2,
+    tokens: [
+      reviewId(`${STORY_CAMPAIGN.slug}-scene-enemy-token`),
+      reviewId(`${STORY_PLAYER_CAMPAIGN.slug}-scene-enemy-token`)
+    ].sort()
+  })
+
+  // The reader plays in a second Campaign the story host owns: joined through the invitation commands,
+  // with its own Run bound to the presented Scene, whose ally token the reader controls.
+  const playerCampaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
+    ({ name }) => name === STORY_PLAYER_CAMPAIGN.name
+  )
+  expect(playerCampaigns).toHaveLength(1)
+  const playerCampaignId = playerCampaigns[0]!.id
+  expect(playerCampaigns[0]!.ownerUserId).toBe(second.userId)
+  const memberships = await t.run((ctx) =>
+    ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_status', (q) =>
+        q.eq('campaignId', playerCampaignId).eq('status', 'ACTIVE')
+      )
+      .collect()
+  )
+  expect(memberships.map(({ userId }) => userId).sort()).toEqual(
+    [first.userId, second.userId].sort()
+  )
+  expect(
+    (await reader.query(api.encounters.projectionReads.list, { campaignId: playerCampaignId })).map(
+      ({ status }) => status
+    )
+  ).toEqual(['ACTIVE'])
+  expect(
+    (await reader.query(api.scenes.presentations.get, { campaignId: playerCampaignId }))?.campaignId
+  ).toBe(playerCampaignId)
+  expect(await presentedBoard(playerCampaignId)).toMatchObject({
+    saves: 1,
+    tokens: [
+      [STORY_PLAYER_CAMPAIGN.scene.allyLabel, [first.userId]],
+      [STORY_PLAYER_CAMPAIGN.enemyLabel, []]
+    ].sort()
   })
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
@@ -226,27 +281,29 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   ])
 
   // The reader table has the peer application and invitation and a blocked, reported stranger, and
-  // each queued notification reached its recipient feed once.
+  // each queued notification reached its recipient feed once. The player Campaign's own invitation
+  // (the host's to the reader) is not the peer's, so it is left out of both.
   const social = await t.run(async (ctx) => ({
     applications: (await ctx.db.query('socialApplications').collect()).map(
       ({ message, status }) => [message, status]
     ),
-    invitations: (await ctx.db.query('campaignInvites').collect()).map(
-      ({ recipientUsername, status }) => [recipientUsername, status]
-    ),
+    invitations: (await ctx.db.query('campaignInvites').collect())
+      .filter(({ recipientUsername }) => recipientUsername === REVIEW_STORY_PEER.username)
+      .map(({ recipientUsername, status }) => [recipientUsername, status]),
     blocks: (await ctx.db.query('socialBlocks').collect()).length,
-    reports: (await ctx.db.query('socialReports').collect()).map(({ details }) => details),
-    feeds: (await ctx.db.query('notificationFeedItems').collect())
-      .map(({ data }) => data.kind)
-      .sort()
+    reports: (await ctx.db.query('socialReports').collect()).map(({ details }) => details)
   }))
   expect(social).toEqual({
     applications: [[STORY_SOCIAL.applicationMessage, 'SUBMITTED']],
     invitations: [[REVIEW_STORY_PEER.username, 'PENDING']],
     blocks: 1,
-    reports: [STORY_SOCIAL.reportDetails],
-    feeds: ['SOCIAL_APPLICATION_SUBMITTED', 'SOCIAL_INVITATION_RECEIVED']
+    reports: [STORY_SOCIAL.reportDetails]
   })
+  const feedCount = async (client: StoryClient, kind: string) =>
+    (await client.query(api.notifications.feed, {})).items.filter(({ data }) => data.kind === kind)
+      .length
+  expect(await feedCount(reader, 'SOCIAL_APPLICATION_SUBMITTED')).toBe(1)
+  expect(await feedCount(clients[REVIEW_STORY_PEER.key], 'SOCIAL_INVITATION_RECEIVED')).toBe(1)
 
   // The reader's listing is open; the peer hosts its own Campaign whose listing is still a draft,
   // which the listing editor stories open.
@@ -260,4 +317,35 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(await hosted(clients[REVIEW_STORY_PEER.key])).toEqual([
     [STORY_SOCIAL.peerTableName, 'DRAFT']
   ])
+
+  // The System detail stories open one definition per state, found by label.
+  const owned = await t.run((ctx) =>
+    ctx.db
+      .query('reusableDefinitions')
+      .filter((q) => q.eq(q.field('ownerUserId'), first.userId))
+      .collect()
+  )
+  const stateOf = async (label: string) => {
+    const matches = owned.filter((definition) => definition.label === label)
+    expect(matches).toHaveLength(1)
+    const { version, draftVersion, currentVersion } = await reader.query(definitionReferences.get, {
+      definitionId: matches[0]!.id
+    })
+    return { version, draftVersion, currentVersion }
+  }
+  expect(await stateOf(STORY_DEFINITIONS.fresh.label)).toEqual({
+    version: 0,
+    draftVersion: null,
+    currentVersion: null
+  })
+  expect(await stateOf(STORY_DEFINITIONS.drafted.label)).toEqual({
+    version: 0,
+    draftVersion: 0,
+    currentVersion: null
+  })
+  expect(await stateOf(STORY_DEFINITIONS.published.label)).toEqual({
+    version: 1,
+    draftVersion: null,
+    currentVersion: 1
+  })
 }, 240_000)

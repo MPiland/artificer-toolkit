@@ -56,3 +56,39 @@ describe.each([
     }
   }, 30_000)
 })
+
+// Storybook stories upload to the fixture straight from the browser, so its preflight must answer.
+describe('the local R2 fixture CORS preflight', () => {
+  const preflight = async (endpoint: string, origin: string) =>
+    fetch(`${endpoint}/artificer-local-media/story.png`, {
+      method: 'OPTIONS',
+      headers: { origin, 'access-control-request-method': 'PUT' }
+    })
+
+  it.each([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:6106',
+    'http://localhost:6006'
+  ])('allows %s', async (origin) => {
+    const r2 = await startLocalR2()
+    try {
+      const response = await preflight(r2.endpoint, origin)
+      expect(response.status).toBe(204)
+      expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+      expect(response.headers.get('access-control-allow-methods')).toContain('PUT')
+    } finally {
+      await r2.close()
+    }
+  })
+
+  it('does not allow another origin', async () => {
+    const r2 = await startLocalR2()
+    try {
+      const response = await preflight(r2.endpoint, 'http://localhost:6007')
+      expect(response.headers.get('access-control-allow-origin')).toBeNull()
+    } finally {
+      await r2.close()
+    }
+  })
+})

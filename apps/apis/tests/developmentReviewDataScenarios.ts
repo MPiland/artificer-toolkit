@@ -54,6 +54,11 @@ export const REVIEW_STORY_READER = {
   username: 'Review_Story_Reader',
   email: 'review_story_reader@example.invalid'
 } satisfies ReviewAccountSpec
+/** Hosts the player Campaign the story reader joins; a separate account because the FREE tier hosts one Campaign. */
+export const REVIEW_STORY_HOST = {
+  key: 'storyHost',
+  username: 'Review_Story_Host'
+} satisfies ReviewAccountSpec
 
 /** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
 export const REVIEW_STORY_PEER = {
@@ -160,6 +165,22 @@ export const STORY_RECORDS = {
     ownedDraft: StoryRecordSpec
   }
 >
+
+/** What a story Campaign's seed needs: its Run's ids derive from slug. */
+export type StoryCampaignSpec = {
+  slug: string
+  name: string
+  blueprintName: string
+  enemyLabel: string
+  scene: {
+    name: string
+    allyLabel: string
+    allyPosition: { x: number; y: number }
+    enemyPosition: { x: number; y: number }
+    board: ReviewBoard
+  }
+  playSettings: { normalCadenceDays: number; expectedDurationMinutes: number; quorum: number }
+}
 
 /** A fogged board split by a wall with a closed door, as the Sandbox review board is. */
 const STORY_BOARD: ReviewBoard = {
@@ -270,7 +291,16 @@ export const STORY_DRAFT_ONLY = {
     systemId: Equipment.SRD_SYSTEM_ID
   } satisfies BaseEquipmentAuthoringInputDto
 }
-
+/**
+ * The Sense definitions the story account authors for the System detail stories (D221), one per
+ * state a definition reaches through product commands. Their ids are random, so stories find them by
+ * label.
+ */
+export const STORY_DEFINITIONS = {
+  fresh: { label: 'Story Keen Sight', description: 'A homebrew visual sense, not yet drafted.' },
+  drafted: { label: 'Story Dim Sight', description: 'A homebrew visual sense with a saved draft.' },
+  published: { label: 'Story Sharp Sight', description: 'A homebrew visual sense, published.' }
+} as const
 /**
  * The Campaign Storybook backend stories open by name (D221), because its id is random: the story
  * account hosts it with play settings, one Encounter Blueprint whose Run is started, a loot table
@@ -279,6 +309,7 @@ export const STORY_DRAFT_ONLY = {
  * story account's own. The FREE tier hosts one Campaign, so every story shares it.
  */
 export const STORY_CAMPAIGN = {
+  slug: 'story',
   name: 'Story Campaign',
   blueprintName: 'Story Encounter',
   enemyLabel: 'Story Cultist',
@@ -291,7 +322,20 @@ export const STORY_CAMPAIGN = {
   },
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
-} as const
+} as const satisfies StoryCampaignSpec & { lootTable: { name: string; coinAmount: number } }
+
+/**
+ * The Campaign the story reader plays in rather than hosts (D221): hosted by REVIEW_STORY_HOST, joined
+ * through the invitation commands, with a started Run and a presented Scene whose ally token the reader controls.
+ */
+export const STORY_PLAYER_CAMPAIGN = {
+  slug: 'story-player',
+  name: 'Story Player Campaign',
+  blueprintName: 'Story Player Encounter',
+  enemyLabel: 'Story Player Cultist',
+  scene: { ...STORY_CAMPAIGN.scene, name: 'Story Player Scene', allyLabel: 'Story Reader Hero' },
+  playSettings: STORY_CAMPAIGN.playSettings
+} as const satisfies StoryCampaignSpec
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
 export const REVIEW_READY_TITLE = 'Review data ready'
