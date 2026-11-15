@@ -37,8 +37,10 @@ import {
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
   STORY_CHARACTERS,
+  STORY_DRAFT_ONLY,
   STORY_RECORDS,
   type ReviewAccountSpec,
+  type ReviewBoard,
   type StoryRecordSpec,
   type ReviewHero,
   type ReviewScenario,
@@ -133,13 +135,15 @@ export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
 /**
  * The story-data step (D221): what Storybook backend stories read beyond the deploy and SRD seed,
  * made through product commands at the fixed ids in `STORY_RECORDS`. It runs after the review data locally and
- * before the stories in the `storybook-backend-browser` proof. `connect` signs in as the account and
+ * before the stories in the `storybook-backend-browser` proof, and saves `STORY_DRAFT_ONLY` as a
+ * never-activated draft. `connect` signs in as the account and
  * returns its client. A re-run keeps every record a previous run finished.
  */
 export async function seedStoryData(
   connect: (spec: ReviewAccountSpec) => Promise<StoryClient>,
   /** The story Characters copy more content than a free account may own, so the account is promoted while they are built. */
-  setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>
+  setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>,
+  room: StoryRoom
 ): Promise<void> {
   const reader = await connect(REVIEW_STORY_READER)
   const { userId } = await reader.query(api.account.identity, {})
@@ -161,7 +165,8 @@ export async function seedStoryData(
       payload: active.item
     })
   }
-  await seedStoryCampaign(reader)
+  await seedStoryDraftOnly(reader)
+  await seedStoryCampaign(reader, room)
   await setTier(userId, 'GM')
   await seedStoryCharacters(reader)
   // The Campaign stories read the plan limits of a free account.
@@ -169,11 +174,35 @@ export async function seedStoryData(
 }
 
 /**
- * Hosts the story Campaign and fills what its stories read. Each step replays harmlessly: the
- * Blueprint and Run are keyed by fixed command ids, and settings and loot are written only while
- * unset.
+ * What the story seed needs of the room, which holds a started Run until a save point (D90): the
+ * harness or deployment publishes it to Convex and, where it would otherwise stay open, closes it.
  */
-async function seedStoryCampaign(client: StoryClient) {
+export type StoryRoom = {
+  checkpoint: (campaignId: string) => Promise<void>
+  releaseRoom?: (campaignId: string) => Promise<void>
+  /** Builds the Campaign's content snapshots where nothing schedules them (convex-test). */
+  buildSnapshots?: (campaignId: string) => Promise<void>
+}
+
+/** Saves `STORY_DRAFT_ONLY` as a never-activated draft unless a previous run already did. */
+async function seedStoryDraftOnly(client: StoryClient) {
+  const { subjectKind, subjectId, label, payload } = STORY_DRAFT_ONLY
+  if (await client.query(api.content.drafts.get, { subjectKind, subjectId })) return
+  await client.mutation(api.content.drafts.save, {
+    subjectKind,
+    subjectId,
+    systemId: srdSystemRecord.id,
+    label,
+    payload
+  })
+}
+
+/**
+ * Hosts the story Campaign and fills what its stories read. Each step replays harmlessly: the
+ * Blueprint and Run are keyed by fixed command ids, settings and loot are written only while
+ * unset, and the Run is started, presented and bound only while it is still prepared.
+ */
+async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
   const { name, blueprintName, enemyLabel, playSettings, lootTable } = STORY_CAMPAIGN
   const campaignId =
     (await findCampaign(client, name)) ??
@@ -226,28 +255,67 @@ async function seedStoryCampaign(client: StoryClient) {
     actorId: actor.id
   } as const
   const loot = await client.query(api.loot.tables.get, { owner })
-  if (loot.version > 0) return
-  const coin = srdSystemRecord.currencies[0]
-  assert.ok(coin, 'The SRD System defines no currency.')
-  await client.mutation(api.loot.tables.save, {
-    owner,
-    expectedVersion: loot.version,
-    tables: [
+  if (loot.version === 0) {
+    const coin = srdSystemRecord.currencies[0]
+    assert.ok(coin, 'The SRD System defines no currency.')
+    await client.mutation(api.loot.tables.save, {
+      owner,
+      expectedVersion: loot.version,
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: lootTable.name,
+          ranges: [
+            { id: crypto.randomUUID(), min: 1, max: 10, entries: [] },
+            {
+              id: crypto.randomUUID(),
+              min: 11,
+              max: null,
+              entries: [{ kind: 'COIN', denominationId: coin.id, amount: lootTable.coinAmount }]
+            }
+          ]
+        }
+      ]
+    })
+  }
+  if (run.status !== 'PREPARED') return
+  await room.buildSnapshots?.(campaignId)
+  await awaitSnapshotHeads(client, srdSystemRecord.id)
+  const started = await startRun(
+    (command) => client.mutation(executeEncounterCommand, { command }),
+    run,
+    name
+  )
+  const { userId } = await client.query(api.account.identity, {})
+  const { scene } = STORY_CAMPAIGN
+  await presentRunScene(client, {
+    campaignId,
+    run: started,
+    name: scene.name,
+    board: scene.board,
+    tokens: [
       {
-        id: crypto.randomUUID(),
-        name: lootTable.name,
-        ranges: [
-          { id: crypto.randomUUID(), min: 1, max: 10, entries: [] },
-          {
-            id: crypto.randomUUID(),
-            min: 11,
-            max: null,
-            entries: [{ kind: 'COIN', denominationId: coin.id, amount: lootTable.coinAmount }]
-          }
-        ]
+        actorId: actor.id,
+        label: actor.label,
+        position: scene.enemyPosition,
+        tokenId: reviewId('story-scene-enemy-token'),
+        controlledBy: [],
+        squares: 1,
+        hidden: false
+      },
+      {
+        actorId: null,
+        label: scene.allyLabel,
+        position: scene.allyPosition,
+        tokenId: reviewId('story-scene-ally-token'),
+        controlledBy: [userId],
+        squares: 1,
+        hidden: false
       }
     ]
   })
+  await room.checkpoint(campaignId)
+  await room.releaseRoom?.(campaignId)
 }
 
 /** Builds each story Character through the Builder commit once; a Character that exists is kept. */
@@ -619,6 +687,58 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   const declaredAction = (actorId: string) => turnActions.get(actorId)?.shift() || undefined
   const execute = (command: EncounterExecuteInput['command']) =>
     gm.client.mutation(executeEncounterCommand, { command })
+  const started = await startRun(execute, created, scenario.campaign, declaredAction)
+  log(`${scenario.campaign}: Run started`)
+
+  const { sceneId, run } = await presentRunScene(gm.client, {
+    campaignId,
+    run: started,
+    name: `${scenario.campaign} map`,
+    board: scenario.board,
+    tokens: [...actors.values()].map((actor) => ({ ...actor, actorId: actor.id }))
+  })
+  await gm.client.mutation(api.campaigns.sessions.create, {
+    campaignId,
+    title: `${scenario.campaign} session`
+  })
+  await context.checkpoint(campaignId)
+  log(`${scenario.campaign}: Encounter and map ready`)
+
+  const ownerOf = new Map(heroRecords.map(({ owner, hero }) => [actors.get(hero.slug)!.id, owner]))
+  const playStep = stepPlayer({
+    context,
+    campaignId,
+    encounterId: run.id,
+    sceneId,
+    actors,
+    ownerOf,
+    declaredAction,
+    execute
+  })
+  for (const step of scenario.steps) await playStep(step)
+  await context.checkpoint(campaignId)
+  log(`${scenario.campaign}: ${scenario.steps.length} step(s) played`)
+
+  await gm.client.mutation(api.campaigns.sessions.create, {
+    campaignId,
+    title: REVIEW_READY_TITLE
+  })
+  await context.releaseRoom?.(campaignId)
+}
+
+type ExecuteCommand = (
+  command: EncounterExecuteInput['command']
+) => Promise<FunctionReturnType<typeof executeEncounterCommand>>
+
+type RunProjection = ReturnType<typeof encounterGmProjectionDtoSchema.parse>
+
+/** Starts a prepared Run and answers every initiative decision with the GM's scripted choice. */
+async function startRun(
+  execute: ExecuteCommand,
+  created: { id: string; version: number },
+  label: string,
+  declaredAction?: (actorId: string) => string | undefined
+): Promise<RunProjection> {
   let started = await execute({
     type: 'START',
     encounterId: created.id,
@@ -626,12 +746,12 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     expectedVersion: created.version
   })
   for (let resolutions = 0; started.occurrence?.status === 'PENDING'; resolutions++) {
-    assert.ok(resolutions < 30, `${scenario.campaign} initiative did not settle.`)
+    assert.ok(resolutions < 30, `${label} initiative did not settle.`)
     const pending = started.occurrence.pending
     const resolution = initiativeResolution(created.id, pending, declaredAction)
     if (!resolution)
       throw new Error(
-        `${scenario.campaign} met an unexpected initiative continuation: ${pending?.kind ?? 'none'}.`
+        `${label} met an unexpected initiative continuation: ${pending?.kind ?? 'none'}.`
       )
     started = await execute({
       type: 'RESOLVE_RULE_OCCURRENCE',
@@ -644,32 +764,61 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       resolution
     })
   }
-  log(`${scenario.campaign}: Run started`)
-  let run = encounterGmProjectionDtoSchema.parse(started.projection)
+  return encounterGmProjectionDtoSchema.parse(started.projection)
+}
 
+type SceneToken = {
+  /** The Run actor the token is bound to; null for a token no actor stands for. */
+  actorId: string | null
+  label: string
+  position: { x: number; y: number }
+  tokenId: string
+  controlledBy: string[]
+  squares: number
+  hidden: boolean
+}
+
+/**
+ * Builds a Scene on a real map, presents it as the Campaign's live Scene, binds the started Run to
+ * it and binds each actor's token. The GM client's room commands publish at the caller's checkpoint.
+ */
+async function presentRunScene(
+  gm: ReviewClient,
+  {
+    campaignId,
+    run,
+    name,
+    board,
+    tokens
+  }: {
+    campaignId: string
+    run: RunProjection
+    name: string
+    board: ReviewBoard
+    tokens: readonly SceneToken[]
+  }
+): Promise<{ sceneId: string; run: RunProjection }> {
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const { bindScene, bindToken } = await import('./developmentEncounterLifecycle')
-  const placed = [...actors.values()]
-  const [firstToken, secondToken, ...otherTokens] = placed.map((actor) => ({
-    id: actor.tokenId,
+  const [firstToken, secondToken, ...otherTokens] = tokens.map((token) => ({
+    id: token.tokenId,
     assetId: null,
-    controlledByUserIds: actor.controlledBy,
-    height: actor.squares * 50,
-    hidden: actor.hidden,
-    label: actor.label,
+    controlledByUserIds: token.controlledBy,
+    height: token.squares * 50,
+    hidden: token.hidden,
+    label: token.label,
     locked: false as const,
-    position: actor.position,
+    position: token.position,
     rotationDegrees: 0,
     senses: [],
     vision: null,
-    width: actor.squares * 50
+    width: token.squares * 50
   }))
-  assert.ok(firstToken && secondToken, 'A review Scene needs at least two tokens.')
-  const { board } = scenario
+  assert.ok(firstToken && secondToken, 'A Scene needs at least two tokens.')
   const scene = await createEncounterLifecycleScene({
-    owner: gm.client,
+    owner: gm,
     campaignId,
-    name: `${scenario.campaign} map`,
+    name,
     options: {
       fogMode: board.fogMode,
       ambientIllumination: board.ambientIllumination,
@@ -687,68 +836,42 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       tokens: [firstToken, secondToken, ...otherTokens]
     }
   })
-  const presentation = await gm.client.query(api.scenes.presentations.get, { campaignId })
-  await gm.client.action(api.scenes.presentations.setLive, {
+  const presentation = await gm.query(api.scenes.presentations.get, { campaignId })
+  await gm.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId,
     sceneId: scene.liveSceneId,
     expectedPresentationVersion: presentation?.version ?? null
   })
-  await gm.client.mutation(bindScene, {
+  await gm.mutation(bindScene, {
     type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
     encounterId: run.id,
     commandId: crypto.randomUUID()
   })
-  run = encounterGmProjectionDtoSchema.parse(
-    await gm.client.query(api.encounters.projectionReads.get, { encounterId: run.id })
+  let bound = encounterGmProjectionDtoSchema.parse(
+    await gm.query(api.encounters.projectionReads.get, { encounterId: run.id })
   )
-  for (const actor of placed) {
-    run = encounterGmProjectionDtoSchema.parse(
+  for (const token of tokens) {
+    if (!token.actorId) continue
+    bound = encounterGmProjectionDtoSchema.parse(
       (
-        await gm.client.mutation(bindToken, {
+        await gm.mutation(bindToken, {
           input: {
             type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
             commandId: crypto.randomUUID(),
-            encounterId: run.id,
-            expectedEncounterVersion: run.version,
-            actorId: actor.id,
+            encounterId: bound.id,
+            expectedEncounterVersion: bound.version,
+            actorId: token.actorId,
             sceneId: scene.liveSceneId,
-            tokenId: actor.tokenId
+            tokenId: token.tokenId
           }
         })
       ).projection
     )
   }
-  await gm.client.mutation(api.campaigns.sessions.create, {
-    campaignId,
-    title: `${scenario.campaign} session`
-  })
-  await context.checkpoint(campaignId)
-  log(`${scenario.campaign}: Encounter and map ready`)
-
-  const ownerOf = new Map(heroRecords.map(({ owner, hero }) => [actors.get(hero.slug)!.id, owner]))
-  const playStep = stepPlayer({
-    context,
-    campaignId,
-    encounterId: run.id,
-    sceneId: scene.liveSceneId,
-    actors,
-    ownerOf,
-    declaredAction,
-    execute
-  })
-  for (const step of scenario.steps) await playStep(step)
-  await context.checkpoint(campaignId)
-  log(`${scenario.campaign}: ${scenario.steps.length} step(s) played`)
-
-  await gm.client.mutation(api.campaigns.sessions.create, {
-    campaignId,
-    title: REVIEW_READY_TITLE
-  })
-  await context.releaseRoom?.(campaignId)
+  return { sceneId: scene.liveSceneId, run: bound }
 }
-
 /** Sheet commands go through Convex, so they come before the room holds the Character. */
 async function prepareSpells(
   client: ReviewClient,
@@ -775,7 +898,7 @@ async function prepareSpells(
 }
 
 /** Snapshot builds run a moment after each publish; the room refuses to activate on a stale head. */
-async function awaitSnapshotHeads(client: ReviewClient, systemId: string, characterId: string) {
+async function awaitSnapshotHeads(client: ReviewClient, systemId: string, characterId?: string) {
   const deadline = Date.now() + 60_000
   for (;;) {
     const { sources, campaign } = await client.query(api.contentSnapshots.manifest.manifest, {

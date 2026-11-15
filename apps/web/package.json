@@ -25,7 +25,6 @@
     "test:storybook": "vitest run --config vitest.config.ts --project=storybook",
     "test:storybook:backend": "vitest run --config vitest.config.ts --project=storybook-backend",
     "test:e2e": "playwright test",
-    "test:e2e:authoring-storybook": "playwright test --project=storybook tests/e2e/storybook/authoringWalkthrough.spec.ts",
     "test:e2e:vtt-load": "playwright test --project=storybook-vtt-load",
     "test:e2e:vtt-load:hardware": "playwright test --project=storybook-vtt-hardware tests/e2e/storybook/vttLoad.spec.ts",
     "test:e2e:vtt-managed": "playwright test --config=playwright.managed-vtt.config.ts",

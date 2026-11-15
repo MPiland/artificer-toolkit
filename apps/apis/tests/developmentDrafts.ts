@@ -69,7 +69,7 @@ import type {
   EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
 import { assertDomainRejection, executeEncounterCommand } from './developmentClient'
-import { DevelopmentHttpClient } from './developmentHttpClient'
+import { DevelopmentHttpClient, liveSessionWorkerUrl } from './developmentHttpClient'
 
 // Backend integration only. Fixture invitation hashes use the existing internal
 // component CLI; passwords/tokens stay in memory, and signup email is not scheduled.
@@ -1518,6 +1518,8 @@ try {
   } else if (process.argv.includes('--storybook-backend-browser')) {
     const { seedStoryData } = await import('./developmentReviewData')
     const { reviewAccountSession } = await import('./developmentReviewAccounts')
+    const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+    const roomClient = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
     await seedStoryData(
       async (spec) => {
         const session = await reviewAccountSession(spec, auth, (data) =>
@@ -1529,7 +1531,8 @@ try {
       },
       async (userId, tier) => {
         await cli('accountEntitlements:setTier', { userId, tier }, false)
-      }
+      },
+      { checkpoint: (campaignId) => awaitCampaignCheckpoint(roomClient, campaignId) }
     )
     const { appBrowserEvidenceDirectory, runWebBrowserProof } =
       await import('./developmentAppBrowser')
@@ -1537,7 +1540,10 @@ try {
       evidenceDirectory: appBrowserEvidenceDirectory('storybook-backend-browser'),
       name: 'Storybook backend stories',
       command: 'test:storybook:backend',
-      environment: { VITE_CONVEX_URL: deploymentUrl.origin }
+      environment: {
+        VITE_CONVEX_URL: deploymentUrl.origin,
+        VITE_LIVE_SESSION_WEBSOCKET_URL: liveSessionWorkerUrl(deploymentUrl.origin).origin
+      }
     })
   } else if (process.argv.includes('--character-builder-browser')) {
     const author = await createAuthor()

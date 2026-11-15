@@ -479,7 +479,7 @@ const pbis = [
     journey: [
       AP + 'content/systems.test.ts',
       AP + 'content/systemCapability.test.ts',
-      WE + 'storybook/authoringWalkthrough.spec.ts'
+      'apps/web/src/domains/equipment/stories/EquipmentEditRoute.backend.stories.tsx'
     ],
     extra: [
       X(
