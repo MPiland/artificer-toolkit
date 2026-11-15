@@ -991,7 +991,7 @@ function timedConditionPlan(
  * Breath, "unconscious for 1 minute, ending if the creature takes damage"): the effect, not the
  * save's outcome, carries the duration and the triggers that end it early. A timed condition that
  * authors no early end stays refused, for the spells that print a repeat save or an end event this
- * form does not yet carry (Hold Monster, Dominate, Charm Person), unless it lasts at most one round
+ * form does not yet carry (Charm Person), unless it lasts at most one round
  * (Intimidating Presence), too short for a repeat save or end event to apply. The plan owns every
  * entry of the action, so any entry on the failure path is owned when the plan exists.
  */

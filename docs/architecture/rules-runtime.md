@@ -2423,6 +2423,14 @@ effect (so it ends with it) and whose id derives from the parent's. A failed rol
 are not revertable, so the minted child needs no Undo handling. Blink is the SRD user; nothing in the runtime
 names a spell.
 
+**Damage-triggered repeat save on a timed condition (current, QUALITY-15.T3k).** A timed save condition ends early
+when its result block is a `SEQUENTIAL` `SEQUENCE` (UUID `resultBlockId`) holding the condition outcomes and a
+`FOLLOW_UP_SAVE` with `timing ON_TRIGGERS_ONLY`, `repeatTriggers [DAMAGE_TAKEN]`, `onSuccess END` and
+`onFailure CONTINUE`; `repeatingDirectFollowUpSavePlan` compiles it and the held effect owes a repeat save on each
+damage (`planDamageSaveChain`). Dominate Beast, Dominate Monster, Dominate Person, the dryad Fey Charm and the
+succubus Charm author it; the vampire Charm already did. The compiler names none of them, and a timed condition
+without the authored save is still refused. The effect-compile golden lists the five rows that moved from refused.
+
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
 `endsWith: 'PRIMARY'` and refuses by name any other target, and any link where there is no such condition (the
