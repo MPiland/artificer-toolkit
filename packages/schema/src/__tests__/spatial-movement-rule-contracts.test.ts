@@ -1592,3 +1592,72 @@ describe('Concentration ends in the spatial movement receipt timeline (D95)', ()
     expect(accepts(stale)).toBe(false)
   })
 })
+
+describe('zone damage that reaches a Character it leaves unchanged (QUALITY-14.T2e2f6, D132)', () => {
+  /**
+   * One contact whose 1 damage reaches the Character at 1 hit point (`resolvedAmount`), which a
+   * Death Ward (`interceptedBy`) keeps at 1, or which its defenses absorb whole (`resolvedAmount` 0).
+   */
+  function unchangedContact(options: { reached: boolean; settled: boolean }) {
+    const damaging = completedSpatialDamageExecution()
+    const atOne = { ...damaging.targetTransition.before, currentHitPoints: 1 }
+    const execution = {
+      ...damaging,
+      targetTransition: { ...damaging.targetTransition, before: atOne, after: atOne },
+      applications: damaging.applications.map((application) =>
+        application.kind === 'DAMAGE'
+          ? {
+              ...application,
+              resolvedAmount: options.reached ? 1 : 0,
+              appliedAmount: 0,
+              beforeCurrentHitPoints: 1,
+              afterCurrentHitPoints: 1,
+              ...(options.reached ? { interceptedBy: ids.entry } : {})
+            }
+          : application
+      )
+    }
+    return {
+      status: 'BATCH_COMPLETE' as const,
+      batchKind: 'ENCOUNTER_SPATIAL_MOVEMENT' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: ids.occurrence,
+      occurrenceVersion: 2,
+      encounterId: ids.encounter,
+      encounterVersion: 8,
+      sceneId: ids.scene,
+      sceneVersion: 4,
+      tokenId: ids.token,
+      movementKind: 'VOLUNTARY' as const,
+      terminalPosition: { x: 10, y: 0 },
+      executions: [execution],
+      spatialEffectTransitions: [spatialEffectTransition()],
+      characterTransitions: options.settled
+        ? [
+            {
+              characterId: ids.character,
+              targetActorId: ids.actor,
+              beforeStreamVersion: 4,
+              afterStreamVersion: 5,
+              before: atOne,
+              after: atOne
+            }
+          ]
+        : [],
+      encounterActorTransitions: []
+    }
+  }
+
+  const accepts = (result: ReturnType<typeof unchangedContact>) =>
+    storedRuleExecutionResultDtoSchema.safeParse(result).success
+
+  it('settles the Character whose state the reaching damage left as it was', () => {
+    expect(accepts(unchangedContact({ reached: true, settled: true }))).toBe(true)
+    expect(accepts(unchangedContact({ reached: true, settled: false }))).toBe(false)
+  })
+
+  it('settles no Character whose defenses absorbed the damage whole', () => {
+    expect(accepts(unchangedContact({ reached: false, settled: false }))).toBe(true)
+    expect(accepts(unchangedContact({ reached: false, settled: true }))).toBe(false)
+  })
+})

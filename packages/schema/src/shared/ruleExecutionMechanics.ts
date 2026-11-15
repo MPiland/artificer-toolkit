@@ -549,6 +549,21 @@ export function damageRowHits(row: { resolvedAmount: number }): boolean {
   return row.resolvedAmount > 0
 }
 
+/**
+ * Whether zone damage reached the creature (`damageRowHits`): its `DAMAGED` fires, so it settles
+ * even when an interception (Death Ward) left its state as it was, and the interception spends.
+ * Damage its defenses absorbed whole never reached it.
+ */
+export function spatialDamageReached(
+  executions: readonly {
+    applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[]
+  }[]
+): boolean {
+  return executions.some(({ applications }) =>
+    applications.some((application) => application.kind === 'DAMAGE' && damageRowHits(application))
+  )
+}
+
 export const stateEffectCreateReceiptDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CREATE'),

@@ -435,7 +435,7 @@ export async function prepareEncounterTurnZoneEffects<
     occurredAt,
     userId: input.userId,
     commandId: { phase: 'TURN_ZONE_EFFECT', ordinal: boundary.ordinal },
-    settleUnchanged: true,
+    settle: 'EVERY_TARGET',
     damageEnds: {
       turnActorId: state.currentActorId,
       dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
