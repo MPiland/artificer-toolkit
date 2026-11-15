@@ -13,9 +13,11 @@ import type {
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
+import { definitionReferences } from '../convex/content/definitionReferences'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { declarationCommand } from './fixtures/encounterInitiative'
@@ -26,6 +28,7 @@ import {
   REVIEW_SCENARIOS,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
+  STORY_DEFINITIONS,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
   type ReviewAccountSpec,
@@ -159,7 +162,75 @@ export async function seedStoryData(
       payload
     })
   }
+  await seedStoryDefinitions(reader)
   await seedStoryCampaign(reader)
+}
+
+/**
+ * Authors the story Sense definitions: one left new, one with a saved draft, one published. A
+ * definition is created only while none carries its label, and each later step runs only while its
+ * state is unreached, so a re-run keeps what a previous run finished.
+ */
+async function seedStoryDefinitions(client: StoryClient) {
+  const { fresh, drafted, published } = STORY_DEFINITIONS
+  for (const { label, description } of [fresh, drafted, published]) {
+    const existing = await findStoryDefinition(client, label)
+    const workspace =
+      existing ??
+      (await client.mutation(definitionReferences.create, {
+        gameSystemId: srdSystemRecord.id,
+        definitionFamilyKey: 'sense',
+        label,
+        description
+      }))
+    if (label === fresh.label || workspace.currentVersion !== null) continue
+    const withDraft =
+      workspace.draftVersion === null
+        ? await client.mutation(definitionReferences.saveDraft, {
+            definitionId: workspace.id,
+            expectedDefinitionVersion: workspace.version,
+            expectedDraftVersion: null,
+            document: senseReusableDefinitionDocumentDtoSchema.parse({
+              schemaVersion: 1,
+              kind: 'SENSE',
+              id: workspace.id,
+              gameSystemId: srdSystemRecord.id,
+              capabilities: [
+                {
+                  channel: 'VISUAL',
+                  accessGrade: 'PRECISE',
+                  satisfies: ['DETECT', 'LOCATE', 'PRECISE', 'SEE'],
+                  illuminationAccess: 'DIM',
+                  obscurementAccess: 'NONE',
+                  perceivesInvisible: false,
+                  physicalConstraints: ['LINE_OF_EFFECT']
+                }
+              ]
+            })
+          })
+        : workspace
+    if (label === published.label)
+      await client.mutation(definitionReferences.publish, {
+        definitionId: withDraft.id,
+        expectedDefinitionVersion: withDraft.version,
+        expectedDraftVersion: withDraft.draftVersion
+      })
+  }
+}
+
+async function findStoryDefinition(client: StoryClient, label: string) {
+  let cursor: string | null = null
+  for (;;) {
+    const page = await client.query(api.content.definitions.list, {
+      gameSystemId: srdSystemRecord.id,
+      cursor,
+      limit: 10
+    })
+    const match = page.page.find((definition) => definition.label === label)
+    if (match) return client.query(definitionReferences.get, { definitionId: match.id })
+    if (page.isDone) return null
+    cursor = page.continueCursor
+  }
 }
 
 /**
