@@ -22,7 +22,7 @@ const NO_ENCOUNTERS = 'No encounters have been added to this Campaign.'
 function SeededEncounters({ campaign }: { campaign: CampaignDetailDto }) {
   const { data: session } = useSuspenseQuery(convexQuery(api.account.session, {}))
   const encounters = useQuery(getCampaignEncounters(campaign.id))
-  const run = encounters.data?.find(({ name }) => name === STORY_CAMPAIGN.blueprintName)
+  const run = encounters.data?.find(({ status }) => status === 'PREPARED')
   return (
     <Stack
       p='xl'
@@ -56,23 +56,32 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-/** The seeded Campaign's prepared Run, as the Session workspace lists it. */
+/** Picks the seeded prepared Run beside the started one in the Session workspace's picker. */
+async function selectPreparedRun(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement)
+  const page = within(canvasElement.ownerDocument.body)
+  await userEvent.click(await canvas.findByLabelText('Encounter', { selector: 'input' }))
+  await userEvent.click(
+    await page.findByRole('option', { name: STORY_CAMPAIGN.preparedBlueprintName })
+  )
+}
+
+/** The seeded Campaign's prepared Run, beside the started one, as the Session workspace lists it. */
 export const AddedEncounter: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(
-      await canvas.findByRole('heading', { name: STORY_CAMPAIGN.blueprintName })
-    ).toBeVisible()
-    await expect(canvas.getByText('Ready')).toBeVisible()
+    await selectPreparedRun(canvasElement)
+    await waitFor(() => expect(canvas.getByText('Ready')).toBeVisible())
     await expect(canvas.queryByText(NO_ENCOUNTERS)).not.toBeInTheDocument()
   }
 }
 
-/** Confirms the delete on the seeded Run; the write is recorded with the Run's id and version. */
+/** Confirms the delete on the prepared Run; the write is recorded with the Run's id and version. */
 export const DeleteEncounter: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const page = within(canvasElement.ownerDocument.body)
+    await selectPreparedRun(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Delete encounter' }))
     const dialog = within(await page.findByRole('dialog', { name: 'Delete encounter?' }))
     await userEvent.click(dialog.getByRole('button', { name: 'Delete encounter' }))

@@ -185,7 +185,8 @@ async function seedStoryDraftOnly(client: StoryClient) {
  * unset, and the Run is started, presented and bound only while it is still prepared.
  */
 async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
-  const { name, blueprintName, enemyLabel, playSettings, lootTable } = STORY_CAMPAIGN
+  const { name, blueprintName, preparedBlueprintName, enemyLabel, playSettings, lootTable } =
+    STORY_CAMPAIGN
   const campaignId =
     (await findCampaign(client, name)) ??
     (
@@ -260,10 +261,15 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
       ]
     })
   }
-  // The next Encounter the GM has prepared while the first one runs; it is never started.
+  const preparedBlueprint = await client.mutation(api.encounters.blueprints.create, {
+    gameSystemId: srdSystemRecord.id,
+    name: preparedBlueprintName,
+    commandId: reviewId('story-prepared-blueprint'),
+    enemies: [{ kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 }]
+  })
   await client.mutation(api.encounters.runs.create, {
     campaignId,
-    blueprintId: blueprint.id,
+    blueprintId: preparedBlueprint.id,
     commandId: reviewId('story-prepared-run')
   })
   if (run.status !== 'PREPARED') return

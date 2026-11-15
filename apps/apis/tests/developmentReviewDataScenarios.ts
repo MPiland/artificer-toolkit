@@ -249,6 +249,8 @@ export const STORY_DRAFT_ONLY = {
 export const STORY_CAMPAIGN = {
   name: 'Story Campaign',
   blueprintName: 'Story Encounter',
+  /** The next Encounter the GM has prepared beside the started one; its Run is never started. */
+  preparedBlueprintName: 'Story Next Encounter',
   enemyLabel: 'Story Cultist',
   scene: {
     name: 'Story Scene',
