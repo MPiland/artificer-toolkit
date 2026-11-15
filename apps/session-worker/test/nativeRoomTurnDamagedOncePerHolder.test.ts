@@ -342,10 +342,11 @@ describe('overlapping turn zones that damage a Hideous Laughter holder at its tu
     takeDamagedRaises()
     await room.advanceTurn()
 
-    // The commit re-runs each zone's raise, then re-derives the save chain's discovery once.
+    // The commit re-runs each zone's raise and checks the save chain against those raises (D220
+    // amendment), so it derives no discovery of its own.
     expect(takeDamagedRaises()).toEqual({
       room: [SECOND_ID, SECOND_ID],
-      commit: [SECOND_ID, SECOND_ID, SECOND_ID]
+      commit: [SECOND_ID, SECOND_ID]
     })
     expect((await repeatSavesOf(room.room.base.stub)).slice(savesBefore)).toMatchObject([
       { outcome: 'SAVE_FAILURE', activeEffect: { id: LAUGHTER_EFFECT_ID } },

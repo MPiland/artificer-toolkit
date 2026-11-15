@@ -22,6 +22,9 @@ const DAMAGE_TYPE_ID = '00000000-0000-4000-8000-000000000004'
 type Input = Parameters<typeof persistMovementSettlements>[1]
 type Callbacks = Parameters<typeof persistMovementSettlements>[2]
 
+/** A contact's raise that found nothing to end, grant or repeat. */
+const contactRaise = { endedEffects: [], releases: [], grants: [], repeatSaveEffects: [] }
+
 const end = {
   sourceCommandId: COMMAND_ID,
   result: {
@@ -50,6 +53,7 @@ function settle(settlements: unknown[], automationMode?: 'MANUAL', executed: obj
     persistConcentration: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     persistRepeatSave: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     persistMassiveDamageSave: vi.fn(async () => {}),
+    raiseContactDamage: vi.fn(async () => contactRaise),
     endHolderGrants: vi.fn(async () => {})
   }
   const persisted = persistMovementSettlements(
@@ -260,6 +264,14 @@ describe('persistMovementSettlements massive-damage saves', () => {
         parentOccurrenceId: OCCURRENCE_ID,
         sourceCommandId: COMMAND_ID
       })
+    )
+    // QUALITY-14.T2e2f3 (D220 amendment): the save is checked against its contact's one raise.
+    expect(callbacks.raiseContactDamage).toHaveBeenCalledOnce()
+    expect(callbacks.raiseContactDamage).toHaveBeenCalledWith(
+      expect.objectContaining({ execution: damaged, occurrenceId: OCCURRENCE_ID })
+    )
+    expect(callbacks.persistMassiveDamageSave).toHaveBeenCalledWith(
+      expect.objectContaining({ raised: contactRaise })
     )
   })
 
