@@ -5,6 +5,7 @@ import {
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { TURNED_INSTRUCTIONS } from '@artificer-toolkit/source-data/srd/classes/turned.js'
+import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -51,6 +52,8 @@ function turnUndeadRoom() {
     ],
     characterPlay: { characterClass: cleric, classLevel: 5 },
     characterClassFeatures: channelDivinities,
+    // The Cleric's Channel Divinity save DC is its spell save DC.
+    characterSpellcasting: { spells: [shieldOfFaith], prepared: [shieldOfFaith.id] },
     characterAction: (action) => action.label.startsWith('Channel Divinity')
   })
 }
