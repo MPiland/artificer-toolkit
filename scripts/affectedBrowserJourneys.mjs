@@ -82,7 +82,7 @@ export const PROOF_SPECS = {
     /^apps\/web\/src\/.+\.backend\.stories\.tsx?$/,
     /^apps\/web\/\.storybook\//,
     /^apps\/web\/vitest\.config\.ts$/,
-    /^apps\/web\/src\/test\/storybook\/missingQueryFnGuard\.ts$/,
+    /^apps\/web\/src\/test\/storybook\/missingQueryFnReports\.ts$/,
     /^apps\/apis\/tests\/developmentReviewData(Scenarios)?\.ts$/
   ]
 }
