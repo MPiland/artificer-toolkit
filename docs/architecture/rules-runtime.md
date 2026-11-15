@@ -3808,9 +3808,12 @@ label, its light radii and properties and its attachment, frozen. Light's GM rul
 beside it (`rulingSequence`); the executable manifest entry owns the plan, with one duration, the authored
 Concentration if any, one expiry and one undo. `prepareEncounterActionEffectPlans` writes one `OBJECT_MANIFESTATION`
 state contribution; each counted turn applies nothing, the effect ends with its duration, and an until-dispelled
-manifestation lasts until the GM ends it. This is the compile half only: **current** behavior is that nothing in the
-scene reads the contribution yet, so no light is emitted (QUALITY-15.T3j2 attaches a touched object's light to its
-target actor's token). The compiler names no spell; any `MANIFEST` / `OBJECT` with these fields compiles the same way.
+manifestation lasts until the GM ends it. The Scene half (QUALITY-15.T3j2, **current**): `actorEmittedLight`
+(`actorLight.ts`) reads the actor's held `OBJECT_MANIFESTATION` contributions from its active effects, for every actor
+kind, and a lit one attached to the source, primary target or touched object sheds its light from that actor's token
+(a placed space or a shaped light does not). The Scene vision composition, the movement inputs and Convex's turn
+capture each read the actor's effects in their own transaction, so the light starts with the effect and ends with its
+duration, dispel or undo; the vision-revision triggers on effect writes already refresh the Scene cache. The compiler names no spell; any `MANIFEST` / `OBJECT` with these fields compiles the same way.
 
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
@@ -4182,6 +4185,13 @@ settles as a `CONCENTRATION_END` movement settlement and persists through
 `persistLiveMovementConcentrationEnd`, which re-derives the reason (`encounterConcentrationEndReason`,
 shared with the direct planner). Known limit: a spatial effect that incapacitates only through a non-condition
 active effect, and a reaction that affects a creature other than the batch target, are not detected.
+A zone a mid-move Concentration loss removes (a failed check or an end; the cleanup's `removedZoneIds`) makes no
+later contact on that move (current, QUALITY-14.T2e2d1, D220). `prepareEncounterMovementConcentration`'s
+`adoptCleanup` drops the zone's candidates from the frozen remainder and closes up the ordinals after it
+(`completedSpatialExecutions.length + index`, the evaluator's own numbering), so the recomputed
+`spatialCurrentnessChecksum` and each candidate's currentness agree; the room's spatial scope
+(`nativeSpatialStepCallbacks`) stops listing the zone for the rest of the move, and persistence, which loads only
+executed contacts' originals, never reads it after the `CONCENTRATION` step deleted it.
 
 **Movement and reactions.** Contacts form one frozen path timeline ordered by distance
 (`encounterMovementPath`); spatial effects resolve before reaction candidates at the same distance, and a
@@ -4278,7 +4288,8 @@ sense's access level, as the rules engine's access rank does.
 
 Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
 (the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
-sheds that light from its token. `creatureLight` reads it from the actor snapshot; nothing stores it on the
+sheds that light from its token. `actorEmittedLight` reads it from the actor snapshot (and held object
+manifestations from its active effects, above); nothing stores it on the
 Scene. The Worker composes it onto bound tokens (`withSceneTokenLights`) for the Scene perception capture,
 movement reactions and the room's vision display, and `resolveSceneIlluminationAt` treats each token light
 as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the

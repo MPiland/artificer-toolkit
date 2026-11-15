@@ -29,7 +29,7 @@ import {
   encounterActorMovementProvokesNoOpportunityAttacks,
   encounterMovementPassageFacts
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
-import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
+import { actorTokenLights } from '@artificer-toolkit/rules-runtime/actorLight'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
@@ -451,12 +451,13 @@ export async function readNativeLiveMovementInputs(input: {
           }),
           runtime: capturedRuntime
         }
-  // Perception sees the light each bound Creature sheds, as the room's Scene vision draws it.
+  // Perception sees the light each bound actor sheds, as the room's Scene vision draws it.
   const perceptionScene = withSceneTokenLights(
     scene,
-    creatureTokenLights(
+    actorTokenLights(
       [...actorIdByTokenId].map(([tokenId, actorId]) => ({ tokenId, actorId })),
-      actors
+      actors,
+      activeEffectsByActorId
     )
   )
   const resolvePerception =

@@ -2202,6 +2202,22 @@
             },
             {
               "id": "PLATFORM-28.T3",
+              "status": "DONE",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["PLATFORM-28.T2"]
+              },
+              "text": "The story guard records real \"Missing queryFn\" query rejections (TanStack Query v5) on each backend story client and fails the story; the console-based guard is deleted.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-14 at delivery (whole route migration about 32): the route stories moved to T3a to T3d. Per D221 unit-test fixtures (nodeRuntimeResolver, authoredRouteStory.fixtures used by unit tests) stay; only story-only use and the loader overrides go.",
+              "mergedAt": "2026-11-14",
+              "proof": "m785 (b1e5e244c, fast path); slice tip 2380fcbb4: Tests 43677517885, Live 43679374098, Browser journeys 43677517875 green. Bug: the m780 No-queryFn guard could never fire (TanStack Query v5 rejects with \"Missing queryFn\" and logs nothing); missingQueryFnReports subscribes to the QueryCache and the backend preview afterEach fails a story that recorded one. Proof: missingQueryFnReports.test (real QueryClient) plus a local probe showing the old console recorder caught 0 reports; the CI red job labels it ALREADY-PASSING because it keeps changed src/test helpers. No restated assertions, no D196 change."
+            },
+            {
+              "id": "PLATFORM-28.T3a",
               "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
@@ -2209,11 +2225,53 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 8,
-                "after": ["PLATFORM-28.T2"]
+                "after": ["PLATFORM-28.T3"]
               },
-              "text": "Authoring route stories (16 create and edit routes, EquipmentParentPreview, SystemDetailPage) read seeded data; state stories composed with one single-query override; loader overrides, nodeRuntimeResolver and the story-only authoring fixtures deleted.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221).",
+              "text": "Spell and background create and edit route stories read seeded owned draft and active records (*.backend.stories.tsx, seeded through product commands); the authoring walkthrough steps for those domains run on the backend story ids.",
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T3b",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T3a"]
+              },
+              "text": "Class, feat and race create and edit route stories read seeded records, with their walkthrough steps on backend story ids.",
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T3c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T3b"]
+              },
+              "text": "Creature and vehicle create and edit route stories read seeded records, with their walkthrough steps on backend story ids.",
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T3d",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T3c"]
+              },
+              "text": "Equipment route stories (including the Shortsword +1 and Astral Tear structure and drawer stories), EquipmentParentPreview and SystemDetailPage read seeded records; the authored route loader overrides are deleted with a no-importer proof.",
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T4",
@@ -2285,7 +2343,8 @@
                   "PLATFORM-28.T4",
                   "PLATFORM-28.T5",
                   "PLATFORM-28.T6",
-                  "PLATFORM-28.T7"
+                  "PLATFORM-28.T7",
+                  "PLATFORM-28.T3d"
                 ]
               },
               "text": "The remaining story-only fixture modules are deleted and a guard test fails when a story imports a fixture module; a Storybook run logs no \"No queryFn\" message.",
@@ -26940,27 +26999,7 @@
             },
             {
               "id": "QUALITY-14.T2e2c",
-              "status": "IN_PROGRESS",
-              "closes": ["QUALITY-14.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 3,
-                "rr": 5,
-                "size": 5,
-                "after": [
-                  "QUALITY-14.T2e2b",
-                  "QUALITY-14.T2e2b2",
-                  "QUALITY-14.T2e2b3",
-                  "QUALITY-14.T2e2b4"
-                ]
-              },
-              "text": "A resumed save chain reads the sealed pre-command discovery on its damage-save context (D220, D196) instead of re-deriving from a snapshot earlier saves changed; forged and replayed steps refused.",
-              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
-            },
-            {
-              "id": "QUALITY-14.T2e2d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26974,8 +27013,44 @@
                   "QUALITY-14.T2e2b4"
                 ]
               },
-              "text": "A move takes damage per contact (D220): each contact raises one DAMAGED(AFTER) per holder settling ends and the Concentration chain together, replacing the terminal ends settle; a Concentration lost mid-move stops that zone later damage.",
-              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+              "text": "A resumed save chain reads the sealed pre-command discovery on its damage-save context (D220, D196) instead of re-deriving from a snapshot earlier saves changed; forged and replayed steps refused.",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13). Resized 2026-11-15 at delivery from 5 to 8 (dependent-save drop across five paths).",
+              "mergedAt": "2026-11-15",
+              "proof": "m784 (4d20b9310); slice tip 801a14a20: Tests 43681087325, Live 43681087318, Browser journeys 43681087345 green. A resumed chain reads the sealed context.remaining instead of re-planning; damageSaveApplicationsAfterConcentrationEnd drops an ended state's later checks and its dependents' repeat saves (room, result, movement adoptEnd, both persistence paths); parentEntryOccurrenceIds capture plumbing removed. Red proof: nativeRoomResumedDamageSaveChain RED (resumed check refused, parent receipt mismatch). No restated assertions; no D196 change (remaining already persisted)."
+            },
+            {
+              "id": "QUALITY-14.T2e2d1",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": [
+                  "QUALITY-14.T2e2b",
+                  "QUALITY-14.T2e2b2",
+                  "QUALITY-14.T2e2b3",
+                  "QUALITY-14.T2e2b4"
+                ]
+              },
+              "text": "A zone whose source loses Concentration mid-move deals no later damage in that move: adoptEnd and the frozen remainder drop the removed zones' remaining candidates, consistent across currentness, the room scope and persistence; the first damage-save plan requires its repeat-save discovery.",
+              "note": "Registered 2026-11-15 from the T2e2d seam trace (whole about 19) under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-14.T2e2d2",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["QUALITY-14.T2e2d1"]
+              },
+              "text": "A move takes damage per contact (D220): each contact raises one DAMAGED(AFTER) per holder settling ends and the Concentration chain together, replacing the terminal ends settle; a Concentration lost mid-move stops that zone later damage. Ends and grants retained and settled per contact before its saves; terminalMovementDamageEnds and the move-wide movementDamageEnds root deleted; once-per-move assertions restated under D220.",
+              "note": "Registered 2026-11-15 from the T2e2d seam trace (whole about 19) under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-14.T2e2e",
@@ -26986,7 +27061,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-14.T2e2c", "QUALITY-14.T2e2d"]
+                "after": ["QUALITY-14.T2e2c", "QUALITY-14.T2e2d2"]
               },
               "text": "Room count proofs on SRD fixtures that DAMAGED(AFTER) is raised once per command and holder (single target, list or area multi-hit, multi-zone move, a damaged Concentration holder, a resumed chain); the transitional note leaves rules-runtime.md.",
               "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
@@ -27129,7 +27204,7 @@
             },
             {
               "id": "QUALITY-15.T3j",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27140,11 +27215,12 @@
               },
               "text": "A cast object manifestation (Light, Continual Flame) compiles to an objectManifestation state contribution (label, light, properties, attachment) on the timed plan, sharing one duration, Concentration, expiry and undo with any ruling; Continual Flame holds until dispelled.",
               "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at the seam trace: the Scene reading the cast light moved to T3j2.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m782 (22b40e976, fast path); slice tip a5a27dd78: Tests 43677922588, Live 43677922533, Browser journeys 43677922585 green. objectManifestationPlan (effectActionObjectManifestation.ts) writes an OBJECT_MANIFESTATION state contribution (label, light, properties, attachment); Light keeps its hostile-holder ruling as a cast-time proposal; creatureFormPlan moved to its own module for the size ratchet (budget 3719). Golden: Light and Continual Flame REFUSED to SINGLE_GRAPH, lifetime refusals 17 to 15, other rows byte-identical. Red proof: nativeRoomObjectManifestation RED 4/4, timedRulingPlan RED 2/7. Restated: the Light refusal test narrowed to Geas (Light compiles by design). D196: additive optional contribution; refresh character-mechanics projections when local is next used."
             },
             {
               "id": "QUALITY-15.T3j2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27154,11 +27230,13 @@
                 "after": ["QUALITY-15.T3j"]
               },
               "text": "The Scene reads a cast object light: one emitted-light function for every actor kind reads active-effect manifestations; the room Scene vision, movement inputs and Convex turn capture pass active effects; the Scene cache refreshes when a manifestation starts or ends; TOUCHED_OBJECT light attaches to the target actor token (no Scene object concept); the light ends on expiry and undo.",
-              "note": "Registered 2026-11-14 from the T3j seam trace under the user standing approval for QUALITY growth (2026-11-13). Orchestrator ruling: TOUCHED_OBJECT light sits on the holder token."
+              "note": "Registered 2026-11-14 from the T3j seam trace under the user standing approval for QUALITY growth (2026-11-13). Orchestrator ruling: TOUCHED_OBJECT light sits on the holder token.",
+              "mergedAt": "2026-11-15",
+              "proof": "m786 (393ec07f3, fast path); slice tip cae85d6a7: Tests 43685020684, Live 43685020677, Browser journeys 43685020643 green. actorEmittedLight (actorLight.ts) is the one emitted-light function for every actor kind and reads active-effect manifestations; TOUCHED_OBJECT light sits on the holder token; the Scene cache refreshes when a manifestation starts or ends; the light ends on expiry and undo. Added: a cone- or line-shaped light refuses to compile (compile golden unchanged). Red proof: nativeRoomObjectManifestation RED 3/4, turnCaptureTokenLights RED 1/2, actorLight RED-IMPORT. No restated assertions; no D196 change."
             },
             {
               "id": "QUALITY-15.T3k",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27168,7 +27246,8 @@
                 "after": ["QUALITY-15.T3h"]
               },
               "text": "A timed save condition with an authored repeat save or damage early end (Dominate Beast, Monster and Person, the dryad Fey Charm, the vampire and succubus Charm) compiles and ends on that save.",
-              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3i",

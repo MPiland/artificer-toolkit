@@ -233,7 +233,7 @@ describe('DAMAGED(AFTER) once per command and holder (QUALITY-14.T2)', () => {
       maintainedStates: new Map([[HOLDER_ID, [{ id: STATE_ID, createdAt: CAST_AT }]]]),
       damagerActorId: null,
       dispositions: new Map(),
-      effectSaves: null
+      effectSaves: { massiveRule: null, holders: new Map() }
     })
 
   it('raises one event for a holder one command damaged twice, and owes a save per damage source', () => {
