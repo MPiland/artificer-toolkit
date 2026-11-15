@@ -3,13 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { retryRateLimitedAuth } from '../tests/developmentAuthRequest'
 import { convexTest } from '../tests/convexTest'
 import { reviewAccountSession } from '../tests/developmentReviewAccounts'
-import { seedStoryData } from '../tests/developmentReviewData'
 import {
   REVIEW_GM,
   REVIEW_PASSWORD,
   REVIEW_PLAYERS,
-  REVIEW_STORY_READER,
-  type ReviewAccountSpec
+  REVIEW_STORY_READER
 } from '../tests/developmentReviewDataScenarios'
 import { components } from './_generated/api'
 import authSchema from './betterAuth/schema'
@@ -79,11 +77,9 @@ describe('review account sessions', () => {
   // The Storybook preview signs in with these credentials through the web app's /api/auth proxy.
   it('creates the story account under the email and password the Storybook preview signs in with', async () => {
     const { auth, issueInvitation } = reviewAuth()
-    const session = (spec: ReviewAccountSpec) => reviewAccountSession(spec, auth, issueInvitation)
-
-    await seedStoryData(session)
+    await reviewAccountSession(REVIEW_STORY_READER, auth, issueInvitation)
     // A re-run signs in to the account the first run made.
-    await seedStoryData(session)
+    await reviewAccountSession(REVIEW_STORY_READER, auth, issueInvitation)
 
     const signIn = await auth('/sign-in/email', {
       email: REVIEW_STORY_READER.email,

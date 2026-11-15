@@ -46,12 +46,17 @@ export async function expectCreateEmptyAuthoringRoute(canvasElement: HTMLElement
   await expect(canvas.queryByLabelText('Authoring preview')).not.toBeInTheDocument()
 
   await userEvent.click(canvas.getByRole('button', { name: /start from scratch/i }))
-  await waitFor(async () => {
-    const visibleName = canvas
+  await expect(await findGuidedNameField(canvasElement)).toBeVisible()
+}
+
+/** The Guided name field the author sees; other mounted fields can share its accessible name. */
+export async function findGuidedNameField(canvasElement: HTMLElement) {
+  return await waitFor(() => {
+    const visibleName = within(canvasElement)
       .getAllByRole('textbox', { name: /name/i })
       .find((element) => element.getClientRects().length > 0)
     if (!visibleName) throw new Error('Expected a visible Guided name field.')
-    await expect(visibleName).toBeVisible()
+    return visibleName
   })
 }
 
@@ -113,25 +118,52 @@ export async function selectAuthoringTarget(canvasElement: HTMLElement, name: Re
   await waitFor(() => expect(target).toHaveAttribute('aria-current', 'step'))
 }
 
-export async function expandAuthoringBranch(canvasElement: HTMLElement, name: RegExp) {
-  const steps = await getAuthoringStepsNavigation(canvasElement)
-  const target = await findAuthoringRailItem(steps, name)
+/** Expands the rail branch `name` (within `scope`, else the whole rail) and returns its child group. */
+export async function expandAuthoringBranch(
+  canvasElement: HTMLElement,
+  name: RegExp,
+  scope?: HTMLElement
+) {
+  const target = await findAuthoringRailItem(
+    scope ?? (await getAuthoringStepsNavigation(canvasElement)),
+    name
+  )
   const expander = getAuthoringRailExpander(target)
 
   if (expander.getAttribute('aria-expanded') !== 'true') {
     await userEvent.click(expander)
   }
 
-  await waitFor(async () => {
+  return await waitFor(async () => {
     await expect(expander).toHaveAttribute('aria-expanded', 'true')
 
-    const controlledId = expander.getAttribute('aria-controls')
-    await expect(controlledId).toBeTruthy()
-    await expect(
-      canvasElement.ownerDocument.getElementById(controlledId ?? '')?.firstElementChild
-    ).toHaveAttribute('aria-hidden', 'false')
+    const childGroup = canvasElement.ownerDocument.getElementById(
+      expander.getAttribute('aria-controls') ?? ''
+    )
+    if (!childGroup) throw new Error(`Expected ${name.source} to control a child group.`)
+    await expect(childGroup.firstElementChild).toHaveAttribute('aria-hidden', 'false')
+    return childGroup
   })
 }
+
+/** Waits for a backend story's first record read, which crosses the network to the seeded deployment. */
+export async function findSeededAuthoringRecord(canvasElement: HTMLElement, label: string) {
+  await expect(
+    await within(canvasElement).findByDisplayValue(label, {}, { timeout: 15_000 })
+  ).toBeInTheDocument()
+}
+
+/** The 1280 x 720 desktop viewport the authoring walkthrough proves the layout at. */
+export const authoringDesktopViewport = {
+  globals: { viewport: { value: 'authoringDesktop', isRotated: false } },
+  options: {
+    authoringDesktop: {
+      name: 'Authoring desktop',
+      styles: { width: '1280px', height: '720px' },
+      type: 'desktop'
+    }
+  }
+} as const
 
 export async function selectAuthoringChildTarget(
   canvasElement: HTMLElement,
