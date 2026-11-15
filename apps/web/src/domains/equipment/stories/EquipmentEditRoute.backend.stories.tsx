@@ -187,7 +187,10 @@ export const AstralTearAwakenedStructure: Story = {
         { timeout: 15_000 }
       )
     ).toBeInTheDocument()
-    await expect(story.getByText(/all changes saved/i)).toBeInTheDocument()
+    // The heading renders before the draft's form settles into its saved state.
+    await expect(
+      await story.findByText(/all changes saved/i, {}, { timeout: 15_000 })
+    ).toBeInTheDocument()
     await expect(story.getByRole('button', { name: /save draft/i })).toBeInTheDocument()
     await expandAuthoringBranch(canvasElement, /^effects\b/i)
     await expandAuthoringBranch(canvasElement, /^grants\b/i)
@@ -440,7 +443,8 @@ async function openRailTarget(navigation: HTMLElement, name: RegExp) {
     ...scope.queryAllByRole('button', { name })
   ]
   if (!target) throw new Error(`Unable to find rail target ${name}.`)
-  await expect(target).toBeVisible()
+  // The steps drawer may still be sliding in.
+  await waitFor(() => expect(target).toBeVisible())
   const childGroupId = target.getAttribute('aria-controls')
   if (!childGroupId) {
     await userEvent.click(target)
