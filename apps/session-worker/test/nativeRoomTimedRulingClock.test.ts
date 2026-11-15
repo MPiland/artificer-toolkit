@@ -20,7 +20,7 @@ afterEach(closeTrackedSockets)
 
 const naga = installedSrdCreature(guardianNaga)
 
-/** The Naga casts Geas on the Wolf, whose Wisdom save the GM fails, in a Campaign with `campaignClockMinute`. */
+/** The Naga casts Geas on the Wolf, whose Wisdom save the room rolls as a 1, in a Campaign with `campaignClockMinute`. */
 async function castGeas(campaignClockMinute: number | null) {
   const bite = naga.features.find(({ label }) => label.startsWith('Bite'))
   if (!bite) throw new Error('The Guardian Naga has no Bite.')
@@ -31,7 +31,8 @@ async function castGeas(campaignClockMinute: number | null) {
     ],
     ownerFeatureId: bite.id,
     pinSpells: true,
-    campaignClockMinute
+    campaignClockMinute,
+    fallbackRoll: 1
   })
   const geas = (await room.actionChoices()).actions.find(({ label }) => label.startsWith('Geas'))
   if (!geas) throw new Error('The room offers the Naga no Geas.')
@@ -44,16 +45,6 @@ async function castGeas(campaignClockMinute: number | null) {
     NAGA_ID
   )
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  const decision = await room.pendingDecision()
-  if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the Wisdom save.')
-  const { request } = decision.pending
-  const resolved = await room.resolve(decision, {
-    kind: 'ENTER_DICE',
-    requestId: request.requestId,
-    rawFaces: Array.from({ length: request.rollMode === 'NORMAL' ? 1 : 2 }, () => 1),
-    rollMode: request.rollMode
-  })
-  expect(resolved.type, JSON.stringify(resolved)).toBe('COMMAND_COMMITTED')
   const history = await readRoomHistory(room.room.base.stub)
   const [effect] = history.activeEffects
   if (history.activeEffects.length !== 1 || !effect)
