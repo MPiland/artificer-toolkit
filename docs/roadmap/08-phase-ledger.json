@@ -28088,6 +28088,66 @@
             "apps/session-worker/test/nativeMovementReactionChild.test.ts",
             "apps/session-worker/test/nativeMovementDecisionReplay.test.ts"
           ]
+        },
+        {
+          "id": "QUALITY-19",
+          "title": "Browser journeys fail only on product faults",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 5,
+            "after": []
+          },
+          "acs": [
+            {
+              "id": "QUALITY-19.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
+              "text": "A failing proof prints its failing assertion in the job log, and the multi-actor live-backend proofs sign each actor in from its own client address, so a sign-in rate limit never fails a proof."
+            },
+            {
+              "id": "QUALITY-19.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
+              "text": "The campaign custody and equipment publication proofs end without an IsolateNotClean error from the self-hosted backend."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-19.T1",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-19.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              },
+              "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
+              "text": "The proof runner includes the tail of the proof log in its failure; one live-backend helper gives each browser context its own client address (campaignCollaboration moves onto it), used by every multi-actor proof (movement, passage and the others); no 429 diagnostic remains in those proofs."
+            },
+            {
+              "id": "QUALITY-19.T2",
+              "status": "TODO",
+              "closes": ["QUALITY-19.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-19.T1"]
+              },
+              "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
+              "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause."
+            }
+          ]
         }
       ],
       "uatByOtherFeatures": true
