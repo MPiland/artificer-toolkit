@@ -1805,7 +1805,11 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   off hit points still ends a damage-ended effect and owes the chain's saves, and the
   chain's `appliedAmount` is the damage taken (the hitting rows' `resolvedAmount`), which the Concentration DC
   reads. The movement interrupt and its pending-context validation, and the damage-types-since-turn-start
-  record, read the same predicate. Each stage raises it once per command and holder (QUALITY-14.T2). The ends stage
+  record, read the same predicate. So does spatial settlement (`spatialDamageReached`, QUALITY-14.T2e2f6): a
+  movement contact, a melee retaliation or a turn zone settles a creature its damage reached even when that left
+  its state as it was, so the ward spends and the damage raises; the plan names its `settle` mode
+  (`CHANGED_OR_DAMAGED` for contacts, `EVERY_TARGET` for a turn boundary), and the movement persistence and the
+  spatial result validator settle the same creatures. Each stage raises it once per command and holder (QUALITY-14.T2). The ends stage
   (`targetEndedEffects`) raises it once per holder: a move's zone contacts through `damageBySource`, and a list or
   area that names a creature again (darts, rays, beams) at that creature's first outcome, with a hit per entry, its
   later outcomes raising none (QUALITY-14.T2e). A turn's effects stay one raise per effect execution, since each

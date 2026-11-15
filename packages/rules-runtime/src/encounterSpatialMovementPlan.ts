@@ -13,6 +13,7 @@ import {
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import { spatialDamageReached } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
 import { incomingDamageGrantRecords } from './encounterEndedEffectRelease.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
@@ -83,8 +84,12 @@ export function planNativeSpatialMovementPrefix<
     phase: 'SPATIAL_EFFECT' | 'TURN_ZONE_EFFECT' | 'MELEE_RETALIATION'
     ordinal: number
   }
-  /** A turn boundary settles its creature even when the contacts left it unchanged. */
-  settleUnchanged?: boolean
+  /**
+   * Which targets settle: every creature the contacts caught (a turn boundary), or those the contacts
+   * changed or reached with damage (`spatialDamageReached`), so an interception such as Death Ward
+   * that left a creature as it was still spends and the creature's damage raises.
+   */
+  settle: 'EVERY_TARGET' | 'CHANGED_OR_DAMAGED'
   /**
    * Set when the zones' damage ends the target's effects that end on damage (a turn zone, a melee
    * retaliation): the batch then releases what those effects held after the zones' applications.
@@ -129,7 +134,8 @@ export function planNativeSpatialMovementPrefix<
     const last = executions.at(-1)
     if (!target || !first || !last) throw new Error('Spatial execution target is unavailable.')
     assertInitialTransition(targetActorId, target, first)
-    return !input.settleUnchanged &&
+    return input.settle === 'CHANGED_OR_DAMAGED' &&
+      !spatialDamageReached(executions) &&
       sameState(first.targetTransition.before, last.targetTransition.after)
       ? []
       : [[targetActorId, target] as const]

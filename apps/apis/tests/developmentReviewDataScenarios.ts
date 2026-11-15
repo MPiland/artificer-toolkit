@@ -207,6 +207,19 @@ export const STORY_DRAFT_ONLY = {
   } satisfies BaseEquipmentAuthoringInputDto
 }
 
+/**
+ * The Campaign Storybook backend stories open by name (D221), because its id is random: the story
+ * account hosts it with play settings, one Encounter Blueprint with a prepared Run, and a loot table
+ * on that Run's creature. The FREE tier hosts one Campaign, so every story shares it.
+ */
+export const STORY_CAMPAIGN = {
+  name: 'Story Campaign',
+  blueprintName: 'Story Encounter',
+  enemyLabel: 'Story Cultist',
+  playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
+  lootTable: { name: 'Story pockets', coinAmount: 12 }
+} as const
+
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
 export const REVIEW_READY_TITLE = 'Review data ready'
 

@@ -25,6 +25,7 @@ import {
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
   REVIEW_STORY_READER,
+  STORY_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
   type ReviewAccountSpec,
@@ -148,14 +149,102 @@ export async function seedStoryData(
       payload: active.item
     })
   }
+  await seedStoryDraftOnly(reader)
+  await seedStoryCampaign(reader)
+}
+
+/** Saves `STORY_DRAFT_ONLY` as a never-activated draft unless a previous run already did. */
+async function seedStoryDraftOnly(client: StoryClient) {
   const { subjectKind, subjectId, label, payload } = STORY_DRAFT_ONLY
-  if (await reader.query(api.content.drafts.get, { subjectKind, subjectId })) return
-  await reader.mutation(api.content.drafts.save, {
+  if (await client.query(api.content.drafts.get, { subjectKind, subjectId })) return
+  await client.mutation(api.content.drafts.save, {
     subjectKind,
     subjectId,
     systemId: srdSystemRecord.id,
     label,
     payload
+  })
+}
+
+/**
+ * Hosts the story Campaign and fills what its stories read. Each step replays harmlessly: the
+ * Blueprint and Run are keyed by fixed command ids, and settings and loot are written only while
+ * unset.
+ */
+async function seedStoryCampaign(client: StoryClient) {
+  const { name, blueprintName, enemyLabel, playSettings, lootTable } = STORY_CAMPAIGN
+  const campaignId =
+    (await findCampaign(client, name)) ??
+    (
+      await client.mutation(api.campaigns.create.create, {
+        name,
+        format: 'ONGOING',
+        toneTags: ['HEROIC'],
+        contentMaturity: 'STANDARD',
+        gameSystemId: srdSystemRecord.id,
+        primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+      })
+    ).id
+  const current = await client.query(api.campaigns.playSettings.get, { campaignId })
+  if (current.quorum !== playSettings.quorum) {
+    const { version, updatedAt: _updatedAt, ...fields } = current
+    const options = await client.query(api.campaigns.playSettings.options, { campaignId })
+    const policy = options.initiativePolicies[0]
+    assert.ok(policy, 'The story Campaign is offered no initiative policy.')
+    await client.mutation(api.campaigns.playSettings.save, {
+      ...fields,
+      ...playSettings,
+      expectedVersion: version,
+      safetyPractices: ['SESSION_ZERO'],
+      automationMode: 'ASSISTED',
+      initiativePolicyDefinitionId: policy.definitionId,
+      initiativeTieDefinitionId: policy.defaultTieResolverDefinitionId,
+      optionalCombatRuleDefinitionIds: options.optionalCombatRules
+        .slice(0, 1)
+        .map((rule) => rule.definitionId)
+    })
+  }
+  const blueprint = await client.mutation(api.encounters.blueprints.create, {
+    gameSystemId: srdSystemRecord.id,
+    name: blueprintName,
+    commandId: reviewId('story-blueprint'),
+    enemies: [{ kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 }]
+  })
+  const run = await client.mutation(api.encounters.runs.create, {
+    campaignId,
+    blueprintId: blueprint.id,
+    commandId: reviewId('story-run')
+  })
+  const [actor] = run.actors
+  assert.ok(actor, 'The story Run has no creature.')
+  const owner = {
+    kind: 'ENCOUNTER_ACTOR',
+    campaignId,
+    encounterId: run.id,
+    actorId: actor.id
+  } as const
+  const loot = await client.query(api.loot.tables.get, { owner })
+  if (loot.version > 0) return
+  const coin = srdSystemRecord.currencies[0]
+  assert.ok(coin, 'The SRD System defines no currency.')
+  await client.mutation(api.loot.tables.save, {
+    owner,
+    expectedVersion: loot.version,
+    tables: [
+      {
+        id: crypto.randomUUID(),
+        name: lootTable.name,
+        ranges: [
+          { id: crypto.randomUUID(), min: 1, max: 10, entries: [] },
+          {
+            id: crypto.randomUUID(),
+            min: 11,
+            max: null,
+            entries: [{ kind: 'COIN', denominationId: coin.id, amount: lootTable.coinAmount }]
+          }
+        ]
+      }
+    ]
   })
 }
 
