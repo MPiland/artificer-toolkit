@@ -2134,6 +2134,7 @@ Storybook stories built their data from hand-typed response DTOs and hand-built 
 - **Tracking:** PLATFORM-28 (D187 growth, user yes), sequenced after the QUALITY slices, seam-audited before it starts.
 - **Amendment (2026-11-15, orchestrator, PLATFORM-28.T5 trace): a logical write made of several mutations is recorded whole.** Its spies return the response the client parses, built through the real response schema, so a save of begin, append and publish records all three; nothing is sent.
 - **Amendment (2026-11-15, orchestrator, PLATFORM-28.T5 trace): the single-query override lives in the backend Storybook preview.** A composed story names one query and its value; the preview serves that value and keeps the key off the Convex subscription, which would otherwise overwrite it with the server value.
+- **Amendment (2026-11-15, orchestrator, PLATFORM-28.T7 trace): a Session Worker command is a write.** A live-session story connects to the real Worker and reads its sync, but the client's COMMAND send is spied and never sent, so the seeded Scene and Encounter stay shared and no per-story reset exists; after-command states are composed or seeded variants.
 
 ## D219 (2026-11-11): a chosen reaction is a child action, spent when chosen
 
