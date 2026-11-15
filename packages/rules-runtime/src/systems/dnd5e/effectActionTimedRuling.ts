@@ -4,7 +4,7 @@ import {
   UUID,
   type Dnd5eCompiledEffectActionSource
 } from './effectActionContracts.js'
-import { conditionDurationTurns } from './effectActionFollowUp.js'
+import { conditionDurationTurns, overBoundDurationCampaignMinutes } from './effectActionFollowUp.js'
 import { maintenancePlan } from './effectActionLifetime.js'
 import { entryResultGate } from './effectActionTest.js'
 
@@ -35,9 +35,12 @@ export function timedRulingPlan(
   if (outcome.effectKind !== 'MANUAL_ADJUDICATION' || !duration) return null
   const indefinite = duration.durationKind === 'UNTIL_DISPELLED'
   const initialRemaining = indefinite ? null : conditionDurationTurns(duration)
+  // A duration over the turn bound is counted by the Campaign clock instead (D222).
+  const campaignMinutes =
+    indefinite || initialRemaining !== null ? null : overBoundDurationCampaignMinutes(duration)
   const resultGate = entryResultGate(action, entry.pathCode)
   if (
-    (!indefinite && initialRemaining === null) ||
+    (!indefinite && initialRemaining === null && campaignMinutes === null) ||
     resultGate === undefined ||
     Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId) ||
@@ -49,8 +52,9 @@ export function timedRulingPlan(
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'gm-ruling',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: indefinite ? 'NONE' : 'END_OF_TURN',
+    recurrenceStage: indefinite || campaignMinutes !== null ? 'NONE' : 'END_OF_TURN',
     initialRemaining,
+    ...(campaignMinutes !== null && { campaignMinutes }),
     rulingContribution: {
       rulingOutcomeId: outcome.id,
       label: outcome.label,

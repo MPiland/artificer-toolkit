@@ -2423,6 +2423,22 @@ effect (so it ends with it) and whose id derives from the parent's. A failed rol
 are not revertable, so the minted child needs no Undo handling. Blink is the SRD user; nothing in the runtime
 names a spell.
 
+**Damage-triggered repeat save on a timed condition (current, QUALITY-15.T3k).** A timed save condition ends early
+when its result block is a `SEQUENTIAL` `SEQUENCE` (UUID `resultBlockId`) holding the condition outcomes and a
+`FOLLOW_UP_SAVE` with `timing ON_TRIGGERS_ONLY`, `repeatTriggers [DAMAGE_TAKEN]`, `onSuccess END` and
+`onFailure CONTINUE`; `repeatingDirectFollowUpSavePlan` compiles it and the held effect owes a repeat save on each
+damage (`planDamageSaveChain`). Dominate Beast, Dominate Monster, Dominate Person, the dryad Fey Charm and the
+succubus Charm author it; the vampire Charm already did. The compiler names none of them, and a timed condition
+without the authored save is still refused. The effect-compile golden lists the five rows that moved from refused.
+
+**Ruling longer than the turn bound (current contract and compile, QUALITY-15.T3i, D222; stamping and expiry are
+T3i2).** The 14,400-turn bound (D188 amendment) stays. A timed GM ruling whose authored duration exceeds it (Geas,
+30 days) compiles with `campaignMinutes` on its plan (minute, hour, day and week durations only; a month or year is
+still refused) and `recurrence.expiration { kind: 'CAMPAIGN_MINUTES', minutes }` on its definition, with no recurrence
+stage and no tick count. The lifecycle must carry `expiresAtCampaignMinute`: the stamped absolute minute, or an
+explicit `null` for a Campaign with no clock, which lasts until the GM ends it. Until T3i2 the room stamps nothing, so
+a cast plans the `null` state.
+
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
 `endsWith: 'PRIMARY'` and refuses by name any other target, and any link where there is no such condition (the

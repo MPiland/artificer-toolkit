@@ -348,12 +348,12 @@ export const dryad: CreatureAuthored = {
               id: S.actionId(90, 6),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(90, 6) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: S.actionId(90, 11),
+                resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(90, 8),
                   durationKind: DURATION_KIND.HOUR,
@@ -364,6 +364,23 @@ export const dryad: CreatureAuthored = {
                     id: S.actionId(90, 6),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('CHARMED')
+                  },
+                  {
+                    // Each time the dryad or its allies do anything harmful to the target, it
+                    // repeats the save; no save at the end of its turns.
+                    id: S.actionId(90, 9),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.ON_TRIGGERS_ONLY,
+                    repeatTriggers: [{ kind: 'DAMAGE_TAKEN' as const, by: 'SOURCE_SIDE' as const }],
+                    savingThrow: {
+                      id: S.actionId(90, 10),
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                      baseDc: 14
+                    },
+                    attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                    onSuccess: { kind: 'END' as const },
+                    onFailure: { kind: 'CONTINUE' as const }
                   }
                 ]
               }

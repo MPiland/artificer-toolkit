@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
-/** The most turns an authored Encounter active effect lasts: 24 hours of 6-second rounds (D156). */
+/** The most turns an authored Encounter active effect lasts: 24 hours of 6-second rounds (D188 amendment). Longer durations count Campaign minutes (D222). */
 export const MAX_ACTIVE_EFFECT_TURNS = 14_400
 
 /** The effects beside an action's own that it creates on one target: a failed save's band of up to four conditions holds one effect each. */

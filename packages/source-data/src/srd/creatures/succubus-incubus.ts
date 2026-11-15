@@ -262,12 +262,12 @@ export const succubusIncubus: CreatureAuthored = {
               id: S.actionId(267, 303),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: `${S.actionId(267, 303)}__result`,
-                resultKind: 'SINGLE',
+                id: S.actionId(267, 308),
+                resultKind: 'SEQUENCE',
                 duration: {
                   id: S.actionId(267, 304),
                   durationKind: DURATION_KIND.DAY,
@@ -278,6 +278,23 @@ export const succubusIncubus: CreatureAuthored = {
                     id: S.actionId(267, 305),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('CHARMED')
+                  },
+                  {
+                    // If the target suffers any harm, it repeats the save; no save at the end of
+                    // its turns. A suicidal command stays the GM's.
+                    id: S.actionId(267, 306),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.ON_TRIGGERS_ONLY,
+                    repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'ANYONE' }],
+                    savingThrow: {
+                      id: S.actionId(267, 307),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                      baseDc: 15
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
                   }
                 ]
               }

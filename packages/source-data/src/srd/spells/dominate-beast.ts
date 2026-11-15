@@ -70,12 +70,12 @@ export const dominateBeast: SpellAuthored = {
           id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x213, 1),
           order: 1,
           pathCode: PATH_CODE.ON_SAVE_FAIL,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x217, 1),
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x214, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -86,6 +86,21 @@ export const dominateBeast: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x213, 1),
                 effectKind: EFFECT_KIND.CONDITION,
                 conditionId: conditionTypeId('CHARMED')
+              },
+              {
+                // Each time the target takes damage, it makes a new save; a success ends the spell.
+                id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x215, 1),
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'ON_TRIGGERS_ONLY' as const,
+                repeatTriggers: [{ kind: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }],
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.DOMINATE_BEAST, 0x216, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                },
+                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }

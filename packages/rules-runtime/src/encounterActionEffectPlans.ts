@@ -652,13 +652,15 @@ export function prepareRecurringActiveEffect(
           ? input.target.lifetimeScope
           : 'ENCOUNTER',
       expiration:
-        initialRemaining === null
-          ? { kind: 'INDEFINITE' }
-          : {
-              kind: 'TICKS',
-              initialRemaining,
-              decrementStage: plan.recurrenceStage
-            }
+        plan.campaignMinutes !== undefined
+          ? { kind: 'CAMPAIGN_MINUTES', minutes: plan.campaignMinutes }
+          : initialRemaining === null
+            ? { kind: 'INDEFINITE' }
+            : {
+                kind: 'TICKS',
+                initialRemaining,
+                decrementStage: plan.recurrenceStage
+              }
     },
     stateContributions: [
       ...(ownsTemporaryHitPoints ? [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' as const }] : []),
@@ -773,6 +775,9 @@ export function prepareRecurringActiveEffect(
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
       remainingTicks: initialRemaining,
+      // Counted by the Campaign clock, not turns. The room stamps the minute; until then no clock
+      // is known, so the effect lasts until the GM ends it.
+      ...(plan.campaignMinutes !== undefined && { expiresAtCampaignMinute: null }),
       ...(grantContribution?.uses !== undefined && { remainingUses: grantContribution.uses }),
       ...(concealment
         ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }

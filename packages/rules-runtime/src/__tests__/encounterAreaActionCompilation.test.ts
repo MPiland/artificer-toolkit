@@ -633,14 +633,40 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
 })
 
 describe('a timed save condition with no authored way to end early (SPELLS-19.T3)', () => {
-  // These spells print a repeat save or an early end that is not authored on their effect; compiling
-  // them would run the condition to its full duration and drop that rule.
+  /** `effect` with its repeat save left unauthored, as a spell that prints one but does not author it. */
+  const withoutRepeatSave = (effect: typeof FIREBALL): typeof FIREBALL => ({
+    ...effect,
+    paths: effect.paths.map((path) =>
+      path.selectionKind === 'FIXED'
+        ? {
+            ...path,
+            resultBlock: {
+              ...path.resultBlock,
+              resultKind: 'SINGLE' as const,
+              outcomes: path.resultBlock.outcomes.filter(
+                ({ effectKind }) => effectKind !== 'FOLLOW_UP_SAVE'
+              )
+            }
+          }
+        : path
+    )
+  })
+
+  // A spell that prints a repeat save or an early end the effect does not author would run its
+  // condition to its full duration and drop that rule.
   it.each(['Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
     'refuses %s rather than run its condition without the rider the spell prints',
     (label) => {
-      expect(() => compile({}, spellEffect(label), 9, 20)).toThrow(
+      expect(() => compile({}, withoutRepeatSave(spellEffect(label)), 9, 20)).toThrow(
         CharacterRuleActionUnsupportedCompilationError
       )
+    }
+  )
+
+  it.each(['Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
+    'compiles %s once its damage-triggered repeat save is authored (QUALITY-15.T3k)',
+    (label) => {
+      expect(compile({}, spellEffect(label), 9, 20).plan?.kind).toBe('TEST_OUTCOME')
     }
   )
 
