@@ -29,6 +29,11 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     []
   )
   await t.action(internal.content.seed.seed, {})
+  // Hosting a Social listing needs a username, which the fixture's author lacks.
+  await first.caller.mutation(api.account.updateProfile, {
+    username: REVIEW_STORY_READER.username,
+    bio: null
+  })
   const clientFor = (caller: typeof first.caller): StoryClient => ({
     ...convexDevelopmentClient(caller),
     action: (action, ...args) =>
