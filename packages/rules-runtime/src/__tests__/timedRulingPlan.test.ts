@@ -50,7 +50,11 @@ function castOf(spell: SpellAuthored) {
 }
 
 /** The effects the room plans when `spell` lands on the holder along `resultPath`. */
-function landed(spell: SpellAuthored, resultPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS') {
+function landed(
+  spell: SpellAuthored,
+  resultPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS',
+  campaignClockMinute?: number | null
+) {
   return plannedCastEffects({
     encounterId: testUuid(0xd700),
     sourceActorId: SOURCE_ID,
@@ -58,7 +62,8 @@ function landed(spell: SpellAuthored, resultPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCC
     spell,
     entry: castOf(spell),
     lifetimeScope: 'ENCOUNTER',
-    resultPath
+    resultPath,
+    campaignClockMinute
   })
 }
 
@@ -147,17 +152,30 @@ describe('a GM ruling with a duration is held as a timed ruling (QUALITY-15.T3)'
       campaignMinutes: 43_200,
       maintenance: null
     })
-    const { recurringEffect } = landed(geas, 'ON_SAVE_FAIL')
+    const { recurringEffect } = landed(geas, 'ON_SAVE_FAIL', 10_000)
     expect(recurringEffect?.definition.recurrence.expiration).toEqual({
       kind: 'CAMPAIGN_MINUTES',
       minutes: 43_200
     })
     expect(rulingOf(recurringEffect)).toHaveLength(1)
-    // No Campaign clock is known at planning, which is the explicit lasts-until-the-GM-ends-it state.
+    // A Campaign with a clock stamps the cast minute plus the ruling's minutes (QUALITY-15.T3i2).
     expect(recurringEffect?.lifecycle).toMatchObject({
+      remainingTicks: null,
+      expiresAtCampaignMinute: 53_200
+    })
+  })
+
+  it('stamps no expiry for a Campaign with no clock, which lasts until the GM ends it', () => {
+    expect(landed(geas, 'ON_SAVE_FAIL', null).recurringEffect?.lifecycle).toMatchObject({
       remainingTicks: null,
       expiresAtCampaignMinute: null
     })
+  })
+
+  it('refuses to plan a Campaign-minute ruling before the Campaign clock is read', () => {
+    expect(() => landed(geas, 'ON_SAVE_FAIL')).toThrow(
+      'An effect counted in Campaign minutes requires the Campaign clock read.'
+    )
   })
 
   it('keeps counting turns for a ruling that fits the bound, and refuses a calendar month', () => {

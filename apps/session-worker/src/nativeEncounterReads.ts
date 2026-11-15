@@ -18,6 +18,19 @@ export interface LiveCaptureReads {
   prepareCharacter(scope: LiveSessionCharacterRulesInput): Promise<PreparedLiveCharacterSheet>
   /** Reads the Creature an action's creature form swaps in (D130); absent where no action casts one. */
   readFormCreature?(gameSystemId: string, creatureId: string): Promise<EncounterActorFormCreature>
+  /**
+   * Reads the Campaign clock's absolute minute, null when the Campaign has no clock (D222). Read
+   * fresh because the clock is not room-owned; absent where no action stamps a Campaign-minute expiry.
+   */
+  readCampaignClockMinute?(): Promise<number | null>
+}
+
+/** The Campaign clock's minute for a cast whose effect counts Campaign minutes (D222). */
+export function requireCampaignClockRead(
+  captures: Pick<LiveCaptureReads, 'readCampaignClockMinute'>
+): Promise<number | null> {
+  if (!captures.readCampaignClockMinute) throw new Error('The Campaign clock cannot be read.')
+  return captures.readCampaignClockMinute()
 }
 
 /**

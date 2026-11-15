@@ -12,6 +12,7 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
@@ -114,6 +115,9 @@ export function reviewId(slug: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`
 }
 
+/** Class publication runs as an action, so the story account's client calls actions too. */
+export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
+
 /**
  * The story-data step (D221): what Storybook backend stories read beyond the deploy and SRD seed,
  * made through product commands at the fixed ids in `STORY_RECORDS`. It runs after the review data locally and
@@ -121,7 +125,7 @@ export function reviewId(slug: string): string {
  * returns its client. A re-run keeps every record a previous run finished.
  */
 export async function seedStoryData(
-  connect: (spec: ReviewAccountSpec) => Promise<DevelopmentClient>
+  connect: (spec: ReviewAccountSpec) => Promise<StoryClient>
 ): Promise<void> {
   const reader = await connect(REVIEW_STORY_READER)
   for (const { subjectKind, masterId, ownedActive, ownedDraft } of Object.values(STORY_RECORDS)) {
@@ -146,7 +150,7 @@ export async function seedStoryData(
 
 /** Copies `masterId` as the author does ("Duplicate to edit"), names the copy `record` and activates it. */
 async function activateStoryCopy(
-  client: DevelopmentClient,
+  client: StoryClient,
   subjectKind: (typeof STORY_RECORDS)[keyof typeof STORY_RECORDS]['subjectKind'],
   masterId: string,
   record: StoryRecordSpec
@@ -157,6 +161,8 @@ async function activateStoryCopy(
   })
   if (existing?.item) return
   // The copy gets a fresh id; its document moves to the record's fixed id and the copy is dropped.
+  // Duplication points the copy's self-references (a Class's own spell-slot budget) at its fresh id,
+  // so the move repoints them too.
   const copy = await client.mutation(api.content.drafts.duplicate, {
     subjectKind,
     subjectId: masterId
@@ -166,15 +172,20 @@ async function activateStoryCopy(
     subjectId: record.subjectId,
     systemId: copy.systemId,
     label: record.label,
-    payload: copy.payload
+    payload: unknownObjectSchema.parse(
+      JSON.parse(JSON.stringify(copy.payload).replaceAll(copy.subjectId, record.subjectId))
+    )
   })
   await client.mutation(api.content.drafts.discard, { subjectKind, subjectId: copy.subjectId })
   assert.ok(draft.updatedAt, `Story record ${record.label} has no draft to activate.`)
-  await client.mutation(api.content.publication.publishDraft, {
-    subjectKind,
-    subjectId: record.subjectId,
-    expectedDraftUpdatedAt: draft.updatedAt
-  })
+  const publication = { subjectId: record.subjectId, expectedDraftUpdatedAt: draft.updatedAt }
+  // As the web app publishes: Class compiles in an action, the other domains in one mutation.
+  if (subjectKind === 'CLASS')
+    await client.action(api.content.classPublicationActions.publishDraft, {
+      ...publication,
+      subjectKind
+    })
+  else await client.mutation(api.content.publication.publishDraft, { ...publication, subjectKind })
 }
 
 /**

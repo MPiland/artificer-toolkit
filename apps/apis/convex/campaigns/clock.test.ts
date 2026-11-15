@@ -28,6 +28,8 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import { geas } from '@artificer-toolkit/source-data/srd/spells/geas.js'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { api, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
@@ -876,6 +878,61 @@ describe('native Campaign clock and carried-over grants (D99)', () => {
     })
     expect(await held()).toEqual([grant.id])
     await owner.caller.mutation(advance, { ...command(campaign.id, initial.version), minutes: 10 })
+    expect(await held()).toEqual([])
+  })
+
+  it('ends a 30-day Geas only once 30 days of Campaign clock have passed (QUALITY-15.T3i2, D222)', async () => {
+    const base = await setupCharacterRun()
+    const { t, owner, campaign, character, run, actor } = base
+    // Cast at the clock's first minute (day 1, minute 600), through the real cast plan.
+    const castMinute = 600
+    const geasEffect = plannedTimedCondition({
+      encounterId: run.id,
+      sourceActorId: actor.id,
+      holderActorId: actor.id,
+      spell: geas,
+      lifetimeScope: 'OWNER',
+      campaignClockMinute: castMinute
+    })
+    const seeded = await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: geasEffect.definition,
+        lifecycle: geasEffect.lifecycle
+      })
+    )
+    expect(seeded.lifecycle.expiresAtCampaignMinute).toBe(castMinute + 30 * 1440)
+    const held = () =>
+      t.run(async (ctx) =>
+        (
+          await ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+            .collect()
+        ).map(({ id }) => id)
+      )
+    const initial = await owner.caller.mutation(initialize, {
+      ...command(campaign.id, 0),
+      day: 1,
+      minuteOfDay: castMinute,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    const afterOneDay = await owner.caller.mutation(advance, {
+      ...command(campaign.id, initial.version),
+      minutes: 1440
+    })
+    expect(await held()).toEqual([seeded.id])
+    const lastMinute = await owner.caller.mutation(advance, {
+      ...command(campaign.id, afterOneDay.version),
+      minutes: 29 * 1440 - 1
+    })
+    expect(await held()).toEqual([seeded.id])
+    await owner.caller.mutation(advance, {
+      ...command(campaign.id, lastMinute.version),
+      minutes: 1
+    })
     expect(await held()).toEqual([])
   })
 })
