@@ -36,7 +36,8 @@ const meta = {
 
 export default meta
 
-type Story = StoryObj<typeof meta>
+// Typed by the route (the meta sets no `component`), so a story can retarget its params.
+type Story = StoryObj<typeof Route>
 
 export const MasterLocked: Story = {
   play: async ({ canvasElement }) => {
