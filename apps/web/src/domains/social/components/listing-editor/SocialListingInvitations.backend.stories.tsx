@@ -73,8 +73,9 @@ type Story = StoryObj<typeof meta>
 export const FocusedDeepLink: Story = {
   play: async ({ canvas }) => {
     const row = await canvas.findByRole('article', {}, { timeout: 5000 })
-    await waitFor(() => expect(row.ownerDocument.activeElement).toBe(row))
-    await expect(row).toHaveAttribute('data-highlighted', 'true')
+    // A horizon refresh can remount the row, so the focused row is the one on screen now.
+    await waitFor(() => expect(row.ownerDocument.activeElement).toBe(canvas.getByRole('article')))
+    await expect(canvas.getByRole('article')).toHaveAttribute('data-highlighted', 'true')
     await expect(canvas.queryByText('This item is no longer available.')).not.toBeInTheDocument()
   }
 }

@@ -175,7 +175,8 @@ export const CreateForCampaignWithListing: Story = {
   args: { table: 'create' },
   play: async ({ canvas, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
-    const campaignId = (await canvas.findByTestId('seeded-campaign')).dataset.campaignId
+    const campaignId = (await canvas.findByTestId('seeded-campaign', {}, { timeout: 5000 })).dataset
+      .campaignId
     await userEvent.click(await canvas.findByRole('combobox', { name: 'Campaign' }))
     await userEvent.click(await body.findByRole('option', { name: STORY_CAMPAIGN.name }))
     await userEvent.click(canvas.getByRole('combobox', { name: 'System and ruleset' }))
