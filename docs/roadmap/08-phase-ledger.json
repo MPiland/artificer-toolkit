@@ -2308,7 +2308,7 @@
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
             },
             {
-              "id": "PLATFORM-28.T5",
+              "id": "PLATFORM-28.T5a",
               "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
@@ -2318,9 +2318,37 @@
                 "size": 5,
                 "after": ["PLATFORM-28.T2"]
               },
-              "text": "Campaign page stories (Settings, Loot, Scene editor, Encounter builder) read seeded data; the fake ConvexReactClient and hand-seeded query caches deleted.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221).",
+              "text": "The story campaign seed (a Campaign, play settings, a Blueprint with a PREPARED Run, loot tables) through product commands, a name-lookup harness, the shared write-spy and single-query override mechanism (D218 amendment); Campaign Settings and Loot editor stories read seeded data.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (whole about 11): Encounter builder to T5b, Scene editor and the fake client deletion to T5c.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T5b",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["PLATFORM-28.T5a"]
+              },
+              "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T5c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T5b"]
+              },
+              "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T6",
@@ -2362,7 +2390,7 @@
                 "after": [
                   "PLATFORM-28.T3",
                   "PLATFORM-28.T4",
-                  "PLATFORM-28.T5",
+                  "PLATFORM-28.T5c",
                   "PLATFORM-28.T6",
                   "PLATFORM-28.T7",
                   "PLATFORM-28.T3d2"
