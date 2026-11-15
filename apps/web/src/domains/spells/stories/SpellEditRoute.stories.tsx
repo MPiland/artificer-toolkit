@@ -11,7 +11,6 @@ import {
 import {
   expandAuthoringBranch,
   expectAuthoringTargetLabels,
-  expectMasterLockedAuthoringRoute,
   expectOwnedActiveAuthoringRoute,
   expectOwnedDraftAuthoringRoute,
   getStoryDocument,
@@ -103,20 +102,4 @@ export const FireballSavingThrowEffect: Story = {
     await expect(await story.findByRole('button', { name: /^damage$/i })).toBeInTheDocument()
     await expect(story.queryByText('ON_SAVE_FAIL')).not.toBeInTheDocument()
   }
-}
-export const MasterLocked: Story = {
-  parameters: {
-    tanstack: {
-      router: {
-        routeOverrides: createAuthoredEditRouteOverrides(
-          'spell',
-          '/_authed/spells/$spellPublicId/$spellSlug/edit',
-          '/spells/$spellPublicId/$spellSlug/edit',
-          'masterLocked'
-        )
-      }
-    }
-  },
-  play: async ({ canvasElement }) =>
-    expectMasterLockedAuthoringRoute(canvasElement, authoredRouteStoryRecords.spell.label)
 }

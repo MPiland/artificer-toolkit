@@ -10,7 +10,7 @@ import { awaitCampaignCheckpoint } from './developmentCheckpoint'
 import { developmentCli as cli } from './developmentCli'
 import { DevelopmentHttpClient } from './developmentHttpClient'
 import { tokenOf } from './developmentReviewAccounts'
-import { seedReviewData, type ReviewAccount } from './developmentReviewData'
+import { seedReviewData, seedStoryData, type ReviewAccount } from './developmentReviewData'
 import { reviewScenariosForSet, type ReviewAccountSpec } from './developmentReviewDataScenarios'
 import {
   managedAdminCall,
@@ -96,6 +96,8 @@ const result = await seedReviewData(
   },
   reviewScenariosForSet(target.set)
 )
+// Storybook backend stories run against the local deployment only.
+if (target.mode === 'local') await seedStoryData(steps.session)
 console.log(
   `Review data: ${result.created.length} Campaign(s) created, ${result.skipped.length} already finished.`
 )

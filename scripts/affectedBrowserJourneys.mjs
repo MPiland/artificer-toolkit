@@ -75,6 +75,15 @@ export const PROOF_SPECS = {
   'character-sheet-spells-browser': [
     /^apps\/web\/tests\/e2e\/app\/characterSheetSpells\.spec\.ts$/,
     APP_SPECS_CONFIG
+  ],
+  // The backend stories (D221), the Storybook preview and Vitest config they run under, the guard that
+  // fails them on a missing query function and the story-data step that seeds what they read.
+  'storybook-backend-browser': [
+    /^apps\/web\/src\/.+\.backend\.stories\.tsx?$/,
+    /^apps\/web\/\.storybook\//,
+    /^apps\/web\/vitest\.config\.ts$/,
+    /^apps\/web\/src\/test\/storybook\/missingQueryFnGuard\.ts$/,
+    /^apps\/apis\/tests\/developmentReviewData(Scenarios)?\.ts$/
   ]
 }
 const SERVED_ROOT = /^apps\/(web\/(src|public)|session-worker\/src|apis\/convex)\//

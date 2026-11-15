@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { retryRateLimitedAuth } from '../tests/developmentAuthRequest'
 import { convexTest } from '../tests/convexTest'
 import { reviewAccountSession } from '../tests/developmentReviewAccounts'
-import { REVIEW_GM, REVIEW_PLAYERS } from '../tests/developmentReviewDataScenarios'
+import { seedStoryData } from '../tests/developmentReviewData'
+import {
+  REVIEW_GM,
+  REVIEW_PASSWORD,
+  REVIEW_PLAYERS,
+  REVIEW_STORY_READER,
+  type ReviewAccountSpec
+} from '../tests/developmentReviewDataScenarios'
 import { components } from './_generated/api'
 import authSchema from './betterAuth/schema'
 import schema from './schema'
@@ -23,7 +30,7 @@ afterEach(() => {
 // Drives the registered auth HTTP routes from one client IP, as scripts/seedReviewData.mjs does; only
 // the clock is faked, so the driver's rate-limit waits jump ahead while real time still passes.
 describe('review account sessions', () => {
-  it('creates and then re-signs into more accounts than one sign-in window allows', async () => {
+  function reviewAuth() {
     const t = convexTest(schema, import.meta.glob('./**/*.*s'))
     t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
     registerRateLimiter(t)
@@ -50,6 +57,11 @@ describe('review account sessions', () => {
           input: { model: 'verification', data }
         })
       )
+    return { auth, issueInvitation, waits }
+  }
+
+  it('creates and then re-signs into more accounts than one sign-in window allows', async () => {
+    const { auth, issueInvitation, waits } = reviewAuth()
     const specs = [REVIEW_GM, ...REVIEW_PLAYERS].slice(0, 4)
 
     // A fresh backend: each account is missing, created by invitation, then signed in.
@@ -62,5 +74,21 @@ describe('review account sessions', () => {
     }
     expect(waits.length).toBeGreaterThan(0)
     expect(waits.every((milliseconds) => milliseconds >= 0 && milliseconds <= 10_000)).toBe(true)
+  })
+
+  // The Storybook preview signs in with these credentials through the web app's /api/auth proxy.
+  it('creates the story account under the email and password the Storybook preview signs in with', async () => {
+    const { auth, issueInvitation } = reviewAuth()
+    const session = (spec: ReviewAccountSpec) => reviewAccountSession(spec, auth, issueInvitation)
+
+    await seedStoryData(session)
+    // A re-run signs in to the account the first run made.
+    await seedStoryData(session)
+
+    const signIn = await auth('/sign-in/email', {
+      email: REVIEW_STORY_READER.email,
+      password: REVIEW_PASSWORD
+    })
+    expect(signIn.status).toBe(200)
   })
 })
