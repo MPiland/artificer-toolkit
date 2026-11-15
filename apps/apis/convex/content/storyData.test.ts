@@ -91,7 +91,6 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
     [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED)
   }
-  }
   const accounts: string[] = []
   const connect = async (spec: { key: string }) => {
     accounts.push(spec.key)
