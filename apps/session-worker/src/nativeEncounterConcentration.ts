@@ -141,9 +141,10 @@ export async function planNativeLiveConcentration(input: {
    * it. A resumed chain takes this from its sealed context, so callers pass it only on the first plan.
    * `discovered` is the damaged discovery the command's ends stage made per holder it raised
    * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
-   * rest of the command released (D220). A holder no ends stage discovered (a root with none, a
-   * retaliating attacker, or a resumed chain) is derived from the settled projection
-   * (`settledRepeatSaveEffects`).
+   * rest of the command released (D220): an action's or an area's targets, the attacker a melee hit's
+   * zones retaliated against, and each holder only Legendary Actions damaged. A holder no ends stage
+   * discovered (a root with none, a holder a turn effect also damaged, or a resumed chain) is derived
+   * from the settled projection (`settledRepeatSaveEffects`).
    */
   repeatSaves?: {
     damagerActorId: string | null
