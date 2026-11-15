@@ -3,7 +3,10 @@ import { z, lazySchema } from '../zod.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { encounterSpatialRuleEffectRecordSchema } from '../projections/spatialRuleEffectPersistence.js'
-import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
+import {
+  characterMechanicsTargetStateDtoSchema,
+  spatialDamageReached
+} from './ruleExecutionMechanics.js'
 import {
   movementDamageSaveChildren,
   type MovementRepeatSaveExecutionDto
@@ -312,11 +315,13 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             before: z.infer<typeof characterMechanicsTargetStateDtoSchema>
             after: z.infer<typeof characterMechanicsTargetStateDtoSchema>
             version: number | null
+            /** Whether a contact's damage reached the owner, which settles it unchanged too. */
+            reached: boolean
           }
         >()
         const finishSpatialGroups = () => {
           for (const [ownerKey, group] of openSpatialGroups) {
-            const changed = !sameState(group.before, group.after)
+            const changed = group.reached || !sameState(group.before, group.after)
             const beforeVersion = group.version
             const afterVersion =
               group.characterId === null || beforeVersion === null
@@ -325,8 +330,9 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             if (group.characterId !== null && afterVersion !== null)
               currentVersions.set(group.characterId, afterVersion)
             const summary = spatialSummaries.get(ownerKey)
-            // A contact that changes nothing adds nothing to the cumulative span; what happened
-            // since (such as a Concentration end) is proved by its own transitions.
+            // A contact that neither changes nor reaches the owner with damage adds nothing to the
+            // cumulative span; what happened since (such as a Concentration end) is proved by its
+            // own transitions.
             if (summary) {
               if (changed) {
                 summary.after = group.after
@@ -522,15 +528,21 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
               path: ['executions', index, 'targetTransition'],
               message: 'Spatial target pins must continue the proved movement receipt timeline.'
             })
-          if (!openSpatialGroups.has(ownerKey))
+          const group = openSpatialGroups.get(ownerKey)
+          const reached = spatialDamageReached([execution])
+          if (!group)
             openSpatialGroups.set(ownerKey, {
               actorId,
               characterId,
               before: execution.targetTransition.before,
               after: execution.targetTransition.after,
-              version: pinVersion
+              version: pinVersion,
+              reached
             })
-          else openSpatialGroups.get(ownerKey)!.after = execution.targetTransition.after
+          else {
+            group.after = execution.targetTransition.after
+            group.reached ||= reached
+          }
           if (characterId !== null && currentVersion === undefined)
             currentVersions.set(characterId, pinVersion!)
           if (

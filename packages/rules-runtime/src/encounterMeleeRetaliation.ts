@@ -20,7 +20,6 @@ import {
   toSpatialMovementTarget,
   type SpatialTargetState
 } from './encounterSpatialCandidateExecution.js'
-import { spatialDamageReached } from './encounterSpatialDamageEnds.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { zoneMeleeRetaliationContacts } from './encounterZoneContacts.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -192,7 +191,7 @@ export async function planEncounterMeleeRetaliation<
     occurredAt: input.occurredAt,
     userId: input.userId,
     commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 },
-    settleUnchanged: spatialDamageReached(executions),
+    settle: 'CHANGED_OR_DAMAGED',
     // A melee hit is one command: its zones raise once per attacker (D220).
     damageEnds: { ...input.damageEnds, incomingDamageGrants: true, raise: 'PER_COMMAND' }
   })

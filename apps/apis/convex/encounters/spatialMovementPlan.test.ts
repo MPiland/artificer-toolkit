@@ -116,7 +116,8 @@ describe('planNativeSpatialMovementPrefix', () => {
         occurrenceId: input.occurrenceId,
         sourceCommandId: input.executionCommandId,
         occurredAt: input.occurredAt,
-        userId: base.other.userId
+        userId: base.other.userId,
+        settle: 'CHANGED_OR_DAMAGED'
       })
       expect(result.settlements).toHaveLength(1)
       expect(result.settlements[0]!.plan.receiptApplications).toHaveLength(2)
@@ -140,7 +141,8 @@ describe('planNativeSpatialMovementPrefix', () => {
           sourceCommandId: input.executionCommandId,
           occurredAt: input.occurredAt,
           userId: base.other.userId,
-          projectTargets: false
+          projectTargets: false,
+          settle: 'CHANGED_OR_DAMAGED'
         }).projectedTargets.get(targetActorId)
       ).toBe(targets.get(targetActorId))
     })
@@ -235,7 +237,8 @@ describe('planNativeSpatialMovementPrefix', () => {
         occurrenceId: crypto.randomUUID(),
         sourceCommandId: crypto.randomUUID(),
         occurredAt: '2026-09-14T00:00:00.000Z',
-        userId: base.owner.userId
+        userId: base.owner.userId,
+        settle: 'CHANGED_OR_DAMAGED'
       } satisfies Parameters<typeof planNativeSpatialMovementPrefix>[0]
       const result = planNativeSpatialMovementPrefix(input)
       const projected = result.projectedTargets.get(base.actor.id)!
