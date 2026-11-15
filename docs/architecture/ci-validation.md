@@ -16,6 +16,8 @@ Every Vitest run CI makes is one suite in `SUITES` (`scripts/affectedTests.mjs`)
 | `web`       | `apps/web/vitest.config.ts`, `unit`      | `apps/web`            | Web tests                                                |
 | `storybook` | `apps/web/vitest.config.ts`, `storybook` | `apps/web`            | Storybook tests (each story's play function in Chromium) |
 
+The `storybook` project excludes stories tagged `backend` (`*.backend.stories.tsx`). They read the seeded deployment, so they run in the `storybook-backend-browser` [browser journey](#browser-journeys) instead, under the `storybook-backend` project (D218, D221). See [Backend stories](#backend-stories) below.
+
 The selector fails the run when a tracked `*.test.*` or `*.spec.*` file belongs to no suite. Only `apps/web/tests/**` (Playwright) is exempt: the [Storybook end-to-end job](#storybook-end-to-end) and the [browser journeys](#browser-journeys) run those specs. This replaces the hand-kept package list, which left the `apps/apis/src` and `scripts/*.test.mjs` tests unrun.
 
 ## Storybook end-to-end
@@ -210,6 +212,20 @@ node scripts/traceJourneyFailure.mjs --run <Browser journeys run id> --slices "c
 - **After, modeled backfill:** assume each of the other 26 reaching runs names two journeys. Each such run is one shard of about 354 + 2 × 172 ≈ 700 s. That adds 26 jobs and about 18,200 s, for 128 jobs and about 127,500 runner-seconds in total (about 2,130 minutes, 32% less).
 - **Slots per slice run:** 7 concurrent slots with `select` before, and 2 for a slice naming up to a shard's worth of journeys.
 - **Wall-clock:** the merge batch path now waits for its journeys. The longest shard is about 22 minutes, which runs alongside Tests, so the batch wait stays inside its 90-minute limit. The merge-slice job limit rose from 120 to 150 minutes to leave room for a trace.
+
+### Backend stories
+
+**Status:** current (PLATFORM-28.T2, D218, D221).
+
+A page or route story tagged `backend` (`*.backend.stories.tsx`) reads the seeded deployment instead of hand-typed DTO fixtures.
+
+- **Preview.** `apps/web/.storybook/preview.tsx` builds `new ConvexQueryClient(VITE_CONVEX_URL)` and `createAppQueryClient(convex)` for each backend story. It also restores the real `convex/react` hooks for that story, because the module is mocked with `{ spy: true }`, and it wraps the story in `ConvexBetterAuthProvider`.
+- **Writes.** Every write is an `fn()` spy and never reaches the deployment: `useMutation` and the client's `mutation`. Actions stay real, because some actions are reads.
+- **Sign-in.** The story signs in as the story account, `REVIEW_STORY_READER`, through the running web app's `/api/auth` proxy (`apps/web/.storybook/authProxy.ts`). Storybook holds no secret, and the proxy's own checks still run. The proxy rewrites the `Origin` header to the web app's origin, as the review-data CLI's requests do.
+- **Props-only stories.** These keep the fixture spies and need no backend.
+- **Story data.** The story-data step, `seedStoryData` in `apps/apis/tests/developmentReviewData.ts`, makes through product commands whatever the stories read beyond the deploy and SRD seed. Stories find records by stable names. The local review-data CLI runs it after the review data, and the proof runs it before the stories.
+- **Proof.** `storybook-backend-browser` runs `yarn workspace @artificer-toolkit/web test:storybook:backend` (the `storybook-backend` Vitest project) on the throwaway stack, which reuses the same steps unchanged. The selector runs the proof when a change reaches a backend story, the Storybook config, the Vitest config, the guard or the story-data step (`PROOF_SPECS`).
+- **Guard.** `apps/web/src/test/storybook/missingQueryFnGuard.ts` fails a backend story on any TanStack Query "No queryFn" report.
 
 ## Red proof
 

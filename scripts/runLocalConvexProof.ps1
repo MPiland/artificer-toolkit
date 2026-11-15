@@ -13,7 +13,7 @@ param(
     'campaign-membership-browser', 'campaign-collaboration-browser', 'campaign-content-browser',
     'scene-live-browser', 'vtt-map-retention', 'movement', 'passage', 'disarm-browser', 'effects-browser',
     'area-browser', 'shove-aside-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'held-effect-browser', 'concentration-sheet-browser', 'delegated-attack-browser', 'giant-killer-browser', 'summon-turn-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
-    'character-sheet-spells-browser', 'vtt-browser', 'v15-workload'
+    'character-sheet-spells-browser', 'storybook-backend-browser', 'vtt-browser', 'v15-workload'
   )][string]$Proof
 )
 # Runs one native proof of apps/apis/tests/developmentDrafts.ts against the LOCAL Convex deployment

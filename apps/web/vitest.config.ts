@@ -5,9 +5,37 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
+import type { BrowserConfigOptions } from 'vitest/node'
 import { sourceResolve, workspaceSourceAliases } from '../../scripts/vitestSource.mjs'
+import { storyAuthProxy } from './.storybook/authProxy'
 
 const configDir = join(dirname(fileURLToPath(import.meta.url)), '.storybook')
+const BACKEND_STORY_TAG = 'backend'
+
+const storyBrowser: BrowserConfigOptions = {
+  // Vitest's default browser port (63315) sits in the dynamic range Windows reserves for Hyper-V,
+  // so the story runner pins a port below it.
+  api: {
+    host: '127.0.0.1',
+    port: 6106,
+    strictPort: true
+  },
+  commands: {
+    // Chromium terminates service workers at will; MockServiceWorker.stories.tsx proves mocking
+    // survives it.
+    async stopServiceWorkers({ page }) {
+      const session = await page.context().newCDPSession(page)
+      await session.send('ServiceWorker.enable')
+      await session.send('ServiceWorker.stopAllWorkers')
+      await session.detach()
+    }
+  },
+  enabled: true,
+  fileParallelism: false,
+  headless: true,
+  provider: playwright({}),
+  instances: [{ browser: 'chromium' }]
+}
 
 export default defineConfig({
   ssr: sourceResolve.ssr,
@@ -70,7 +98,8 @@ export default defineConfig({
         plugins: [
           storybookTest({
             configDir,
-            storybookScript: 'yarn storybook'
+            storybookScript: 'yarn storybook',
+            tags: { exclude: [BACKEND_STORY_TAG] }
           })
         ],
         test: {
@@ -81,30 +110,28 @@ export default defineConfig({
           include: ['src/**/*.stories.@(ts|tsx)'],
           fileParallelism: false,
           maxWorkers: 1,
-          browser: {
-            // Vitest's default browser port (63315) sits in the dynamic range Windows reserves for
-            // Hyper-V, so the story runner pins a port below it.
-            api: {
-              host: '127.0.0.1',
-              port: 6106,
-              strictPort: true
-            },
-            commands: {
-              // Chromium terminates service workers at will; MockServiceWorker.stories.tsx proves
-              // mocking survives it.
-              async stopServiceWorkers({ page }) {
-                const session = await page.context().newCDPSession(page)
-                await session.send('ServiceWorker.enable')
-                await session.send('ServiceWorker.stopAllWorkers')
-                await session.detach()
-              }
-            },
-            enabled: true,
-            fileParallelism: false,
-            headless: true,
-            provider: playwright({}),
-            instances: [{ browser: 'chromium' }]
-          }
+          browser: storyBrowser
+        }
+      },
+      {
+        extends: true,
+        server: { proxy: storyAuthProxy },
+        plugins: [
+          storybookTest({
+            configDir,
+            storybookScript: 'yarn storybook',
+            tags: { include: [BACKEND_STORY_TAG] }
+          })
+        ],
+        test: {
+          // Stories that read the seeded local deployment (D221). They run only in the
+          // `storybook-backend-browser` proof, which starts that deployment and the web app.
+          name: 'storybook-backend',
+          include: ['src/**/*.backend.stories.@(ts|tsx)'],
+          setupFiles: ['./src/test/storybook/missingQueryFnGuard.ts'],
+          fileParallelism: false,
+          maxWorkers: 1,
+          browser: storyBrowser
         }
       }
     ]

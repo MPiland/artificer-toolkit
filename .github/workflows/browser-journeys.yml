@@ -15,7 +15,8 @@
 # runLocalConvexProof.ps1 proofs) or, unnamed, every CI proof; merge-slice dispatches it on each batch. The selected proofs run in shards, several per stack. A
 # scripts/knownBugProofs.json proof runs in the non-gating shard until its fix task removes it. `reverse` runs each
 # shard's proofs in reverse order, which proves they do not depend on each other. merge-slice requires
-# every run on a tip green (docs/architecture/ci-validation.md#browser-journeys).
+# every run on a tip green (docs/architecture/ci-validation.md#browser-journeys). The
+# `storybook-backend-browser` proof runs the `backend`-tagged Storybook stories against this stack (D221).
 #   git push origin HEAD:ci/<slice>
 #   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof="<name> ..."] [-f reverse=true]
 name: Browser journeys
