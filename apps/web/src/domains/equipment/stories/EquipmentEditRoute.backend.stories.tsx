@@ -171,15 +171,10 @@ export const ShortswordPlusOneDamageModifierDrawer: Story = {
   }
 }
 
-/** A homebrew weapon saved but never activated, opened on its Features overview. */
+/** A homebrew weapon saved but never activated, opened in Advanced on its Features overview. */
 export const AstralTearAwakenedStructure: Story = {
   parameters: {
-    tanstack: {
-      router: {
-        ...editRouter(STORY_DRAFT_ONLY.subjectId, STORY_DRAFT_ONLY.label),
-        query: { step: 'overview:feature:features:overview' }
-      }
-    }
+    tanstack: { router: editRouter(STORY_DRAFT_ONLY.subjectId, STORY_DRAFT_ONLY.label) }
   },
   render: () => <EditRouteInShell />,
   play: async ({ canvasElement }) => {
@@ -216,7 +211,7 @@ export const AstralTearAwakenedStructure: Story = {
     ).toBeInTheDocument()
     await expandAuthoringBranch(canvasElement, /^effects\b/i)
     await expandAuthoringBranch(canvasElement, /^grants\b/i)
-    await expandAuthoringBranch(canvasElement, /^features\b/i)
+    const features = await expandAuthoringBranch(canvasElement, /^features\b/i)
     await expectAuthoringTargetLabels(canvasElement, [
       /melee weapon attack/i,
       /\+1 attack rolls/i,
@@ -224,7 +219,9 @@ export const AstralTearAwakenedStructure: Story = {
       /warping strike/i,
       /spells/i
     ])
+    await userEvent.click(within(features).getByRole('button', { name: /^overview/i }))
     const editor = within(story.getByTestId('authoring-form-content'))
+    await editor.findByText('Add and organize the abilities this item provides.')
     await expect(editor.getAllByText('Features')).toHaveLength(1)
     await expect(
       editor.getByText('Add and organize the abilities this item provides.')
