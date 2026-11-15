@@ -708,7 +708,8 @@ release and no owner transitions, since the save changes no Run state), read bac
 the move for each (`determineConcentrationActorIds`). Each save settles as a `MASSIVE_DAMAGE_SAVE` movement
 settlement through `persistLiveMovementMassiveDamageSave`, which requires the save's scope (non-MANUAL Run,
 the pinned rule's definition and checksum, the source command, the child id under the move's occurrence),
-an unchanged target, the save owed by its damage (`bindEncounterDamageSaveChain`) and no existing child
+an unchanged target, the save owed by its damage (`bindEncounterDamageSaveChain`, against the contact's one raise
+the settlement re-ran) and no existing child
 occurrence, then records it like the action path's child.
 
 **Movement damage ends (current, QUALITY-14.T2e2d2, D220).** The damage a move's zones deal ends the effects the
@@ -1819,9 +1820,9 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   damage hit through `damagedHitRepeatTrigger` instead of raising the effects' event again, and reads the System's
   Concentration checks (`maintenanceSaveHits`) and massive-damage saves beside it. The room's action and area roots
   carry their ends stage's discovery (`planNativeLiveConcentration`'s `repeatSaves.discovered`), less what the rest
-  of the command released; persistence re-derives it from the committed rows (`settledRepeatSaveEffects`: the effects
-  still held, less those the command placed), which equals it because the command's ends are deleted there, and
-  `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Melee retaliation's attacker carries its zones'
+  of the command released; their persistence re-derives it once per holder from the committed rows
+  (`committedDamagedDiscovery`: the effects still held, less those the command placed; D220 amendment), which equals it
+  because the command's ends are deleted there, and `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Melee retaliation's attacker carries its zones'
   ends stage discovery too (`spatialDamageEnds`, through the retaliation settlement's `repeatSaveEffects`), and its
   settlement reads the attacker's effects after that stage. A turn root carries its own discovery (current,
   QUALITY-14.T2e2f2, D220, D132 amendment): `prepareEncounterTurn`'s `damagedDiscovery` joins
@@ -1846,10 +1847,12 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `repeatSaveDamagerActorId`. A Concentration a check or an end lost drops its own later checks and the repeat saves
   of the effects it maintained (`damageSaveApplicationsAfterConcentrationEnd`, on the cleanup's
   `removedDependentEffectIds`), in the room, movement, the result's successor and both persistence paths, so the
-  sealed tail is exactly what the pre-command discovery still owes. Transitional: the room's roots all carry their
-  discovery (QUALITY-14.T2e2f2), but persistence still re-derives it for every root from the committed rows through
-  `settledRepeatSaveEffects`, until the turn, Cleaving and movement roots check against the raise their persistence
-  already re-runs (QUALITY-14.T2e2f3). `encounterConcentrationEndReason` raises
+  sealed tail is exactly what the pre-command discovery still owes. Persistence binds each root's chain against
+  the discovery it already holds (current, QUALITY-14.T2e2f3, D220 amendment): `bindEncounterDamageSaveChain`'s
+  `discovery` is either `RAISED`, the raises the turn, Cleaving and movement persistence re-ran in their ends checks
+  (a turn joins its stages' raises in turn order; a movement massive-damage save reads its contact's one raise),
+  filtered to the effects the holder still holds and refusing a damaged holder with no raise, or `COMMITTED`, the
+  action's and area's one re-derivation per holder. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`

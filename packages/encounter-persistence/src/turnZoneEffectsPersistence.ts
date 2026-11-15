@@ -2,6 +2,7 @@ import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-tool
 import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { planSpatialHeldCondition } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import type { DamagedRaise } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import {
   spatialDamageEndsPerExecution,
   targetStateAfterEndedEffects
@@ -64,6 +65,8 @@ export async function persistEncounterTurnZoneEffects(
 ): Promise<{
   phase: ReturnType<typeof executedTurnZonePhaseEvidenceDtoSchema.parse>
   actors: EncounterRunActorState[]
+  /** Each caught creature's zone raises (D220), joined: its holder and what they found. */
+  raises: DamagedRaise[]
 } | null> {
   const { state, boundary, plan } = input
   const stale = () => new Error('Staged turn zone selection is stale.')
@@ -154,6 +157,7 @@ export async function persistEncounterTurnZoneEffects(
   const encounterActorTransitions: ReturnType<
     typeof executedTurnZonePhaseEvidenceDtoSchema.parse
   >['encounterActorTransitions'] = []
+  const raises: DamagedRaise[] = []
   const effectStore = createActiveRuleEffectStore(ctx)
   for (const [index, target] of orderSpatialSettlementActors(caught).entries()) {
     const targetExecutions = executions.filter(
@@ -239,6 +243,7 @@ export async function persistEncounterTurnZoneEffects(
       owner,
       occurredAt: input.occurredAt
     })
+    raises.push([target.id, ends.repeatSaveEffects])
     // A zone holds the condition its failed save applied (D146).
     for (const [ordinal, execution] of executions.entries()) {
       if (execution.candidate.candidate.targetActorId !== target.id) continue
@@ -288,6 +293,7 @@ export async function persistEncounterTurnZoneEffects(
   }
   return {
     actors: settledActors,
+    raises,
     phase: executedTurnZonePhaseEvidenceDtoSchema.parse({
       kind: 'EXECUTED',
       selectionChecksum,
