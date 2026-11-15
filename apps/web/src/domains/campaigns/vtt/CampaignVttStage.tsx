@@ -1392,6 +1392,8 @@ export function CampaignVttStage({
       <div className={styles.header}>
         <div className={styles.identity}>
           <span
+            role='img'
+            aria-label={`Live connection: ${live.status.toLowerCase()}`}
             className={styles.status}
             data-connected={live.status === 'CONNECTED' || undefined}
           />

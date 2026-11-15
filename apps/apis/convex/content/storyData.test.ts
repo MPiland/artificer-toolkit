@@ -174,6 +174,19 @@ it('gives the story account an active copy and a copy with a waiting draft per d
           .sort()
       }
     })
+  // The story host plays in the story Campaign, so the GM's fog controls list a player.
+  const activeMemberUserIds = async (id: string) =>
+    (
+      await t.run((ctx) =>
+        ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_campaignId_status', (q) => q.eq('campaignId', id).eq('status', 'ACTIVE'))
+          .collect()
+      )
+    )
+      .map(({ userId }) => userId)
+      .sort()
+  expect(await activeMemberUserIds(campaignId)).toEqual([first.userId, second.userId].sort())
   expect(await presentedBoard(campaignId)).toEqual({
     saves: 1,
     fogMode: STORY_CAMPAIGN.scene.board.fogMode,
@@ -205,17 +218,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(playerCampaigns).toHaveLength(1)
   const playerCampaignId = playerCampaigns[0]!.id
   expect(playerCampaigns[0]!.ownerUserId).toBe(second.userId)
-  const memberships = await t.run((ctx) =>
-    ctx.db
-      .query('campaignMemberships')
-      .withIndex('by_campaignId_status', (q) =>
-        q.eq('campaignId', playerCampaignId).eq('status', 'ACTIVE')
-      )
-      .collect()
-  )
-  expect(memberships.map(({ userId }) => userId).sort()).toEqual(
-    [first.userId, second.userId].sort()
-  )
+  expect(await activeMemberUserIds(playerCampaignId)).toEqual([first.userId, second.userId].sort())
   expect(
     (await reader.query(api.encounters.projectionReads.list, { campaignId: playerCampaignId })).map(
       ({ status }) => status

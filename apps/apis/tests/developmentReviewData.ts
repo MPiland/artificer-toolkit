@@ -155,8 +155,9 @@ export async function seedStoryData(
     })
   }
   await seedStoryDraftOnly(reader)
-  await seedStoryCampaign(reader, room)
-  await seedStoryPlayerCampaign(await connect(REVIEW_STORY_HOST), reader, room)
+  const host = await connect(REVIEW_STORY_HOST)
+  await seedStoryCampaign(reader, host, room)
+  await seedStoryPlayerCampaign(host, reader, room)
 }
 
 /**
@@ -240,12 +241,20 @@ async function prepareStoryRun(
 }
 
 /**
- * Hosts the story Campaign and fills what its stories read: a loot table on the Run's creature,
+ * Hosts the story Campaign and fills what its stories read: the story host joined as its one
+ * player (the GM's fog controls list the Campaign's players), a loot table on the Run's creature,
  * then the Run started and presented. The Run is started, presented and bound only while it is
  * still prepared.
  */
-async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
+async function seedStoryCampaign(client: StoryClient, host: StoryClient, room: StoryRoom) {
   const { campaignId, run, actor } = await prepareStoryRun(client, STORY_CAMPAIGN)
+  if (!(await findCampaign(host, STORY_CAMPAIGN.name)))
+    await admitPlayers(
+      { client },
+      campaignId,
+      [{ client: host, username: REVIEW_STORY_HOST.username }],
+      1
+    )
   const { lootTable } = STORY_CAMPAIGN
   const owner = {
     kind: 'ENCOUNTER_ACTOR',
