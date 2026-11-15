@@ -5,12 +5,10 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { planNativeLiveCleavingResponse } from './nativeCleavingResponse.js'
-import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
+import { roomLiveCaptureReads } from './roomLiveCaptureReads.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
-import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -33,22 +31,7 @@ export async function executeRoomEncounterCleavingResponse(input: {
   const plan = await planNativeLiveCleavingResponse(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
-    captures: {
-      encounterRules: (request) =>
-        readRoomEncounterTurnCapture(
-          ctx,
-          inputs,
-          transaction,
-          request,
-          observed.filter((revision) => revision.scope !== 'CHARACTER'),
-          {
-            readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
-            readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
-          }
-        ),
-      prepareCharacter: (characterScope) =>
-        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
-    }
+    captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed })
   })
   if (plan.kind === 'REPLAY') return plan.result
   const run = await ctx.db

@@ -2294,22 +2294,64 @@
               "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221)."
             },
             {
-              "id": "PLATFORM-28.T4",
+              "id": "PLATFORM-28.T4a",
               "status": "TODO",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
-                "after": ["PLATFORM-28.T2"]
+                "size": 5,
+                "after": ["PLATFORM-28.T2", "PLATFORM-28.T5a"]
               },
-              "text": "Social, notification and settings page stories (11 files) read seeded data, with second-account and superadmin story data.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "text": "Per-story sign-in in the backend Storybook preview (seeded second account and superadmin, sign-in reused to stay under the rate limit) and the seed extension through product commands (second account, an application and invitation, a block, a report and the notifications they trigger); SocialProfilePage, MatureContentPreference and NotificationShell stories read seeded data. NotificationFeedView and NotificationPreferencesView stay props-only.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (14 story files, whole about 18): listing stories to T4b, second-account views to T4c, moderation to T4d; depends on T5a for the single-query override and write spies (D218 amendments)."
             },
             {
-              "id": "PLATFORM-28.T5",
+              "id": "PLATFORM-28.T4b",
               "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T4a"]
+              },
+              "text": "SocialListingDetailPage, SocialListingFormPage, SocialNativeLists and SocialListingInvitations stories read the seeded listing; their hand-seeded caches and local shapes are deleted with a no-importer proof.",
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T4c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T4a"]
+              },
+              "text": "SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog stories read the second account seed under its own sign-in; writes go through the shared write spies.",
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T4d",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["PLATFORM-28.T4a"]
+              },
+              "text": "SocialModerationPage story signs in as the seeded superadmin and reads reports made through the report command; the moderation fakes are deleted.",
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T5a",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2318,22 +2360,94 @@
                 "size": 5,
                 "after": ["PLATFORM-28.T2"]
               },
-              "text": "Campaign page stories (Settings, Loot, Scene editor, Encounter builder) read seeded data; the fake ConvexReactClient and hand-seeded query caches deleted.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "text": "The story campaign seed (a Campaign, play settings, a Blueprint with a PREPARED Run, loot tables) through product commands, a name-lookup harness, the shared write-spy and single-query override mechanism (D218 amendment); Campaign Settings and Loot editor stories read seeded data.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (whole about 11): Encounter builder to T5b, Scene editor and the fake client deletion to T5c.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
-              "id": "PLATFORM-28.T6",
+              "id": "PLATFORM-28.T5b",
               "status": "TODO",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
+                "size": 3,
+                "after": ["PLATFORM-28.T5a"]
+              },
+              "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T5c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T5b"]
+              },
+              "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T6a",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
                 "after": ["PLATFORM-28.T2"]
               },
-              "text": "Character sheet, builder and marketing capture stories (7 files) read seeded characters; the sheet story fixtures deleted.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "text": "Story Characters (single-class Fighter, Fighter/Wizard multiclass, a caster) built through Builder commands from SRD content, with the Character name-lookup harness; a backend sheet-story meta reads the real sheet subscription; the Shell base stories (Desktop, Mobile, Tablet, DraftPending, AbilityModifierStates) and the Status stories read them.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (7 files, about 57 stories, whole about 20): rest and composed Shell states to T6b, Inspector and Extras to T6c, Astral Tear, Builder runtime, marketing capture and the story-only module deletion to T6d. Data fixtures imported by unit tests stay (D221); only story-only modules are deleted.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T6b",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T6a", "PLATFORM-28.T5a"]
+              },
+              "text": "Rest stories on the real rest preview with roll spies built through the roll record schema; Shell ProficiencyStates, SpellStates, ActionTypes and ActiveBonusesMobile as composed stories, with the preview override naming a sheet slice.",
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T6c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T6b"]
+              },
+              "text": "Inspector stories on the real panel query (variants composed) and Extras stories with a seeded companion and vehicle; the sheet command spy records a multi-mutation write and a failing variant.",
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T6d",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T6c"]
+              },
+              "text": "Astral Tear Shell stories on a seeded holder, the Builder runtime story on the real contract manifest, the marketing capture stories on seeded Characters; story-only sheet modules deleted with a no-importer proof.",
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T7",
@@ -2360,9 +2474,11 @@
                 "size": 3,
                 "after": [
                   "PLATFORM-28.T3",
-                  "PLATFORM-28.T4",
-                  "PLATFORM-28.T5",
-                  "PLATFORM-28.T6",
+                  "PLATFORM-28.T4b",
+                  "PLATFORM-28.T4c",
+                  "PLATFORM-28.T4d",
+                  "PLATFORM-28.T5c",
+                  "PLATFORM-28.T6d",
                   "PLATFORM-28.T7",
                   "PLATFORM-28.T3d2"
                 ]
@@ -27109,7 +27225,7 @@
             },
             {
               "id": "QUALITY-14.T2e2f2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27120,7 +27236,8 @@
               },
               "text": "The turn root carries its damaged discovery: one raise per turn-effect or turn-zone execution and holder (D220, D132 amendment) and one per Legendary Action and holder; the room stops deriving turnEffectHolders and the settledRepeatSaveEffects branch in nativeEncounterConcentration goes.",
               "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m797 (e23ac39e5, batch with f5 and f4); slice tip c20702533: Tests 43709073118, Live 43710707910, Browser journeys 43709073101 green. The turn root carries its damaged discovery: one raise per turn-effect execution and holder (settled executed effects stay discoverable), per turn-zone stage and caught holder, and per Legendary Action and holder (joinDamagedDiscoveries); refreshIncomingTurnActors replaces the second legendary stage call that double-replayed; the room adds turn-zone damage to its concentration chain (a real bug: \"children incomplete\") and projects zone-only holders; turnEffectHolders and the settledRepeatSaveEffects fallback in the room go. Review fix: a melee retaliation that reaches a creature without changing it (Death Ward at 1 HP) now settles and spends the ward (spatialDamageReached in room and persistence); a fully immune attacker stays undamaged. Red proof: nativeRoomTurnDamagedOncePerHolder RED 3/3, encounterTurnPreparation RED 3/5, encounterLegendaryAction RED 3/30, encounterTurnEffects RED 1/16, nativeRoomLegendary RED 1/31, nativeRoomMeleeRetaliation RED 1/10. Restated: test stubs follow the new refreshIncoming stage; the turn-effect result gains damagedDiscovery; the Legendary count is per command. No D196 change."
             },
             {
               "id": "QUALITY-14.T2e2f3",
@@ -27135,6 +27252,53 @@
               },
               "text": "Persistence checks each commit against the raise it already re-runs in its ends check (turn, Cleaving, movement); action and area keep one commit re-derivation per holder (D220 amendment), so settledRepeatSaveEffects is renamed and scoped to that check; the transitional note leaves rules-runtime.md; count proofs record at the persistence callback.",
               "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2f4",
+              "status": "DONE",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-14.T2e2f2"]
+              },
+              "text": "Bug: several turn zones that damage one holder at the same boundary share one DAMAGED(AFTER) raise, because the spatial prefix settles per target, so overlapping zones (Cloudkill and Spirit Guardians) owe one repeat save instead of one each (D220: one per turn-zone execution and holder). Each zone execution settles and raises separately in room and persistence; SRD proof with two overlapping zones on a Hideous Laughter holder.",
+              "note": "Registered 2026-11-15 from the T2e2f2 delivery under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m797 (e23ac39e5, batch with f5 and f4); slice tip 1b98b353b: Tests 43717711578, Live 43717711583, Browser journeys 43717711531 green. spatialDamageEndsPerExecution (encounterSpatialDamageEnds.ts) raises once per turn-zone execution in order, each over the effects earlier raises left, without re-giving a grant, joining the discoveries less every ended effect; room (planNativeSpatialMovementPrefix) and persistence (turnZoneEffectsPersistence) both use it. Review fix: the raise unit is a required damageEnds.raise ('PER_EXECUTION' for turn zones, 'PER_COMMAND' for melee retaliation, fixed at its own call per D220), replacing an optional boolean. The holder still settles in one batch (zone applications, then releases). Red proof: nativeRoomTurnDamagedOncePerHolder RED (Cloudkill and Radiant Spirit Guardians overlapping a Hideous Laughter Brown Bear: room raises [bear] before, [bear, bear] after; two SAVE_FAILURE repeat saves). Resized 5 to 3 (one seam). Deferred: releases between overlapping zones (future-enhancements). No restated assertions; no D196 change."
+            },
+            {
+              "id": "QUALITY-14.T2e2f5",
+              "status": "DONE",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-14.T2e2f2"]
+              },
+              "text": "Bug: a Hideous Laughter holder that succeeds its turn-end repeat save rejects the turn (\"Turn-effect application trace binding is invalid\"), because the repeat-save terminal in ruleExecutionTurnResults.ts accepts one condition removal only. A repeat-save terminal removes every condition its effect owns, each bound to the effect and the test operation; SRD room proof.",
+              "note": "Registered 2026-11-15 from the T2e2f2 delivery under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m797 (e23ac39e5, batch with f5 and f4); slice tip d39b81236: Tests 43713134314, Live 43713134335, Browser journeys 43713134348 green. The producer already emitted one CONDITION_REMOVE per owned repeat-save condition; the stored-result validator accepted one. One repeatSaveEndsEffect(path) in ruleExecutionTurnResults.ts serves both the rolled and the refused terminal: one or more removals, each a unique condition bound to the effect, the frozen node, the save test and the path, plus the optional trailing ON_SAVE_FAIL escalation. Ruling at review: the validator binds removals by ownership (sourceActiveEffectId, uniqueness) and does not re-check the exact owned set, which lives in a System adapter fact outside the System-neutral sealed evidence; the producer reads the owned set; no contract change. Red proof: nativeRoomTurnEffectRepeatSave RED 1/5 (SRD Hideous Laughter Wolf, natural 20, turn rejected with the trace-binding ZodError), turnSaveTallyPersistence RED 1/5 (Goblin, Prone then Incapacitated removed in authored order). No restated assertions; no D196 change."
+            },
+            {
+              "id": "QUALITY-14.T2e2f6",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-14.T2e2f4"]
+              },
+              "text": "Bug: movement and turn-zone damage that reaches a creature without changing it (Death Ward at 1 HP) skips settlement, so the ward is not spent and the holder has no damaged discovery; both settle on spatialDamageReached like melee retaliation, in room, persistence and the spatial result validator; SRD proofs.",
+              "note": "Registered 2026-11-15 from the T2e2f2 delivery under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -27354,8 +27518,7 @@
             },
             {
               "id": "QUALITY-15.T3i3",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27365,7 +27528,9 @@
                 "after": ["QUALITY-15.T3i2"]
               },
               "text": "The area, contest and Legendary Action funnels read the Campaign clock, so a CAMPAIGN_MINUTES effect they plan is stamped like a single-target one instead of refused (D222); proofs on an authored long-duration area effect.",
-              "note": "Registered 2026-11-15 from the T3i2 delivery (authorable from core options) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T3i2 delivery (authorable from core options) under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m794 (7d6c04c65); slice tip 462bef605: Tests 43706960000, Live 43706959984, Browser journeys 43706960085 green. One shared readCampaignClockForEffects (encounterActionEffects.ts) reads the clock only when a plan counts Campaign minutes; every funnel (single action, area and chosen list, contest hold and escape, Legendary Action) passes a required reader, memoized once per command in roomLiveCaptureReads (Cleaving and Concentration responses now use it too). Red proof: nativeRoomTimedRulingAreaClock RED 2/2 (an authored 30-day Mass Suggestion on two Wolves stamped clock + 43,200, null with no clock), encounterLegendaryAction RED 2/33. Restated: the missing-reader refusal test deleted at review because a missing reader is now a type error. Contest proven by code-path identity (no authorable contest effect reaches a Campaign-minute plan). No golden moves; no D196 change."
             },
             {
               "id": "QUALITY-15.T3b",
