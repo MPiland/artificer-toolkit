@@ -22,18 +22,20 @@ import {
   REVIEW_STORY_HOST,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
+  STORY_DEFINITIONS,
   STORY_DRAFT_ONLY,
   STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS
 } from '../../tests/developmentReviewDataScenarios'
 import { api, components, internal } from '../_generated/api'
+import { definitionReferences } from './definitionReferences'
 
 useLocalRoomWorker()
 // The room needs a clock that moves; full-corpus work must not expire the fixture's auth session.
 useRealTimeClock()
 
 // Storybook backend stories open these records by id and expect each in its authoring state (D221).
-it('gives the story account an active copy and a copy with a waiting draft per domain, one never-activated draft and its Campaign, once', async () => {
+it('gives the story account an active copy and a copy with a waiting draft per domain, one never-activated draft, its Sense definitions and its Campaign, once', async () => {
   const { t, first, second } = await publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
@@ -238,4 +240,35 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(loot.map(({ owner, tables }) => [owner.kind, tables.map(({ name }) => name)])).toEqual([
     ['ENCOUNTER_ACTOR', [STORY_CAMPAIGN.lootTable.name]]
   ])
+
+  // The System detail stories open one definition per state, found by label.
+  const owned = await t.run((ctx) =>
+    ctx.db
+      .query('reusableDefinitions')
+      .filter((q) => q.eq(q.field('ownerUserId'), first.userId))
+      .collect()
+  )
+  const stateOf = async (label: string) => {
+    const matches = owned.filter((definition) => definition.label === label)
+    expect(matches).toHaveLength(1)
+    const { version, draftVersion, currentVersion } = await reader.query(definitionReferences.get, {
+      definitionId: matches[0]!.id
+    })
+    return { version, draftVersion, currentVersion }
+  }
+  expect(await stateOf(STORY_DEFINITIONS.fresh.label)).toEqual({
+    version: 0,
+    draftVersion: null,
+    currentVersion: null
+  })
+  expect(await stateOf(STORY_DEFINITIONS.drafted.label)).toEqual({
+    version: 0,
+    draftVersion: 0,
+    currentVersion: null
+  })
+  expect(await stateOf(STORY_DEFINITIONS.published.label)).toEqual({
+    version: 1,
+    draftVersion: null,
+    currentVersion: 1
+  })
 }, 240_000)
