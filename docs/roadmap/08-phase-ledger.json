@@ -2456,7 +2456,7 @@
             },
             {
               "id": "PLATFORM-28.T7a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2467,21 +2467,53 @@
               },
               "text": "The backend Storybook reaches the throwaway Session Worker (Storybook origin allowed, the live-session URL set for Storybook, real ticket and token flow); a first tabletop window backend story opens a real live session for the seeded Run and asserts the room connects and syncs. Live commands follow D218: the story spies the client COMMAND send and never sends it; after-command states are composed or seeded variants.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (27 stories, a 604-line fake transport harness and 422 lines of fixtures, whole about 21): presented Scene and started Encounter seed to T7b, renderer-heavy stories and siblings to T7c, harness deletion to T7d. Ruling: a Worker COMMAND is a write under D218, spied at the client send and not sent, so seeded state stays shared and no reset path is needed.",
+              "mergedAt": "2026-11-15",
+              "proof": "m803 (c8482ee11); slice tip fc77a164c: Tests 43728600972, Live 43728600973, Browser journeys 43728601041 green (storybook-backend-browser passed). The backend Storybook gets VITE_LIVE_SESSION_WEBSOCKET_URL from the same liveSessionWorkerUrl helper the proof driver uses (the Storybook origins were already allowed since T5a); ticket, token and socket are the product's own code. The preview wraps the WebSocket per story: room frames are recorded through the real server-message schema, a client COMMAND is parsed through the real client-message schema, recorded and never sent (D218 amendment), other frames and Convex sockets pass through. CampaignTabletopWindow.backend.stories RoomConnected renders the real window for the seeded Campaign and asserts the room's TRANSIENT_READY and STATE_SYNC. Red proof: storyLiveSession.test ALREADY-PASSING (new module, 5 cases). No restated assertions; no D196 change. Follow-ups carried into T7b: assert the status indicator once a Scene is presented; a swallowed COMMAND never resolves, so stories assert the recorded command."
+            },
+            {
+              "id": "PLATFORM-28.T7b1",
+              "status": "DONE",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7a"]
+              },
+              "text": "The story seed presents a live Scene (real map asset, barriers, tokens, fog) and starts the seeded Run with the Scene and tokens bound, through product commands routed via the Session Worker room (startRun and presentRunScene shared with the review seed, checkpoint and release wired into both seed entry points); idempotent, proved by storyData.test.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221). Split 2026-11-15 at the seam trace (about 11): player Campaign and Storybook map media to T7b2, stories to T7b3. Ticket issue during DRAINING needs no code: the product client reconnects with backoff, so stories wait on the connected state with the existing timeouts (documented in T7b3).",
+              "mergedAt": "2026-11-15",
+              "proof": "m803 (c8482ee11); slice tip 26b320937: Tests 43739288566, Live 43739288590, Browser journeys 43739288628 green. startRun and presentRunScene are extracted from the review scenario builder (review seed unchanged, its tests prove it); the story seed starts its PREPARED Run and presents \"Story Scene\" (wall, door, wall barriers, PER_PLAYER fog, a bound creature token and an unbound ally token) through the Session Worker room, only while the Run is PREPARED, then checkpoints; both seed entry points pass the checkpoint. storyData.test runs on the room harness, seeds twice and asserts the ACTIVE Run, the presentation, the published Scene, barriers, tokens and controllers, and the scene and actor-token bindings. Restated: RoomConnected's \"No scene is being presented\" becomes the \"Live scene: Story Scene\" region and an OWNER STATE_SYNC frame naming the seeded Scene (the Scene is now presented). D196: local data needs the story seed re-run (it starts the prepared Run and adds the Scene); no schema change."
+            },
+            {
+              "id": "PLATFORM-28.T7b2",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["PLATFORM-28.T7b1"]
+              },
+              "text": "A story host account owns a player Campaign the reader joins through the invitation commands (admitPlayers takes its host and capacity); the local R2 fixture allows the Storybook origins with a CORS preflight test; storyData.test asserts the player seed.",
+              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
-              "id": "PLATFORM-28.T7b",
+              "id": "PLATFORM-28.T7b3",
               "status": "TODO",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
-                "after": ["PLATFORM-28.T7a"]
+                "size": 5,
+                "after": ["PLATFORM-28.T7b2"]
               },
-              "text": "The story seed builds a presented live Scene (real map asset, tokens, barriers, fog) and a started Encounter through product commands; the base GM and player window stories read them over the live session.",
-              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+              "text": "The backend preview spies the Scene renderer and records every client write frame (COMMAND and Scene fog writes) without sending it; GM and player window backend stories assert the presented Scene, tokens drawn, fog, the connection status and the Encounter, replacing RoomConnected and the base harness stories; DRAINING reconnect documented.",
+              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T7c",
@@ -2492,7 +2524,7 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 8,
-                "after": ["PLATFORM-28.T7b"]
+                "after": ["PLATFORM-28.T7b3"]
               },
               "text": "The renderer-heavy tabletop stories (auras, zones, morale, conditions, fog save, show scene, Encounter binding, command rejection) run as seeded or composed variants, with the drawer and live scene object editor siblings.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
