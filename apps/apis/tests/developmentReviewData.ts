@@ -209,19 +209,24 @@ async function seedStoryDefinitions(client: StoryClient) {
             })
           })
         : workspace
-    if (label === published.label)
-      await client.mutation(definitionReferences.publish, {
-        definitionId: withDraft.id,
-        expectedDefinitionVersion: withDraft.version,
-        expectedDraftVersion: withDraft.draftVersion
-      })
+    if (label !== published.label) continue
+    assert.ok(withDraft.draftVersion !== null, 'Story definition ${label} has no draft.')
+    await client.mutation(definitionReferences.publish, {
+      definitionId: withDraft.id,
+      expectedDefinitionVersion: withDraft.version,
+      expectedDraftVersion: withDraft.draftVersion
+    })
   }
 }
 
 async function findStoryDefinition(client: StoryClient, label: string) {
   let cursor: string | null = null
   for (;;) {
-    const page = await client.query(api.content.definitions.list, {
+    const page: {
+      page: { id: string; label: string }[]
+      isDone: boolean
+      continueCursor: string
+    } = await client.query(api.content.definitions.list, {
       gameSystemId: srdSystemRecord.id,
       cursor,
       limit: 10

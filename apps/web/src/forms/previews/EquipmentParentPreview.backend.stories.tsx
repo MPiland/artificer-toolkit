@@ -5,12 +5,15 @@ import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsw
 import { shortswordPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shortsword-plus-1.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { expect } from 'storybook/test'
+import { getEquipment } from '#app/data/equipment/queries'
 import { getSystem } from '#app/data/systems/queries'
 import { toEquipmentFormValues } from '#domains/equipment/equipmentAuthoring.utils'
 import { EquipmentParentPreview } from './EquipmentParentPreview'
 
 function ShortswordPlus1Preview() {
   const { data: system } = useSuspenseQuery(getSystem(srdSystemRecord.id))
+  const { data: variant } = useSuspenseQuery(getEquipment(shortswordPlus1.id))
+  if (!variant.item) throw new Error('The seeded deployment has no Shortsword +1.')
   return (
     <EquipmentParentPreview
       context={{
@@ -18,14 +21,14 @@ function ShortswordPlus1Preview() {
         label: shortswordPlus1.label,
         statusLabel: 'Draft',
         system,
-        values: toEquipmentFormValues(shortswordPlus1)
+        values: toEquipmentFormValues(variant.item)
       }}
       parentEquipmentId={shortsword.id}
     />
   )
 }
 
-// A Shortsword +1 variant inheriting its weight and value from the seeded SRD Shortsword, which the
+// The seeded SRD Shortsword +1 variant inheriting its weight and value from the seeded SRD Shortsword, which the
 // preview reads from the deployment as the story account (D218, D221).
 const meta = {
   title: 'Forms/Previews/EquipmentParentPreview',
