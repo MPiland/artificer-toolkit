@@ -88,9 +88,13 @@ export const DragonbornAncestryFeatureBranch: Story = {
     await expectAuthoringTargetLabels(canvasElement, [
       /^ancestry\b/i,
       /^red \(fire\)/i,
-      /^breath weapon\b/i
+      /^level 1 · breath weapon\b/i
     ])
-    await selectAuthoringChildTarget(canvasElement, /^breath weapon\b/i, /^feature basics\b/i)
+    await selectAuthoringChildTarget(
+      canvasElement,
+      /^level 1 · breath weapon\b/i,
+      /^feature basics\b/i
+    )
 
     const story = getStoryDocument(canvasElement)
     await expect(await story.findByDisplayValue('Breath Weapon')).toBeInTheDocument()
