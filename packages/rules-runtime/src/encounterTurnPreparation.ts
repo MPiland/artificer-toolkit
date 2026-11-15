@@ -19,8 +19,10 @@ import type { prepareEncounterTurnZoneEffects } from './encounterTurnZoneEffects
 import type { prepareEncounterTurnInitiative } from './encounterTurnInitiative.js'
 import {
   delegatedLegendaryOption,
-  type prepareTurnLegendaryActions
+  type prepareTurnLegendaryActions,
+  type refreshIncomingTurnActors
 } from './encounterTurnLegendaryAction.js'
+import { type DamagedDiscovery, joinDamagedDiscoveries } from './encounterDamageSaveChain.js'
 import type { prepareEncounterTurnRecharge } from './encounterTurnRecharge.js'
 import type { prepareEncounterTurnDeathSave } from './encounterTurnDeathSave.js'
 
@@ -128,9 +130,12 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         | 'pending'
         | 'resolution'
         | 'updatedAt'
-        | 'refreshIncoming'
       >
     ) => ReturnType<typeof prepareTurnLegendaryActions<TCharacterFacts>>
+    /** Stages the entering creature's refreshes once the next turn is known. */
+    refreshIncoming: (
+      input: Pick<Parameters<typeof refreshIncomingTurnActors>[0], 'state' | 'root' | 'actors'>
+    ) => ReturnType<typeof refreshIncomingTurnActors>
     initiative: (
       input: Pick<
         Parameters<typeof prepareEncounterTurnInitiative>[0],
@@ -221,8 +226,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   if (outgoingZones?.kind === 'PENDING') return outgoingZones
   if (outgoingZones?.plan) root = { ...root, outgoingZoneTurn: outgoingZones.plan }
   const outgoingActors = outgoingZones?.actors ?? input.actors
-  // Legendary windows first; the entering actor refreshes once the next turn is known.
-  let legendary = await stages.legendary({
+  // Legendary windows first; the entering actor refreshes once the next turn is known (refreshIncoming).
+  const legendary = await stages.legendary({
     state,
     userId: campaign.ownerUserId,
     autoRollByActorId: input.autoRollByActorId,
@@ -233,8 +238,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     startOutgoing,
     pending,
     resolution: input.resolution,
-    updatedAt: input.updatedAt,
-    refreshIncoming: false
+    updatedAt: input.updatedAt
   })
   if (legendary.kind === 'PENDING') return legendary
   root = legendary.root
@@ -244,6 +248,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       kind: 'COMPLETE' as const,
       root,
       actors: legendary.actors,
+      /** Each creature the turn so far staged, as it left it. */
+      movementTargets: legendary.movementTargets,
       outgoingActors,
       incomingActors: legendary.actors,
       outgoing,
@@ -258,7 +264,11 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       incomingZones: null,
       rechargePlan: null,
       deathSavePlan: null,
-      legendaryDiscovery: legendary.damagedDiscovery
+      damagedDiscovery: turnDamagedDiscovery(legendary.movementTargets, [
+        outgoing?.damagedDiscovery,
+        outgoingZones?.damagedDiscovery,
+        legendary.damagedDiscovery
+      ])
     }
   // The turn's effects and Legendary Actions may have killed a Character (D96).
   const deadCharacterIds = deadCharacterIdsOfTargets(
@@ -298,18 +308,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     if (initiative.kind === 'PENDING') return initiative
     root = initiative.root
   }
-  legendary = await stages.legendary({
-    state,
-    userId: campaign.ownerUserId,
-    autoRollByActorId: input.autoRollByActorId,
-    root,
-    occurrenceId,
-    actors: outgoingActors,
-    movementTargets: outgoingZones?.movementTargets,
-    updatedAt: input.updatedAt
-  })
-  if (legendary.kind === 'PENDING') throw new Error('Outgoing Legendary Actions are incomplete.')
-  root = legendary.root
+  const refreshed = await stages.refreshIncoming({ state, root, actors: legendary.actors })
+  root = refreshed.root
   // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn stages again.
   const actorId = root.proposedTerminalTransition.currentActorId
   const incomingBegun =
@@ -317,13 +317,13 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     (await stages.turnStarted({ round: root.proposedTerminalTransition.round, actorId }))
   // Recharge candidates all belong to the entering actor.
   const recharge = incomingBegun
-    ? { kind: 'COMPLETE' as const, actors: legendary.actors, plan: null }
+    ? { kind: 'COMPLETE' as const, actors: refreshed.actors, plan: null }
     : await stages.recharge({
         state,
         autoRoll: actorAutoRoll(root.proposedTerminalTransition.currentActorId),
         root,
         occurrenceId,
-        actors: legendary.actors,
+        actors: refreshed.actors,
         ...(pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
         pending.applicationContext.kind === 'ENCOUNTER_TURN_RECHARGE'
           ? {
@@ -384,7 +384,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         actors: recharge.actors,
         movementTargets,
         plan: null,
-        phase: { kind: 'NONE' as const }
+        phase: { kind: 'NONE' as const },
+        damagedDiscovery: new Map()
       }
     : await stages.effects({
         state,
@@ -405,7 +406,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         kind: 'COMPLETE' as const,
         actors: incoming.actors,
         movementTargets: incoming.movementTargets,
-        plan: null
+        plan: null,
+        damagedDiscovery: new Map()
       }
     : await stages.zones({
         state,
@@ -424,6 +426,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     kind: 'COMPLETE' as const,
     root,
     actors: incomingZones.actors,
+    /** Each creature the turn staged, as it left it. */
+    movementTargets: incomingZones.movementTargets,
     outgoingActors,
     incomingActors: recharge.actors,
     outgoing,
@@ -432,7 +436,31 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     incomingZones: incomingZones.plan,
     rechargePlan: recharge.plan,
     deathSavePlan: deathSave.plan,
-    /** The damaged discovery the Legendary Actions' ends stages made per holder they damaged. */
-    legendaryDiscovery: legendary.damagedDiscovery
+    damagedDiscovery: turnDamagedDiscovery(incomingZones.movementTargets, [
+      outgoing?.damagedDiscovery,
+      outgoingZones?.damagedDiscovery,
+      legendary.damagedDiscovery,
+      incoming.damagedDiscovery,
+      incomingZones.damagedDiscovery
+    ])
   }
+}
+
+/**
+ * The turn root's damaged discovery (D220, D132 amendment): its stages' raises joined in turn order,
+ * each less the effects a later stage ended, read from the holders as the turn left them.
+ */
+function turnDamagedDiscovery(
+  targets: ReadonlyMap<string, { activeEffects: readonly { id: string }[] }>,
+  stages: readonly (DamagedDiscovery | undefined)[]
+): DamagedDiscovery {
+  return new Map(
+    [...joinDamagedDiscoveries(stages.flatMap((stage) => [...(stage ?? [])]))].map(
+      ([holderActorId, effects]) => {
+        const held = targets.get(holderActorId)?.activeEffects
+        if (!held) throw new Error('A turn’s damaged holder is unavailable.')
+        return [holderActorId, effects.filter(({ id }) => held.some((effect) => effect.id === id))]
+      }
+    )
+  )
 }

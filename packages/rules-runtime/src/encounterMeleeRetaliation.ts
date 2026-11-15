@@ -20,6 +20,7 @@ import {
   toSpatialMovementTarget,
   type SpatialTargetState
 } from './encounterSpatialCandidateExecution.js'
+import { spatialDamageReached } from './encounterSpatialDamageEnds.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { zoneMeleeRetaliationContacts } from './encounterZoneContacts.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -188,6 +189,7 @@ export async function planEncounterMeleeRetaliation<
     occurredAt: input.occurredAt,
     userId: input.userId,
     commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 },
+    settleUnchanged: spatialDamageReached(executions),
     damageEnds: { ...input.damageEnds, incomingDamageGrants: true }
   })
   const settlement = settled.settlements[0] ?? null
@@ -216,7 +218,7 @@ export async function planEncounterMeleeRetaliation<
     throw new Error('Retained melee retaliation evidence is stale.')
   return {
     evidence,
-    /** Null when the zones left the attacker unchanged, so no batch is written. */
+    /** Null when the zones neither changed the attacker nor reached it with damage: no batch is written. */
     settlement,
     projectedAttacker: settled.projectedTargets.get(attacker.actor.id)!
   }

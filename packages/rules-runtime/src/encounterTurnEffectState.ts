@@ -240,14 +240,17 @@ export async function requireTurnMaintainedStates(
 /**
  * What the damage a turn effect deals ends on its holder (SPELLS-27.T4b): the holder's other
  * effects that end on damage, with the conditions only they held. A later effect of the same turn
- * ends too (it expires when its own execution comes); `excluded` holds the effects already settled.
+ * ends too (it expires when its own execution comes); an executed one is settled, so it never ends
+ * here but still owes the repeat saves the execution's one `DAMAGED(AFTER)` raise finds (D220).
  */
 export function turnEffectDamageEnded(input: {
   effect: ActiveRuleEffectRecord
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
-  /** The turn's executed candidates and the effects its earlier executions ended. */
-  excluded: ReadonlySet<string>
+  /** The effects the turn's earlier executions ended or expired. */
+  gone: ReadonlySet<string>
+  /** The turn's executed candidates, this one included. */
+  executed: ReadonlySet<string>
   /** The turn effect's own d20 evidence: a repeat save spends the holder's dice (D156). */
   testEvidence: Parameters<typeof targetEndedEffects>[0]['testEvidence']
   applications: readonly CharacterRuleActionApplication[]
@@ -256,7 +259,8 @@ export function turnEffectDamageEnded(input: {
   const { origin } = input.effect.definition
   return targetEndedEffects({
     holderActorId: input.holderActorId,
-    held: input.held.filter(({ id }) => !input.excluded.has(id)),
+    held: input.held.filter(({ id }) => !input.gone.has(id) && !input.executed.has(id)),
+    settled: input.held.filter(({ id }) => !input.gone.has(id) && input.executed.has(id)),
     attack: null,
     testEvidence: input.testEvidence,
     turnActorId: null,

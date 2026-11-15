@@ -1384,8 +1384,7 @@ export async function planNativeLiveEncounterAction(
         ...(retaliation?.settlement?.repeatSaveEffects
           ? ([[prepared.actor.id, retaliation.settlement.repeatSaveEffects]] as const)
           : [])
-      ]),
-      entryOccurrenceIds: []
+      ])
     }
   })
   const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
