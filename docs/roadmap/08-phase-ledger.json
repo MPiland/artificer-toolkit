@@ -2488,7 +2488,7 @@
             },
             {
               "id": "PLATFORM-28.T7b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2499,11 +2499,12 @@
               },
               "text": "A story host account owns a player Campaign the reader joins through the invitation commands (admitPlayers takes its host and capacity); the local R2 fixture allows the Storybook origins with a CORS preflight test; storyData.test asserts the player seed.",
               "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m805 (998dba205); slice tip cddd7c8fc: Tests 43744621028, Live 43744620892, Browser journeys 43744620881 green."
             },
             {
               "id": "PLATFORM-28.T7b3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2513,7 +2514,8 @@
                 "after": ["PLATFORM-28.T7b2"]
               },
               "text": "The backend preview spies the Scene renderer and records every client write frame (COMMAND and Scene fog writes) without sending it; GM and player window backend stories assert the presented Scene, tokens drawn, fog, the connection status and the Encounter, replacing RoomConnected and the base harness stories; DRAINING reconnect documented.",
-              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T7c",
