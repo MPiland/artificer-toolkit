@@ -11,7 +11,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
-import { writesTo } from '#app/test/storybook/storyWrites'
+import { storyMutation, writesTo } from '#app/test/storybook/storyWrites'
 import type { StoryQueryOverride } from '#app/test/storybook/storyQueryOverride'
 import { STORY_CAMPAIGN } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededCampaign } from '../stories/SeededCampaign'
@@ -118,6 +118,10 @@ export const NoEncountersYet: Story = {
     expect(createEncounterInputDtoSchema.parse(write)).toMatchObject({
       campaignId: seeded.dataset.campaignId
     })
+    await waitFor(() => expect(storyMutation.mock.settledResults).toHaveLength(1), {
+      timeout: 10_000
+    })
+    expect(storyMutation.mock.settledResults[0]).toMatchObject({ type: 'return' })
     // The created Run closes the adder; the served list stays empty.
     await waitFor(
       () => expect(canvas.queryByLabelText('Encounter Blueprint')).not.toBeInTheDocument(),
