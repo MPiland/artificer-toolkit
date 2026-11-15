@@ -27241,7 +27241,7 @@
             },
             {
               "id": "QUALITY-14.T2e2f3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27251,7 +27251,8 @@
                 "after": ["QUALITY-14.T2e2f2"]
               },
               "text": "Persistence checks each commit against the raise it already re-runs in its ends check (turn, Cleaving, movement); action and area keep one commit re-derivation per holder (D220 amendment), so settledRepeatSaveEffects is renamed and scoped to that check; the transitional note leaves rules-runtime.md; count proofs record at the persistence callback.",
-              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e2f4",
@@ -27287,18 +27288,19 @@
             },
             {
               "id": "QUALITY-14.T2e2f6",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 3,
+                "size": 2,
                 "after": ["QUALITY-14.T2e2f4"]
               },
               "text": "Bug: movement and turn-zone damage that reaches a creature without changing it (Death Ward at 1 HP) skips settlement, so the ward is not spent and the holder has no damaged discovery; both settle on spatialDamageReached like melee retaliation, in room, persistence and the spatial result validator; SRD proofs.",
               "note": "Registered 2026-11-15 from the T2e2f2 delivery under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m798 (d10e611ba); slice tip 7531e1480: Tests 43720351257, Live 43720351249, Browser journeys 43720351239 green. spatialDamageReached moves to schema (ruleExecutionMechanics.ts, D132: any DAMAGE row with resolvedAmount > 0, so a Death Ward interception counts and immunity does not); planSpatialMovement takes a required settle ('EVERY_TARGET' for turn zones, 'CHANGED_OR_DAMAGED' for movement response, preparation and melee retaliation) in place of an optional boolean; movement persistence keeps reached creatures; the spatial result validator requires a transition for a reached or changed group. Turn zones already settled every caught creature. Red proof: spatial-movement-rule-contracts RED 1/20 (reached and settled Character rejected), nativeZoneDamageDeathWard RED (Spike Growth on a 1 HP Wolf holding SRD Death Ward and Dominate Beast: ward spent, DAMAGED raised, one SAVE_FAILURE repeat save; the Cloudkill case is ALREADY-PASSING against f4). Resized 3 to 2. No restated assertions; no D196 change."
             }
           ]
         },
