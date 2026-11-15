@@ -23,7 +23,10 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
-import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  prepareNativeActionEffectsPlan,
+  readCampaignClockForEffects
+} from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -165,40 +168,47 @@ type ContestWin = NativeTargetOutcomeSource
  * effect, from the initiator's winning check against the defender's total, and the conditions it
  * newly applies (D152). Convex re-derives both from the stored effect at settlement.
  */
-function planNativeContestHold(
+async function planNativeContestHold(
   input: ContestWin & {
     published: ContestPreparation['published']
     rolls: ContestRolls
     initiatorRequestId: string
     activeEffectsByActorId: ContestActors['activeEffectsByActorId']
+    readClockMinute: LiveCaptureReads['readCampaignClockMinute']
   }
 ) {
   const { prepared, rolls, occurrenceId, commandId, occurredAt } = input
   const { initiator, defender } = rolls
+  const execution: Parameters<typeof prepareNativeActionEffectsPlan>[0]['execution'] = {
+    published: input.published,
+    execution: rolls.execution,
+    d20: {
+      requestId: input.initiatorRequestId,
+      rollMode: initiator.rollMode,
+      keep: initiator.keep,
+      derivedRollMode: initiator.rollMode,
+      rawFaces: [...initiator.rawFaces],
+      selectedNatural: initiator.selectedNatural,
+      contributors: [...initiator.contributors],
+      contributorChecksum: initiator.contributorChecksum,
+      modifier: initiator.modifier,
+      total: initiator.total,
+      defenseOrDc: defender.total,
+      resultPath: 'ON_CHECK_SUCCESS'
+    },
+    applications: []
+  }
   const effects = prepareNativeActionEffectsPlan({
     prepared,
-    execution: {
-      published: input.published,
-      execution: rolls.execution,
-      d20: {
-        requestId: input.initiatorRequestId,
-        rollMode: initiator.rollMode,
-        keep: initiator.keep,
-        derivedRollMode: initiator.rollMode,
-        rawFaces: [...initiator.rawFaces],
-        selectedNatural: initiator.selectedNatural,
-        contributors: [...initiator.contributors],
-        contributorChecksum: initiator.contributorChecksum,
-        modifier: initiator.modifier,
-        total: initiator.total,
-        defenseOrDc: defender.total,
-        resultPath: 'ON_CHECK_SUCCESS'
-      },
-      applications: []
-    },
+    execution,
     occurrenceId,
     commandId,
-    activeEffectsByActorId: input.activeEffectsByActorId
+    activeEffectsByActorId: input.activeEffectsByActorId,
+    campaignClockMinute: await readCampaignClockForEffects({
+      prepared,
+      execution,
+      readClockMinute: input.readClockMinute
+    })
   })
   if (!effects.recurringEffect) throw new Error('The contest hold effect is unavailable.')
   const record = createNativeActiveEffect(effects.recurringEffect, {
@@ -292,6 +302,7 @@ export async function planNativeLiveContest(
       activeEffectsByActorId,
       loadTarget,
       capture,
+      readCampaignClockMinute: executionOptions.captures.readCampaignClockMinute,
       runtime: executionOptions.runtime,
       random: executionOptions.random,
       forcedMovementPick: executionOptions.forcedMovementPick,
@@ -399,6 +410,7 @@ export async function planNativeLiveContest(
     preparation,
     actionEconomy,
     attackAction: contestAttackAction,
+    readCampaignClockMinute: executionOptions.captures.readCampaignClockMinute,
     runtime: executionOptions.runtime,
     random: executionOptions.random,
     revisions: reads.revisions()
@@ -424,6 +436,7 @@ export async function planNativeLiveEscapeContest(input: {
     actor: ContestActors['actors'][number]
   ): Promise<Parameters<typeof prepareEncounterEscapeContest>[0]['holder']>
   capture: Parameters<typeof spendNativeHolderActivation>[0]['capture']
+  readCampaignClockMinute: LiveCaptureReads['readCampaignClockMinute']
   runtime: RulesRuntimeService
   random(maximum: number): number
   forcedMovementPick: ForcedMovementPick
@@ -486,6 +499,7 @@ export async function planNativeLiveEscapeContest(input: {
     activeEffectsByActorId,
     preparation,
     actionEconomy,
+    readCampaignClockMinute: input.readCampaignClockMinute,
     runtime: input.runtime,
     random: input.random,
     revisions: input.revisions()
@@ -519,6 +533,8 @@ export async function planNativeLiveContestRolls(input: {
   actionEconomy: EncounterActionEconomyConsumption | null
   /** The Attack action a contest that replaces one attack fills; null for any other contest. */
   attackAction?: EncounterAttackActionTransitionDto | null
+  /** Reads the Campaign clock for the hold a won contest creates; the escape contest creates none. */
+  readCampaignClockMinute: LiveCaptureReads['readCampaignClockMinute']
   runtime: RulesRuntimeService
   random(maximum: number): number
   revisions: LiveSessionRulesRevisions
@@ -759,12 +775,13 @@ export async function planNativeLiveContestRolls(input: {
   // A win holds the target (Grapple), or runs the outcome its initiator picked (Shove, D105).
   const hold =
     win && win.prepared.plan.kind === 'SINGLE_GRAPH'
-      ? planNativeContestHold({
+      ? await planNativeContestHold({
           ...win,
           published: preparation.published,
           rolls: execution,
           initiatorRequestId: contest.rollEvidence.initiator!.requestId,
-          activeEffectsByActorId
+          activeEffectsByActorId,
+          readClockMinute: input.readCampaignClockMinute
         })
       : null
   const outcome =

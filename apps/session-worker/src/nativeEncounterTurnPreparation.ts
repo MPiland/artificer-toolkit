@@ -38,6 +38,7 @@ import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
 import { readNativeLiveTurnStarted } from './nativeTurnUses.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   readNativeLivePerceptionScene,
   readNativeLiveSpatialEffects,
@@ -59,6 +60,8 @@ export function createNativeLiveTurnStages(
     loadTarget(actorId: string): Promise<MovementTarget<CharacterFacts> | undefined>
     runtime: RulesRuntimeService
     random(maximum: number): number
+    /** Reads the Campaign clock for a Legendary Action whose effect counts Campaign minutes (D222). */
+    readCampaignClockMinute: LiveCaptureReads['readCampaignClockMinute']
     onSceneRead: Parameters<typeof resolveNativeLiveTurnEffectPerception>[0]['onSceneRead']
   }
 ) {
@@ -227,6 +230,7 @@ export function createNativeLiveTurnStages(
     legendary: (stage) =>
       prepareTurnLegendaryActions<CharacterFacts>({
         ...stage,
+        readCampaignClockMinute: inputs.readCampaignClockMinute,
         definitions,
         createRuntime,
         random,
