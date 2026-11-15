@@ -4,7 +4,11 @@ import { publicationFixture } from '../../tests/fixtures/publication'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 import { seedStoryData, type StoryClient } from '../../tests/developmentReviewData'
 import type { ActionCtx } from '../_generated/server'
-import { REVIEW_STORY_READER, STORY_RECORDS } from '../../tests/developmentReviewDataScenarios'
+import {
+  REVIEW_STORY_READER,
+  STORY_DRAFT_ONLY,
+  STORY_RECORDS
+} from '../../tests/developmentReviewDataScenarios'
 import { api, internal } from '../_generated/api'
 
 afterEach(() => {
@@ -12,7 +16,7 @@ afterEach(() => {
 })
 
 // Storybook backend stories open these records by id and expect each in its authoring state (D221).
-it('gives the story account an active copy and a copy with a waiting draft per domain, once', async () => {
+it('gives the story account an active copy and a copy with a waiting draft per domain, and one never-activated draft, once', async () => {
   // Full-corpus work must not expire the fixture's auth session.
   vi.useFakeTimers({ toFake: ['Date'] })
   const { t, first } = await publicationFixture(
@@ -66,9 +70,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
         `${subjectKind} ${ownedDraft.label}`
       ])
       .sort(),
-    drafts: records
-      .map(({ subjectKind, ownedDraft }) => `${subjectKind} ${ownedDraft.label} ACTIVE_WITH_DRAFT`)
-      .sort()
+    drafts: [
+      ...records.map(
+        ({ subjectKind, ownedDraft }) => `${subjectKind} ${ownedDraft.label} ACTIVE_WITH_DRAFT`
+      ),
+      `${STORY_DRAFT_ONLY.subjectKind} ${STORY_DRAFT_ONLY.label} DRAFT_ONLY`
+    ].sort()
   })
   for (const { subjectKind, ownedActive, ownedDraft } of records) {
     for (const record of [ownedActive, ownedDraft]) {
