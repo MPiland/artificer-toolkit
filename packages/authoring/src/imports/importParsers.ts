@@ -8,6 +8,7 @@ import {
   IMPORT_MAX_FOUNDRY_ITEMS
 } from '@artificer-toolkit/schema/api/imports'
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
+import { FOUNDRY_ACTOR_SYSTEM_ID } from '../systems/dnd5e/foundryActorFormat.js'
 import {
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_GRIP,
@@ -425,7 +426,7 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
   if (!source) return null
   const stats = asRecord(source._stats)
   const explicitSystemId = readString(stats?.systemId)
-  if (explicitSystemId?.toLowerCase() !== 'dnd5e') return null
+  if (explicitSystemId?.toLowerCase() !== FOUNDRY_ACTOR_SYSTEM_ID) return null
   if (source.type !== 'character' || !asRecord(source.system) || !Array.isArray(source.items)) {
     return null
   }
