@@ -6,9 +6,10 @@ import {
   createActorSensePinner,
   deriveActorSceneVision
 } from '@artificer-toolkit/rules-runtime/actorSenses'
-import { creatureEmittedLight } from '@artificer-toolkit/rules-runtime/creatureLight'
+import { actorEmittedLight } from '@artificer-toolkit/rules-runtime/actorLight'
 import { encounterActorMovementPassage } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { snapshotCreatureSenses } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import {
   sceneSessionVisionCompositionSchema,
@@ -17,6 +18,7 @@ import {
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { resolveSceneActorVision } from '@artificer-toolkit/shared/vtt'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -88,7 +90,10 @@ export async function composeRoomSceneVision(input: {
     SceneSessionVisionComposition['context']['encounterActorBindings'][number]
   >()
   const characterActors = new Map<string, { characterId: string; actor: EncounterRunActorState }>()
-  const creatureActors = new Map<string, EncounterRunActorState>()
+  const creatureActors = new Map<
+    string,
+    { actor: EncounterRunActorState; activeEffects: ActiveRuleEffectRecord[] }
+  >()
   if (selectedTokens.size) {
     const held = authorization.play.encounter
     if (held?.sceneId === scene.id) await inputs.encounter(held.encounterId, transaction)
@@ -111,7 +116,12 @@ export async function composeRoomSceneVision(input: {
         const actor = await readRunActor(ctx, state, tokenBinding.actorId)
         if (actor.kind === 'CREATURE') {
           if (!selectedTokens.has(tokenBinding.tokenId)) continue
-          creatureActors.set(actor.id, actor)
+          creatureActors.set(actor.id, {
+            actor,
+            activeEffects: await listActiveRuleEffects(ctx, turnEffectOwner(actor, run.id), {
+              ownerVerified: true
+            })
+          })
           bindings.set(tokenBinding.tokenId, {
             encounterId: run.id,
             actorId: actor.id,
@@ -197,14 +207,15 @@ export async function composeRoomSceneVision(input: {
       throw new Error('Character vision source is stale.')
     const { snapshot } = facts.ruleEvaluation
     // Sense grants the Character holds (the Darkvision spell) fold in like its own features.
+    const activeEffects = await listActiveRuleEffects(
+      ctx,
+      { kind: 'CHARACTER', characterId },
+      { ownerVerified: true }
+    )
     const policy = evaluateCharacterActiveGrantRules({
       gameSystemId: campaign.gameSystemId,
       evaluation: facts.ruleEvaluation,
-      activeEffects: await listActiveRuleEffects(
-        ctx,
-        { kind: 'CHARACTER', characterId },
-        { ownerVerified: true }
-      ),
+      activeEffects,
       vocabularySnapshot: facts.prepared.context.vocabularySnapshot
     }).output
     const system = facts.prepared.context.registry.system
@@ -220,17 +231,21 @@ export async function composeRoomSceneVision(input: {
     for (const bound of characterActors.values())
       if (bound.characterId === characterId)
         actorVisions.push({
-          ...deriveActorSceneVision(bound.actor.id, senses),
+          ...deriveActorSceneVision(
+            bound.actor.id,
+            senses,
+            actorEmittedLight(bound.actor, activeEffects)
+          ),
           ...barrierPassage(campaign.gameSystemId, bound.actor, policy)
         })
     characterRevisions.push({ characterId, revision: revisions[0]!.revision })
   }
-  for (const actor of creatureActors.values())
+  for (const { actor, activeEffects } of creatureActors.values())
     actorVisions.push({
       ...deriveActorSceneVision(
         actor.id,
         await actorSenses(snapshotCreatureSenses(actor)),
-        creatureEmittedLight(actor)
+        actorEmittedLight(actor, activeEffects)
       ),
       ...barrierPassage(campaign.gameSystemId, actor, null)
     })
