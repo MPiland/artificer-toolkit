@@ -43,6 +43,8 @@ export const DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY = 'dnd5e.hit-points
 export const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 export const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
 export const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
+export const DND5E_OBJECT_MANIFESTATION_PROPOSAL_OPERATION_KEY =
+  'dnd5e.object-manifestation-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY = 'dnd5e.play-absence-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
@@ -251,6 +253,7 @@ export type Outcome =
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }
   | { kind: 'CREATURE_FORM' }
+  | { kind: 'OBJECT_MANIFESTATION' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
   | { kind: 'PLAY_ABSENCE' }

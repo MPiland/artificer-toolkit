@@ -4,6 +4,7 @@ import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { arcaneLock } from '@artificer-toolkit/source-data/srd/spells/arcane-lock.js'
 import { geas } from '@artificer-toolkit/source-data/srd/spells/geas.js'
+import { continualFlame } from '@artificer-toolkit/source-data/srd/spells/continual-flame.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { suggestion } from '@artificer-toolkit/source-data/srd/spells/suggestion.js'
 import { describe, expect, it } from 'vitest'
@@ -116,11 +117,9 @@ describe('a GM ruling with a duration is held as a timed ruling (QUALITY-15.T3)'
     expect(recurringEffect?.lifecycle.remainingTicks).toBeNull()
   })
 
-  it('still refuses a ruling longer than an active effect can last, or beside another result', () => {
+  it('still refuses a ruling longer than an active effect can last', () => {
     // Geas lasts 30 days, past the longest duration an active effect holds.
     expect(compileDirect(geas)).toThrow(LIFETIME_REFUSAL)
-    // Light's ruling sits beside the light it sheds, which no timed ruling holds.
-    expect(compileDirect(light)).toThrow(LIFETIME_REFUSAL)
   })
 })
 
@@ -153,5 +152,61 @@ describe('a timed ruling beside an instant result is held (QUALITY-15.T3h)', () 
     })
     // The ruling is the plan's, so the failed save's one outcome graph is the gated kill.
     expect(plan.outcomes).toHaveLength(1)
+  })
+})
+
+/** The object manifestations `effect` holds, by its stored state contributions. */
+const manifestationsOf = (effect: ReturnType<typeof landed>['recurringEffect']) =>
+  effect?.definition.stateContributions.filter(({ kind }) => kind === 'OBJECT_MANIFESTATION')
+
+describe('an object manifestation with a duration is held (QUALITY-15.T3j)', () => {
+  it('holds Light for 1 hour, carrying the object, its light and attachment, beside the ruling', () => {
+    expect(compileDirect(light)).not.toThrow()
+    const { activeEffectPlan } = castOf(light).compilation
+    expect(activeEffectPlan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      // 1 hour of 6-second turns.
+      initialRemaining: 600,
+      maintenance: null
+    })
+    const { recurringEffect } = landed(light, 'ON_SAVE_FAIL')
+    expect(manifestationsOf(recurringEffect)).toEqual([
+      {
+        kind: 'OBJECT_MANIFESTATION',
+        manifestationOutcomeId: expect.any(String),
+        label: 'Light',
+        attachmentKind: 'TOUCHED_OBJECT',
+        light: {
+          bright: { amount: 20, unit: 'FEET' },
+          dimAdditional: { amount: 20, unit: 'FEET' }
+        },
+        properties: ['CAN_BE_COVERED_OR_HIDDEN']
+      }
+    ])
+    expect(recurringEffect?.lifecycle.remainingTicks).toBe(600)
+  })
+
+  it('holds Continual Flame until dispelled, never ticked, with every authored property', () => {
+    const { activeEffectPlan } = castOf(continualFlame).compilation
+    expect(activeEffectPlan).toMatchObject({
+      recurrenceStage: 'NONE',
+      initialRemaining: null,
+      maintenance: null
+    })
+    const { recurringEffect } = landed(continualFlame, 'ON_SAVE_FAIL')
+    expect(manifestationsOf(recurringEffect)).toMatchObject([
+      {
+        label: 'Continual Flame',
+        attachmentKind: 'TOUCHED_OBJECT',
+        properties: [
+          'CANNOT_BE_QUENCHED',
+          'CANNOT_BE_SMOTHERED',
+          'CAN_BE_COVERED_OR_HIDDEN',
+          'NO_HEAT',
+          'NO_OXYGEN_USE'
+        ]
+      }
+    ])
+    expect(recurringEffect?.lifecycle.remainingTicks).toBeNull()
   })
 })

@@ -12,6 +12,11 @@ import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { checkChoiceDtoSchema } from '../effects/check.js'
+import {
+  manifestAttachmentKindSchema,
+  manifestLightDtoSchema,
+  manifestPropertyKindSchema
+} from '../effects/manifest.js'
 import { manualAdjudicationTextDtoSchema } from '../effects/manualAdjudication.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
@@ -577,6 +582,22 @@ const activeRuleEffectGmRulingContributionDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * An object holds a manifestation while the effect lasts (Light, Continual Flame): its label, the
+ * light it sheds, its properties and where it attaches, frozen at creation. The holder is the
+ * attachment's actor when the attachment is a touched object; the effect ending ends it.
+ */
+const activeRuleEffectObjectManifestationContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('OBJECT_MANIFESTATION'),
+    manifestationOutcomeId: uuidSchema,
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+    attachmentKind: z.nullable(manifestAttachmentKindSchema),
+    light: z.nullable(manifestLightDtoSchema),
+    properties: z.array(manifestPropertyKindSchema).check(z.maxLength(16))
+  })
+)
+
 /** Immutable definition of a stored active rule effect: a bounded (possibly empty) aggregate-state contribution list. */
 export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
   z
@@ -597,7 +618,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             activeRuleEffectCreatureFormContributionDtoSchema,
             activeRuleEffectPlayAbsenceContributionDtoSchema,
             activeRuleEffectSourceImmunityContributionDtoSchema,
-            activeRuleEffectGmRulingContributionDtoSchema
+            activeRuleEffectGmRulingContributionDtoSchema,
+            activeRuleEffectObjectManifestationContributionDtoSchema
           ])
         )
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
@@ -798,5 +820,8 @@ export type ActiveEffectEndTrigger = z.infer<typeof activeEffectEndTriggerSchema
 
 /** A structured event that repeats an active effect's save. */
 export type ActiveEffectRepeatTrigger = z.infer<typeof activeEffectRepeatTriggerSchema>
+export type ActiveRuleEffectObjectManifestationContributionDto = z.infer<
+  typeof activeRuleEffectObjectManifestationContributionDtoSchema
+>
 export type ActiveRuleEffectDefinitionDto = z.infer<typeof activeRuleEffectDefinitionDtoSchema>
 export type ActiveRuleEffectStateDto = z.infer<typeof activeRuleEffectStateDtoSchema>
