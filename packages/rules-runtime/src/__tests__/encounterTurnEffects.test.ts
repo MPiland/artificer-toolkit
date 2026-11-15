@@ -256,7 +256,8 @@ describe('prepareEncounterTurnEffects', () => {
       actors: [goblin],
       movementTargets: new Map(),
       plan: null,
-      phase: { kind: 'NONE' }
+      phase: { kind: 'NONE' },
+      damagedDiscovery: new Map()
     })
     expect(run.calls).toEqual({ listEffects: 1, createRuntime: 0 })
 

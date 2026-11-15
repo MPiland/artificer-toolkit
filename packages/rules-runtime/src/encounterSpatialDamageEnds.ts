@@ -8,12 +8,26 @@ import type { FrozenMovementReactionRemainder } from './encounterSpatialMovement
 import { type TargetState, targetTemporaryHitPoints } from './encounterCharacterMechanicsBatch.js'
 import { targetEndedEffects, type EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+import { damageRowHits } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 
 /** What a spatial execution carries of the damage it dealt and the zone's source that dealt it. */
 type DamagingSpatialExecution = Pick<
   FrozenMovementReactionRemainder['completedSpatialExecutions'][number],
   'applications'
 > & { candidate: { candidate: { sourceActorId: string | null } } }
+
+/**
+ * Whether the zones' damage reached the creature (`damageRowHits`, D132): its `DAMAGED` fires, so it
+ * settles even when an interception (Death Ward) left its state as it was, and the interception spends.
+ * Damage its defenses absorbed whole never reached it.
+ */
+export function spatialDamageReached(
+  executions: readonly Pick<DamagingSpatialExecution, 'applications'>[]
+) {
+  return executions.some(({ applications }) =>
+    applications.some((application) => application.kind === 'DAMAGE' && damageRowHits(application))
+  )
+}
 
 /**
  * What the damage a creature takes from zones ends on it (the turn zone, a melee retaliation):
