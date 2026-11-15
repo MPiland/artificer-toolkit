@@ -17,6 +17,7 @@ import {
   storyMutation,
   storyMutationHook
 } from '../../src/test/storybook/storyWrites'
+import { installLiveSessionSpy } from '../../src/test/storybook/storyLiveSession'
 import {
   REVIEW_PASSWORD,
   REVIEW_STORY_READER
@@ -97,6 +98,8 @@ const preview: Preview = {
     bindStoryQueryClient(getStoryBackend(context.id).queryClient)
     storyMutation.mockClear()
     mocked(useMutation).mockImplementation(storyMutationHook)
+    // The room connection is real; its COMMAND frames are recorded and never sent (D218).
+    return installLiveSessionSpy()
   },
   // A read without a query function shows a loading or empty state instead of the seeded record,
   // so it fails the story (D221).

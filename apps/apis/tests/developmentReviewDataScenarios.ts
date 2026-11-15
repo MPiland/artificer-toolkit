@@ -129,6 +129,38 @@ export const STORY_RECORDS = {
   }
 >
 
+/** A fogged board split by a wall with a closed door, as the Sandbox review board is. */
+const STORY_BOARD: ReviewBoard = {
+  fogMode: 'PER_PLAYER',
+  ambientIllumination: 'DIM',
+  barriers: [
+    {
+      kind: 'WALL',
+      a: { x: 400, y: 0 },
+      b: { x: 400, y: 250 },
+      blocksLight: true,
+      blocksMovement: true
+    },
+    {
+      kind: 'DOOR',
+      a: { x: 400, y: 250 },
+      b: { x: 400, y: 350 },
+      blocksLightWhenClosed: true,
+      blocksMovementWhenClosed: true,
+      initialState: 'CLOSED',
+      openAngleDegrees: 90
+    },
+    {
+      kind: 'WALL',
+      a: { x: 400, y: 350 },
+      b: { x: 400, y: 600 },
+      blocksLight: true,
+      blocksMovement: true
+    }
+  ],
+  lights: []
+}
+
 const astralTearId = '4f37fd9c-8671-422b-b504-cf55c48fdbd1'
 
 /**
@@ -218,13 +250,22 @@ export const STORY_DEFINITIONS = {
 } as const
 /**
  * The Campaign Storybook backend stories open by name (D221), because its id is random: the story
- * account hosts it with play settings, one Encounter Blueprint with a prepared Run, and a loot table
- * on that Run's creature. The FREE tier hosts one Campaign, so every story shares it.
+ * account hosts it with play settings, one Encounter Blueprint whose Run is started, a loot table
+ * on that Run's creature, and a presented Scene (a real map, scene.board's barriers and fog mode)
+ * that the Run is bound to: the creature's token is bound to its actor and the ally token is the
+ * story account's own. The FREE tier hosts one Campaign, so every story shares it.
  */
 export const STORY_CAMPAIGN = {
   name: 'Story Campaign',
   blueprintName: 'Story Encounter',
   enemyLabel: 'Story Cultist',
+  scene: {
+    name: 'Story Scene',
+    allyLabel: 'Story Ally',
+    allyPosition: { x: 100, y: 200 },
+    enemyPosition: { x: 550, y: 250 },
+    board: STORY_BOARD
+  },
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
 } as const
