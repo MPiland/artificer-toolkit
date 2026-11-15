@@ -31,7 +31,7 @@ const OTHER_SCENE_ID = testUuid(0x5c1)
 const NIGHTMARE_ID = testUuid(0xa01)
 const OGRE_ID = testUuid(0xa02)
 const STRAY_NIGHTMARE_ID = testUuid(0xa03)
-const feet = (amount: number) => ({ amount, unit: 'FEET' })
+const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
 const tokenOf = (actorId: string) => `${actorId.slice(0, -4)}7${actorId.slice(-3)}`
 
 const header = sceneLiveStateHeaderSchema.parse({

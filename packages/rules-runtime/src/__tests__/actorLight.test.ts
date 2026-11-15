@@ -8,7 +8,7 @@ import { actorEmittedLight, actorTokenLights } from '../actorLight.js'
 import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
-const feet = (amount: number) => ({ amount, unit: 'FEET' })
+const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
 
 type Attachment = 'SOURCE' | 'PRIMARY_TARGET' | 'PLACED_SPACE' | 'TOUCHED_OBJECT' | null
 
