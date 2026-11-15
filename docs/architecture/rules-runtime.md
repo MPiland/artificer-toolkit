@@ -1443,7 +1443,7 @@ a Character's Sheet command that raises hit points (Convex `executeCharacterShee
 a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an action or area command hands the ended
 records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
 save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
-receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
+receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE` and the releases of the effects that damage ended, neither of which raises hit points,
 and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Concealed and unnoticed zones are below (MOVE-3.3 to 3.6).
 
 A result that tiers on the target's hit points (`HIT_POINT_TIERS` path rows, T2i4a) compiles to
@@ -1822,15 +1822,20 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   settlement reads the attacker's effects after that stage; so does each holder only a turn's Legendary Actions
   damaged (the turn preparation's `legendaryDiscovery`, current, QUALITY-14.T2e2b4). A zone's hit names the zone's
   source as its damager in the chain (`meleeRetaliationDamage`, `zoneEffectDamage`), as the ends stage does, in the
-  room and in persistence. A resumed chain never re-derives the discovery (current, QUALITY-14.T2e2c, D220): the room
+  room and in persistence. A Cleaving step's target carries its own ends stage's discovery (current,
+  QUALITY-14.T2e2f1): `cleavingDamageEnds` raises the carried damage once, with no attack roll and the Cleaving
+  source as the damager, so it ends what the damage meets (Sleep's unconsciousness), releases it in the step's
+  mechanics batch and gives the target's passive damage grants; persistence calls it again over the target's
+  stored effects, applies the same releases, refuses a transition that differs, and deletes the ended effects
+  and creates the grants before binding the chain. A resumed chain never re-derives the discovery (current, QUALITY-14.T2e2c, D220): the room
   reads the chain sealed on its damage-save context (the answered check, then `context.remaining`), since the
   projection already holds what the chain's earlier saves changed, and a resumed context keeps the sealed
   `repeatSaveDamagerActorId`. A Concentration a check or an end lost drops its own later checks and the repeat saves
   of the effects it maintained (`damageSaveApplicationsAfterConcentrationEnd`, on the cleanup's
   `removedDependentEffectIds`), in the room, movement, the result's successor and both persistence paths, so the
   sealed tail is exactly what the pre-command discovery still owes. Transitional: a root whose ends stage the chain
-  does not yet receive (a turn's effects, a holder a turn effect damaged as well as its Legendary Actions, and
-  Cleaving) derives the discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
+  does not yet receive (a turn's effects, and a holder a turn effect damaged as well as its Legendary Actions)
+  derives the discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`

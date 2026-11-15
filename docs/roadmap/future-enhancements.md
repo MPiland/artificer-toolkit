@@ -115,6 +115,7 @@ Candidate, not yet registered. From the first real users on, every stored-shape 
 
 ### Deferred edge cases (watch for in real use)
 
+- **Grant replacement on non-action damage roots (QUALITY-14.T2e2f1):** when a damaged-triggered passive grant has a replacement policy, the action path ends the same source's grant on another holder (`replacedEffects`), but Cleaving, movement contacts and spatial damage drop it, so both grants stay. No SRD grant reaches this. Fix if seen: carry `replacedEffects` through `cleavingDamageEnds`, `movementContactDamageEnds` and `spatialDamageEnds` and release them in persistence.
 - **Movement reaction OPTION edge cases (QUALITY-18.T3c):** an OPTION answered while the move's Scene is no longer presented goes through the Encounter path (`readReactionSceneContext` reads the bound Scene regardless), so the child can commit and the resume retries on the alarm until the Scene is presented again; `recordMovementReactionChild` does not revalidate the option's source, single-use item or target policy (the child's own admission refuses and the whole answer rolls back); a departed mover's check answer and resume are untested. Fix if seen: refuse OPTION with `SCENE_NOT_PRESENTED` in `executeRoomMovementReactionChild` (needs a room fixture that keeps the pending move across a Scene change) and add the refusal proofs.
 - **Ray-list incoming gate edge cases (QUALITY-13.T1c5a):** save-based chosen lists are not gated per entry; a forced-movement collision in the same list as a lost ray and a caster toggling auto-roll mid-list are untested; rule overrides and `actsAgainstEnemy` read only kept rays. Fix if seen: extend the per-ray gate step in `nativeAreaRayAdvance.ts` to save entries and add the combination proofs.
 - **Held-action reaction child edge cases (QUALITY-18.T3d):** the resume exemptions for a changed source or target apply only when the reactor is that source or target (`reactedUnderAwaitedChild`), so a third party's child that raises a root changing them makes the resume throw; a homebrew `ATTACK_ROLL_BY_OTHER` reaction with a die and a DAMAGE outcome is not offered; a held action whose attacker died resumes (admission skips the defeated check). No SRD fixture reaches these. Fix if seen: widen the exemption to any committed child under the awaited parent and diagnose the offer filter.
@@ -516,7 +517,7 @@ Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d
 
 ### Day-scale durations on the Campaign clock (D156)
 
-Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
+Partly built by D222 (QUALITY-15.T3i to T3i3): a compiled effect longer than the 24-hour turn bound, up to weeks, now expires on the Campaign clock. Month and year durations are still refused, and Awaken's 30-day charm still ships as a GM ruling until it is authored onto that expiration.
 
 ### Regenerate regrows limbs (D156)
 

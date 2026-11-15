@@ -19,8 +19,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   cleavingCarriesOn,
-  cleavingDamageApplication
+  cleavingDamageApplication,
+  cleavingDamageEnds
 } from '@artificer-toolkit/rules-runtime/encounterCleavingFacts'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -30,7 +32,12 @@ import { insertNativeCleavingChoice } from './actionChildPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
-import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
+import {
+  addResponseChangesToRoot,
+  createIncomingDamageGrants,
+  deleteGrants
+} from './consumedGrantPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
@@ -157,8 +164,27 @@ export async function persistEncounterCleavingResponse(
           }
         })
       : null
+  // The carried damage ends what it meets on the target and gives the grants it owes, as planned.
+  const holder = application
+    ? actors.find((actor) => actor.id === application.targetActorId)
+    : undefined
+  if (application && !holder) throw new Error('Live Session Cleaving target is unavailable.')
+  const owner = holder ? turnEffectOwner(holder, state.id) : null
+  const ends =
+    application && holder && owner
+      ? cleavingDamageEnds({
+          holder,
+          held: await createActiveRuleEffectStore(ctx).list(owner),
+          application,
+          encounter: state,
+          occurrenceId: occurrence.id,
+          commandId: occurrence.rootCommandId,
+          damagerActorId: context.sourceActorId,
+          dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+        })
+      : null
   const mechanics =
-    application && transition
+    application && transition && ends
       ? await callbacks.applyMechanics(
           {
             encounterId: state.id,
@@ -168,7 +194,7 @@ export async function persistEncounterCleavingResponse(
             sourceCommandId: occurrence.rootCommandId,
             commandId: response.commandId,
             occurredAt,
-            applications: [application],
+            applications: [application, ...ends.releases],
             effectiveMaximumHitPoints: transition.before.maximumHitPoints,
             effectiveScalarValues: transition.before.scalarValues,
             forceVersionAdvance: false
@@ -180,10 +206,15 @@ export async function persistEncounterCleavingResponse(
   if (
     mechanics &&
     (checksumCanonicalJson(mechanics.targetTransition) !== checksumCanonicalJson(transition) ||
+      mechanics.receiptApplications.length !== 1 + (ends?.releases.length ?? 0) ||
       applied?.kind !== 'DAMAGE' ||
       applied.appliedAmount !== output.damage.appliedAmount)
   )
     throw new Error('Live Session Cleaving damage receipt mismatch.')
+  if (ends && owner) {
+    await deleteGrants(ctx, ends.endedEffects)
+    await createIncomingDamageGrants(ctx, { grants: ends.grants, owner, occurredAt })
+  }
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,

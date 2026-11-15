@@ -16,8 +16,11 @@ import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/enc
 import {
   cleavingCarriesOn,
   cleavingDamageApplication,
+  cleavingDamageEnds,
   cleavingDamageEnvelope
 } from '@artificer-toolkit/rules-runtime/encounterCleavingFacts'
+import { incomingDamageGrantRecords } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { createNativeCleavingChoice } from '@artificer-toolkit/rules-runtime/encounterCleavingChoice'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import {
@@ -155,18 +158,51 @@ export async function planNativeLiveCleavingResponse(
         }
       })
     : null
-  const mechanics =
+  const commandId = cleavingChildCommandIdentity(snapshot.occurrenceId)
+  const ends =
     chosen && application
+      ? cleavingDamageEnds({
+          holder: chosen.target.actor,
+          held: chosen.target.activeEffects,
+          application,
+          encounter: state,
+          occurrenceId: snapshot.occurrenceId,
+          commandId,
+          damagerActorId: context.sourceActorId,
+          dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+        })
+      : null
+  // The target keeps what the damage did not end and gains the grants its passive features owe it.
+  const kept =
+    chosen && ends
+      ? chosen.target.activeEffects.filter(
+          ({ id }) => !ends.endedEffects.some((ended) => ended.id === id)
+        )
+      : []
+  const targetEffects =
+    chosen && ends
+      ? [
+          ...kept,
+          ...incomingDamageGrantRecords({
+            grants: ends.grants,
+            owner: turnEffectOwner(chosen.target.actor, state.id),
+            current: kept,
+            occurredAt
+          })
+        ]
+      : null
+  const mechanics =
+    chosen && application && ends
       ? planEncounterMechanicsBatch({
           batch: {
             encounterId: state.id,
             targetActorId: chosen.target.actor.id,
             expectedEncounterVersion: state.version,
             occurrenceId: snapshot.occurrenceId,
-            sourceCommandId: cleavingChildCommandIdentity(snapshot.occurrenceId),
+            sourceCommandId: commandId,
             commandId: response.commandId,
             occurredAt,
-            applications: [application],
+            applications: [application, ...ends.releases],
             expectedCharacterStreamVersion:
               chosen.target.characterFacts?.active.play.streamVersion ?? null,
             effectiveMaximumHitPoints: chosen.target.effectiveMaximumHitPoints,
@@ -209,12 +245,12 @@ export async function planNativeLiveCleavingResponse(
     settlement: {
       actors: damaged,
       projectedTargets: new Map(
-        chosen && mechanics
+        chosen && mechanics && targetEffects
           ? [
               [
                 chosen.target.actor.id,
                 projectEncounterActionTarget({
-                  target: chosen.target,
+                  target: { ...chosen.target, activeEffects: targetEffects },
                   actor: mechanics.updatedActor,
                   plan: mechanics,
                   campaignId: state.campaignId,
@@ -225,7 +261,10 @@ export async function planNativeLiveCleavingResponse(
             ]
           : []
       ),
-      activeEffectsByActorId,
+      activeEffectsByActorId:
+        chosen && targetEffects
+          ? new Map([...activeEffectsByActorId, [chosen.target.actor.id, targetEffects]])
+          : activeEffectsByActorId,
       maintenanceOwners: [],
       maintainedState: null,
       createdEffects: []
@@ -235,7 +274,8 @@ export async function planNativeLiveCleavingResponse(
     random: executionOptions.random,
     repeatSaves: {
       damagerActorId: context.sourceActorId,
-      discovered: new Map(),
+      // The target's own ends stage found what owes a repeat save (D220).
+      discovered: new Map(chosen && ends ? [[chosen.target.actor.id, ends.repeatSaveEffects]] : []),
       entryOccurrenceIds: []
     }
   })
