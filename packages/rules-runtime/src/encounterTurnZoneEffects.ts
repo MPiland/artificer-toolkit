@@ -20,6 +20,7 @@ import { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import { consumeEncounterActionEconomy } from './encounterActionEconomyConsumption.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
+import type { DamagedDiscovery } from './encounterDamageSaveChain.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   settleAutomaticSpatialEvidence,
@@ -178,13 +179,21 @@ export async function prepareEncounterTurnZoneEffects<
       actors: EncounterRunActorState[]
       movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       plan: StagedTurnZonePlanDto | null
+      /** Each caught holder's damaged discovery from its zones' raises, one per execution (D220). */
+      damagedDiscovery: DamagedDiscovery
     }
 > {
   const targets = new Map(input.movementTargets)
   const none = () => {
     if (input.pending || input.retainedPlan)
       throw new Error('Retained turn zone selection is stale.')
-    return { kind: 'COMPLETE' as const, actors: input.actors, movementTargets: targets, plan: null }
+    return {
+      kind: 'COMPLETE' as const,
+      actors: input.actors,
+      movementTargets: targets,
+      plan: null,
+      damagedDiscovery: new Map()
+    }
   }
   const { state, boundary } = input
   const actor = input.actors.find((candidate) => candidate.id === boundary.actorId)
@@ -426,11 +435,12 @@ export async function prepareEncounterTurnZoneEffects<
     occurredAt,
     userId: input.userId,
     commandId: { phase: 'TURN_ZONE_EFFECT', ordinal: boundary.ordinal },
-    settleUnchanged: true,
+    settle: 'EVERY_TARGET',
     damageEnds: {
       turnActorId: state.currentActorId,
       dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
-      incomingDamageGrants: true
+      incomingDamageGrants: true,
+      raise: 'PER_EXECUTION'
     }
   })
   const spendLostActions = (targetActorId: string, settledActor: EncounterRunActorState) =>
@@ -468,6 +478,12 @@ export async function prepareEncounterTurnZoneEffects<
     kind: 'COMPLETE',
     actors: input.actors.map((value) => updatedActors.get(value.id) ?? value),
     movementTargets: targets,
-    plan
+    plan,
+    damagedDiscovery: new Map(
+      settled.settlements.map(({ batch, repeatSaveEffects }) => {
+        if (!repeatSaveEffects) throw new Error('A turn zone settlement has no damaged discovery.')
+        return [batch.targetActorId, repeatSaveEffects]
+      })
+    )
   }
 }

@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
+import { spatialDamageReached } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -131,7 +132,10 @@ export async function persistEncounterMeleeRetaliation(
   const first = executions[0]!
   const last = executions.at(-1)!
   const before = first.targetTransition.before
-  if (checksumRuleDocument(before) === checksumRuleDocument(last.targetTransition.after))
+  if (
+    !spatialDamageReached(executions) &&
+    checksumRuleDocument(before) === checksumRuleDocument(last.targetTransition.after)
+  )
     return { actor: attacker, endedEffects: [] }
   const applications = executions.flatMap((execution) =>
     execution.applications.map((application) => ({ ...application, targetActorId: attacker.id }))
