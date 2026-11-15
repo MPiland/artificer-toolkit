@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { expect, waitFor, within } from 'storybook/test'
 import { liveFramesReceived } from '#app/test/storybook/storyLiveSession'
+import { STORY_CAMPAIGN } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededCampaign } from '../stories/SeededCampaign'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
 
@@ -38,8 +39,13 @@ export const RoomConnected: Story = {
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
     const campaign = await page.findByTestId('seeded-campaign')
+    // The seed presents a Scene, so the window draws it rather than the empty-table message.
     await expect(
-      await page.findByText('No scene is being presented', undefined, { timeout: 30_000 })
+      await page.findByRole(
+        'region',
+        { name: `Live scene: ${STORY_CAMPAIGN.scene.name}` },
+        { timeout: 30_000 }
+      )
     ).toBeVisible()
 
     await waitFor(
@@ -47,7 +53,13 @@ export const RoomConnected: Story = {
         expect(liveFramesReceived()).toEqual(
           expect.arrayContaining([
             { type: 'TRANSIENT_READY', campaignId: campaign.dataset.campaignId },
-            expect.objectContaining({ type: 'STATE_SYNC' })
+            expect.objectContaining({
+              type: 'STATE_SYNC',
+              state: expect.objectContaining({
+                recipientRole: 'OWNER',
+                scene: expect.objectContaining({ name: STORY_CAMPAIGN.scene.name })
+              })
+            })
           ])
         ),
       { timeout: 30_000 }
