@@ -1253,6 +1253,31 @@ describe('rules runtime contracts', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: null }
       })
     ).toThrow()
+    // A Campaign-minutes effect counts no turns and carries its stamp or an explicit null (D222).
+    const campaignCounted = {
+      ...activeState,
+      definition: {
+        ...activeState.definition,
+        recurrence: {
+          ...activeState.definition.recurrence,
+          expiration: { kind: 'CAMPAIGN_MINUTES', minutes: 43_200 }
+        }
+      }
+    }
+    for (const stamp of [null, 90_000])
+      expect(
+        activeRuleEffectStateDtoSchema.parse({
+          ...campaignCounted,
+          lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: stamp }
+        }).lifecycle.expiresAtCampaignMinute
+      ).toBe(stamp)
+    for (const lifecycle of [
+      { schemaVersion: 1, remainingTicks: null },
+      { schemaVersion: 1, remainingTicks: 2, expiresAtCampaignMinute: null }
+    ])
+      expect(() =>
+        activeRuleEffectStateDtoSchema.parse({ ...campaignCounted, lifecycle })
+      ).toThrow()
     expect(() =>
       activeRuleEffectStateDtoSchema.parse({
         ...activeState,

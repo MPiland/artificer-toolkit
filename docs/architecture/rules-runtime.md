@@ -689,7 +689,8 @@ so later saves and contacts observe it gone. The contact execution retains each 
 versions a made save advanced, and `ownerTransitions`); `movementDamageSaveChildren` reads both lists back in
 chain order. A manual roll pauses the move on the `REPEAT_SAVE_EVIDENCE` phase (`movementPendingDamageSave`
 reads either save phase). A holder with no Concentration interrupts the move too
-(`determineConcentrationActorIds` uses `repeatsSaveOnDamage`). Each save settles as a `REPEAT_SAVE` movement
+(`determineConcentrationActorIds` selects a holder with an effect that answers damage, `answersDamage`, or a
+passive damage grant, `passiveDamageGrantsOf`, since the contact settles its damage ends and grants; D220). Each save settles as a `REPEAT_SAVE` movement
 settlement through `persistLiveMovementRepeatSave`, which reads the committed effect row at its pinned
 version, requires it to offer a repeat save for damage from this contact's zone source and type
 (`damagedHitRepeatTrigger`), and releases a made save through `releaseEffectRepeatSave`. Movement saves
@@ -710,36 +711,37 @@ the pinned rule's definition and checksum, the source command, the child id unde
 an unchanged target, the save owed by its damage (`bindEncounterDamageSaveChain`) and no existing child
 occurrence, then records it like the action path's child.
 
-**Movement damage ends (current, QUALITY-14.T2b).** The damage a move's zones deal ends the effects the
-damaged creatures hold until damaged (`DAMAGE_TAKEN` end triggers), like action damage. They end once the
-move's last contact has settled, not at the contact: `terminalMovementDamageEnds`
-(`encounterSpatialDamageEnds.ts`) reads every applied contact of the move and each damaged creature's current
-effects, raises `DAMAGED(AFTER)` once per holder for the whole move (one hit per contact, the zone's source
-the damager) through `targetEndedEffects`, and lists the ends as `damageEnds` on the TERMINAL preparation
-outcome. Every terminal site calls it (the finished move, a stop at the terminal distance, a reaction's stop,
-a declined or lost passage). The room plans one `DAMAGE_END` settlement per end after every contact, beside
-`AREA_DEPARTURE` and `MOVE_END`; `persistLiveMovementDamageEnd` re-derives the ends with the same function
-(`movementDamageEnds`) from the holder's current rows and the move's applied contacts, requires the
-step's effect among them, and ends it through the escape end path (the row, the conditions only it held, the
-temporary hit points whose source it was, maintenance owners). The spatial receipt is unchanged. The same
-call passes the holder's passive damage triggers (`prepareNativeIncomingDamageGrantTriggers`, ordinal
-`MOVEMENT_DAMAGE`, rooted in the move's own command) as the turn zone and melee retaliation do (current,
-QUALITY-14.T2d2): the grants they owe are `damageGrants` on the TERMINAL outcome, the effects the grants
-replace join `damageEnds`, and the room plans one `DAMAGE_GRANT` settlement per grant after the `DAMAGE_END`
-steps, carrying the record `incomingDamageGrantRecords` builds over the holder's remaining effects;
-`persistLiveMovementDamageGrant` re-derives the owed grants from current rows, refuses one not owed ('Movement
-damage grant is not owed.') and creates it through `createIncomingDamageGrants`. A spatial contact carries the
+**Movement damage ends (current, QUALITY-14.T2e2d2, D220).** The damage a move's zones deal ends the effects the
+damaged creatures hold until damaged (`DAMAGE_TAKEN` end triggers), like action damage, at the contact that
+dealt it. Each contact has one holder and raises `DAMAGED(AFTER)` once for it: `movementContactDamageEnds`
+(`encounterSpatialDamageEnds.ts`) reads that contact's applications and the holder's current effects (the
+zone's source the damager) through `targetEndedEffects`. `prepareEncounterMovementConcentration` settles what
+the raise ends and gives before the contact's D95 ends and its save chain: each end is retained as a
+`damageEnds` child of the contact execution (`movementDamageEndDtoSchema`: the effect, its holder, the
+`release` with the Character versions it advanced, and `ownerTransitions`) and released in the cumulative
+projection, so the contact's saves, and every later contact, observe it gone; the save chain's holder
+discovery is that raise's `repeatSaveEffects`, less what it ended. The same raise passes the holder's passive
+damage triggers (`passiveDamageGrantsOf`, ordinal `MOVEMENT_DAMAGE`, rooted in the move's own command) as the
+turn zone, melee retaliation and the action ends stage do: the grants it owes, over the holder's effects before the ends (QUALITY-14.T2e2e), are
+`damageGrants` children carrying the record `incomingDamageGrantRecords` builds; a grant the holder already
+holds from an earlier contact of the move is not owed again. The room maps each child to a `DAMAGE_END` or
+`DAMAGE_GRANT` settlement right after the contact's `SPATIAL` step and before its D95 ends and saves
+(persistence queues them from the contact's children, `retainedContactChildren`, and refuses another order: 'Movement damage ends and grants settle before their
+contact’s saves.'). Persistence re-derives the contact's one raise with the same function from the holder's
+current rows before its first damage step (`raiseLiveMovementContactDamage`, QUALITY-14.T2e2e), so the room and the
+commit each raise it once per contact. `persistLiveMovementDamageEnd` requires the step's effect among the ends it raised, and ends it through the escape end path
+(the row, the conditions only it held, the temporary hit points whose source it was, maintenance owners);
+`persistLiveMovementDamageGrant` refuses a grant that raise does not owe ('Movement
+damage grant is not owed.') and creates it through `createIncomingDamageGrants`. The TERMINAL outcome carries
+only `AREA_DEPARTURE` and `MOVE_END` releases. A spatial contact carries the
 target's temporary hit point source (`SpatialTargetState.temporarySourceEffectId`), so its published
 transition matches the mechanics batch for a holder whose pool an effect gave. An effect the move itself placed never ends on the
-move's own damage, and an effect the move already releases (`areaDepartures`, `moveEnds`) is not listed
-twice. The ends and every release read the targets as the save chain left them: the continuation
-(`prepareEncounterMovementContinuation` and the action and passage responses) returns those `targets`, and
-the room's `nativeMovementSettlementInputs` derives each release's ended effect and conditions from them,
-never from the facts captured before the move. An effect a made repeat save released is therefore neither
-listed nor counted as still holding a condition, and persistence refuses a `DAMAGE_END` step for it
-('Movement release differs from its holder effect.'). Not covered yet (transitional): a move left PENDING
-ends nothing until it finishes, and a move's save chain still derives its holders' damaged discovery from the
-settled targets (`settledRepeatSaveEffects`) rather than receiving its ends stage's.
+move's own damage. The terminal releases (`areaDepartures`, `moveEnds`) read the targets as the contacts
+left them: the continuation (`prepareEncounterMovementContinuation` and the action and passage responses)
+returns those `targets`, and the room's `nativeMovementSettlementInputs` derives each release's ended effect
+and conditions from them, never from the facts captured before the move, so an effect a contact's damage or
+a made repeat save already ended is not released twice. A move left PENDING at a save has already committed
+the ends and grants of the contacts before it.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
 (`domain.ruleDefinitionId`) is an ordinary roll-influence or bonus grant; two Equipment-context predicates
@@ -1262,8 +1264,8 @@ the grants as `grantEffectTransitions` and the conditions the ended effects rele
 refuses a settlement whose created grants differ; it returns the ended effects, which the action root keeps in `consumedGrants`, so undo deletes
 the new grants, then restores the ended and replaced effects and their released conditions), and
 the movement-reaction root records them as `grantEffectTransitions` beside `ended`. Each area target's outcome calls it and creates the grants beside its other effects (`grantEffectTransitions` on its batch; the area root
-keeps the ended effects in `consumedGrants`). A move's zone damage calls it once the move's last contact has
-settled (`movementDamageEnds`, `DAMAGE_GRANT` settlements; QUALITY-14.T2d2, see "Movement damage ends").
+keeps the ended effects in `consumedGrants`). A move's zone damage calls it at each contact, before that
+contact's saves (`movementContactDamageEnds`, `DAMAGE_GRANT` settlements; QUALITY-14.T2e2d2, D220, see "Movement damage ends").
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source
@@ -1425,7 +1427,8 @@ passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persis
 held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
 the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
 `deleteGrants`. Occupant save auras lend bonuses and deal no damage. A move's contacts do not pass `damageEnds`: what their
-damage ends and gives settles once the move ends, as `DAMAGE_END` and `DAMAGE_GRANT` steps ("Movement damage ends").
+damage ends and gives settles at each contact, before its saves, as `DAMAGE_END` and `DAMAGE_GRANT` steps ("Movement
+damage ends", D220).
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
@@ -1826,8 +1829,8 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   of the effects it maintained (`damageSaveApplicationsAfterConcentrationEnd`, on the cleanup's
   `removedDependentEffectIds`), in the room, movement, the result's successor and both persistence paths, so the
   sealed tail is exactly what the pre-command discovery still owes. Transitional: a root whose ends stage the chain
-  does not yet receive (a turn's effects, a holder a turn effect damaged as well as its Legendary Actions, Cleaving and
-  movement) derives the discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
+  does not yet receive (a turn's effects, a holder a turn effect damaged as well as its Legendary Actions, and
+  Cleaving) derives the discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
@@ -2422,6 +2425,22 @@ child when the turn result's d20 path is `ON_SAVE_SUCCESS`: `turnEndGateChildEff
 effect (so it ends with it) and whose id derives from the parent's. A failed roll mints nothing. Turn advances
 are not revertable, so the minted child needs no Undo handling. Blink is the SRD user; nothing in the runtime
 names a spell.
+
+**Damage-triggered repeat save on a timed condition (current, QUALITY-15.T3k).** A timed save condition ends early
+when its result block is a `SEQUENTIAL` `SEQUENCE` (UUID `resultBlockId`) holding the condition outcomes and a
+`FOLLOW_UP_SAVE` with `timing ON_TRIGGERS_ONLY`, `repeatTriggers [DAMAGE_TAKEN]`, `onSuccess END` and
+`onFailure CONTINUE`; `repeatingDirectFollowUpSavePlan` compiles it and the held effect owes a repeat save on each
+damage (`planDamageSaveChain`). Dominate Beast, Dominate Monster, Dominate Person, the dryad Fey Charm and the
+succubus Charm author it; the vampire Charm already did. The compiler names none of them, and a timed condition
+without the authored save is still refused. The effect-compile golden lists the five rows that moved from refused.
+
+**Ruling longer than the turn bound (current contract and compile, QUALITY-15.T3i, D222; stamping and expiry are
+T3i2).** The 14,400-turn bound (D188 amendment) stays. A timed GM ruling whose authored duration exceeds it (Geas,
+30 days) compiles with `campaignMinutes` on its plan (minute, hour, day and week durations only; a month or year is
+still refused) and `recurrence.expiration { kind: 'CAMPAIGN_MINUTES', minutes }` on its definition, with no recurrence
+stage and no tick count. The lifecycle must carry `expiresAtCampaignMinute`: the stamped absolute minute, or an
+explicit `null` for a Campaign with no clock, which lasts until the GM ends it. Until T3i2 the room stamps nothing, so
+a cast plans the `null` state.
 
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
@@ -4119,8 +4138,8 @@ on its `repeatTriggers` alone: it requires them, a once-only repeated save, and 
 adapter fact `dnd5e.active-effect-repeat-save-triggers-only`; the turn tick refuses the attempt (`ATTEMPT_REFUSED`,
 no request, only the duration counts down) and the damage hook passes `onTrigger: true` so the attempt is allowed.
 Movement (zone contact) damage settles its Concentration saves through `MovementConcentrationSettlement`, a
-separate per-step stack, and its damage-taken effect ends as `DAMAGE_END` steps (QUALITY-14.T2b, see "Movement
-damage ends"); its effect repeat saves (QUALITY-14.T2c) and massive-damage saves (QUALITY-14.T2d) settle in
+separate per-step stack, and its damage-taken effect ends as `DAMAGE_END` steps at the contact, before its saves
+(QUALITY-14.T2e2d2, D220, see "Movement damage ends"); its effect repeat saves (QUALITY-14.T2c) and massive-damage saves (QUALITY-14.T2d) settle in
 the same chain as `REPEAT_SAVE` and `MASSIVE_DAMAGE_SAVE` steps.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it

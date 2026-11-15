@@ -2218,7 +2218,7 @@
             },
             {
               "id": "PLATFORM-28.T3a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2229,11 +2229,12 @@
               },
               "text": "Spell and background create and edit route stories read seeded owned draft and active records (*.backend.stories.tsx, seeded through product commands); the authoring walkthrough steps for those domains run on the backend story ids.",
               "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m788 (2aa1a4434); slice tip 2f4eb7d5c: Tests 43687775075, Live 43689632867, Browser journeys 43687775093 green (storybook-backend-browser: 10 backend story tests in 4 files). seedStoryData seeds fixed-id spell and background master, active and ACTIVE_WITH_DRAFT records through product commands (idempotent); Spell and Background create and edit backend stories read them, writes are fn() spies (D218); the walkthrough's spell and background steps moved to the backend story play functions; props-only route stories deleted. Red job: all ALREADY-PASSING (seed helpers ride along; stories are not in the red job). Restated: reviewAccounts setup calls reviewAccountSession; affectedBrowserJourneys props-only case points at Select.stories; expandAuthoringBranch throws on a missing aria-controls target; Playwright toBeHidden became queryByRole null and toBeVisible became waitFor; the master-locked check now always runs (stronger). Backend stories run at the 1280x720 authoring viewport with a 60 s timeout. No D196 change."
             },
             {
               "id": "PLATFORM-28.T3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2243,7 +2244,8 @@
                 "after": ["PLATFORM-28.T3a"]
               },
               "text": "Class, feat and race create and edit route stories read seeded records, with their walkthrough steps on backend story ids.",
-              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221)."
+              "note": "Registered 2026-11-14 from the T3 split; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T3c",
@@ -27020,7 +27022,7 @@
             },
             {
               "id": "QUALITY-14.T2e2d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27036,11 +27038,12 @@
               },
               "text": "A zone whose source loses Concentration mid-move deals no later damage in that move: adoptEnd and the frozen remainder drop the removed zones' remaining candidates, consistent across currentness, the room scope and persistence; the first damage-save plan requires its repeat-save discovery.",
               "note": "Registered 2026-11-15 from the T2e2d seam trace (whole about 19) under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m787 (089838b0b, batch); slice tip 6d59a6fa5: Tests 43687242991, Live 43687242976, Browser journeys 43687242977 green. adoptCleanup drops the removed zones' candidates from the frozen remainder and renumbers them in the evaluator's own order, then recomputes currentness; the room spatial scope skips removed zones for the rest of the move (voluntary and forced). planNativeLiveConcentration takes either repeatSaves or resume; planDamageSaveChain effectSaves is required. Red proof: nativeMovementLostConcentrationZone RED 1/1 (base threw \"Spatial rule effect changed before settlement\"). Inputs only: three tests pass an empty effectSaves instead of null. No restated assertions; no D196 change."
             },
             {
               "id": "QUALITY-14.T2e2d2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -27050,10 +27053,43 @@
                 "after": ["QUALITY-14.T2e2d1"]
               },
               "text": "A move takes damage per contact (D220): each contact raises one DAMAGED(AFTER) per holder settling ends and the Concentration chain together, replacing the terminal ends settle; a Concentration lost mid-move stops that zone later damage. Ends and grants retained and settled per contact before its saves; terminalMovementDamageEnds and the move-wide movementDamageEnds root deleted; once-per-move assertions restated under D220.",
-              "note": "Registered 2026-11-15 from the T2e2d seam trace (whole about 19) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T2e2d seam trace (whole about 19) under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m790 (10f25f537, batch); slice tip 9b8337d00: Tests 43692840048, Live 43692840086, Browser journeys 43692840151 green. movementContactDamageEnds derives each contact's ends and grants for its holder; encounterMovementConcentration settles DAMAGE_END, DAMAGE_GRANT, CONCENTRATION_END then that raise's saves per contact; persistence checks the order and re-derives per contact; terminalMovementDamageEnds, the move-wide movementDamageEnds root and repeatsSaveOnDamage deleted (no importers); the room also stops for holders that answer damage or hold passive damage grants. Bug fixed: movement owner projections dropped the temporary hit points' source effect and never released them (regression nativeMovementZoneDamageReleases). Red proof: nativeMovementPerContactDamaged RED 1/1, nativeMovementZoneDamageRepeatSave RED 2/10, movementDamageEndPersistence RED 4/4, damagedRaisedOncePerHolder RED 2/7. Restated under D220: one raise per contact per holder (1 to 3); a damage end now settles before that contact's save, so the two zone repeat-save cases owe no save (outcomes to []). D196: pending movement snapshots carry damageEnds and damageGrants per contact; clear local pending movement data when local is next used."
             },
             {
               "id": "QUALITY-14.T2e2e",
+              "status": "DONE",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["QUALITY-14.T2e2c", "QUALITY-14.T2e2d2"]
+              },
+              "text": "Room count proofs on SRD fixtures that DAMAGED(AFTER) is raised once per command and holder for actions (single target, list or area multi-hit, a damaged Concentration holder, a resumed chain) and once per contact and holder for a multi-zone move (D220).",
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13). Resized 2026-11-15 at delivery from 5 to 8 (double-raise fix across room, persistence and Worker).",
+              "mergedAt": "2026-11-15",
+              "proof": "m790 (10f25f537, batch); slice tip ff2af2d9c: Tests 43695943976, Live 43695944013, Browser journeys 43695943991 green. Count assertions added to existing SRD room tests via a recorder around the real discoverEncounterEventHooks: single target [GOLEM], Scorching Ray [TWICE, ONCE], area with two damaged Concentration holders [CASTER, CONCENTRATOR, LAUGHING], resumed chain [], multi-zone move [WOLF, WOLF] (D220). Bug found and fixed: a movement contact raised DAMAGED(AFTER) twice (a second raise for grants) and persistence re-derived it per step; now one raise per contact in the room and one cached raise per contact in persistence (raiseLiveMovementContactDamage). Red: the CI base predates d2, so the double raise is proved by the count assertion (3 room raises before the fix). No restated assertions; no D196 change. The transitional settledRepeatSaveEffects note stays: moved to T2e2f."
+            },
+            {
+              "id": "QUALITY-14.T2e2f1",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2e"]
+              },
+              "text": "Bug: a Cleaving blow ends no \"until it takes damage\" effect (no ends stage). The blow plans its ends, releases and grants, persistence checks them, and its damaged discovery is carried into the chain.",
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-14.T2e2f2",
               "status": "TODO",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
@@ -27061,10 +27097,24 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["QUALITY-14.T2e2c", "QUALITY-14.T2e2d2"]
+                "after": ["QUALITY-14.T2e2f1"]
               },
-              "text": "Room count proofs on SRD fixtures that DAMAGED(AFTER) is raised once per command and holder (single target, list or area multi-hit, multi-zone move, a damaged Concentration holder, a resumed chain); the transitional note leaves rules-runtime.md.",
-              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+              "text": "The turn root carries its damaged discovery: one raise per turn-effect or turn-zone execution and holder (D220, D132 amendment) and one per Legendary Action and holder; the room stops deriving turnEffectHolders and the settledRepeatSaveEffects branch in nativeEncounterConcentration goes.",
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2f3",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2f2"]
+              },
+              "text": "Persistence checks each commit against the raise it already re-runs in its ends check (turn, Cleaving, movement); action and area keep one commit re-derivation per holder (D220 amendment), so settledRepeatSaveEffects is renamed and scoped to that check; the transitional note leaves rules-runtime.md; count proofs record at the persistence callback.",
+              "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
             }
           ]
         },
@@ -27236,7 +27286,7 @@
             },
             {
               "id": "QUALITY-15.T3k",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27247,11 +27297,12 @@
               },
               "text": "A timed save condition with an authored repeat save or damage early end (Dominate Beast, Monster and Person, the dryad Fey Charm, the vampire and succubus Charm) compiles and ends on that save.",
               "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m790 (10f25f537, batch); slice tip 0df2eaeb3: Tests 43690430944, Live 43690430934, Browser journeys 43690430831 green. Data only: Dominate Beast, Monster and Person, the dryad Fey Charm (by SOURCE_SIDE) and the succubus Charm author a SEQUENCE result with CHARMED plus a FOLLOW_UP_SAVE (ON_TRIGGERS_ONLY, DAMAGE_TAKEN, success END), compiled by the existing repeatingDirectFollowUpSavePlan; the vampire Charm already compiled. Golden: 5 rows REFUSED to TEST_OUTCOME, others byte-identical. Red proof: nativeRoomDominateRepeatSave RED 6/6, encounterAreaActionCompilation RED 3/98. Restated: the no-early-end refusal test now feeds the real spell with its repeat save stripped (withoutRepeatSave), still expecting the unsupported error. Dominate's ongoing GM control is not modeled (condition and save end only). D196: SRD content reseed when local is next used."
             },
             {
               "id": "QUALITY-15.T3i",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27260,8 +27311,25 @@
                 "size": 3,
                 "after": ["QUALITY-15.T3"]
               },
-              "text": "A timed GM ruling longer than one day (Geas, 30 days) compiles and expires by elapsed time instead of the one-day turn cap.",
-              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "text": "A timed effect longer than the 24-hour turn bound (Geas, 30 days) compiles to a CAMPAIGN_MINUTES expiration derived from its authored duration (D222); shorter durations keep TICKS.",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-15 at the seam trace (whole about 8, D222): cast-time stamping and clock expiry moved to T3i2.",
+              "mergedAt": "2026-11-15",
+              "proof": "m790 (10f25f537, batch); slice tip db6a8e7ce: Tests 43693576478, Live 43693576484, Browser journeys 43693576491 green. CAMPAIGN_MINUTES { minutes } definition expiration; the DTO requires remainingTicks null and an explicit expiresAtCampaignMinute (stamped minute, or null for no clock); overBoundDurationCampaignMinutes derives minutes only for MINUTE to WEEK durations the turn bound refuses (MONTH and YEAR stay refused); the planner emits the null stamp until T3i2. Golden: Geas REFUSED to SINGLE_GRAPH, others byte-identical. Red proof: timedRulingPlan RED 1/8, rules-runtime-contracts RED 1/43. Restated: the Geas refusal test is replaced by Geas compiling plus a 1-day TICKS and a 1-month refusal case. No D196 change (stored JSON, no reseed)."
+            },
+            {
+              "id": "QUALITY-15.T3i2",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T3i"]
+              },
+              "text": "A CAMPAIGN_MINUTES effect is stamped with expiresAtCampaignMinute from the Campaign clock at cast, survives Run completion, and ends on the clock advance that passes it (END_ACTIVE_EFFECT through the clock-expiry pass); with no Campaign clock it lasts until the GM ends it (D222).",
+              "note": "Registered 2026-11-15 from the T3i seam trace under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3b",

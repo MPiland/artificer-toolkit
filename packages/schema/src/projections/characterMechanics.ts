@@ -208,6 +208,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     initialRemaining: z.nullable(
       z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
     ),
+    /** Set instead of `initialRemaining` for a duration over the turn bound (D222): Campaign minutes it lasts. */
+    campaignMinutes: z.optional(z.number().check(z.int()).check(z.gte(1))),
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
     /** The authored Effect its target holds that this effect ends with (D172), as Frenzy with Rage. */
     endsWithHeldEffectId: z.optional(serverUuidIdentityDtoSchema),
