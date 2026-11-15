@@ -289,7 +289,16 @@ export const STORY_DRAFT_ONLY = {
     systemId: Equipment.SRD_SYSTEM_ID
   } satisfies BaseEquipmentAuthoringInputDto
 }
-
+/**
+ * The Sense definitions the story account authors for the System detail stories (D221), one per
+ * state a definition reaches through product commands. Their ids are random, so stories find them by
+ * label.
+ */
+export const STORY_DEFINITIONS = {
+  fresh: { label: 'Story Keen Sight', description: 'A homebrew visual sense, not yet drafted.' },
+  drafted: { label: 'Story Dim Sight', description: 'A homebrew visual sense with a saved draft.' },
+  published: { label: 'Story Sharp Sight', description: 'A homebrew visual sense, published.' }
+} as const
 /**
  * The Campaign Storybook backend stories open by name (D221), because its id is random: the story
  * account hosts it with play settings, one Encounter Blueprint whose Run is started, a loot table
