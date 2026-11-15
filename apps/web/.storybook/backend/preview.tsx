@@ -42,28 +42,9 @@ function getStoryBackend(storyId: string): StoryBackend {
   return backend
 }
 
-const SIGN_IN_RATE_LIMITED = 429
-const SIGN_IN_RETRY_MS = 2_000
-const SIGN_IN_ATTEMPTS = 8
-
-/**
- * Story files start together and share one browser session, so several can reach the sign-in
- * endpoint before the first finishes; its rate limit then answers 429. A rejected file waits and
- * re-reads the session, which the file that won the race has by then signed in.
- */
-async function signInStoryAccount(): Promise<void> {
-  for (let attempt = 1; ; attempt++) {
-    const current = await betterAuthClient.getSession()
-    if (current.data?.user.email === REVIEW_STORY_READER.email) return
-    const signIn = await betterAuthClient.signIn.email({
-      email: REVIEW_STORY_READER.email,
-      password: REVIEW_PASSWORD
-    })
-    if (!signIn.error) return
-    if (signIn.error.status !== SIGN_IN_RATE_LIMITED || attempt === SIGN_IN_ATTEMPTS) {
-      throw new Error(`The story account could not sign in: ${signIn.error.message}`)
-    }
-    await new Promise((resolve) => setTimeout(resolve, SIGN_IN_RETRY_MS))
+declare module 'vitest/browser' {
+  interface BrowserCommands {
+    routeFromOwnClientAddress: () => Promise<void>
   }
 }
 
@@ -75,7 +56,20 @@ async function connectStoryBackend(
   if (storyBackends.has(storyId)) return
   const url = import.meta.env.VITE_CONVEX_URL
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
-  await signInStoryAccount()
+  // The sign-in rate limit keys on the client address, so this file's browser context takes its own
+  // before the first request of the file.
+  const { commands } = await import('vitest/browser')
+  await commands.routeFromOwnClientAddress()
+  const current = await betterAuthClient.getSession()
+  if (current.data?.user.email !== REVIEW_STORY_READER.email) {
+    const signIn = await betterAuthClient.signIn.email({
+      email: REVIEW_STORY_READER.email,
+      password: REVIEW_PASSWORD
+    })
+    if (signIn.error) {
+      throw new Error(`The story account could not sign in: ${signIn.error.message}`)
+    }
+  }
   const convex = new ConvexQueryClient(url, { expectAuth: true })
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
   const queryClient = createAppQueryClient(convex)
