@@ -26969,7 +26969,12 @@
               "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R11.",
-              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner. DAMAGED is raised once per command and holder."
+              "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner. DAMAGED is raised once per command and holder.",
+              "proof": [
+                "nativeRoomTurnDamagedOncePerHolder.test.ts",
+                "nativeMovementZoneDamageMassiveSave.test.ts",
+                "nativeZoneDamageDeathWard.test.ts"
+              ]
             }
           ],
           "tasks": [
