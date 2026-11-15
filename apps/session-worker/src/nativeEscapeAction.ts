@@ -102,6 +102,7 @@ export async function planNativeLiveEscape(
         return prepared.target
       },
       capture,
+      readCampaignClockMinute: executionOptions.captures.readCampaignClockMinute,
       runtime: executionOptions.runtime,
       random: executionOptions.random,
       forcedMovementPick: executionOptions.forcedMovementPick,

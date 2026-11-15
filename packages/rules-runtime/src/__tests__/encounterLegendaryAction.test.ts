@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { activeRuleEffectRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState,
@@ -49,7 +50,8 @@ import {
   srdCreatureActor,
   srdCreatureTarget,
   srdDefinitions,
-  srdEncounterState
+  srdEncounterState,
+  testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
@@ -70,59 +72,82 @@ const srdLegendaryActions = creatureFeature(ancientRedDragon, 'Legendary Actions
  * runs the dragon's own Tail (D51 option B). Wing Attack is an area save, which a turn cannot run
  * yet, so it keeps its identity, charge and cost but takes a supported self-action shape.
  */
-const legendaryActions: typeof srdLegendaryActions = {
-  ...srdLegendaryActions,
-  options: srdLegendaryActions.options?.map((option) => ({
-    ...option,
-    ...(option.effects && {
-      effects: option.effects.map((effect) => {
-        if (effect.invocation.kind !== 'ACTION') throw new Error('Expected an action option.')
-        return {
-          id: effect.id,
-          order: effect.order,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: 'ACTIVATED' as const,
-            activation: { code: 'ACTION' as const, amount: 1 },
-            range: { id: effect.invocation.range.id, rangeKind: 'SELF' as const },
-            targeting: { selectionKind: 'SELF' as const },
-            resourceUse: effect.invocation.resourceUse
-          },
-          paths: [
-            {
-              id: `${effect.id}-use`,
-              order: 1,
-              pathCode: 'ON_USE' as const,
-              groupType: 'SINGLE' as const,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: `${effect.id}-use__result`,
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: `${effect.id}-use`,
-                    effectKind: 'DAMAGE' as const,
-                    damageTypeId: srdDamageTypeId('Fire'),
-                    valueKind: 'FIXED' as const,
-                    scalingKind: 'NONE' as const,
-                    amount: 1
-                  }
-                ]
+/** `ruling` swaps the stand-in's damage for a 30-day GM ruling, an effect only the Campaign clock bounds. */
+function standInLegendaryActions(ruling: boolean): typeof srdLegendaryActions {
+  let rulingOrdinal = 0
+  return {
+    ...srdLegendaryActions,
+    options: srdLegendaryActions.options?.map((option) => ({
+      ...option,
+      ...(option.effects && {
+        effects: option.effects.map((effect) => {
+          if (effect.invocation.kind !== 'ACTION') throw new Error('Expected an action option.')
+          return {
+            id: effect.id,
+            order: effect.order,
+            invocation: {
+              kind: 'ACTION' as const,
+              triggerCode: 'ACTIVATED' as const,
+              activation: { code: 'ACTION' as const, amount: 1 },
+              range: { id: effect.invocation.range.id, rangeKind: 'SELF' as const },
+              targeting: { selectionKind: 'SELF' as const },
+              resourceUse: effect.invocation.resourceUse
+            },
+            paths: [
+              {
+                id: `${effect.id}-use`,
+                order: 1,
+                pathCode: 'ON_USE' as const,
+                groupType: 'SINGLE' as const,
+                originKind: 'SOURCE' as const,
+                selectionKind: 'FIXED' as const,
+                resultBlock: {
+                  id: `${effect.id}-use__result`,
+                  resultKind: 'SINGLE' as const,
+                  ...(ruling && {
+                    duration: {
+                      id: `${effect.id}-duration`,
+                      durationKind: 'DAY' as const,
+                      amount: 30
+                    }
+                  }),
+                  outcomes: [
+                    ruling
+                      ? {
+                          // A held ruling's outcome id is a UUID, which the effect id's suffix is not.
+                          id: testUuid(0xb100 + (rulingOrdinal += 1)),
+                          effectKind: 'MANUAL_ADJUDICATION' as const,
+                          label: 'Judge the Curse',
+                          reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                          instructions: 'The GM rules on the lingering curse.'
+                        }
+                      : {
+                          id: `${effect.id}-use`,
+                          effectKind: 'DAMAGE' as const,
+                          damageTypeId: srdDamageTypeId('Fire'),
+                          valueKind: 'FIXED' as const,
+                          scalingKind: 'NONE' as const,
+                          amount: 1
+                        }
+                  ]
+                }
               }
-            }
-          ]
-        }
+            ]
+          }
+        })
       })
-    })
-  }))
+    }))
+  }
 }
-const legendaryDragon: CreatureAuthored = {
+const legendaryActions = standInLegendaryActions(false)
+const legendaryDragonWith = (actions: typeof srdLegendaryActions): CreatureAuthored => ({
   ...ancientRedDragon,
   features: ancientRedDragon.features?.map((feature) =>
-    feature.id === legendaryActions.id ? legendaryActions : feature
+    feature.id === actions.id ? actions : feature
   )
-}
+})
+const legendaryDragon = legendaryDragonWith(legendaryActions)
+const cursingDragon = legendaryDragonWith(standInLegendaryActions(true))
 const legendaryCharge = legendaryActions.charges
 const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
 
@@ -132,10 +157,12 @@ function srdDamageTypeId(label: string) {
   return damageType.id
 }
 
-function dragon(input: { used?: number; conditions?: readonly string[] } = {}) {
+function dragon(
+  input: { used?: number; conditions?: readonly string[]; creature?: CreatureAuthored } = {}
+) {
   return srdCreatureActor({
     id: DRAGON_ID,
-    creature: legendaryDragon,
+    creature: input.creature ?? legendaryDragon,
     featureCharges: { [legendaryActions.id]: input.used ?? 0 },
     conditionIds: input.conditions ?? []
   })
@@ -605,6 +632,7 @@ describe('Legendary Action turn window', () => {
     /** Every die the turn rolls, as 0-based faces in request order. */
     faces?: readonly number[]
     tokenBoundActorIds?: readonly string[]
+    readCampaignClockMinute?: () => Promise<number | null>
   }) {
     const state = srdEncounterState({
       actors: input.actors,
@@ -622,6 +650,7 @@ describe('Legendary Action turn window', () => {
       ...(input.resolution ? { resolution: input.resolution } : {}),
       updatedAt: '2026-09-26T00:00:01.000Z',
       actors: input.actors,
+      readCampaignClockMinute: input.readCampaignClockMinute ?? (async () => null),
       discoverWindows: ({ outgoingActorId, actors }) =>
         discoverWindows({
           actors,
@@ -803,6 +832,78 @@ describe('Legendary Action turn window', () => {
     expect(featureChargeUsed(settledDragon, legendaryActions.id)).toBe(1)
     // Later turn stages see the wounded Wolf.
     expect(done.movementTargets.get(WOLF_ID)?.state.current).toBe(0)
+  })
+
+  describe('an option that plants a Campaign-minute ruling (QUALITY-15.T3i3, D222)', () => {
+    async function curse(readCampaignClockMinute: () => Promise<number | null>) {
+      const actors = [dragon({ creature: cursingDragon }), wolfActor]
+      const {
+        snapshot,
+        context,
+        tailAttack: wingAttack
+      } = await pausedChoice(actors, 'Wing Attack (Costs 2 Actions)')
+      return prepare({
+        actors,
+        turnRoot: context.root,
+        pending: snapshot,
+        resolution: {
+          kind: 'LEGENDARY_OPTION',
+          optionId: wingAttack.optionId,
+          targetActorId: DRAGON_ID
+        },
+        readCampaignClockMinute
+      })
+    }
+
+    function lifecycles(done: Awaited<ReturnType<typeof curse>>) {
+      if (done.kind !== 'COMPLETE') throw new Error('The ruling settles the window.')
+      const [evidence] = done.root.completedLegendaryActions ?? []
+      if (evidence?.resolution.kind !== 'EXECUTED') throw new Error('Expected the executed window.')
+      return evidence.resolution.createdEffects.map(
+        (effect) => activeRuleEffectRecordSchema.parse(effect).lifecycle
+      )
+    }
+
+    it('stamps the clock minute plus 30 days, reading the clock once', async () => {
+      let reads = 0
+      const done = await curse(async () => {
+        reads += 1
+        return 20_000
+      })
+      expect(lifecycles(done)).toMatchObject([
+        { remainingTicks: null, expiresAtCampaignMinute: 20_000 + 30 * 1440 }
+      ])
+      expect(reads).toBe(1)
+    })
+
+    it('stamps no expiry for a Campaign with no clock', async () => {
+      expect(lifecycles(await curse(async () => null))).toMatchObject([
+        { remainingTicks: null, expiresAtCampaignMinute: null }
+      ])
+    })
+
+    it('never reads the clock for an option that plants no Campaign-minute effect', async () => {
+      const actors = [dragon(), wolfActor]
+      const {
+        snapshot,
+        context,
+        tailAttack: wingAttack
+      } = await pausedChoice(actors, 'Wing Attack (Costs 2 Actions)')
+      const done = await prepare({
+        actors,
+        turnRoot: context.root,
+        pending: snapshot,
+        resolution: {
+          kind: 'LEGENDARY_OPTION',
+          optionId: wingAttack.optionId,
+          targetActorId: DRAGON_ID
+        },
+        readCampaignClockMinute: async () => {
+          throw new Error('The clock was read.')
+        }
+      })
+      expect(done.kind).toBe('COMPLETE')
+    })
   })
 
   it('runs the first option of the Vampire Unarmed Strike pick, since a Legendary Action cannot prompt (SPELLS-33.T4i1f)', async () => {

@@ -127,6 +127,7 @@ export async function executeRoomSceneGeometry(input: {
         }
       : null
   const captures: LiveCaptureReads = {
+    readCampaignClockMinute: () => inputs.campaignClockMinute(),
     encounterRules: (scope) =>
       readRoomEncounterTurnCapture(
         ctx,

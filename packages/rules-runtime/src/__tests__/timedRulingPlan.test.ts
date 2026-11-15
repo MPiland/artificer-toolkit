@@ -18,6 +18,7 @@ import {
 } from '../testing/characterActionDescriptor.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { compiledTestSpellCast, plannedCastEffects } from '../testing/plannedTimedCondition.js'
+import { spellWithDuration } from '../testing/spellWithDuration.js'
 
 const SOURCE_ID = testUuid(0xd701)
 const HOLDER_ID = testUuid(0xd702)
@@ -77,27 +78,6 @@ function compileDirect(spell: SpellAuthored) {
   if (!effect) throw new Error(`${spell.label} authors no Effect.`)
   return () =>
     dnd5eCharacterRuleActionSystemAdapter.compile({ action: characterActionDescriptor(effect) })
-}
-
-/** `spell` with its one result's duration replaced. */
-function withDuration(
-  spell: SpellAuthored,
-  duration: { durationKind: 'DAY' | 'MONTH'; amount: number }
-): SpellAuthored {
-  return {
-    ...spell,
-    effects: (spell.effects ?? []).map((effect) => ({
-      ...effect,
-      // The spell's paths are all direct results, which carry a result block.
-      paths: effect.paths.map((path) => {
-        const { resultBlock } = path as Extract<typeof path, { resultBlock: unknown }>
-        return {
-          ...path,
-          resultBlock: { ...resultBlock, duration: { ...resultBlock.duration, ...duration } }
-        }
-      })
-    }))
-  } as SpellAuthored
 }
 
 /** The GM ruling `effect` holds, by its stored state contributions. */
@@ -179,13 +159,13 @@ describe('a GM ruling with a duration is held as a timed ruling (QUALITY-15.T3)'
   })
 
   it('keeps counting turns for a ruling that fits the bound, and refuses a calendar month', () => {
-    const oneDay = withDuration(geas, { durationKind: 'DAY', amount: 1 })
+    const oneDay = spellWithDuration(geas, { durationKind: 'DAY', amount: 1 })
     expect(castOf(oneDay).compilation.activeEffectPlan).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 14_400
     })
     expect(castOf(oneDay).compilation.activeEffectPlan).not.toHaveProperty('campaignMinutes')
-    expect(compileDirect(withDuration(geas, { durationKind: 'MONTH', amount: 1 }))).toThrow(
+    expect(compileDirect(spellWithDuration(geas, { durationKind: 'MONTH', amount: 1 }))).toThrow(
       LIFETIME_REFUSAL
     )
   })
