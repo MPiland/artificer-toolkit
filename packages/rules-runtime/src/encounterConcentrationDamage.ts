@@ -122,15 +122,25 @@ export function legendaryActionDamage(
   })
 }
 
-/** A turn's zone phase, staged or executed, as damage sources against the creature whose boundary it is. */
-export function zoneEffectDamage(phase: StagedTurnZonePlanDto | undefined): DamageBatch[] {
-  return (phase?.executions ?? []).map(({ candidate, applications }) => ({
+/** One zone execution as a damage source against the creature it reached, dealt by the zone's source. */
+function zoneExecutionDamage({
+  candidate,
+  applications
+}:
+  | StagedTurnZonePlanDto['executions'][number]
+  | MeleeRetaliationEvidenceDto['executions'][number]): DamageBatch {
+  return {
     targetActorId: candidate.candidate.targetActorId,
     applications,
     ...(candidate.candidate.sourceActorId
       ? { damagerActorId: candidate.candidate.sourceActorId }
       : {})
-  }))
+  }
+}
+
+/** A turn's zone phase, staged or executed, as damage sources against the creature whose boundary it is. */
+export function zoneEffectDamage(phase: StagedTurnZonePlanDto | undefined): DamageBatch[] {
+  return (phase?.executions ?? []).map(zoneExecutionDamage)
 }
 
 /** Names each turn-effect execution's damage after its authored effect definition. */
@@ -154,14 +164,11 @@ export async function labelTurnEffectDamage<
   )
 }
 
-/** Each zone a melee hit set off (D153) as its own damage source against the attacker. */
+/** Each zone a melee hit set off (D153) as its own damage source against the attacker, dealt by the zone's source. */
 export function meleeRetaliationDamage(
   evidence: MeleeRetaliationEvidenceDto | undefined
 ): DamageBatch[] {
-  return (evidence?.executions ?? []).map(({ candidate, applications }) => ({
-    targetActorId: candidate.candidate.targetActorId,
-    applications
-  }))
+  return (evidence?.executions ?? []).map(zoneExecutionDamage)
 }
 
 /** An action's damage: its target's batch, then the zones its melee hit set off against the attacker. */

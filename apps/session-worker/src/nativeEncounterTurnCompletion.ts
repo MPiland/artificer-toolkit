@@ -136,12 +136,24 @@ export async function prepareNativeLiveTurnCompletion(input: {
     if (response.kind !== 'DEFINITION') throw new Error('Turn effect definition is unavailable.')
     return response.definition?.label ?? null
   }
+  const outgoingDamage = await labelTurnEffectDamage(
+    prepared.outgoing?.plan?.executions ?? [],
+    readLabel
+  )
+  const incomingDamage = await labelTurnEffectDamage(
+    prepared.incoming.plan?.executions ?? [],
+    readLabel
+  )
   // The same order the terminal receipt keeps: outgoing effects, Legendary Actions, incoming effects.
   const damage = [
-    ...(await labelTurnEffectDamage(prepared.outgoing?.plan?.executions ?? [], readLabel)),
+    ...outgoingDamage,
     ...legendaryActionDamage(prepared.root.completedLegendaryActions),
-    ...(await labelTurnEffectDamage(prepared.incoming.plan?.executions ?? [], readLabel))
+    ...incomingDamage
   ]
+  // A turn effect has no ends stage yet, so a holder one also damaged derives its discovery.
+  const turnEffectHolders = new Set(
+    [...outgoingDamage, ...incomingDamage].map(({ targetActorId }) => targetActorId)
+  )
   const concentration = await planNativeLiveConcentration({
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,
@@ -173,7 +185,14 @@ export async function prepareNativeLiveTurnCompletion(input: {
     },
     runtime: input.runtime,
     random: input.random,
-    repeatSaves: { damagerActorId: null, discovered: new Map() }
+    repeatSaves: {
+      damagerActorId: null,
+      discovered: new Map(
+        [...prepared.legendaryDiscovery].filter(
+          ([holderActorId]) => !turnEffectHolders.has(holderActorId)
+        )
+      )
+    }
   })
   const facts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const rules = reconcileEncounterActorRuleOutput(

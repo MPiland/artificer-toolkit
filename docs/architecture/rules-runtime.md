@@ -1814,11 +1814,14 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   carry their ends stage's discovery (`planNativeLiveConcentration`'s `repeatSaves.discovered`), less what the rest
   of the command released; persistence re-derives it from the committed rows (`settledRepeatSaveEffects`: the effects
   still held, less those the command placed), which equals it because the command's ends are deleted there, and
-  `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Transitional: a root whose ends stage the chain
-  does not yet receive (melee retaliation's attacker, a turn's Legendary Actions and effects, Cleaving, movement, and
-  a resumed chain) derives the discovery from its settled projection through `settledRepeatSaveEffects`; melee
-  retaliation's projection still keeps the effects its zones' damage ended, and its chain names the attacker as the
-  damager where its ends stage names the zone's source. `encounterConcentrationEndReason` raises
+  `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Melee retaliation's attacker carries its zones'
+  ends stage discovery too (`spatialDamageEnds`, through the retaliation settlement's `repeatSaveEffects`), and its
+  settlement reads the attacker's effects after that stage; so does each holder only a turn's Legendary Actions
+  damaged (the turn preparation's `legendaryDiscovery`, current, QUALITY-14.T2e2b4). A zone's hit names the zone's
+  source as its damager in the chain (`meleeRetaliationDamage`, `zoneEffectDamage`), as the ends stage does, in the
+  room and in persistence. Transitional: a root whose ends stage the chain does not yet receive (a turn's effects, a
+  holder a turn effect damaged as well as its Legendary Actions, Cleaving, movement, and a resumed chain) derives the
+  discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`

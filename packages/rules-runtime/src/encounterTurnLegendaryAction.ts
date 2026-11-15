@@ -110,6 +110,8 @@ type TurnLegendaryActionInput<
     retained?: MeleeRetaliationEvidenceDto
   }): Promise<{
     evidence: MeleeRetaliationEvidenceDto
+    /** The zones' ends stage; null when they left the owner unchanged. */
+    settlement: { repeatSaveEffects: ActiveRuleEffectRecord[] | null } | null
     projectedAttacker: MovementTarget<TCharacterFacts>
   } | null>
   definitions: CurrentReusableDefinitionSource
@@ -154,7 +156,13 @@ export async function prepareTurnLegendaryActions<
   if (state.automationMode === 'MANUAL') {
     if (root.completedLegendaryActions || root.legendaryActionQueue)
       throw new Error('Manual turns cannot contain Legendary Actions.')
-    return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
+    return {
+      kind: 'COMPLETE' as const,
+      root,
+      actors,
+      movementTargets: targets,
+      damagedDiscovery: new Map<string, ActiveRuleEffectRecord[]>()
+    }
   }
   const discover = (current: {
     actors: readonly EncounterRunActorState[]
@@ -194,6 +202,35 @@ export async function prepareTurnLegendaryActions<
   let runtimePromise: Promise<RulesRuntimeService> | undefined
   const completed = [...(root.completedLegendaryActions ?? [])]
   const seen = new Set<string>()
+  /**
+   * The damaged discovery each window's ends stage made per holder its damage reached (the target's,
+   * and the owner's from the zones its melee hit set off), merged across the windows that reached it.
+   */
+  const discovered = new Map<string, ActiveRuleEffectRecord[]>()
+  const addDiscovery = (holderActorId: string, found: readonly ActiveRuleEffectRecord[]) =>
+    discovered.set(holderActorId, [
+      ...(discovered.get(holderActorId) ?? []).filter(
+        ({ id }) => !found.some((effect) => effect.id === id)
+      ),
+      ...found
+    ])
+  /** Each discovery less the effects a later window ended, from the holders as the windows left them. */
+  const complete = () => ({
+    kind: 'COMPLETE' as const,
+    root,
+    actors,
+    movementTargets: targets,
+    damagedDiscovery: new Map(
+      [...discovered].map(([holderActorId, effects]) => {
+        const held = targets.get(holderActorId)?.activeEffects
+        if (!held) throw new Error('Legendary Action damaged holder is unavailable.')
+        return [
+          holderActorId,
+          effects.filter(({ id }) => held.some((effect) => effect.id === id))
+        ] as const
+      })
+    )
+  })
 
   async function execute(
     choice: Choice,
@@ -535,6 +572,9 @@ export async function prepareTurnLegendaryActions<
     if (retainedRetaliation && !retaliation)
       throw new Error('Retained melee retaliation evidence is stale.')
     if (retaliation) projected.set(actor.id, retaliation.projectedAttacker)
+    addDiscovery(target.id, damageEnded.repeatSaveEffects)
+    if (retaliation?.settlement?.repeatSaveEffects)
+      addDiscovery(actor.id, retaliation.settlement.repeatSaveEffects)
     const stored = buildEncounterActionStoredExecution({
       prepared,
       execution: result,
@@ -720,7 +760,7 @@ export async function prepareTurnLegendaryActions<
           })
           // The turn end commits here; the remaining windows wait for the continuation.
           root = { ...root, completedLegendaryActions: completed, legendaryActionQueue: undefined }
-          return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
+          return complete()
         }
         const result = await execute(choice, selection, completed.length)
         if (result.kind === 'PENDING') return result
@@ -801,5 +841,5 @@ export async function prepareTurnLegendaryActions<
         actor.id === actionEconomy.refreshedActor!.id ? actionEconomy.refreshedActor! : actor
       )
   }
-  return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
+  return complete()
 }
