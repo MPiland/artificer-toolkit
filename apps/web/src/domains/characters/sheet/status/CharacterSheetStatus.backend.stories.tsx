@@ -20,7 +20,8 @@ type Story = StoryObj<typeof Route>
 export const StatusEditorDesktop: Story = {
   play: async ({ canvas, canvasElement }) => {
     await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.fighter)
-    await userEvent.click(canvas.getByRole('button', { name: /poisoned/i }))
+    // The seeded Fighter carries no Condition to open, so the exhaustion control opens the editor.
+    await userEvent.click(canvas.getByRole('button', { name: /manage exhaustion/i }))
     await waitFor(() => expect(canvas.getByText('Effects by level')).toBeVisible())
   }
 }
