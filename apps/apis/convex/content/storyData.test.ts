@@ -48,9 +48,15 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     })
   )
   await t.action(internal.content.seed.seed, {})
-  // The room refuses a member with no username, and the fixture's accounts have none.
-  await first.caller.mutation(api.account.updateProfile, { username: 'story_reader', bio: null })
-  await second.caller.mutation(api.account.updateProfile, { username: 'story_host', bio: null })
+  // The room refuses a member with no username, and the fixture's accounts have none; the invitation names the reader's.
+  await first.caller.mutation(api.account.updateProfile, {
+    username: REVIEW_STORY_READER.username,
+    bio: null
+  })
+  await second.caller.mutation(api.account.updateProfile, {
+    username: REVIEW_STORY_HOST.username,
+    bio: null
+  })
   await attachRoomWorker(t)
   // START and the Scene binding go through the real room, as on the local backend.
   const roomReader = roomDevelopmentClient(first.caller)
