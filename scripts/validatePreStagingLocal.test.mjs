@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { runnerProofs } from './runnerProofs.mjs'
 // A namespace import, so a lifecycle without the stage list fails this test instead of failing to load.
@@ -7,11 +9,13 @@ import * as lifecycle from './validatePreStagingLocal.mjs'
 
 const loopback = 'http://127.0.0.1:3210'
 
-describe('localChildEnvironment', () => {
-  const hostEnvironment = process.env
+const hostEnvironment = process.env
+// Resolved before the tests swap process.env, which drops the TEMP variables tmpdir reads.
+const scratchRoot = tmpdir()
 
-  // The lifecycle strips remote-only names from process.env before any child starts, so the test starts from
-  // an environment that holds only the local target and the Convex cloud selectors.
+// The lifecycle strips remote-only names from process.env before any child starts, so these tests start from
+// an environment that holds only the local target and the Convex cloud selectors.
+function useLocalLifecycleEnvironment() {
   beforeEach(() => {
     process.env = {
       CONVEX_SITE_URL: 'http://127.0.0.1:3211',
@@ -27,6 +31,34 @@ describe('localChildEnvironment', () => {
   afterEach(() => {
     process.env = hostEnvironment
   })
+}
+
+describe('run', () => {
+  useLocalLifecycleEnvironment()
+
+  it('carries the failing end of the child log in its error', async () => {
+    const directory = await mkdtemp(join(scratchRoot, 'lifecycle-run-'))
+    try {
+      const logPath = join(directory, 'proof.log')
+      // The script assembles the marker at run time, so only the child's output carries it, not its arguments.
+      const script =
+        'console.log("early noise".repeat(1000)); console.log(["assertion failed", "marker", "7f3a"].join(": ")); process.exit(1)'
+
+      const failure = await lifecycle
+        .run(process.execPath, ['-e', script], { logPath })
+        .catch((error) => error)
+
+      expect(failure.message).toContain('failed (exit 1)')
+      expect(failure.message).toContain('assertion failed: marker: 7f3a')
+      expect(failure.message.length).toBeLessThan(5000)
+    } finally {
+      await rm(directory, { force: true, recursive: true })
+    }
+  })
+})
+
+describe('localChildEnvironment', () => {
+  useLocalLifecycleEnvironment()
 
   it('keeps the Convex deployment selector and deploy key away from every child', () => {
     const environment = lifecycle.localChildEnvironment({ EXTRA: 'kept' })

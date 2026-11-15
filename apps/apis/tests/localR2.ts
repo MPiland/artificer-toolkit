@@ -50,6 +50,14 @@ function validPutSignature(url: URL, request: IncomingMessage) {
   )
 }
 
+/** The web app, then the backend Storybook stories (vitest browser origin 6106; `yarn storybook` 6006). */
+const browserOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:6106',
+  'http://localhost:6006'
+]
+
 /** Local protocol substitute. Container callers must publish only on host loopback.
  * Cloudflare signature enforcement remains promotion proof. */
 export async function startLocalR2(
@@ -100,7 +108,7 @@ export async function startLocalR2(
         return
       }
       const browserOrigin = request.headers.origin
-      if (browserOrigin === 'http://localhost:3000' || browserOrigin === 'http://127.0.0.1:3000') {
+      if (browserOrigin && browserOrigins.includes(browserOrigin)) {
         response.setHeader('Access-Control-Allow-Origin', browserOrigin)
         response.setHeader('Vary', 'Origin')
         if (request.method === 'OPTIONS') {
