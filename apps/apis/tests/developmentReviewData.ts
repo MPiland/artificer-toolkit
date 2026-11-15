@@ -13,9 +13,11 @@ import type {
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
+import { definitionReferences } from '../convex/content/definitionReferences'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { declarationCommand } from './fixtures/encounterInitiative'
@@ -27,6 +29,7 @@ import {
   REVIEW_STORY_HOST,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
+  STORY_DEFINITIONS,
   STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
@@ -155,6 +158,7 @@ export async function seedStoryData(
     })
   }
   await seedStoryDraftOnly(reader)
+  await seedStoryDefinitions(reader)
   const host = await connect(REVIEW_STORY_HOST)
   await seedStoryCampaign(reader, host, room)
   await seedStoryPlayerCampaign(host, reader, room)
@@ -182,6 +186,78 @@ async function seedStoryDraftOnly(client: StoryClient) {
     label,
     payload
   })
+}
+
+/**
+ * Authors the story Sense definitions: one left new, one with a saved draft, one published. A
+ * definition is created only while none carries its label, and each later step runs only while its
+ * state is unreached, so a re-run keeps what a previous run finished.
+ */
+async function seedStoryDefinitions(client: StoryClient) {
+  const { fresh, drafted, published } = STORY_DEFINITIONS
+  for (const { label, description } of [fresh, drafted, published]) {
+    const existing = await findStoryDefinition(client, label)
+    const workspace =
+      existing ??
+      (await client.mutation(definitionReferences.create, {
+        gameSystemId: srdSystemRecord.id,
+        definitionFamilyKey: 'sense',
+        label,
+        description
+      }))
+    if (label === fresh.label || workspace.currentVersion !== null) continue
+    const withDraft =
+      workspace.draftVersion === null
+        ? await client.mutation(definitionReferences.saveDraft, {
+            definitionId: workspace.id,
+            expectedDefinitionVersion: workspace.version,
+            expectedDraftVersion: null,
+            document: senseReusableDefinitionDocumentDtoSchema.parse({
+              schemaVersion: 1,
+              kind: 'SENSE',
+              id: workspace.id,
+              gameSystemId: srdSystemRecord.id,
+              capabilities: [
+                {
+                  channel: 'VISUAL',
+                  accessGrade: 'PRECISE',
+                  satisfies: ['DETECT', 'LOCATE', 'PRECISE', 'SEE'],
+                  illuminationAccess: 'DIM',
+                  obscurementAccess: 'NONE',
+                  perceivesInvisible: false,
+                  physicalConstraints: ['LINE_OF_EFFECT']
+                }
+              ]
+            })
+          })
+        : workspace
+    if (label !== published.label) continue
+    assert.ok(withDraft.draftVersion !== null, 'Story definition ${label} has no draft.')
+    await client.mutation(definitionReferences.publish, {
+      definitionId: withDraft.id,
+      expectedDefinitionVersion: withDraft.version,
+      expectedDraftVersion: withDraft.draftVersion
+    })
+  }
+}
+
+async function findStoryDefinition(client: StoryClient, label: string) {
+  let cursor: string | null = null
+  for (;;) {
+    const page: {
+      page: { id: string; label: string }[]
+      isDone: boolean
+      continueCursor: string
+    } = await client.query(api.content.definitions.list, {
+      gameSystemId: srdSystemRecord.id,
+      cursor,
+      limit: 10
+    })
+    const match = page.page.find((definition) => definition.label === label)
+    if (match) return client.query(definitionReferences.get, { definitionId: match.id })
+    if (page.isDone) return null
+    cursor = page.continueCursor
+  }
 }
 
 /**

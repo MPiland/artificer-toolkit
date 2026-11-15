@@ -2282,7 +2282,7 @@
             },
             {
               "id": "PLATFORM-28.T3d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2293,7 +2293,8 @@
               },
               "text": "EquipmentParentPreview reads the seeded SRD shortsword; SystemDetailPage reads a seeded reusable definition with after-write states as composed stories (D218); SystemDefinitionWorkspace.fixtures is replaced.",
               "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m806 (c81bee194); slice tip 5cca93717 (re-synced with m805): Tests 43771390338, Live 43771390365, Browser journeys 43771390307 green (storybook-backend-browser). System definition authoring stories read the seeded drafted and published definitions through the real paged queries (they page forward until the seeded label shows); writes go through the shared spies; storyData.test asserts the seed (assertions added only). SystemDefinitionWorkspace.fixtures stays because unit tests import it (D221). No enforced 20-story quota, so no new shard. No assertion weakened; no D196 change."
             },
             {
               "id": "PLATFORM-28.T4a",
