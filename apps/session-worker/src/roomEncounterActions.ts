@@ -70,6 +70,7 @@ export async function executeRoomEncounterAction(input: {
   const { ctx, store, transaction, inputs, scope, observed } = input
   const captures: LiveCaptureReads = {
     ...roomLiveCaptureReads({ ctx, store, transaction, inputs, observed }),
+    readCampaignClockMinute: () => inputs.campaignClockMinute(),
     readFormCreature: (gameSystemId, creatureId) =>
       readActorFormCreature(ctx.ports, {
         campaignId: scope.campaignId,

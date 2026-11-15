@@ -300,7 +300,8 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
  * D99, SPELLS-5.14: a completed Run hands its Characters' timed grants and condition-owning effects
  * to the Campaign clock, 6 seconds per remaining round rounded up to whole minutes from the clock's
  * minute at completion. Without a clock they stop counting and last until the GM ends them. A
- * detached Concentration effect keeps its caster stamp.
+ * detached Concentration effect keeps its caster stamp. An effect counted in Campaign minutes
+ * (D222) holds no remaining rounds, so it is left as cast, stamp included, and plans no change.
  */
 export function planCarriedOverEffects(input: {
   effects: readonly ActiveRuleEffectRecord[]
@@ -346,7 +347,8 @@ export type CarriedEffectResume<Effect extends ActiveRuleEffectRecord> =
  * D99, D151, SPELLS-5.13: a later Run's START hands the carried-over effects back from the Campaign
  * clock to rounds, 10 per minute left before their expiry and never more than they first had. One
  * whose expiry the clock has reached ends. Without a clock, or with no expiry (carried without a
- * clock), nothing resumes and the effect lasts until the GM ends it.
+ * clock), nothing resumes and the effect lasts until the GM ends it. An effect counted in Campaign
+ * minutes (D222) has no rounds to give back: it keeps its stamp and only ends once the clock reached it.
  */
 export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>(input: {
   effects: readonly Effect[]
@@ -354,6 +356,17 @@ export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>
 }): CarriedEffectResume<Effect>[] {
   const { clockMinute } = input
   if (clockMinute === null) return []
+  // An effect counted in Campaign minutes (D222) never returns to rounds: it only lapses when the
+  // clock has reached its stamp, and otherwise keeps the stamp it was cast with.
+  const counted = input.effects.filter(
+    ({ definition, lifecycle }) =>
+      definition.recurrence.expiration.kind === 'CAMPAIGN_MINUTES' &&
+      typeof lifecycle.expiresAtCampaignMinute === 'number'
+  )
+  const lapsed = discoverEncounterEventHooks({
+    effects: counted,
+    events: [{ kind: 'CAMPAIGN_CLOCK', minute: clockMinute }]
+  }).ended.map((effect): CarriedEffectResume<Effect> => ({ kind: 'EXPIRE', effect }))
   const carried = input.effects.flatMap((effect) => {
     const { expiration } = effect.definition.recurrence
     const { expiresAtCampaignMinute, ...lifecycle } = effect.lifecycle
@@ -374,27 +387,30 @@ export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>
     effects: carried.map(({ effect }) => effect),
     events: [{ kind: 'CAMPAIGN_CLOCK', minute: clockMinute }]
   })
-  return carried.map(
-    ({
-      effect,
-      lifecycle,
-      expiresAtCampaignMinute,
-      initialRemaining
-    }): CarriedEffectResume<Effect> =>
-      ended.includes(effect)
-        ? { kind: 'EXPIRE', effect }
-        : {
-            kind: 'UPDATE',
-            effect,
-            lifecycle: {
-              ...lifecycle,
-              remainingTicks: Math.min(
-                initialRemaining,
-                (expiresAtCampaignMinute - clockMinute) * ROUNDS_PER_CAMPAIGN_MINUTE
-              )
+  return [
+    ...lapsed,
+    ...carried.map(
+      ({
+        effect,
+        lifecycle,
+        expiresAtCampaignMinute,
+        initialRemaining
+      }): CarriedEffectResume<Effect> =>
+        ended.includes(effect)
+          ? { kind: 'EXPIRE', effect }
+          : {
+              kind: 'UPDATE',
+              effect,
+              lifecycle: {
+                ...lifecycle,
+                remainingTicks: Math.min(
+                  initialRemaining,
+                  (expiresAtCampaignMinute - clockMinute) * ROUNDS_PER_CAMPAIGN_MINUTE
+                )
+              }
             }
-          }
-  )
+    )
+  ]
 }
 
 /**
@@ -466,8 +482,12 @@ export function planConcentrationCarriedGrantEnds<Effect extends ActiveRuleEffec
   return withLinkedDependents(ended, input.effects)
 }
 
-/** Carried-over effects whose Campaign-clock expiry the clock has reached, raised as a `CAMPAIGN_CLOCK` event. */
-export function expiredCarriedOverGrants<Effect extends ActiveRuleEffectRecord>(
+/**
+ * Effects of any kind whose Campaign-clock expiry the clock has reached, raised as a `CAMPAIGN_CLOCK`
+ * event: a carried-over grant or condition effect, or one counted in Campaign minutes from its cast
+ * (D222). An effect with no stamp (carried, or cast, without a clock) never ends this way.
+ */
+export function expiredCampaignClockEffects<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   clockMinute: number
 ) {

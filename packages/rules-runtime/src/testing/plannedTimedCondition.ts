@@ -133,6 +133,8 @@ export function plannedTimedCondition(input: {
   currentActorId?: string | null
   /** The parameters of the cast modifier the caster paid, as the room passes them to the plan. */
   castModifierParameters?: readonly CastModifierParameterAuthored[]
+  /** The Campaign clock's minute at the cast, null for no clock; required for a Campaign-minute effect. */
+  campaignClockMinute?: number | null
 }) {
   const { spell } = input
   const sourceInstanceId = `class-${spell.id}`
@@ -177,6 +179,8 @@ export function plannedCastEffects(input: {
   currentActorId?: string | null
   castModifierParameters?: readonly CastModifierParameterAuthored[]
   resultPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+  /** The Campaign clock's minute at the cast, null for no clock; required for a Campaign-minute effect. */
+  campaignClockMinute?: number | null
 }) {
   const { executionPlan, activeEffectPlan } = input.entry.compilation
   const published =
@@ -238,6 +242,9 @@ export function plannedCastEffects(input: {
             resultPath: input.resultPath
           }
         : null,
-    applications: []
+    applications: [],
+    ...(input.campaignClockMinute !== undefined && {
+      campaignClockMinute: input.campaignClockMinute
+    })
   })
 }
