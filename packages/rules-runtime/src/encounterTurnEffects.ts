@@ -48,6 +48,7 @@ import {
   type HeldDamageInterception
 } from './encounterDamageInterception.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { type DamagedDiscovery, joinDamagedDiscoveries } from './encounterDamageSaveChain.js'
 import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
 import { sourceActorIdOf } from './events/encounterEventHooks.js'
@@ -445,6 +446,8 @@ async function evaluateEncounterTurnEffects(input: {
   const expired = new Set<string>()
   // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
   const damageEnded = new Set<string>()
+  // Each execution's one DAMAGED(AFTER) raise for its holder, and what it found (D220).
+  const raises: (readonly [string, ActiveRuleEffectRecord[]])[] = []
   const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
   // Each holder's state chains through its own executions only.
   const states = new Map(
@@ -601,10 +604,8 @@ async function evaluateEncounterTurnEffects(input: {
       effect,
       holderActorId: target.actor.id,
       held: effects,
-      excluded: new Set([
-        ...damageEnded,
-        ...input.candidates.slice(0, ordinal + 1).map(({ effect: { id } }) => id)
-      ]),
+      gone: new Set([...damageEnded, ...expired]),
+      executed: new Set(input.candidates.slice(0, ordinal + 1).map(({ effect: { id } }) => id)),
       testEvidence: [result.d20],
       applications: result.applications,
       dispositions
@@ -628,6 +629,7 @@ async function evaluateEncounterTurnEffects(input: {
       ]
     }
     for (const { id } of ended.endedEffects) damageEnded.add(id)
+    raises.push([target.actor.id, ended.repeatSaveEffects])
     const { execution, ownConditions, damageInterceptions } = completeExecution({
       ordinal,
       boundary: input.boundary,
@@ -661,6 +663,13 @@ async function evaluateEncounterTurnEffects(input: {
   return {
     kind: 'COMPLETE' as const,
     plan: { selectionChecksum: input.selectionChecksum, executions },
+    // An effect a later execution ended or expired owes no save to an earlier one's damage.
+    damagedDiscovery: joinDamagedDiscoveries(
+      raises.map(([holderActorId, found]) => [
+        holderActorId,
+        found.filter(({ id }) => !damageEnded.has(id) && !expired.has(id))
+      ])
+    ),
     settlements: [...applications].map(([actorId, targetApplications]) => ({
       actorId,
       applications: targetApplications,
@@ -750,6 +759,8 @@ export async function prepareEncounterTurnEffects<
       movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       plan: StagedTurnEffectPlanDto | null
       phase: PendingCompletedTurnPhaseDto
+      /** Each holder's damaged discovery from the executions that damaged it (D220). */
+      damagedDiscovery: DamagedDiscovery
     }
 > {
   const targets = new Map(input.movementTargets)
@@ -761,7 +772,8 @@ export async function prepareEncounterTurnEffects<
       actors: input.actors,
       movementTargets: targets,
       plan: null,
-      phase: { kind: 'NONE' as const }
+      phase: { kind: 'NONE' as const },
+      damagedDiscovery: new Map()
     }
   }
   if (input.boundary.actorId === null) return none()
@@ -817,7 +829,8 @@ export async function prepareEncounterTurnEffects<
       actors: input.actors,
       movementTargets: targets,
       plan: null,
-      phase
+      phase,
+      damagedDiscovery: new Map()
     }
   }
   if (input.retainedPhase?.kind === 'MANUAL') throw new Error('Retained turn automation is stale.')
@@ -903,6 +916,7 @@ export async function prepareEncounterTurnEffects<
     actors: input.actors.map(({ id }) => actors.get(id)!),
     movementTargets: targets,
     plan: evaluated.plan,
-    phase: { kind: 'STAGED', plan: evaluated.plan }
+    phase: { kind: 'STAGED', plan: evaluated.plan },
+    damagedDiscovery: evaluated.damagedDiscovery
   }
 }

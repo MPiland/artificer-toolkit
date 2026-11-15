@@ -14,6 +14,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import {
   spatialDamageEnds,
+  spatialDamageReached,
   targetStateAfterEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -131,7 +132,10 @@ export async function persistEncounterMeleeRetaliation(
   const first = executions[0]!
   const last = executions.at(-1)!
   const before = first.targetTransition.before
-  if (checksumRuleDocument(before) === checksumRuleDocument(last.targetTransition.after))
+  if (
+    !spatialDamageReached(executions) &&
+    checksumRuleDocument(before) === checksumRuleDocument(last.targetTransition.after)
+  )
     return { actor: attacker, endedEffects: [] }
   const applications = executions.flatMap((execution) =>
     execution.applications.map((application) => ({ ...application, targetActorId: attacker.id }))

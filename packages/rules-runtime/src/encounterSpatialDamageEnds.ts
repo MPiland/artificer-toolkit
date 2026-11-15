@@ -6,8 +6,10 @@ import type { CharacterEndedEffectReleaseApplication } from './characterRuleActi
 import { prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
 import { type TargetState, targetTemporaryHitPoints } from './encounterCharacterMechanicsBatch.js'
+import { joinDamagedDiscoveries } from './encounterDamageSaveChain.js'
 import { targetEndedEffects, type EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+import { damageRowHits } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 
 /** What a spatial execution carries of the damage it dealt and the zone's source that dealt it. */
 type DamagingSpatialExecution = Pick<
@@ -16,7 +18,21 @@ type DamagingSpatialExecution = Pick<
 > & { candidate: { candidate: { sourceActorId: string | null } } }
 
 /**
- * What the damage a creature takes from zones ends on it (the turn zone, a melee retaliation):
+ * Whether the zones' damage reached the creature (`damageRowHits`, D132): its `DAMAGED` fires, so it
+ * settles even when an interception (Death Ward) left its state as it was, and the interception spends.
+ * Damage its defenses absorbed whole never reached it.
+ */
+export function spatialDamageReached(
+  executions: readonly Pick<DamagingSpatialExecution, 'applications'>[]
+) {
+  return executions.some(({ applications }) =>
+    applications.some((application) => application.kind === 'DAMAGE' && damageRowHits(application))
+  )
+}
+
+/**
+ * What the damage a creature takes from zones ends on it in one raise (a melee retaliation; a turn
+ * zone raises once per execution through `spatialDamageEndsPerExecution`):
  * the held effects whose `DAMAGE_TAKEN` end trigger a zone's damage meets (the zone's source is the
  * damager), and the conditions only they held. A mechanics batch applies the releases after the
  * zones' own applications, in the same transaction as the effects' deletion, so planning and
@@ -60,6 +76,41 @@ export function spatialDamageEnds(input: {
     ...(input.grantTriggers ? { grantTriggers: input.grantTriggers } : {})
   })
   return { endedEffects, releases, grants, repeatSaveEffects }
+}
+
+/**
+ * What a turn boundary's zones' damage ends on a creature they caught (D220): each zone execution is
+ * its own `DAMAGED(AFTER)` raise, in execution order, over the effects the earlier raises left, so
+ * overlapping zones each owe what their damage meets. A grant an earlier raise gave is not owed
+ * again, and the discovery is the raises' joined in order, less every effect a raise ended. The
+ * releases follow the zones' applications in the creature's one mechanics batch.
+ */
+export function spatialDamageEndsPerExecution(
+  input: Parameters<typeof spatialDamageEnds>[0]
+): ReturnType<typeof spatialDamageEnds> {
+  const endedEffects: ActiveRuleEffectRecord[] = []
+  const releases: CharacterEndedEffectReleaseApplication[] = []
+  const grants: ReturnType<typeof spatialDamageEnds>['grants'] = []
+  const raises: (readonly [string, ActiveRuleEffectRecord[]])[] = []
+  for (const execution of input.executions) {
+    const ends = spatialDamageEnds({
+      ...input,
+      held: input.held.filter(({ id }) => !endedEffects.some((ended) => ended.id === id)),
+      executions: [execution]
+    })
+    endedEffects.push(...ends.endedEffects)
+    releases.push(...ends.releases)
+    grants.push(...ends.grants.filter(({ id }) => !grants.some((given) => given.id === id)))
+    raises.push([input.holderActorId, ends.repeatSaveEffects])
+  }
+  return {
+    endedEffects,
+    releases,
+    grants,
+    repeatSaveEffects: (joinDamagedDiscoveries(raises).get(input.holderActorId) ?? []).filter(
+      ({ id }) => !endedEffects.some((ended) => ended.id === id)
+    )
+  }
 }
 
 /**

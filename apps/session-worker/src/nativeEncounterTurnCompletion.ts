@@ -13,7 +13,8 @@ import {
   labelTurnEffectDamage,
   legendaryActionDamage,
   nativeConcentrationDamageApplications,
-  nativeConcentrationDamageSourceLabels
+  nativeConcentrationDamageSourceLabels,
+  zoneEffectDamage
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
@@ -73,7 +74,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
       effects.flatMap(projectEffect)
     ])
   )
-  const projectedTargets = new Map(prepared.incoming.movementTargets)
+  const projectedTargets = new Map(prepared.movementTargets)
   for (const [actorId, target] of projectedTargets) {
     const actor = prepared.actors.find((value) => value.id === actorId)
     if (!actor) throw new Error('Turn concentration actor is unavailable.')
@@ -144,16 +145,15 @@ export async function prepareNativeLiveTurnCompletion(input: {
     prepared.incoming.plan?.executions ?? [],
     readLabel
   )
-  // The same order the terminal receipt keeps: outgoing effects, Legendary Actions, incoming effects.
+  // The same order the terminal receipt keeps: outgoing effects and zones, Legendary Actions, then
+  // incoming effects and zones.
   const damage = [
     ...outgoingDamage,
+    ...zoneEffectDamage(prepared.outgoingZones ?? undefined),
     ...legendaryActionDamage(prepared.root.completedLegendaryActions),
-    ...incomingDamage
+    ...incomingDamage,
+    ...zoneEffectDamage(prepared.incomingZones ?? undefined)
   ]
-  // A turn effect has no ends stage yet, so a holder one also damaged derives its discovery.
-  const turnEffectHolders = new Set(
-    [...outgoingDamage, ...incomingDamage].map(({ targetActorId }) => targetActorId)
-  )
   const concentration = await planNativeLiveConcentration({
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,
@@ -184,15 +184,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
     },
     runtime: input.runtime,
     random: input.random,
-    repeatSaves: {
-      damagerActorId: null,
-      discovered: new Map(
-        [...prepared.legendaryDiscovery].filter(
-          ([holderActorId]) => !turnEffectHolders.has(holderActorId)
-        )
-      ),
-      entryOccurrenceIds: []
-    }
+    repeatSaves: { damagerActorId: null, discovered: prepared.damagedDiscovery }
   })
   const facts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const rules = reconcileEncounterActorRuleOutput(

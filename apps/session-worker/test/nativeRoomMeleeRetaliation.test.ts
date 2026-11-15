@@ -11,6 +11,9 @@ import {
   shields
 } from '@artificer-toolkit/rules-runtime/testing/fireShieldZoneFixture'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { deathWard } from '@artificer-toolkit/source-data/srd/spells/death-ward.js'
 import { fireShield } from '@artificer-toolkit/source-data/srd/spells/fire-shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -380,5 +383,126 @@ describe('a warm Fire Shield answers an opportunity attack’s melee hit (SPELLS
       readActorHitPoints(before, REACTOR_ID) - 2 * D8
     )
     expect(readActorHitPoints(after, WOLF_ID)).toBeLessThan(readActorHitPoints(before, WOLF_ID))
+  })
+})
+
+/** A Wolf with the SRD Ancient Red Dragon's immunity to fire. */
+const fireImmuneWolf: CreatureAuthored = {
+  ...plainWolf,
+  id: testUuid(0x2257),
+  damageImmunities: srdByLabel(SRD.creatures, 'Ancient Red Dragon').damageImmunities
+}
+const OGRE_ID = testUuid(0x2258)
+const ogre = srdByLabel(SRD.creatures, 'Ogre')
+
+/** The `attacker` Wolf's bite against an Ogre that holds a warm Fire Shield. */
+async function wolfBitesShieldedOgre(attacker: ReturnType<typeof srdCreatureActor>) {
+  return actionRoom({
+    actors: [attacker, srdCreatureActor({ id: OGRE_ID, creature: ogre })],
+    ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+    autoRoll: 'EVERYONE',
+    fallbackRoll: DIE,
+    seed: async ({ spatial, encounterId, tokenIdOf }) => {
+      const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+        placedFireShieldZone({
+          seed: SHIELD_SEED,
+          sourceActorId: OGRE_ID,
+          sourceTokenId: tokenIdOf(OGRE_ID),
+          encounterId
+        })
+      await spatial.create({
+        id,
+        maintainedEffectStateId,
+        definition,
+        lifecycle,
+        placement,
+        spatialState
+      })
+    }
+  })
+}
+
+describe('a warm Fire Shield’s burn the attacker takes none of (QUALITY-14.T2e2f2, D132, D220)', () => {
+  it('commits the fire-immune Wolf’s bite, which leaves it unharmed and owes it no save', async () => {
+    const room = await wolfBitesShieldedOgre(
+      srdCreatureActor({ id: WOLF_ID, creature: fireImmuneWolf })
+    )
+    const wolfBefore = await hitPointsOf(room, WOLF_ID)
+
+    const { command, answer } = await room.startAction(OGRE_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    expect(await retaliationOf(room, command.commandId)).toMatchObject({
+      executions: [
+        {
+          candidate: { candidate: { sourceActorId: OGRE_ID, targetActorId: WOLF_ID } },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', resolvedAmount: 0 })]
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(wolfBefore)
+  })
+})
+describe('a warm Fire Shield’s burn a Death Ward holds off the attacker’s hit points (QUALITY-14.T2e2f2, D132, D220)', () => {
+  it('commits the warded Wolf’s bite, which keeps it at 1 hit point and spends the ward', async () => {
+    const [deathWardEffect] = deathWard.effects ?? []
+    if (!deathWardEffect) throw new Error('The SRD Death Ward has no effect.')
+    const wardId = testUuid(0x2259)
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, currentHitPoints: 1 }),
+        srdCreatureActor({ id: OGRE_ID, creature: ogre })
+      ],
+      ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE,
+      seed: async ({ spatial, effects, encounterId, tokenIdOf, occurredAt }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: SHIELD_SEED,
+            sourceActorId: OGRE_ID,
+            sourceTokenId: tokenIdOf(OGRE_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+        const ward = plannedModifierGrant({
+          encounterId,
+          sourceActorId: WOLF_ID,
+          holderActorId: WOLF_ID,
+          lifecycle: {},
+          effect: deathWardEffect,
+          sourceLabel: deathWard.label
+        })
+        await effects.create({
+          id: wardId,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: WOLF_ID },
+          definition: ward.definition,
+          lifecycle: { ...ward.lifecycle, remainingUses: 1 },
+          occurredAt
+        })
+      }
+    })
+
+    const { command, answer } = await room.startAction(OGRE_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    expect(await retaliationOf(room, command.commandId)).toMatchObject({
+      executions: [
+        {
+          candidate: { candidate: { sourceActorId: OGRE_ID, targetActorId: WOLF_ID } },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', resolvedAmount: 2 * D8 })]
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(1)
+    const { activeEffects } = await readRoomHistory(room.room.base.stub)
+    expect(activeEffects.map(({ id }) => id)).not.toContain(wardId)
   })
 })
