@@ -19,9 +19,11 @@ import {
   type StoryRoom
 } from '../../tests/developmentReviewData'
 import {
+  REVIEW_STORY_HOST,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
   STORY_DRAFT_ONLY,
+  STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS
 } from '../../tests/developmentReviewDataScenarios'
 import { api, components, internal } from '../_generated/api'
@@ -32,7 +34,7 @@ useRealTimeClock()
 
 // Storybook backend stories open these records by id and expect each in its authoring state (D221).
 it('gives the story account an active copy and a copy with a waiting draft per domain, one never-activated draft and its Campaign, once', async () => {
-  const { t, first } = await publicationFixture(
+  const { t, first, second } = await publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
     []
@@ -48,10 +50,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   await t.action(internal.content.seed.seed, {})
   // The room refuses a member with no username, and the fixture's accounts have none.
   await first.caller.mutation(api.account.updateProfile, { username: 'story_reader', bio: null })
+  await second.caller.mutation(api.account.updateProfile, { username: 'story_host', bio: null })
   await attachRoomWorker(t)
   // START and the Scene binding go through the real room, as on the local backend.
   const roomReader = roomDevelopmentClient(first.caller)
   const reader: StoryClient = roomReader
+  const roomHost = roomDevelopmentClient(second.caller)
   const room: StoryRoom = {
     checkpoint: async (campaignId) => {
       await checkpointRoom(campaignId)
@@ -59,13 +63,14 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     buildSnapshots: seedRoomContentSnapshots,
     releaseRoom: async (campaignId) => {
       roomReader.closeRooms()
+      roomHost.closeRooms()
       await closeRoom(campaignId)
     }
   }
   const accounts: string[] = []
   const connect = async (spec: { key: string }) => {
     accounts.push(spec.key)
-    return reader
+    return spec.key === REVIEW_STORY_HOST.key ? roomHost : reader
   }
   const stored = () =>
     t.run(async (ctx) => ({
@@ -91,7 +96,8 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   const seeded = await stored()
   await seedStoryData(connect, room)
 
-  expect(accounts).toEqual([REVIEW_STORY_READER.key, REVIEW_STORY_READER.key])
+  const storyAccounts = [REVIEW_STORY_READER.key, REVIEW_STORY_HOST.key]
+  expect(accounts).toEqual([...storyAccounts, ...storyAccounts])
   const records = Object.values(STORY_RECORDS)
   expect(seeded).toEqual({
     roots: records
@@ -130,38 +136,39 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   // its actor, and the ally token the story account's own.
   const presentation = await reader.query(api.scenes.presentations.get, { campaignId })
   expect(presentation?.campaignId).toBe(campaignId)
-  const board = await t.run(async (ctx) => {
-    const saves = (await ctx.db.query('sceneDefinitionSaves').collect()).filter(
-      (row) => row.settings.campaignId === campaignId && row.status === 'PUBLISHED'
-    )
-    const entities = (
-      await Promise.all(
-        saves.map((save) =>
-          ctx.db
-            .query('sceneDefinitionEntities')
-            .withIndex('by_saveId', (query) => query.eq('saveId', save.id))
-            .collect()
+  const presentedBoard = (boardCampaignId: string) =>
+    t.run(async (ctx) => {
+      const saves = (await ctx.db.query('sceneDefinitionSaves').collect()).filter(
+        (row) => row.settings.campaignId === boardCampaignId && row.status === 'PUBLISHED'
+      )
+      const entities = (
+        await Promise.all(
+          saves.map((save) =>
+            ctx.db
+              .query('sceneDefinitionEntities')
+              .withIndex('by_saveId', (query) => query.eq('saveId', save.id))
+              .collect()
+          )
         )
       )
-    )
-      .flat()
-      .map((row) => row.value)
-    return {
-      saves: saves.length,
-      fogMode: saves[0]?.settings.fogMode,
-      barriers: entities
-        .flatMap((value) => (value.collection === 'barriers' ? [value.entity.kind] : []))
-        .sort(),
-      tokens: entities
-        .flatMap((value) =>
-          value.collection === 'tokens'
-            ? [[value.entity.label, value.entity.controlledByUserIds]]
-            : []
-        )
-        .sort()
-    }
-  })
-  expect(board).toEqual({
+        .flat()
+        .map((row) => row.value)
+      return {
+        saves: saves.length,
+        fogMode: saves[0]?.settings.fogMode,
+        barriers: entities
+          .flatMap((value) => (value.collection === 'barriers' ? [value.entity.kind] : []))
+          .sort(),
+        tokens: entities
+          .flatMap((value) =>
+            value.collection === 'tokens'
+              ? [[value.entity.label, value.entity.controlledByUserIds]]
+              : []
+          )
+          .sort()
+      }
+    })
+  expect(await presentedBoard(campaignId)).toEqual({
     saves: 1,
     fogMode: STORY_CAMPAIGN.scene.board.fogMode,
     barriers: ['DOOR', 'WALL', 'WALL'],
@@ -172,13 +179,51 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   })
   const bindings = await t.run(async (ctx) => ({
     scenes: (await ctx.db.query('encounterSceneBindings').collect()).length,
-    tokens: (await ctx.db.query('encounterActorTokenBindings').collect()).map(
-      ({ tokenId }) => tokenId
-    )
+    tokens: (await ctx.db.query('encounterActorTokenBindings').collect())
+      .map(({ tokenId }) => tokenId)
+      .sort()
   }))
   expect(bindings).toEqual({
-    scenes: 1,
-    tokens: [reviewId('story-scene-enemy-token')]
+    scenes: 2,
+    tokens: [
+      reviewId(`${STORY_CAMPAIGN.slug}-scene-enemy-token`),
+      reviewId(`${STORY_PLAYER_CAMPAIGN.slug}-scene-enemy-token`)
+    ].sort()
+  })
+
+  // The reader plays in a second Campaign the story host owns: joined through the invitation commands,
+  // with its own Run bound to the presented Scene, whose ally token the reader controls.
+  const playerCampaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
+    ({ name }) => name === STORY_PLAYER_CAMPAIGN.name
+  )
+  expect(playerCampaigns).toHaveLength(1)
+  const playerCampaignId = playerCampaigns[0]!.id
+  expect(playerCampaigns[0]!.ownerUserId).toBe(second.userId)
+  const memberships = await t.run((ctx) =>
+    ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_status', (q) =>
+        q.eq('campaignId', playerCampaignId).eq('status', 'ACTIVE')
+      )
+      .collect()
+  )
+  expect(memberships.map(({ userId }) => userId).sort()).toEqual(
+    [first.userId, second.userId].sort()
+  )
+  expect(
+    (await reader.query(api.encounters.projectionReads.list, { campaignId: playerCampaignId })).map(
+      ({ status }) => status
+    )
+  ).toEqual(['ACTIVE'])
+  expect(
+    (await reader.query(api.scenes.presentations.get, { campaignId: playerCampaignId }))?.campaignId
+  ).toBe(playerCampaignId)
+  expect(await presentedBoard(playerCampaignId)).toMatchObject({
+    saves: 1,
+    tokens: [
+      [STORY_PLAYER_CAMPAIGN.scene.allyLabel, [first.userId]],
+      [STORY_PLAYER_CAMPAIGN.enemyLabel, []]
+    ].sort()
   })
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
