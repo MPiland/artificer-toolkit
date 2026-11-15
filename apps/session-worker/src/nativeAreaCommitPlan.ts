@@ -11,6 +11,7 @@ import { encounterAreaTargetCommandId } from '@artificer-toolkit/rules-runtime/e
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import {
   prepareNativeActionEffectsPlan,
+  readCampaignClockForEffects,
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { effectsAfterEnding } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
@@ -170,6 +171,11 @@ export async function planAreaOutcomes(args: {
     const effects = prepareNativeActionEffectsPlan({
       prepared,
       execution: complete,
+      campaignClockMinute: await readCampaignClockForEffects({
+        prepared,
+        execution: complete,
+        readClockMinute: input.readCampaignClockMinute
+      }),
       occurrenceId,
       commandId,
       activeEffectsByActorId: input.activeEffectsByActorId,

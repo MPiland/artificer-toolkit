@@ -151,6 +151,7 @@ export async function planNativeLiveEncounterTurn(
       activeEffectsByActorId,
       capture,
       loadTarget,
+      readCampaignClockMinute: captures.readCampaignClockMinute,
       ...execution,
       onSceneRead: (fence) => {
         const prior = scenes.find((scene) => scene.sceneId === fence.sceneId)

@@ -2132,6 +2132,8 @@ Storybook stories built their data from hand-typed response DTOs and hand-built 
 - **Ruling (user): writes are spied, never sent.** A story ends at its write; `fn()` records the call. Stories therefore never change the seeded data.
 - **Ruling (user): a state the seed cannot produce is a composed story.** Loading, error, empty and after-write stories extend their base story with one single-query cache override and reuse its play steps; no hand-typed DTO fixture remains.
 - **Tracking:** PLATFORM-28 (D187 growth, user yes), sequenced after the QUALITY slices, seam-audited before it starts.
+- **Amendment (2026-11-15, orchestrator, PLATFORM-28.T5 trace): a logical write made of several mutations is recorded whole.** Its spies return the response the client parses, built through the real response schema, so a save of begin, append and publish records all three; nothing is sent.
+- **Amendment (2026-11-15, orchestrator, PLATFORM-28.T5 trace): the single-query override lives in the backend Storybook preview.** A composed story names one query and its value; the preview serves that value and keeps the key off the Convex subscription, which would otherwise overwrite it with the server value.
 
 ## D219 (2026-11-11): a chosen reaction is a child action, spent when chosen
 
