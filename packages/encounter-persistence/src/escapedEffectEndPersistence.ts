@@ -100,26 +100,28 @@ export function persistLiveMovementMoveEnd(
   })
 }
 
-type MovementDamageInput = {
-  state: { id: string; currentActorId: string | null }
-  actors: EncounterRunActorState[]
-  /** The applied contact whose own `DAMAGED(AFTER)` raise owes the step (D220). */
-  execution: Parameters<typeof movementContactDamageEnds>[0]['execution']
-  occurrenceId: string
-  /** The move's own command, which roots the grants its damage gives. */
-  commandId: string
-  occurredAt: string
-}
-
-/** What the contact's zone damage ends on and gives the holder, from the holder's current rows. */
-function currentMovementDamageEnds(
-  input: MovementDamageInput,
-  holder: EncounterRunActorState,
-  held: readonly ActiveRuleEffectRecord[]
+/**
+ * The contact's one `DAMAGED(AFTER)` raise (D220), re-derived from its holder's current rows before
+ * any of the contact's damage ends settle: what its zone damage ends on and gives the holder.
+ */
+export async function raiseLiveMovementContactDamage(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: { id: string; currentActorId: string | null }
+    actors: EncounterRunActorState[]
+    /** The applied contact whose damage the holder took. */
+    execution: Parameters<typeof movementContactDamageEnds>[0]['execution']
+    occurrenceId: string
+    /** The move's own command, which roots the grants its damage gives. */
+    commandId: string
+  }
 ) {
+  const holderActorId = input.execution.candidate.candidate.targetActorId
+  const holder = input.actors.find((actor) => actor.id === holderActorId)
+  if (!holder) throw new Error('Movement damage holder is unavailable.')
   return movementContactDamageEnds({
     holder,
-    held,
+    held: await createActiveRuleEffectStore(ctx).list(turnEffectOwner(holder, input.state.id)),
     execution: input.execution,
     encounter: input.state,
     occurrenceId: input.occurrenceId,
@@ -128,11 +130,18 @@ function currentMovementDamageEnds(
   })
 }
 
+type MovementDamageInput = {
+  state: { id: string }
+  actors: EncounterRunActorState[]
+  /** The raise of the contact that owes the step (`raiseLiveMovementContactDamage`). */
+  raised: Awaited<ReturnType<typeof raiseLiveMovementContactDamage>>
+  occurredAt: string
+}
+
 /**
- * Settles an effect a contact's zone damage ended on its holder (D220): re-derives what that damage
- * ends from the holder's current rows and the applied contact, requires the step's effect to be
- * among them, and ends it like an escape, releasing what it gave (its temporary hit points, the
- * conditions only it held).
+ * Settles an effect a contact's zone damage ended on its holder (D220): requires the step's effect
+ * among those the contact's raise ended, and ends it like an escape, releasing what it gave (its
+ * temporary hit points, the conditions only it held).
  */
 export function persistLiveMovementDamageEnd(
   ctx: EncounterCharacterWriteTransaction,
@@ -141,22 +150,19 @@ export function persistLiveMovementDamageEnd(
   }
 ) {
   const { holderActorId, effectId } = input.step.damageEnd
-  const holder = input.actors.find((actor) => actor.id === holderActorId)
-  if (!holder) throw new Error('Movement release holder is unavailable.')
   return persistLiveMovementHeldEffectEnd(ctx, {
     ...input,
     holderActorId,
     find: (held) =>
-      currentMovementDamageEnds(input, holder, held).endedEffects.find(
-        (effect) => effect.id === effectId
-      )
+      input.raised.endedEffects.some((effect) => effect.id === effectId)
+        ? held.find((effect) => effect.id === effectId)
+        : undefined
   })
 }
 
 /**
  * Settles a grant a contact's zone damage gave its holder through a passive damage trigger (D220):
- * re-derives the owed grants from the holder's current rows (after the contact's damage ends) and
- * the applied contact, requires the step's grant to be among them, and creates it as the room planned.
+ * requires the step's grant among those the contact's raise gave, and creates it as the room planned.
  */
 export async function persistLiveMovementDamageGrant(
   ctx: EncounterCharacterWriteTransaction,
@@ -167,15 +173,11 @@ export async function persistLiveMovementDamageGrant(
   const { holderActorId, effectId } = input.step.damageGrant
   const holder = input.actors.find((actor) => actor.id === holderActorId)
   if (!holder) throw new Error('Movement damage grant holder is unavailable.')
-  const owner = turnEffectOwner(holder, input.state.id)
-  const held = await createActiveRuleEffectStore(ctx).list(owner)
-  const grant = currentMovementDamageEnds(input, holder, held).grants.find(
-    ({ id }) => id === effectId
-  )
+  const grant = input.raised.grants.find(({ id }) => id === effectId)
   if (!grant) throw new Error('Movement damage grant is not owed.')
   const created = await createIncomingDamageGrants(ctx, {
     grants: [grant],
-    owner,
+    owner: turnEffectOwner(holder, input.state.id),
     occurredAt: input.occurredAt
   })
   if (checksumCanonicalJson(created) !== checksumCanonicalJson([input.step.createdEffect]))

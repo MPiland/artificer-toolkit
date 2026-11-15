@@ -40,6 +40,7 @@ import type {
   persistLiveMovementAreaDeparture,
   persistLiveMovementDamageEnd,
   persistLiveMovementDamageGrant,
+  raiseLiveMovementContactDamage,
   persistLiveMovementMoveEnd
 } from './escapedEffectEndPersistence.js'
 import type {
@@ -120,7 +121,7 @@ function appendedChildren<T extends object>(previous: readonly T[] = [], next: r
  * append to but never rewrite, beside the damage its holder took.
  */
 type DamagingContact = MovementContactChildren &
-  Parameters<typeof persistLiveMovementDamageEnd>[1]['execution']
+  Parameters<typeof raiseLiveMovementContactDamage>[1]['execution']
 
 /** A contact's damage saves in chain order, each with the zone source that dealt its damage. */
 function contactDamageSaves(contact: DamagingContact, children: MovementContactChildren = contact) {
@@ -203,6 +204,9 @@ type MovementSettlementCallbacks = {
   persistMoveEnd: (
     input: Parameters<typeof persistLiveMovementMoveEnd>[1]
   ) => ReturnType<typeof persistLiveMovementMoveEnd>
+  raiseContactDamage: (
+    input: Parameters<typeof raiseLiveMovementContactDamage>[1]
+  ) => ReturnType<typeof raiseLiveMovementContactDamage>
   persistDamageEnd: (
     input: Parameters<typeof persistLiveMovementDamageEnd>[1]
   ) => ReturnType<typeof persistLiveMovementDamageEnd>
@@ -313,6 +317,13 @@ export async function persistMovementContacts(
   const retainedSpatial = retainedContactChildren(priorPrefix?.executions ?? [], nextSpatial)
   // A contact's own damage ends and grants (D220) settle first, before its Concentration ends and saves.
   const damage = [...retainedSpatial.damage]
+  // The contact's one DAMAGED(AFTER) raise, derived at its first end or grant, which its later ones read.
+  let contactRaise:
+    | {
+        contact: DamagingContact
+        raised: Awaited<ReturnType<typeof raiseLiveMovementContactDamage>>
+      }
+    | undefined
   // The damage saves awaiting settlement, in the chain order their contact owed them.
   const saves = [...retainedSpatial.saves]
   // A contact's end settles before its saves, so at most one end is ever awaiting settlement.
@@ -581,12 +592,21 @@ export async function persistMovementContacts(
           checksumCanonicalJson(step.kind === 'DAMAGE_END' ? step.damageEnd : step.damageGrant)
       )
         throw new Error('Movement damage end or grant differs from its retained contact.')
+      if (contactRaise?.contact !== expected.contact)
+        contactRaise = {
+          contact: expected.contact,
+          raised: await callbacks.raiseContactDamage({
+            state: input.state,
+            actors,
+            execution: expected.contact,
+            occurrenceId: preparation.occurrenceId,
+            commandId: save.commandId
+          })
+        }
       const damageInput = {
         state: input.state,
         actors,
-        execution: expected.contact,
-        occurrenceId: preparation.occurrenceId,
-        commandId: save.commandId,
+        raised: contactRaise.raised,
         occurredAt: preparation.occurredAt
       }
       if (step.kind === 'DAMAGE_GRANT') await callbacks.persistDamageGrant({ ...damageInput, step })

@@ -361,19 +361,17 @@ export async function prepareEncounterMovementConcentration<
       if (!target) throw new Error('Movement damage holder is unavailable.')
       return target
     }
-    const raise = () =>
-      movementContactDamageEnds({
-        holder: currentHolder().actor,
-        held: currentHolder().activeEffects,
-        execution: source.execution,
-        encounter: input.state,
-        occurrenceId: input.occurrenceId,
-        commandId: input.sourceCommandId,
-        dispositions
-      })
-    // D220: the contact's own DAMAGED(AFTER) raise ends what its damage meets, then gives the grants
-    // the holder's passive damage triggers owe over what is left, before any of its saves.
-    const raised = raise()
+    // D220: the contact's one DAMAGED(AFTER) raise ends what its damage meets, then gives the grants
+    // the holder's passive damage triggers owe, before any of its saves.
+    const raised = movementContactDamageEnds({
+      holder: currentHolder().actor,
+      held: currentHolder().activeEffects,
+      execution: source.execution,
+      encounter: input.state,
+      occurrenceId: input.occurrenceId,
+      commandId: input.sourceCommandId,
+      dispositions
+    })
     for (const effect of raised.endedEffects) {
       const removedConditionIds = encounterEscapeEndedConditionIds(
         currentHolder().activeEffects,
@@ -391,7 +389,7 @@ export async function prepareEncounterMovementConcentration<
       settlements.push({ kind: 'DAMAGE_END', damageEnd, endedEffect: effect, removedConditionIds })
       adoptCleanup(released, [])
     }
-    for (const grant of raised.endedEffects.length ? raise().grants : raised.grants) {
+    for (const grant of raised.grants) {
       const holder = currentHolder()
       const [createdEffect] = incomingDamageGrantRecords({
         grants: [grant],

@@ -13,8 +13,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { takeDamagedRaises } from './damagedRaiseRecorder.js'
 import { movementRoom } from './movementRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
+
+vi.mock('@artificer-toolkit/rules-runtime/events/encounterEventHooks', async (importOriginal) =>
+  (await import('./damagedRaiseRecorder.js')).recordingDamagedRaises(importOriginal)
+)
+// The rooms load their modules again, so they meet the recording discovery (damagedRaiseRecorder.ts).
+vi.resetModules()
 
 /**
  * QUALITY-14.T2e2d2 (D220): a move takes damage per contact. Each damaging contact raises its own
@@ -120,6 +127,7 @@ const held = (history: RoomHistory) => {
 describe('a move crossing two damaging zones against one holder (QUALITY-14.T2e2d2, D220)', () => {
   it('settles each contact’s damage ends and grants before that contact’s own save', async () => {
     const room = await laughingAversionRoom()
+    takeDamagedRaises()
     const moved = await room.move(PAST_BOTH_ZONES)
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
 
@@ -155,5 +163,8 @@ describe('a move crossing two damaging zones against one holder (QUALITY-14.T2e2
     expect(repeatSaveOutcomes(history)).toEqual(['SAVE_FAILURE', 'SAVE_FAILURE'])
     expect(held(history)).toEqual({ laughing: true, damageEndedHold: false, grants: 1 })
     expect(await room.pending()).toBeNull()
+    // QUALITY-14.T2e2e: the move raised DAMAGED(AFTER) once per contact for its one holder, and its
+    // commit re-derived once the raise of the contact whose damage ended and granted effects.
+    expect(takeDamagedRaises()).toEqual({ room: [WOLF_ID, WOLF_ID], commit: [WOLF_ID] })
   }, 60_000)
 })

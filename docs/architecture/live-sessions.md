@@ -197,7 +197,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   it damaged settle at that contact, before its saves, as `damageEnds` on the contact execution and one
   `DAMAGE_END` settlement each (`persistLiveMovementDamageEnd`, QUALITY-14.T2e2d2, D220), which also releases
   the temporary hit points the ended effect gave; the grants that damage owes the creature's passive triggers
-  follow as `damageGrants` and one `DAMAGE_GRANT` settlement each (`persistLiveMovementDamageGrant`; see
+  follow as `damageGrants` and one `DAMAGE_GRANT` settlement each (`persistLiveMovementDamageGrant`). Both
+  steps check the contact's one `DAMAGED(AFTER)` raise, which persistence re-derives once per contact
+  (`raiseLiveMovementContactDamage`, QUALITY-14.T2e2e; see
   [rules runtime](rules-runtime.md), "Movement damage ends"). The repeat saves a contact's damage owes
   settle at that contact after them, one `REPEAT_SAVE` settlement each (`persistLiveMovementRepeatSave`,
   QUALITY-14.T2c; "Movement repeat saves").

@@ -722,15 +722,16 @@ the raise ends and gives before the contact's D95 ends and its save chain: each 
 projection, so the contact's saves, and every later contact, observe it gone; the save chain's holder
 discovery is that raise's `repeatSaveEffects`, less what it ended. The same raise passes the holder's passive
 damage triggers (`passiveDamageGrantsOf`, ordinal `MOVEMENT_DAMAGE`, rooted in the move's own command) as the
-turn zone and melee retaliation do: the grants it owes, over the holder's effects after the ends, are
+turn zone, melee retaliation and the action ends stage do: the grants it owes, over the holder's effects before the ends (QUALITY-14.T2e2e), are
 `damageGrants` children carrying the record `incomingDamageGrantRecords` builds; a grant the holder already
 holds from an earlier contact of the move is not owed again. The room maps each child to a `DAMAGE_END` or
 `DAMAGE_GRANT` settlement right after the contact's `SPATIAL` step and before its D95 ends and saves
 (persistence queues them from the contact's children, `retainedContactChildren`, and refuses another order: 'Movement damage ends and grants settle before their
-contact’s saves.'). `persistLiveMovementDamageEnd` re-derives the ends with the same function from the holder's
-current rows and that contact, requires the step's effect among them, and ends it through the escape end path
+contact’s saves.'). Persistence re-derives the contact's one raise with the same function from the holder's
+current rows before its first damage step (`raiseLiveMovementContactDamage`, QUALITY-14.T2e2e), so the room and the
+commit each raise it once per contact. `persistLiveMovementDamageEnd` requires the step's effect among the ends it raised, and ends it through the escape end path
 (the row, the conditions only it held, the temporary hit points whose source it was, maintenance owners);
-`persistLiveMovementDamageGrant` re-derives the owed grants the same way, refuses one not owed ('Movement
+`persistLiveMovementDamageGrant` refuses a grant that raise does not owe ('Movement
 damage grant is not owed.') and creates it through `createIncomingDamageGrants`. The TERMINAL outcome carries
 only `AREA_DEPARTURE` and `MOVE_END` releases. A spatial contact carries the
 target's temporary hit point source (`SpatialTargetState.temporarySourceEffectId`), so its published

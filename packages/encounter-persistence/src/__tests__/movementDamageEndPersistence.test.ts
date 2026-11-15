@@ -18,7 +18,8 @@ import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.
 import { createActiveRuleEffectStore } from '../effectStore.js'
 import {
   persistLiveMovementDamageEnd,
-  persistLiveMovementDamageGrant
+  persistLiveMovementDamageGrant,
+  raiseLiveMovementContactDamage
 } from '../escapedEffectEndPersistence.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import type { EncounterCharacterWriteTransaction } from '../ports.js'
@@ -39,7 +40,7 @@ const COMMAND_ID = '00000000-0000-4000-8000-0000000f0207'
 const GOLEM_ID = '00000000-0000-4000-8000-0000000f0208'
 const OCCURRED_AT = '2026-11-14T00:00:00.000Z'
 
-type DamageEnd = Parameters<typeof persistLiveMovementDamageEnd>[1]
+type Contact = Parameters<typeof raiseLiveMovementContactDamage>[1]['execution']
 
 const actors = [CASTER_ID, HOLDER_ID, ZONE_SOURCE_ID].map((id) =>
   creatureActor({ id, kind: 'CUSTOM', snapshot: {} })
@@ -58,7 +59,7 @@ const contact = (amount: number) =>
       }
     ],
     candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: HOLDER_ID } }
-  }) as unknown as DamageEnd['execution']
+  }) as unknown as Contact
 
 /** A Run holding the given actors, with no effects yet. */
 function runOf(runActors: readonly EncounterRunActorState[]) {
@@ -109,9 +110,11 @@ async function laughingRun() {
     lifecycle: planned.lifecycle,
     occurredAt: OCCURRED_AT
   })
-  const end = (execution: DamageEnd['execution']) =>
+  const state = { id: ENCOUNTER_ID, currentActorId: HOLDER_ID }
+  /** The contact's raise from the holder's current rows, then the step it owes. */
+  const end = async (execution: Contact) =>
     persistLiveMovementDamageEnd(ctx, {
-      state: { id: ENCOUNTER_ID, currentActorId: HOLDER_ID },
+      state,
       actors,
       step: {
         kind: 'DAMAGE_END',
@@ -119,9 +122,13 @@ async function laughingRun() {
         endedEffect: effect,
         removedConditionIds: encounterEscapeEndedConditionIds([effect], effect.id)
       },
-      execution,
-      occurrenceId: OCCURRENCE_ID,
-      commandId: COMMAND_ID,
+      raised: await raiseLiveMovementContactDamage(ctx, {
+        state,
+        actors,
+        execution,
+        occurrenceId: OCCURRENCE_ID,
+        commandId: COMMAND_ID
+      }),
       occurredAt: OCCURRED_AT
     })
   return { store, effect, end }
@@ -183,7 +190,7 @@ describe('a DAMAGE_GRANT step for an SRD Flesh Golem (Aversion of Fire)', () => 
     ({
       applications: [{ kind: 'DAMAGE', targetActorId: GOLEM_ID, damageTypeId, resolvedAmount: 3 }],
       candidate: { candidate: { sourceActorId: ZONE_SOURCE_ID, targetActorId: GOLEM_ID } }
-    }) as unknown as DamageEnd['execution']
+    }) as unknown as Contact
   /** The step the room plans for the grant the move's fire damage owes. */
   const plannedGrant = () => {
     const [grant] = movementContactDamageEnds({
@@ -210,14 +217,18 @@ describe('a DAMAGE_GRANT step for an SRD Flesh Golem (Aversion of Fire)', () => 
   }
   const golemRun = () => {
     const ctx = runOf(golemActors)
-    const grant = (damageTypeId: string) =>
+    const grant = async (damageTypeId: string) =>
       persistLiveMovementDamageGrant(ctx, {
         state,
         actors: golemActors,
         step: plannedGrant(),
-        execution: golemContact(damageTypeId),
-        occurrenceId: OCCURRENCE_ID,
-        commandId: COMMAND_ID,
+        raised: await raiseLiveMovementContactDamage(ctx, {
+          state,
+          actors: golemActors,
+          execution: golemContact(damageTypeId),
+          occurrenceId: OCCURRENCE_ID,
+          commandId: COMMAND_ID
+        }),
         occurredAt: OCCURRED_AT
       })
     return { store: createActiveRuleEffectStore(ctx), grant }
