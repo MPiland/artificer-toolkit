@@ -26,6 +26,7 @@ import {
   REVIEW_SCENARIOS,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
+  STORY_DRAFT_ONLY,
   STORY_RECORDS,
   type ReviewAccountSpec,
   type StoryRecordSpec,
@@ -122,7 +123,8 @@ export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
 /**
  * The story-data step (D221): what Storybook backend stories read beyond the deploy and SRD seed,
  * made through product commands at the fixed ids in `STORY_RECORDS`. It runs after the review data locally and
- * before the stories in the `storybook-backend-browser` proof. `connect` signs in as the account and
+ * before the stories in the `storybook-backend-browser` proof, and saves `STORY_DRAFT_ONLY` as a
+ * never-activated draft. `connect` signs in as the account and
  * returns its client. A re-run keeps every record a previous run finished.
  */
 export async function seedStoryData(
@@ -147,7 +149,21 @@ export async function seedStoryData(
       payload: active.item
     })
   }
+  await seedStoryDraftOnly(reader)
   await seedStoryCampaign(reader)
+}
+
+/** Saves `STORY_DRAFT_ONLY` as a never-activated draft unless a previous run already did. */
+async function seedStoryDraftOnly(client: StoryClient) {
+  const { subjectKind, subjectId, label, payload } = STORY_DRAFT_ONLY
+  if (await client.query(api.content.drafts.get, { subjectKind, subjectId })) return
+  await client.mutation(api.content.drafts.save, {
+    subjectKind,
+    subjectId,
+    systemId: srdSystemRecord.id,
+    label,
+    payload
+  })
 }
 
 /**
