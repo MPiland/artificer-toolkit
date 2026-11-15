@@ -193,7 +193,7 @@ building a path removes its message from the list.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
-save, a timed condition, grant, link or form, a relationship, a recurring result, then a concealment. The compiler
+save, a timed condition, grant, link, form or GM ruling, a relationship, a recurring result, then a concealment. The compiler
 supplies its own plan builders as `Dnd5eLifetimeCandidates`; the aspect builds the recurring and concealment plans.
 Every reader asks the model: the active-effect plans (`dnd5eActiveEffectPlans`, which freezes a repeated save or a
 turn-end gate as its save, a timed plan as its duration, a relationship as its own graph, and a recurring result or
@@ -738,8 +738,8 @@ the room's `nativeMovementSettlementInputs` derives each release's ended effect 
 never from the facts captured before the move. An effect a made repeat save released is therefore neither
 listed nor counted as still holding a condition, and persistence refuses a `DAMAGE_END` step for it
 ('Movement release differs from its holder effect.'). Not covered yet (transitional): a move left PENDING
-ends nothing until it finishes, and the save chain stage still raises its own `DAMAGED(AFTER)` beside the ends stage, so a command that both ends an
-effect and owes a save raises twice.
+ends nothing until it finishes, and a move's save chain still derives its holders' damaged discovery from the
+settled targets (`settledRepeatSaveEffects`) rather than receiving its ends stage's.
 
 **Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
 (`domain.ruleDefinitionId`) is an ordinary roll-influence or bonus grant; two Equipment-context predicates
@@ -1802,16 +1802,23 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   off hit points still ends a damage-ended effect and owes the chain's saves, and the
   chain's `appliedAmount` is the damage taken (the hitting rows' `resolvedAmount`), which the Concentration DC
   reads. The movement interrupt and its pending-context validation, and the damage-types-since-turn-start
-  record, read the same predicate. Each stage raises it once per command and holder (QUALITY-14.T2): `planDamageSaveChain` discovers
-  once per damaged holder and reads the Concentration checks (`maintenanceSaveHits`), effect repeat saves
-  (`repeatSaves`, per hit) and massive-damage saves off it, from the Worker, persistence's re-derivation and the
-  movement path. The ends stage (`targetEndedEffects`) raises it once per holder too: a move's zone contacts through
-  `damageBySource`, and a list or area that names a creature again (darts, rays, beams) at that creature's first
-  outcome, with a hit per entry, its later outcomes raising none (QUALITY-14.T2e). A turn's effects stay one raise per
-  effect execution, since each settles on its own and may pause between them (D132 amendment). Transitional: the ends
-  stage and the chain stage each raise their own `DAMAGED(AFTER)` (they read disjoint hooks: `END` and grants
-  against `REPEAT_SAVE` and the maintenance `SAVE`), on different holder snapshots (before the command and after it
-  settles); one shared discovery threaded through the chain's resume and persistence re-derivation is the follow-up. `encounterConcentrationEndReason` raises
+  record, read the same predicate. Each stage raises it once per command and holder (QUALITY-14.T2). The ends stage
+  (`targetEndedEffects`) raises it once per holder: a move's zone contacts through `damageBySource`, and a list or
+  area that names a creature again (darts, rays, beams) at that creature's first outcome, with a hit per entry, its
+  later outcomes raising none (QUALITY-14.T2e). A turn's effects stay one raise per effect execution, since each
+  settles on its own and may pause between them (D132 amendment). That raise's discovery is the holder's damaged
+  discovery (`repeatSaveEffects`: the held effects it found owing a repeat save, less those it ended), and
+  `planDamageSaveChain` consumes it (current, QUALITY-14.T2e2b3, D220): it pairs each discovered effect with each
+  damage hit through `damagedHitRepeatTrigger` instead of raising the effects' event again, and reads the System's
+  Concentration checks (`maintenanceSaveHits`) and massive-damage saves beside it. The room's action and area roots
+  carry their ends stage's discovery (`planNativeLiveConcentration`'s `repeatSaves.discovered`), less what the rest
+  of the command released; persistence re-derives it from the committed rows (`settledRepeatSaveEffects`: the effects
+  still held, less those the command placed), which equals it because the command's ends are deleted there, and
+  `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Transitional: a root whose ends stage the chain
+  does not yet receive (melee retaliation's attacker, a turn's Legendary Actions and effects, Cleaving, movement, and
+  a resumed chain) derives the discovery from its settled projection through `settledRepeatSaveEffects`; melee
+  retaliation's projection still keeps the effects its zones' damage ended, and its chain names the attacker as the
+  damager where its ends stage names the zone's source. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
@@ -3772,6 +3779,17 @@ counted at the end of the target's turn). The plan has no members of its own: th
 one `ACTOR_LINK` state contribution (members sorted) per target, or none when fewer than two were reached. The
 effects are persisted per child in `areaCommitPersistence.ts` and deleted with it on revert. The contribution
 has no gameplay effect; it is provenance that ends at the duration.
+
+**Timed GM rulings (D187a, QUALITY-15.T3).** A lone `MANUAL_ADJUDICATION` outcome with a duration (Suggestion's
+"8 hours" on a failed save, Detect Thoughts on use) still compiles to its manual-adjudication proposal, and its
+lifetime is a timed plan (`timedRulingPlan`) carrying a `rulingContribution` (the ruling outcome id, label and
+instructions), frozen as the duration graph. The plan is gated to the ruling's result path like a link or a form, and
+maintained by the spell's Concentration; the entry-point compiler admits it beside a TEST/OUTCOME plan, as it does a
+grant, repeated save or form. `prepareEncounterActionEffectPlans` writes one `GM_RULING` state contribution
+that freezes the ruling text for the GM; each counted turn applies nothing and the turn pass expires the effect after
+the last one, an until-dispelled ruling (Arcane Lock) lasting until the GM ends it. Ending the Concentration ends the
+effect, and the action's undo removes it. A ruling beside another result (Channel Divinity's kill, Light's manifest)
+is not held this way, nor is one longer than `MAX_ACTIVE_EFFECT_TURNS` (Geas's 30 days).
 
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form

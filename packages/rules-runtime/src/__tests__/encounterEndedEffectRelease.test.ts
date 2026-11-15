@@ -353,12 +353,14 @@ describe('what an action ends on its target', () => {
       endedEffects: [],
       releases: [],
       grants: [],
+      repeatSaveEffects: [],
       replacedEffects: []
     })
     expect(taken([held], [damage(FIRE, 0)])).toEqual({
       endedEffects: [],
       releases: [],
       grants: [],
+      repeatSaveEffects: [],
       replacedEffects: []
     })
   })
@@ -369,6 +371,7 @@ describe('what an action ends on its target', () => {
       endedEffects: [],
       releases: [],
       grants: [],
+      repeatSaveEffects: [],
       replacedEffects: []
     })
   })
@@ -450,12 +453,14 @@ describe('what an action ends on its target', () => {
         endedEffects: [],
         releases: [],
         grants: [],
+        repeatSaveEffects: [],
         replacedEffects: []
       })
       expect(attackedBy([marked(['ON_ATTACK_ROLL'])], { melee: true })).toEqual({
         endedEffects: [],
         releases: [],
         grants: [],
+        repeatSaveEffects: [],
         replacedEffects: []
       })
     })

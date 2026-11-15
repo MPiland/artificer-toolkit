@@ -124,13 +124,12 @@ describe('the ends stage and the save chain read one hit rule (QUALITY-14.T2e2b,
       gameSystemId: DND5E_SYSTEM_ID,
       applications,
       maintainedStates: new Map([[HOLDER_ID, [{ id: STATE_ID, createdAt: CAST_AT }]]]),
-      commandOccurrenceIds: [testUuid(0xe2b7)],
       damagerActorId: null,
       dispositions: new Map(),
       effectSaves: {
         massiveRule: null,
         holders: new Map([
-          [HOLDER_ID, { defeated: false, effects: [laughter()], maximumHitPoints: 40 }]
+          [HOLDER_ID, { defeated: false, repeatSaveEffects: [laughter()], maximumHitPoints: 40 }]
         ])
       }
     })

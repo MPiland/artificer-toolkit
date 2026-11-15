@@ -5,6 +5,7 @@ import type { ConcentrationDamageApplicationDto } from '@artificer-toolkit/schem
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
   planDamageSaveChain,
+  settledRepeatSaveEffects,
   type DamageSaveEffectHolder
 } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import { encounterMassiveDamageRule } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
@@ -79,9 +80,11 @@ export async function releaseEffectRepeatSave(
 /**
  * Binds a damaging command's finalized damage to the one damage-save chain it owes (D95, D167,
  * ATTACK-16): each damaged holder's Concentration checks, effect repeat saves and massive-damage
- * saves, in canonical order, read from the committed rows. It plans through the same
- * `planDamageSaveChain` the room planned from, so a stale or invented chain is rejected by
- * comparison. Every damage root persists through this.
+ * saves, in canonical order, read from the committed rows. Each holder's damaged discovery is
+ * re-derived from its committed effects (`settledRepeatSaveEffects`), which equals the ends stage's
+ * discovery the room carried, and it plans through the same `planDamageSaveChain` the room planned
+ * from, so a stale or invented chain is rejected by comparison. Every damage root persists through
+ * this.
  */
 export async function bindEncounterDamageSaveChain(
   ctx: EncounterCharacterWriteTransaction,
@@ -101,6 +104,7 @@ export async function bindEncounterDamageSaveChain(
   const massiveRule = encounterMassiveDamageRule(input.state)
   const maintainedStates = new Map<string, { id: string; createdAt: string }[]>()
   const holders = new Map<string, DamageSaveEffectHolder>()
+  const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
   for (const actorId of new Set(input.applications.map(({ targetActorId }) => targetActorId))) {
     maintainedStates.set(
       actorId,
@@ -116,7 +120,14 @@ export async function bindEncounterDamageSaveChain(
     if (!actor) continue
     holders.set(actorId, {
       defeated: isEncounterActorDefeated(actor, await readDeadCharacterIds(ctx, [actor])),
-      effects: await store.list(turnEffectOwner(actor, input.state.id)),
+      repeatSaveEffects: settledRepeatSaveEffects({
+        holderActorId: actorId,
+        effects: await store.list(turnEffectOwner(actor, input.state.id)),
+        commandOccurrenceIds: input.commandOccurrenceIds,
+        applications: input.applications,
+        damagerActorId: input.damagerActorId,
+        dispositions
+      }),
       maximumHitPoints: massiveRule
         ? ((await readEncounterActorMaximumHitPoints(ctx, {
             encounterId: input.state.id,
@@ -129,9 +140,8 @@ export async function bindEncounterDamageSaveChain(
     gameSystemId: input.state.gameSystemId,
     applications: input.applications,
     maintainedStates,
-    commandOccurrenceIds: input.commandOccurrenceIds,
     damagerActorId: input.damagerActorId,
-    dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
+    dispositions,
     effectSaves: { massiveRule, holders }
   })
 }
