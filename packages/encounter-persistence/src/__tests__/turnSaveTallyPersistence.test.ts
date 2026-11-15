@@ -293,6 +293,8 @@ describe('the stored turn result of a passed repeat save that ends its effect (Q
     })
 
     const { result } = await persist(scene, await stagedPhase(scene, PASS))
+    if (result?.status !== 'BATCH_COMPLETE' || result.batchKind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS')
+      throw new Error('Expected a completed turn active-effect batch.')
 
     expect(result.executions).toMatchObject([
       {
