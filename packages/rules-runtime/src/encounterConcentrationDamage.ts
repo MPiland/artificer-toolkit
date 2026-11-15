@@ -178,16 +178,6 @@ export function nativeActionDamage(
   return [batch, ...meleeRetaliationDamage(batch.meleeRetaliation)]
 }
 
-/** The entry occurrences a damage parent made per creature: an area's children; none for any other parent. */
-export function nativeConcentrationParentEntryOccurrenceIds(
-  result: StoredRuleExecutionResultDto
-): string[] {
-  return result.status === 'AGGREGATE_CHOICE_COMPLETE' &&
-    result.applicationOutputs.kind === 'ENCOUNTER_AREA_ACTION'
-    ? result.applicationOutputs.targetOccurrenceIds
-    : []
-}
-
 export function nativeConcentrationParentDamage(
   result: StoredRuleExecutionResultDto
 ): ConcentrationDamageApplicationDto[] {
