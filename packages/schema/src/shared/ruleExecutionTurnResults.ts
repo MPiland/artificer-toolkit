@@ -434,17 +434,41 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           const unchanged =
             JSON.stringify(execution.targetTransition.before) ===
             JSON.stringify(execution.targetTransition.after)
-          const refusedRemoval = execution.applications[0]
+          // A repeat save that ends its effect removes the conditions the effect owns, each once and
+          // bound to the effect and the save test on `path`. A failed save may then leave one
+          // escalated condition in their place.
+          const repeatSaveEndsEffect = (path: string | null) => {
+            const escalation = execution.applications.at(-1)
+            const escalates =
+              path === 'ON_SAVE_FAIL' &&
+              escalation?.kind === 'CONDITION_APPLY' &&
+              escalation.sourceNodeId === execution.definition.frozenGraphNodeId &&
+              escalation.sourceOperationKey === repeatSave?.testOperationKey &&
+              escalation.authoredPath === path &&
+              escalation.resolvedPath === path
+            const removals = escalates
+              ? execution.applications.slice(0, -1)
+              : execution.applications
+            const ownedConditionIds = removals.flatMap((removal) =>
+              removal.kind === 'CONDITION_REMOVE' &&
+              removal.sourceActiveEffectId === execution.activeEffectId &&
+              removal.sourceNodeId === execution.definition.frozenGraphNodeId &&
+              removal.sourceOperationKey === repeatSave?.testOperationKey &&
+              removal.authoredPath === path &&
+              removal.resolvedPath === path
+                ? [removal.conditionId]
+                : []
+            )
+            return (
+              removals.length > 0 &&
+              ownedConditionIds.length === removals.length &&
+              new Set(ownedConditionIds).size === ownedConditionIds.length
+            )
+          }
           // A refused attempt on the last counted turn ends the condition with its duration.
           const refusedRepeatSaveTerminal =
             refusedRepeatSave &&
-            execution.applications.length === 1 &&
-            refusedRemoval?.kind === 'CONDITION_REMOVE' &&
-            refusedRemoval.sourceActiveEffectId === execution.activeEffectId &&
-            refusedRemoval.sourceNodeId === execution.definition.frozenGraphNodeId &&
-            refusedRemoval.sourceOperationKey === repeatSave.testOperationKey &&
-            refusedRemoval.authoredPath === null &&
-            refusedRemoval.resolvedPath === null &&
+            repeatSaveEndsEffect(null) &&
             execution.lifecycle.kind === 'EXPIRE' &&
             execution.lifecycle.beforeRemainingTicks === 1
           const refusedRepeatSaveContinuation =
@@ -490,28 +514,9 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               execution.d20.total >= execution.d20.defenseOrDc
                 ? 'ON_SAVE_SUCCESS'
                 : 'ON_SAVE_FAIL')
-          const removal = execution.applications[0]
-          // A failed repeat that ends the effect may leave a second condition in place of the held one.
-          const escalation = execution.applications[1]
-          const removalWithOptionalEscalation =
-            execution.applications.length === 1 ||
-            (execution.applications.length === 2 &&
-              repeatSave !== undefined &&
-              escalation?.kind === 'CONDITION_APPLY' &&
-              escalation.sourceNodeId === execution.definition.frozenGraphNodeId &&
-              escalation.sourceOperationKey === repeatSave.testOperationKey &&
-              escalation.authoredPath === 'ON_SAVE_FAIL' &&
-              escalation.resolvedPath === 'ON_SAVE_FAIL' &&
-              execution.d20?.resultPath === 'ON_SAVE_FAIL')
           const repeatedSaveTerminal =
             repeatedSaveTrace &&
-            removalWithOptionalEscalation &&
-            removal?.kind === 'CONDITION_REMOVE' &&
-            removal.sourceActiveEffectId === execution.activeEffectId &&
-            removal.sourceNodeId === execution.definition.frozenGraphNodeId &&
-            removal.sourceOperationKey === repeatSave.testOperationKey &&
-            removal.authoredPath === execution.d20?.resultPath &&
-            removal.resolvedPath === execution.d20?.resultPath &&
+            repeatSaveEndsEffect(execution.d20?.resultPath ?? null) &&
             execution.lifecycle.kind === 'EXPIRE' &&
             (execution.d20?.resultPath === 'ON_SAVE_SUCCESS' ||
               execution.lifecycle.beforeRemainingTicks === 1)

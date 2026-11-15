@@ -11,6 +11,7 @@ import {
   CAMPAIGN_ID,
   createSrdRulesRuntime,
   ENCOUNTER_ID,
+  srdCreatureActor,
   srdCreatureTarget,
   SRD_SYSTEM_ID,
   srdEncounterState,
@@ -21,9 +22,17 @@ import {
   GM_USER_ID,
   GOBLIN_ID,
   OCCURRENCE_ID,
-  root
+  root,
+  SOURCE_ID
 } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
+import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  encounterRunStateSchema,
+  type EncounterRunActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveEffectSaveTally } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -44,12 +53,34 @@ const BOUNDARY: TurnEffectBoundary = { ordinal: 0, stage: 'END_OF_TURN', actorId
 const PASS = 20
 const FAIL = 1
 const STALE_LIFECYCLE = 'Staged turn effect lifecycle is invalid.'
-const state = srdEncounterState({ actors, currentActorId: GOBLIN_ID, turnSequence: 3 })
 const goblin = actors.find((actor) => actor.id === GOBLIN_ID)!
 const runtime = createSrdRulesRuntime()
 
 /** A memory store holding the Run and its actors, with one threshold-counted effect on the goblin. */
 async function seeded(attempts: RepeatSaveAttempts, saveTally: ActiveEffectSaveTally) {
+  return seededEffect({
+    holder: goblin,
+    sourceActorId: GOBLIN_ID,
+    definition: await plannedThresholdDefinition(attempts, { targetActorId: GOBLIN_ID }),
+    lifecycle: { schemaVersion: 1, remainingTicks: 10, saveTally }
+  })
+}
+
+type EffectCreation = Parameters<ReturnType<typeof createActiveRuleEffectStore>['create']>[0]
+
+/** A memory store holding the Run and its actors, `holder` in the goblin's place with one effect. */
+async function seededEffect(input: {
+  holder: EncounterRunActorState
+  sourceActorId: string
+  definition: Omit<EffectCreation['definition'], 'origin'>
+  lifecycle: EffectCreation['lifecycle']
+}) {
+  const sceneActors = actors.map((actor) => (actor.id === input.holder.id ? input.holder : actor))
+  const state = srdEncounterState({
+    actors: sceneActors,
+    currentActorId: GOBLIN_ID,
+    turnSequence: 3
+  })
   const memory = createMemoryEncounterStore()
   // The only cast: the host ports are the platform, and the wider port surface is unused here.
   // turnZoneEffectsPersistence.test.ts builds its transaction the same way.
@@ -87,47 +118,46 @@ async function seeded(attempts: RepeatSaveAttempts, saveTally: ActiveEffectSaveT
     createdAt: OCCURRED_AT,
     updatedAt: OCCURRED_AT
   })
-  for (const actor of actors) await insertRunActor(ctx, actor)
-  const owner = turnEffectOwner(goblin, ENCOUNTER_ID)
+  for (const actor of sceneActors) await insertRunActor(ctx, actor)
+  const owner = turnEffectOwner(input.holder, ENCOUNTER_ID)
   const store = createActiveRuleEffectStore(ctx)
-  const planned = await plannedThresholdDefinition(attempts, { targetActorId: GOBLIN_ID })
   const effect = await store.create({
     id: testUuid(0x4a1),
     owner,
     definition: {
-      ...planned,
+      ...input.definition,
       origin: {
         kind: 'ENCOUNTER',
         sourceAggregateId: ENCOUNTER_ID,
         sourceOccurrenceId: OCCURRENCE_ID,
         rootCommandId: root.rootCommandId,
-        sourceActorId: GOBLIN_ID
+        sourceActorId: input.sourceActorId
       }
     },
-    lifecycle: { schemaVersion: 1, remainingTicks: 10, saveTally }
+    lifecycle: input.lifecycle
   })
-  return { ctx, store, owner, effect }
+  return { ctx, store, owner, effect, state, actors: sceneActors }
 }
 
 /** The goblin's end-of-turn save, answered with `face`, as the room stages it from real product code. */
 async function stagedPhase(scene: Awaited<ReturnType<typeof seeded>>, face: number) {
   const prepared = await prepareEncounterTurnEffects({
-    state,
+    state: scene.state,
     listEffects: async () => scene.store.list(scene.owner),
     loadMaintainedState: () => Promise.reject(new Error('No maintained state is loaded.')),
     loadTarget: async (actorId) =>
       srdCreatureTarget(
-        actors.find((actor) => actor.id === actorId)!,
+        scene.actors.find((actor) => actor.id === actorId)!,
         await scene.store.list(scene.owner)
       ),
     createRuntime: async () => runtime,
     random: () => face - 1,
     resolvePerception: async () => null,
     userId: GM_USER_ID,
-    autoRollByActorId: Object.fromEntries(actors.map(({ id }) => [id, true])),
+    autoRollByActorId: Object.fromEntries(scene.actors.map(({ id }) => [id, true])),
     root,
     occurrenceId: OCCURRENCE_ID,
-    actors,
+    actors: scene.actors,
     boundary: BOUNDARY
   })
   if (prepared.kind !== 'COMPLETE' || prepared.phase.kind !== 'STAGED')
@@ -177,7 +207,7 @@ function persist(scene: Awaited<ReturnType<typeof seeded>>, phase: Phase) {
   return persistEncounterTurnEffects(
     scene.ctx,
     {
-      state,
+      state: scene.state,
       userId: GM_USER_ID,
       occurrenceId: OCCURRENCE_ID,
       occurrenceVersion: 1,
@@ -235,5 +265,49 @@ describe('persisting a threshold-counted turn effect (SPELLS-4.T2m1c)', () => {
     await expect(persist(scene, phase)).rejects.toThrow(STALE_LIFECYCLE)
     const [stored] = await scene.store.list(scene.owner)
     expect(stored?.lifecycle.saveTally).toEqual({ successes: 0, failures: 2 })
+  })
+})
+
+describe('the stored turn result of a passed repeat save that ends its effect (QUALITY-14.T2e2f5)', () => {
+  it('validates the removal of every condition Hideous Laughter owns, each bound to the effect', async () => {
+    // In the order Hideous Laughter's data authors them.
+    const owned = ['PRONE', 'INCAPACITATED'].map(
+      (code) => SRD_CONDITION_TYPES.find((type) => type.code === code)!.id
+    )
+    const planned = plannedTimedCondition({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: SOURCE_ID,
+      holderActorId: GOBLIN_ID,
+      spell: hideousLaughter,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    const scene = await seededEffect({
+      holder: srdCreatureActor({
+        id: GOBLIN_ID,
+        creature: srdByLabel(SRD.creatures, 'Goblin'),
+        conditionIds: owned
+      }),
+      sourceActorId: SOURCE_ID,
+      definition: planned.definition,
+      lifecycle: planned.lifecycle
+    })
+
+    const { result } = await persist(scene, await stagedPhase(scene, PASS))
+
+    expect(result.executions).toMatchObject([
+      {
+        activeEffectId: scene.effect.id,
+        lifecycle: { kind: 'EXPIRE' },
+        applications: owned.map((conditionId) =>
+          expect.objectContaining({
+            kind: 'CONDITION_REMOVE',
+            conditionId,
+            sourceActiveEffectId: scene.effect.id,
+            authoredPath: 'ON_SAVE_SUCCESS'
+          })
+        )
+      }
+    ])
+    expect(await scene.store.list(scene.owner)).toEqual([])
   })
 })
