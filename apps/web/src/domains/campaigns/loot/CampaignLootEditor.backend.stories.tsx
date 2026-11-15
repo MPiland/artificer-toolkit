@@ -74,10 +74,7 @@ export const EncounterCreature: Story = {
   }
 }
 
-/**
- * Adds a second table with coins from the real System, then overlaps its ranges. The equipment picker reads content
- * snapshots served by the Session Worker, which this stack does not run; it is proved by the catalogue hook tests.
- */
+/** Adds a second table with an item and coins from the real catalogue and System, then overlaps its ranges. */
 export const AuthorsTableAndRefusesOverlap: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -92,7 +89,14 @@ export const AuthorsTableAndRefusesOverlap: Story = {
     await userEvent.type(name!, 'Guard room')
     const table = within(editor).getByRole('group', { name: 'Loot table Guard room' })
     const first = within(table).getByRole('group', { name: 'Table 2 range 1' })
+    // The equipment picker fills from content snapshots fetched from the Session Worker after the manifest.
+    await waitFor(
+      () => expect(within(first).getByRole('button', { name: 'Add item' })).toBeEnabled(),
+      { timeout: 15_000 }
+    )
+    await userEvent.click(within(first).getByRole('button', { name: 'Add item' }))
     await userEvent.click(within(first).getByRole('button', { name: 'Add coins' }))
+    await expect(within(first).getByRole('combobox', { name: 'Item' })).not.toHaveValue('')
     await expect(within(first).getByRole('combobox', { name: 'Coin' })).not.toHaveValue('')
 
     await userEvent.click(within(editor).getByRole('button', { name: 'Save loot' }))
@@ -106,7 +110,10 @@ export const AuthorsTableAndRefusesOverlap: Story = {
               name: 'Guard room',
               ranges: [
                 expect.objectContaining({
-                  entries: [expect.objectContaining({ kind: 'COIN' })]
+                  entries: [
+                    expect.objectContaining({ kind: 'ITEM' }),
+                    expect.objectContaining({ kind: 'COIN' })
+                  ]
                 })
               ]
             })

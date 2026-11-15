@@ -16,7 +16,7 @@ function CampaignSettingsFixture() {
   return (
     <SeededCampaign>
       {(campaign) => (
-        <Stack p='xl'>
+        <Stack p='xl' data-testid='seeded-campaign' data-campaign-id={campaign.id}>
           <CampaignSettings campaign={campaign} />
           <CampaignTableSettings campaign={campaign} />
         </Stack>
@@ -54,12 +54,13 @@ export const RulesAndAutomation: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Save table settings' }))
     await waitFor(() => expect(writesTo(api.campaigns.playSettings.save)).toHaveLength(1))
     const [write] = writesTo(api.campaigns.playSettings.save)
+    const seeded = await canvas.findByTestId('seeded-campaign')
     expect(write).toMatchObject({
       ...STORY_CAMPAIGN.playSettings,
+      campaignId: seeded.dataset.campaignId,
       expectedVersion: 1,
       automationMode: 'MANUAL'
     })
-    expect(write).toHaveProperty('campaignId')
     await waitFor(async () =>
       expect(await canvas.findByLabelText('Automation mode')).toHaveValue('Manual')
     )

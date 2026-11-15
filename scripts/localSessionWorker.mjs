@@ -26,6 +26,9 @@ export async function localSessionWorkerBindings(convexSiteUrl) {
     CONVEX_SITE_URL: convexSiteUrl,
     // The local R2 fixture in the Convex container, where Convex writes content snapshots.
     LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026',
-    LIVE_SESSION_ALLOWED_ORIGINS: 'http://localhost:3000,http://127.0.0.1:3000'
+    // The web app, then the backend Storybook stories (apps/web vitest browser origin 6106; `yarn storybook` 6006),
+    // whose equipment and other catalogue reads fetch content snapshots from this Worker.
+    LIVE_SESSION_ALLOWED_ORIGINS:
+      'http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:6106,http://localhost:6006'
   }
 }
