@@ -244,6 +244,7 @@ import {
   isDnd5eRolledTest,
   type Dnd5eTest
 } from './effectActionTest.js'
+import { objectManifestationPlan } from './effectActionObjectManifestation.js'
 import { timedRulingPlan } from './effectActionTimedRuling.js'
 import {
   dnd5eDirectOutcomeEntry,
@@ -1797,7 +1798,13 @@ type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
   onList: boolean
   selfTeleport: { maxFeet: number; destinationKind: 'VISIBLE' | 'SPECIFIED_POINT' } | null
-  plans: Readonly<{ grant: boolean; link: boolean; form: boolean; absence: boolean }>
+  plans: Readonly<{
+    grant: boolean
+    link: boolean
+    form: boolean
+    object: boolean
+    absence: boolean
+  }>
 }>
 type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extract<
   Dnd5eAuthoredOutcome,
@@ -1849,7 +1856,11 @@ const DND5E_DIRECT_OUTCOMES: {
   TELEPATHIC_LINK: (_outcome, { plans }) =>
     plans.link ? { kind: 'ACTOR_LINK' } : refuseDirectOutcome('No plan holds its link.'),
   MANIFEST: (_outcome, { plans }) =>
-    plans.form ? { kind: 'CREATURE_FORM' } : refuseDirectOutcome('It is no timed creature form.'),
+    plans.form
+      ? { kind: 'CREATURE_FORM' }
+      : plans.object
+        ? { kind: 'OBJECT_MANIFESTATION' }
+        : refuseDirectOutcome('It is no timed creature form.'),
   REMOVE_FROM_PLAY: (_outcome, { plans }) =>
     plans.absence ? { kind: 'PLAY_ABSENCE' } : refuseDirectOutcome('No plan holds its absence.'),
   HEAL: (outcome, { action }) => {
@@ -1910,6 +1921,7 @@ function supported(
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
   const formPlan = creatureFormPlan(action)
+  const objectPlan = objectManifestationPlan(action)
   const firstEntry = effect.entries[0]
   const firstOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : undefined
   // A teleport spell (Misty Step) names its reach as a distance range on a Self action: the range
@@ -2005,6 +2017,7 @@ function supported(
       grant: grantPlan !== null,
       link: linkPlan !== null,
       form: formPlan !== null,
+      object: objectPlan !== null,
       absence: conditionPlan?.playAbsenceContribution != null || conditionPlan?.turnEndGate != null
     }
   })
@@ -2657,6 +2670,7 @@ function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
     modifierGrantPlan(action) ??
     actorLinkPlan(action) ??
     creatureFormPlan(action) ??
+    objectManifestationPlan(action) ??
     timedRulingPlan(action)
   )
 }
@@ -4030,7 +4044,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           kind === 'CREATURE_FORM' ||
           kind === 'PLAY_ABSENCE' ||
           kind === 'SOURCE_IMMUNITY' ||
-          kind === 'GM_RULING'
+          kind === 'GM_RULING' ||
+          kind === 'OBJECT_MANIFESTATION'
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }
