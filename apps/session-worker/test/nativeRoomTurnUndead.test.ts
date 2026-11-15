@@ -25,6 +25,8 @@ const CLERIC_ACTOR_ID = testUuid(0x7e0)
 const CLERIC_ID = testUuid(0x7e1)
 const WIGHT_ID = testUuid(0x7e2)
 const SKELETON_ID = testUuid(0x7e3)
+const channelDivinity = cleric.features?.find(({ label }) => label === 'Channel Divinity')
+if (!channelDivinity) throw new Error('The Cleric authors no Channel Divinity.')
 /** One minute of 6-second turns. */
 const ONE_MINUTE = 10
 
@@ -45,6 +47,7 @@ function turnUndeadRoom() {
       srdCreatureActor({ id: SKELETON_ID, creature: seededSrdCreature('Skeleton') })
     ],
     characterPlay: { characterClass: cleric, classLevel: 5 },
+    characterClassFeatures: [channelDivinity],
     characterAction: (action) => action.label.startsWith('Channel Divinity')
   })
 }
