@@ -26,15 +26,20 @@ type OwnerRelease = { characterOwnerTransitions: readonly CharacterVersionTransi
 type ConcentrationChild = { result: { applicationOutputs: { cleanup: OwnerRelease } } }
 
 type MovementContactChildren = {
+  damageEnds?: readonly { release: OwnerRelease }[]
   concentrationEnds?: readonly ConcentrationChild[]
   concentrationChecks?: readonly MovementConcentrationExecutionDto[]
   repeatSaves?: readonly MovementRepeatSaveExecutionDto[]
   massiveDamageSaves?: readonly MovementMassiveDamageSaveExecutionDto[]
 }
 
-/** A contact's children advance Character versions in order: its ends, then its damage saves. */
+/**
+ * A contact's children advance Character versions in order: its damage ends (D220), its
+ * Concentration ends, then its damage saves.
+ */
 function contactChildReleases(contact: MovementContactChildren): OwnerRelease[] {
   return [
+    ...(contact.damageEnds ?? []).map((end) => end.release),
     ...(contact.concentrationEnds ?? []).map((end) => end.result.applicationOutputs.cleanup),
     ...movementDamageSaveChildren(contact).map((child) => child.release)
   ]
@@ -162,6 +167,7 @@ export function movementPendingCharacterAggregateVersions(
         after: execution.targetTransition.after
       })
     if (
+      execution.damageEnds !== undefined ||
       execution.concentrationEnds !== undefined ||
       execution.concentrationChecks !== undefined ||
       execution.repeatSaves !== undefined ||

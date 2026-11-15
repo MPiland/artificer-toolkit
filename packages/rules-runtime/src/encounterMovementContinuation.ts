@@ -24,7 +24,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
-import { terminalMovementDamageEnds } from './encounterSpatialDamageEnds.js'
 export { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
@@ -311,15 +310,7 @@ export async function prepareEncounterMovementContinuation<
           },
           selectionChecksum: evaluated.selectionChecksum,
           currentnessChecksum: evaluated.currentnessChecksum,
-          ...released,
-          ...terminalMovementDamageEnds({
-            result: evaluated.result,
-            targets,
-            encounter: input.state,
-            occurrenceId: input.occurrenceId,
-            commandId: input.executionCommandId,
-            released
-          })
+          ...released
         },
         settlements,
         targets
@@ -398,14 +389,7 @@ export async function prepareEncounterMovementContinuation<
           result,
           selectionChecksum: boundary.selectionChecksum,
           currentnessChecksum: boundary.currentnessChecksum,
-          terminalPathDistance: terminalStop.pathDistance,
-          ...terminalMovementDamageEnds({
-            result,
-            targets,
-            encounter: input.state,
-            occurrenceId: input.occurrenceId,
-            commandId: input.executionCommandId
-          })
+          terminalPathDistance: terminalStop.pathDistance
         },
         settlements,
         targets

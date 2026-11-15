@@ -19,7 +19,6 @@ import {
 } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
 import { preparePassageAppliedEffects } from './encounterPassageAppliedEffects.js'
-import { terminalMovementDamageEnds } from './encounterSpatialDamageEnds.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
@@ -279,13 +278,6 @@ export async function evaluateEncounterMovementPassageResponse<
         selectionChecksum: remainder.spatialSelectionChecksum,
         currentnessChecksum: remainder.spatialCurrentnessChecksum,
         terminalPathDistance: root.pathStartDistance,
-        ...terminalMovementDamageEnds({
-          result,
-          targets,
-          encounter: state,
-          occurrenceId: input.occurrenceId,
-          commandId: responseCommand.commandId
-        }),
         resolutionCommands
       },
       settlements,

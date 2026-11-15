@@ -3,12 +3,19 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { takeDamagedRaises } from './damagedRaiseRecorder.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
+
+vi.mock('@artificer-toolkit/rules-runtime/events/encounterEventHooks', async (importOriginal) =>
+  (await import('./damagedRaiseRecorder.js')).recordingDamagedRaises(importOriginal)
+)
+// The rooms load their modules again, so they meet the recording discovery (damagedRaiseRecorder.ts).
+vi.resetModules()
 
 /**
  * SPELLS-33.T6e3a: a creature's passive damage trigger gives it a timed grant in the commit of the
@@ -50,8 +57,12 @@ describe('a passive damage trigger giving its holder a timed grant (SPELLS-33.T6
     const room = await golemRoom('FIRE')
     expect(await golemEffects(room)).toEqual([])
 
+    takeDamagedRaises()
     const { answer } = await room.startAction(GOLEM_ID, ['TARGET_RANGE_UNCHECKED'])
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // QUALITY-14.T2e2e: the single-target action raised DAMAGED(AFTER) once for its holder, and its
+    // commit re-derived that one raise to check the plan.
+    expect(takeDamagedRaises()).toEqual({ room: [GOLEM_ID], commit: [GOLEM_ID] })
     const granted = await golemEffects(room)
     expect(granted).toHaveLength(1)
     expect(granted[0]).toMatchObject({ targetActorId: GOLEM_ID })

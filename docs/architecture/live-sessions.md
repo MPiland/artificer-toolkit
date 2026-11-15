@@ -193,13 +193,15 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   executed). The room plans one `AREA_DEPARTURE` movement settlement per departure, after every other step;
   `persistMovementSettlements` checks it against the retained departures, and
   `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
-  escape end path. The spatial receipt is unchanged. The effects a move's zone damage ends on the creatures
-  it damaged settle the same way, as `damageEnds` on the TERMINAL outcome and one `DAMAGE_END` settlement
-  each (`persistLiveMovementDamageEnd`, QUALITY-14.T2b), which also releases the temporary hit points the
-  ended effect gave; the grants that damage owes the creature's passive triggers follow as `damageGrants` and
-  one `DAMAGE_GRANT` settlement each (`persistLiveMovementDamageGrant`, QUALITY-14.T2d2; see
+  escape end path. The spatial receipt is unchanged. The effects a contact's zone damage ends on the creature
+  it damaged settle at that contact, before its saves, as `damageEnds` on the contact execution and one
+  `DAMAGE_END` settlement each (`persistLiveMovementDamageEnd`, QUALITY-14.T2e2d2, D220), which also releases
+  the temporary hit points the ended effect gave; the grants that damage owes the creature's passive triggers
+  follow as `damageGrants` and one `DAMAGE_GRANT` settlement each (`persistLiveMovementDamageGrant`). Both
+  steps check the contact's one `DAMAGED(AFTER)` raise, which persistence re-derives once per contact
+  (`raiseLiveMovementContactDamage`, QUALITY-14.T2e2e; see
   [rules runtime](rules-runtime.md), "Movement damage ends"). The repeat saves a contact's damage owes
-  settle at that contact, one `REPEAT_SAVE` settlement each (`persistLiveMovementRepeatSave`,
+  settle at that contact after them, one `REPEAT_SAVE` settlement each (`persistLiveMovementRepeatSave`,
   QUALITY-14.T2c; "Movement repeat saves").
 - Once a command commits, `settleRoomEncounterAfterCommit` (`roomEncounterAfterCommit.ts`) runs everything it
   owes in the same transaction, in one fixed order (current, QUALITY-11.T1a): (1) the damage mirrors and defeat

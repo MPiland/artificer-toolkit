@@ -27,7 +27,6 @@ import {
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { terminalMovementDamageEnds } from './encounterSpatialDamageEnds.js'
 import { retainedMovementSpatialExecutions } from './encounterMovementContinuation.js'
 import {
   stopSceneMovementResult,
@@ -347,14 +346,7 @@ export async function evaluateEncounterMovementActionResponse<
         selectionChecksum: context.spatialSelectionChecksum,
         currentnessChecksum: context.spatialCurrentnessChecksum,
         // A child's stop leaves the move no execution to read the stop distance from (D219).
-        terminalPathDistance: root.pathStartDistance,
-        ...terminalMovementDamageEnds({
-          result,
-          targets,
-          encounter: input.state,
-          occurrenceId: input.occurrenceId,
-          commandId: responseCommand.commandId
-        })
+        terminalPathDistance: root.pathStartDistance
       },
       settlements,
       targets,

@@ -534,6 +534,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           if (characterId !== null && currentVersion === undefined)
             currentVersions.set(characterId, pinVersion!)
           if (
+            execution.damageEnds !== undefined ||
             execution.concentrationEnds !== undefined ||
             execution.concentrationChecks !== undefined ||
             execution.repeatSaves !== undefined ||
@@ -541,6 +542,15 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           ) {
             finishSpatialGroups()
             applyMovementChildren([
+              // The contact's own damage ends settle first (D220); they bind it rather than a child occurrence.
+              ...(execution.damageEnds ?? []).map((end, childIndex) => ({
+                path: ['executions', index, 'damageEnds', childIndex],
+                releasePath: ['release'],
+                parentOccurrenceId: batch.occurrenceId,
+                release: end.release,
+                ownerTransitions: end.ownerTransitions,
+                derivesConditions: true
+              })),
               ...(execution.concentrationEnds ?? []).map((end, childIndex) => ({
                 path: ['executions', index, 'concentrationEnds', childIndex],
                 releasePath: ['result', 'applicationOutputs', 'cleanup'],

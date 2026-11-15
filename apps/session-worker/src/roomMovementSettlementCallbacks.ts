@@ -20,7 +20,8 @@ import {
   persistLiveMovementAreaDeparture,
   persistLiveMovementDamageEnd,
   persistLiveMovementDamageGrant,
-  persistLiveMovementMoveEnd
+  persistLiveMovementMoveEnd,
+  raiseLiveMovementContactDamage
 } from '@artificer-toolkit/encounter-persistence/escapedEffectEndPersistence'
 import {
   readLiveCharacterStreamVersion,
@@ -122,6 +123,7 @@ export function roomMovementSettlementCallbacks(input: {
       persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
     persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),
     persistMoveEnd: (step) => persistLiveMovementMoveEnd(ctx, step),
+    raiseContactDamage: (contact) => raiseLiveMovementContactDamage(ctx, contact),
     persistDamageEnd: (step) => persistLiveMovementDamageEnd(ctx, step),
     persistDamageGrant: (step) => persistLiveMovementDamageGrant(ctx, step),
     endHolderGrants: (step) => endHolderStateGrants(ctx, step),

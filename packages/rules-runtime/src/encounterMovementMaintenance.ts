@@ -6,6 +6,12 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
+  temporaryHitPointsAfterEffectsEnd,
+  withActorTemporaryHitPoints,
+  withCharacterTemporaryHitPoints,
+  type TemporaryHitPointsPool
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+import {
   encodeCharacterRecord,
   type StoredCharacter
 } from '@artificer-toolkit/schema/projections/characterStoredState'
@@ -74,6 +80,9 @@ function maintenanceTargetState(target: MovementTarget) {
   return characterMechanicsTargetStateDtoSchema.parse({
     currentHitPoints: target.state.current,
     temporaryHitPoints: target.state.temporary,
+    ...(target.state.temporarySourceEffectId && {
+      temporaryHitPointsSourceEffectId: target.state.temporarySourceEffectId
+    }),
     maximumHitPoints: target.effectiveMaximumHitPoints,
     scalarValues: target.effectiveScalarValues,
     conditionIds: target.state.conditions,
@@ -117,10 +126,16 @@ function projectEncounterMovementMaintenanceOwners<
     const remaining = (target?.activeEffects ?? snapshot.effects).filter(
       (effect) => !removedIds.has(effect.id)
     )
-    const ended = endedMaintenanceConditions(
-      maintenance.removed.filter((effect) => checksumCanonicalJson(effect.owner) === key),
-      remaining
+    const ownerRemoved = maintenance.removed.filter(
+      (effect) => checksumCanonicalJson(effect.owner) === key
     )
+    const ended = endedMaintenanceConditions(ownerRemoved, remaining)
+    // Temporary hit points a removed effect gave leave with it (D156), as persistence settles them.
+    const releasedTemporary = (pool: TemporaryHitPointsPool) =>
+      temporaryHitPointsAfterEffectsEnd(
+        pool,
+        ownerRemoved.map((effect) => effect.id)
+      )
     const active = target?.characterFacts?.active
     let row = snapshot.character
     if (active) {
@@ -141,19 +156,28 @@ function projectEncounterMovementMaintenanceOwners<
       const character = readCharacter(row)
       const conditions = character.state.conditions ?? []
       const retained = conditions.filter((condition) => !ended.has(condition.conditionTypeId))
-      const next =
-        retained.length === conditions.length
-          ? character
-          : {
-              ...character,
-              state: { ...character.state, conditions: retained }
+      const { hitpoints } = character.state
+      const temporary = releasedTemporary({
+        amount: hitpoints.temp,
+        sourceEffectId: hitpoints.tempSourceEffectId ?? null
+      })
+      const changed = retained.length !== conditions.length || temporary.amount !== hitpoints.temp
+      const next = changed
+        ? {
+            ...character,
+            state: {
+              ...character.state,
+              conditions: retained,
+              hitpoints: withCharacterTemporaryHitPoints(hitpoints, temporary)
             }
+          }
+        : character
       row = encodeCharacterRecord(row, {
         document: next,
         streamVersion: before + 1,
         updatedAt: input.occurredAt
       })
-      if (retained.length !== conditions.length)
+      if (changed)
         characterUpdate = {
           characterUpdate: {
             character: next as CharacterAuthored,
@@ -168,19 +192,36 @@ function projectEncounterMovementMaintenanceOwners<
         throw new Error('Movement maintenance Encounter owner is unavailable.')
       continue
     }
-    // A Character's conditions live on the Character, which `characterUpdate` above rewrites.
-    const actor =
-      target.actor.kind === 'CHARACTER' || !ended.size
-        ? target.actor
-        : (() => {
-            const conditions = readEncounterActorConditionState(target.actor.conditions ?? [])
-            return encounterRunActorStateSchema.parse({
-              ...target.actor,
-              conditions: conditions.values.filter(
-                (_value, index) => !ended.has(conditions.ids[index]!)
-              )
-            })
-          })()
+    // A Character's conditions and hit points live on the Character, which `characterUpdate` above
+    // rewrites; only a form it holds keeps its own temporary hit points on the actor.
+    const actor = (() => {
+      const pool = (holder: { tempHitPoints: number; tempHitPointsSourceEffectId?: string }) =>
+        releasedTemporary({
+          amount: holder.tempHitPoints,
+          sourceEffectId: holder.tempHitPointsSourceEffectId ?? null
+        })
+      if (target.actor.kind === 'CHARACTER') {
+        const { form } = target.actor
+        const temporary = form ? pool(form) : null
+        return form && temporary && temporary.amount !== form.tempHitPoints
+          ? { ...target.actor, form: withActorTemporaryHitPoints(form, temporary) }
+          : target.actor
+      }
+      const temporary = pool(target.actor)
+      if (!ended.size && temporary.amount === target.actor.tempHitPoints) return target.actor
+      const conditions = readEncounterActorConditionState(target.actor.conditions ?? [])
+      return encounterRunActorStateSchema.parse(
+        withActorTemporaryHitPoints(
+          {
+            ...target.actor,
+            conditions: conditions.values.filter(
+              (_value, index) => !ended.has(conditions.ids[index]!)
+            )
+          },
+          temporary
+        )
+      )
+    })()
     const projected = projectEncounterActionTarget({
       target: {
         ...target,
