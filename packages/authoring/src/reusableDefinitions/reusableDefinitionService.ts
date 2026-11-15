@@ -12,9 +12,7 @@ import {
 } from '@artificer-toolkit/schema/api/rulesRuntime'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
-import { dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import { initiativePolicyReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/initiativePolicy'
-import { dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/optionalCombat'
 import {
   conditionRuleStateReusableDefinitionDocumentDtoSchema,
   ruleCapabilityReusableDefinitionDocumentDtoSchema
@@ -31,7 +29,6 @@ import {
 } from '@artificer-toolkit/shared/rules'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { validateOptionalCombatCheckDefinitions } from './optionalCombatCheckDefinitions.js'
 
 import {
   RULE_RUNTIME_GRAPH_FAMILY_KEY,
@@ -42,10 +39,23 @@ import {
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
   BASIC_ACTION_DEFINITION_FAMILY_KEY
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { installedDefinitionFamilyKeys } from '@artificer-toolkit/schema/systems/installedSystemSchemas'
+
+import { installedDefinitionPublishers } from '../systems/installedDefinitionPublishers.js'
 import {
-  DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
-  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY
-} from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
+  indexDefinitionPublishers,
+  requireExactCurrentRuntimeGraph,
+  ReusableDefinitionValidationError,
+  ruleGraphOutputKind
+} from './reusableDefinitionValidation.js'
+
+export { ReusableDefinitionValidationError }
+
+// Every installed System family has exactly one publisher; a gap or a duplicate fails when this loads.
+const systemPublishers = indexDefinitionPublishers(
+  installedDefinitionPublishers,
+  installedDefinitionFamilyKeys
+)
 
 export {
   RULE_RUNTIME_GRAPH_FAMILY_KEY,
@@ -61,13 +71,6 @@ export class ReusableDefinitionAuthorizationError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'ReusableDefinitionAuthorizationError'
-  }
-}
-
-export class ReusableDefinitionValidationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ReusableDefinitionValidationError'
   }
 }
 
@@ -323,160 +326,6 @@ async function validateInitiativePolicyDefinition(input: {
   return policy
 }
 
-async function requireExactCurrentRuntimeGraph(input: {
-  pin: {
-    definitionId: string
-    definitionVersion: number
-    definitionChecksum: string
-  }
-  root: ReusableDefinitionRootRecord
-  store: Pick<ReusableDefinitionStore, 'requireCurrent'>
-  capability: GameSystemRuleCapabilityDto
-  operations: ReturnType<typeof createRuleOperationRegistry>
-  policyName: string
-  requireExecutable?: boolean
-}) {
-  let current: ReusableDefinitionCurrentDto
-  try {
-    current = await input.store.requireCurrent(input.pin.definitionId)
-  } catch {
-    throw new ReusableDefinitionValidationError(
-      `${input.policyName} references an unavailable current Rules Runtime graph.`
-    )
-  }
-  if (
-    current.id !== input.pin.definitionId ||
-    current.definitionFamilyKey !== RULE_RUNTIME_GRAPH_FAMILY_KEY ||
-    current.gameSystemId !== input.root.gameSystemId ||
-    current.version !== input.pin.definitionVersion ||
-    current.checksum !== input.pin.definitionChecksum
-  ) {
-    throw new ReusableDefinitionValidationError(
-      `${input.policyName} graph pins must reference exact current Rules Runtime graphs from the same Game System.`
-    )
-  }
-  const parsed = ruleGraphDefinitionDtoSchema.safeParse(current.document)
-  if (!parsed.success || checksumRuleDocument(parsed.data) !== current.checksum) {
-    throw new ReusableDefinitionValidationError(
-      `${input.policyName} graph pins must reference checksum-valid current Rules Runtime graphs.`
-    )
-  }
-  if (input.requireExecutable !== false) {
-    const compiled = compileRuleGraph({
-      definition: parsed.data,
-      sourceChecksum: current.checksum,
-      capability: input.capability,
-      operations: input.operations
-    })
-    if (!compiled.ok) {
-      throw new ReusableDefinitionValidationError(
-        `${input.policyName} graph pins must reference executable Rules Runtime graphs.`
-      )
-    }
-  }
-  return parsed.data
-}
-
-async function validateDnd5eEncounterLifecycleDefinition(input: {
-  root: ReusableDefinitionRootRecord
-  document: unknown
-  store: Pick<ReusableDefinitionStore, 'requireCurrent'>
-  capabilities: ReadonlyMap<string, GameSystemRuleCapabilityDto>
-  operations: ReturnType<typeof createRuleOperationRegistry>
-}) {
-  if (input.root.definitionFamilyKey !== DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY) {
-    throw new ReusableDefinitionValidationError(
-      'No publisher is registered for this definition family.'
-    )
-  }
-  const document = dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema.parse(input.document)
-  if (document.id !== input.root.id || document.gameSystemId !== input.root.gameSystemId) {
-    throw new ReusableDefinitionValidationError(
-      'Published definition identity must match its reusable definition root.'
-    )
-  }
-  const capability = input.capabilities.get(input.root.gameSystemId)
-  if (!capability) {
-    throw new ReusableDefinitionValidationError(
-      `No Rules Runtime capability is registered for Game System "${input.root.gameSystemId}".`
-    )
-  }
-  const requirement =
-    document.kind === 'LEGENDARY_ACTION'
-      ? { pin: document.eligibilityGraph, outputName: document.eligibilityGraph.eligibleOutput }
-      : document.kind === 'LEGENDARY_RESISTANCE'
-        ? { pin: document.choiceGraph, outputName: document.choiceGraph.useOutput }
-        : { pin: document.rechargeGraph, outputName: document.rechargeGraph.rechargedOutput }
-  const graph = await requireExactCurrentRuntimeGraph({
-    pin: requirement.pin,
-    root: input.root,
-    store: input.store,
-    capability,
-    operations: input.operations,
-    policyName: 'D&D encounter lifecycle'
-  })
-  if (
-    ruleGraphOutputKind({
-      graph,
-      outputName: requirement.outputName,
-      capability,
-      operations: input.operations
-    }) !== RULE_VALUE_KIND.BOOLEAN
-  ) {
-    throw new ReusableDefinitionValidationError(
-      'D&D encounter lifecycle graph output must resolve to a registered BOOLEAN output.'
-    )
-  }
-  if (document.kind === 'RECHARGE') {
-    validateDnd5eRechargeGraphProtocol({
-      graph,
-      outputName: document.rechargeGraph.rechargedOutput,
-      operations: input.operations
-    })
-  }
-  return document
-}
-
-async function validateDnd5eOptionalCombatDefinition(input: {
-  root: ReusableDefinitionRootRecord
-  document: unknown
-  capabilities: ReadonlyMap<string, GameSystemRuleCapabilityDto>
-  resolveSystemVocabulary?: (gameSystemId: string) => Promise<unknown>
-}) {
-  if (input.root.definitionFamilyKey !== DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY) {
-    throw new ReusableDefinitionValidationError(
-      'No publisher is registered for this definition family.'
-    )
-  }
-  const document = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse(input.document)
-  if (document.id !== input.root.id || document.gameSystemId !== input.root.gameSystemId) {
-    throw new ReusableDefinitionValidationError(
-      'Published definition identity must match its reusable definition root.'
-    )
-  }
-  if (!input.capabilities.has(input.root.gameSystemId)) {
-    throw new ReusableDefinitionValidationError(
-      `No Rules Runtime capability is registered for Game System "${input.root.gameSystemId}".`
-    )
-  }
-  if (!input.resolveSystemVocabulary) {
-    throw new ReusableDefinitionValidationError(
-      'Optional combat definition publication requires a server-owned System vocabulary resolver.'
-    )
-  }
-  try {
-    validateOptionalCombatCheckDefinitions({
-      document,
-      systemVocabulary: await input.resolveSystemVocabulary(input.root.gameSystemId)
-    })
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Optional combat check definition is invalid.'
-    throw new ReusableDefinitionValidationError(message)
-  }
-  return document
-}
-
 /** Shared exact-contract check for publication and current-source admission. */
 export function supportsRuleOperationContract(
   capability: GameSystemRuleCapabilityDto,
@@ -494,75 +343,6 @@ function ruleGraphReferencesFact(graph: RuleGraphDefinitionDto, factKey: string)
     ...Object.values(graph.outputs),
     ...graph.nodes.flatMap((node) => Object.values(node.inputs))
   ].some((binding) => binding.kind === 'FACT' && binding.factKey === factKey)
-}
-
-function ruleGraphOutputKind(input: {
-  graph: RuleGraphDefinitionDto
-  outputName: string
-  capability: GameSystemRuleCapabilityDto
-  operations: ReturnType<typeof createRuleOperationRegistry>
-}) {
-  const binding = input.graph.outputs[input.outputName]
-  if (!binding) return undefined
-  switch (binding.kind) {
-    case 'LITERAL':
-      if (typeof binding.value === 'boolean') return RULE_VALUE_KIND.BOOLEAN
-      if (typeof binding.value === 'number') return RULE_VALUE_KIND.NUMBER
-      return RULE_VALUE_KIND.TEXT
-    case 'FACT':
-      return input.capability.factContracts.find((fact) => fact.key === binding.factKey)?.valueKind
-    case 'NODE_OUTPUT': {
-      const node = input.graph.nodes.find((candidate) => candidate.id === binding.nodeId)
-      return node ? input.operations.require(node.operation).outputs[binding.port] : undefined
-    }
-  }
-}
-
-/** Recharge persists one d6 request, so its published graph must have one and only one evidence stage. */
-function validateDnd5eRechargeGraphProtocol(input: {
-  graph: RuleGraphDefinitionDto
-  outputName: string
-  operations: ReturnType<typeof createRuleOperationRegistry>
-}): void {
-  const evidenceNodes = input.graph.nodes.filter(
-    (node) => input.operations.require(node.operation).executionKind === 'EVIDENCE'
-  )
-  if (
-    evidenceNodes.length !== 1 ||
-    evidenceNodes[0]!.operation.key !== 'evidence.integer-range' ||
-    evidenceNodes[0]!.operation.contractVersion !== 1
-  ) {
-    throw new ReusableDefinitionValidationError(
-      'D&D recharge graphs must contain exactly one INTEGER_RANGE evidence request.'
-    )
-  }
-  const evidence = evidenceNodes[0]!
-  if (
-    evidence.inputs.min?.kind !== 'LITERAL' ||
-    evidence.inputs.min.value !== 1 ||
-    evidence.inputs.max?.kind !== 'LITERAL' ||
-    evidence.inputs.max.value !== 6
-  ) {
-    throw new ReusableDefinitionValidationError(
-      'D&D recharge graphs must request one bounded d6 evidence value.'
-    )
-  }
-  const nodes = new Map(input.graph.nodes.map((node) => [node.id, node]))
-  const visited = new Set<string>()
-  const dependsOnEvidence = (binding: RuleGraphDefinitionDto['outputs'][string]): boolean => {
-    if (binding.kind !== 'NODE_OUTPUT') return false
-    if (binding.nodeId === evidence.id) return true
-    if (visited.has(binding.nodeId)) return false
-    visited.add(binding.nodeId)
-    const node = nodes.get(binding.nodeId)
-    return node ? Object.values(node.inputs).some(dependsOnEvidence) : false
-  }
-  const output = input.graph.outputs[input.outputName]
-  if (!output || !dependsOnEvidence(output)) {
-    throw new ReusableDefinitionValidationError(
-      'D&D recharge BOOLEAN output must depend on its single d6 evidence request.'
-    )
-  }
 }
 
 async function validateReusableDefinition(input: {
@@ -593,19 +373,18 @@ async function validateReusableDefinition(input: {
     case INITIATIVE_POLICY_DEFINITION_FAMILY_KEY:
       requirePermittedDefinitionFamily(input)
       return validateInitiativePolicyDefinition(input)
-    case DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY:
-      requirePermittedDefinitionFamily(input)
-      return validateDnd5eEncounterLifecycleDefinition(input)
-    case DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY:
-      requirePermittedDefinitionFamily(input)
-      return validateDnd5eOptionalCombatDefinition(input)
     case BASIC_ACTION_DEFINITION_FAMILY_KEY:
       requirePermittedDefinitionFamily(input)
       return validateBasicActionDefinition(input)
-    default:
-      throw new ReusableDefinitionValidationError(
-        'No publisher is registered for this definition family.'
-      )
+    default: {
+      const publisher = systemPublishers.get(input.root.definitionFamilyKey)
+      if (!publisher)
+        throw new ReusableDefinitionValidationError(
+          'No publisher is registered for this definition family.'
+        )
+      requirePermittedDefinitionFamily(input)
+      return publisher.validate(input)
+    }
   }
 }
 
@@ -714,17 +493,9 @@ export function createReusableDefinitionService(config: {
               ...policy.data.tieResolvers.map((pin) => pin.definitionId)
             ]
           }
-          const lifecycle = dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema.safeParse(
-            draft.document
+          return installedDefinitionPublishers.flatMap((publisher) =>
+            publisher.dependencyDefinitionIds(draft.document)
           )
-          if (!lifecycle.success) return []
-          return [
-            lifecycle.data.kind === 'LEGENDARY_ACTION'
-              ? lifecycle.data.eligibilityGraph.definitionId
-              : lifecycle.data.kind === 'LEGENDARY_RESISTANCE'
-                ? lifecycle.data.choiceGraph.definitionId
-                : lifecycle.data.rechargeGraph.definitionId
-          ]
         },
         validate: async (root, draft, lockedDependencies) => {
           const document = reusableDefinitionDocumentDtoSchema.parse(draft.document)

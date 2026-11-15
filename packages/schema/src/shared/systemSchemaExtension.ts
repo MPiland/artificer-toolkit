@@ -46,3 +46,31 @@ export interface SystemReceiptBindings {
     readonly saveAbilityDefinitionFactKey: string
   }
 }
+
+/**
+ * The installed Systems' receipt bindings, once no operation key is bound twice. Consumers match a
+ * stored receipt by operation key, so a key two bindings share would attribute one System's receipt
+ * to another; the install fails instead.
+ */
+export function uniqueReceiptBindings<const T extends readonly SystemReceiptBindings[]>(
+  bindings: T
+): T {
+  const owners = new Map<string, string>()
+  for (const [index, binding] of bindings.entries()) {
+    const label = `installed receipt binding ${index}`
+    for (const [role, operationKey] of [
+      ['relationshipStateOperationKey', binding.relationshipStateOperationKey],
+      ['durationOperationKey', binding.durationOperationKey],
+      ['repeatSave.testOperationKey', binding.repeatSave.testOperationKey],
+      ['repeatSave.rulingOperationKey', binding.repeatSave.rulingOperationKey]
+    ] as const) {
+      const owner = owners.get(operationKey)
+      if (owner !== undefined)
+        throw new Error(
+          `Receipt binding operation key "${operationKey}" is bound by ${owner} and by ${label} (${role}); each must be unique.`
+        )
+      owners.set(operationKey, `${label} (${role})`)
+    }
+  }
+  return bindings
+}

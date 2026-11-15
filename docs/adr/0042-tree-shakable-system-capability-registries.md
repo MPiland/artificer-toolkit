@@ -60,4 +60,11 @@ The persisted contracts in `packages/schema` named D&D content directly: the `SP
 - The System's persisted keys live in its schema extension, and the rules-runtime System imports them from there, so every key has one home.
 - The source ratchet treats `packages/schema/src/systems/<id>/` as System code, exempt from the content fence like rules-runtime `systems/`. No neutral schema module and no fenced consumer may import a System's schema extension. Only the installed lists may.
 
-Persisted values are unchanged, so no data migration is needed. Authoring still validates the two D&D definition families by name, which is outside this fence.
+Persisted values are unchanged, so no data migration is needed. Authoring still validated the two D&D definition families by name, which was outside this fence until QUALITY-16.T4.
+
+### Amendment 2026-11-14: authoring inside the fence (QUALITY-16.T4)
+
+- `packages/authoring/src` joins the System content fence and the import fence. A System's authoring modules live under `packages/authoring/src/systems/<id>/` (exempt like `schema/src/systems/<id>/`), and `systems/installedDefinitionPublishers.ts` is the one authoring module that names a System. `allowed` stays empty.
+- The reusable definition service validates a System's definition family through that System's `SystemDefinitionPublisher` (`reusableDefinitions/reusableDefinitionValidation.ts`): the family key, the graph pins it locks for publication and its validation. The service reads the family keys from `installedDefinitionFamilyKeys` in the schema's installed list. `indexDefinitionPublishers` fails when this module loads if an installed family has no publisher, has two, or a publisher names a family that is not installed. The D&D Foundry actor format (its `_stats.systemId`) is the D&D System's own module.
+- Receipt bindings are installed through `uniqueReceiptBindings`, which fails the install when an operation key (relationship state, duration, repeat-save test or ruling) is bound twice, because stored receipts are matched by operation key.
+- `scripts/mergeSlice.mjs` loads the merged tree's `redProof.mjs` with its `sourceRatchets.mjs`, each blob pair in a directory of its own, so the merged tree is judged by its own ratchet modules.

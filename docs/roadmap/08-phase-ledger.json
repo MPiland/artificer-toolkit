@@ -26922,7 +26922,7 @@
             },
             {
               "id": "QUALITY-14.T2e2b4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26932,7 +26932,8 @@
                 "after": ["QUALITY-14.T2e2b3"]
               },
               "text": "Melee retaliation and the Legendary Action turn root carry their ends-stage damaged discovery into the damage-save chain, in the room and in persistence; the retaliation settlement reads the attacker effects after the ends stage, and the chain and the ends stage name the same damager (the zone source).",
-              "note": "Registered 2026-11-14 from the T2e2b3 split; under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2e2b3 split; under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e2c",
@@ -27108,6 +27109,21 @@
             },
             {
               "id": "QUALITY-15.T3h",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T3"]
+              },
+              "text": "A timed GM ruling beside a sibling entry with no duration or lifecycle of its own compiles (Channel Divinity: Turned is held for 1 minute, Destroy Undead resolves as a normal test outcome).",
+              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-14 at the seam trace: Light and Continual Flame need an object-manifestation contribution (T3j); Dominate, Fey Charm and the Charm rows are timed save conditions, not rulings (T3k).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3j",
               "status": "TODO",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
@@ -27115,10 +27131,24 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["QUALITY-15.T3"]
+                "after": ["QUALITY-15.T3h"]
               },
-              "text": "A timed GM ruling beside a manifestation (Light, Continual Flame) or with a second entry (Channel Divinity, multi-entry charm and dominate rows) compiles, so the ruling and its sibling share one lifetime.",
-              "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "text": "A cast object manifestation (Light, Continual Flame) compiles to an objectManifestation state contribution on the timed plan, sharing one duration, Concentration, expiry and undo with any ruling; the Scene reads the cast light; Continual Flame holds until dispelled.",
+              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3k",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T3h"]
+              },
+              "text": "A timed save condition with an authored repeat save or damage early end (Dominate Beast, Monster and Person, the dryad Fey Charm, the vampire and succubus Charm) compiles and ends on that save.",
+              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3i",
@@ -27225,7 +27255,7 @@
         {
           "id": "QUALITY-16",
           "title": "No System names in neutral code",
-          "status": "TODO",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 1,
@@ -27237,10 +27267,19 @@
           "acs": [
             {
               "id": "QUALITY-16.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R13.",
-              "text": "A content ratchet fails on dnd5e strings and System rule literals outside systems/; legendary discovery, relationship paths, lifetime literals and Kernel contributors read System data instead."
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R13. Closed 2026-11-14 with T4 (m778).",
+              "text": "A content ratchet fails on dnd5e strings and System rule literals outside systems/; legendary discovery, relationship paths, lifetime literals and Kernel contributors read System data instead.",
+              "proof": [
+                "sourceRatchets.test.mjs",
+                "system-schema-extension.test.ts",
+                "dnd5eSchemaExtension.test.ts",
+                "rollModeContributorSource.test.ts",
+                "rollModeCapabilityRegistry.test.ts",
+                "definitionPublishers.test.ts",
+                "mergeSlice.test.mjs"
+              ]
             }
           ],
           "tasks": [
@@ -27294,20 +27333,23 @@
             },
             {
               "id": "QUALITY-16.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-16.1"],
               "wsjf": {
                 "bv": 1,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["QUALITY-16.T3"]
               },
               "text": "The content ratchet fences packages/authoring: reusableDefinitionService reads definition family keys from the installed System extension instead of naming the D&D keys; installed receipt-binding operation keys are enforced unique; merge-slice loads the merged tree redProof.mjs as well as sourceRatchets.mjs.",
               "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m778 (0ea37dfef); slice tip 1774a8a0f: Tests 43652534172, Live 43652534167, Browser journeys 43652534175 green (first merge attempt refused on an outage-time journeys shard, green on rerun). The neutral-authoring fence covers packages/authoring/src/ with systems/<id>/ exempt; D&D publishers moved to systems/dnd5e/definitionPublishers.ts; installedDefinitionPublishers.ts and reusableDefinitionValidation.ts; uniqueReceiptBindings in systemSchemaExtension.ts; mergeSlice loads the merged tree ratchets by blob hash. No D196 change, no restated assertions."
             }
-          ]
+          ],
+          "journeyStatus": "internal",
+          "internalReason": "Architecture fence: System-specific authoring lives under systems/<id>/ and a source ratchet keeps neutral authoring free of it; proved by QUALITY-16.1, no user flow."
         },
         {
           "id": "QUALITY-17",
