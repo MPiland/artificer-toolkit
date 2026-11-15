@@ -436,6 +436,7 @@ function prepareNativeActionEffectsForPlan<TCharacterFacts extends CharacterActi
     plan?.actorLinkContribution ||
     plan?.creatureFormContribution ||
     plan?.rulingContribution ||
+    plan?.objectManifestationContribution ||
     plan?.playAbsenceContribution ||
     plan?.turnEndGate
   )

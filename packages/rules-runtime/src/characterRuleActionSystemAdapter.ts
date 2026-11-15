@@ -32,7 +32,8 @@ import type {
 import type {
   ActiveEffectEndTrigger,
   ActiveEffectRepeatTrigger,
-  ActiveGrantHolderEnd
+  ActiveGrantHolderEnd,
+  ActiveRuleEffectObjectManifestationContributionDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { CombatPerceptionContributionsDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
@@ -210,6 +211,11 @@ export interface CharacterRuleActionActiveEffectPlan {
    * the GM and applies no rule of its own.
    */
   rulingContribution?: { rulingOutcomeId: string; label: string; instructions: string }
+  /**
+   * Each target holds the object manifestation for the duration (Light, Continual Flame): the
+   * object's label, light, properties and attachment, frozen. It grants no mechanic of its own.
+   */
+  objectManifestationContribution?: Omit<ActiveRuleEffectObjectManifestationContributionDto, 'kind'>
   /**
    * Each target swaps into the Creature of the form the caster chose (Giant Insect), for the
    * duration (D130). The chosen form is a cast-time input; every authored form is listed here.

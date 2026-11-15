@@ -2186,22 +2186,23 @@
             },
             {
               "id": "PLATFORM-28.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
+                "size": 13,
                 "after": ["PLATFORM-28.T1"]
               },
               "text": "Wiring: the Storybook preview uses createAppQueryClient(convex) against the seeded backend, signs in through the web app /api/auth proxy, a story-data step seeds missing states through product commands, tagged backend stories run in a Browser journeys job on the throwaway stack, and a spec fails on any \"No queryFn\" message; SpellEditRoute MasterLocked is the first migrated story.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Resized 2026-11-14 at delivery from 8 to 13 (separate backend config directory, loader context, proof plumbing). The No-queryFn guard's own failing proof moved to T3.",
+              "mergedAt": "2026-11-14",
+              "proof": "m780 (82d98a145, batch); slice tip 21cdd4a20: Tests 43673075393, Live 43673075415, Browser journeys 43673075383 green (shard 8 ran storybook-backend-browser: SpellEditRoute.backend.stories MasterLocked). Backend stories (*.backend.stories.*) use their own .storybook/backend config: real convex reads, mutations spied, sign-in through the web app /api/auth proxy, query client and user passed through the router context; seedStoryData seeds through product commands (REVIEW_STORY_READER); the proof is selected through PROOF_SPECS. Red proof: affectedBrowserJourneys.test RED 3/66. Restated: authoringWalkthrough skips the spell master-locked step (the props-only story is gone; the same checks run in the backend story). No workflow change, no D196 change."
             },
             {
               "id": "PLATFORM-28.T3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2211,7 +2212,8 @@
                 "after": ["PLATFORM-28.T2"]
               },
               "text": "Authoring route stories (16 create and edit routes, EquipmentParentPreview, SystemDetailPage) read seeded data; state stories composed with one single-query override; loader overrides, nodeRuntimeResolver and the story-only authoring fixtures deleted.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T4",
@@ -26922,7 +26924,7 @@
             },
             {
               "id": "QUALITY-14.T2e2b4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26933,11 +26935,12 @@
               },
               "text": "Melee retaliation and the Legendary Action turn root carry their ends-stage damaged discovery into the damage-save chain, in the room and in persistence; the retaliation settlement reads the attacker effects after the ends stage, and the chain and the ends stage name the same damager (the zone source).",
               "note": "Registered 2026-11-14 from the T2e2b3 split; under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m781 (c97402316, batch); slice tip f31a8e88a: Tests 43674639367, Live 43674639299, Browser journeys 43674639337 green. Melee retaliation and the Legendary turn root carry their ends-stage damaged discovery into the chain; the zone hit names the zone source as damager (zoneExecutionDamage); retaliation reads the attacker effects after the ends stage. Red proof: nativeRoomRetaliationRepeatSave RED 1/1, nativeRoomLegendary RED 1/29, damagedHolderDiscoveryAgreement RED 2/4, encounterLegendaryAction RED 1/30. Extended (stricter): the Manual toEqual expects damagedDiscovery: new Map(). No D196 change."
             },
             {
               "id": "QUALITY-14.T2e2c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -26952,7 +26955,8 @@
                 ]
               },
               "text": "A resumed save chain reads the sealed pre-command discovery on its damage-save context (D220, D196) instead of re-deriving from a snapshot earlier saves changed; forged and replayed steps refused.",
-              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2e2 split (D220) under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-14.T2e2d",
@@ -27134,9 +27138,23 @@
                 "size": 5,
                 "after": ["QUALITY-15.T3h"]
               },
-              "text": "A cast object manifestation (Light, Continual Flame) compiles to an objectManifestation state contribution on the timed plan, sharing one duration, Concentration, expiry and undo with any ruling; the Scene reads the cast light; Continual Flame holds until dispelled.",
-              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13).",
+              "text": "A cast object manifestation (Light, Continual Flame) compiles to an objectManifestation state contribution (label, light, properties, attachment) on the timed plan, sharing one duration, Concentration, expiry and undo with any ruling; Continual Flame holds until dispelled.",
+              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13). Split 2026-11-14 at the seam trace: the Scene reading the cast light moved to T3j2.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3j2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["QUALITY-15.T3j"]
+              },
+              "text": "The Scene reads a cast object light: one emitted-light function for every actor kind reads active-effect manifestations; the room Scene vision, movement inputs and Convex turn capture pass active effects; the Scene cache refreshes when a manifestation starts or ends; TOUCHED_OBJECT light attaches to the target actor token (no Scene object concept); the light ends on expiry and undo.",
+              "note": "Registered 2026-11-14 from the T3j seam trace under the user standing approval for QUALITY growth (2026-11-13). Orchestrator ruling: TOUCHED_OBJECT light sits on the holder token."
             },
             {
               "id": "QUALITY-15.T3k",

@@ -88,7 +88,8 @@ async function endTurn(input: {
         kind: 'COMPLETE',
         root: stage.root,
         actors: defeating(stage.actors, input.legendaryDefeats ?? []),
-        movementTargets: new Map()
+        movementTargets: new Map(),
+        damagedDiscovery: new Map()
       }
     },
     async initiative(stage) {

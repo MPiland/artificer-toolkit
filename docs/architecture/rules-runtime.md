@@ -1814,11 +1814,14 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   carry their ends stage's discovery (`planNativeLiveConcentration`'s `repeatSaves.discovered`), less what the rest
   of the command released; persistence re-derives it from the committed rows (`settledRepeatSaveEffects`: the effects
   still held, less those the command placed), which equals it because the command's ends are deleted there, and
-  `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Transitional: a root whose ends stage the chain
-  does not yet receive (melee retaliation's attacker, a turn's Legendary Actions and effects, Cleaving, movement, and
-  a resumed chain) derives the discovery from its settled projection through `settledRepeatSaveEffects`; melee
-  retaliation's projection still keeps the effects its zones' damage ended, and its chain names the attacker as the
-  damager where its ends stage names the zone's source. `encounterConcentrationEndReason` raises
+  `damagedHolderDiscoveryAgreement.test.ts` proves the two agree. Melee retaliation's attacker carries its zones'
+  ends stage discovery too (`spatialDamageEnds`, through the retaliation settlement's `repeatSaveEffects`), and its
+  settlement reads the attacker's effects after that stage; so does each holder only a turn's Legendary Actions
+  damaged (the turn preparation's `legendaryDiscovery`, current, QUALITY-14.T2e2b4). A zone's hit names the zone's
+  source as its damager in the chain (`meleeRetaliationDamage`, `zoneEffectDamage`), as the ends stage does, in the
+  room and in persistence. Transitional: a root whose ends stage the chain does not yet receive (a turn's effects, a
+  holder a turn effect damaged as well as its Legendary Actions, Cleaving, movement, and a resumed chain) derives the
+  discovery from its settled projection through `settledRepeatSaveEffects`. `encounterConcentrationEndReason` raises
   one event, short-circuiting in that order. The adapter also owns the Constitution ability, the DC formula and the
   holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
   dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
@@ -3790,7 +3793,18 @@ that freezes the ruling text for the GM; each counted turn applies nothing and t
 the last one, an until-dispelled ruling (Arcane Lock) lasting until the GM ends it. Ending the Concentration ends the
 effect, and the action's undo removes it. A sibling that lasts no longer than its use (Channel Divinity's Destroy Undead kill beside
 "Turned", QUALITY-15.T3h) resolves as a normal test outcome while the ruling is held; a sibling with a duration,
-lifecycle or maintenance of its own (Light's manifest) is not held this way, nor is a ruling longer than `MAX_ACTIVE_EFFECT_TURNS` (Geas's 30 days).
+lifecycle or maintenance of its own is not held this way, nor is a ruling longer than `MAX_ACTIVE_EFFECT_TURNS` (Geas's 30 days).
+
+**Object manifestations (QUALITY-15.T3j).** A lone `MANIFEST` / `OBJECT` outcome with a duration (Light's 1 hour,
+Continual Flame until dispelled) compiles to `dnd5e.object-manifestation-proposal` and an `objectManifestationPlan`
+(`effectActionObjectManifestation.ts`) carrying an `objectManifestationContribution`: the outcome id, the object's
+label, its light radii and properties and its attachment, frozen. Light's GM ruling stays a cast-time proposal node
+beside it (`rulingSequence`); the executable manifest entry owns the plan, with one duration, the authored
+Concentration if any, one expiry and one undo. `prepareEncounterActionEffectPlans` writes one `OBJECT_MANIFESTATION`
+state contribution; each counted turn applies nothing, the effect ends with its duration, and an until-dispelled
+manifestation lasts until the GM ends it. This is the compile half only: **current** behavior is that nothing in the
+scene reads the contribution yet, so no light is emitted (QUALITY-15.T3j2 attaches a touched object's light to its
+target actor's token). The compiler names no spell; any `MANIFEST` / `OBJECT` with these fields compiles the same way.
 
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
