@@ -3,7 +3,7 @@ import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rul
 import { planSpatialHeldCondition } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import {
-  spatialDamageEnds,
+  spatialDamageEndsPerExecution,
   targetStateAfterEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { orderSpatialSettlementActors } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
@@ -163,10 +163,10 @@ export async function persistEncounterTurnZoneEffects(
     const first = targetExecutions[0]!
     const last = targetExecutions.at(-1)!
     const owner = turnEffectOwner(target, state.id)
-    // The zones' damage ends the effects that end on damage and gives the timed grants the holder's
-    // passive features owe it, as the plan settled them.
+    // Each zone's damage is its own raise (D220): it ends the effects that end on damage and gives the
+    // timed grants the holder's passive features owe it, as the plan settled them.
     const held = await effectStore.list(owner)
-    const ends = spatialDamageEnds({
+    const ends = spatialDamageEndsPerExecution({
       holderActorId: target.id,
       held,
       executions: targetExecutions,

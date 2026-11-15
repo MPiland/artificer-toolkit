@@ -31,7 +31,7 @@ export type DamagedDiscovery = ReadonlyMap<string, readonly ActiveRuleEffectReco
 
 /**
  * A root's raises joined into its damaged discovery, in raise order (D220): a root raises once per
- * holder for each turn-effect execution, turn-zone stage or Legendary Action that damaged it, and
+ * holder for each turn-effect or turn-zone execution or Legendary Action that damaged it, and
  * the holder's damage-save chain consumes what all of them found, each effect once.
  */
 export function joinDamagedDiscoveries(

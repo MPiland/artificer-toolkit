@@ -10,6 +10,7 @@ import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-be
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
 import { hideousLaughter } from '@artificer-toolkit/source-data/srd/spells/hideous-laughter.js'
+import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -20,7 +21,7 @@ import { takeDamagedRaises } from './damagedRaiseRecorder.js'
 import { readLegendaryChoice, respondToLegendaryChoice } from './legendaryRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { readZones } from './placedZoneRoomReads.js'
+import { choiceOptionIdOf, readZones } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 import { seedTurnSaveEffect } from './turnEvidenceFixture.js'
 
@@ -44,6 +45,8 @@ const FIRST_DRAGON_ID = testUuid(0xf23)
 const SECOND_DRAGON_ID = testUuid(0xf24)
 const CASTER_ACTOR_ID = testUuid(0xf25)
 const CASTER_ID = testUuid(0xf26)
+const SECOND_CASTER_ACTOR_ID = testUuid(0xf2a)
+const SECOND_CASTER_ID = testUuid(0xf2b)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -268,6 +271,84 @@ describe('a turn zone that damages a Hideous Laughter holder at its turn start (
 
     expect(takeDamagedRaises().room).toEqual([SECOND_ID])
     expect((await repeatSavesOf(room.room.base.stub)).slice(savesBefore)).toMatchObject([
+      { outcome: 'SAVE_FAILURE', activeEffect: { id: LAUGHTER_EFFECT_ID } }
+    ])
+  }, 120000)
+})
+
+describe('overlapping turn zones that damage a Hideous Laughter holder at its turn start (QUALITY-14.T2e2f4)', () => {
+  it('raise the holder’s damage once per zone, in the room and its commit, and owe a repeat save per zone', async () => {
+    // The Brown Bear stands in the Cloudkill (centered 15 feet east) and in the second caster's
+    // Spirit Guardians (15 feet west); the second caster stands 30 feet from the Cloudkill's center.
+    const holderAt = { x: 600, y: 600 }
+    const room = await actionRoom({
+      actors: [
+        {
+          ...characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+          snapshot: { kind: 'CHARACTER' as const, id: CASTER_ID, systemId: srdSystemRecord.id }
+        },
+        {
+          ...characterActor({ id: SECOND_CASTER_ACTOR_ID, characterId: SECOND_CASTER_ID }),
+          snapshot: {
+            kind: 'CHARACTER' as const,
+            id: SECOND_CASTER_ID,
+            systemId: srdSystemRecord.id
+          }
+        },
+        srdCreatureActor({ id: SECOND_ID, creature: brownBear })
+      ],
+      positions: { [SECOND_CASTER_ACTOR_ID]: { x: 300, y: 600 }, [SECOND_ID]: holderAt },
+      characterSpellcasting: { spells: [cloudkill], prepared: [cloudkill.id] },
+      characterAction: (action) => action.label === 'Cloudkill (5th level)',
+      secondCharacter: {
+        characterId: SECOND_CASTER_ID,
+        spellcasting: { spells: [spiritGuardians], prepared: [spiritGuardians.id] }
+      },
+      autoRoll: 'EVERYONE',
+      // Every die shows a 1: each save fails and each damage die is a 1.
+      fallbackRoll: 0,
+      seed: laughterSeed(CASTER_ACTOR_ID, SECOND_ID)
+    })
+    const { answer: cloud } = await room.startAreaAction({ x: 900, y: 600 })
+    expect(cloud.type, JSON.stringify(cloud)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    const guardians = (await room.actionChoices(SECOND_CASTER_ACTOR_ID)).actions.find(
+      (action) => action.label === 'Spirit Guardians (3rd level)'
+    )
+    if (!guardians) throw new Error('The second caster offers no Spirit Guardians.')
+    await room.commit({
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: SECOND_CASTER_ACTOR_ID,
+      target: {
+        kind: 'CASTER_CENTERED',
+        unaffectedActorIds: [CASTER_ACTOR_ID],
+        choiceOptionId: choiceOptionIdOf(spiritGuardians, 'Radiant'),
+        sceneId: room.room.scene.id,
+        expectedSceneVersion: room.room.scene.version
+      },
+      actionId: guardians.id,
+      optionalCombatIntent: null,
+      sceneContext: null
+    })
+    expect(await readZones(room)).toHaveLength(2)
+    const savesBefore = (await repeatSavesOf(room.room.base.stub)).length
+
+    // The second caster's turn ends outside the Cloudkill; the Brown Bear's turn starts in both zones.
+    takeDamagedRaises()
+    await room.advanceTurn()
+
+    // The commit re-runs each zone's raise, then re-derives the save chain's discovery once.
+    expect(takeDamagedRaises()).toEqual({
+      room: [SECOND_ID, SECOND_ID],
+      commit: [SECOND_ID, SECOND_ID, SECOND_ID]
+    })
+    expect((await repeatSavesOf(room.room.base.stub)).slice(savesBefore)).toMatchObject([
+      { outcome: 'SAVE_FAILURE', activeEffect: { id: LAUGHTER_EFFECT_ID } },
       { outcome: 'SAVE_FAILURE', activeEffect: { id: LAUGHTER_EFFECT_ID } }
     ])
   }, 120000)

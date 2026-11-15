@@ -1822,8 +1822,9 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   settlement reads the attacker's effects after that stage. A turn root carries its own discovery (current,
   QUALITY-14.T2e2f2, D220, D132 amendment): `prepareEncounterTurn`'s `damagedDiscovery` joins
   (`joinDamagedDiscoveries`), in turn order, each turn-effect execution's raise per holder (an executed effect is
-  settled, so it ends nothing but still owes the saves the raise finds), each turn-zone stage's raise per caught
-  holder, and each Legendary Action's raise per holder, less the effects a later stage ended. A Legendary Action is
+  settled, so it ends nothing but still owes the saves the raise finds), each turn-zone execution's raise per caught
+  holder (`spatialDamageEndsPerExecution`, QUALITY-14.T2e2f4: overlapping zones settle in the holder's one
+  mechanics batch, but each zone's damage raises on its own, the room and its commit alike), and each Legendary Action's raise per holder, less the effects a later stage ended. A Legendary Action is
   its own command, so the answer that commits the turn re-derives an earlier window from its retained dice; the
   incoming creature's refreshes run once, as their own stage (`refreshIncomingTurnActors`), not by replaying the
   windows. The room's turn chain holds the turn zones' damage in the persistence order (outgoing effects and zones,
