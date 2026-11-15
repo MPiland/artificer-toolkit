@@ -27109,7 +27109,7 @@
             },
             {
               "id": "QUALITY-15.T3h",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27120,11 +27120,12 @@
               },
               "text": "A timed GM ruling beside a sibling entry with no duration or lifecycle of its own compiles (Channel Divinity: Turned is held for 1 minute, Destroy Undead resolves as a normal test outcome).",
               "note": "Registered 2026-11-14 from the T3 split under the user standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-14 at the seam trace: Light and Continual Flame need an object-manifestation contribution (T3j); Dominate, Fey Charm and the Charm rows are timed save conditions, not rulings (T3k).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-14",
+              "proof": "m779 (af541ce4a, fast path); slice tip 90a5eac85: Tests 43673374694, Live 43673374684, Browser journeys 43673374611 green. timedRulingPlan ignores siblings with no duration, lifecycle or maintenance of their own. Golden: Channel Divinity REFUSED to TEST_OUTCOME with an END_OF_TURN plan; lifetime refusals 18 to 17; other rows byte-identical. Red proof: nativeRoomTurnUndead RED 2/2 (Wight held Turned 10 ticks, Skeleton destroyed, undo clears both), timedRulingPlan RED 1/5. No restated assertions, no D196 change."
             },
             {
               "id": "QUALITY-15.T3j",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27134,7 +27135,8 @@
                 "after": ["QUALITY-15.T3h"]
               },
               "text": "A cast object manifestation (Light, Continual Flame) compiles to an objectManifestation state contribution on the timed plan, sharing one duration, Concentration, expiry and undo with any ruling; the Scene reads the cast light; Continual Flame holds until dispelled.",
-              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T3h seam trace under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3k",

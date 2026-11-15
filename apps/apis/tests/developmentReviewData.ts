@@ -23,6 +23,8 @@ import {
   REVIEW_PLAYERS,
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
+  REVIEW_STORY_READER,
+  type ReviewAccountSpec,
   type ReviewHero,
   type ReviewScenario,
   type ReviewStep
@@ -108,6 +110,18 @@ export type ReviewSeedResult = { created: string[]; skipped: string[] }
 export function reviewId(slug: string): string {
   const hex = createHash('sha256').update(`artificer-review:${slug}`).digest('hex')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`
+}
+
+/**
+ * The story-data step (D221): what Storybook backend stories read beyond the deploy and SRD seed,
+ * made through product commands and found by stable names. It runs after the review data locally and
+ * before the stories in the `storybook-backend-browser` proof. Master-content stories need only the
+ * story account; a story that needs a state the seed lacks adds it here.
+ */
+export async function seedStoryData(
+  session: (spec: ReviewAccountSpec) => Promise<string>
+): Promise<void> {
+  await session(REVIEW_STORY_READER)
 }
 
 /**

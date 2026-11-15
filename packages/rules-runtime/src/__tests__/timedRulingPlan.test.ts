@@ -1,11 +1,14 @@
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
+import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { arcaneLock } from '@artificer-toolkit/source-data/srd/spells/arcane-lock.js'
 import { geas } from '@artificer-toolkit/source-data/srd/spells/geas.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { suggestion } from '@artificer-toolkit/source-data/srd/spells/suggestion.js'
 import { describe, expect, it } from 'vitest'
 
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
@@ -118,5 +121,37 @@ describe('a GM ruling with a duration is held as a timed ruling (QUALITY-15.T3)'
     expect(compileDirect(geas)).toThrow(LIFETIME_REFUSAL)
     // Light's ruling sits beside the light it sheds, which no timed ruling holds.
     expect(compileDirect(light)).toThrow(LIFETIME_REFUSAL)
+  })
+})
+
+describe('a timed ruling beside an instant result is held (QUALITY-15.T3h)', () => {
+  it("holds Turn Undead's Turned for 1 minute while Destroy Undead's kill stays a test outcome", () => {
+    const authored = cleric.features
+      ?.find(({ label }) => label === 'Channel Divinity')
+      ?.effects?.find(({ invocation }) => invocation.kind === 'ACTION')
+    if (!authored) throw new Error('Cleric Channel Divinity authors no action Effect.')
+    const action = {
+      ...characterActionDescriptor(compileEffect({ ...authored, id: ACTION_EFFECT_ID })),
+      conditionDefinitionIds: []
+    }
+    const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+      action,
+      compilerSource: buildCompiledActionCompilerSource(action)
+    })
+    if (plan?.kind !== 'TEST_OUTCOME') throw new Error('Channel Divinity compiles to a test.')
+    const [timed] =
+      dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
+        action,
+        published: plan.test.published
+      }) ?? []
+    expect(timed).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      // 1 minute of 6-second turns.
+      initialRemaining: 10,
+      resultGate: { paths: ['ON_SAVE_FAIL'] },
+      rulingContribution: { label: 'Turned' }
+    })
+    // The ruling is the plan's, so the failed save's one outcome graph is the gated kill.
+    expect(plan.outcomes).toHaveLength(1)
   })
 })

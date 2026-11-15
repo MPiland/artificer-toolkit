@@ -3791,8 +3791,9 @@ maintained by the spell's Concentration; the entry-point compiler admits it besi
 grant, repeated save or form. `prepareEncounterActionEffectPlans` writes one `GM_RULING` state contribution
 that freezes the ruling text for the GM; each counted turn applies nothing and the turn pass expires the effect after
 the last one, an until-dispelled ruling (Arcane Lock) lasting until the GM ends it. Ending the Concentration ends the
-effect, and the action's undo removes it. A ruling beside another result (Channel Divinity's kill, Light's manifest)
-is not held this way, nor is one longer than `MAX_ACTIVE_EFFECT_TURNS` (Geas's 30 days).
+effect, and the action's undo removes it. A sibling that lasts no longer than its use (Channel Divinity's Destroy Undead kill beside
+"Turned", QUALITY-15.T3h) resolves as a normal test outcome while the ruling is held; a sibling with a duration,
+lifecycle or maintenance of its own (Light's manifest) is not held this way, nor is a ruling longer than `MAX_ACTIVE_EFFECT_TURNS` (Geas's 30 days).
 
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form

@@ -7,7 +7,8 @@ const config: StorybookConfig = {
     options: {}
   },
   staticDirs: ['../public'],
-  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  // Backend stories read a seeded deployment through `.storybook/backend` instead (D221).
+  stories: ['../src/**/!(*.backend).stories.@(ts|tsx)'],
   addons: [
     '@storybook/addon-a11y',
     '@storybook/addon-docs',

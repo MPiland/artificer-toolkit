@@ -21,6 +21,24 @@ export async function runAppBrowserSpec(input: {
   environment?: Record<string, string>
   secrets?: readonly string[]
 }): Promise<void> {
+  await runWebBrowserProof({
+    ...input,
+    name: `Native app browser spec ${input.spec}`,
+    command: `test:e2e:app tests/e2e/app/${input.spec} --workers=1 --output=$env:CONVEX_E2E_OUTPUT`
+  })
+}
+
+/**
+ * Runs one apps/web script `command` beside the web app the proof harness started (localhost:3000)
+ * and writes its output, with `secrets` redacted, to `<evidenceDirectory>/playwright.log`.
+ */
+export async function runWebBrowserProof(input: {
+  evidenceDirectory: string
+  name: string
+  command: string
+  environment?: Record<string, string>
+  secrets?: readonly string[]
+}): Promise<void> {
   await mkdir(input.evidenceDirectory, { recursive: true })
   let output = ''
   let passed = false
@@ -31,7 +49,7 @@ export async function runAppBrowserSpec(input: {
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        `${proofYarn} workspace @artificer-toolkit/web test:e2e:app tests/e2e/app/${input.spec} --workers=1 --output=$env:CONVEX_E2E_OUTPUT; exit $LASTEXITCODE`
+        `${proofYarn} workspace @artificer-toolkit/web ${input.command}; exit $LASTEXITCODE`
       ],
       {
         cwd: fileURLToPath(new URL('../../..', import.meta.url)),
@@ -63,9 +81,6 @@ export async function runAppBrowserSpec(input: {
       output = output.replaceAll(secret, '[fixture credential]')
     await writeFile(`${input.evidenceDirectory}/playwright.log`, output)
   }
-  assert.ok(
-    passed,
-    `Native app browser spec ${input.spec} failed; see ${input.evidenceDirectory}/playwright.log.`
-  )
-  console.log(`Native app browser spec ${input.spec} passed.`)
+  assert.ok(passed, `${input.name} failed; see ${input.evidenceDirectory}/playwright.log.`)
+  console.log(`${input.name} passed.`)
 }

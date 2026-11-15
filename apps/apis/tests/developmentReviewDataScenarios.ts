@@ -30,6 +30,15 @@ export const REVIEW_SPARES: readonly ReviewAccountSpec[] = [
   { key: 'spare1', username: 'Review_Pl_Dara' },
   { key: 'spare2', username: 'Review_Pl_Eli' }
 ]
+/**
+ * The account Storybook backend stories sign in as (D221). Its email is spelled out because the
+ * Storybook preview signs in with it.
+ */
+export const REVIEW_STORY_READER = {
+  key: 'storyReader',
+  username: 'Review_Story_Reader',
+  email: 'review_story_reader@example.invalid'
+} satisfies ReviewAccountSpec
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
 export const REVIEW_READY_TITLE = 'Review data ready'

@@ -1,5 +1,4 @@
 import type { Preview } from '@storybook/tanstack-react'
-import { ColorSchemeScript } from '@mantine/core'
 import {
   ConvexReactClient,
   useAction,
@@ -11,15 +10,11 @@ import {
 } from 'convex/react'
 import { usePaginatedQuery } from 'convex-helpers/react'
 import { fn, mocked, sb } from 'storybook/test'
-import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { setupWorker } from 'msw/browser'
 import { mswLoader } from 'msw-storybook-addon/csf3'
 import MockDate from 'mockdate'
-import '#css/main.css'
-import '@mantine/notifications/styles.layer.css'
-import '@mantine/core/styles.layer.css'
-import '@mantine/tiptap/styles.layer.css'
+import { StoryFrame } from './StoryFrame.tsx'
 
 // Stories supply explicit native fixtures; never construct a live client through a class spy.
 sb.mock(import('convex/react'))
@@ -40,7 +35,6 @@ const unavailableConvexMutation: ReturnType<typeof useMutation> = Object.assign(
   { withOptimisticUpdate: () => unavailableConvexMutation }
 )
 
-type StoryColorScheme = 'dark' | 'light'
 type StoryQueryClient = ReturnType<typeof createAppQueryClient>
 type RouterContextInput = {
   storyContext: {
@@ -67,30 +61,13 @@ function getStoryQueryClient(storyId: string) {
   return queryClient
 }
 
-function getStoryColorScheme(value: unknown): StoryColorScheme {
-  return value === 'light' ? 'light' : 'dark'
-}
-
 const preview: Preview = {
   decorators: [
-    (Story, context) => {
-      const colorScheme = getStoryColorScheme(context.globals.theme)
-      const queryClient = getStoryQueryClient(context.id)
-
-      return (
-        <AppProviders
-          key={colorScheme}
-          defaultColorScheme={colorScheme}
-          forceColorScheme={colorScheme}
-          queryClient={queryClient}
-        >
-          <ColorSchemeScript defaultColorScheme={colorScheme} />
-          <div style={{ blockSize: '100dvh' }}>
-            <Story />
-          </div>
-        </AppProviders>
-      )
-    }
+    (Story, context) => (
+      <StoryFrame theme={context.globals.theme} queryClient={getStoryQueryClient(context.id)}>
+        <Story />
+      </StoryFrame>
+    )
   ],
   loaders: [
     mswLoader(async () => {

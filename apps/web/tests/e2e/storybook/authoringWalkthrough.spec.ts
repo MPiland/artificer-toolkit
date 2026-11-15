@@ -1,14 +1,16 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+// A domain whose master state reads the seeded deployment proves it in its backend story
+// (`*.backend.stories.tsx`, the storybook-backend-browser proof), which this props-only run cannot load.
 const domains = [
-  { id: 'backgrounds', label: 'Acolyte' },
-  { id: 'classes', label: 'Wizard' },
-  { id: 'creatures', label: 'Acolyte' },
-  { id: 'equipment', label: 'Shortsword +1' },
-  { id: 'feats', label: 'Grappler' },
-  { id: 'races', label: 'Dragonborn' },
-  { id: 'spells', label: 'Fireball' },
-  { id: 'vehicles', label: 'Sailing Ship' }
+  { id: 'backgrounds', label: 'Acolyte', fixtureMasterStory: true },
+  { id: 'classes', label: 'Wizard', fixtureMasterStory: true },
+  { id: 'creatures', label: 'Acolyte', fixtureMasterStory: true },
+  { id: 'equipment', label: 'Shortsword +1', fixtureMasterStory: true },
+  { id: 'feats', label: 'Grappler', fixtureMasterStory: true },
+  { id: 'races', label: 'Dragonborn', fixtureMasterStory: true },
+  { id: 'spells', label: 'Fireball', fixtureMasterStory: false },
+  { id: 'vehicles', label: 'Sailing Ship', fixtureMasterStory: true }
 ] as const
 
 test.describe('route-backed authored domain workspace', () => {
@@ -54,6 +56,7 @@ test.describe('route-backed authored domain workspace', () => {
       await expect(page.getByText(/all changes saved/i)).toBeVisible()
       await expect(page.getByRole('button', { name: /save draft/i })).toBeVisible()
 
+      if (!domain.fixtureMasterStory) return
       await openStory(page, `domains-${domain.id}-routes-edit--master-locked`)
       await expect(page.getByRole('textbox', { name: /^name/i })).toHaveValue(domain.label)
       await expect(page.getByRole('textbox', { name: /^name/i })).toHaveAttribute('readonly', '')

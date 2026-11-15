@@ -1515,6 +1515,22 @@ try {
       evidenceDirectory: appBrowserEvidenceDirectory('auth-confirmation-browser'),
       spec: 'authConfirmation.spec.ts'
     })
+  } else if (process.argv.includes('--storybook-backend-browser')) {
+    const { seedStoryData } = await import('./developmentReviewData')
+    const { reviewAccountSession } = await import('./developmentReviewAccounts')
+    await seedStoryData((spec) =>
+      reviewAccountSession(spec, auth, (data) =>
+        cli('adapter:create', { input: { model: 'verification', data } })
+      )
+    )
+    const { appBrowserEvidenceDirectory, runWebBrowserProof } =
+      await import('./developmentAppBrowser')
+    await runWebBrowserProof({
+      evidenceDirectory: appBrowserEvidenceDirectory('storybook-backend-browser'),
+      name: 'Storybook backend stories',
+      command: 'test:storybook:backend',
+      environment: { VITE_CONVEX_URL: deploymentUrl.origin }
+    })
   } else if (process.argv.includes('--character-builder-browser')) {
     const author = await createAuthor()
     characterBrowserAuthors.push({
