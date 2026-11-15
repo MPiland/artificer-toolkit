@@ -154,7 +154,7 @@ async function expectTurnOrderListsEncounter(
   await userEvent.click(page.getByRole('button', { name: 'Open turn order' }))
   const drawer = within(await page.findByRole('dialog', { name: 'Turn order' }))
   await expect(drawer.getAllByText(encounter.name).length).toBeGreaterThan(0)
-  await expect(drawer.getByText(`Round ${encounter.round}`)).toBeVisible()
+  await waitFor(() => expect(drawer.getByText(`Round ${encounter.round}`)).toBeVisible())
   for (const label of encounter.actorLabels)
     await expect(drawer.getAllByText(label).length).toBeGreaterThan(0)
 }
@@ -412,7 +412,9 @@ export const PlayerWindow: Story = {
 
     await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
     const controls = within(await page.findByRole('menu', { name: 'Scene controls' }))
-    await expect(controls.getByText(`Focus ${STORY_PLAYER_CAMPAIGN.scene.allyLabel}`)).toBeVisible()
+    await waitFor(() =>
+      expect(controls.getByText(`Focus ${STORY_PLAYER_CAMPAIGN.scene.allyLabel}`)).toBeVisible()
+    )
     await expect(page.queryByText('Reveal entire map')).not.toBeInTheDocument()
     await expect(page.queryByRole('button', { name: 'Edit objects' })).not.toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
