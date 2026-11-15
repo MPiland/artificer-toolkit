@@ -114,6 +114,22 @@ export const STORY_RECORDS = {
   }
 >
 
+/**
+ * The played Characters Storybook backend sheet stories read (PLATFORM-28.T6), owned by the story
+ * account at fixed ids. `seedStoryData` builds each through the Builder commit; the stories open
+ * them by id and find them by label.
+ */
+export const STORY_CHARACTERS = {
+  fighter: { characterId: '823e1766-9a56-4d22-a512-4e655983c1fe', label: 'Story Fighter' },
+  multiclass: { characterId: 'f1a6b1fc-d7f7-4942-bf6c-6c10e441c837', label: 'Story Multiclass' },
+  caster: { characterId: 'ef327a5a-0c6f-44b2-8ccd-5548188c305a', label: 'Story Caster' },
+  /** A Fighter reopened in the Builder, so a draft waits on top of its active Sheet. */
+  draftPending: {
+    characterId: 'ef0fc5fd-ee78-4d0d-aa52-18d54f218548',
+    label: 'Story Draft Pending'
+  }
+} as const
+
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
 export const REVIEW_READY_TITLE = 'Review data ready'
 

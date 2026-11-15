@@ -4,10 +4,7 @@ import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtu
 import { characterSheetSpellStatesFixture } from '../fixtures/characterSpell.fixtures'
 import { astralTearCharacterSheetFixture } from '../fixtures/astralTearSheet.fixtures'
 import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
-import {
-  characterSheetStoryMeta,
-  characterSheetTabletViewports
-} from '../fixtures/characterSheetStory.fixture'
+import { characterSheetStoryMeta } from '../fixtures/characterSheetStory.fixture'
 
 const meta = {
   ...characterSheetStoryMeta,
@@ -17,58 +14,6 @@ const meta = {
 export default meta
 
 type Story = StoryObj<typeof meta>
-
-export const Desktop: Story = {}
-
-export const Mobile: Story = {
-  globals: {
-    viewport: {
-      value: 'mobile1',
-      isRotated: false
-    }
-  },
-  parameters: {
-    viewport: {
-      defaultViewport: 'mobile1'
-    }
-  }
-}
-
-export const TabletPortrait: Story = {
-  globals: {
-    viewport: {
-      value: 'characterSheetTabletPortrait',
-      isRotated: false
-    }
-  },
-  parameters: {
-    viewport: {
-      options: characterSheetTabletViewports
-    }
-  }
-}
-
-export const TabletLandscape: Story = {
-  globals: {
-    viewport: {
-      value: 'characterSheetTabletLandscape',
-      isRotated: false
-    }
-  },
-  parameters: {
-    viewport: {
-      options: characterSheetTabletViewports
-    }
-  }
-}
-
-export const DraftPending: Story = {
-  args: {
-    hasDraft: true
-  }
-}
-
-export const AbilityModifierStates: Story = {}
 
 export const ProficiencyStates: Story = {
   args: {
@@ -192,7 +137,17 @@ export const ActionTypes: Story = {
 
 /** SPELLS-8.6: a long attack name with two active bonuses keeps the row inside a phone's width. */
 export const ActiveBonusesMobile: Story = {
-  ...Mobile,
+  globals: {
+    viewport: {
+      value: 'mobile1',
+      isRotated: false
+    }
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  },
   args: {
     initialTab: 'actions',
     sheet: {

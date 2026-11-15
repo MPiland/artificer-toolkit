@@ -24,7 +24,6 @@ import {
 } from './inspector.fixtures'
 import {
   characterSheetStoryMeta,
-  characterSheetTabletViewports,
   expectInspectorReady,
   openArcanaInspector,
   openDefensesInspector,
@@ -38,6 +37,7 @@ import {
   openStrengthSaveInspector,
   withSheetPanel
 } from '../fixtures/characterSheetStory.fixture'
+import { characterSheetTabletViewports } from '../stories/characterSheetViewports'
 
 const meta = {
   ...characterSheetStoryMeta,

@@ -16,7 +16,9 @@ export async function prepareDevelopmentCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
   options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {},
-  label = 'Equipment reconciliation fixture'
+  label = 'Equipment reconciliation fixture',
+  /** A second SRD base Class the Character takes one level of, as a multiclass Character does. */
+  multiclassSource?: typeof fighter
 ) {
   const equipment = await owner.mutation(api.content.drafts.duplicate, {
     subjectKind: 'EQUIPMENT',
@@ -109,6 +111,29 @@ export async function prepareDevelopmentCharacter(
     proficiencies: [],
     startingEquipment: { id: crypto.randomUUID(), sets: [] }
   })
+  const second = multiclassSource
+    ? await owner.mutation(api.content.drafts.duplicate, {
+        subjectKind: 'CLASS',
+        subjectId: multiclassSource.id
+      })
+    : null
+  if (second)
+    await publish(second, {
+      ...second.payload,
+      features: [],
+      // The spell fixture's Class shape: a prepared spellbook with no picks left to make.
+      ...(multiclassSource?.spellcasting && {
+        spellcasting: {
+          ...multiclassSource.spellcasting,
+          attributes: ['PREPARES_SPELLS', 'USES_SPELLBOOK'],
+          spellLimits: [
+            { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 0 }
+          ]
+        }
+      }),
+      proficiencies: [],
+      startingEquipment: { id: crypto.randomUUID(), sets: [] }
+    })
   const draft = await owner.mutation(api.characters.drafts.create, {
     id: characterId,
     systemId: club.systemId
@@ -120,21 +145,28 @@ export async function prepareDevelopmentCharacter(
       ...draft.payload.character.intent,
       race: { raceId: race.subjectId },
       background: { backgroundId: background.subjectId },
-      classes: [{ classId: baseClass.subjectId, classLevel: 1 }],
+      classes: [
+        { classId: baseClass.subjectId, classLevel: 1 },
+        ...(second ? [{ classId: second.subjectId, classLevel: 1 }] : [])
+      ],
       abilities: {
         method: 'STANDARD_ARRAY',
         assignments: [
           { ability: 'STRENGTH', option: '15' },
           { ability: 'DEXTERITY', option: '14' },
-          { ability: 'CONSTITUTION', option: '13' },
-          { ability: 'INTELLIGENCE', option: '12' },
+          // A second Class has its own ability minimums: the Wizard's Intelligence 13.
+          { ability: 'CONSTITUTION', option: second ? '12' : '13' },
+          { ability: 'INTELLIGENCE', option: second ? '13' : '12' },
           { ability: 'WISDOM', option: '10' },
           { ability: 'CHARISMA', option: '8' }
         ]
       },
       hitpoints: {
         method: 'FIXED',
-        levels: [{ level: 1, classId: baseClass.subjectId, classLevel: 1, value: 10 }]
+        levels: [
+          { level: 1, classId: baseClass.subjectId, classLevel: 1, value: 10 },
+          ...(second ? [{ level: 2, classId: second.subjectId, classLevel: 1, value: 6 }] : [])
+        ]
       },
       startingEquipment: {
         class: {
@@ -164,13 +196,15 @@ export async function createDevelopmentCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
   options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {},
-  label?: string
+  label?: string,
+  multiclassSource?: typeof fighter
 ) {
   const { candidate, character, equipment } = await prepareDevelopmentCharacter(
     owner,
     characterId,
     options,
-    label
+    label,
+    multiclassSource
   )
   const committed = await owner.mutation(api.characters.commit.commit, candidate)
   return { committed, character, equipment }

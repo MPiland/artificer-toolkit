@@ -14,6 +14,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { wizard as wizardClass } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
@@ -25,6 +26,7 @@ import {
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
   REVIEW_STORY_READER,
+  STORY_CHARACTERS,
   STORY_RECORDS,
   type ReviewAccountSpec,
   type StoryRecordSpec,
@@ -125,9 +127,12 @@ export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
  * returns its client. A re-run keeps every record a previous run finished.
  */
 export async function seedStoryData(
-  connect: (spec: ReviewAccountSpec) => Promise<StoryClient>
+  connect: (spec: ReviewAccountSpec) => Promise<StoryClient>,
+  /** The story Characters copy more content than a free account may own, so the account is promoted. */
+  grantGmTier: (userId: string) => Promise<void>
 ): Promise<void> {
   const reader = await connect(REVIEW_STORY_READER)
+  await grantGmTier((await reader.query(api.account.identity, {})).userId)
   for (const { subjectKind, masterId, ownedActive, ownedDraft } of Object.values(STORY_RECORDS)) {
     await activateStoryCopy(reader, subjectKind, masterId, ownedActive)
     await activateStoryCopy(reader, subjectKind, masterId, ownedDraft)
@@ -146,6 +151,42 @@ export async function seedStoryData(
       payload: active.item
     })
   }
+  await seedStoryCharacters(reader)
+}
+
+/** Builds each story Character through the Builder commit once; a Character that exists is kept. */
+async function seedStoryCharacters(reader: StoryClient) {
+  const { fighter, multiclass, caster, draftPending } = STORY_CHARACTERS
+  const exists = async (characterId: string) =>
+    Boolean(await reader.query(api.characters.sheet.get, { id: characterId }))
+  if (!(await exists(fighter.characterId)))
+    await createDevelopmentCharacter(reader, fighter.characterId, {}, fighter.label)
+  if (!(await exists(multiclass.characterId)))
+    await createDevelopmentCharacter(
+      reader,
+      multiclass.characterId,
+      {},
+      multiclass.label,
+      wizardClass
+    )
+  if (!(await exists(caster.characterId)))
+    await createDevelopmentSpellCharacter(
+      reader,
+      caster.characterId,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      caster.label
+    )
+  if (!(await exists(draftPending.characterId)))
+    await createDevelopmentCharacter(reader, draftPending.characterId, {}, draftPending.label)
+  // Reopening an active Character in the Builder, as its Edit action does, leaves a draft waiting.
+  if (!(await reader.query(api.characters.drafts.get, { id: draftPending.characterId })))
+    await reader.mutation(api.characters.drafts.create, {
+      id: draftPending.characterId,
+      systemId: srdSystemRecord.id
+    })
 }
 
 /** Copies `masterId` as the author does ("Duplicate to edit"), names the copy `record` and activates it. */
