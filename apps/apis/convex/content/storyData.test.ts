@@ -73,13 +73,13 @@ it('gives the story account an active copy and a copy with a waiting draft per d
         .sort()
     }))
 
-  const grantGmTier = async (userId: string) => {
-    await t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' })
+  const setTier = async (userId: string, tier: 'GM' | 'FREE') => {
+    await t.mutation(internal.accountEntitlements.setTier, { userId, tier })
   }
 
-  await seedStoryData(connect, grantGmTier)
+  await seedStoryData(connect, setTier)
   const seeded = await stored()
-  await seedStoryData(connect, grantGmTier)
+  await seedStoryData(connect, setTier)
 
   expect(accounts).toEqual([REVIEW_STORY_READER.key, REVIEW_STORY_READER.key])
   const records = Object.values(STORY_RECORDS)
@@ -129,6 +129,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(fighterSheet?.overview.conditions.map(({ conditionTypeId }) => conditionTypeId)).toEqual([
     poisoned?.id
   ])
+  expect((await reader.query(api.accountEntitlements.get, {})).tier).toBe('FREE')
   expect(await stored()).toEqual(seeded)
 
   // Backend stories find the Campaign by name and open its settings, Run and creature loot.

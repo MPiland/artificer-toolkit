@@ -1527,8 +1527,8 @@ try {
         client.setAuth(await authToken(session), () => authToken(session))
         return client
       },
-      async (userId) => {
-        await cli('accountEntitlements:setTier', { userId, tier: 'GM' }, false)
+      async (userId, tier) => {
+        await cli('accountEntitlements:setTier', { userId, tier }, false)
       }
     )
     const { appBrowserEvidenceDirectory, runWebBrowserProof } =

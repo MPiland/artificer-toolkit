@@ -106,8 +106,8 @@ export type ReviewContext = {
   admin?: ReviewAccount
   /** Accounts that join no Campaign. */
   spares: readonly ReviewAccount[]
-  /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
-  grantGmTier: (userId: string) => Promise<void>
+  /** Operator step: sets an account's tier. The GM tier's hosted-Campaign limit fits every review Campaign. */
+  setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>
   /** Operator step: promotes the admin account to superadmin (deployment-admin `authAdmin:setRole`). */
   grantSuperadmin: (userId: string) => Promise<void>
   /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
@@ -138,11 +138,11 @@ export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
  */
 export async function seedStoryData(
   connect: (spec: ReviewAccountSpec) => Promise<StoryClient>,
-  /** The story Characters copy more content than a free account may own, so the account is promoted. */
-  grantGmTier: (userId: string) => Promise<void>
+  /** The story Characters copy more content than a free account may own, so the account is promoted while they are built. */
+  setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>
 ): Promise<void> {
   const reader = await connect(REVIEW_STORY_READER)
-  await grantGmTier((await reader.query(api.account.identity, {})).userId)
+  const { userId } = await reader.query(api.account.identity, {})
   for (const { subjectKind, masterId, ownedActive, ownedDraft } of Object.values(STORY_RECORDS)) {
     await activateStoryCopy(reader, subjectKind, masterId, ownedActive)
     await activateStoryCopy(reader, subjectKind, masterId, ownedDraft)
@@ -162,7 +162,10 @@ export async function seedStoryData(
     })
   }
   await seedStoryCampaign(reader)
+  await setTier(userId, 'GM')
   await seedStoryCharacters(reader)
+  // The Campaign stories read the plan limits of a free account.
+  await setTier(userId, 'FREE')
 }
 
 /**
@@ -354,7 +357,7 @@ export async function seedReviewData(
 ): Promise<ReviewSeedResult> {
   assert.equal(context.players.length, REVIEW_PLAYERS.length, 'One account per review player.')
   const result: ReviewSeedResult = { created: [], skipped: [] }
-  await context.grantGmTier(context.gm.userId)
+  await context.setTier(context.gm.userId, 'GM')
   if (context.admin) await context.grantSuperadmin(context.admin.userId)
   // The room caches each roller's preference, so every account stays off: dice are typed.
   for (const account of [
