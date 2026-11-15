@@ -3,6 +3,10 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import {
+  SLEEP_CONDITION_ID,
+  sleepEffectOn
+} from '@artificer-toolkit/rules-runtime/testing/sleepEffectFixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -11,6 +15,8 @@ import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
+  readActorConditionIds,
+  readActorHitPoints,
   readPendingActionDecision,
   readRoomHistory,
   type RoomHistory
@@ -19,6 +25,7 @@ import {
 const SOURCE_ID = testUuid(0x900)
 const TARGET_IDS = [testUuid(0x901), testUuid(0x902), testUuid(0x903)]
 const ENDING_GRANT_ID = testUuid(0x904)
+const SLEEP_EFFECT_ID = testUuid(0x905)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -38,22 +45,36 @@ function cleavingRoom(options: {
   concentrationOwnerActorId?: string
   /** The target that holds a grant ending on incapacitation (D113), which the Bite's chain defeats. */
   grantHolderActorId?: string
+  /** The target asleep under the SRD Sleep spell its caster, the attacker, put on it. */
+  sleeperActorId?: string
   /** The creatures the Bite can reach; the first is the attack's target. */
   targetIds?: readonly string[]
 }) {
   const attacker = biteWolf('ATTACK', { damage: options.damage ?? 40, reachFeet: 20 })
+  const targets = (options.targetIds ?? TARGET_IDS).map((id) =>
+    srdCreatureActor({
+      id,
+      creature: plainWolf,
+      ...(id === options.sleeperActorId ? { conditionIds: [SLEEP_CONDITION_ID] } : {})
+    })
+  )
   return actionRoom({
     ...options,
     concentration: options.concentrationOwnerActorId !== undefined,
-    actors: [
-      srdCreatureActor({ id: SOURCE_ID, creature: attacker }),
-      ...(options.targetIds ?? TARGET_IDS).map((id) =>
-        srdCreatureActor({ id, creature: plainWolf })
-      )
-    ],
+    actors: [srdCreatureActor({ id: SOURCE_ID, creature: attacker }), ...targets],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
     optionalCombatKinds: ['CLEAVING'],
     seed: async ({ effects, encounterId, occurredAt }) => {
+      const sleeper = targets.find(({ id }) => id === options.sleeperActorId)
+      if (sleeper) {
+        const { id, owner, definition, lifecycle } = sleepEffectOn({
+          encounterId,
+          id: SLEEP_EFFECT_ID,
+          sourceActorId: SOURCE_ID,
+          holder: sleeper
+        })
+        await effects.create({ id, owner, definition, lifecycle, occurredAt })
+      }
       if (options.grantHolderActorId === undefined) return
       await effects.create({
         id: ENDING_GRANT_ID,
@@ -213,6 +234,33 @@ describe('room Cleaving chain', () => {
       })
       expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
       expect(await heldGrantIds()).not.toContain(ENDING_GRANT_ID)
+    })
+  })
+
+  describe('with a later target asleep under SRD Sleep (QUALITY-14.T2e2f1)', () => {
+    it('wakes the target the carried damage reaches, releasing the condition its sleep held', async () => {
+      // 15 damage defeats the first Wolf (11) and carries 4 to the sleeping second, which survives.
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        damage: 15,
+        sleeperActorId: TARGET_IDS[1],
+        targetIds: TARGET_IDS.slice(0, 2)
+      })
+      await startAttack(room)
+      const offered = await readRoomHistory(room.room.base.stub)
+      expect(offered.activeEffects.map(({ id }) => id)).toContain(SLEEP_EFFECT_ID)
+      expect(readActorConditionIds(offered, TARGET_IDS[1]!)).toEqual([SLEEP_CONDITION_ID])
+
+      const first = await pendingChoice(room)
+      const option = first.pending.options.find((entry) => entry.targetActorId === TARGET_IDS[1])
+      const answer = await room.resolve(first, { kind: 'OPTION', optionId: option!.optionId })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+      const settled = await readRoomHistory(room.room.base.stub)
+      expect(settled.activeEffects.map(({ id }) => id)).not.toContain(SLEEP_EFFECT_ID)
+      expect(readActorConditionIds(settled, TARGET_IDS[1]!)).toEqual([])
+      expect(readActorHitPoints(settled, TARGET_IDS[1]!)).toBe(7)
     })
   })
 
