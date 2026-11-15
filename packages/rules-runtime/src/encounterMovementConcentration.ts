@@ -245,10 +245,21 @@ export async function prepareEncounterMovementConcentration<
     [...targets.values()].map(({ actor }) => [actor.id, actor.disposition])
   )
   let remaining: DamageSaveApplicationDto[] = []
-  /** The projection after a save's cleanup: later saves and contacts observe it. */
-  const adoptCleanup = (ended: { targets: typeof targets; projection: TProjection }) => {
+  /**
+   * The projection after a save's cleanup: later saves and contacts observe it. A zone the cleanup
+   * removed makes none of its later contacts (D220), and the contacts after it close up their ordinals.
+   */
+  const adoptCleanup = (
+    ended: { targets: typeof targets; projection: TProjection },
+    removedZoneIds: readonly string[]
+  ) => {
     const candidates = projectSpatialMovementCandidates({
-      candidates: remainder.remainingSpatialCandidates,
+      candidates: remainder.remainingSpatialCandidates
+        .filter(({ candidate }) => !removedZoneIds.includes(candidate.effectId))
+        .map((candidate, index) => ({
+          ...candidate,
+          ordinal: remainder.completedSpatialExecutions.length + index
+        })),
       beforeTargets: targets,
       afterTargets: ended.targets
     })
@@ -263,9 +274,12 @@ export async function prepareEncounterMovementConcentration<
       })
     }
   }
-  /** A lost Concentration slot, and the effects it maintained, owe no later save. */
+  /**
+   * A lost Concentration slot, and the effects it maintained, owe no later save; the zones it
+   * maintained make no later contact (D220).
+   */
   const adoptEnd = (ended: MovementConcentrationProjectedEnd<TCharacterFacts, TProjection>) => {
-    adoptCleanup(ended)
+    adoptCleanup(ended, ended.cleanup.removedZoneIds)
     remaining = damageSaveApplicationsAfterConcentrationEnd(remaining, ended.cleanup)
   }
   /** The source contact retains its ends and saves beside its (unchanged) damage envelope. */
@@ -562,7 +576,7 @@ export async function prepareEncounterMovementConcentration<
       repeatSaves.push(execution)
       settlements.push({ kind: 'REPEAT_SAVE', execution })
       if (released) {
-        adoptCleanup(released)
+        adoptCleanup(released, [])
         remaining = damageSaveApplicationsAfterRelease(remaining, effect.id)
       }
       retainChildren()

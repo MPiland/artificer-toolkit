@@ -54,7 +54,7 @@ describe('the tracer maintenance link on the neutral event table (RULES-2.T12b)'
       maintainedStates: new Map([[HOLDER_ID, [{ id: STUNT_STATE_ID, createdAt: STUNT_CAST_AT }]]]),
       damagerActorId: null,
       dispositions: new Map(),
-      effectSaves: null
+      effectSaves: { massiveRule: null, holders: new Map() }
     })
     expect(owed).toEqual([
       { ...stress(HOLDER_ID, 0), maintainedStateId: STUNT_STATE_ID, castAt: STUNT_CAST_AT }
