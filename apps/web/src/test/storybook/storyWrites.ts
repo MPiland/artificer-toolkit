@@ -1,4 +1,4 @@
-import type { useMutation } from 'convex/react'
+import type { ConvexReactClient, useMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
@@ -7,33 +7,38 @@ import {
   encounterGmProjectionDtoSchema
 } from '@artificer-toolkit/schema/api/encounterData'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
-import { tabletopGmEncounter } from '#domains/campaigns/vtt/CampaignTabletop.stories.fixtures'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
+
+/** The story's read client, bound by the preview, for responses that echo a record the deployment holds. */
+let storyReads: ConvexReactClient | undefined
+
+export function bindStoryReads(client: ConvexReactClient) {
+  storyReads = client
+}
 
 /**
  * What a recorded write answers: the response its client parses, built through the real response
  * schema from the recorded input, so the page sees a success and nothing reaches the seeded
  * deployment (D218). A write whose caller ignores the response answers null.
  */
-function writeResponse(reference: MutationReference, input: unknown): unknown {
+async function writeResponse(reference: MutationReference, input: unknown): Promise<unknown> {
   if (getFunctionName(reference) === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
   }
   if (getFunctionName(reference) === getFunctionName(api.encounters.runs.create)) {
+    if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
     const { campaignId, blueprintId } = createEncounterInputDtoSchema.parse(input)
-    return encounterGmProjectionDtoSchema.parse({
-      ...tabletopGmEncounter,
-      id: crypto.randomUUID(),
-      campaignId,
-      blueprintId,
-      status: 'PREPARED',
-      currentActorId: null,
-      round: 1,
-      version: 1
+    // The created Run answers as the Campaign's seeded prepared Run: its real projection.
+    const runs = await storyReads.query(api.encounters.projectionReads.list, { campaignId })
+    const prepared = runs.find(({ status }) => status === 'PREPARED')
+    if (!prepared) throw new Error('The story Campaign has no prepared Run to answer a create.')
+    const projection = await storyReads.query(api.encounters.projectionReads.get, {
+      encounterId: prepared.id
     })
+    return encounterGmProjectionDtoSchema.parse({ ...projection, campaignId, blueprintId })
   }
   return null
 }

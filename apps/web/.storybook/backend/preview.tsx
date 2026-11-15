@@ -12,7 +12,11 @@ import {
   installQueryOverride,
   type StoryQueryOverride
 } from '../../src/test/storybook/storyQueryOverride'
-import { storyMutation, storyMutationHook } from '../../src/test/storybook/storyWrites'
+import {
+  bindStoryReads,
+  storyMutation,
+  storyMutationHook
+} from '../../src/test/storybook/storyWrites'
 import {
   REVIEW_PASSWORD,
   REVIEW_STORY_READER
@@ -57,6 +61,7 @@ async function connectStoryBackend(
   }
   const convex = new ConvexQueryClient(url, { expectAuth: true })
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
+  bindStoryReads(convex.convexClient)
   const queryClient = createAppQueryClient(convex)
   if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
   convex.convexClient.setAuth(
