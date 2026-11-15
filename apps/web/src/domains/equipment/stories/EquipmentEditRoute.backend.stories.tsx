@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { shortswordPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shortsword-plus-1.js'
-import { FormApi } from '@tanstack/react-form'
+import { Editor } from '@tiptap/core'
 import { useMatches } from '@tanstack/react-router'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { Shell } from '#app/shell'
@@ -184,20 +184,17 @@ export const AstralTearAwakenedStructure: Story = {
   },
   render: () => <EditRouteInShell />,
   beforeEach: () => {
-    // TEMPORARY diagnostic: records who writes the description.
-    const setFieldValue = FormApi.prototype.setFieldValue
-    FormApi.prototype.setFieldValue = function (
-      this: unknown,
-      ...args: Parameters<typeof setFieldValue>
-    ) {
-      if (String(args[0]) === 'description')
+    // TEMPORARY diagnostic: records every rich text editor update and where it came from.
+    const emit = Editor.prototype.emit
+    Editor.prototype.emit = function (this: Editor, ...args: Parameters<typeof emit>) {
+      if (args[0] === 'update' || args[0] === 'create')
         descriptionWrites.push(
-          `${JSON.stringify(args[1])?.slice(0, 80)} ${JSON.stringify(args[2])} ${new Error().stack?.slice(0, 1800)}`
+          `${String(args[0])} ${this.view.dom.getAttribute('aria-labelledby')} ${JSON.stringify(this.getHTML()).slice(0, 80)} ${new Error().stack?.slice(0, 1500)}`
         )
-      return Reflect.apply(setFieldValue, this, args)
-    } as typeof setFieldValue
+      return Reflect.apply(emit, this, args)
+    } as typeof emit
     return () => {
-      FormApi.prototype.setFieldValue = setFieldValue
+      Editor.prototype.emit = emit
     }
   },
   play: async ({ canvasElement }) => {
@@ -573,7 +570,7 @@ function describeDirtyForm(element: Element | null): string {
           (key) =>
             `${key}: ${JSON.stringify(defaults[key])?.slice(0, 600)} -> ${JSON.stringify(values[key])?.slice(0, 600)}`
         )
-      return `Dirty fields: ${dirty.join(', ')}. Description writes: ${descriptionWrites.join(' || ')}. Moved: ${moved.join(' | ').slice(0, 300)}`
+      return `Dirty fields: ${dirty.join(', ')}. Description meta: ${JSON.stringify(fieldMeta.description)}. Editor events: ${descriptionWrites.join(' || ')}. Moved: ${moved.join(' | ').slice(0, 300)}`
     }
     fiber = Reflect.get(fiber, 'return')
   }
