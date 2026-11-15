@@ -101,7 +101,10 @@ export function nativeSpatialStepCallbacks(
   step: Pick<ContinuationInput, 'occurrenceId' | 'executionCommandId' | 'occurredAt'>
 ): Pick<ContinuationCallbacks, 'evaluateSpatial' | 'spatialSettlement' | 'prepareConcentration'> {
   const { state, userId, autoRoll, carefully, captured, random, finalActors } = context
-  const { actors, capture, drag, spatialEffects, runtime } = captured
+  const { actors, capture, drag, runtime } = captured
+  // A zone whose Concentration a contact ended leaves the Scene for the rest of the move (D220).
+  const removedZoneIds = new Set<string>()
+  const spatialEffects = () => captured.spatialEffects.filter(({ id }) => !removedZoneIds.has(id))
   return {
     evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
       prepareEncounterSpatialMovement({
@@ -118,8 +121,8 @@ export function nativeSpatialStepCallbacks(
         runtime: state.automationMode === 'MANUAL' ? undefined : runtime,
         random,
         spatialScope: {
-          list: async () => spatialEffects,
-          get: async (id) => spatialEffects.find((effect) => effect.id === id) ?? null
+          list: async () => spatialEffects(),
+          get: async (id) => spatialEffects().find((effect) => effect.id === id) ?? null
         },
         loadTargets: async (actorIds) =>
           new Map(
@@ -190,6 +193,10 @@ export function nativeSpatialStepCallbacks(
         random
       })
       for (const target of prepared.targets.values()) finalActors.set(target.actor.id, target.actor)
+      for (const plan of prepared.settlements)
+        if (plan.kind === 'END' || plan.kind === 'CHECK')
+          for (const id of plan.execution.result.applicationOutputs.cleanup?.removedZoneIds ?? [])
+            removedZoneIds.add(id)
       return {
         ...prepared,
         settlements: prepared.settlements.map((plan) => ({
