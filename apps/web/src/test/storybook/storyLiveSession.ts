@@ -27,9 +27,10 @@ export function liveFramesReceived(): readonly LiveSessionWebSocketServerMessage
 
 /** The room's latest full state for this story's recipient. */
 export function latestStateSync(): StateSyncFrame {
-  const frame = receivedFrames.findLast(
+  const syncs = receivedFrames.filter(
     (candidate): candidate is StateSyncFrame => candidate.type === 'STATE_SYNC'
   )
+  const frame = syncs[syncs.length - 1]
   if (!frame) throw new Error('The room has sent this story no state.')
   return frame
 }

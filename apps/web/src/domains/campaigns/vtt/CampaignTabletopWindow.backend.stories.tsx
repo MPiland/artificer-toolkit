@@ -124,15 +124,12 @@ function seededEncounter(seeded: HTMLElement) {
   }
 }
 
-/** The window's connection light, which names the live session's status. */
+/** The window's connection light is lit once the live session is connected. */
 async function expectConnected(page: ReturnType<typeof within>) {
-  await expect(
-    await page.findByRole(
-      'img',
-      { name: 'Live connection: connected' },
-      { timeout: roomJoinTimeoutMs }
-    )
-  ).toBeVisible()
+  const tabletop = page.getByRole('region', { name: /^Live scene:/ })
+  await waitFor(() => expect(tabletop.querySelector('[data-connected]')).not.toBeNull(), {
+    timeout: roomJoinTimeoutMs
+  })
 }
 
 /** The renderer draws exactly the tokens the room presented, where it presented them. */
