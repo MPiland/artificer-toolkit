@@ -1,5 +1,6 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { raiseLiveMovementContactDamage } from '@artificer-toolkit/encounter-persistence/escapedEffectEndPersistence'
 import { persistLiveMovementMassiveDamageSave } from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { movementMassiveDamageSaveExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
@@ -185,9 +186,28 @@ function repersistSettledSave(
       result.applicationOutputs.source !== 'MASSIVE_DAMAGE'
     )
       throw new Error('Expected a massive-damage save result.')
+    // The move's one contact, whose raise the save is checked against (D220 amendment).
+    const contact = store
+      .documents('encounterRuleReceipts')
+      .map(parseReceiptExecution)
+      .flatMap((execution) =>
+        execution.status === 'BATCH_COMPLETE' &&
+        execution.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+          ? execution.executions
+          : []
+      )[0]
+    if (!contact) throw new Error('Expected the move’s zone contact.')
+    const actors = await readRunActors(ctx, state)
     const step = forge({
       state,
-      actors: await readRunActors(ctx, state),
+      actors,
+      raised: await raiseLiveMovementContactDamage(ctx, {
+        state,
+        actors,
+        execution: contact,
+        occurrenceId: result.applicationOutputs.parentOccurrenceId,
+        commandId: receipt.commandId
+      }),
       execution: movementMassiveDamageSaveExecutionDtoSchema.parse({
         sourceCommandId: receipt.commandId,
         result
