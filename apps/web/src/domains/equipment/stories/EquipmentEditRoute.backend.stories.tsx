@@ -187,7 +187,18 @@ export const AstralTearAwakenedStructure: Story = {
         { timeout: 15_000 }
       )
     ).toBeInTheDocument()
-    // The heading renders before the draft's form settles into its saved state.
+    // The heading renders before the draft's form settles into its saved state; a failure names
+    // the state the header shows.
+    await waitFor(
+      () => {
+        const state = canvasElement.ownerDocument
+          .querySelector('[data-dirty]')
+          ?.getAttribute('aria-label')
+        if (!/all changes saved/i.test(state ?? ''))
+          throw new Error(`The save state reads ${state}.`)
+      },
+      { timeout: 15_000 }
+    )
     await expect(
       await story.findByText(/all changes saved/i, {}, { timeout: 15_000 })
     ).toBeInTheDocument()
@@ -385,12 +396,17 @@ export const ShortswordPlusOneMobile: Story = {
     await userEvent.click(canvasModifierOpener)
     const editor = await story.findByRole('dialog', { name: /edit \+1 damage rolls/i })
     await waitFor(() => expect(editor).toBeVisible())
+    const appNavigation = story.getByRole('contentinfo', { name: 'App navigation' })
+    // The editor slides up from below, so its geometry is read once the slide settles.
+    await waitFor(() => {
+      const bottom = editor.getBoundingClientRect().bottom
+      const top = appNavigation.getBoundingClientRect().top
+      expect(
+        Math.abs(bottom - top),
+        `editor bottom ${bottom}, app navigation top ${top}`
+      ).toBeLessThanOrEqual(1)
+    })
     const editorBox = editor.getBoundingClientRect()
-    const appNavigationBox = story
-      .getByRole('contentinfo', { name: 'App navigation' })
-      .getBoundingClientRect()
-
-    await expect(Math.abs(editorBox.bottom - appNavigationBox.top)).toBeLessThanOrEqual(1)
     await expect(editorBox.width).toBeGreaterThanOrEqual(viewportWidth - 1)
     await expect(canvas.getBoundingClientRect().width).toBe(canvasWidthBefore)
 
@@ -490,8 +506,12 @@ async function expectTransparentBackground(element: HTMLElement) {
 }
 
 async function expectNoHorizontalOverflow(document: Document) {
-  await expect(document.body.scrollWidth - document.body.clientWidth).toBeLessThanOrEqual(1)
   await expect(
-    document.documentElement.scrollWidth - document.documentElement.clientWidth
+    document.body.scrollWidth - document.body.clientWidth,
+    'body horizontal overflow'
+  ).toBeLessThanOrEqual(1)
+  await expect(
+    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    'document horizontal overflow'
   ).toBeLessThanOrEqual(1)
 }
