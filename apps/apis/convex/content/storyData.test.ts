@@ -4,7 +4,11 @@ import { publicationFixture } from '../../tests/fixtures/publication'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 import { seedStoryData, type StoryClient } from '../../tests/developmentReviewData'
 import type { ActionCtx } from '../_generated/server'
-import { REVIEW_STORY_READER, STORY_RECORDS } from '../../tests/developmentReviewDataScenarios'
+import {
+  REVIEW_STORY_READER,
+  STORY_CAMPAIGN,
+  STORY_RECORDS
+} from '../../tests/developmentReviewDataScenarios'
 import { api, internal } from '../_generated/api'
 
 afterEach(() => {
@@ -12,7 +16,7 @@ afterEach(() => {
 })
 
 // Storybook backend stories open these records by id and expect each in its authoring state (D221).
-it('gives the story account an active copy and a copy with a waiting draft per domain, once', async () => {
+it('gives the story account an active copy and a copy with a waiting draft per domain, and its Campaign, once', async () => {
   // Full-corpus work must not expire the fixture's auth session.
   vi.useFakeTimers({ toFake: ['Date'] })
   const { t, first } = await publicationFixture(
@@ -80,4 +84,19 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     }
   }
   expect(await stored()).toEqual(seeded)
+
+  // Backend stories find the Campaign by name and open its settings, Run and creature loot.
+  const campaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
+    ({ name }) => name === STORY_CAMPAIGN.name
+  )
+  expect(campaigns).toHaveLength(1)
+  const campaignId = campaigns[0]!.id
+  expect(await reader.query(api.encounters.projectionReads.list, { campaignId })).toHaveLength(1)
+  const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
+  expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
+  expect(settings.initiativePolicyDefinitionId).not.toBeNull()
+  const loot = await t.run((ctx) => ctx.db.query('lootTables').collect())
+  expect(loot.map(({ owner, tables }) => [owner.kind, tables.map(({ name }) => name)])).toEqual([
+    ['ENCOUNTER_ACTOR', [STORY_CAMPAIGN.lootTable.name]]
+  ])
 }, 240_000)

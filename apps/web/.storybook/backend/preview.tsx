@@ -4,10 +4,15 @@ import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import { useMutation } from 'convex/react'
-import { expect, fn, mocked, sb } from 'storybook/test'
+import { expect, mocked, sb } from 'storybook/test'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { recordMissingQueryFnReports } from '../../src/test/storybook/missingQueryFnReports'
+import {
+  installQueryOverride,
+  type StoryQueryOverride
+} from '../../src/test/storybook/storyQueryOverride'
+import { storyMutation, storyMutationHook } from '../../src/test/storybook/storyWrites'
 import {
   REVIEW_PASSWORD,
   REVIEW_STORY_READER
@@ -25,10 +30,6 @@ type StoryBackend = {
 }
 
 const storyBackends = new Map<string, StoryBackend>()
-const storyWrite: ReturnType<typeof useMutation> = Object.assign(
-  fn(async () => null),
-  { withOptimisticUpdate: () => storyWrite }
-)
 
 function getStoryBackend(storyId: string): StoryBackend {
   const backend = storyBackends.get(storyId)
@@ -37,7 +38,10 @@ function getStoryBackend(storyId: string): StoryBackend {
 }
 
 /** Signs in as the story account through the web app's auth proxy and opens a read client. */
-async function connectStoryBackend(storyId: string): Promise<void> {
+async function connectStoryBackend(
+  storyId: string,
+  queryOverride: StoryQueryOverride | undefined
+): Promise<void> {
   if (storyBackends.has(storyId)) return
   const url = import.meta.env.VITE_CONVEX_URL
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
@@ -52,8 +56,9 @@ async function connectStoryBackend(storyId: string): Promise<void> {
     }
   }
   const convex = new ConvexQueryClient(url, { expectAuth: true })
-  Object.defineProperty(convex.convexClient, 'mutation', { value: fn(async () => null) })
+  Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
   const queryClient = createAppQueryClient(convex)
+  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
   convex.convexClient.setAuth(
     async () => (await betterAuthClient.convex.token()).data?.token ?? null
   )
@@ -83,9 +88,10 @@ const preview: Preview = {
       )
     }
   ],
-  loaders: [(context) => connectStoryBackend(context.id)],
+  loaders: [(context) => connectStoryBackend(context.id, context.parameters.queryOverride)],
   beforeEach() {
-    mocked(useMutation).mockImplementation(() => storyWrite)
+    storyMutation.mockClear()
+    mocked(useMutation).mockImplementation(storyMutationHook)
   },
   // A read without a query function shows a loading or empty state instead of the seeded record,
   // so it fails the story (D221).
