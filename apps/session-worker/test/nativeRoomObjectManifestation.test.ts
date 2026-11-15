@@ -19,7 +19,8 @@ import { readRoomHistory } from './roomHistoryReads.js'
  * QUALITY-15.T3j (compile half): the SRD Light and Continual Flame, object manifestations, cast at a
  * Wolf through a real room. The target holds the object, its light and its attachment as an active
  * effect that counts down its turns, ends with its duration or the cast's undo, and never expires
- * when it lasts until dispelled. The scene does not read it yet (QUALITY-15.T3j2).
+ * when it lasts until dispelled. QUALITY-15.T3j2: the Scene reads the held light onto the target's
+ * token, and the light ends with the effect.
  */
 
 const CHARACTER_ACTOR_ID = testUuid(0x7e0)
@@ -87,6 +88,18 @@ async function wolfManifestations(room: ManifestationRoom) {
     }))
 }
 
+/** The light on the Wolf's token in the Scene the room last synced to the GM (QUALITY-15.T3j2). */
+function wolfTokenLight(room: ManifestationRoom) {
+  const sync = [...room.room.base.messages]
+    .reverse()
+    .find((message) => message.type === 'STATE_SYNC')
+  if (sync?.type !== 'STATE_SYNC' || !sync.state.scene)
+    throw new Error('The room has sent the GM no Scene.')
+  const token = sync.state.scene.tokens.find(({ id }) => id === `f${WOLF_ID.slice(1)}`)
+  if (!token) throw new Error('The Wolf has no token in the synced Scene.')
+  return token.light
+}
+
 async function castAtWolf(room: ManifestationRoom) {
   const { answer } = await room.startAction(WOLF_ID, RANGE_UNCHECKED)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
@@ -95,7 +108,9 @@ async function castAtWolf(room: ManifestationRoom) {
 describe('the SRD Light as a timed object manifestation in the room (QUALITY-15.T3j)', () => {
   it('holds the lit object for its hour and counts the holder turns down', async () => {
     const room = await manifestationRoom(light)
+    expect(wolfTokenLight(room)).toBeUndefined()
     await castAtWolf(room)
+    expect(wolfTokenLight(room)).toEqual({ brightRadius: 20, dimRadius: 40 })
     expect(await wolfManifestations(room)).toEqual([
       {
         manifestations: [
@@ -126,10 +141,12 @@ describe('the SRD Light as a timed object manifestation in the room (QUALITY-15.
     const room = await manifestationRoom(lastingOneMinute(light))
     await castAtWolf(room)
     expect(await wolfManifestations(room)).toHaveLength(1)
+    expect(wolfTokenLight(room)).toEqual({ brightRadius: 20, dimRadius: 40 })
 
     // One minute is ten of the Wolf's turns; the Character's turns between them count nothing.
     for (let turn = 0; turn < 22; turn += 1) await room.advanceTurn()
     expect(await wolfManifestations(room)).toEqual([])
+    expect(wolfTokenLight(room)).toBeUndefined()
   }, 240000)
 
   it('undoes the cast, leaving no manifestation behind', async () => {
@@ -145,6 +162,7 @@ describe('the SRD Light as a timed object manifestation in the room (QUALITY-15.
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(await wolfManifestations(room)).toEqual([])
+    expect(wolfTokenLight(room)).toBeUndefined()
   }, 120000)
 })
 
@@ -153,6 +171,7 @@ describe('the SRD Continual Flame as an until-dispelled manifestation in the roo
     const room = await manifestationRoom(continualFlame)
     await castAtWolf(room)
     for (let turn = 0; turn < 6; turn += 1) await room.advanceTurn()
+    expect(wolfTokenLight(room)).toBeDefined()
     expect(await wolfManifestations(room)).toEqual([
       {
         manifestations: [

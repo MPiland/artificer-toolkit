@@ -32,7 +32,9 @@ export function objectManifestationPlan(
     Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
-    !outcome.label
+    !outcome.label ||
+    // A shaped light (a cone, a line) is not a light around its holder's token.
+    outcome.shape
   )
     return null
   return {
