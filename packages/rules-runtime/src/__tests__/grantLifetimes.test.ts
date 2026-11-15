@@ -20,6 +20,7 @@ import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/sh
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
+import { geas } from '@artificer-toolkit/source-data/srd/spells/geas.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
@@ -62,7 +63,7 @@ import {
 } from '../encounterActorState.js'
 import {
   attackedHostileCreature,
-  expiredCarriedOverGrants,
+  expiredCampaignClockEffects,
   grantsEndedByHolderState,
   grantsEndedBySourceState,
   planCarriedOverEffects,
@@ -2710,7 +2711,7 @@ describe('planReinstatedConcentrations (SPELLS-5.12, D151)', () => {
   })
 })
 
-describe('expiredCarriedOverGrants', () => {
+describe('expiredCampaignClockEffects', () => {
   it('lists the grants whose clock expiry the clock has reached', () => {
     const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
       id: 0xc364,
@@ -2739,9 +2740,73 @@ describe('expiredCarriedOverGrants', () => {
         }
       }
     ]
-    expect(expiredCarriedOverGrants([due, reached, later, untimed, unclocked], 2000)).toEqual([
+    expect(expiredCampaignClockEffects([due, reached, later, untimed, unclocked], 2000)).toEqual([
       due,
       reached
     ])
+  })
+})
+
+describe('a ruling counted in Campaign minutes outlasting its Run (QUALITY-15.T3i2, D222)', () => {
+  const DAY = 1440
+  const CAST_MINUTE = 10_000
+
+  /** The record a Character holds after Geas is cast at `campaignClockMinute`, from the real cast plan. */
+  const geasRecord = (campaignClockMinute: number | null) => {
+    const { definition, lifecycle } = plannedTimedCondition({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: SOURCE_ID,
+      holderActorId: TARGET_ID,
+      spell: geas,
+      lifetimeScope: 'OWNER',
+      campaignClockMinute
+    })
+    return prepareActiveRuleEffectRecord({
+      id: testUuid(0xc3a0),
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      definition,
+      lifecycle,
+      currentEffects: [],
+      occurredAt: TIMESTAMP
+    })
+  }
+
+  it('is stamped at the cast with the clock minute plus its 30 days', () => {
+    expect(geasRecord(CAST_MINUTE).lifecycle).toMatchObject({
+      remainingTicks: null,
+      expiresAtCampaignMinute: CAST_MINUTE + 30 * DAY
+    })
+  })
+
+  it('is left as cast when its Run completes, stamp included', () => {
+    const effect = geasRecord(CAST_MINUTE)
+    expect(planCarriedOverEffects({ effects: [effect], clockMinute: CAST_MINUTE + DAY })).toEqual(
+      []
+    )
+  })
+
+  it('is still active after a 1-day clock advance and ended after 30 days', () => {
+    const effect = geasRecord(CAST_MINUTE)
+    expect(expiredCampaignClockEffects([effect], CAST_MINUTE + DAY)).toEqual([])
+    expect(expiredCampaignClockEffects([effect], CAST_MINUTE + 30 * DAY - 1)).toEqual([])
+    expect(expiredCampaignClockEffects([effect], CAST_MINUTE + 30 * DAY)).toEqual([effect])
+  })
+
+  it('keeps its stamp into a later Run, and lapses there once the clock reached it', () => {
+    const effect = geasRecord(CAST_MINUTE)
+    expect(
+      planResumedCarriedEffects({ effects: [effect], clockMinute: CAST_MINUTE + DAY })
+    ).toEqual([])
+    expect(
+      planResumedCarriedEffects({ effects: [effect], clockMinute: CAST_MINUTE + 31 * DAY })
+    ).toEqual([{ kind: 'EXPIRE', effect }])
+  })
+
+  it('lasts until the GM ends it when the Campaign had no clock at the cast', () => {
+    const effect = geasRecord(null)
+    expect(effect.lifecycle).toMatchObject({ remainingTicks: null, expiresAtCampaignMinute: null })
+    expect(expiredCampaignClockEffects([effect], Number.MAX_SAFE_INTEGER)).toEqual([])
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 5_000_000 })).toEqual([])
+    expect(planCarriedOverEffects({ effects: [effect], clockMinute: 5_000_000 })).toEqual([])
   })
 })
