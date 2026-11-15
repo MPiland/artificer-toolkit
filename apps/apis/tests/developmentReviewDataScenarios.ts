@@ -5,6 +5,7 @@ import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
+import { acolyte as acolyteCreature } from '@artificer-toolkit/source-data/srd/creatures/acolyte.js'
 import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
 import { ogre } from '@artificer-toolkit/source-data/srd/creatures/ogre.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -13,6 +14,7 @@ import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { thunderwave } from '@artificer-toolkit/source-data/srd/spells/thunderwave.js'
+import { sailingShip } from '@artificer-toolkit/source-data/srd/vehicles/sailing-ship.js'
 
 /**
  * Local-only review accounts. The seeded backend is the user's own Docker container, so these fixed
@@ -66,6 +68,12 @@ export const STORY_RECORDS = {
     ownedActive: { subjectId: 'e27f03fd-6fb4-41fb-bb51-c52fa2c776a4', label: 'Story Wizard' },
     ownedDraft: { subjectId: 'f0920561-d812-474c-b6a9-3a777e4c77e7', label: 'Story Wizard Draft' }
   },
+  creature: {
+    subjectKind: 'CREATURE',
+    masterId: acolyteCreature.id,
+    ownedActive: { subjectId: '8a16ced6-023e-4453-93ff-948002be887e', label: 'Story Priest' },
+    ownedDraft: { subjectId: '42aef54a-a60f-46e9-a5c3-cd6540f7b628', label: 'Story Priest Draft' }
+  },
   feat: {
     subjectKind: 'FEAT',
     masterId: grappler.id,
@@ -86,6 +94,15 @@ export const STORY_RECORDS = {
     masterId: fireball.id,
     ownedActive: { subjectId: '5d2b7c19-8e40-4a6f-b3d1-0c9e2f4a7b85', label: 'Story Fireball' },
     ownedDraft: { subjectId: 'c4e81a06-3b9f-4d27-a5c8-7f1d0e2b6a94', label: 'Story Fireball Draft' }
+  },
+  vehicle: {
+    subjectKind: 'VEHICLE',
+    masterId: sailingShip.id,
+    ownedActive: { subjectId: 'ae98637e-225d-4622-904b-9309bac10a0f', label: 'Story Sailing Ship' },
+    ownedDraft: {
+      subjectId: '3066cb80-a765-4ee5-b5f5-13cef9679281',
+      label: 'Story Sailing Ship Draft'
+    }
   }
 } as const satisfies Record<
   string,
