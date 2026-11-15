@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { shortswordPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shortsword-plus-1.js'
+import { useMatches } from '@tanstack/react-router'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { Shell } from '#app/shell'
 import { buildPlatformNavigation, contentKindOrder } from '#app/shell/navigation'
@@ -70,12 +71,16 @@ export default meta
 // Typed by the route (the meta sets no `component`), so a story can retarget its params.
 type Story = StoryObj<typeof Route>
 
-/** The edit route inside the app shell, as the signed-in author sees it. */
-function renderInShell() {
+/**
+ * The edit route inside the app shell, as the signed-in author sees it. The shell reads the
+ * current path the way `_authed` does, so it lays the route out as an authoring path.
+ */
+function EditRouteInShell() {
+  const currentPath = useMatches({ select: (matches) => matches.at(-1)?.pathname ?? '/' })
   return (
     <Shell
       navigation={buildPlatformNavigation(contentKindOrder)}
-      currentPath='/equipment'
+      currentPath={currentPath}
       isAuthenticated
       userEmail='creator@example.test'
     >
@@ -93,7 +98,7 @@ function ownedDraftLayout(viewport: keyof typeof layoutViewports) {
   return {
     globals: { viewport: { value: viewport, isRotated: false } },
     parameters: ownedDraftRouter,
-    render: renderInShell
+    render: () => <EditRouteInShell />
   }
 }
 
@@ -176,7 +181,7 @@ export const AstralTearAwakenedStructure: Story = {
       }
     }
   },
-  render: renderInShell,
+  render: () => <EditRouteInShell />,
   play: async ({ canvasElement }) => {
     const story = getStoryDocument(canvasElement)
     // The first read crosses the network to the seeded deployment.
@@ -195,7 +200,9 @@ export const AstralTearAwakenedStructure: Story = {
           .querySelector('[data-dirty]')
           ?.getAttribute('aria-label')
         if (!/all changes saved/i.test(state ?? ''))
-          throw new Error(`The save state reads ${state}.`)
+          throw new Error(
+            `The save state reads ${state}. ${describeDirtyForm(canvasElement.ownerDocument.querySelector('[data-dirty]'))}`
+          )
       },
       { timeout: 15_000 }
     )
@@ -514,4 +521,41 @@ async function expectNoHorizontalOverflow(document: Document) {
     document.documentElement.scrollWidth - document.documentElement.clientWidth,
     'document horizontal overflow'
   ).toBeLessThanOrEqual(1)
+}
+
+/** TEMPORARY diagnostic: names the dirty fields and the top-level values that moved from load. */
+function describeDirtyForm(element: Element | null): string {
+  if (!element) return 'No save state.'
+  const fiberKey = Object.keys(element).find((key) => key.startsWith('__reactFiber$'))
+  let fiber: unknown = fiberKey ? Reflect.get(element, fiberKey) : undefined
+  while (fiber && typeof fiber === 'object') {
+    const props: unknown = Reflect.get(fiber, 'memoizedProps')
+    const candidates: unknown[] =
+      props && typeof props === 'object' ? [props, ...Object.values(props)] : []
+    for (const candidate of candidates) {
+      const form: unknown =
+        candidate && typeof candidate === 'object' ? Reflect.get(candidate, 'form') : undefined
+      if (!form || typeof form !== 'object') continue
+      const formState: unknown = Reflect.get(form, 'state')
+      if (!formState || typeof formState !== 'object') continue
+      const fieldMeta = Reflect.get(formState, 'fieldMeta') as Record<string, { isDirty?: boolean }>
+      const values = Reflect.get(formState, 'values') as Record<string, unknown>
+      const defaults = Reflect.get(
+        Reflect.get(form, 'options') as object,
+        'defaultValues'
+      ) as Record<string, unknown>
+      const dirty = Object.entries(fieldMeta)
+        .filter(([, meta]) => meta?.isDirty)
+        .map(([name]) => name)
+      const moved = Object.keys({ ...values, ...defaults })
+        .filter((key) => JSON.stringify(values[key]) !== JSON.stringify(defaults[key]))
+        .map(
+          (key) =>
+            `${key}: ${JSON.stringify(defaults[key])?.slice(0, 600)} -> ${JSON.stringify(values[key])?.slice(0, 600)}`
+        )
+      return `Dirty fields: ${dirty.join(', ')}. Moved: ${moved.join(' | ')}`
+    }
+    fiber = Reflect.get(fiber, 'return')
+  }
+  return 'No form found.'
 }
