@@ -15,7 +15,10 @@ export function roomLiveCaptureReads(input: {
   observed: LiveSessionRulesRevisions
 }): LiveCaptureReads {
   const { ctx, store, transaction, inputs, observed } = input
+  // One command reads the Campaign clock once, however many outcomes stamp from it (D222).
+  let clockMinute: Promise<number | null> | undefined
   return {
+    readCampaignClockMinute: () => (clockMinute ??= inputs.campaignClockMinute()),
     encounterRules: (request) =>
       readRoomEncounterTurnCapture(
         ctx,

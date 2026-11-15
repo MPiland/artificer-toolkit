@@ -20,10 +20,10 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 import { planNativeLiveEncounterTurn } from './nativeEncounterTurn.js'
-import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
+import { roomLiveCaptureReads } from './roomLiveCaptureReads.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
-import { readRoomSceneHeader, readRoomSceneEntities, readRoomSceneState } from './roomSceneRead.js'
-import { prepareRoomLiveCharacterSheet, readRoomOwnerCharacterRules } from './roomCharacterRules.js'
+import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
+import { readRoomOwnerCharacterRules } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -54,11 +54,6 @@ export async function executeRoomEncounterTurn(input: {
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
-  const scene = {
-    readSceneHeader: async (sceneId: string) => readRoomSceneHeader(transaction, sceneId),
-    readSceneEntities: (page: Parameters<typeof readRoomSceneEntities>[1]) =>
-      readRoomSceneEntities(transaction, page)
-  }
   if (input.command.type === 'START')
     await persistCarriedEffectResumes(ctx, {
       encounterId: scope.encounterId,
@@ -69,19 +64,7 @@ export async function executeRoomEncounterTurn(input: {
   const plan = await planNativeLiveEncounterTurn(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
-    captures: {
-      encounterRules: (request) =>
-        readRoomEncounterTurnCapture(
-          ctx,
-          inputs,
-          transaction,
-          request,
-          observed.filter((revision) => revision.scope !== 'CHARACTER'),
-          scene
-        ),
-      prepareCharacter: (characterScope) =>
-        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
-    }
+    captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed })
   })
   if (plan.kind === 'REPLAY') return plan.result
   const maintenanceOwners = plan.terminal?.maintenanceOwners ?? []

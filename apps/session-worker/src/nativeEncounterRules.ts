@@ -65,7 +65,7 @@ import {
 } from './nativeTurnUses.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { requireCampaignClockRead, type LiveCaptureReads } from './nativeEncounterReads.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { requireChosenItemInstance } from './nativeChosenItem.js'
 import { endedByAction, planEndEffects, planEndEffectsChecks } from './nativeEndEffects.js'
@@ -104,9 +104,9 @@ import { reactionTriggerDamageTypeIds } from '@artificer-toolkit/rules-runtime/e
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
-  encounterActiveEffectPlans,
   encounterActorEffectiveSize,
-  prepareNativeActionEffectsPlan
+  prepareNativeActionEffectsPlan,
+  readCampaignClockForEffects
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { prepareAttackTargetGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterAttackAppliedEffects'
 import {
@@ -382,7 +382,8 @@ export async function planNativeLiveEncounterAction(
       random: executionOptions.random,
       requireAutoRoll,
       autoRollByActorId,
-      readFormCreature: executionOptions.captures.readFormCreature
+      readFormCreature: executionOptions.captures.readFormCreature,
+      readCampaignClockMinute: executionOptions.captures.readCampaignClockMinute
     }
     if (removalCommand) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
@@ -744,6 +745,7 @@ export async function planNativeLiveEncounterAction(
             prepared,
             forcedMovementPick: executionOptions.forcedMovementPick
           },
+          readCampaignClockMinute: executionOptions.captures.readCampaignClockMinute,
           actorRules: prepared.actorRules,
           activeEffectsByActorId,
           preparation: prepareEncounterBasicActionContest({
@@ -1102,13 +1104,11 @@ export async function planNativeLiveEncounterAction(
     automationMode: state.automationMode
   })
   // The Campaign clock is read only when the cast's effect counts Campaign minutes (D222).
-  const campaignClockMinute = encounterActiveEffectPlans(
-    reacted,
-    execution.published,
-    execution.execution.outputs
-  ).some((plan) => plan.campaignMinutes !== undefined)
-    ? await requireCampaignClockRead(executionOptions.captures)
-    : undefined
+  const campaignClockMinute = await readCampaignClockForEffects({
+    prepared: reacted,
+    execution,
+    readClockMinute: executionOptions.captures.readCampaignClockMinute
+  })
   const preparedEffects = prepareNativeActionEffectsPlan({
     prepared: reacted,
     execution,

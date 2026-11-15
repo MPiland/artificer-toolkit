@@ -255,6 +255,7 @@ export async function withRoomCapture(
       })
       const requests: LiveSessionEncounterRulesRequest[] = []
       const reads: LiveCaptureReads = {
+        readCampaignClockMinute: () => inputs.campaignClockMinute(),
         encounterRules: (input) => {
           requests.push(input.request)
           return readRoomEncounterTurnCapture(ctx, inputs, transaction, input, observed, scene)

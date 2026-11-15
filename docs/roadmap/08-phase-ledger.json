@@ -2308,8 +2308,8 @@
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
             },
             {
-              "id": "PLATFORM-28.T5",
-              "status": "TODO",
+              "id": "PLATFORM-28.T5a",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2318,8 +2318,37 @@
                 "size": 5,
                 "after": ["PLATFORM-28.T2"]
               },
-              "text": "Campaign page stories (Settings, Loot, Scene editor, Encounter builder) read seeded data; the fake ConvexReactClient and hand-seeded query caches deleted.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "text": "The story campaign seed (a Campaign, play settings, a Blueprint with a PREPARED Run, loot tables) through product commands, a name-lookup harness, the shared write-spy and single-query override mechanism (D218 amendment); Campaign Settings and Loot editor stories read seeded data.",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (whole about 11): Encounter builder to T5b, Scene editor and the fake client deletion to T5c.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T5b",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["PLATFORM-28.T5a"]
+              },
+              "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T5c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T5b"]
+              },
+              "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T6",
@@ -2361,7 +2390,7 @@
                 "after": [
                   "PLATFORM-28.T3",
                   "PLATFORM-28.T4",
-                  "PLATFORM-28.T5",
+                  "PLATFORM-28.T5c",
                   "PLATFORM-28.T6",
                   "PLATFORM-28.T7",
                   "PLATFORM-28.T3d2"
@@ -27135,6 +27164,20 @@
               },
               "text": "Persistence checks each commit against the raise it already re-runs in its ends check (turn, Cleaving, movement); action and area keep one commit re-derivation per holder (D220 amendment), so settledRepeatSaveEffects is renamed and scoped to that check; the transitional note leaves rules-runtime.md; count proofs record at the persistence callback.",
               "note": "Registered 2026-11-15 from the T2e2f seam trace (whole about 14) under the user standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-14.T2e2f4",
+              "status": "TODO",
+              "closes": ["QUALITY-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["QUALITY-14.T2e2f2"]
+              },
+              "text": "Bug: several turn zones that damage one holder at the same boundary share one DAMAGED(AFTER) raise, because the spatial prefix settles per target, so overlapping zones (Cloudkill and Spirit Guardians) owe one repeat save instead of one each (D220: one per turn-zone execution and holder). Each zone execution settles and raises separately in room and persistence; SRD proof with two overlapping zones on a Hideous Laughter holder.",
+              "note": "Registered 2026-11-15 from the T2e2f2 delivery under the user standing approval for QUALITY growth (2026-11-13)."
             }
           ]
         },
@@ -27354,8 +27397,7 @@
             },
             {
               "id": "QUALITY-15.T3i3",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27365,7 +27407,9 @@
                 "after": ["QUALITY-15.T3i2"]
               },
               "text": "The area, contest and Legendary Action funnels read the Campaign clock, so a CAMPAIGN_MINUTES effect they plan is stamped like a single-target one instead of refused (D222); proofs on an authored long-duration area effect.",
-              "note": "Registered 2026-11-15 from the T3i2 delivery (authorable from core options) under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T3i2 delivery (authorable from core options) under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m794 (7d6c04c65); slice tip 462bef605: Tests 43706960000, Live 43706959984, Browser journeys 43706960085 green. One shared readCampaignClockForEffects (encounterActionEffects.ts) reads the clock only when a plan counts Campaign minutes; every funnel (single action, area and chosen list, contest hold and escape, Legendary Action) passes a required reader, memoized once per command in roomLiveCaptureReads (Cleaving and Concentration responses now use it too). Red proof: nativeRoomTimedRulingAreaClock RED 2/2 (an authored 30-day Mass Suggestion on two Wolves stamped clock + 43,200, null with no clock), encounterLegendaryAction RED 2/33. Restated: the missing-reader refusal test deleted at review because a missing reader is now a type error. Contest proven by code-path identity (no authorable contest effect reaches a Campaign-minute plan). No golden moves; no D196 change."
             },
             {
               "id": "QUALITY-15.T3b",
