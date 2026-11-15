@@ -24,10 +24,13 @@ import {
   REVIEW_PLAYERS,
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
+  REVIEW_STORY_HOST,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
+  STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
+  type StoryCampaignSpec,
   type ReviewAccountSpec,
   type ReviewBoard,
   type StoryRecordSpec,
@@ -153,6 +156,7 @@ export async function seedStoryData(
   }
   await seedStoryDraftOnly(reader)
   await seedStoryCampaign(reader, room)
+  await seedStoryPlayerCampaign(await connect(REVIEW_STORY_HOST), reader, room)
 }
 
 /**
@@ -180,13 +184,14 @@ async function seedStoryDraftOnly(client: StoryClient) {
 }
 
 /**
- * Hosts the story Campaign and fills what its stories read. Each step replays harmlessly: the
- * Blueprint and Run are keyed by fixed command ids, settings and loot are written only while
- * unset, and the Run is started, presented and bound only while it is still prepared.
+ * Hosts a story Campaign with its play settings, Encounter Blueprint and prepared Run. Each step
+ * replays harmlessly: the Blueprint and Run are keyed by fixed command ids and settings are
+ * written only while unset.
  */
-async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
-  const { name, blueprintName, preparedBlueprintName, enemyLabel, playSettings, lootTable } =
-    STORY_CAMPAIGN
+async function prepareStoryRun(
+  client: StoryClient,
+  { slug, name, blueprintName, enemyLabel, playSettings }: StoryCampaignSpec
+) {
   const campaignId =
     (await findCampaign(client, name)) ??
     (
@@ -221,16 +226,27 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
   const blueprint = await client.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
     name: blueprintName,
-    commandId: reviewId('story-blueprint'),
+    commandId: reviewId(`${slug}-blueprint`),
     enemies: [{ kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 }]
   })
   const run = await client.mutation(api.encounters.runs.create, {
     campaignId,
     blueprintId: blueprint.id,
-    commandId: reviewId('story-run')
+    commandId: reviewId(`${slug}-run`)
   })
   const [actor] = run.actors
   assert.ok(actor, 'The story Run has no creature.')
+  return { campaignId, run, actor }
+}
+
+/**
+ * Hosts the story Campaign and fills what its stories read: a loot table on the Run's creature,
+ * then the Run started and presented. The Run is started, presented and bound only while it is
+ * still prepared.
+ */
+async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
+  const { campaignId, run, actor } = await prepareStoryRun(client, STORY_CAMPAIGN)
+  const { lootTable } = STORY_CAMPAIGN
   const owner = {
     kind: 'ENCOUNTER_ACTOR',
     campaignId,
@@ -263,15 +279,48 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
   }
   const preparedBlueprint = await client.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
-    name: preparedBlueprintName,
+    name: STORY_CAMPAIGN.preparedBlueprintName,
     commandId: reviewId('story-prepared-blueprint'),
-    enemies: [{ kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 }]
+    enemies: [{ kind: 'CUSTOM', label: STORY_CAMPAIGN.enemyLabel, maxHitPoints: 22 }]
   })
   await client.mutation(api.encounters.runs.create, {
     campaignId,
     blueprintId: preparedBlueprint.id,
     commandId: reviewId('story-prepared-run')
   })
+  const { userId } = await client.query(api.account.identity, {})
+  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor }, userId)
+}
+
+/**
+ * Hosts the player Campaign: the story reader joins it through the invitation commands, and its
+ * presented Scene gives the reader a token it controls (the reader's own Character waits on the
+ * story Characters, so the token stands for none).
+ */
+async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, room: StoryRoom) {
+  const prepared = await prepareStoryRun(host, STORY_PLAYER_CAMPAIGN)
+  if (!(await findCampaign(reader, STORY_PLAYER_CAMPAIGN.name)))
+    await admitPlayers(
+      { client: host },
+      prepared.campaignId,
+      [{ client: reader, username: REVIEW_STORY_READER.username }],
+      1
+    )
+  const { userId } = await reader.query(api.account.identity, {})
+  await presentStoryRun(host, room, STORY_PLAYER_CAMPAIGN, prepared, userId)
+}
+
+/**
+ * Starts the prepared Run, presents the Campaign's Scene (the creature's token bound to its actor,
+ * an unbound ally token that llyUserId controls), binds the Run to it and publishes the room.
+ */
+async function presentStoryRun(
+  client: StoryClient,
+  room: StoryRoom,
+  { slug, name, scene }: StoryCampaignSpec,
+  { campaignId, run, actor }: Awaited<ReturnType<typeof prepareStoryRun>>,
+  allyUserId: string
+) {
   if (run.status !== 'PREPARED') return
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
@@ -280,8 +329,6 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
     run,
     name
   )
-  const { userId } = await client.query(api.account.identity, {})
-  const { scene } = STORY_CAMPAIGN
   await presentRunScene(client, {
     campaignId,
     run: started,
@@ -292,7 +339,7 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
         actorId: actor.id,
         label: actor.label,
         position: scene.enemyPosition,
-        tokenId: reviewId('story-scene-enemy-token'),
+        tokenId: reviewId(`${slug}-scene-enemy-token`),
         controlledBy: [],
         squares: 1,
         hidden: false
@@ -301,8 +348,8 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
         actorId: null,
         label: scene.allyLabel,
         position: scene.allyPosition,
-        tokenId: reviewId('story-scene-ally-token'),
-        controlledBy: [userId],
+        tokenId: reviewId(`${slug}-scene-ally-token`),
+        controlledBy: [allyUserId],
         squares: 1,
         hidden: false
       }
@@ -413,21 +460,21 @@ async function isFinished(client: ReviewClient, campaignId: string): Promise<boo
 }
 
 async function admitPlayers(
-  context: ReviewContext,
+  host: Pick<ReviewAccount, 'client'>,
   campaignId: string,
-  members: readonly ReviewAccount[]
+  members: readonly Pick<ReviewAccount, 'client' | 'username'>[],
+  capacity: number
 ) {
-  const { gm } = context
-  for (const account of [gm, ...members])
+  for (const account of [host, ...members])
     await account.client.mutation(api.social.profiles.initialize, {})
-  const draft = await gm.client.mutation(api.social.listingDrafts.create, {
+  const draft = await host.client.mutation(api.social.listingDrafts.create, {
     input: {
       campaignId,
       summary: 'Review table',
       audience: 'PUBLIC',
       systemId: srdSystemRecord.id,
       playMode: 'ONLINE',
-      capacity: REVIEW_PLAYERS.length,
+      capacity,
       schedule: {
         kind: 'FLEXIBLE',
         timeZone: 'America/Chicago',
@@ -445,12 +492,12 @@ async function admitPlayers(
       }
     }
   })
-  const listing = await gm.client.mutation(api.social.listings.open, {
+  const listing = await host.client.mutation(api.social.listings.open, {
     listingPublicId: draft.listingPublicId,
     expectedVersion: draft.version
   })
   for (const member of members) {
-    const invitation = await gm.client.mutation(api.social.invitations.create, {
+    const invitation = await host.client.mutation(api.social.invitations.create, {
       listingPublicId: listing.listingPublicId,
       expectedListingVersion: listing.version,
       username: member.username
@@ -502,7 +549,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   })
   const campaignId = campaign.id
   log(`${scenario.campaign}: Campaign created`)
-  await admitPlayers(context, campaignId, members)
+  await admitPlayers(gm, campaignId, members, REVIEW_PLAYERS.length)
 
   const settings = await gm.client.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
