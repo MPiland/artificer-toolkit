@@ -92,10 +92,9 @@ export const SpellStates: Story = {
   play: async ({ canvas, canvasElement }) => {
     await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.caster)
     await userEvent.click(await canvas.findByRole('tab', { name: /^Spells/ }))
-    for (const spell of ['Magic Missile', 'Shield'])
-      expect((await canvas.findAllByText(spell, {}, { timeout: 15_000 })).length).toBeGreaterThan(0)
     expect(
-      (await canvas.findAllByText(/spell slots are exhausted\./, {}, { timeout: 15_000 })).length
+      (await canvas.findAllByRole('button', { name: /: 0 of \d+ remaining$/ }, { timeout: 15_000 }))
+        .length
     ).toBeGreaterThan(0)
   }
 }

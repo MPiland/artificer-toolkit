@@ -140,5 +140,5 @@ export const LongRestPreview: Story = longRestPreview
 export const LongRestPreviewMobile: Story = {
   ...longRestPreview,
   globals: { viewport: { value: 'mobile1', isRotated: false } },
-  parameters: mobile
+  parameters: { ...longRestPreview.parameters, ...mobile }
 }
