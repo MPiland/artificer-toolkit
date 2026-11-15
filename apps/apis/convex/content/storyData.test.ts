@@ -285,7 +285,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       ({ recipientUsername, status }) => [recipientUsername, status]
     ),
     blocks: (await ctx.db.query('socialBlocks').collect()).length,
-    reports: (await ctx.db.query('socialReports').collect()).map(({ details }) => details),
+    reports: (await ctx.db.query('socialReports').collect()).map(({ details }) => details)
   }))
   expect(social).toEqual({
     applications: [[STORY_SOCIAL.applicationMessage, 'SUBMITTED']],
