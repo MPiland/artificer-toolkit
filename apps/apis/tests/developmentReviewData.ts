@@ -260,6 +260,12 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom) {
       ]
     })
   }
+  // The next Encounter the GM has prepared while the first one runs; it is never started.
+  await client.mutation(api.encounters.runs.create, {
+    campaignId,
+    blueprintId: blueprint.id,
+    commandId: reviewId('story-prepared-run')
+  })
   if (run.status !== 'PREPARED') return
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)

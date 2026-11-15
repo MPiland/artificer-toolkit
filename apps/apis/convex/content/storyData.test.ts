@@ -125,7 +125,8 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(campaigns).toHaveLength(1)
   const campaignId = campaigns[0]!.id
   const runs = await reader.query(api.encounters.projectionReads.list, { campaignId })
-  expect(runs.map(({ status }) => status)).toEqual(['ACTIVE'])
+  // One started Run and the next Encounter prepared beside it, the active one listed first.
+  expect(runs.map(({ status }) => status)).toEqual(['ACTIVE', 'PREPARED'])
   // The started Run is bound to the presented Scene: its board as stored, the creature's token bound to
   // its actor, and the ally token the story account's own.
   const presentation = await reader.query(api.scenes.presentations.get, { campaignId })

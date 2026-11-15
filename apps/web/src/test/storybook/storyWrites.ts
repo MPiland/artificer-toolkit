@@ -7,6 +7,7 @@ import {
   encounterGmProjectionDtoSchema
 } from '@artificer-toolkit/schema/api/encounterData'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
+import { unoverriddenReads } from './storyQueryOverride'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
@@ -14,12 +15,9 @@ type MutationReference = Parameters<typeof useMutation>[0]
 /** The story's read client, bound by the preview, for responses that echo a record the deployment holds. */
 let storyReads: ConvexReactClient | undefined
 
-/**
- * Binds before the preview installs a query override, so these reads keep the deployment's own
- * `watchQuery`: `client.query` waits on that subscription, and the override's inert one never answers.
- */
+/** Binds before the preview installs a query override, so the reads stay unoverridden. */
 export function bindStoryReads(client: ConvexReactClient) {
-  storyReads = Object.create(client, { watchQuery: { value: client.watchQuery.bind(client) } })
+  storyReads = unoverriddenReads(client)
 }
 
 /**
