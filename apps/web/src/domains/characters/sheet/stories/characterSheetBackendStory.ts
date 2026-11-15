@@ -49,6 +49,7 @@ export async function openMobileSheetPage(canvasElement: HTMLElement, label: str
  */
 export function sheetSliceOverride<Slice extends CharacterSheetSlice>(
   slice: Slice,
+  dataSchema: { parse: (value: unknown) => CharacterSheetSliceDtoMap[Slice] },
   derive: (data: CharacterSheetSliceDtoMap[Slice]) => CharacterSheetSliceDtoMap[Slice]
 ): StoryQueryOverride {
   return {
@@ -59,7 +60,7 @@ export function sheetSliceOverride<Slice extends CharacterSheetSlice>(
       if (read.slice !== slice) throw new Error(`The deployment read ${read.slice}, not ${slice}.`)
       return characterSheetSliceReadResultDtoSchema.parse({
         slice,
-        data: derive(read.data as CharacterSheetSliceDtoMap[Slice])
+        data: derive(dataSchema.parse(read.data))
       })
     }
   }

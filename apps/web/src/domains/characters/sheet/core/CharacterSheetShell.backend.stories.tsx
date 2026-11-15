@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
-import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import {
+  characterSheetActionsDtoSchema,
+  characterSheetCommonDtoSchema,
+  type CharacterSheetActionsDto
+} from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
 import { STORY_CHARACTERS } from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import {
@@ -63,7 +67,7 @@ const skillProficiencies = ['NONE', 'HALF', 'FULL', 'DOUBLE'] as const
 // Composed: the seeded Fighter's Common slice with its first four skills at each proficiency level.
 export const ProficiencyStates: Story = {
   parameters: {
-    queryOverride: sheetSliceOverride('COMMON', (common) => ({
+    queryOverride: sheetSliceOverride('COMMON', characterSheetCommonDtoSchema, (common) => ({
       ...common,
       overview: {
         ...common.overview,
@@ -100,82 +104,86 @@ export const SpellStates: Story = {
 // spends a limited-use resource and rolls an attack.
 export const ActionTypes: Story = {
   parameters: {
-    queryOverride: sheetSliceOverride('ACTIONS', (actions): CharacterSheetActionsDto => ({
-      ...actions,
-      actions: {
-        ...actions.actions,
-        items: [
-          ...actions.actions.items,
-          {
-            id: 'action-dash',
-            label: 'Dash',
-            kind: 'ACTION',
-            availability: { status: 'AVAILABLE' },
-            sourceLabel: 'Core action',
-            description: '<p>Gain extra movement for the current turn.</p>'
-          },
-          {
-            id: 'action-opportunity-attack',
-            label: 'Opportunity Attack',
-            kind: 'REACTION',
-            availability: { status: 'AVAILABLE' },
-            sourceLabel: 'Core action',
-            description:
-              '<p>Make one melee attack when a creature leaves your reach without disengaging.</p>'
-          },
-          {
-            id: 'action-force-ballista',
-            label: 'Force Ballista',
-            kind: 'ACTION',
-            availability: { status: 'AVAILABLE' },
-            sourceLabel: 'Artificer',
-            description: '<p>Fire a bolt of force at a creature you can see within range.</p>',
-            resourceGrantId: 'resource-force-ballista',
-            mechanic: {
-              effectId: 'force-ballista-effect',
-              trigger: 'ATTACK_ROLL',
-              activation: { kind: 'ACTION', amount: 1 },
-              rangeLabel: '120 ft',
-              attackBonus: 7,
-              outcomes: [
-                {
-                  kind: 'DAMAGE',
-                  pathCode: 'ON_HIT',
-                  expression: '2d8',
-                  damageTypeId: 'force',
-                  damageTypeLabel: 'Force'
-                }
-              ]
-            }
-          }
-        ]
-      },
-      resources: {
-        ...actions.resources,
-        items: [
-          ...actions.resources.items,
-          {
-            id: 'resource-force-ballista',
-            label: 'Force Ballista',
-            sourceLabel: 'Artificer',
-            owner: {
-              kind: 'AUTHORED_GRANT',
-              resourceGrantId: 'resource-force-ballista',
-              source: {
-                kind: 'AUTHORED',
-                sourceKind: 'FEATURE',
-                definitionId: '00000000-0000-4000-8000-000000000223',
-                sourceInstanceId: 'feature:force-ballista'
-              }
+    queryOverride: sheetSliceOverride(
+      'ACTIONS',
+      characterSheetActionsDtoSchema,
+      (actions): CharacterSheetActionsDto => ({
+        ...actions,
+        actions: {
+          ...actions.actions,
+          items: [
+            ...actions.actions.items,
+            {
+              id: 'action-dash',
+              label: 'Dash',
+              kind: 'ACTION',
+              availability: { status: 'AVAILABLE' },
+              sourceLabel: 'Core action',
+              description: '<p>Gain extra movement for the current turn.</p>'
             },
-            used: 1,
-            max: 3,
-            remaining: 2,
-            recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
-          }
-        ]
-      }
-    }))
+            {
+              id: 'action-opportunity-attack',
+              label: 'Opportunity Attack',
+              kind: 'REACTION',
+              availability: { status: 'AVAILABLE' },
+              sourceLabel: 'Core action',
+              description:
+                '<p>Make one melee attack when a creature leaves your reach without disengaging.</p>'
+            },
+            {
+              id: 'action-force-ballista',
+              label: 'Force Ballista',
+              kind: 'ACTION',
+              availability: { status: 'AVAILABLE' },
+              sourceLabel: 'Artificer',
+              description: '<p>Fire a bolt of force at a creature you can see within range.</p>',
+              resourceGrantId: 'resource-force-ballista',
+              mechanic: {
+                effectId: 'force-ballista-effect',
+                trigger: 'ATTACK_ROLL',
+                activation: { kind: 'ACTION', amount: 1 },
+                rangeLabel: '120 ft',
+                attackBonus: 7,
+                outcomes: [
+                  {
+                    kind: 'DAMAGE',
+                    pathCode: 'ON_HIT',
+                    expression: '2d8',
+                    damageTypeId: 'force',
+                    damageTypeLabel: 'Force'
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        resources: {
+          ...actions.resources,
+          items: [
+            ...actions.resources.items,
+            {
+              id: 'resource-force-ballista',
+              label: 'Force Ballista',
+              sourceLabel: 'Artificer',
+              owner: {
+                kind: 'AUTHORED_GRANT',
+                resourceGrantId: 'resource-force-ballista',
+                source: {
+                  kind: 'AUTHORED',
+                  sourceKind: 'FEATURE',
+                  definitionId: '00000000-0000-4000-8000-000000000223',
+                  sourceInstanceId: 'feature:force-ballista'
+                }
+              },
+              used: 1,
+              max: 3,
+              remaining: 2,
+              recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
+            }
+          ]
+        }
+      })
+    )
   },
   play: async ({ canvas, canvasElement }) => {
     await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.fighter)
@@ -189,49 +197,53 @@ export const ActiveBonusesMobile: Story = {
   globals: { viewport: { value: 'mobile1', isRotated: false } },
   parameters: {
     viewport: { defaultViewport: 'mobile1' },
-    queryOverride: sheetSliceOverride('ACTIONS', (actions): CharacterSheetActionsDto => ({
-      ...actions,
-      actions: {
-        ...actions.actions,
-        items: [
-          ...actions.actions.items,
-          {
-            id: 'action-shillelagh-quarterstaff',
-            label: 'Quarterstaff of the Verdant Grove',
-            kind: 'ACTION',
-            availability: { status: 'AVAILABLE' },
-            sourceLabel: 'Weapon',
-            mechanic: {
-              effectId: 'quarterstaff-effect',
-              trigger: 'ATTACK_ROLL',
-              activation: { kind: 'ACTION', amount: 1 },
-              rangeLabel: '5 ft',
-              attackBonus: 5,
-              attackAddedDice: [{ label: 'Bless', count: 1, faces: 4, sign: 'ADD' }],
-              damageAddedDice: [
-                {
-                  label: "Hunter's Mark",
-                  count: 1,
-                  faces: 6,
-                  sign: 'ADD',
-                  damageTypeId: null,
-                  againstHolderOnly: true
-                }
-              ],
-              outcomes: [
-                {
-                  kind: 'DAMAGE',
-                  pathCode: 'ON_HIT',
-                  expression: '1d8 + 3',
-                  damageTypeId: 'bludgeoning',
-                  damageTypeLabel: 'Bludgeoning'
-                }
-              ]
+    queryOverride: sheetSliceOverride(
+      'ACTIONS',
+      characterSheetActionsDtoSchema,
+      (actions): CharacterSheetActionsDto => ({
+        ...actions,
+        actions: {
+          ...actions.actions,
+          items: [
+            ...actions.actions.items,
+            {
+              id: 'action-shillelagh-quarterstaff',
+              label: 'Quarterstaff of the Verdant Grove',
+              kind: 'ACTION',
+              availability: { status: 'AVAILABLE' },
+              sourceLabel: 'Weapon',
+              mechanic: {
+                effectId: 'quarterstaff-effect',
+                trigger: 'ATTACK_ROLL',
+                activation: { kind: 'ACTION', amount: 1 },
+                rangeLabel: '5 ft',
+                attackBonus: 5,
+                attackAddedDice: [{ label: 'Bless', count: 1, faces: 4, sign: 'ADD' }],
+                damageAddedDice: [
+                  {
+                    label: "Hunter's Mark",
+                    count: 1,
+                    faces: 6,
+                    sign: 'ADD',
+                    damageTypeId: null,
+                    againstHolderOnly: true
+                  }
+                ],
+                outcomes: [
+                  {
+                    kind: 'DAMAGE',
+                    pathCode: 'ON_HIT',
+                    expression: '1d8 + 3',
+                    damageTypeId: 'bludgeoning',
+                    damageTypeLabel: 'Bludgeoning'
+                  }
+                ]
+              }
             }
-          }
-        ]
-      }
-    }))
+          ]
+        }
+      })
+    )
   },
   play: async ({ canvas, canvasElement }) => {
     await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.fighter)
