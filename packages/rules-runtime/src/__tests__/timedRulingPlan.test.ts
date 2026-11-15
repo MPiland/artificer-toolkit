@@ -83,13 +83,14 @@ function withDuration(
     ...spell,
     effects: (spell.effects ?? []).map((effect) => ({
       ...effect,
-      paths: effect.paths.map((path) => ({
-        ...path,
-        resultBlock: {
-          ...path.resultBlock,
-          duration: { ...path.resultBlock.duration, ...duration }
+      // The spell's paths are all direct results, which carry a result block.
+      paths: effect.paths.map((path) => {
+        const { resultBlock } = path as Extract<typeof path, { resultBlock: unknown }>
+        return {
+          ...path,
+          resultBlock: { ...resultBlock, duration: { ...resultBlock.duration, ...duration } }
         }
-      }))
+      })
     }))
   } as SpellAuthored
 }
