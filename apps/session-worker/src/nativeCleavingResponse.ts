@@ -202,7 +202,6 @@ export async function planNativeLiveCleavingResponse(
     state: nextState,
     autoRollByActorId: admission.autoRollByActorId,
     parentOccurrenceId: snapshot.occurrenceId,
-    entryOccurrenceIds: [],
     parentCommandFingerprint: admission.fingerprint,
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
@@ -234,7 +233,11 @@ export async function planNativeLiveCleavingResponse(
     capture,
     runtime: executionOptions.runtime,
     random: executionOptions.random,
-    repeatSaves: { damagerActorId: context.sourceActorId, discovered: new Map() }
+    repeatSaves: {
+      damagerActorId: context.sourceActorId,
+      discovered: new Map(),
+      entryOccurrenceIds: []
+    }
   })
   const facts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const rules = reconcileEncounterActorRuleOutput(

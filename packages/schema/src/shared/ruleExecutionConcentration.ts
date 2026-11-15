@@ -129,6 +129,23 @@ export function damageSaveApplicationsAfterRelease(
   })
 }
 
+/**
+ * The chain once a Concentration ended (a failed check, or an end with no check): its own later
+ * checks and the repeat saves of the effects it maintained have nothing left to check.
+ */
+export function damageSaveApplicationsAfterConcentrationEnd(
+  entries: readonly DamageSaveApplicationDto[],
+  cleanup: { maintainedStateId: string; removedDependentEffectIds: readonly string[] }
+): DamageSaveApplicationDto[] {
+  return entries.filter((entry) => {
+    const binding = damageSaveBinding(entry)
+    if (binding?.source === 'CONCENTRATION') return binding.id !== cleanup.maintainedStateId
+    if (binding?.source === 'EFFECT_REPEAT_SAVE')
+      return !cleanup.removedDependentEffectIds.includes(binding.id)
+    return true
+  })
+}
+
 /** A chain item's damage without the state, effect or rule it was bound to. */
 export function unboundDamageSaveApplication(
   entry: DamageSaveApplicationDto

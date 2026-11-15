@@ -6,7 +6,6 @@ import {
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { ruleExecutionUuidSchema } from '../shared/ruleExecutionPrimitives.js'
 import { triggeringRollSubtractionDtoSchema } from '../shared/d20AddedDice.js'
 import { attackOccasionCodeSchema } from '../shared/enums.js'
 import { sceneActorLightSchema } from './characterMechanicsRead.js'
@@ -396,10 +395,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       parentApplications: z
         .array(concentrationDamageApplicationDtoSchema)
         .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS)),
-      /** The entry occurrences the damage parent made per creature; their effects never repeat against its damage. */
-      parentEntryOccurrenceIds: z
-        .array(ruleExecutionUuidSchema)
-        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       result: z.nullable(encounterCommandResultDtoSchema)
     }),
     z.strictObject({

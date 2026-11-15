@@ -189,10 +189,6 @@ export async function readRoomEncounterTurnCapture(
         concentrationAdmission.kind === 'READY' ? concentrationAdmission.pending.stored : null,
       parentApplications:
         concentrationAdmission.kind === 'READY' ? concentrationAdmission.parentApplications : [],
-      parentEntryOccurrenceIds:
-        concentrationAdmission.kind === 'READY'
-          ? concentrationAdmission.parentEntryOccurrenceIds
-          : [],
       result: concentrationAdmission.kind === 'REPLAY' ? concentrationAdmission.result : null
     }
     return liveSessionEncounterRulesResponseSchema.parse({

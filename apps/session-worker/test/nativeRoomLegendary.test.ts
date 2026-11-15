@@ -1408,3 +1408,88 @@ describe('a Legendary Action attack against a Mirror Image (SPELLS-4.T2k2b)', ()
     expect(after.hitPoints).toBeLessThan(before.hitPoints)
   }, 60_000)
 })
+
+describe('a Fire Shield’s burn owes the dragon its repeat save in the Legendary Action turn (QUALITY-14.T2e2b4, D167)', () => {
+  it('names the shield’s caster as the damager, so the Vampire’s Charm on the dragon repeats its save', async () => {
+    const VAMPIRE_ID = testUuid(0x743)
+    const vampire = srdByLabel(SRD.creatures, 'Vampire')
+    // The dragon fails the Charm's save (a 1), the Tail hits (a 10), the shield burns for 1 + 1,
+    // and every later die shows a 20, so the dragon makes the repeat save.
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: VAMPIRE_ID, creature: vampire, disposition: 'FRIENDLY' }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon, disposition: 'HOSTILE' }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
+      ],
+      ownerFeatureId: creatureFeature(vampire, 'Charm').id,
+      autoRoll: 'GAME_MASTER',
+      rolls: [0, 9, 0, 0],
+      fallbackRoll: 19,
+      seed: async ({ spatial, encounterId, tokenIdOf }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: 0x744,
+            sourceActorId: WOLF_ID,
+            sourceTokenId: tokenIdOf(WOLF_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+      }
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    const charmed = await room.startAction(FIRST_DRAGON_ID, [], room.sceneContext(1))
+    expect(charmed.answer.type, JSON.stringify(charmed.answer)).toBe('COMMAND_COMMITTED')
+    const charm = (await readRoomHistory(room.room.base.stub)).activeEffects.find(
+      ({ id, targetActorId }) =>
+        targetActorId === FIRST_DRAGON_ID && !before.activeEffects.some((held) => held.id === id)
+    )
+    if (!charm) throw new Error('The Charm placed no effect on the dragon.')
+
+    const advanceId = crypto.randomUUID()
+    await room.room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.room.encounterId,
+        commandId: advanceId,
+        expectedVersion: await room.version()
+      }
+    })
+    const option = (await readLegendaryChoice(room.room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected the dragon’s Legendary option.')
+    const { answer } = await respondToLegendaryChoice(room.room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(readActorHitPoints(after, FIRST_DRAGON_ID)).toBe(
+      readActorHitPoints(before, FIRST_DRAGON_ID) - 2
+    )
+    const repeatSaves = after.receipts.flatMap((receipt) => {
+      const execution = parseReceiptExecution(receipt)
+      return execution.status === 'COMPLETE' &&
+        execution.applicationOutputs.kind === 'DAMAGE_SAVE_CHECK' &&
+        execution.applicationOutputs.source === 'EFFECT_REPEAT_SAVE'
+        ? [execution.applicationOutputs]
+        : []
+    })
+    expect(repeatSaves).toMatchObject([
+      {
+        outcome: 'SAVE_SUCCESS',
+        activeEffect: { id: charm.id },
+        application: { damagerActorId: WOLF_ID, targetActorId: FIRST_DRAGON_ID }
+      }
+    ])
+    expect(after.activeEffects.map(({ id }) => id)).not.toContain(charm.id)
+  })
+})

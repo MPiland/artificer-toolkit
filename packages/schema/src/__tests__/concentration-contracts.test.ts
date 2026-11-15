@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { compareDamageSaveApplications } from '../shared/ruleExecutionConcentration.js'
+import {
+  compareDamageSaveApplications,
+  damageSaveApplicationsAfterConcentrationEnd
+} from '../shared/ruleExecutionConcentration.js'
 import { encounterCommandInputDtoSchema } from '../api/encounters.js'
 import { characterSheetCommandInputDtoSchema } from '../api/characterSheetCommandInputs.js'
 import {
@@ -133,5 +136,20 @@ describe('Damage save chain order', () => {
       earlierDamage,
       laterDamage
     ])
+  })
+
+  it('drops an ended Concentration’s checks and its dependents’ repeat saves, nothing else', () => {
+    const castAt = '2026-01-01T00:00:00.000Z'
+    const endedCheck = { ...damage, ordinal: 1, maintainedStateId: id(2), castAt }
+    const otherCheck = { ...damage, maintainedStateId: id(3), castAt }
+    const dependentSave = { ...damage, targetActorId: id(4), activeEffectId: id(5) }
+    const otherSave = { ...damage, targetActorId: id(4), activeEffectId: id(6) }
+    const massiveSave = { ...damage, optionalCombatDefinitionId: id(7) }
+    expect(
+      damageSaveApplicationsAfterConcentrationEnd(
+        [otherCheck, dependentSave, otherSave, massiveSave, endedCheck],
+        { maintainedStateId: id(2), removedDependentEffectIds: [id(5)] }
+      )
+    ).toEqual([otherCheck, otherSave, massiveSave])
   })
 })

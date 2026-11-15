@@ -47,7 +47,7 @@ import {
   encounterEscapeEndedConditionIds
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import {
-  compareDamageSaveApplications,
+  damageSaveApplicationsAfterConcentrationEnd,
   damageSaveApplicationsAfterRelease,
   isMaintainedDamageApplication,
   unboundDamageSaveApplication,
@@ -112,8 +112,6 @@ import {
 export async function planNativeLiveConcentration(input: {
   state: EncounterRunState
   parentOccurrenceId: string
-  /** The entry occurrences the parent made per creature (an area's children); empty for any other parent. */
-  entryOccurrenceIds: readonly string[]
   parentCommandFingerprint: string
   applications: readonly NativeConcentrationContext['application'][]
   sourceLabels: NativeConcentrationContext['sourceLabels']
@@ -141,13 +139,17 @@ export async function planNativeLiveConcentration(input: {
    * it. A resumed chain takes this from its sealed context, so callers pass it only on the first plan.
    * `discovered` is the damaged discovery the command's ends stage made per holder it raised
    * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
-   * rest of the command released (D220). A holder no ends stage discovered (a root with none, a
-   * retaliating attacker, or a resumed chain) is derived from the settled projection
-   * (`settledRepeatSaveEffects`).
+   * rest of the command released (D220): an action's or an area's targets, the attacker a melee hit's
+   * zones retaliated against, and each holder only Legendary Actions damaged. A holder no ends stage
+   * discovered (a root with none, or a holder a turn effect also damaged) is derived from the
+   * settled projection (`settledRepeatSaveEffects`), less the effects `entryOccurrenceIds` (the
+   * entries the parent made per creature: an area's children) placed. A resumed chain never
+   * re-plans: it reads the chain sealed on its damage-save context (D220).
    */
   repeatSaves?: {
     damagerActorId: string | null
     discovered: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+    entryOccurrenceIds: readonly string[]
   }
   resume?: {
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
@@ -155,7 +157,6 @@ export async function planNativeLiveConcentration(input: {
     response: ResolveRuleOccurrenceInputDto
     /** The app roll Convex recorded for a `SYSTEM_ROLL` answer; null for any other answer. */
     appRoll: EncounterSettledAppRollDto | null
-    applicationIndex: number
     /** Set when the response answers the d20 window that follows the save's roll (D168). */
     window?: {
       context: EncounterD20WindowPendingContextDto
@@ -465,18 +466,6 @@ export async function planNativeLiveConcentration(input: {
       nextState: state
     }
 
-  const bindings = new Map<string, { id: string; createdAt: string }[]>()
-  const selectedApplications = input.resume
-    ? input.applications.slice(input.resume.applicationIndex)
-    : input.applications
-  for (const targetActorId of new Set(selectedApplications.map((entry) => entry.targetActorId))) {
-    const loaded = await currentStates(targetActorId)
-    if (loaded.length)
-      bindings.set(
-        targetActorId,
-        loaded.map(({ maintained }) => ({ id: maintained.id, createdAt: maintained.createdAt }))
-      )
-  }
   // Who dealt the damage when its chain can hold effect repeat and massive-damage saves; a resumed
   // chain keeps its own.
   const repeatSaveDamager = input.resume
@@ -484,57 +473,75 @@ export async function planNativeLiveConcentration(input: {
     : input.repeatSaves?.damagerActorId
   const dispositions = new Map(projection.actors.map(({ id, disposition }) => [id, disposition]))
   const massiveRule = encounterMassiveDamageRule(state)
-  const commandOccurrenceIds = [input.parentOccurrenceId, ...input.entryOccurrenceIds]
-  const holders = new Map(
-    [...new Set(selectedApplications.map(({ targetActorId }) => targetActorId))].map((actorId) => {
-      const actor = projection.actors.find(({ id }) => id === actorId)
-      const target = projection.projectedTargets.get(actorId)
-      const settled = projection.activeEffectsByActorId.get(actorId) ?? []
-      const discovered = input.repeatSaves?.discovered.get(actorId)
-      return [
-        actorId,
-        {
-          defeated:
-            !actor ||
-            isEncounterActorDefeated(actor, deadCharacterIdsOfTargets(target ? [target] : [])),
-          repeatSaveEffects: discovered
-            ? discovered.filter(({ id }) => settled.some((effect) => effect.id === id))
-            : settledRepeatSaveEffects({
-                holderActorId: actorId,
-                effects: settled,
-                commandOccurrenceIds,
-                applications: selectedApplications,
-                damagerActorId: repeatSaveDamager ?? null,
-                dispositions
-              }),
-          maximumHitPoints: target?.effectiveMaximumHitPoints ?? 0
-        }
-      ] as const
-    })
-  )
-  let remaining = planDamageSaveChain({
-    gameSystemId: state.gameSystemId,
-    applications: selectedApplications,
-    maintainedStates: bindings,
-    damagerActorId: repeatSaveDamager ?? null,
-    dispositions,
-    effectSaves: repeatSaveDamager === undefined ? null : { massiveRule, holders }
-  })
-  if (input.resume) {
-    const answered = damageSaveContextBoundApplication(input.resume.context)
-    remaining = remaining.filter((entry) => compareDamageSaveApplications(entry, answered) >= 0)
-    if (!remaining[0] || compareDamageSaveApplications(remaining[0], answered) !== 0)
-      throw new Error('The concentration damage does not match its finalized parent receipt.')
-  }
   const envelope = checksumRuleDocument(input.applications)
-  if (
-    input.resume &&
-    (envelope !== input.resume.context.finalizedDamageEnvelopeChecksum ||
-      checksumRuleDocument(remaining.slice(1)) !==
-        checksumRuleDocument(input.resume.context.remaining))
-  )
-    throw new Error('The concentration damage does not match its finalized parent receipt.')
-  const chainHasEffects = remaining.some((entry) => !isMaintainedDamageApplication(entry))
+  let remaining: DamageSaveApplicationDto[]
+  if (input.resume) {
+    if (envelope !== input.resume.context.finalizedDamageEnvelopeChecksum)
+      throw new Error('The concentration damage does not match its finalized parent receipt.')
+    // A resumed chain reads the pre-command discovery sealed on its context (D220): the answered
+    // check, then the tail sealed at its pause. This projection already holds what the chain's
+    // earlier saves changed, so it is never re-planned from.
+    remaining = [
+      damageSaveContextBoundApplication(input.resume.context),
+      ...input.resume.context.remaining
+    ]
+  } else {
+    const bindings = new Map<string, { id: string; createdAt: string }[]>()
+    const targetActorIds = new Set(input.applications.map((entry) => entry.targetActorId))
+    for (const targetActorId of targetActorIds) {
+      const loaded = await currentStates(targetActorId)
+      if (loaded.length)
+        bindings.set(
+          targetActorId,
+          loaded.map(({ maintained }) => ({ id: maintained.id, createdAt: maintained.createdAt }))
+        )
+    }
+    const { repeatSaves } = input
+    const commandOccurrenceIds = [
+      input.parentOccurrenceId,
+      ...(repeatSaves?.entryOccurrenceIds ?? [])
+    ]
+    const holders = new Map(
+      [...targetActorIds].map((actorId) => {
+        const actor = projection.actors.find(({ id }) => id === actorId)
+        const target = projection.projectedTargets.get(actorId)
+        const settled = projection.activeEffectsByActorId.get(actorId) ?? []
+        const discovered = repeatSaves?.discovered.get(actorId)
+        return [
+          actorId,
+          {
+            defeated:
+              !actor ||
+              isEncounterActorDefeated(actor, deadCharacterIdsOfTargets(target ? [target] : [])),
+            repeatSaveEffects: discovered
+              ? discovered.filter(({ id }) => settled.some((effect) => effect.id === id))
+              : settledRepeatSaveEffects({
+                  holderActorId: actorId,
+                  effects: settled,
+                  commandOccurrenceIds,
+                  applications: input.applications,
+                  damagerActorId: repeatSaveDamager ?? null,
+                  dispositions
+                }),
+            maximumHitPoints: target?.effectiveMaximumHitPoints ?? 0
+          }
+        ] as const
+      })
+    )
+    remaining = planDamageSaveChain({
+      gameSystemId: state.gameSystemId,
+      applications: input.applications,
+      maintainedStates: bindings,
+      damagerActorId: repeatSaveDamager ?? null,
+      dispositions,
+      effectSaves: repeatSaves ? { massiveRule, holders } : null
+    })
+  }
+  // A chain that held effect or massive-damage saves at its first plan keeps their damager on every
+  // later context, even once those saves are settled or dropped.
+  const chainHasEffects = input.resume
+    ? repeatSaveDamager !== undefined
+    : remaining.some((entry) => !isMaintainedDamageApplication(entry))
   let correlationId = input.parentOccurrenceId
   const spentDiceIds = new Set<string>()
 
@@ -1145,11 +1152,7 @@ export async function planNativeLiveConcentration(input: {
         factsChecksum: checksumRuleDocument(facts)
       })
     correlationId = occurrenceId
-    if (evidence.failed)
-      remaining = remaining.filter(
-        (entry) =>
-          !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== maintainedStateId
-      )
+    if (cleanup) remaining = damageSaveApplicationsAfterConcentrationEnd(remaining, cleanup)
   }
   // A response commit advances the Encounter once when any check it settled failed (D23); a
   // parent's own commit owns its version.

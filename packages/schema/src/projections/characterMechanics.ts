@@ -37,7 +37,12 @@ import {
 } from '../shared/spatial.js'
 import { heldEscapeDcDtoSchema } from '../effects/check.js'
 import { manualAdjudicationTextDtoSchema } from '../effects/manualAdjudication.js'
-import { summonStatBlockDtoSchema } from '../effects/manifest.js'
+import {
+  manifestAttachmentKindSchema,
+  manifestLightDtoSchema,
+  manifestPropertyKindSchema,
+  summonStatBlockDtoSchema
+} from '../effects/manifest.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -346,6 +351,15 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     playAbsenceContribution: z.optional(z.strictObject({ keepsTurn: z.boolean() })),
     rulingContribution: z.optional(
       z.extend(manualAdjudicationTextDtoSchema, { rulingOutcomeId: serverUuidIdentityDtoSchema })
+    ),
+    objectManifestationContribution: z.optional(
+      z.strictObject({
+        manifestationOutcomeId: serverUuidIdentityDtoSchema,
+        label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+        attachmentKind: z.nullable(manifestAttachmentKindSchema),
+        light: z.nullable(manifestLightDtoSchema),
+        properties: z.array(manifestPropertyKindSchema).check(z.maxLength(16))
+      })
     ),
     turnEndGate: z.optional(
       z.strictObject({

@@ -257,7 +257,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       outgoingZones: outgoingZones?.plan ?? null,
       incomingZones: null,
       rechargePlan: null,
-      deathSavePlan: null
+      deathSavePlan: null,
+      legendaryDiscovery: legendary.damagedDiscovery
     }
   // The turn's effects and Legendary Actions may have killed a Character (D96).
   const deadCharacterIds = deadCharacterIdsOfTargets(
@@ -430,6 +431,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     outgoingZones: outgoingZones?.plan ?? null,
     incomingZones: incomingZones.plan,
     rechargePlan: recharge.plan,
-    deathSavePlan: deathSave.plan
+    deathSavePlan: deathSave.plan,
+    /** The damaged discovery the Legendary Actions' ends stages made per holder they damaged. */
+    legendaryDiscovery: legendary.damagedDiscovery
   }
 }
