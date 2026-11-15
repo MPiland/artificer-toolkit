@@ -50,7 +50,8 @@ import {
   srdCreatureActor,
   srdCreatureTarget,
   srdDefinitions,
-  srdEncounterState
+  srdEncounterState,
+  testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
@@ -73,6 +74,7 @@ const srdLegendaryActions = creatureFeature(ancientRedDragon, 'Legendary Actions
  */
 /** `ruling` swaps the stand-in's damage for a 30-day GM ruling, an effect only the Campaign clock bounds. */
 function standInLegendaryActions(ruling: boolean): typeof srdLegendaryActions {
+  let rulingOrdinal = 0
   return {
     ...srdLegendaryActions,
     options: srdLegendaryActions.options?.map((option) => ({
@@ -112,7 +114,8 @@ function standInLegendaryActions(ruling: boolean): typeof srdLegendaryActions {
                   outcomes: [
                     ruling
                       ? {
-                          id: `${effect.id}-use`,
+                          // A held ruling's outcome id is a UUID, which the effect id's suffix is not.
+                          id: testUuid(0xb100 + (rulingOrdinal += 1)),
                           effectKind: 'MANUAL_ADJUDICATION' as const,
                           label: 'Judge the Curse',
                           reasonCode: 'NARRATIVE_JUDGMENT' as const,
