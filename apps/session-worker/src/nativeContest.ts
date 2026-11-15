@@ -302,6 +302,7 @@ export async function planNativeLiveContest(
       activeEffectsByActorId,
       loadTarget,
       capture,
+      readCampaignClockMinute: executionOptions.captures.readCampaignClockMinute,
       runtime: executionOptions.runtime,
       random: executionOptions.random,
       forcedMovementPick: executionOptions.forcedMovementPick,
@@ -435,6 +436,7 @@ export async function planNativeLiveEscapeContest(input: {
     actor: ContestActors['actors'][number]
   ): Promise<Parameters<typeof prepareEncounterEscapeContest>[0]['holder']>
   capture: Parameters<typeof spendNativeHolderActivation>[0]['capture']
+  readCampaignClockMinute: LiveCaptureReads['readCampaignClockMinute']
   runtime: RulesRuntimeService
   random(maximum: number): number
   forcedMovementPick: ForcedMovementPick
@@ -497,6 +499,7 @@ export async function planNativeLiveEscapeContest(input: {
     activeEffectsByActorId,
     preparation,
     actionEconomy,
+    readCampaignClockMinute: input.readCampaignClockMinute,
     runtime: input.runtime,
     random: input.random,
     revisions: input.revisions()
