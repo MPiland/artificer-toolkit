@@ -1518,11 +1518,14 @@ try {
   } else if (process.argv.includes('--storybook-backend-browser')) {
     const { seedStoryData } = await import('./developmentReviewData')
     const { reviewAccountSession } = await import('./developmentReviewAccounts')
-    await seedStoryData((spec) =>
-      reviewAccountSession(spec, auth, (data) =>
+    await seedStoryData(async (spec) => {
+      const session = await reviewAccountSession(spec, auth, (data) =>
         cli('adapter:create', { input: { model: 'verification', data } })
       )
-    )
+      const client = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
+      client.setAuth(await authToken(session), () => authToken(session))
+      return client
+    })
     const { appBrowserEvidenceDirectory, runWebBrowserProof } =
       await import('./developmentAppBrowser')
     await runWebBrowserProof({

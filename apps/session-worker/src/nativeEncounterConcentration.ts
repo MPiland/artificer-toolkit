@@ -109,61 +109,74 @@ import {
 } from './nativeEncounterSettlement.js'
 
 /** Plans receipt-only children against the state after the parent action's mechanics and maintenance. */
-export async function planNativeLiveConcentration(input: {
-  state: EncounterRunState
-  parentOccurrenceId: string
-  parentCommandFingerprint: string
-  applications: readonly NativeConcentrationContext['application'][]
-  sourceLabels: NativeConcentrationContext['sourceLabels']
-  occurredAt: string
-  settlement: Pick<
-    ReturnType<typeof planNativeLiveEncounterSettlement>,
-    | 'actors'
-    | 'projectedTargets'
-    | 'activeEffectsByActorId'
-    | 'maintenanceOwners'
-    | 'maintainedState'
-    | 'createdEffects'
-  > &
-    Partial<Pick<ReturnType<typeof planNativeLiveEncounterSettlement>, 'maintenanceTransition'>> & {
-      /** The held state an area commit's new Concentration replaced; it no longer counts as held. */
-      replacedMaintainedStateId?: string | null
-    }
-  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
-  runtime: RulesRuntimeService
-  random?: (maximum: number) => number
-  /** Each concentrating actor's roller preference (ADR 0034 decision 3). */
-  autoRollByActorId: Readonly<Record<string, boolean>>
-  /**
-   * Opts the chain into the effect repeat saves the damage owes (D167); `damagerActorId` is who dealt
-   * it. A resumed chain takes this from its sealed context, so callers pass it only on the first plan.
-   * `discovered` is the damaged discovery the command's ends stage made per holder it raised
-   * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
-   * rest of the command released (D220): an action's or an area's targets, the attacker a melee hit's
-   * zones retaliated against, and each holder only Legendary Actions damaged. A holder no ends stage
-   * discovered (a root with none, or a holder a turn effect also damaged) is derived from the
-   * settled projection (`settledRepeatSaveEffects`), less the effects `entryOccurrenceIds` (the
-   * entries the parent made per creature: an area's children) placed. A resumed chain never
-   * re-plans: it reads the chain sealed on its damage-save context (D220).
-   */
-  repeatSaves?: {
-    damagerActorId: string | null
-    discovered: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
-    entryOccurrenceIds: readonly string[]
-  }
-  resume?: {
-    snapshot: ServerKernelRuleExecutionPendingSnapshotDto
-    context: NativeDamageSaveContext
-    response: ResolveRuleOccurrenceInputDto
-    /** The app roll Convex recorded for a `SYSTEM_ROLL` answer; null for any other answer. */
-    appRoll: EncounterSettledAppRollDto | null
-    /** Set when the response answers the d20 window that follows the save's roll (D168). */
-    window?: {
-      context: EncounterD20WindowPendingContextDto
-      continuation: ServerRuleExecutionContinuationDto
-    }
-  }
-}) {
+export async function planNativeLiveConcentration(
+  input: {
+    state: EncounterRunState
+    parentOccurrenceId: string
+    parentCommandFingerprint: string
+    applications: readonly NativeConcentrationContext['application'][]
+    sourceLabels: NativeConcentrationContext['sourceLabels']
+    occurredAt: string
+    settlement: Pick<
+      ReturnType<typeof planNativeLiveEncounterSettlement>,
+      | 'actors'
+      | 'projectedTargets'
+      | 'activeEffectsByActorId'
+      | 'maintenanceOwners'
+      | 'maintainedState'
+      | 'createdEffects'
+    > &
+      Partial<
+        Pick<ReturnType<typeof planNativeLiveEncounterSettlement>, 'maintenanceTransition'>
+      > & {
+        /** The held state an area commit's new Concentration replaced; it no longer counts as held. */
+        replacedMaintainedStateId?: string | null
+      }
+    capture: (
+      request: LiveSessionEncounterRulesRequest
+    ) => Promise<LiveSessionEncounterRulesResponse>
+    runtime: RulesRuntimeService
+    random?: (maximum: number) => number
+    /** Each concentrating actor's roller preference (ADR 0034 decision 3). */
+    autoRollByActorId: Readonly<Record<string, boolean>>
+  } & (
+    | {
+        /**
+         * The effect repeat saves the damage owes (D167), which every first plan reads; `damagerActorId` is
+         * who dealt it. A resumed chain takes this from its sealed context instead.
+         * `discovered` is the damaged discovery the command's ends stage made per holder it raised
+         * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
+         * rest of the command released (D220): an action's or an area's targets, the attacker a melee hit's
+         * zones retaliated against, and each holder only Legendary Actions damaged. A holder no ends stage
+         * discovered (a root with none, or a holder a turn effect also damaged) is derived from the
+         * settled projection (`settledRepeatSaveEffects`), less the effects `entryOccurrenceIds` (the
+         * entries the parent made per creature: an area's children) placed.
+         */
+        repeatSaves: {
+          damagerActorId: string | null
+          discovered: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+          entryOccurrenceIds: readonly string[]
+        }
+        resume?: never
+      }
+    | {
+        repeatSaves?: never
+        /** A resumed chain never re-plans: it reads the chain sealed on its damage-save context (D220). */
+        resume: {
+          snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+          context: NativeDamageSaveContext
+          response: ResolveRuleOccurrenceInputDto
+          /** The app roll Convex recorded for a `SYSTEM_ROLL` answer; null for any other answer. */
+          appRoll: EncounterSettledAppRollDto | null
+          /** Set when the response answers the d20 window that follows the save's roll (D168). */
+          window?: {
+            context: EncounterD20WindowPendingContextDto
+            continuation: ServerRuleExecutionContinuationDto
+          }
+        }
+      }
+  )
+) {
   const state = input.state
   let projection = {
     actors: input.settlement.actors,
@@ -470,7 +483,7 @@ export async function planNativeLiveConcentration(input: {
   // chain keeps its own.
   const repeatSaveDamager = input.resume
     ? input.resume.context.repeatSaveDamagerActorId
-    : input.repeatSaves?.damagerActorId
+    : input.repeatSaves.damagerActorId
   const dispositions = new Map(projection.actors.map(({ id, disposition }) => [id, disposition]))
   const massiveRule = encounterMassiveDamageRule(state)
   const envelope = checksumRuleDocument(input.applications)
@@ -497,16 +510,13 @@ export async function planNativeLiveConcentration(input: {
         )
     }
     const { repeatSaves } = input
-    const commandOccurrenceIds = [
-      input.parentOccurrenceId,
-      ...(repeatSaves?.entryOccurrenceIds ?? [])
-    ]
+    const commandOccurrenceIds = [input.parentOccurrenceId, ...repeatSaves.entryOccurrenceIds]
     const holders = new Map(
       [...targetActorIds].map((actorId) => {
         const actor = projection.actors.find(({ id }) => id === actorId)
         const target = projection.projectedTargets.get(actorId)
         const settled = projection.activeEffectsByActorId.get(actorId) ?? []
-        const discovered = repeatSaves?.discovered.get(actorId)
+        const discovered = repeatSaves.discovered.get(actorId)
         return [
           actorId,
           {
@@ -534,7 +544,7 @@ export async function planNativeLiveConcentration(input: {
       maintainedStates: bindings,
       damagerActorId: repeatSaveDamager ?? null,
       dispositions,
-      effectSaves: repeatSaves ? { massiveRule, holders } : null
+      effectSaves: { massiveRule, holders }
     })
   }
   // A chain that held effect or massive-damage saves at its first plan keeps their damager on every

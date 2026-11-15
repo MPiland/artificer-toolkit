@@ -97,7 +97,7 @@ const result = await seedReviewData(
   reviewScenariosForSet(target.set)
 )
 // Storybook backend stories run against the local deployment only.
-if (target.mode === 'local') await seedStoryData(steps.session)
+if (target.mode === 'local') await seedStoryData(async (spec) => (await connect(spec)).client)
 console.log(
   `Review data: ${result.created.length} Campaign(s) created, ${result.skipped.length} already finished.`
 )
