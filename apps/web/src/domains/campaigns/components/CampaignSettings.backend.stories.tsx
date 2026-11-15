@@ -72,7 +72,7 @@ export const ContentLimitsReached: Story = {
   parameters: {
     queryOverride: {
       query: getFunctionName(api.campaigns.queries.contentUsage),
-      value: { entries: { used: 150, limit: 150 }, scenes: { used: 5, limit: 5 } }
+      derive: () => ({ entries: { used: 150, limit: 150 }, scenes: { used: 5, limit: 5 } })
     } satisfies StoryQueryOverride
   },
   play: async ({ canvasElement }) => {

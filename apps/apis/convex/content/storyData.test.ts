@@ -129,6 +129,14 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(fighterSheet?.overview.conditions.map(({ conditionTypeId }) => conditionTypeId)).toEqual([
     poisoned?.id
   ])
+  // The Spells story opens the caster with every spell slot spent, once however often it is seeded.
+  const casterSheet = await reader.query(api.characters.sheet.get, {
+    id: STORY_CHARACTERS.caster.characterId
+  })
+  expect(casterSheet?.spells.slots.length).toBeGreaterThan(0)
+  expect(
+    casterSheet?.spells.slots.map(({ remaining, used, max }) => [remaining, used, max])
+  ).toEqual(casterSheet?.spells.slots.map(({ max }) => [0, max, max]))
   expect((await reader.query(api.accountEntitlements.get, {})).tier).toBe('FREE')
   expect(await stored()).toEqual(seeded)
 

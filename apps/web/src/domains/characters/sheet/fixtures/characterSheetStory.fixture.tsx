@@ -119,21 +119,6 @@ const hitDieRollBase = {
   createdAt: '2026-08-20T12:00:00.000Z'
 } as const
 
-/** The dice the table rolled for the played Fighter's one d10: 5 + 1. */
-const fighterHitDieRoll = rollRecordDtoSchema.parse({
-  ...hitDieRollBase,
-  normalizedExpression: '1d10 + 1',
-  evidence: {
-    terms: [{ count: 1, die: 10, rolls: [5], subtotal: 5 }],
-    modifier: 1,
-    mode: 'NORMAL',
-    keep: 'FIRST',
-    subtotal: 6,
-    transform: { kind: 'NONE' },
-    total: 6
-  }
-})
-
 /** The dice the table rolled for the played multiclass's d10 and d8: 6 + 5 + 2. */
 const multiclassHitDieRoll = rollRecordDtoSchema.parse({
   ...hitDieRollBase,
@@ -152,25 +137,21 @@ const multiclassHitDieRoll = rollRecordDtoSchema.parse({
   }
 })
 
-function createHitDieRollMock(roll: typeof fighterHitDieRoll) {
-  return () => {
-    mocked(useConvexMutation).mockImplementation((reference) => {
-      const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
-        async () => {
-          if (getFunctionName(reference) === getFunctionName(convexApi.rolls.execute)) return roll
-          if (getFunctionName(reference) === getFunctionName(convexApi.rolls.discard))
-            return { ok: true }
-          throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
-        },
-        { withOptimisticUpdate: () => mutate }
-      )
-      return mutate
-    })
-  }
+export function mockMulticlassHitDieRoll() {
+  mocked(useConvexMutation).mockImplementation((reference) => {
+    const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
+      async () => {
+        if (getFunctionName(reference) === getFunctionName(convexApi.rolls.execute))
+          return multiclassHitDieRoll
+        if (getFunctionName(reference) === getFunctionName(convexApi.rolls.discard))
+          return { ok: true }
+        throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
+      },
+      { withOptimisticUpdate: () => mutate }
+    )
+    return mutate
+  })
 }
-
-export const mockHitDieRoll = createHitDieRollMock(fighterHitDieRoll)
-export const mockMulticlassHitDieRoll = createHitDieRollMock(multiclassHitDieRoll)
 
 export function mockExtraCommands(fail = false) {
   mocked(useConvexMutation).mockImplementation((reference) => {

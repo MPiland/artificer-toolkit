@@ -296,6 +296,24 @@ async function seedStoryCharacters(reader: StoryClient) {
       undefined,
       caster.label
     )
+  // The Spells story opens spent slots, which a Character spends through the Sheet command.
+  const casterSheet = await reader.query(api.characters.sheet.get, { id: caster.characterId })
+  assert.ok(casterSheet, 'The story caster must read its Sheet.')
+  let casterVersion = casterSheet.meta.streamVersion
+  for (const { slotKey, remaining } of casterSheet.spells.slots)
+    for (let spent = 0; spent < remaining; spent += 1)
+      ({ streamVersion: casterVersion } = await reader.mutation(
+        api.characters.sheetCommands.execute,
+        {
+          id: caster.characterId,
+          command: {
+            type: 'USE_SPELL_SLOT',
+            commandId: crypto.randomUUID(),
+            expectedVersion: casterVersion,
+            slotKey
+          }
+        }
+      ))
   if (!(await exists(draftPending.characterId)))
     await createDevelopmentCharacter(reader, draftPending.characterId, {}, draftPending.label)
   // Reopening an active Character in the Builder, as its Edit action does, leaves a draft waiting.
