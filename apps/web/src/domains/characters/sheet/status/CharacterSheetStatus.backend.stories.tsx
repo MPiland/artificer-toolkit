@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
 import { STORY_CHARACTERS } from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import { findSeededSheetCharacter, sheetRouter } from '../stories/characterSheetBackendStory'
 
@@ -10,11 +11,11 @@ const meta = {
     layout: 'fullscreen',
     tanstack: { router: sheetRouter(STORY_CHARACTERS.fighter) }
   }
-} satisfies Meta
+} satisfies Meta<typeof Route>
 
 export default meta
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof Route>
 
 export const StatusEditorDesktop: Story = {
   play: async ({ canvas, canvasElement }) => {

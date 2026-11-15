@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
 import { STORY_CHARACTERS } from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import {
   findSeededSheetCharacter,
@@ -15,11 +16,12 @@ const meta = {
     layout: 'fullscreen',
     tanstack: { router: sheetRouter(STORY_CHARACTERS.fighter) }
   }
-} satisfies Meta
+} satisfies Meta<typeof Route>
 
 export default meta
 
-type Story = StoryObj<typeof meta>
+// Typed by the route (the meta sets no `component`), so a story can retarget its params.
+type Story = StoryObj<typeof Route>
 
 const opensCharacter = (character: StoryCharacter): Pick<Story, 'play'> => ({
   play: ({ canvasElement }) => findSeededSheetCharacter(canvasElement, character)

@@ -72,8 +72,9 @@ it('gives the story account an active copy and a copy with a waiting draft per d
         .sort()
     }))
 
-  const grantGmTier = (userId: string) =>
-    t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' })
+  const grantGmTier = async (userId: string) => {
+    await t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' })
+  }
 
   await seedStoryData(connect, grantGmTier)
   const seeded = await stored()
