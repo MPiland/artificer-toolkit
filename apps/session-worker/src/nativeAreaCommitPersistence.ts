@@ -324,7 +324,6 @@ export async function settleAreaCommit(args: {
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,
     parentOccurrenceId: areaOccurrenceId,
-    entryOccurrenceIds: targetOccurrenceIds,
     parentCommandFingerprint: input.fingerprint,
     applications: damage,
     sourceLabels: nativeConcentrationDamageSourceLabels(damageSources, false),
@@ -338,7 +337,11 @@ export async function settleAreaCommit(args: {
     capture: input.capture,
     runtime: input.runtime,
     random: input.random,
-    repeatSaves: { damagerActorId: caster.id, discovered: damagedHolderRepeatSaves }
+    repeatSaves: {
+      damagerActorId: caster.id,
+      discovered: damagedHolderRepeatSaves,
+      entryOccurrenceIds: targetOccurrenceIds
+    }
   })
   const casterTarget = movementTargets.get(caster.id)
   if (summon && !casterTarget) throw new Error('The summoning caster has no prepared target.')

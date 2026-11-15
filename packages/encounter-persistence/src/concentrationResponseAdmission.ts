@@ -184,8 +184,7 @@ export async function readNativeConcentrationResponseAdmission(
     .take(2)
   if (pendingOccurrences.length !== 1 || pendingOccurrences[0]?.id !== occurrence.id)
     throw new Error('The concentration occurrence is unavailable.')
-  const { applications: parentApplications, entryOccurrenceIds: parentEntryOccurrenceIds } =
-    await readNativeConcentrationParentDamage(ctx, { state, context })
+  const parentApplications = await readNativeConcentrationParentDamage(ctx, { state, context })
   const applicationIndex = parentApplications.findIndex(
     (application) => checksumRuleDocument(application) === checksumRuleDocument(context.application)
   )
@@ -205,7 +204,6 @@ export async function readNativeConcentrationResponseAdmission(
     occurrence,
     pending,
     parentApplications,
-    parentEntryOccurrenceIds,
     applicationIndex,
     resolution,
     appRoll

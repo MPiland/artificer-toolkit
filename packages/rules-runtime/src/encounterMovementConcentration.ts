@@ -3,6 +3,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import {
+  damageSaveApplicationsAfterConcentrationEnd,
   damageSaveApplicationsAfterRelease,
   damageSaveBinding,
   isMaintainedDamageApplication,
@@ -262,16 +263,10 @@ export async function prepareEncounterMovementConcentration<
       })
     }
   }
-  /** A lost Concentration slot owes no later check. */
-  const adoptEnd = (
-    ended: { targets: typeof targets; projection: TProjection },
-    maintainedStateId: string
-  ) => {
+  /** A lost Concentration slot, and the effects it maintained, owe no later save. */
+  const adoptEnd = (ended: MovementConcentrationProjectedEnd<TCharacterFacts, TProjection>) => {
     adoptCleanup(ended)
-    remaining = remaining.filter(
-      (entry) =>
-        !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== maintainedStateId
-    )
+    remaining = damageSaveApplicationsAfterConcentrationEnd(remaining, ended.cleanup)
   }
   /** The source contact retains its ends and saves beside its (unchanged) damage envelope. */
   const retainChildren = () => {
@@ -358,7 +353,7 @@ export async function prepareEncounterMovementConcentration<
       })
       ends.push(end)
       settlements.push({ kind: 'END', execution: end })
-      adoptEnd(ended, entry.maintainedState.id)
+      adoptEnd(ended)
     }
     if (found.length) retainChildren()
     const maintainedStates = new Map<string, { id: string; createdAt: string }[]>()
@@ -745,7 +740,7 @@ export async function prepareEncounterMovementConcentration<
       userId: input.userId,
       occurredAt: input.occurredAt
     })
-    if (ended) adoptEnd(ended, maintainedStateId)
+    if (ended) adoptEnd(ended)
     retainChildren()
     resume = undefined
   }

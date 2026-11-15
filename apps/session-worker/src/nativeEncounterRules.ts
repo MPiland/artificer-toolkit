@@ -1357,7 +1357,6 @@ export async function planNativeLiveEncounterAction(
     state: nextState,
     autoRollByActorId,
     parentOccurrenceId: occurrenceId,
-    entryOccurrenceIds: [],
     parentCommandFingerprint: fingerprint,
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
@@ -1375,7 +1374,8 @@ export async function planNativeLiveEncounterAction(
         ...(retaliation?.settlement?.repeatSaveEffects
           ? ([[prepared.actor.id, retaliation.settlement.repeatSaveEffects]] as const)
           : [])
-      ])
+      ]),
+      entryOccurrenceIds: []
     }
   })
   const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
