@@ -228,29 +228,31 @@ export function nativeMovementSettlementInputs(input: {
   const { state, actors, finalActors, planned } = input
   const { targets } = planned
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
-    if (settlement.kind === 'CONCENTRATION' && settlement.plan.kind === 'DAMAGE_END') {
-      const { kind, damageEnd, endedEffect, removedConditionIds } = settlement.plan
-      return liveSessionMovementSettlementSchema.parse({
-        kind,
-        damageEnd,
-        endedEffect,
-        removedConditionIds
-      })
-    }
-    if (settlement.kind === 'CONCENTRATION' && settlement.plan.kind === 'DAMAGE_GRANT') {
-      const { kind, damageGrant, createdEffect } = settlement.plan
-      return liveSessionMovementSettlementSchema.parse({ kind, damageGrant, createdEffect })
-    }
-    if (settlement.kind === 'CONCENTRATION')
+    if (settlement.kind === 'CONCENTRATION') {
+      const { plan } = settlement
+      if (plan.kind === 'DAMAGE_END') {
+        const { kind, damageEnd, endedEffect, removedConditionIds } = plan
+        return liveSessionMovementSettlementSchema.parse({
+          kind,
+          damageEnd,
+          endedEffect,
+          removedConditionIds
+        })
+      }
+      if (plan.kind === 'DAMAGE_GRANT') {
+        const { kind, damageGrant, createdEffect } = plan
+        return liveSessionMovementSettlementSchema.parse({ kind, damageGrant, createdEffect })
+      }
       return liveSessionMovementSettlementSchema.parse({
         kind:
-          settlement.plan.kind === 'END'
+          plan.kind === 'END'
             ? 'CONCENTRATION_END'
-            : settlement.plan.kind === 'CHECK'
+            : plan.kind === 'CHECK'
               ? 'CONCENTRATION'
-              : settlement.plan.kind,
-        execution: settlement.plan.execution
+              : plan.kind,
+        execution: plan.execution
       })
+    }
     if (settlement.kind === 'PASSAGE')
       return liveSessionMovementSettlementSchema.parse({
         kind: 'PASSAGE',
