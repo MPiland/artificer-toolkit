@@ -126,7 +126,8 @@ export default defineConfig({
           // `include` mirrors `.storybook/backend/main.ts`'s `stories`, as above.
           name: 'storybook-backend',
           include: ['src/**/*.backend.stories.@(ts|tsx)'],
-          setupFiles: ['./src/test/storybook/missingQueryFnGuard.ts'],
+          // Absolute: the plugin roots this project at the config directory's parent, `.storybook`.
+          setupFiles: [join(configDir, '..', 'src/test/storybook/missingQueryFnGuard.ts')],
           fileParallelism: false,
           maxWorkers: 1,
           browser: storyBrowser
