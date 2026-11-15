@@ -179,7 +179,7 @@ export async function prepareEncounterTurnZoneEffects<
       actors: EncounterRunActorState[]
       movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       plan: StagedTurnZonePlanDto | null
-      /** Each caught holder's damaged discovery from its zones' one raise (D220). */
+      /** Each caught holder's damaged discovery from its zones' raises, one per execution (D220). */
       damagedDiscovery: DamagedDiscovery
     }
 > {
@@ -439,7 +439,8 @@ export async function prepareEncounterTurnZoneEffects<
     damageEnds: {
       turnActorId: state.currentActorId,
       dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
-      incomingDamageGrants: true
+      incomingDamageGrants: true,
+      raisePerExecution: true
     }
   })
   const spendLostActions = (targetActorId: string, settledActor: EncounterRunActorState) =>
