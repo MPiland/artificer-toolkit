@@ -123,10 +123,14 @@ function appendedChildren<T extends object>(previous: readonly T[] = [], next: r
 type DamagingContact = MovementContactChildren &
   Parameters<typeof raiseLiveMovementContactDamage>[1]['execution']
 
-/** A contact's damage saves in chain order, each with the zone source that dealt its damage. */
+/**
+ * A contact's damage saves in chain order, each with that contact and the zone source that dealt
+ * its damage.
+ */
 function contactDamageSaves(contact: DamagingContact, children: MovementContactChildren = contact) {
   return movementDamageSaveChildren(children).map((save) => ({
     ...save,
+    contact,
     damagerActorId: contact.candidate.candidate.sourceActorId
   }))
 }
@@ -317,13 +321,28 @@ export async function persistMovementContacts(
   const retainedSpatial = retainedContactChildren(priorPrefix?.executions ?? [], nextSpatial)
   // A contact's own damage ends and grants (D220) settle first, before its Concentration ends and saves.
   const damage = [...retainedSpatial.damage]
-  // The contact's one DAMAGED(AFTER) raise, derived at its first end or grant, which its later ones read.
+  // The contact's one DAMAGED(AFTER) raise, derived at its first end, grant or massive-damage save,
+  // which its later ones read.
   let contactRaise:
     | {
         contact: DamagingContact
         raised: Awaited<ReturnType<typeof raiseLiveMovementContactDamage>>
       }
     | undefined
+  const raiseContact = async (contact: DamagingContact) => {
+    if (contactRaise?.contact !== contact)
+      contactRaise = {
+        contact,
+        raised: await callbacks.raiseContactDamage({
+          state: input.state,
+          actors,
+          execution: contact,
+          occurrenceId: preparation.occurrenceId,
+          commandId: save.commandId
+        })
+      }
+    return contactRaise.raised
+  }
   // The damage saves awaiting settlement, in the chain order their contact owed them.
   const saves = [...retainedSpatial.saves]
   // A contact's end settles before its saves, so at most one end is ever awaiting settlement.
@@ -592,21 +611,10 @@ export async function persistMovementContacts(
           checksumCanonicalJson(step.kind === 'DAMAGE_END' ? step.damageEnd : step.damageGrant)
       )
         throw new Error('Movement damage end or grant differs from its retained contact.')
-      if (contactRaise?.contact !== expected.contact)
-        contactRaise = {
-          contact: expected.contact,
-          raised: await callbacks.raiseContactDamage({
-            state: input.state,
-            actors,
-            execution: expected.contact,
-            occurrenceId: preparation.occurrenceId,
-            commandId: save.commandId
-          })
-        }
       const damageInput = {
         state: input.state,
         actors,
-        raised: contactRaise.raised,
+        raised: await raiseContact(expected.contact),
         occurredAt: preparation.occurredAt
       }
       if (step.kind === 'DAMAGE_GRANT') await callbacks.persistDamageGrant({ ...damageInput, step })
@@ -661,7 +669,11 @@ export async function persistMovementContacts(
         })
         transitions.push({ kind: 'REPEAT_SAVE', execution: step.execution })
       } else if (step.kind === 'MASSIVE_DAMAGE_SAVE') {
-        await callbacks.persistMassiveDamageSave({ ...child, execution: step.execution })
+        await callbacks.persistMassiveDamageSave({
+          ...child,
+          execution: step.execution,
+          raised: await raiseContact(expected.contact)
+        })
       } else {
         actors = await callbacks.persistConcentration({ ...child, execution: step.execution })
         transitions.push({ kind: 'CONCENTRATION', execution: step.execution })
