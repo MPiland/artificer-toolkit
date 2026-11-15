@@ -147,7 +147,7 @@ export async function planNativeLiveConcentration(
          * `discovered` is the damaged discovery the command's ends stage made per holder it raised
          * `DAMAGED(AFTER)` for (`targetEndedEffects`), which the chain consumes as it stands less what the
          * rest of the command released (D220): an action's or an area's targets, the attacker a melee hit's
-         * zones retaliated against, and each holder only Legendary Actions damaged. A holder no ends stage
+         * zones retaliated against, each holder only Legendary Actions damaged, and a Cleaving step's target. A holder no ends stage
          * discovered (a root with none, or a holder a turn effect also damaged) is derived from the
          * settled projection (`settledRepeatSaveEffects`), less the effects `entryOccurrenceIds` (the
          * entries the parent made per creature: an area's children) placed.

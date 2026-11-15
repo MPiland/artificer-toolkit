@@ -1,3 +1,6 @@
+import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
@@ -8,7 +11,9 @@ import {
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import { prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
 import { withCreatureActiveGrantArmorClass } from './encounterActiveGrants.js'
+import { targetEndedEffects } from './encounterEndedEffectRelease.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import { deadCharacterIdsOfTargets, isEncounterActorDefeated } from './encounterActorDefeat.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -113,6 +118,51 @@ export function cleavingDamageApplication(input: {
     authoredPath: null,
     resolvedPath: null
   }
+}
+
+/**
+ * What the carried damage does to the chosen target (D220): its one `DAMAGED(AFTER)` raise ends the
+ * held effects whose `DAMAGE_TAKEN` end trigger the Cleaving source's damage meets (Sleep's
+ * unconsciousness among them), releases what they gave, gives the grants the target's passive
+ * damage triggers owe it, and finds the effects owing a repeat save. Cleaving makes no attack roll
+ * and no save, so only the damage meets them. Planning and persisting both call this over the
+ * target's stored actor and effects before the damage, with the step's own occurrence and command.
+ */
+export function cleavingDamageEnds(input: {
+  holder: EncounterRunActorState
+  /** Every effect the target carries before the carried damage. */
+  held: readonly ActiveRuleEffectRecord[]
+  application: ReturnType<typeof cleavingDamageApplication>
+  encounter: { id: string; currentActorId: string | null }
+  /** The Cleaving step's occurrence. */
+  occurrenceId: string
+  /** The command that roots the step, which roots the grants it gives. */
+  commandId: string
+  damagerActorId: string
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+}) {
+  const { holder, held } = input
+  if (input.application.targetActorId !== holder.id)
+    throw new Error('Cleaving damage holder is not the chosen target.')
+  const { endedEffects, releases, grants, repeatSaveEffects } = targetEndedEffects({
+    holderActorId: holder.id,
+    held,
+    attack: null,
+    testEvidence: [],
+    turnActorId: input.encounter.currentActorId,
+    applications: [input.application],
+    damagerActorId: input.damagerActorId,
+    dispositions: input.dispositions,
+    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      encounter: input.encounter,
+      holder,
+      held,
+      occurrenceId: input.occurrenceId,
+      commandId: input.commandId,
+      activeEffectsByActorId: new Map([[holder.id, held]])
+    })
+  })
+  return { endedEffects, releases, grants, repeatSaveEffects }
 }
 
 /**
