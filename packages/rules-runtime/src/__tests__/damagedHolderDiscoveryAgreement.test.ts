@@ -61,6 +61,9 @@ function laughter(
     spell: hideousLaughter,
     lifetimeScope: 'ENCOUNTER'
   })
+  const { repeatTriggers } = definition.recurrence
+  if (!repeatTriggers) throw new Error('Hideous Laughter repeats its save on damage.')
+  const { repeatBy } = options
   return {
     ...activeEffect({
       id,
@@ -79,10 +82,9 @@ function laughter(
       },
       recurrence: {
         ...definition.recurrence,
-        repeatTriggers: definition.recurrence.repeatTriggers.map((trigger) => ({
-          ...trigger,
-          by: options.repeatBy ?? trigger.by
-        })),
+        repeatTriggers: repeatBy
+          ? repeatTriggers.map((trigger) => ({ ...trigger, by: repeatBy }))
+          : repeatTriggers,
         endTriggers: canonicalActiveEffectEndTriggers([
           ...definition.recurrence.endTriggers,
           ...(options.endsOnDamage
