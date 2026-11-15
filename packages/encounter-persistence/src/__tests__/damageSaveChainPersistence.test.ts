@@ -65,7 +65,7 @@ describe('the persisted damage-save chain follows the maintenance hook (QUALITY-
       state: { ...state, id: ENCOUNTER_ID },
       actors: [holder],
       applications,
-      commandOccurrenceIds: ['parent'],
+      discovery: { kind: 'COMMITTED', commandOccurrenceIds: ['parent'] },
       damagerActorId: null
     })
 

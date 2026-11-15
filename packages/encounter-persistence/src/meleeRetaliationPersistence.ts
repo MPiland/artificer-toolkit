@@ -9,6 +9,7 @@ import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rul
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import type { DamagedRaise } from '@artificer-toolkit/rules-runtime/encounterDamageSaveChain'
 import {
   selectMeleeRetaliationContacts,
   type MeleeRetaliationToken
@@ -87,7 +88,12 @@ export async function persistEncounterMeleeRetaliation(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
   }
-): Promise<{ actor: EncounterRunActorState; endedEffects: ActiveRuleEffectRecord[] }> {
+): Promise<{
+  actor: EncounterRunActorState
+  endedEffects: ActiveRuleEffectRecord[]
+  /** The attacker's one `DAMAGED(AFTER)` raise, when the zones changed anything (D220). */
+  raises: DamagedRaise[]
+}> {
   const { state, attacker, scene, evidence } = input
   const stale = () => new Error('Melee retaliation selection is stale.')
   const scope =
@@ -136,7 +142,7 @@ export async function persistEncounterMeleeRetaliation(
     !spatialDamageReached(executions) &&
     checksumRuleDocument(before) === checksumRuleDocument(last.targetTransition.after)
   )
-    return { actor: attacker, endedEffects: [] }
+    return { actor: attacker, endedEffects: [], raises: [] }
   const applications = executions.flatMap((execution) =>
     execution.applications.map((application) => ({ ...application, targetActorId: attacker.id }))
   )
@@ -220,5 +226,9 @@ export async function persistEncounterMeleeRetaliation(
     ) !== checksumRuleDocument(evidence.grantEffectTransitions)
   )
     throw new Error('Melee retaliation grants differ from its plan.')
-  return { actor: applied.updatedActor, endedEffects: ends.endedEffects }
+  return {
+    actor: applied.updatedActor,
+    endedEffects: ends.endedEffects,
+    raises: [[attacker.id, ends.repeatSaveEffects]]
+  }
 }
