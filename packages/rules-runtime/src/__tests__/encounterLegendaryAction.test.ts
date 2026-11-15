@@ -744,7 +744,7 @@ describe('Legendary Action turn window', () => {
       root: turnRoot,
       actors,
       movementTargets: new Map(),
-      legendaryDiscovery: new Map()
+      damagedDiscovery: new Map()
     })
     await expect(
       prepare({
