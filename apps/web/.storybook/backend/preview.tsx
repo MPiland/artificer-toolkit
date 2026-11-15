@@ -43,23 +43,20 @@ function getStoryBackend(storyId: string): StoryBackend {
   return backend
 }
 
+/** The auth proxy's sign-in rate limit window: three sign-ins per 10 seconds. */
+const signInRateLimitWindowMs = 10_000
+
 /**
- * Signs in, waiting out the auth proxy's sign-in rate limit for the delay it reports (the same
- * bounded retry the review-data CLI uses), because switching between story accounts signs in again.
+ * Signs in, waiting out the sign-in rate limit's window (a bounded retry, like the review-data
+ * CLI's), because switching between story accounts signs in again.
  */
 async function signInStoryAccount(email: string): Promise<void> {
   for (let retry = 0; ; retry++) {
-    let retrySeconds = 0
-    const signIn = await betterAuthClient.signIn.email(
-      { email, password: REVIEW_PASSWORD },
-      { onError: ({ response }) => (retrySeconds = Number(response.headers.get('X-Retry-After'))) }
-    )
+    const signIn = await betterAuthClient.signIn.email({ email, password: REVIEW_PASSWORD })
     if (!signIn.error) return
     if (signIn.error.status !== 429 || retry === 3)
       throw new Error(`The story account could not sign in: ${signIn.error.message}`)
-    if (!Number.isInteger(retrySeconds) || retrySeconds < 0 || retrySeconds > 10)
-      throw new Error("Auth rate limit requires the server's bounded retry delay.")
-    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000))
+    await new Promise((resolve) => setTimeout(resolve, signInRateLimitWindowMs))
   }
 }
 

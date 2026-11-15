@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -172,8 +172,9 @@ describe('SocialListingFormPage', () => {
     campaignPages.status = 'CanLoadMore'
     try {
       const { rerender } = renderWithAppProviders(<SocialListingFormPage />)
+      await screen.findByRole('textbox', { name: /Summary/ })
       await user.click(await screen.findByRole('button', { name: 'Load more Campaigns' }))
-      expect(campaignPages.loadMore).toHaveBeenCalledWith(8)
+      await waitFor(() => expect(campaignPages.loadMore).toHaveBeenCalledWith(8))
 
       campaignPages.results = [laterCampaign]
       campaignPages.status = 'Exhausted'
