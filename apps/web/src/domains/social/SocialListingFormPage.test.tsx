@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { skipToken } from '@tanstack/react-query'
 import { getFunctionName } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@artificer-toolkit/apis/convex/api'
@@ -85,6 +86,7 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   convexQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) => {
     if (getFunctionName(reference) !== getFunctionName(api.social.listings.getOwned))
       throw new Error(`Unexpected query ${getFunctionName(reference)}`)
+    if (args === 'skip') return { queryKey: ['listing', 'skip'], queryFn: skipToken }
     const { listingPublicId } = args as { listingPublicId: string }
     return {
       queryKey: ['listing', listingPublicId],
