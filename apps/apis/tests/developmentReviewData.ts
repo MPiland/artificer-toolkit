@@ -261,6 +261,8 @@ async function seedStorySocial(
 ) {
   for (const account of [reader, peer, blocked])
     await account.mutation(api.social.profiles.initialize, {})
+  // Another account's Social profile page resolves only for a public account.
+  await peer.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
   const firstPage = { paginationOpts: { cursor: null, numItems: 8 } }
   const owned = await reader.query(api.social.listings.listOwned, firstPage)
   const listing =

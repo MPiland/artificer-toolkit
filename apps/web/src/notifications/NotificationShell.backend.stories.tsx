@@ -51,11 +51,13 @@ export const DesktopDrawer: Story = {
     const bell = await page.findByRole('button', { name: 'Notifications, 1 new' })
     await userEvent.click(bell)
     const drawer = within(await page.findByRole('dialog', { name: 'Notifications' }))
-    await expect(drawer.getByRole('region', { name: 'Notification feed' })).toBeVisible()
+    // The drawer is still transitioning in, so visibility is awaited.
+    await waitFor(() =>
+      expect(drawer.getByRole('region', { name: 'Notification feed' })).toBeVisible()
+    )
     await expect(drawer.getAllByText('Notifications', { exact: true })).toHaveLength(1)
-    await expect(
-      await drawer.findByText(`New application for ${STORY_CAMPAIGN.name}`)
-    ).toBeVisible()
+    const row = await drawer.findByText(`New application for ${STORY_CAMPAIGN.name}`)
+    await waitFor(() => expect(row).toBeVisible())
     await waitFor(() => expect(writesTo(api.notifications.markAllSeen)).toHaveLength(1))
 
     await userEvent.click(drawer.getByRole('button', { name: /close/i }))
@@ -76,7 +78,7 @@ export const MobilePage: Story = {
     await expect(
       await canvas.findByText(`New application for ${STORY_CAMPAIGN.name}`)
     ).toBeVisible()
-    await expect(canvas.getByRole('link', { name: 'Notifications' })).toBeVisible()
+    await expect(canvas.getByRole('link', { name: /Notifications/ })).toBeVisible()
     const footer = canvas.getByRole('contentinfo', { name: 'App navigation' })
     await expect(footer.querySelectorAll('a, button')).toHaveLength(5)
     const { body, documentElement } = canvasElement.ownerDocument
@@ -93,8 +95,7 @@ export const InvitedPeer: Story = {
     const page = within(canvasElement.ownerDocument.body)
     await userEvent.click(await page.findByRole('button', { name: 'Notifications, 1 new' }))
     const drawer = within(await page.findByRole('dialog', { name: 'Notifications' }))
-    await expect(
-      await drawer.findByText(`Invitation from @${REVIEW_STORY_READER.username}`)
-    ).toBeVisible()
+    const row = await drawer.findByText(`Invitation from @${REVIEW_STORY_READER.username}`)
+    await waitFor(() => expect(row).toBeVisible())
   }
 }
