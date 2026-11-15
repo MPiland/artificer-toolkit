@@ -1,16 +1,15 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-// A domain whose master state reads the seeded deployment proves it in its backend story
-// (`*.backend.stories.tsx`, the storybook-backend-browser proof), which this props-only run cannot load.
+// Spells and backgrounds read the seeded deployment, so their walkthrough steps are the play functions
+// of their backend stories (`*.backend.stories.tsx`, the storybook-backend-browser proof), which this
+// props-only run cannot load.
 const domains = [
-  { id: 'backgrounds', label: 'Acolyte', fixtureMasterStory: true },
-  { id: 'classes', label: 'Wizard', fixtureMasterStory: true },
-  { id: 'creatures', label: 'Acolyte', fixtureMasterStory: true },
-  { id: 'equipment', label: 'Shortsword +1', fixtureMasterStory: true },
-  { id: 'feats', label: 'Grappler', fixtureMasterStory: true },
-  { id: 'races', label: 'Dragonborn', fixtureMasterStory: true },
-  { id: 'spells', label: 'Fireball', fixtureMasterStory: false },
-  { id: 'vehicles', label: 'Sailing Ship', fixtureMasterStory: true }
+  { id: 'classes', label: 'Wizard' },
+  { id: 'creatures', label: 'Acolyte' },
+  { id: 'equipment', label: 'Shortsword +1' },
+  { id: 'feats', label: 'Grappler' },
+  { id: 'races', label: 'Dragonborn' },
+  { id: 'vehicles', label: 'Sailing Ship' }
 ] as const
 
 test.describe('route-backed authored domain workspace', () => {
@@ -21,32 +20,10 @@ test.describe('route-backed authored domain workspace', () => {
       test.setTimeout(60_000)
 
       await openStory(page, `domains-${domain.id}-routes-create--create-empty`)
-      if (domain.id === 'spells') {
-        await expect(page.getByText(/spell.*draft.*homebrew/i)).toBeVisible()
-        await expect(page.getByRole('heading', { name: 'Start with the basics' })).toBeVisible()
-        await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
-        await page.getByRole('textbox', { name: 'Spell name' }).fill('Ember Thread')
-        await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
-        await page.getByRole('combobox', { name: 'School of magic' }).click()
-        await page.getByRole('option', { name: 'Evocation' }).click()
-        await page.getByRole('button', { name: 'Next' }).click()
-        await expect(page.getByRole('heading', { name: 'What does the spell do?' })).toBeVisible()
-        await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
-        const damageOutcome = page.getByRole('button', { name: /^Damage\b/ })
-        await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
-        await damageOutcome.click()
-        await expect(damageOutcome).toHaveAttribute('aria-pressed', 'true')
-        await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
-        await page.getByRole('button', { name: 'Next' }).click()
-        await expect(page.getByRole('textbox', { name: 'Damage dice' })).toBeVisible()
-        await expect(page.getByLabel('Authoring preview')).toBeVisible()
-        await expect(page.getByTestId('authoring-action-bar')).toHaveCount(0)
-      } else {
-        await expect(page.getByRole('textbox', { name: /name/i })).toBeVisible()
-        await expect(page.getByRole('button', { name: 'Next' })).toBeVisible()
-        await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
-        await expect(page.getByTestId('authoring-action-bar')).toHaveCount(0)
-      }
+      await expect(page.getByRole('textbox', { name: /name/i })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Next' })).toBeVisible()
+      await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
+      await expect(page.getByTestId('authoring-action-bar')).toHaveCount(0)
       await openStory(page, `domains-${domain.id}-routes-edit--owned-active`)
       await expect(page.getByRole('textbox', { name: /^name/i })).toHaveValue(domain.label)
       await expect(page.getByRole('textbox', { name: /^name/i })).toBeEditable()
@@ -56,7 +33,6 @@ test.describe('route-backed authored domain workspace', () => {
       await expect(page.getByText(/all changes saved/i)).toBeVisible()
       await expect(page.getByRole('button', { name: /save draft/i })).toBeVisible()
 
-      if (!domain.fixtureMasterStory) return
       await openStory(page, `domains-${domain.id}-routes-edit--master-locked`)
       await expect(page.getByRole('textbox', { name: /^name/i })).toHaveValue(domain.label)
       await expect(page.getByRole('textbox', { name: /^name/i })).toHaveAttribute('readonly', '')
@@ -65,72 +41,6 @@ test.describe('route-backed authored domain workspace', () => {
       await expect(page.getByRole('button', { name: /save draft/i })).toHaveCount(0)
     })
   }
-
-  test('required Guided values block forward navigation at the point of repair', async ({
-    page
-  }) => {
-    await openStory(page, 'domains-backgrounds-routes-create--create-empty')
-
-    const name = page.getByRole('textbox', { name: /name/i })
-    await expect(name).toHaveValue('')
-    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
-  })
-
-  test('focused effects use the rail while a summary outcome uses a reversible overlay', async ({
-    page
-  }) => {
-    test.setTimeout(60_000)
-    await openStory(page, 'domains-spells-routes-edit--owned-draft')
-
-    const canvas = page.getByTestId('authoring-form-canvas')
-    const canvasWidthBefore = (await canvas.boundingBox())?.width
-    const navigation = page.getByRole('navigation', { name: /authoring steps/i })
-    const effects = await expandRailBranch(page, navigation, /^effects/i)
-    await navigation.getByRole('link', { name: /^effects/i }).click()
-
-    await page.getByRole('button', { name: /add effect/i }).click()
-
-    await expect(page.getByRole('combobox', { name: /trigger/i })).toBeVisible()
-    await expect(page.getByRole('dialog', { name: /add effect/i })).toHaveCount(0)
-    await expect(page.locator('.mantine-Drawer-overlay')).toHaveCount(0)
-    await expect(effects.getByRole('button', { name: /^activated/i })).toBeVisible()
-
-    const savingThrow = await expandRailBranch(page, navigation, /^saving throw/i)
-    const savingThrowDetails = await expandRailBranch(page, savingThrow, /^details/i)
-    const outcomePaths = await expandRailBranch(page, savingThrowDetails, /^outcome paths/i)
-    const failedSave = await expandRailBranch(page, outcomePaths, /^on save failure/i)
-    await openRailTarget(failedSave, /^details/i)
-
-    const damageOpener = page.getByRole('button', { name: /^damage/i }).first()
-    const saveState = page.getByText(/all changes saved|unsaved changes/i)
-    const saveStateBefore = await saveState.textContent()
-    await damageOpener.click()
-
-    const editor = page.getByRole('dialog', { name: /edit damage/i })
-    await expect(editor).toBeVisible()
-    await expect(page.locator('.mantine-Drawer-overlay')).toBeVisible()
-    const editorHeader = editor.locator('.mantine-Drawer-header')
-    await expect(editorHeader).toBeVisible()
-    const editorHeaderBox = await editorHeader.boundingBox()
-    if (!editorHeaderBox) throw new Error('Expected the drawer header to have measurable geometry.')
-    expect(editorHeaderBox.y).toBeGreaterThanOrEqual(0)
-    expect((await canvas.boundingBox())?.width).toBe(canvasWidthBefore)
-
-    const diceConfig = editor.getByRole('textbox', { name: /damage dice/i }).first()
-    const originalDice = await diceConfig.inputValue()
-    await diceConfig.fill('99d99')
-
-    await editor.getByRole('button', { name: /cancel/i }).click()
-
-    await expect(editor).toBeHidden()
-    await expect(damageOpener).toBeFocused()
-    await expect(saveState).toHaveText(saveStateBefore ?? '')
-    await damageOpener.click()
-    const restoredEditor = page.getByRole('dialog', { name: /edit damage/i })
-    await expect(restoredEditor.getByRole('textbox', { name: /damage dice/i }).first()).toHaveValue(
-      originalDice
-    )
-  })
 
   test('dense equipment authoring keeps the app shell and canvas stable beneath a leaf drawer', async ({
     page
@@ -318,18 +228,6 @@ test.describe('route-backed authored domain workspace', () => {
     await expectNoHorizontalOverflow(page)
   })
 })
-
-async function expandRailBranch(page: Page, scope: Locator, name: RegExp) {
-  // A branch row is a link or a button; `or` keeps retrying while a just-expanded group renders.
-  const target = scope.getByRole('link', { name }).or(scope.getByRole('button', { name })).first()
-  await expect(target).toBeVisible()
-  const branch = target.locator('xpath=..').locator('button[aria-expanded]')
-  await expect(branch).toBeVisible()
-  const childGroupId = await branch.getAttribute('aria-controls')
-  if (!childGroupId) throw new Error(`Expected ${name.source} to be a rail branch.`)
-  if ((await branch.getAttribute('aria-expanded')) !== 'true') await branch.click()
-  return page.locator(`[id="${childGroupId}"]`)
-}
 
 async function openStory(page: Page, storyId: string) {
   await page.goto(`/iframe.html?id=${storyId}&viewMode=story`)

@@ -24,7 +24,9 @@ import {
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
   REVIEW_STORY_READER,
+  STORY_RECORDS,
   type ReviewAccountSpec,
+  type StoryRecordSpec,
   type ReviewHero,
   type ReviewScenario,
   type ReviewStep
@@ -114,14 +116,65 @@ export function reviewId(slug: string): string {
 
 /**
  * The story-data step (D221): what Storybook backend stories read beyond the deploy and SRD seed,
- * made through product commands and found by stable names. It runs after the review data locally and
- * before the stories in the `storybook-backend-browser` proof. Master-content stories need only the
- * story account; a story that needs a state the seed lacks adds it here.
+ * made through product commands at the fixed ids in `STORY_RECORDS`. It runs after the review data locally and
+ * before the stories in the `storybook-backend-browser` proof. `connect` signs in as the account and
+ * returns its client. A re-run keeps every record a previous run finished.
  */
 export async function seedStoryData(
-  session: (spec: ReviewAccountSpec) => Promise<string>
+  connect: (spec: ReviewAccountSpec) => Promise<DevelopmentClient>
 ): Promise<void> {
-  await session(REVIEW_STORY_READER)
+  const reader = await connect(REVIEW_STORY_READER)
+  for (const { subjectKind, masterId, ownedActive, ownedDraft } of Object.values(STORY_RECORDS)) {
+    await activateStoryCopy(reader, subjectKind, masterId, ownedActive)
+    await activateStoryCopy(reader, subjectKind, masterId, ownedDraft)
+    const lookup = { subjectKind, subjectId: ownedDraft.subjectId }
+    if (await reader.query(api.content.drafts.get, lookup)) continue
+    // Editing the active record again opens the draft that waits on top of it.
+    const active = await reader.query(api.content.details.get, {
+      subjectKind,
+      id: ownedDraft.subjectId
+    })
+    assert.ok(active?.item, `Story record ${ownedDraft.label} is not active.`)
+    await reader.mutation(api.content.drafts.save, {
+      ...lookup,
+      systemId: srdSystemRecord.id,
+      label: ownedDraft.label,
+      payload: active.item
+    })
+  }
+}
+
+/** Copies `masterId` as the author does ("Duplicate to edit"), names the copy `record` and activates it. */
+async function activateStoryCopy(
+  client: DevelopmentClient,
+  subjectKind: (typeof STORY_RECORDS)[keyof typeof STORY_RECORDS]['subjectKind'],
+  masterId: string,
+  record: StoryRecordSpec
+) {
+  const existing = await client.query(api.content.details.get, {
+    subjectKind,
+    id: record.subjectId
+  })
+  if (existing?.item) return
+  // The copy gets a fresh id; its document moves to the record's fixed id and the copy is dropped.
+  const copy = await client.mutation(api.content.drafts.duplicate, {
+    subjectKind,
+    subjectId: masterId
+  })
+  const draft = await client.mutation(api.content.drafts.save, {
+    subjectKind,
+    subjectId: record.subjectId,
+    systemId: copy.systemId,
+    label: record.label,
+    payload: copy.payload
+  })
+  await client.mutation(api.content.drafts.discard, { subjectKind, subjectId: copy.subjectId })
+  assert.ok(draft.updatedAt, `Story record ${record.label} has no draft to activate.`)
+  await client.mutation(api.content.publication.publishDraft, {
+    subjectKind,
+    subjectId: record.subjectId,
+    expectedDraftUpdatedAt: draft.updatedAt
+  })
 }
 
 /**

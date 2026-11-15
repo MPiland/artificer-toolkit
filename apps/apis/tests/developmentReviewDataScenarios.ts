@@ -1,5 +1,7 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { AuthoredSubjectKind } from '@artificer-toolkit/schema/projections/identity'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
 import { ogre } from '@artificer-toolkit/source-data/srd/creatures/ogre.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -39,6 +41,37 @@ export const REVIEW_STORY_READER = {
   username: 'Review_Story_Reader',
   email: 'review_story_reader@example.invalid'
 } satisfies ReviewAccountSpec
+
+/** An owned record the story account copies from master content, at a fixed id its stories open. */
+export type StoryRecordSpec = { subjectId: string; label: string }
+
+/**
+ * The owned records Storybook backend stories edit, per authored domain (D221). The story account
+ * copies `masterId` into `ownedActive`, which it activates, and into `ownedDraft`, which it activates
+ * and then edits again, so the draft waits on top of the active record.
+ */
+export const STORY_RECORDS = {
+  background: {
+    subjectKind: 'BACKGROUND',
+    masterId: acolyte.id,
+    ownedActive: { subjectId: '3f1c2d8e-5a47-4b19-8c02-6d1e0a7b9c41', label: 'Story Acolyte' },
+    ownedDraft: { subjectId: '7a90e4b2-1c6d-4f38-9e15-2b8c4d7a0f63', label: 'Story Acolyte Draft' }
+  },
+  spell: {
+    subjectKind: 'SPELL',
+    masterId: fireball.id,
+    ownedActive: { subjectId: '5d2b7c19-8e40-4a6f-b3d1-0c9e2f4a7b85', label: 'Story Fireball' },
+    ownedDraft: { subjectId: 'c4e81a06-3b9f-4d27-a5c8-7f1d0e2b6a94', label: 'Story Fireball Draft' }
+  }
+} as const satisfies Record<
+  string,
+  {
+    subjectKind: AuthoredSubjectKind
+    masterId: string
+    ownedActive: StoryRecordSpec
+    ownedDraft: StoryRecordSpec
+  }
+>
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
 export const REVIEW_READY_TITLE = 'Review data ready'
