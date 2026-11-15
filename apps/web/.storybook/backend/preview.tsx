@@ -15,7 +15,9 @@ import {
 import { storyMutation, storyMutationHook } from '../../src/test/storybook/storyWrites'
 import {
   REVIEW_PASSWORD,
-  REVIEW_STORY_READER
+  reviewAccountEmail,
+  STORY_ACCOUNTS,
+  type StoryAccountKey
 } from '../../../apis/tests/developmentReviewDataScenarios'
 import { StoryFrame } from '../StoryFrame.tsx'
 
@@ -37,18 +39,24 @@ function getStoryBackend(storyId: string): StoryBackend {
   return backend
 }
 
-/** Signs in as the story account through the web app's auth proxy and opens a read client. */
+/**
+ * Signs in as the story account through the web app auth proxy and opens a read client. The
+ * browser session holds one identity at a time, so a sign-in happens only when the story needs a
+ * different account than the one already signed in; stories sharing an account share its session.
+ */
 async function connectStoryBackend(
   storyId: string,
+  accountKey: StoryAccountKey,
   queryOverride: StoryQueryOverride | undefined
 ): Promise<void> {
   if (storyBackends.has(storyId)) return
   const url = import.meta.env.VITE_CONVEX_URL
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
+  const email = reviewAccountEmail(STORY_ACCOUNTS[accountKey])
   const current = await betterAuthClient.getSession()
-  if (current.data?.user.email !== REVIEW_STORY_READER.email) {
+  if (current.data?.user.email !== email) {
     const signIn = await betterAuthClient.signIn.email({
-      email: REVIEW_STORY_READER.email,
+      email,
       password: REVIEW_PASSWORD
     })
     if (signIn.error) {
@@ -88,7 +96,14 @@ const preview: Preview = {
       )
     }
   ],
-  loaders: [(context) => connectStoryBackend(context.id, context.parameters.queryOverride)],
+  loaders: [
+    (context) =>
+      connectStoryBackend(
+        context.id,
+        context.parameters.storyAccount,
+        context.parameters.queryOverride
+      )
+  ],
   beforeEach() {
     storyMutation.mockClear()
     mocked(useMutation).mockImplementation(storyMutationHook)
@@ -100,6 +115,8 @@ const preview: Preview = {
   },
   parameters: {
     layout: 'fullscreen',
+    // The account a story reads as: the reader unless the story names another of STORY_ACCOUNTS.
+    storyAccount: 'reader' satisfies StoryAccountKey,
     tanstack: {
       router: {
         // A context factory, unlike `useRouterContext`, reaches route loaders and `beforeLoad`.

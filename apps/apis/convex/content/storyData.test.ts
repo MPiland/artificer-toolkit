@@ -2,12 +2,16 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { FunctionReturnType } from 'convex/server'
 import { publicationFixture } from '../../tests/fixtures/publication'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
+import { createPartyUser } from '../../tests/fixtures/partyPlayer'
 import { seedStoryData, type StoryClient } from '../../tests/developmentReviewData'
 import type { ActionCtx } from '../_generated/server'
 import {
+  REVIEW_STORY_BLOCKED,
+  REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
-  STORY_RECORDS
+  STORY_RECORDS,
+  STORY_SOCIAL
 } from '../../tests/developmentReviewDataScenarios'
 import { api, internal } from '../_generated/api'
 
@@ -25,17 +29,36 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     []
   )
   await t.action(internal.content.seed.seed, {})
-  const reader: StoryClient = {
-    ...convexDevelopmentClient(first.caller),
+  const clientFor = (caller: typeof first.caller): StoryClient => ({
+    ...convexDevelopmentClient(caller),
     action: (action, ...args) =>
-      first.caller.action<(ctx: ActionCtx) => Promise<FunctionReturnType<typeof action>>>((ctx) =>
+      caller.action<(ctx: ActionCtx) => Promise<FunctionReturnType<typeof action>>>((ctx) =>
         ctx.runAction(action, ...args)
       )
+  })
+  const reader = clientFor(first.caller)
+  const stranger = async (spec: { username: string }) =>
+    clientFor(
+      (
+        await createPartyUser(t, {
+          username: spec.username,
+          email: `${spec.username.toLowerCase()}@example.invalid`
+        })
+      ).caller
+    )
+  const clients = {
+    [REVIEW_STORY_READER.key]: reader,
+    [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
+    [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED)
   }
   const accounts: string[] = []
   const connect = async (spec: { key: string }) => {
     accounts.push(spec.key)
-    return reader
+    return clients[spec.key as keyof typeof clients]
+  }
+  // Queued notifications reach the feeds when the backend dispatcher runs.
+  const deliverNotifications = async () => {
+    await t.mutation(internal.notifications.delivery.dispatch, {})
   }
   const stored = () =>
     t.run(async (ctx) => ({
@@ -57,11 +80,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
         .sort()
     }))
 
-  await seedStoryData(connect)
+  await seedStoryData(connect, deliverNotifications)
   const seeded = await stored()
-  await seedStoryData(connect)
+  await seedStoryData(connect, deliverNotifications)
 
-  expect(accounts).toEqual([REVIEW_STORY_READER.key, REVIEW_STORY_READER.key])
+  const connected = [REVIEW_STORY_READER.key, REVIEW_STORY_PEER.key, REVIEW_STORY_BLOCKED.key]
+  expect(accounts).toEqual([...connected, ...connected])
   const records = Object.values(STORY_RECORDS)
   expect(seeded).toEqual({
     roots: records
@@ -99,4 +123,27 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(loot.map(({ owner, tables }) => [owner.kind, tables.map(({ name }) => name)])).toEqual([
     ['ENCOUNTER_ACTOR', [STORY_CAMPAIGN.lootTable.name]]
   ])
+
+  // The reader table has the peer application and invitation and a blocked, reported stranger, and
+  // each queued notification reached its recipient feed once.
+  const social = await t.run(async (ctx) => ({
+    applications: (await ctx.db.query('socialApplications').collect()).map(
+      ({ message, status }) => [message, status]
+    ),
+    invitations: (await ctx.db.query('campaignInvites').collect()).map(
+      ({ recipientUsername, status }) => [recipientUsername, status]
+    ),
+    blocks: (await ctx.db.query('socialBlocks').collect()).length,
+    reports: (await ctx.db.query('socialReports').collect()).map(({ details }) => details),
+    feeds: (await ctx.db.query('notificationFeedItems').collect())
+      .map(({ data }) => data.kind)
+      .sort()
+  }))
+  expect(social).toEqual({
+    applications: [[STORY_SOCIAL.applicationMessage, 'SUBMITTED']],
+    invitations: [[REVIEW_STORY_PEER.username, 'PENDING']],
+    blocks: 1,
+    reports: [STORY_SOCIAL.reportDetails],
+    feeds: ['SOCIAL_APPLICATION_SUBMITTED', 'SOCIAL_INVITATION_RECEIVED']
+  })
 }, 240_000)

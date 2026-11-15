@@ -1,8 +1,13 @@
 import type { useMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { z } from 'zod'
 import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
+import {
+  socialEligibilityDtoSchema,
+  updateSocialContentPreferenceInputSchema
+} from '@artificer-toolkit/schema/api/socialHub'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
@@ -16,6 +21,19 @@ function writeResponse(reference: MutationReference, input: unknown): unknown {
   if (getFunctionName(reference) === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
+  }
+  if (getFunctionName(reference) === getFunctionName(api.social.profiles.updatePreference)) {
+    const { input: preference } = z
+      .object({ input: updateSocialContentPreferenceInputSchema })
+      .parse(input)
+    // Settings can only write after a Mature attestation, so every reachable answer carries one.
+    return socialEligibilityDtoSchema.parse({
+      eligible: true,
+      profilePublicId: null,
+      adultAttestedAt: new Date().toISOString(),
+      contentPreference: preference.contentPreference,
+      status: 'ACTIVE'
+    })
   }
   return null
 }
