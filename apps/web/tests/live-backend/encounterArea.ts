@@ -18,6 +18,7 @@ import {
 } from './campaignCollaboration'
 import { captureLegacyRequests } from './sceneLive'
 import { captureEncounterCommands, waitForCommand } from './encounterCommandCapture'
+import { routeFromClientAddress } from './clientAddress'
 
 const expect = playwrightExpect.configure({ timeout: 90_000 })
 const origin = 'http://localhost:3000'
@@ -56,6 +57,8 @@ export async function verifyEncounterAreaBrowser(
       viewport: { width: 1280, height: 900 },
       reducedMotion: 'reduce'
     })
+    await routeFromClientAddress(ownerContext, origin, 0)
+    await routeFromClientAddress(playerContext, origin, 1)
     ownerContext.setDefaultTimeout(30_000)
     playerContext.setDefaultTimeout(30_000)
     const ownerPage = await ownerContext.newPage()

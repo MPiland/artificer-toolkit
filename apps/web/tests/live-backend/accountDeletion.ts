@@ -9,6 +9,7 @@ import {
   watchAuthenticatedSession,
   watchNavigationAbortedRequests
 } from './campaignCollaboration'
+import { routeFromClientAddress } from './clientAddress'
 
 const origin = 'http://localhost:3000'
 const accountDeletePath = '/api/auth/account/delete'
@@ -84,6 +85,7 @@ export async function verifyAccountDeletionBrowser(
       reducedMotion: 'reduce'
     })
     contexts.push(context)
+    await routeFromClientAddress(context, origin, contexts.length - 1)
     context.setDefaultTimeout(30_000)
     context.setDefaultNavigationTimeout(90_000)
     await installBoundaryGuard(context, contextName, () => stage, record)
@@ -378,7 +380,7 @@ async function installBoundaryGuard(
       await route.abort('blockedbyclient')
       return
     }
-    await route.continue()
+    await route.fallback()
   })
 }
 
