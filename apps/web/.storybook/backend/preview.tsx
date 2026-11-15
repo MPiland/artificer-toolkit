@@ -12,6 +12,7 @@ import {
   installQueryOverride,
   type StoryQueryOverride
 } from '../../src/test/storybook/storyQueryOverride'
+import { installLiveSessionSpy } from '../../src/test/storybook/storyLiveSession'
 import {
   bindStoryReads,
   storyMutation,
@@ -121,6 +122,8 @@ const preview: Preview = {
   beforeEach() {
     storyMutation.mockClear()
     mocked(useMutation).mockImplementation(storyMutationHook)
+    // The room connection is real; its COMMAND frames are recorded and never sent (D218).
+    return installLiveSessionSpy()
   },
   // A read without a query function shows a loading or empty state instead of the seeded record,
   // so it fails the story (D221).
