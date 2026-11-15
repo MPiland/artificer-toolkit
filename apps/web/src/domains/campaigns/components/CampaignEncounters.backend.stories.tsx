@@ -130,7 +130,7 @@ export const NoEncountersYet: Story = {
     await waitFor(() => expect(storyMutation.mock.settledResults).toHaveLength(1), {
       timeout: 10_000
     })
-    expect(storyMutation.mock.settledResults[0]).toMatchObject({ type: 'return' })
+    expect(storyMutation.mock.settledResults[0]).toMatchObject({ type: 'fulfilled' })
     // The created Run closes the adder; the served list stays empty.
     await waitFor(
       () => expect(canvas.queryByLabelText('Encounter Blueprint')).not.toBeInTheDocument(),

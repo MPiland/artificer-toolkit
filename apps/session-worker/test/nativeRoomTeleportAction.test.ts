@@ -139,7 +139,10 @@ describe('the Misty Step teleport (AC SPELLS-28.2)', () => {
     // The Wolf's reach was left with no path crossed: no reaction waits for a decision.
     expect(await room.room.pending()).toBeNull()
     blocked(
-      await playerTeleport(room, START, { from: IN_RANGE, sceneVersion: room.room.scene.version + 1 }),
+      await playerTeleport(room, START, {
+        from: IN_RANGE,
+        sceneVersion: room.room.scene.version + 1
+      }),
       'TELEPORT_UNAVAILABLE'
     )
   })

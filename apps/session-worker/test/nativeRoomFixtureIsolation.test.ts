@@ -1,7 +1,13 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import { closeTrackedSockets, doorScene, fixture, secret, synchronizeScene } from './liveRoomFixture.js'
+import {
+  closeTrackedSockets,
+  doorScene,
+  fixture,
+  secret,
+  synchronizeScene
+} from './liveRoomFixture.js'
 
 afterEach(() => {
   closeTrackedSockets()
