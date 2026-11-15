@@ -175,6 +175,8 @@ export type AreaPlanBase = {
     gameSystemId: string,
     creatureId: string
   ) => Promise<EncounterActorFormCreature>
+  /** Reads the Campaign clock for an outcome whose effect counts Campaign minutes (D222). */
+  readCampaignClockMinute?: LiveCaptureReads['readCampaignClockMinute']
 }
 
 export type AreaPlanInput = AreaPlanBase & { command: AreaCommand }

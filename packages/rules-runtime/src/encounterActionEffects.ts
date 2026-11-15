@@ -281,6 +281,28 @@ type NativeActionEffectsInput<TCharacterFacts extends CharacterActionMovementFac
 }
 
 /**
+ * The Campaign clock's minute for an outcome whose effects count Campaign minutes (D222), which every
+ * funnel that plans effects passes on as `campaignClockMinute`. The clock is read only then; undefined
+ * when no effect counts Campaign minutes, null when the Campaign has no clock.
+ */
+export async function readCampaignClockForEffects<
+  TCharacterFacts extends CharacterActionMovementFacts
+>(input: {
+  prepared: PreparedMechanics<TCharacterFacts>
+  execution: Pick<CompleteExecution, 'published' | 'execution'>
+  readClockMinute?: () => Promise<number | null>
+}): Promise<number | null | undefined> {
+  const countsCampaignMinutes = encounterActiveEffectPlans(
+    input.prepared,
+    input.execution.published,
+    input.execution.execution.outputs
+  ).some((plan) => plan.campaignMinutes !== undefined)
+  if (!countsCampaignMinutes) return undefined
+  if (!input.readClockMinute) throw new Error('The Campaign clock cannot be read.')
+  return input.readClockMinute()
+}
+
+/**
  * The effects one outcome leaves on its target. A roll table that landed in several rows (a ray
  * struck the target twice) holds one plan per row: each plan makes its own effect from the same
  * settled cast, and the effects beyond the first ride beside it as riders, unlinked, since the rows

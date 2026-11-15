@@ -25,14 +25,6 @@ export interface LiveCaptureReads {
   readCampaignClockMinute?(): Promise<number | null>
 }
 
-/** The Campaign clock's minute for a cast whose effect counts Campaign minutes (D222). */
-export function requireCampaignClockRead(
-  captures: Pick<LiveCaptureReads, 'readCampaignClockMinute'>
-): Promise<number | null> {
-  if (!captures.readCampaignClockMinute) throw new Error('The Campaign clock cannot be read.')
-  return captures.readCampaignClockMinute()
-}
-
 /**
  * One planner's Encounter captures under its admitted scope `initial`. Identical requests share
  * one read, each response must answer its request's kind, and the observed revisions and read

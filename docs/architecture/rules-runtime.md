@@ -2439,12 +2439,15 @@ count. The lifecycle must carry `expiresAtCampaignMinute`: the cast's absolute C
 explicit `null` for a Campaign with no clock, which lasts until the GM ends it. The stamp is made at the cast:
 `prepareEncounterActionEffectPlans` takes `campaignClockMinute` and refuses a Campaign-minute plan planned without it;
 the room reads the clock fresh through `LiveCaptureReads.readCampaignClockMinute` (the `CAMPAIGN_CLOCK` room-inputs
-read), only for a cast whose plans count Campaign minutes. The effect survives Run completion unchanged
+read, memoized per command in `roomLiveCaptureReads`). Every funnel that plans effects (single action, area and
+chosen-creature casts, contest holds and Legendary Actions; QUALITY-15.T3i3) reads it through the one helper
+`readCampaignClockForEffects` in `encounterActionEffects.ts`, which reads only when the plans count Campaign minutes
+and throws when such a plan has no reader. The effect survives Run completion unchanged
 (`planCarriedOverEffects` plans nothing for it: it holds no rounds, so its stamp is already the Campaign expiry), and
 a later Run's START (`planResumedCarriedEffects`) only expires it once the clock has reached the stamp. The Campaign
 clock advance ends it, for every effect kind, through `expiredCampaignClockEffects` and the GM-only `END_ACTIVE_EFFECT`
-Sheet command in `campaigns/clockGrantExpiry.ts`. The area, contest and Legendary Action funnels do not read the clock
-yet: a Campaign-minute plan reaching one fails loudly instead of stamping `null`.
+Sheet command in `campaigns/clockGrantExpiry.ts`.
+
 
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets

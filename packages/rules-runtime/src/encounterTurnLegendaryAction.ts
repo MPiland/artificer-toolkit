@@ -26,7 +26,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
-import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
+import {
+  prepareNativeActionEffectsPlan,
+  readCampaignClockForEffects
+} from './encounterActionEffects.js'
 import { prepareAttackTargetGrantTriggers } from './encounterAttackAppliedEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
@@ -115,6 +118,8 @@ type TurnLegendaryActionInput<
     projectedAttacker: MovementTarget<TCharacterFacts>
   } | null>
   definitions: CurrentReusableDefinitionSource
+  /** Reads the Campaign clock for an option whose effect counts Campaign minutes (D222). */
+  readCampaignClockMinute?: () => Promise<number | null>
   createRuntime(): Promise<RulesRuntimeService>
   random(maximum: number): number
 }
@@ -397,7 +402,12 @@ export async function prepareTurnLegendaryActions<
       execution: result,
       occurrenceId,
       commandId: root.rootCommandId,
-      activeEffectsByActorId
+      activeEffectsByActorId,
+      campaignClockMinute: await readCampaignClockForEffects({
+        prepared,
+        execution: result,
+        readClockMinute: input.readCampaignClockMinute
+      })
     })
     if (effects.maintenance)
       throw new Error('Legendary Action effects cannot start a maintained effect.')
