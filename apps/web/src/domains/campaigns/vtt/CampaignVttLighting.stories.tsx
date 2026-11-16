@@ -85,6 +85,7 @@ type Sample = ReturnType<VttSceneRenderer['sampleDarkness']>[number]
 
 function LightingFixture({
   boundTokenId,
+  later,
   previewTokenId,
   role = 'PLAYER',
   samplePoints = [],
@@ -93,6 +94,8 @@ function LightingFixture({
 }: {
   /** A Token whose Encounter actor control arrives in a later update, as when the Encounter loads. */
   boundTokenId?: string
+  /** A later state the room sends to the same renderer, as a Scene edit does mid-session. */
+  later?: { previewTokenId?: string | undefined; scene: CampaignSceneStateDto }
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
   previewTokenId?: string
   role?: 'OWNER' | 'PLAYER'
@@ -156,6 +159,7 @@ function LightingFixture({
       if (boundTokenId) {
         nextRenderer.update({ ...update, boundTokenControl: new Map([[boundTokenId, true]]) })
       }
+      if (later) nextRenderer.update({ ...update, ...later })
       setSamples(nextRenderer.sampleDarkness(samplePoints))
       setDiagnostics(nextRenderer.getDiagnostics())
     })
@@ -163,7 +167,7 @@ function LightingFixture({
       disposed = true
       renderer?.destroy()
     }
-  }, [boundTokenId, previewTokenId, role, samplePoints, scene, view])
+  }, [boundTokenId, later, previewTokenId, role, samplePoints, scene, view])
 
   return (
     <section aria-label='Lighting fixture' style={{ display: 'grid', gap: 12, padding: 16 }}>
@@ -701,6 +705,31 @@ export const GmPreviewsOneTokensView: Story = {
   }
 }
 
+// The Stage ends a GM's preview once the previewed token leaves the Scene; the same live renderer
+// then draws the GM's see-all view again, not black.
+const previewEndedScene = validated(campaignSceneStateDtoSchema)({
+  ...previewScene,
+  tokens: previewScene.tokens.filter((token) => token.id !== warden.id),
+  version: previewScene.version + 1
+})
+
+export const GmPreviewEndsWhenThePreviewedTokenLeavesTheScene: Story = {
+  args: {
+    // The Stage's update once it ends the preview (see CampaignVttStage.stageState.test.tsx).
+    later: { previewTokenId: undefined, scene: previewEndedScene },
+    previewTokenId: warden.id,
+    role: 'OWNER',
+    samplePoints: previewPoints,
+    scene: previewScene
+  },
+  play: async ({ canvasElement }) => {
+    const { lighting, samples, tokens } = await readLighting(canvasElement)
+    expectSamplesMatchResolver(previewEndedScene, samples, previewPoints, gmDarknessCapAlpha)
+    expect(samples.every((sample) => !sample.masked)).toBe(true)
+    expect(lighting.visionCount).toBe(0)
+    expect(tokens).toHaveLength(previewEndedScene.tokens.length)
+  }
+}
 export const PlayerWithoutASeeingTokenSeesABlackMap: Story = {
   // Ember has no vision here: a Player's sight comes only from their own seeing tokens.
   args: { role: 'PLAYER', samplePoints: previewPoints, scene: emptyScene },
