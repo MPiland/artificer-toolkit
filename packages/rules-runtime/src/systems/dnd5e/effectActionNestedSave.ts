@@ -27,6 +27,7 @@ import {
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
+  Dnd5eEffectActionCompilerError,
   UUID,
   isUuid,
   uuid,
@@ -55,7 +56,11 @@ import {
   pathGatedProposalNode,
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
-import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
+import type {
+  Dnd5eCompiledEffectActionSource,
+  EntryDiceDamageOutcome
+} from './effectActionContracts.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 
 /** A hit's damage, or a GM ruling beside it (a lycanthrope's curse), settled before its immediate save. */
 export type ImmediatePrimaryEntry = CompiledEffectGroup['entries'][number] & {
@@ -121,6 +126,81 @@ export function escalationCondition(
     UUID.test(outcome.conditionId)
     ? outcome
     : null
+}
+
+/**
+ * The dice damage rows a repeated save deals from each time it fails while its held effect goes on
+ * ("or take 4d10 psychic damage"): one typed roll, or one row per cast level it scales to. The save
+ * is made once at each of the holder's turn ends: a gate or a trigger would settle it outside the
+ * graph that rolls the dice. Null for any other failure.
+ */
+export function repeatSaveFailureDamageRows(save: FollowUpSaveOutcome) {
+  const { onFailure } = save
+  if (
+    save.timing !== 'TARGET_TURN_END' ||
+    save.attempts.kind !== 'ONCE' ||
+    save.repeatAttemptGate ||
+    save.repeatTriggers?.length ||
+    onFailure.kind !== 'OUTCOMES' ||
+    onFailure.endCurrent ||
+    onFailure.gate
+  )
+    return null
+  const rows = onFailure.outcomes.flatMap((outcome) =>
+    outcome.effectKind === 'DAMAGE' &&
+    outcome.valueKind === 'DICE' &&
+    !outcome.bonuses?.length &&
+    !('halfHitPointsDice' in outcome && outcome.halfHitPointsDice !== undefined) &&
+    outcome.damageTypeId !== undefined &&
+    UUID.test(outcome.damageTypeId)
+      ? [outcome]
+      : []
+  )
+  const [first] = rows
+  if (!first || rows.length !== onFailure.outcomes.length) return null
+  if (first.scalingKind === 'NONE') return rows.length === 1 ? rows : null
+  // One authored outcome compiles one row per level it scales to.
+  const levelRows = rows.flatMap((row) =>
+    row.scalingKind === 'PER_LEVEL' && row.scalingSource === 'SPELL_CAST_LEVEL' ? [row] : []
+  )
+  return levelRows.length === rows.length &&
+    new Set(levelRows.map(({ level }) => level)).size === rows.length
+    ? levelRows
+    : null
+}
+
+/**
+ * The repeated save's failure damage at the row the cast level reaches: the cast level is the
+ * descriptor's own, so the row is frozen into the effect's graph. Null when the failure deals no such
+ * damage; a scaled row the cast level does not reach is refused.
+ */
+export function repeatSaveFailureDamage(
+  save: FollowUpSaveOutcome,
+  spellCastLevel: number | undefined
+): EntryDiceDamageOutcome | null {
+  const rows = repeatSaveFailureDamageRows(save)
+  if (!rows) return null
+  const levelRows = rows.flatMap((row) =>
+    row.scalingKind === 'PER_LEVEL' && row.scalingSource === 'SPELL_CAST_LEVEL'
+      ? [{ level: row.level, order: row.order, row }]
+      : []
+  )
+  const row =
+    rows.length === 1 && rows[0]?.scalingKind === 'NONE'
+      ? rows[0]
+      : spellCastLevel === undefined
+        ? null
+        : (selectScalingRow(levelRows, spellCastLevel)?.row ?? null)
+  const damageTypeId = row?.damageTypeId
+  if (!row || damageTypeId === undefined)
+    throw new Dnd5eEffectActionCompilerError('D&D repeat-save damage has no row at the cast level.')
+  return {
+    kind: 'ENTRY_DICE_DAMAGE',
+    diceConfig: row.dice,
+    damageTypeId,
+    entryId: row.id,
+    multiplier: damageMultiplier(row)
+  }
 }
 
 /**

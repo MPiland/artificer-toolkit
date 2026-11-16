@@ -135,27 +135,30 @@ export function plannedTimedCondition(input: {
   castModifierParameters?: readonly CastModifierParameterAuthored[]
   /** The Campaign clock's minute at the cast, null for no clock; required for a Campaign-minute effect. */
   campaignClockMinute?: number | null
+  /** The slot level the spell is cast at; its own level by default. */
+  castLevel?: number
 }) {
   const { spell } = input
+  const castLevel = input.castLevel ?? spell.level
   const sourceInstanceId = `class-${spell.id}`
   const { entry } = compiledTestSpellCast({
     spell,
     cast: {
       sequence: 0,
-      candidateId: `CLASS:${sourceInstanceId}:${spell.id}:level:${spell.level}`,
+      candidateId: `CLASS:${sourceInstanceId}:${spell.id}:level:${castLevel}`,
       spellId: spell.id,
       source: { spellId: spell.id, sourceKind: 'CLASS', sourceInstanceId },
       spellLevel: spell.level,
       castMode: 'SPELL_SLOT',
-      castLevel: spell.level,
-      baseEntry: true,
+      castLevel,
+      baseEntry: castLevel === spell.level,
       resourceOwnerKey: null,
       slotPoolCode: null
     },
     decision: {
       status: 'AVAILABLE',
       reasonCode: 'SPELL_SLOT_REMAINING',
-      slotKey: `STANDARD:${spell.level}`
+      slotKey: `STANDARD:${castLevel}`
     }
   })
   const { recurringEffect } = plannedCastEffects({ ...input, entry, resultPath: 'ON_SAVE_FAIL' })
