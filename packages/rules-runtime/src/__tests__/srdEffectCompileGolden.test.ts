@@ -12,7 +12,6 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import type { EffectActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import type { CharacterRuleActionExecutionPlan } from '../characterRuleActionSystemAdapter.js'
 import {
-  buildCompiledActionTargetPolicy,
   compileActionPlacement,
   compileCastChoicePlans,
   compileEncounterFeatureActionPlan
@@ -255,8 +254,7 @@ function characterOutcome(
   return outcomeOf(() => {
     const { executionPlan, choice } = compileCastChoicePlans(
       dnd5eCharacterRuleActionSystemAdapter,
-      action,
-      buildCompiledActionTargetPolicy(action)
+      action
     )
     return { action, plan: executionPlan, choice }
   })
@@ -323,11 +321,7 @@ function creatureLines(creatureIndex: number): Line[] {
             capability
           ),
           ...(castChoiceOptions(capability.compiledEffect) && {
-            choice: compileCastChoicePlans(
-              dnd5eCharacterRuleActionSystemAdapter,
-              capability,
-              buildCompiledActionTargetPolicy(capability)
-            ).choice
+            choice: compileCastChoicePlans(dnd5eCharacterRuleActionSystemAdapter, capability).choice
           })
         }))
       : { compiled: 'NOT_A_DISCOVERED_ACTION', facts: null }
