@@ -24,6 +24,11 @@ export const checkChoiceDtoSchema = lazySchema(() =>
     )
 )
 
+/** Who may attempt an escape: the held creature itself, or another creature within reach of it. */
+export const escapeActorKindsDtoSchema = lazySchema(() =>
+  authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(z.minLength(1))
+)
+
 const fixedAndContestDcDtoSchemas = lazySchemaParts(
   () =>
     [

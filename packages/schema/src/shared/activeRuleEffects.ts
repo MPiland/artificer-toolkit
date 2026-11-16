@@ -11,7 +11,7 @@ import {
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
-import { checkChoiceDtoSchema } from '../effects/check.js'
+import { checkChoiceDtoSchema, escapeActorKindsDtoSchema } from '../effects/check.js'
 import {
   manifestAttachmentKindSchema,
   manifestLightDtoSchema,
@@ -390,9 +390,11 @@ const activeRuleEffectConditionContributionDtoSchema = lazySchema(() =>
 )
 
 /**
- * The escape a zone-held condition offers its holder (D146): `label` names the zone, and `dc` is
- * resolved when the zone is placed (a source save DC is pinned). It escapes the zone named by the
- * effect's held condition (`heldBySpatialEffectId`).
+ * The escape from the conditions the effect holds. A zone's (D146) is offered to its holder only:
+ * `label` names the zone, `dc` is resolved when the zone is placed (a source save DC is pinned), and
+ * it escapes the zone named by the effect's held condition (`heldBySpatialEffectId`). One compiled
+ * from an authored check that ends the effect names that outcome and who may attempt it in
+ * `escapeOutcome`; `label` is the check's.
  */
 const activeRuleEffectConditionEscapeContributionDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -400,7 +402,10 @@ const activeRuleEffectConditionEscapeContributionDtoSchema = lazySchema(() =>
     label: identifierSchema,
     activation: activationDtoSchema,
     checks: checkChoiceDtoSchema,
-    dc: positiveIntegerSchema
+    dc: positiveIntegerSchema,
+    escapeOutcome: z.optional(
+      z.strictObject({ outcomeId: uuidSchema, actorKinds: escapeActorKindsDtoSchema })
+    )
   })
 )
 
@@ -699,16 +704,21 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             })
         }
         if (
-          definition.stateContributions.some(({ kind }) => kind === 'CONDITION_ESCAPE') &&
-          !definition.stateContributions.some(
-            (contribution) =>
-              contribution.kind === 'CONDITION_OWNERSHIP' && contribution.heldBySpatialEffectId
+          definition.stateContributions.some(
+            (escape) =>
+              escape.kind === 'CONDITION_ESCAPE' &&
+              !definition.stateContributions.some(
+                (held) =>
+                  held.kind === 'CONDITION_OWNERSHIP' &&
+                  (escape.escapeOutcome !== undefined || held.heldBySpatialEffectId)
+              )
           )
         )
           context.addIssue({
             code: 'custom',
             path: ['stateContributions'],
-            message: 'A condition escape needs the zone-held condition it escapes.'
+            message:
+              'A condition escape needs the condition it escapes: a zone-held one, or one the effect holds for its escape outcome.'
           })
         for (const [index, contribution] of definition.perceptionContributions.entries()) {
           if (

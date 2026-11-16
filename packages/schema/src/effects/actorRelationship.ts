@@ -1,7 +1,7 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { activationDtoSchema } from './activation.js'
-import { checkChoiceDtoSchema, escapeDcDtoSchema } from './check.js'
+import { checkChoiceDtoSchema, escapeActorKindsDtoSchema, escapeDcDtoSchema } from './check.js'
 import { damageDtoSchema } from './damage.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
 import { conditionDtoSchema } from './condition.js'
@@ -69,9 +69,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       activation: activationDtoSchema,
       checks: checkChoiceDtoSchema,
       dc: escapeDcDtoSchema,
-      actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
-        z.minLength(1)
-      ),
+      actorKinds: escapeActorKindsDtoSchema,
       /**
        * Where a won contested escape moves the hold's source, pushed by the escaper: a dislodged
        * climber lands beside the creature it clung to. Absent, the source stays where it is.
