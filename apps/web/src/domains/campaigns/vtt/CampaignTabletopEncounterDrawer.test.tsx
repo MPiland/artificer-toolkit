@@ -543,7 +543,8 @@ describe('CampaignTabletopEncounterDrawer', () => {
       sourceActorId: null,
       remainingTicks: 2,
       expiresAtCampaignMinute: null,
-      polarity: 'BENEFICIAL' as const
+      polarity: 'BENEFICIAL' as const,
+      endable: true
     }
     const hidden = {
       effectId: '44444444-4444-4444-8444-444444444402',
@@ -552,7 +553,8 @@ describe('CampaignTabletopEncounterDrawer', () => {
       sourceActorId: null,
       remainingTicks: 5,
       expiresAtCampaignMinute: null,
-      polarity: 'NEUTRAL' as const
+      polarity: 'NEUTRAL' as const,
+      endable: true
     }
 
     it('lists them for a player without a hidden source, and offers no End', async () => {
@@ -633,6 +635,45 @@ describe('CampaignTabletopEncounterDrawer', () => {
         expectedVersion: tabletopGmEncounter.version,
         type: 'UPDATE_ACTOR'
       })
+    })
+
+    it('lists a Creature grant a Concentration maintains with no End (QUALITY-15.T3ae)', async () => {
+      const user = userEvent.setup()
+      const maintained = { ...shown, label: 'Bless', endable: false }
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={{
+            ...tabletopGmEncounter,
+            actors: [
+              tabletopGmEncounter.actors[0],
+              {
+                ...tabletopGmEncounter.actors[1],
+                activeGrants: [maintained, { ...hidden, label: 'Trap blessing' }]
+              }
+            ]
+          }}
+          holds={[]}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          session={undefined}
+          onCommand={vi.fn()}
+          onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      const list = screen.getByRole('list', { name: 'Active grants on Vault Warden' })
+      const [blessItem, trapItem] = within(list).getAllByRole('listitem')
+      expect(blessItem).toHaveTextContent('Bless · 2 rounds left')
+      expect(trapItem).toHaveTextContent('Trap blessing · 5 rounds left')
+      expect(screen.queryByRole('button', { name: 'End Bless' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'End Trap blessing' })).toBeVisible()
     })
   })
 

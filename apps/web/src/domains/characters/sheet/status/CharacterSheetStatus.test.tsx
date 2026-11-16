@@ -318,7 +318,8 @@ describe('Character Sheet status', () => {
         sourceActorId: null,
         remainingTicks: 4,
         expiresAtCampaignMinute: null,
-        polarity: 'BENEFICIAL'
+        polarity: 'BENEFICIAL',
+        endable: true
       },
       {
         effectId: '33333333-3333-4333-8333-333333333302',
@@ -327,7 +328,8 @@ describe('Character Sheet status', () => {
         sourceActorId: null,
         remainingTicks: null,
         expiresAtCampaignMinute: null,
-        polarity: 'NEUTRAL'
+        polarity: 'NEUTRAL',
+        endable: true
       }
     ]
 

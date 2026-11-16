@@ -14,6 +14,7 @@ const grant = (overrides: Partial<ActiveGrantListingDto>): ActiveGrantListingDto
   remainingTicks: 3,
   expiresAtCampaignMinute: null,
   polarity: 'BENEFICIAL',
+  endable: true,
   ...overrides
 })
 

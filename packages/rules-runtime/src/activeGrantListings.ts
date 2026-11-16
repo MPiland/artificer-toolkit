@@ -184,20 +184,33 @@ function grantPolarity(
 }
 
 /**
+ * Whether an effect may be ended by hand (D99), on a Character or a Creature alike: any effect but
+ * one a Concentration maintains, which ends only with that Concentration. Who may end it is each end
+ * path's own check (the GM; a Character's player for a `holderEnd` grant).
+ */
+export function isEndableByHand(
+  effect: Pick<ActiveRuleEffectRecord, 'maintainedEffectStateId'>
+): boolean {
+  return effect.maintainedEffectStateId === null
+}
+
+/**
  * A holder's active grants as a viewer lists them (D99), oldest first, with the GM's view of each
  * label. Players read them through `hideActiveGrantSources`.
  */
 export function listActiveGrantListings(
   effects: readonly Pick<
     ActiveRuleEffectRecord,
-    'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
+    'id' | 'createdOrdinal' | 'definition' | 'lifecycle' | 'maintainedEffectStateId'
   >[]
 ): ActiveGrantListingDto[] {
   return [...effects]
     .sort(
       (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
     )
-    .flatMap(({ id, definition, lifecycle }) =>
+    .flatMap((effect) => {
+      const { id, definition, lifecycle } = effect
+      return definition.stateContributions.flatMap((contribution) =>
       definition.stateContributions.flatMap((contribution) =>
         contribution.kind === 'MODIFIER_GRANT'
           ? [
@@ -209,12 +222,13 @@ export function listActiveGrantListings(
                   definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null,
                 remainingTicks: lifecycle.remainingTicks,
                 expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
-                polarity: grantPolarity(definition.frozenGraph.source.gameSystemId, contribution)
+                polarity: grantPolarity(definition.frozenGraph.source.gameSystemId, contribution),
+                endable: isEndableByHand(effect)
               }
             ]
           : []
       )
-    )
+    })
 }
 
 /** A held Concentration, named by the first grant that depends on it (SPELLS-5.11). */

@@ -401,7 +401,8 @@ const wardenMark = validated(activeGrantListingDtoSchema)({
   sourceActorId: tabletopGmEncounter.actors[0]!.id,
   remainingTicks: 2,
   expiresAtCampaignMinute: null,
-  polarity: 'HARMFUL'
+  polarity: 'HARMFUL',
+  endable: true
 })
 const markedFixtures: TabletopFixtures = {
   ...presentedTokensFixtures,

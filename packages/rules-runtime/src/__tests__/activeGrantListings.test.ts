@@ -32,7 +32,7 @@ const SOURCE_ACTOR_ID = testUuid(0xd001)
 
 type ListedEffect = Pick<
   ActiveRuleEffectRecord,
-  'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
+  'id' | 'createdOrdinal' | 'definition' | 'lifecycle' | 'maintainedEffectStateId'
 >
 
 function grantEffect(input: {
@@ -40,6 +40,7 @@ function grantEffect(input: {
   createdOrdinal: number
   sourceHidden?: boolean
   sourceLabel?: string
+  maintainedEffectStateId?: string
   lifecycle: ActiveRuleEffectRecord['lifecycle']
 }): ListedEffect {
   const planned = plannedModifierGrant({
@@ -53,6 +54,7 @@ function grantEffect(input: {
     id: testUuid(input.id),
     createdOrdinal: input.createdOrdinal,
     lifecycle: input.lifecycle,
+    maintainedEffectStateId: input.maintainedEffectStateId ?? null,
     definition: {
       ...planned.definition,
       stateContributions: planned.definition.stateContributions.map((contribution) =>
@@ -101,7 +103,8 @@ describe('listActiveGrantListings', () => {
         sourceActorId: SOURCE_ACTOR_ID,
         remainingTicks: null,
         expiresAtCampaignMinute: 2001,
-        polarity: 'BENEFICIAL'
+        polarity: 'BENEFICIAL',
+        endable: true
       },
       {
         effectId: run.id,
@@ -110,7 +113,8 @@ describe('listActiveGrantListings', () => {
         sourceActorId: SOURCE_ACTOR_ID,
         remainingTicks: 7,
         expiresAtCampaignMinute: null,
-        polarity: 'BENEFICIAL'
+        polarity: 'BENEFICIAL',
+        endable: true
       },
       {
         effectId: untimed.id,
@@ -119,7 +123,8 @@ describe('listActiveGrantListings', () => {
         sourceActorId: SOURCE_ACTOR_ID,
         remainingTicks: null,
         expiresAtCampaignMinute: null,
-        polarity: 'BENEFICIAL'
+        polarity: 'BENEFICIAL',
+        endable: true
       }
     ])
   })
@@ -131,6 +136,29 @@ describe('listActiveGrantListings', () => {
       lifecycle: { schemaVersion: 1, remainingTicks: 3 }
     })
     expect(listActiveGrantListings([nonGrant(grant)])).toEqual([])
+  })
+
+  it('marks a grant a Concentration maintains as not endable by hand (QUALITY-15.T3ae)', () => {
+    const free = grantEffect({
+      id: 0xd031,
+      createdOrdinal: 1,
+      lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+    })
+    const maintained = grantEffect({
+      id: 0xd032,
+      createdOrdinal: 2,
+      maintainedEffectStateId: testUuid(0xd033),
+      lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+    })
+    expect(
+      listActiveGrantListings([free, maintained]).map(({ effectId, endable }) => ({
+        effectId,
+        endable
+      }))
+    ).toEqual([
+      { effectId: free.id, endable: true },
+      { effectId: maintained.id, endable: false }
+    ])
   })
 })
 
