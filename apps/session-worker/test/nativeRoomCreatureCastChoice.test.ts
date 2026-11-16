@@ -3,13 +3,19 @@ import {
   srdCondition,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { SRD_ATHLETICS_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readActorConditionIds, readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readActorConditionIds,
+  readActorHitPoints,
+  readRoomHistory
+} from './roomHistoryReads.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
 
 const SPAWN_ID = testUuid(0xb10)
@@ -24,11 +30,15 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The Vampire Spawn claws a Wolf; its d20 shows 15 (a hit, not a critical), then its 2d4 show 3 and 3. */
-function clawsRoom() {
+/**
+ * The Vampire Spawn claws a Wolf; its d20 shows 15 (a hit, not a critical), then its 2d4 show 3
+ * and 3. Every later die draws `fallbackRoll`.
+ */
+function clawsRoom(fallbackRoll?: number) {
   return actionRoom({
     autoRoll: 'BOTH',
     rolls: [15, 3, 3].map(draw),
+    ...(fallbackRoll !== undefined && { fallbackRoll }),
     actors: [
       srdCreatureActor({ id: SPAWN_ID, creature: spawn }),
       srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
@@ -83,6 +93,45 @@ describe('a Creature action that picks its outcome at use (SPELLS-33.T3a6, D148)
     const { hitPoints, conditions } = await claw(await clawsRoom(), 'Grapple')
     expect(hitPoints).toBe(full)
     expect(conditions).toContain(GRAPPLED)
+  })
+
+  it('holds the Grapple option’s target until it escapes against the printed DC 13 (QUALITY-15.T3s)', async () => {
+    // The Wolf's escape d20 shows 20.
+    const room = await clawsRoom(draw(20))
+    expect((await claw(room, 'Grapple')).conditions).toContain(GRAPPLED)
+    await room.advanceTurn()
+    const [hold] = (await room.actionChoices(TARGET_ID)).escapes
+    expect(hold).toMatchObject({ dc: 13, actionCost: 'ACTION' })
+    const answer = await room.send({
+      type: 'ESCAPE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: TARGET_ID,
+      activeEffectId: hold!.activeEffectId,
+      checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+      acknowledgedWarnings: []
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(
+      history.receipts.flatMap((receipt) => {
+        const execution = parseReceiptExecution(receipt)
+        return execution.status === 'COMPLETE' &&
+          execution.applicationOutputs?.kind === 'ESCAPE_CHECK'
+          ? [execution.applicationOutputs]
+          : []
+      })
+    ).toMatchObject([
+      {
+        actorId: TARGET_ID,
+        check: { checkDefinitionId: SRD_ATHLETICS_SKILL_ID, dc: 13 },
+        outcome: 'ESCAPED',
+        removedConditionIds: [GRAPPLED]
+      }
+    ])
+    expect(history.activeEffects).toEqual([])
+    expect(readActorConditionIds(history, TARGET_ID)).not.toContain(GRAPPLED)
   })
 
   it('refuses a Claws attack that names no option', async () => {

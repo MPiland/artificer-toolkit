@@ -202,6 +202,13 @@ a SEQUENCE (grant plus ruling), which the same split compiles. Imprisonment now 
 outcome has no plan, which the earlier golden hid. Timed-manifestation rows (object and creature forms) stay refused:
 their data names no component or needs a new plan type, so they are not a lifetime-aspect gap.
 
+**Creature picks in the golden (current, QUALITY-15.T3s).** A Creature row whose action authors a pick (D148) pins
+`choice=[...]` through `compileCastChoicePlans`, as discovery compiles it. The Vampire Spawn Claws and the Vampire's
+Unarmed Strike were refused as "relationship outcomes need a bounded hit" only because the golden planned the whole,
+unpicked action. Each option's Grapple hold already compiles through `relationshipPlan` on the hit, so that UNBUILT
+message left the list. `relationshipPlan` still refuses a relationship in an unpicked `CHOICE` group: until the pick is
+made, the hit alone does not bound the hold.
+
 **Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
 product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
 `compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
