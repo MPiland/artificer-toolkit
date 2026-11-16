@@ -200,13 +200,14 @@ export type ReactionAttackOnOtherTriggerBindingAuthored = {
 
 /**
  * An attack against the reactor resolves as `outcome` (a hit, a miss, or either); the reaction
- * answers it (Giant Killer). `attackerWithinFeet` needs the attacker within that many feet of the
- * reactor, `attackerSize` an attacker whose size is in the range, `requiresSight` an attacker the
- * reactor sees.
+ * answers it (Giant Killer). `attackRange` needs a melee or a ranged attack, `attackerWithinFeet`
+ * the attacker within that many feet of the reactor, `attackerSize` an attacker whose size is in the
+ * range, `requiresSight` an attacker the reactor sees.
  */
 export type ReactionAttackResolvedOnSelfTriggerBindingAuthored = {
   kind: 'ATTACK_RESOLVED_ON_SELF'
   outcome: 'HIT' | 'MISS' | 'ANY'
+  attackRange?: 'MELEE' | 'RANGED'
   requiresSight?: boolean
   attackerWithinFeet?: number
   attackerSize?: SizeRangeAuthored
