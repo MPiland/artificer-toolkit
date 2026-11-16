@@ -535,8 +535,8 @@ export const PlacingAZonePreviewsItsArea: Story = {
     const canvas = page.getByRole('img', { name: 'Interactive campaign scene' })
     const bounds = canvas.getBoundingClientRect()
     const pointer = {
-      clientX: bounds.left + bounds.width / 2,
-      clientY: bounds.top + bounds.height / 2,
+      clientX: bounds.left + 4,
+      clientY: bounds.top + 4,
       pointerId: 42,
       pointerType: 'mouse'
     }
@@ -549,7 +549,7 @@ export const PlacingAZonePreviewsItsArea: Story = {
       ])
     })
 
-    // Pressing the map sets the center and reopens the tool; the aim preview ends.
+    // Pressing empty map (the centre holds a door, which a press would operate) sets the center and reopens the tool; the aim preview ends.
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     fireEvent.pointerDown(canvas, { ...pointer, button: 0, buttons: 1, pointerId: 1 })
     fireEvent.pointerUp(canvas, { ...pointer, button: 0, buttons: 0, pointerId: 1 })
@@ -612,7 +612,8 @@ export const GmOpensTheLiveSceneObjectEditor: Story = {
     await userEvent.click(page.getByRole('radio', { name: /^Edit$/ }))
     await userEvent.click(await page.findByRole('button', { name: 'Edit objects' }))
     const editor = await page.findByRole('dialog', { name: 'Edit live scene object' })
-    await expect(editor).toBeVisible()
+    // The drawer slides in, so the dialog is in the tree before it is visible.
+    await waitFor(() => expect(editor).toBeVisible())
     await userEvent.click(page.getByRole('button', { name: 'Close live scene editor' }))
     await waitFor(() =>
       expect(page.queryByRole('dialog', { name: 'Edit live scene object' })).not.toBeInTheDocument()
