@@ -138,6 +138,13 @@ async function gmEndsActorEffect(room: MazeRoom, actorId: string) {
   })
 }
 
+/** The Wolf's active grants in the GM projection a committed Encounter command answers with. */
+function wolfGrants(answer: Awaited<ReturnType<MazeRoom['send']>>) {
+  if (answer.type !== 'COMMAND_COMMITTED' || answer.delta?.scope !== 'ENCOUNTER')
+    throw new Error(`Expected a committed Encounter command: ${JSON.stringify(answer)}`)
+  return answer.delta.result.projection.actors.find(({ id }) => id === WOLF_ID)?.activeGrants
+}
+
 /** The GM ends the caster's Concentration through the Character's Sheet. */
 async function gmEndsConcentration(room: MazeRoom) {
   const commandId = crypto.randomUUID()
@@ -252,17 +259,23 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     expect(await wolfAbsence(room)).toBeNull()
   }, 120000)
 
-  it('Imprisonment removes a Wolf that fails its save until the GM ends it (QUALITY-15.T3ae)', async () => {
+  it('Imprisonment removes a Wolf that fails its save until the GM ends it from the drawer (QUALITY-15.T3ae, T3af)', async () => {
     // A natural 1.
     const { room } = await spellRoom(imprisonment, undefined, [], [0])
     const cast = await room.startAction(WOLF_ID, RANGE)
     expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
     expect(await wolfAbsence(room)).toBe('EFFECT')
+    // The drawer lists the removal by its spell, with End.
+    const [stored] = (await readRoomHistory(room.room.base.stub)).activeEffects
+    expect(wolfGrants(cast.answer)).toEqual([
+      expect.objectContaining({ effectId: stored?.id, label: imprisonment.label, endable: true })
+    ])
 
     const ended = await gmEndsActorEffect(room, WOLF_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await wolfAbsence(room)).toBeNull()
     expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
+    expect(wolfGrants(ended)).toEqual([])
   }, 120000)
 
   it('refuses the GM ending a Maze its Concentration maintains on a Wolf (QUALITY-15.T3ae)', async () => {
