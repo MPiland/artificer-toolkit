@@ -17,7 +17,6 @@ import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   compileConditionEffect,
-  type CompiledDuration,
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
@@ -270,6 +269,7 @@ import {
   escalationCondition,
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
+  immediateFollowUpSaveDuration,
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
   repeatCadenceSupported,
@@ -767,14 +767,6 @@ function repeatingImmediateFollowUpSavePlan(
   }
 }
 
-/** The authored duration of a hit's result block, which its follow-up save's condition lasts. */
-function immediateFollowUpSaveDuration(
-  action: Dnd5eCompiledEffectActionSource
-): CompiledDuration | undefined {
-  const saveEntry = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry
-  return saveEntry && 'duration' in saveEntry ? saveEntry.duration : undefined
-}
-
 /**
  * A one-time save's condition with a duration (D62.2, "poisoned for 1 minute"): the condition the
  * failed save applies is owned by an Encounter active effect that counts the target's turns and
@@ -912,6 +904,10 @@ function timedConditionPlan(
   const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
   const indefinite = !duration || untilDispelled
   const grantEntry = grantEntries[0]
+  const [removal] = removalEntries
+  // A removal applies no stored state at cast, so its effect exists exactly when its plan does: it is
+  // gated on the test's result path (Banishment's failed save), not on a condition being applied.
+  const resultGate = removal ? entryResultGate(action, lead.entry.pathCode) : null
   const { failureMarginRider: rider } = lead.entry
   // The rider's conditions share the failure's path, so together they fit its immunity facts.
   const riderUnsupported =
@@ -940,6 +936,7 @@ function timedConditionPlan(
         !endTriggers.some((trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END')
       : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
+    resultGate === undefined ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.
     (turnAnchor && (indefinite || grantEntry)) ||
@@ -958,7 +955,7 @@ function timedConditionPlan(
       effectId: action.effectId,
       entryId: lead.entry.entryId,
       minimumRoll: turnEndGate.minimumRoll,
-      keepsTurn: removalEntries[0]?.outcome.keepsTurn,
+      keepsTurn: removal?.outcome.keepsTurn,
       heldAlone: outcomeEntries.length === 1 && !turnAnchor && !rider && !maintenance,
       initialRemaining,
       lifecycle
@@ -979,9 +976,8 @@ function timedConditionPlan(
     ...(grantContribution && {
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
-    ...(removalEntries[0] && {
-      playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
-    }),
+    ...(removal && { playAbsenceContribution: { keepsTurn: removal.outcome.keepsTurn } }),
+    ...(resultGate && { resultGate }),
     lifecycle,
     // A removal held with no condition (Etherealness) has no condition to remove at its end.
     adapterFacts:
