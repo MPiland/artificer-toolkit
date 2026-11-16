@@ -23,7 +23,9 @@ export const acidVial: EquipmentAuthored = {
         },
         range: {
           id: S.equipmentChildId(S.equipId(119), 0x211, 1),
-          rangeKind: S.RANGE_KIND.SPECIAL
+          rangeKind: S.RANGE_KIND.DISTANCE,
+          amount: 20,
+          unit: S.MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
           selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

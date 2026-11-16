@@ -299,6 +299,19 @@ export function isChosenAmountHeal(
   return true
 }
 
+/**
+ * Whether a heal's amount is its bonuses alone, resolved from the actor at use (Wholeness of Body:
+ * three times a monk level): a fixed heal with bonuses and no authored amount of its own.
+ */
+export function isBonusAmountHeal(
+  outcome: Extract<Dnd5eAuthoredOutcome, { effectKind: 'HEAL' }>
+): boolean {
+  if (outcome.valueKind !== 'FIXED' || outcome.scalingKind !== 'NONE') return false
+  if (!outcome.bonuses?.length || outcome.amount !== 0 || outcome.temporary) return false
+  validateHealBonuses(outcome.bonuses)
+  return true
+}
+
 export function validateHealBonuses(value: unknown): void {
   if (value === undefined) return
   if (!Array.isArray(value) || value.length > 100)

@@ -76,7 +76,7 @@ const laterCampaign = campaignSummaryDtoSchema.parse({
 })
 const campaignPages = vi.hoisted(() => ({
   results: [] as unknown[],
-  status: 'Exhausted' as 'CanLoadMore' | 'Exhausted',
+  status: 'Exhausted' as 'CanLoadMore' | 'Exhausted' | 'LoadingFirstPage',
   loadMore: vi.fn()
 }))
 const listings = new Map([baseListing, otherListing].map((entry) => [entry.listingPublicId, entry]))
@@ -167,6 +167,22 @@ describe('SocialListingFormPage', () => {
 
     expect(await screen.findByDisplayValue(otherListing.summary)).toBeInTheDocument()
     expect(screen.queryByDisplayValue(/Unsaved/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the Campaign select disabled until the first page of Campaigns arrives', async () => {
+    campaignPages.status = 'LoadingFirstPage'
+    try {
+      const { rerender } = renderWithAppProviders(<SocialListingFormPage />)
+      expect(await screen.findByRole('combobox', { name: 'Campaign' })).toBeDisabled()
+
+      campaignPages.results = [laterCampaign]
+      campaignPages.status = 'Exhausted'
+      rerender(<SocialListingFormPage />)
+      expect(screen.getByRole('combobox', { name: 'Campaign' })).toBeEnabled()
+    } finally {
+      campaignPages.results = []
+      campaignPages.status = 'Exhausted'
+    }
   })
 
   it('loads a later page of Campaigns and offers the Campaign found there', async () => {

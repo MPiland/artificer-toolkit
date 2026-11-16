@@ -174,10 +174,7 @@ export const ankheg: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(26, 9),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(26, 9), S.actionId(26, 0xf01), 30, 5)
           },
           paths: [
             {

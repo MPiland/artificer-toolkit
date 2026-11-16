@@ -476,7 +476,7 @@ export const unicorn: CreatureAuthored = {
                 kind: 'ACTION',
                 triggerCode: 'ACTIVATED',
                 activation: { code: 'FREE' },
-                range: { id: '00000000-0005-000a-0070-011400000000', rangeKind: 'SPECIAL' },
+                range: { id: '00000000-0005-000a-0070-011400000000', rangeKind: 'SELF' },
                 resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 3 }
               },
               paths: [

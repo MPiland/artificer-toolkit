@@ -362,6 +362,7 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D dice healing requires one exact resolved healing expression.': 'INVALID_INPUT',
   'D&D spent healing requires one exact resolved amount and the units spent.': 'INVALID_INPUT',
   'D&D recurring healing requires one exact resolved fixed amount.': 'INVALID_INPUT',
+  'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
   'D&D area with no hit-point pool tests each creature it catches with a save.': 'UNBUILT',
@@ -384,10 +385,7 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   // compiled it before it compiled through the product's plan check (QUALITY-15.T3c), which refuses it.
   'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form or GM ruling active-effect plans.':
     'UNBUILT',
-  'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.': 'UNBUILT',
-  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT',
-  'D&D willing target needs an outcome a creature accepts.': 'UNBUILT',
-  'D&D action activation must take exactly one action, bonus action or reaction.': 'UNBUILT'
+  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT'
 }
 
 describe('SRD effect compile golden', () => {

@@ -2,6 +2,7 @@ import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema
 
 import {
   DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+  DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
@@ -32,6 +33,28 @@ export function recurringHealAmountFacts(
   }
 }
 
+/** Whether a node of the graph reads the fact. */
+export const bindsFact = (published: ServerPublishedRuleDefinitionDto, factKey: string) =>
+  published.definition.nodes.some((node) =>
+    Object.values(node.inputs).some(
+      (binding) => binding.kind === 'FACT' && binding.factKey === factKey
+    )
+  )
+
+/** The amount of a heal its own bonuses give: the one resolved row, which holds a whole number. */
+export function resolvedHealAmountFacts(
+  published: ServerPublishedRuleDefinitionDto,
+  rows: readonly ResolvedHealRow[]
+): Record<string, number> {
+  if (!bindsFact(published, DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY)) return {}
+  const amount = rows.length === 1 ? /^\d+$/.exec(rows[0]!.expression) : null
+  if (!amount)
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D bonus healing requires one exact resolved amount.'
+    )
+  return { [DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY]: Number(amount[0]) }
+}
+
 /**
  * The amount of a heal the caster sized at use: the per-unit amount for each unit spent from the
  * pool, or this creature's share of a pool heal the caster divides among the creatures it reaches.
@@ -41,12 +64,7 @@ export function spentHealAmountFacts(
   rows: readonly ResolvedHealRow[],
   chosen: { spentUnits?: number; dividedAmount?: number }
 ): Record<string, number> {
-  const requiresAmount = published.definition.nodes.some((node) =>
-    Object.values(node.inputs).some(
-      (binding) => binding.kind === 'FACT' && binding.factKey === DND5E_SPENT_HEAL_AMOUNT_FACT_KEY
-    )
-  )
-  if (!requiresAmount) return {}
+  if (!bindsFact(published, DND5E_SPENT_HEAL_AMOUNT_FACT_KEY)) return {}
   const { spentUnits, dividedAmount } = chosen
   if (dividedAmount !== undefined) {
     if (!Number.isSafeInteger(dividedAmount) || dividedAmount < 1)
@@ -60,3 +78,13 @@ export function spentHealAmountFacts(
     )
   return { [DND5E_SPENT_HEAL_AMOUNT_FACT_KEY]: Number(perUnit[0]) * spentUnits }
 }
+
+/** The amount fact a heal reads, whether the caster sizes it or its bonuses give it. */
+export const healFacts = (
+  published: ServerPublishedRuleDefinitionDto,
+  rows: readonly ResolvedHealRow[],
+  chosen: { spentUnits?: number; dividedAmount?: number }
+) => ({
+  ...spentHealAmountFacts(published, rows, chosen),
+  ...resolvedHealAmountFacts(published, rows)
+})

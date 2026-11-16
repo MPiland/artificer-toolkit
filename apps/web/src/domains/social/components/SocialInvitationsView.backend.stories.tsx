@@ -10,6 +10,7 @@ import {
   STORY_CAMPAIGN,
   type StoryAccountKey
 } from '../../../../../apis/tests/developmentReviewDataScenarios'
+import { socialStoryLoadTimeout } from '../stories/storyLoad'
 import { SocialInvitationsView } from './SocialInvitationsView'
 
 const frameTestId = 'seeded-received-invitation'
@@ -39,9 +40,13 @@ function SeededInvitations({ missing }: { missing: boolean }) {
 }
 
 async function readSeededInvitation(canvas: {
-  findByTestId: (id: string) => Promise<HTMLElement>
+  findByTestId: (
+    id: string,
+    options: object,
+    waitForOptions: { timeout: number }
+  ) => Promise<HTMLElement>
 }) {
-  const frame = await canvas.findByTestId(frameTestId)
+  const frame = await canvas.findByTestId(frameTestId, {}, { timeout: socialStoryLoadTimeout })
   return campaignInviteDtoSchema.parse(JSON.parse(z.string().parse(frame.dataset.invitation)))
 }
 
@@ -62,7 +67,7 @@ type Story = StoryObj<typeof meta>
 
 export const FocusedDeepLink: Story = {
   play: async ({ canvas }) => {
-    const row = await canvas.findByRole('article', {}, { timeout: 5000 })
+    const row = await canvas.findByRole('article', {}, { timeout: socialStoryLoadTimeout })
     await waitFor(() => expect(row.ownerDocument.activeElement).toBe(canvas.getByRole('article')))
     await expect(canvas.getByRole('article')).toHaveAttribute('data-highlighted', 'true')
   }
@@ -72,7 +77,11 @@ export const MissingDeepLink: Story = {
   args: { missing: true },
   play: async ({ canvas }) => {
     await expect(
-      await canvas.findByText('This item is no longer available.', {}, { timeout: 5000 })
+      await canvas.findByText(
+        'This item is no longer available.',
+        {},
+        { timeout: socialStoryLoadTimeout }
+      )
     ).toBeVisible()
   }
 }
