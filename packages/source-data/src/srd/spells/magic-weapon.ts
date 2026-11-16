@@ -19,6 +19,7 @@ import {
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -35,6 +36,7 @@ export const magicWeapon: SpellAuthored = {
   classIds: [CLASS_IDS.PALADIN, CLASS_IDS.WIZARD],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
   magicSchoolId: schoolId('TRANSMUTATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x210, 1),

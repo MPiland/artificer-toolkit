@@ -9,6 +9,7 @@ import {
   RANGE_KIND,
   SUBJECT,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -33,6 +34,7 @@ export const scrying: SpellAuthored = {
   materialDescription:
     'a focus worth at least 1,000 gp, such as a crystal ball, a silver mirror, or a font filled with holy water',
   magicSchoolId: schoolId('DIVINATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.SCRYING, 0x210, 1),

@@ -14,6 +14,7 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   VALUE_DOMAIN_CODE,
   type SpellAuthored
@@ -47,6 +48,7 @@ export const gaseousForm: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'a bit of gauze and a wisp of smoke',
   magicSchoolId: schoolId('TRANSMUTATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x210, 1),

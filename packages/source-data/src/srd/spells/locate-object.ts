@@ -8,6 +8,7 @@ import {
   RANGE_KIND,
   SUBJECT,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -32,6 +33,7 @@ export const locateObject: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'a forked twig',
   magicSchoolId: schoolId('DIVINATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.LOCATE_OBJECT, 0x210, 1),
