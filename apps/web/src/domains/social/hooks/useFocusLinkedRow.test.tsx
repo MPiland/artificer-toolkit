@@ -11,7 +11,7 @@ describe('useFocusLinkedRow', () => {
   it('focuses the named row once and leaves later focus alone', () => {
     const { rerender } = render(<Row elementId='row' instance={1} />)
     expect(document.getElementById('row')).toHaveFocus()
-    document.body.focus()
+    document.getElementById('row')?.blur()
     rerender(<Row elementId='row' instance={1} />)
     expect(document.getElementById('row')).not.toHaveFocus()
   })
