@@ -132,7 +132,7 @@ export function spellComponentsLabel(
 }
 
 /** An Effect a Character activates as an action, as against a passive trait that is never offered. */
-export const isActivatedEffect = (effect: { invocation: { kind: string } }) =>
+export const isActivatedEffect = (effect: { invocation: { kind?: string } }) =>
   effect.invocation.kind !== 'PASSIVE'
 
 /**
