@@ -386,6 +386,12 @@ export const STORY_CHARACTERS = {
   }
 } as const
 
+/** The leveled spells the story multiclass Wizard prepares: a first-level Wizard prepares two. */
+export const STORY_PREPARED_SPELLS = ['Magic Missile', 'Burning Hands'] as const
+
+/** The note the Spell inspector story reads on the story multiclass's Burning Hands. */
+export const STORY_SPELL_NOTE = 'Cast from the spellbook, never from memory.'
+
 /**
  * The Campaign Storybook backend stories open by name (D221), because its id is random: the story
  * account hosts it with play settings, one Encounter Blueprint whose Run is started, a loot table

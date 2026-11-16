@@ -60,7 +60,33 @@ export const DraftPending: Story = {
   parameters: { tanstack: { router: sheetRouter(STORY_CHARACTERS.draftPending) } }
 }
 
-export const AbilityModifierStates: Story = opensCharacter(STORY_CHARACTERS.fighter)
+const abilityModifierStates = [
+  { score: 16, checkModifier: 3 },
+  { score: 10, checkModifier: 0 },
+  { score: 6, checkModifier: -2 }
+] as const
+
+// Composed: the seeded Fighter's Common slice with its first three abilities at a positive, a zero
+// and a negative modifier.
+export const AbilityModifierStates: Story = {
+  parameters: {
+    queryOverride: sheetSliceOverride('COMMON', characterSheetCommonDtoSchema, (common) => ({
+      ...common,
+      overview: {
+        ...common.overview,
+        abilities: common.overview.abilities.map((ability, index) => ({
+          ...ability,
+          ...abilityModifierStates[index]
+        }))
+      }
+    }))
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.fighter)
+    for (const label of ['Score 16, modifier +3', 'Score 10, modifier +0', 'Score 6, modifier -2'])
+      expect((await canvas.findAllByLabelText(label)).length).toBeGreaterThan(0)
+  }
+}
 
 const skillProficiencies = ['NONE', 'HALF', 'FULL', 'DOUBLE'] as const
 

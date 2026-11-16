@@ -562,7 +562,14 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
  * initiative. The actor's own `absence` records the state; this contribution is the rule behind it.
  */
 const activeRuleEffectPlayAbsenceContributionDtoSchema = lazySchema(() =>
-  z.strictObject({ kind: z.literal('PLAY_ABSENCE'), keepsTurn: z.boolean() })
+  z.strictObject({
+    kind: z.literal('PLAY_ABSENCE'),
+    keepsTurn: z.boolean(),
+    /** The removing Feature or spell label ("Banishment"), frozen at creation; the GM ends it by it. */
+    sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+    /** Whether the source was hidden from players when the removal was created. */
+    sourceHidden: z.boolean()
+  })
 )
 
 /**
