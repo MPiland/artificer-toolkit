@@ -11,6 +11,7 @@ import {
   STORY_CAMPAIGN
 } from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededHostedListing } from '../../stories/SeededSocialListing'
+import { socialStoryLoadTimeout } from '../../stories/storyLoad'
 import { SocialListingInvitations } from './SocialListingInvitations'
 
 /** The backend's own refusal of a revoke against an invitation that has moved on. */
@@ -72,7 +73,7 @@ type Story = StoryObj<typeof meta>
 
 export const FocusedDeepLink: Story = {
   play: async ({ canvas }) => {
-    const row = await canvas.findByRole('article', {}, { timeout: 5000 })
+    const row = await canvas.findByRole('article', {}, { timeout: socialStoryLoadTimeout })
     // A horizon refresh can remount the row, so the focused row is the one on screen now.
     await waitFor(() => expect(row.ownerDocument.activeElement).toBe(canvas.getByRole('article')))
     await expect(canvas.getByRole('article')).toHaveAttribute('data-highlighted', 'true')
@@ -84,14 +85,22 @@ export const MissingDeepLink: Story = {
   args: { missing: true },
   play: async ({ canvas }) => {
     await expect(
-      await canvas.findByText('This item is no longer available.', {}, { timeout: 5000 })
+      await canvas.findByText(
+        'This item is no longer available.',
+        {},
+        { timeout: socialStoryLoadTimeout }
+      )
     ).toBeVisible()
   }
 }
 
 export const RevokeInvitation: Story = {
   play: async ({ canvas }) => {
-    const frame = await canvas.findByTestId(invitationFrameTestId)
+    const frame = await canvas.findByTestId(
+      invitationFrameTestId,
+      {},
+      { timeout: socialStoryLoadTimeout }
+    )
     const invitation = campaignInviteDtoSchema.parse(
       JSON.parse(z.string().parse(frame.dataset.invitation))
     )
@@ -101,7 +110,7 @@ export const RevokeInvitation: Story = {
         expect(writesTo(api.social.invitations.revoke)).toEqual([
           { invitePublicId: invitation.invitePublicId, expectedVersion: invitation.version }
         ]),
-      { timeout: 5000 }
+      { timeout: socialStoryLoadTimeout }
     )
   }
 }

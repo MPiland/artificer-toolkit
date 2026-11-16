@@ -37,7 +37,13 @@ type Story = StoryObj<typeof meta>
 
 export const SeededBlockIsListed: Story = {
   play: async ({ canvas }) => {
-    await expect(await canvas.findByText(`@${REVIEW_STORY_BLOCKED.username}`)).toBeVisible()
+    await expect(
+      await canvas.findByText(
+        `@${REVIEW_STORY_BLOCKED.username}`,
+        {},
+        { timeout: socialStoryLoadTimeout }
+      )
+    ).toBeVisible()
   }
 }
 
