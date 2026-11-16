@@ -111,17 +111,41 @@ export function isImmediateFollowUpSave(save: FollowUpSaveOutcome): save is Foll
 }
 
 /**
- * The second condition a repeated save leaves in place of the held one when it fails ("restrained,
- * then petrified"): its only failure outcome, ending the held effect. Null for any other repeat.
+ * The second condition a repeated save leaves when it fails: its only failure outcome. By default it
+ * ends the held effect, in place of the held condition ("restrained, then petrified"); with
+ * `endsEffect: false` the effect goes on holding it beside the held one for the rest of its duration
+ * ("subjected to the petrified condition for the duration"). Null for any other repeat.
  */
 export function escalationCondition(
-  repeat: FollowUpSaveOutcome
+  repeat: FollowUpSaveOutcome,
+  { endsEffect }: { endsEffect: boolean } = { endsEffect: true }
 ): FollowUpSaveConditionOutcome | null {
   const { onFailure } = repeat
   const [outcome] = onFailure.kind === 'OUTCOMES' ? onFailure.outcomes : []
   return onFailure.kind === 'OUTCOMES' &&
-    onFailure.endCurrent &&
+    onFailure.endCurrent === endsEffect &&
+    !onFailure.gate &&
     onFailure.outcomes.length === 1 &&
+    outcome?.effectKind === 'CONDITION' &&
+    UUID.test(outcome.conditionId)
+    ? outcome
+    : null
+}
+
+/**
+ * The condition a repeated save's effect leaves when it runs its full duration ("turned to stone
+ * until the effect is removed"): the duration-complete branch's only outcome, ending the effect.
+ * Null for any other branch, or none.
+ */
+export function durationCompleteCondition(
+  repeat: FollowUpSaveOutcome
+): FollowUpSaveConditionOutcome | null {
+  const branch = repeat.onDurationComplete
+  const [outcome] = branch?.kind === 'OUTCOMES' ? branch.outcomes : []
+  return branch?.kind === 'OUTCOMES' &&
+    branch.endCurrent &&
+    !branch.gate &&
+    branch.outcomes.length === 1 &&
     outcome?.effectKind === 'CONDITION' &&
     UUID.test(outcome.conditionId)
     ? outcome

@@ -7,6 +7,8 @@ import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
@@ -97,6 +99,9 @@ export function dnd5eRepeatSave(input: {
   requestNodeId: string
   heldConditionIds?: readonly string[]
   escalationConditionId?: string
+  /** The escalation does not end the effect, which holds it for the rest of its duration. */
+  escalationHeld?: boolean
+  durationCompleteConditionId?: string
   repeatRollInfluence?: FollowUpSaveOutcome['repeatRollInfluence']
   repeatAttemptGate?: FollowUpSaveOutcome['repeatAttemptGate']
   /** The save is made only when a repeat trigger fires; the turn tick rolls none. */
@@ -104,6 +109,7 @@ export function dnd5eRepeatSave(input: {
 }): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
   const { abilityDefinitionId, savingThrow, heldConditionIds = [] } = input
   const { repeatRollInfluence, repeatAttemptGate, escalationConditionId, triggersOnly } = input
+  const { escalationHeld, durationCompleteConditionId } = input
   const casterDc = savingThrow?.dcMethod === 'SOURCE_SAVE_DC'
   const baseDc = savingThrow?.baseDc
   const fixedDc =
@@ -122,6 +128,10 @@ export function dnd5eRepeatSave(input: {
       }),
       ...(escalationConditionId !== undefined && {
         [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: escalationConditionId
+      }),
+      ...(escalationHeld && { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY]: true }),
+      ...(durationCompleteConditionId !== undefined && {
+        [DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY]: durationCompleteConditionId
       }),
       ...(repeatRollInfluence && {
         [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY]: repeatRollInfluence.influence,

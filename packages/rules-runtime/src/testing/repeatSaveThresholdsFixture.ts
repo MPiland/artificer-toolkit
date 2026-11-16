@@ -26,11 +26,25 @@ export type RepeatSaveAttempts = {
 }
 
 /**
- * A Power Word Stun whose repeated save counts to thresholds. With `escalates` it has no duration of
- * its own and a failed tally leaves the petrified condition in place of the held one (Prismatic
- * Spray's sixth colour).
+ * How a failed tally escalates to the petrified condition. `ENDS` has no duration of its own and
+ * leaves the petrified condition in place of the held one (Prismatic Spray's sixth colour). `HELD`
+ * keeps the spell's minute, adds the petrified condition while it lasts, and leaves it when that
+ * minute runs its full course (Flesh to Stone).
  */
-function thresholdSpell(attempts: RepeatSaveAttempts, escalates: boolean): SpellAuthored {
+export type RepeatSaveEscalation = 'ENDS' | 'HELD'
+
+const petrifiedOutcomes = (endCurrent: boolean) => ({
+  kind: 'OUTCOMES' as const,
+  endCurrent,
+  resultKind: 'SINGLE' as const,
+  outcomes: [{ id: testUuid(0xe308), effectKind: 'CONDITION' as const, conditionId: PETRIFIED }]
+})
+
+/** A Power Word Stun whose repeated save counts to thresholds, escalating as `escalation` says. */
+function thresholdSpell(
+  attempts: RepeatSaveAttempts,
+  escalation: RepeatSaveEscalation | undefined
+): SpellAuthored {
   const [effect] = powerWordStun.effects ?? []
   const [path] = effect!.paths
   if (!path || !('resultBlock' in path)) throw new Error('Expected a result-block path.')
@@ -46,25 +60,16 @@ function thresholdSpell(attempts: RepeatSaveAttempts, escalates: boolean): Spell
             ...path,
             resultBlock: {
               ...block,
-              ...(escalates && { duration: undefined }),
+              ...(escalation === 'ENDS' && { duration: undefined }),
               outcomes: block.outcomes.map((outcome) =>
                 outcome.effectKind === 'FOLLOW_UP_SAVE'
                   ? {
                       ...outcome,
                       attempts: { kind: 'THRESHOLDS' as const, ...attempts },
-                      ...(escalates && {
-                        onFailure: {
-                          kind: 'OUTCOMES' as const,
-                          endCurrent: true,
-                          resultKind: 'SINGLE' as const,
-                          outcomes: [
-                            {
-                              id: testUuid(0xe308),
-                              effectKind: 'CONDITION' as const,
-                              conditionId: PETRIFIED
-                            }
-                          ]
-                        }
+                      ...(escalation === 'ENDS' && { onFailure: petrifiedOutcomes(true) }),
+                      ...(escalation === 'HELD' && {
+                        onFailure: petrifiedOutcomes(false),
+                        onDurationComplete: petrifiedOutcomes(true)
                       })
                     }
                   : outcome
@@ -77,8 +82,8 @@ function thresholdSpell(attempts: RepeatSaveAttempts, escalates: boolean): Spell
   }
 }
 
-function compiled(attempts: RepeatSaveAttempts, escalates: boolean) {
-  const spell = thresholdSpell(attempts, escalates)
+function compiled(attempts: RepeatSaveAttempts, escalation: RepeatSaveEscalation | undefined) {
+  const spell = thresholdSpell(attempts, escalation)
   const { entry } = compiledTestSpellCast({
     spell,
     cast: {
@@ -101,9 +106,12 @@ function compiled(attempts: RepeatSaveAttempts, escalates: boolean) {
 /** The active-effect definition a cast of the threshold spell plans for `targetActorId`. */
 export async function plannedThresholdDefinition(
   attempts: RepeatSaveAttempts,
-  { targetActorId = TARGET_ID, escalates = false } = {}
+  {
+    targetActorId = TARGET_ID,
+    escalation
+  }: { targetActorId?: string; escalation?: RepeatSaveEscalation } = {}
 ) {
-  const { executionPlan, activeEffectPlan } = compiled(attempts, escalates)
+  const { executionPlan, activeEffectPlan } = compiled(attempts, escalation)
   if (executionPlan.kind !== 'SINGLE_GRAPH') throw new Error('Expected one graph.')
   const result = await executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({

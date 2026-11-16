@@ -270,6 +270,7 @@ import { triggeringRollDiceNodes, triggeringRollDieFacts } from './triggeringRol
 import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
+  durationCompleteCondition,
   escalationCondition,
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
@@ -1323,7 +1324,25 @@ function repeatingDirectFollowUpSavePlan(
     lead.effectKind === 'CONDITION' && leadEntries.length === 1 && !leadEntry.duration
       ? escalationCondition(save)
       : null
-  if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
+  // A settled failure tally on a condition with its own duration adds a second condition the effect
+  // holds beside it until that duration ends (Flesh to Stone's petrification).
+  const heldEscalation =
+    lead.effectKind === 'CONDITION' &&
+    leadEntries.length === 1 &&
+    leadEntry.duration &&
+    save.attempts.kind === 'THRESHOLDS'
+      ? escalationCondition(save, { endsEffect: false })
+      : null
+  // Only an effect with a duration of its own runs it to completion.
+  const completion = leadEntry.duration ? durationCompleteCondition(save) : null
+  const knownConditionIds = action.conditionDefinitionIds ?? []
+  if (
+    [escalation, heldEscalation, completion].some(
+      (condition) => condition && !knownConditionIds.includes(condition.conditionId)
+    ) ||
+    (heldEscalation &&
+      leadConditions.some(({ conditionId }) => conditionId === heldEscalation.conditionId))
+  )
     return null
   const sourceTurn =
     lead.effectKind === 'CONDITION' && !leadEntry.duration ? sourceTurnStartSave(save) : null
@@ -1338,7 +1357,9 @@ function repeatingDirectFollowUpSavePlan(
     savingThrow: save.savingThrow,
     requestNodeId: 'repeat-save-d20',
     heldConditionIds: leadConditions.map(({ conditionId }) => conditionId),
-    escalationConditionId: escalation?.conditionId,
+    escalationConditionId: (escalation ?? heldEscalation)?.conditionId,
+    escalationHeld: heldEscalation !== null,
+    durationCompleteConditionId: completion?.conditionId,
     repeatRollInfluence: save.repeatRollInfluence,
     repeatAttemptGate: save.repeatAttemptGate,
     triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
@@ -1362,13 +1383,16 @@ function repeatingDirectFollowUpSavePlan(
         UUID.test(conditionId) && (action.conditionDefinitionIds ?? []).includes(conditionId)
     )
       ? {
-          conditionContributions: leadConditions.map(
-            ({ conditionId, recordsSource, fleesSource }) => ({
-              conditionId,
-              recordsSource,
-              fleesSource
-            })
-          )
+          // The effect owns a held escalation from the start, so whatever ends it early (its
+          // Concentration) releases the escalation too; until the tally settles it is not present.
+          conditionContributions: [
+            ...leadConditions,
+            ...(heldEscalation ? [heldEscalation] : [])
+          ].map(({ conditionId, recordsSource, fleesSource }) => ({
+            conditionId,
+            recordsSource,
+            fleesSource
+          }))
         }
       : grantPlan && grantContribution
         ? {
@@ -1384,10 +1408,13 @@ function repeatingDirectFollowUpSavePlan(
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
     (escalation === null &&
+      heldEscalation === null &&
       !sourceTurn &&
       !failsWithDamage &&
       save.onFailure.kind !== 'CONTINUE') ||
-    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
+    (save.onDurationComplete !== undefined &&
+      save.onDurationComplete.kind !== 'END' &&
+      completion === null) ||
     (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
     return null
