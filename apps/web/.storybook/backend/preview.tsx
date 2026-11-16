@@ -96,7 +96,7 @@ async function connectStoryBackend(
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
   const reads = unoverriddenReads(convex.convexClient)
   const queryClient = createAppQueryClient(convex)
-  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
+  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient, reads)
   // The provider sets this fetcher again on mount; the cached token keeps that from pausing the
   // story's first reads on another token request.
   let token: string | null = null

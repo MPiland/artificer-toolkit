@@ -495,7 +495,7 @@
           "status": "DONE",
           "journeyTests": [
             "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx",
-            "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.stories.tsx"
+            "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.backend.stories.tsx"
           ],
           "journeyStatus": "verified",
           "origin": [],
@@ -506,7 +506,7 @@
               "proof": [
                 "apps/web/src/domains/fixtureContracts.test.ts",
                 "apps/web/src/test/validatedFixture.test.ts",
-                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.stories.tsx",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.backend.stories.tsx",
                 "apps/web/src/marketing/stories/MarketingProductCapture.stories.tsx",
                 "apps/web/src/domains/characters/builder/core/CharacterBuilderAuthoringRuntime.stories.tsx",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx",
@@ -2410,7 +2410,7 @@
             },
             {
               "id": "PLATFORM-28.T6a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2421,11 +2421,12 @@
               },
               "text": "Story Characters (single-class Fighter, Fighter/Wizard multiclass, a caster) built through Builder commands from SRD content, with the Character name-lookup harness; a backend sheet-story meta reads the real sheet subscription; the Shell base stories (Desktop, Mobile, Tablet, DraftPending, AbilityModifierStates) and the Status stories read them.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (7 files, about 57 stories, whole about 20): rest and composed Shell states to T6b, Inspector and Extras to T6c, Astral Tear, Builder runtime, marketing capture and the story-only module deletion to T6d. Data fixtures imported by unit tests stay (D221); only story-only modules are deleted.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip 6e9d09c00: Tests 43897227084, Live 43897227505, Browser journeys 43897227340 green. Delivered on the T6b branch. seedStoryCharacters (developmentReviewData.ts) builds Story Fighter, Story Multiclass and Story Caster through Builder commands from SRD content, plus a Builder draft for Story Draft Pending (Fighter Poisoned, Caster slots spent); storyData.test asserts each through real reads, including an idempotent re-seed. findSeededSheetCharacter and sheetRouter (characterSheetBackendStory.ts) open the real Sheet route; the Shell base stories (CharacterSheetShell.backend.stories.tsx) and StatusEditorDesktop/Mobile (CharacterSheetStatus.backend.stories.tsx) read them."
             },
             {
               "id": "PLATFORM-28.T6b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2436,11 +2437,12 @@
               },
               "text": "Rest stories on the real rest preview with roll spies built through the roll record schema; Shell ProficiencyStates, SpellStates, ActionTypes and ActiveBonusesMobile as composed stories, with the preview override naming a sheet slice.",
               "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip 6e9d09c00: Tests 43897227084, Live 43897227505, Browser journeys 43897227340 green. Rest stories run on the real rest preview with roll spies parsed through the roll record schema; ProficiencyStates, SpellStates, ActionTypes and ActiveBonusesMobile are composed through sheetSliceOverride, which parses each Sheet slice through its own data schema. Story sign-in and client address handling follow the phase (bounded 429 retry); the Hosted Page story re-queries its dialog inside waitFor."
             },
             {
               "id": "PLATFORM-28.T6c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2450,7 +2452,8 @@
                 "after": ["PLATFORM-28.T6b"]
               },
               "text": "Inspector stories on the real panel query (variants composed) and Extras stories with a seeded companion and vehicle; the sheet command spy records a multi-mutation write and a failing variant.",
-              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221). Rider 2026-11-16 from the T6b review: AbilityModifierStates currently opens the Fighter with the same play as Desktop; it must assert the seeded Fighter's ability modifiers (a positive, zero and negative state) or be composed to show them.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T6d",
@@ -2580,7 +2583,7 @@
             },
             {
               "id": "PLATFORM-28.T7c3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "text": "GmSeesMoraleOutcome runs on seeded state (REPLACE_OPTIONAL_COMBAT_RULES before START, then MORALE_SAVE and CONFIRM_MORALE), and PlayerSeesShownScene through a real showings.show in its own Campaign and host.",
               "wsjf": {
@@ -2591,11 +2594,12 @@
                 "after": ["PLATFORM-28.T7c2"]
               },
               "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m827; slice tip 79fbd65e7: Tests 43882581632, Live 43882581852, Browser journeys 43882581592 green. GmSeesMoraleOutcome and PlayerSeesShownScene are backend stories on seeded state with spied, unsent writes (D218): morale enabled through REPLACE_OPTIONAL_COMBAT_RULES before START, then MORALE_SAVE and CONFIRM_MORALE (FLEE) on the visible SRD Balor (the custom Warden has no Wisdom save, so the room refused it); the shown scene through a real showings.show in STORY_SHOWING_CAMPAIGN with its own host. storyData.test asserts the Balor's morale and the showing Campaign through real reads (RED at the merge-base). The fake stories, shownScene and the harness show branch are deleted with a no-importer proof."
             },
             {
               "id": "PLATFORM-28.T7c3c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "text": "The tabletop stories that need a mid-play change (facing rotation, the marker, preview ending when the token leaves) become real-component tests fed live frames parsed through the schema; the reaction halo and the forced-movement picker run on a pending occurrence seeded through real commands from the seeded story Characters.",
               "wsjf": {
@@ -2605,7 +2609,8 @@
                 "size": 5,
                 "after": ["PLATFORM-28.T7c2"]
               },
-              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221)."
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T7d",
@@ -2626,6 +2631,20 @@
               },
               "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T9",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PLATFORM-28.1"],
+              "text": "Backend stories that read Campaign data stay signed in: the intermittent Unauthenticated from campaigns/queries:list (Create For Campaign With Listing, Delete Encounter) is root-caused and fixed, proved by repeated green storybook-backend-browser runs with no rerun.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 as a resize in approved scope: the flake failed four slice and batch runs on 2026-11-16 (T3m twice, T3z, m828)."
             },
             {
               "id": "PLATFORM-28.T8",
@@ -27829,7 +27848,7 @@
             },
             {
               "id": "QUALITY-15.T3z",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A repeat save whose failure deals damage (Weird, Phantasmal Killer) compiles through the repeat-save-test plan: dice in the repeat-save graph, cast-level scaling frozen into the active effect, UUID result block ids, and the room applies the damage on each failed save.",
               "wsjf": {
@@ -27838,7 +27857,8 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13). Widened 2026-11-16 (size 3 -> 5) from the T3r seam trace to include Phantasmal Killer and cast-level scaling."
+              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13). Widened 2026-11-16 (size 3 -> 5) from the T3r seam trace to include Phantasmal Killer and cast-level scaling.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3aa",
@@ -27893,6 +27913,34 @@
               "note": "Registered 2026-11-16 from the T3r report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
+              "id": "QUALITY-15.T3ae",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "The GM can end any active effect on a Creature that Concentration does not maintain (the Character rule), through UPDATE_ACTOR and the encounter drawer, so a Creature removed from play returns.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3u report as a resize in approved scope: the criterion says the GM can end the removal. The drawer lists only modifier grants, so a play-absence effect is ended through UPDATE_ACTOR but is not shown; QUALITY-15.T3af closes that.",
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip 3ff21c040 (contains T3u): Tests 43893318064, Live 43893318118, Browser journeys 43893318165 green. One rule, isEndableByHand (no Concentration maintains the effect), in activeGrantListings.ts serves the Character Sheet and the Creature path; endEncounterActorEffect (actorEffectEndPersistence.ts, renamed from grantEndPersistence.ts) ends any effect on a Creature through the same deleteCas store path, so syncPlayAbsence fires. ActiveGrantListingDto gains endable; the drawer shows End only when endable. Behavior aligned with Characters: ending a Concentration-maintained grant on a Creature is refused. Proofs (RED at the merge-base): activeGrantListings.test (rules-runtime and Convex), nativeRoomRemoveFromPlay.test (an imprisoned Wolf returns when the GM ends it; a Concentration-held Maze is refused), CampaignTabletopEncounterDrawer.test."
+            },
+            {
+              "id": "QUALITY-15.T3af",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A play-absence effect freezes its source label on the PLAY_ABSENCE contribution (as SOURCE_IMMUNITY does), so the encounter drawer lists it and the GM can end it there.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3ae report as a resize in approved scope (the GM ends the removal from the drawer)."
+            },
+            {
               "id": "QUALITY-15.T3c",
               "status": "DONE",
               "closes": ["QUALITY-15.1"],
@@ -27910,7 +27958,7 @@
             },
             {
               "id": "QUALITY-15.T3u",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "An outcome that removes its target from play (Imprisonment) compiles through a generic plan the room settles and the GM can end.",
               "wsjf": {
@@ -27920,8 +27968,9 @@
                 "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-16 from the T3c report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-16 from the T3c report under the standing approval for QUALITY growth (2026-11-13). The GM cannot yet end a non-grant effect on a Creature (endEncounterActorGrant and the drawer list only modifier grants); QUALITY-15.T3ae closes that gap in this criterion (resize in approved scope).",
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip cc3f29072: Tests 43884105353, Live 43884106015, Browser journeys 43884105474 green. Imprisonment compiles as TEST_OUTCOME through the existing PLAY_ABSENCE contribution (syncPlayAbsence sets and clears it); no contract change. Bug fixed: removal plans had no result gate, so Banishment removed a target that made its save; timedConditionPlan now carries entryResultGate for removals (ON_USE removals unchanged), and the T2h4 Banishment test's roll now matches its name (natural 1; assertions unchanged). Proofs (RED at the merge-base): srdEffectCompileGolden.test and nativeRoomRemoveFromPlay.test (Imprisonment removes a Character, the GM's END_ACTIVE_EFFECT returns it; Banishment on a made save leaves the Wolf in play)."
             },
             {
               "id": "QUALITY-15.T3d",

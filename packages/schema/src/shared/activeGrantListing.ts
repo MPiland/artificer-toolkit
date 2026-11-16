@@ -25,7 +25,9 @@ export const activeGrantListingDtoSchema = lazySchema(() =>
       z.number().check(z.int()).check(z.gte(0)).check(z.lte(Number.MAX_SAFE_INTEGER))
     ),
     /** What the grant does for its holder, derived from its modifiers and never authored. */
-    polarity: z.enum(['BENEFICIAL', 'HARMFUL', 'NEUTRAL'])
+    polarity: z.enum(['BENEFICIAL', 'HARMFUL', 'NEUTRAL']),
+    /** Whether it may be ended by hand: false while a Concentration maintains it (end that instead). */
+    endable: z.boolean()
   })
 )
 
