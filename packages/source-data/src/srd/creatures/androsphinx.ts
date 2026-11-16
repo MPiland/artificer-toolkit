@@ -235,7 +235,7 @@ export const androsphinx: CreatureAuthored = {
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: `${S.actionId(24, 115)}__result`,
+                id: S.actionId(24, 141),
                 resultKind: 'SEQUENCE',
                 duration: {
                   id: S.actionId(24, 116),
@@ -299,7 +299,7 @@ export const androsphinx: CreatureAuthored = {
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: `${S.actionId(24, 124)}__result`,
+                id: S.actionId(24, 142),
                 resultKind: 'SEQUENCE',
                 duration: {
                   id: S.actionId(24, 125),
