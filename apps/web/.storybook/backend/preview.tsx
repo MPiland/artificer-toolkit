@@ -83,7 +83,7 @@ async function connectStoryBackend(
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
   const reads = unoverriddenReads(convex.convexClient)
   const queryClient = createAppQueryClient(convex)
-  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
+  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient, reads)
   convex.convexClient.setAuth(
     async () => (await betterAuthClient.convex.token()).data?.token ?? null
   )
