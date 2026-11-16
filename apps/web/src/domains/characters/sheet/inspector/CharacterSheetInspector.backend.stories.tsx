@@ -210,7 +210,7 @@ const inspectSpell =
     await openSpellInspector(context, spell, onPhone)
   }
 
-/** Opens a spell's Customize section; every source's name and notes fields appear. */
+/** Opens a spell's Customize section and returns its notes fields. */
 const customizeSpell =
   (spell: string, onPhone = false) =>
   async (context: Parameters<Play>[0]) => {
@@ -219,7 +219,7 @@ const customizeSpell =
     await expect(
       await within(inspector).findByRole('textbox', { name: 'Custom name' })
     ).toBeVisible()
-    return within(inspector).findAllByRole('textbox', { name: 'Source notes' })
+    return within(inspector).findAllByRole('textbox', { name: 'Spell notes' })
   }
 
 export const SpellInspector: Story = {

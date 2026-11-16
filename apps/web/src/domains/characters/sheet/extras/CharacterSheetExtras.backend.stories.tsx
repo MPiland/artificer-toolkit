@@ -66,15 +66,14 @@ export const Extras: Story = {
       expect(body.queryByRole('dialog', { name: 'Add Extra' })).not.toBeInTheDocument()
     )
     // The write is a spy, so the Sheet gains no row: the recorded command is the proof.
-    await expect(writesTo(api.characters.sheetCommands.execute).at(-1)).toEqual(
-      expect.objectContaining({
-        id: expect.any(String),
-        command: expect.objectContaining({
-          type: 'ADD_SHEET_EXTRA',
-          extra: expect.objectContaining({ kind: 'COMPANION', originKind: 'SUMMONED' })
-        })
-      })
-    )
+    const write = writesTo(api.characters.sheetCommands.execute).at(-1)
+    await expect(write).toHaveProperty('id')
+    await expect(write).toMatchObject({
+      command: {
+        type: 'ADD_SHEET_EXTRA',
+        extra: { kind: 'COMPANION', originKind: 'SUMMONED' }
+      }
+    })
 
     const companionRow = await canvas.findByRole('button', {
       name: 'Open Ferdinand (Owl) details'
