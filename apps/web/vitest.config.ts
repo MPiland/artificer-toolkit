@@ -34,10 +34,9 @@ const storyBrowser: BrowserConfigOptions = {
       await session.send('ServiceWorker.stopAllWorkers')
       await session.detach()
     },
-    // Every story file signs in, and behind one client address the sign-in rate limit (3 per 10s)
-    // rejects the files that follow each other quickly. A file takes a fresh address for its context
-    // before its first request, as separate players reach the app from separate addresses, and
-    // replaces the address of the file before it, whether or not a context is shared.
+    // Sign-ins share a rate limit per client address (3 per 10s), so each account that signs in takes a
+    // fresh address for its context before it does, as separate players reach the app from separate
+    // addresses, and replaces the one before it.
     async routeFromOwnClientAddress({ page }) {
       const context = page.context()
       await clientAddressRoutes.get(context)?.()
