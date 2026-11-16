@@ -77,7 +77,11 @@ export const ContentLimitsReached: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(await canvas.findByText('Entries 150 / 150')).toBeVisible()
+    // The panel renders nothing until the usage read answers, and an override answers only after the
+    // deployment's own read does, so the wait is the read's, not the default one second.
+    await expect(
+      await canvas.findByText('Entries 150 / 150', {}, { timeout: 10_000 })
+    ).toBeVisible()
     await expect(await canvas.findByText('Scenes 5 / 5')).toBeVisible()
   }
 }
