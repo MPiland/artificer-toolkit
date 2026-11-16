@@ -17,7 +17,13 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+const flySpeedId = SRD_SPEEDS.find((speed) => speed.code === 'FLY')?.id
+if (!flySpeedId)
+  throw new Error('SRD FLY speed vocabulary entry is required for Arcane Eye source data.')
 export const arcaneEye: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ARCANE_EYE,
@@ -72,8 +78,18 @@ export const arcaneEye: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ARCANE_EYE, 0x212, 1),
+                // The eye is a token its caster moves (30 feet each action); seeing through it and its
+                // darkvision are the GM's from the description.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.SENSOR
+                manifestKind: MANIFEST_KIND.SUMMON,
+                label: 'Arcane Eye',
+                statBlock: {
+                  size: SIZE_CODE.TINY,
+                  speeds: [{ speedId: flySpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }],
+                  damageabilityKind: 'INVULNERABLE',
+                  visibilityKind: 'INVISIBLE',
+                  occupiesSpace: false
+                }
               }
             ]
           }

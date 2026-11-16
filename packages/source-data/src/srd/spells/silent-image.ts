@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -48,6 +49,11 @@ export const silentImage: SpellAuthored = {
           amount: 60,
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
+        shape: {
+          id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x203, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: { amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }
+        },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -63,7 +69,7 @@ export const silentImage: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x202, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -71,19 +77,18 @@ export const silentImage: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x2f0, 1),
-                // The image is an illusion manifest; moving it and the Investigation check that sees
-                // through it are the GM's from the description.
-                effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ILLUSION
-              },
-              {
                 id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Define the Image',
-                reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions:
-                  'You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 15-foot cube.'
+                // The image marks its 15-foot cube on the map; what it shows, moving it and the
+                // Investigation check that sees through it are the GM's from the description.
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Silent Image',
+                shape: {
+                  id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }
