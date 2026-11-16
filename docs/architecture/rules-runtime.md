@@ -1651,10 +1651,10 @@ mover.
 
 **Reveal and disarm (MOVE-3.7, current).** `REVEAL_ZONE` (GM-only, `actorIds`) adds the chosen Characters to
 `knownByActorIds` (`withZoneRevealedTo`), so they read the zone like its placer, and their sightings settle (removed). It shares `SET_ZONE_DCS`'s receipt (`before`/`after`) and its undo
-(`revertZoneDcs`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
+(`revertZoneState`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
 the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
 (`revertZoneDisarm`). `IGNITE_ZONE` (GM-only, QUALITY-15.T3w) clears `unlit` from a zone placed waiting to be lit
-(`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneDcs` undo, which
+(`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneState` undo, which
 puts the zone out again. The five zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
 GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
 

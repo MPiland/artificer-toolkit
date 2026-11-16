@@ -12,7 +12,7 @@ import { revertUnavailable } from './targetMechanicsInverse.js'
  * Undoes the GM's spot and disarm DCs, a reveal (MOVE-3.7) or a lighting (QUALITY-15.T3w), while the zone is as that command
  * left it but for sightings (MOVE-3.5). Sightings recorded since stay while the zone stays concealed.
  */
-export async function revertZoneDcs(
+export async function revertZoneState(
   ctx: EncounterCharacterWriteTransaction,
   input: RevertScope & {
     root: Extract<StoredCommand, { commandType: 'SET_ZONE_DCS' | 'REVEAL_ZONE' | 'IGNITE_ZONE' }>
