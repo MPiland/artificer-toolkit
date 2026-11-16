@@ -21,11 +21,7 @@ import {
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
-import {
-  recurringHealAmountFacts,
-  resolvedHealAmountFacts,
-  spentHealAmountFacts
-} from './effectActionHealAmountFacts.js'
+import { bindsFact, healFacts, recurringHealAmountFacts } from './effectActionHealAmountFacts.js'
 import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import {
   checksumRuleDocument,
@@ -3292,12 +3288,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         resolvedDamageExpressionFacts[key] = expression
       }
     }
-    const requiresHealModifier = published.definition.nodes.some((node) =>
-      Object.values(node.inputs).some(
-        (binding) =>
-          binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
-      )
-    )
+    const requiresHealModifier = bindsFact(published, DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY)
     const resolvedHealOutcomes = Array.isArray(actionOutcomes)
       ? actionOutcomes.filter(
           (outcome): outcome is Record<string, unknown> & { expression: string } =>
@@ -3387,8 +3378,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {}),
       ...resolvedHealModifierFacts,
       ...recurringHealFacts,
-      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic),
-      ...resolvedHealAmountFacts(published, resolvedHealOutcomes),
+      ...healFacts(published, resolvedHealOutcomes, actionMechanic),
       ...triggeringRollDieFacts(published, actionOutcomes, classLevels),
       ...(spellCastLevel === undefined
         ? {}
