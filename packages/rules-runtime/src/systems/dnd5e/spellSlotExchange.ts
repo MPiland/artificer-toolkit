@@ -1,7 +1,7 @@
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { CharacterSheetCommandError } from './sheetCommandError.js'
+import { CharacterSheetCommandError } from '../../character/sheetCommandError.js'
 
 type ExchangeCommand = Pick<
   Extract<CharacterSheetCommandInputDto, { type: 'EXCHANGE_SPELL_SLOTS' }>,
@@ -43,9 +43,10 @@ function selectedSlotKeys(command: ExchangeCommand): string[] {
 }
 
 /**
- * Plans an action's SPELL_SLOT_EXCHANGE outcome. The action's own charge pays for a recovery; a
- * conversion moves value between the slots and the outcome's pool, so its action may not also
- * spend a charge.
+ * Plans an action's SPELL_SLOT_EXCHANGE outcome, the one validator of the EXCHANGE_SPELL_SLOTS
+ * command in and out of an Encounter (no encounter action settles it). The action's own charge pays
+ * for a recovery; a conversion moves value between the slots and the outcome's pool, so its action
+ * may not also spend a charge.
  */
 export function planSpellSlotExchange(
   sheet: CharacterSheetResponseDto,

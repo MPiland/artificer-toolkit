@@ -252,7 +252,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
     "generate:username-words": "node scripts/generateUsernameWordList.mjs",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/shared/src/__tests__"
   },
