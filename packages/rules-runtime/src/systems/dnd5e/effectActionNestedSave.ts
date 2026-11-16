@@ -180,12 +180,17 @@ export function repeatSaveFailureDamage(
 ): EntryDiceDamageOutcome | null {
   const rows = repeatSaveFailureDamageRows(save)
   if (!rows) return null
+  const levelRows = rows.flatMap((row) =>
+    row.scalingKind === 'PER_LEVEL' && row.scalingSource === 'SPELL_CAST_LEVEL'
+      ? [{ level: row.level, order: row.order, row }]
+      : []
+  )
   const row =
     rows.length === 1 && rows[0]?.scalingKind === 'NONE'
       ? rows[0]
       : spellCastLevel === undefined
         ? null
-        : selectScalingRow<(typeof rows)[number]>(rows, spellCastLevel)
+        : (selectScalingRow(levelRows, spellCastLevel)?.row ?? null)
   const damageTypeId = row?.damageTypeId
   if (!row || damageTypeId === undefined)
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save damage has no row at the cast level.')
