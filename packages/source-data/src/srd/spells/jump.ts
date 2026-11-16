@@ -6,7 +6,6 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
-  SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -28,7 +27,6 @@ export const jump: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: "a grasshopper's hind leg",
   magicSchoolId: schoolId('TRANSMUTATION'),
-  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.JUMP, 0x210, 1),

@@ -71,7 +71,11 @@ export async function walkerMoves(
     | {
         status: string
         terminalPosition: { x: number; y: number }
-        executions: { execution: { movementInterruption: unknown }; applications: unknown[] }[]
+        executions: {
+          candidate: { candidate: { effectId: string } }
+          execution: { movementInterruption: unknown }
+          applications: unknown[]
+        }[]
       }
     | undefined
   const { delta } = committed.result
