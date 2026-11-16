@@ -183,7 +183,10 @@ export const GmWindow: Story = {
     await expect(scene.fogMode).toBe(STORY_CAMPAIGN.scene.board.fogMode)
     await expect(page.getByLabelText('Tabletop mode')).toBeVisible()
     await expectTokensDrawnAsPresented()
-    await expectTurnOrderListsEncounter(page, await waitFor(() => seededEncounter(seeded)))
+    await expectTurnOrderListsEncounter(
+      page,
+      await waitFor(() => seededEncounter(seeded), { timeout: roomJoinTimeoutMs })
+    )
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
@@ -249,7 +252,9 @@ export const GmEditsTheScene: Story = {
         })
       )
     )
-    const { version: encounterVersion } = await waitFor(() => seededEncounter(seeded))
+    const { version: encounterVersion } = await waitFor(() => seededEncounter(seeded), {
+      timeout: roomJoinTimeoutMs
+    })
     const creature = tokenLabelled(STORY_CAMPAIGN.enemyLabel)
     await chooseSceneControl(page, `Move ${creature.label} right`)
     await waitFor(() =>
@@ -421,7 +426,10 @@ export const PlayerWindow: Story = {
     await expect(page.queryByRole('button', { name: 'Edit objects' })).not.toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
 
-    await expectTurnOrderListsEncounter(page, await waitFor(() => seededEncounter(seeded)))
+    await expectTurnOrderListsEncounter(
+      page,
+      await waitFor(() => seededEncounter(seeded), { timeout: roomJoinTimeoutMs })
+    )
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
