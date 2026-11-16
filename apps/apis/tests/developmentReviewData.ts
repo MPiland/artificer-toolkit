@@ -358,7 +358,7 @@ async function seedStoryCampaign(
       { client },
       campaignId,
       [{ client: host, username: REVIEW_STORY_HOST.username }],
-      1
+      REVIEW_PLAYERS.length
     )
   const { lootTable } = STORY_CAMPAIGN
   const owner = {
