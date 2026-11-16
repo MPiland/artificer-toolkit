@@ -179,7 +179,15 @@ export const nightmare: CreatureAuthored = {
             },
             range: {
               id: S.actionId(205, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              // The nightmare and up to three willing creatures within 5 feet of it.
+              maxTargets: 4
             }
           },
           paths: [

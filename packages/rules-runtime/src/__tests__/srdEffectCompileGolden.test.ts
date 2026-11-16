@@ -17,6 +17,7 @@ import {
   compileCastChoicePlans,
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
+import { castChoiceOptions } from '../encounterCastChoice.js'
 import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { isActivatedEffect } from '../spellCastCandidates.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -312,10 +313,22 @@ function creatureLines(creatureIndex: number): Line[] {
   collectEffects(creature, { label: creature.label, spellLevel: undefined, attributes: [] }, found)
   return found.map(({ effect, label }) => {
     const capability = discovery.available.find((candidate) => candidate.effectId === effect.id)
+    // A pick (D148) runs the option its user names, so its plans are pinned per option, as they
+    // are for a Character action; the action's own plan is the first option's no-prompt default.
     const outcome = capability
       ? outcomeOf(() => ({
           action: capability,
-          plan: compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
+          plan: compileEncounterFeatureActionPlan(
+            dnd5eCharacterRuleActionSystemAdapter,
+            capability
+          ),
+          ...(castChoiceOptions(capability.compiledEffect) && {
+            choice: compileCastChoicePlans(
+              dnd5eCharacterRuleActionSystemAdapter,
+              capability,
+              buildCompiledActionTargetPolicy(capability)
+            ).choice
+          })
         }))
       : { compiled: 'NOT_A_DISCOVERED_ACTION', facts: null }
     return line(effect.id, 0, ownerKey('CREATURE', label), outcome)
@@ -380,8 +393,7 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   // Imprisonment's failed save removes its target from play, which no TEST/OUTCOME plan carries. The golden
   // compiled it before it compiled through the product's plan check (QUALITY-15.T3c), which refuses it.
   'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form or GM ruling active-effect plans.':
-    'UNBUILT',
-  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT'
+    'UNBUILT'
 }
 
 describe('SRD effect compile golden', () => {

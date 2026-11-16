@@ -1,10 +1,20 @@
 import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import {
+  buildCompiledActionTargetPolicy,
+  compileCastChoicePlans
+} from '../encounterActionEntryPointCompiler.js'
 import { castChoiceOptions, pickedCastChoiceEffect } from '../encounterCastChoice.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
-import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import {
+  creatureFeature,
+  srdCondition,
+  srdCreatureActor,
+  testUuid
+} from '../testing/dnd5eSrdEncounter.js'
 
 const SPAWN_ID = testUuid(0xc1)
 
@@ -56,6 +66,52 @@ describe('Creature discovery compiles a cast pick per option (SPELLS-33.T3a6, D1
     expect(capability).toBeUndefined()
     expect(unavailable?.reason).toBeTruthy()
   })
+
+  it.each([
+    { creature: 'Vampire Spawn', feature: 'Claws', escapeDc: 13 },
+    { creature: 'Vampire', feature: 'Unarmed Strike (Vampire Form Only)', escapeDc: 18 }
+  ])(
+    "holds the $creature's $feature target through the relationship plan only on the Grapple option's hit (QUALITY-15.T3s)",
+    ({ creature, feature, escapeDc }) => {
+      const authored = srdByLabel(SRD.creatures, creature)
+      const discovery = discoverEncounterFeatureActions({
+        spells: new Map(),
+        actor: srdCreatureActor({ id: SPAWN_ID, creature: authored }),
+        conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
+      })
+      const capability = discovery.available.find(
+        (entry) => entry.ownerFeatureId === creatureFeature(authored, feature).id
+      )!
+      const { choice, executionPlan } = compileCastChoicePlans(
+        dnd5eCharacterRuleActionSystemAdapter,
+        capability,
+        buildCompiledActionTargetPolicy(capability)
+      )
+      const [damage, grapple] = choice!.options
+      expect(damage).toMatchObject({ label: 'Damage', activeEffectPlan: null })
+      expect(grapple?.label).toBe('Grapple')
+      const hold = grapple?.activeEffectPlan
+      expect(hold?.resultGate).toEqual({ paths: ['ON_HIT', 'ON_CRIT'] })
+      expect(hold?.actorRelationshipContribution).toMatchObject({
+        heldAtOnce: 1,
+        conditionIds: [srdCondition('Grappled')]
+      })
+      expect(
+        hold?.actorRelationshipContribution?.modules.find(({ kind }) => kind === 'ESCAPE_CHECK')
+      ).toMatchObject({ dc: { kind: 'FIXED', value: escapeDc } })
+      // Unpicked, the hold is not bounded by the hit alone: the Damage option holds nothing.
+      expect(() =>
+        dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
+          action: capability,
+          published:
+            executionPlan.kind === 'SINGLE_GRAPH'
+              ? executionPlan.published
+              : executionPlan.test.published
+        })
+      ).toThrow('D&D relationship outcomes need a bounded hit, failed save, contest win or use.')
+    }
+  )
 
   it('runs the first authored option of a pick a no-prompt flow (a Legendary Action) cannot ask for', () => {
     const { compiledEffect } = discoveredClaws().capability!
