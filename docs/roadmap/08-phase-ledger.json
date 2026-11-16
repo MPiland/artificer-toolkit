@@ -27831,14 +27831,14 @@
               "id": "QUALITY-15.T3z",
               "status": "TODO",
               "closes": ["QUALITY-15.1"],
-              "text": "A repeat save whose failure deals damage (Weird) compiles through the repeat-save-test plan and the room applies the damage on each failed save.",
+              "text": "A repeat save whose failure deals damage (Weird, Phantasmal Killer) compiles through the repeat-save-test plan: dice in the repeat-save graph, cast-level scaling frozen into the active effect, UUID result block ids, and the room applies the damage on each failed save.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 3
+                "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13). Widened 2026-11-16 (size 3 -> 5) from the T3r seam trace to include Phantasmal Killer and cast-level scaling."
             },
             {
               "id": "QUALITY-15.T3aa",
@@ -27878,6 +27878,19 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ad",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A threshold escalation on an effect with its own duration, and a duration-complete outcome that applies a condition when the effect runs its full course (Flesh to Stone), compile and the room applies them.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3r report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3c",
@@ -27958,18 +27971,19 @@
             },
             {
               "id": "QUALITY-15.T3r",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "The FOLLOW_UP_SAVE bounded shapes the compiler refuses (about 4 rows) compile through supportedTestPhaseKind.",
+              "text": "A repeating save whose held effect has no duration of its own holds until the save ends it (Vrock Spores), compiled through the repeat-save-test plan and proved in the room.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-16 (size 3 -> 2) from the slice's seam trace: damage on a failed repeat save (Phantasmal Killer, Weird) moved to QUALITY-15.T3z; a duration-complete condition (Flesh to Stone) to QUALITY-15.T3ad.",
+              "mergedAt": "2026-11-16",
+              "proof": "m826; slice tip 97a96617e (contains a9b45c14b): Tests 43881640954, Live 43881640984, Browser journeys 43881640887 green. repeatSaveHeldTurns returns MAX_ACTIVE_EFFECT_TURNS for a held effect with no duration (the cap a THRESHOLDS escalation already waits on) instead of null; the golden changes only the Vrock Spores row (REFUSED -> TEST_OUTCOME ON_SAVE_FAIL, END_OF_TURN). Proofs (RED at the merge-base): srdRepeatSaveUntilSaved.test (real SRD rows; Phantasmal Killer and Flesh to Stone pinned refused) and nativeRoomSrdRepeatSaveUntilSaved.test (Spores on two Wolves: the failing Wolf is poisoned with one END_OF_TURN repeat-save effect, one RESOLVE_ACTION commit)."
             },
             {
               "id": "QUALITY-15.T3s",
