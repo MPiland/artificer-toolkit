@@ -35,7 +35,12 @@ import {
   zoneMovementCostMultiplierSchema,
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
-import { heldEscapeDcDtoSchema } from '../effects/check.js'
+import { activationDtoSchema } from '../effects/activation.js'
+import {
+  checkChoiceDtoSchema,
+  escapeActorKindsDtoSchema,
+  heldEscapeDcDtoSchema
+} from '../effects/check.js'
 import { manualAdjudicationTextDtoSchema } from '../effects/manualAdjudication.js'
 import {
   manifestAttachmentKindSchema,
@@ -351,6 +356,23 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       null
     ),
     playAbsenceContribution: z.optional(z.strictObject({ keepsTurn: z.boolean() })),
+    /**
+     * The fixed-DC check its holder, or a creature within reach when `escapeOutcome.actorKinds`
+     * allows, may make to end the effect and its conditions, compiled from that authored check
+     * outcome; stored as the effect's `CONDITION_ESCAPE`.
+     */
+    conditionEscapeContribution: z.optional(
+      z.strictObject({
+        label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+        activation: activationDtoSchema,
+        checks: checkChoiceDtoSchema,
+        dc: z.number().check(z.int()).check(z.positive()),
+        escapeOutcome: z.strictObject({
+          outcomeId: serverUuidIdentityDtoSchema,
+          actorKinds: escapeActorKindsDtoSchema
+        })
+      })
+    ),
     rulingContribution: z.optional(
       z.extend(manualAdjudicationTextDtoSchema, { rulingOutcomeId: serverUuidIdentityDtoSchema })
     ),
