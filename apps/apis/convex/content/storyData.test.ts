@@ -245,6 +245,23 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       [STORY_CAMPAIGN.enemyLabel, []]
     ].sort()
   })
+  // The Scene editor story opens that Scene's definition: listed for the host, on a map asset the
+  // real upload path finalized.
+  const sceneList = await reader.query(api.scenes.definitionReads.list, {
+    campaignId,
+    paginationOpts: { cursor: null, numItems: 8 }
+  })
+  const [storyScene, ...otherScenes] = sceneList.page
+  expect(otherScenes).toEqual([])
+  expect(storyScene).toMatchObject({ name: STORY_CAMPAIGN.scene.name, campaignId })
+  expect(storyScene!.counts).toMatchObject({ barriers: 3, tokens: 2 })
+  const mapAsset = await t.run((ctx) =>
+    ctx.db
+      .query('mediaAssets')
+      .withIndex('by_publicId', (q) => q.eq('id', storyScene!.map.assetId))
+      .unique()
+  )
+  expect(mapAsset).toMatchObject({ profileClass: 'VTT_MAP', status: 'READY' })
   const bindings = await t.run(async (ctx) => ({
     scenes: (await ctx.db.query('encounterSceneBindings').collect()).length,
     tokens: (await ctx.db.query('encounterActorTokenBindings').collect())

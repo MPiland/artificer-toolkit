@@ -1,17 +1,23 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { saveSceneDefinition } from '#app/data/campaigns/scenes'
 import { sceneDefinitionDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
+import type { VttMapLoadStatus } from './vttSceneRenderer'
 import {
   tabletopSceneDefinition,
   tabletopCurrentUserId,
   tabletopMapDelivery
 } from './CampaignTabletop.stories.fixtures'
 
-const { delivery } = vi.hoisted(() => ({ delivery: vi.fn() }))
+const { delivery, rendererCallbacks } = vi.hoisted(() => ({
+  delivery: vi.fn(),
+  rendererCallbacks: {
+    current: null as { onMapLoadStatus?: (status: VttMapLoadStatus) => void } | null
+  }
+}))
 
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
@@ -20,7 +26,14 @@ vi.mock('convex/react', async (importOriginal) => ({
 vi.mock('#app/data/campaigns/scenes', () => ({ saveSceneDefinition: vi.fn() }))
 vi.mock('../loot/CampaignLootEditor', () => ({ CampaignLootEditor: () => null }))
 vi.mock('./vttSceneRenderer', () => ({
-  createVttSceneRenderer: async () => ({ update: vi.fn(), destroy: vi.fn() })
+  createVttSceneRenderer: async (
+    _host: HTMLElement,
+    _gameSystemId: string,
+    callbacks: NonNullable<typeof rendererCallbacks.current>
+  ) => {
+    rendererCallbacks.current = callbacks
+    return { update: vi.fn(), destroy: vi.fn() }
+  }
 }))
 afterEach(() => vi.clearAllMocks())
 
@@ -73,4 +86,22 @@ it('preserves a dirty draft during refresh and reuses its save attempt until the
   await user.click(screen.getByRole('button', { name: 'Save scene' }))
   await waitFor(() => expect(save).toHaveBeenCalledTimes(3))
   expect(save.mock.calls[2]?.[2]).not.toBe(first[2])
+})
+
+it('reports map artwork the renderer could not load and offers a retry', async () => {
+  delivery.mockResolvedValue(tabletopMapDelivery)
+  renderWithAppProviders(
+    <CampaignSceneEditor
+      campaignId={tabletopSceneDefinition.campaignId}
+      currentUserId={tabletopCurrentUserId}
+      gameSystemId='11111111-1111-4111-8111-111111111111'
+      memberships={[]}
+      onDirtyChange={vi.fn()}
+      scene={tabletopSceneDefinition}
+    />
+  )
+  await waitFor(() => expect(rendererCallbacks.current).not.toBeNull())
+  act(() => rendererCallbacks.current?.onMapLoadStatus?.('ERROR'))
+  expect(await screen.findByText('Map artwork could not be loaded.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Retry map' })).toBeInTheDocument()
 })
