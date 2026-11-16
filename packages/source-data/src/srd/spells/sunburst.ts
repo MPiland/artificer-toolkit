@@ -102,7 +102,7 @@ export const sunburst: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.SUNBURST, 0x215, 1) + '__result',
+            id: spellChildId(SPELL_IDS.SUNBURST, 0x21b, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SUNBURST, 0x216, 1),
