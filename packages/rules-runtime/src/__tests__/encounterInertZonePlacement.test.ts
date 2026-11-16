@@ -20,6 +20,12 @@ function placementOf(spellLabel: string) {
   return compileActionPlacement(dnd5eCharacterRuleActionSystemAdapter, action)
 }
 
+function zoneOf(spellLabel: string) {
+  const placement = placementOf(spellLabel)
+  if (placement?.kind !== 'ZONE') throw new Error(`${spellLabel} places no zone.`)
+  return placement.zonePlacement
+}
+
 describe('a zone that only marks its area (QUALITY-15.T3b)', () => {
   it('places the real SRD Darkness as a labeled sphere that triggers nobody and ends with its Concentration', () => {
     const placement = placementOf('Darkness')
@@ -39,8 +45,45 @@ describe('a zone that only marks its area (QUALITY-15.T3b)', () => {
       attachment: 'SOURCE'
     })
   })
+})
 
-  it('refuses a real SRD zone that authors no shape, naming what is missing', () => {
-    expect(() => placementOf('Forbiddance')).toThrow('A placed zone needs a label and a shape.')
+describe('the zones the SRD sizes in prose (QUALITY-15.T3o)', () => {
+  it.each([
+    [
+      'Wall of Force',
+      {
+        shapeKind: 'WALL',
+        length: { amount: 100 },
+        height: { amount: 10 },
+        thickness: { amount: 0.25, unit: 'INCHES' }
+      }
+    ],
+    [
+      'Wall of Ice',
+      {
+        shapeKind: 'WALL',
+        length: { amount: 100 },
+        height: { amount: 10 },
+        thickness: { amount: 1, unit: 'FEET' }
+      }
+    ],
+    [
+      'Wall of Stone',
+      {
+        shapeKind: 'WALL',
+        length: { amount: 100 },
+        height: { amount: 10 },
+        thickness: { amount: 6, unit: 'INCHES' }
+      }
+    ],
+    ['Gate', { shapeKind: 'CIRCLE', radius: { amount: 10 } }],
+    [
+      'Magnificent Mansion',
+      { shapeKind: 'CYLINDER', radius: { amount: 2.5 }, height: { amount: 10 } }
+    ],
+    ['Forbiddance', { shapeKind: 'CYLINDER', radius: { amount: 112 }, height: { amount: 30 } }],
+    ['Mirage Arcane', { shapeKind: 'CUBE', edgeLength: { amount: 1, unit: 'MILES' } }]
+  ])('places the real SRD %s with the shape its text sizes', (label, shape) => {
+    expect(zoneOf(label)).toMatchObject({ label: expect.any(String), shape, triggerModes: [] })
   })
 })

@@ -6,7 +6,9 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -72,7 +74,16 @@ export const forbiddance: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.FORBIDDANCE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Forbiddance',
+                // "protects up to 40,000 square feet of floor space to a height of 30 feet above the
+                // floor": the widest round floor of at most 40,000 square feet (112 feet radius)
+                shape: {
+                  id: spellChildId(SPELL_IDS.FORBIDDANCE, 0x214, 1),
+                  shapeKind: SHAPE_KIND.CYLINDER,
+                  radius: { amount: 112, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  height: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }
