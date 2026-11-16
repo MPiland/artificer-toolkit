@@ -13,6 +13,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import { BARDIC_INSPIRATION_CHARGE_ID } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { cuttingWordsReaction } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
 import { protectionReactionEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
@@ -33,6 +34,7 @@ const CANCEL_TRIGGERING_EVENT_OPERATION_KEY = 'dnd5e.cancel-triggering-event-pro
 const SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY = 'dnd5e.subtract-from-triggering-roll-proposal'
 const IMPOSE_ROLL_MODE_ON_TRIGGERING_ROLL_OPERATION_KEY =
   'dnd5e.impose-roll-mode-on-triggering-roll-proposal'
+const MANUAL_ADJUDICATION_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 
 /** Every operation key the compiled output names, wherever it nests. */
 function operationKeys(value: unknown): string[] {
@@ -304,6 +306,28 @@ describe('a reaction authored with the ATTACK_RESOLVED_ON_SELF trigger (D217)', 
       activation: { code: 'REACTION', amount: 1 },
       reactionTrigger: attackResolvedOnSelf
     })
+  })
+
+  // QUALITY-15.T3p: the real SRD Stand Against the Tide, a GM ruling that answers a missed melee attack.
+  function standAgainstTheTide(): EffectAuthored {
+    const effect = hunterConclave.features
+      ?.find(({ label }) => label === "Superior Hunter's Defense")
+      ?.options?.find(({ label }) => label === 'Stand Against the Tide')?.effects?.[0]
+    if (!effect) throw new Error('The SRD Hunter has no Stand Against the Tide.')
+    return { ...effect, id: ACTION_EFFECT_ID }
+  }
+
+  it('carries the real SRD Stand Against the Tide melee-miss trigger onto its compiled invocation', () => {
+    expect(compileEffect(standAgainstTheTide()).invocation).toMatchObject({
+      activation: { code: 'REACTION', amount: 1 },
+      reactionTrigger: { kind: 'ATTACK_RESOLVED_ON_SELF', outcome: 'MISS', attackRange: 'MELEE' }
+    })
+  })
+
+  it('compiles the real SRD Stand Against the Tide to its GM ruling', () => {
+    expect(operationKeys(compile(standAgainstTheTide()))).toContain(
+      MANUAL_ADJUDICATION_OPERATION_KEY
+    )
   })
 
   it('compiles the reaction attack to a test and its on-hit outcome', () => {

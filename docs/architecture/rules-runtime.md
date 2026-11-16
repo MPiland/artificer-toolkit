@@ -204,6 +204,13 @@ a SEQUENCE (grant plus ruling), which the same split compiles. Imprisonment now 
 outcome has no plan, which the earlier golden hid. Timed-manifestation rows (object and creature forms) stay refused:
 their data names no component or needs a new plan type, so they are not a lifetime-aspect gap.
 
+**Creature picks in the golden (current, QUALITY-15.T3s).** A Creature row whose action authors a pick (D148) pins
+`choice=[...]` through `compileCastChoicePlans`, as discovery compiles it. The Vampire Spawn Claws and the Vampire's
+Unarmed Strike were refused as "relationship outcomes need a bounded hit" only because the golden planned the whole,
+unpicked action. Each option's Grapple hold already compiles through `relationshipPlan` on the hit, so that UNBUILT
+message left the list. `relationshipPlan` still refuses a relationship in an unpicked `CHOICE` group: until the pick is
+made, the hit alone does not bound the hold.
+
 **Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
 product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
 `compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
@@ -218,6 +225,15 @@ Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddanc
 a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
 author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
 surface and occupancy, ignition, application limits), and each needs room behavior, not data.
+
+**Concentration spells re-authored onto existing plans (current, QUALITY-15.T3n).** Four of the 15 now compile with
+their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
+Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
+own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
+over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. The other 11 stay refused (UNBUILT,
+cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary
+sensor, summoned lights, a creature that stays hostile after Concentration breaks, an Armor Class floor, tree travel, a
+repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to its target).
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
@@ -1761,7 +1777,10 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   offer is answered and run as the post-commit reaction offer ([persistence](persistence.md)); the SRD Hunter's
   Giant Killer is its first consumer, authored from core options (a Large or larger attacker within 5 feet, seen,
   a bare Feature weapon attack paired with each wielded weapon) with no pending record or timer of its own
-  (SPELLS-31.T4k1c, D217). Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
+  (SPELLS-31.T4k1c, D217). Its optional `attackRange` (`MELEE` or `RANGED`, the same check `ATTACKED_SELF` uses)
+  admits only that kind of attack, read from the attack's source; the SRD Hunter's Stand Against the Tide answers a
+  missed melee attack this way and hands the redirected attack to the GM (QUALITY-15.T3p, D217). Falling has no
+  trigger: the engine raises no fall event. Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
   (QUALITY-9). Target: every row names a moment and the one shared offer serves them all.
   Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
   persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,

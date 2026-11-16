@@ -3,6 +3,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { arcaneLock } from '@artificer-toolkit/source-data/srd/spells/arcane-lock.js'
+import { calmEmotions } from '@artificer-toolkit/source-data/srd/spells/calm-emotions.js'
 import { geas } from '@artificer-toolkit/source-data/srd/spells/geas.js'
 import { continualFlame } from '@artificer-toolkit/source-data/srd/spells/continual-flame.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
@@ -105,6 +106,21 @@ describe('a GM ruling with a duration is held as a timed ruling (QUALITY-15.T3)'
       }
     ])
     expect(recurringEffect?.lifecycle.remainingTicks).toBe(4800)
+  })
+
+  it('holds a failed Calm Emotions for 1 minute under Concentration, on humanoids in its sphere (QUALITY-15.T3n)', () => {
+    const { activeEffectPlan } = castOf(calmEmotions).compilation
+    expect(activeEffectPlan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      // 1 minute of 6-second turns.
+      initialRemaining: 10,
+      resultGate: { paths: ['ON_SAVE_FAIL'] },
+      maintenance: { definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+    })
+    expect(rulingOf(landed(calmEmotions, 'ON_SAVE_FAIL').recurringEffect)).toMatchObject([
+      { kind: 'GM_RULING', label: 'Calm Emotions' }
+    ])
+    expect(landed(calmEmotions, 'ON_SAVE_SUCCESS').recurringEffect).toBeNull()
   })
 
   it('leaves nothing behind when the target makes its save against Suggestion', () => {

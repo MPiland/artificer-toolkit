@@ -12,6 +12,7 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -28,12 +29,14 @@ import {
   REVIEW_SCENARIOS,
   REVIEW_STORY_BLOCKED,
   REVIEW_STORY_HOST,
+  REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
   STORY_SOCIAL,
   REVIEW_ADMIN,
   STORY_CAMPAIGN,
   STORY_DEFINITIONS,
+  STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
@@ -170,7 +173,13 @@ export async function seedStoryData(
   await seedStoryDefinitions(reader)
   const host = await connect(REVIEW_STORY_HOST)
   const campaignId = await seedStoryCampaign(reader, host, room)
-  await seedStoryPlayerCampaign(host, reader, room)
+  await seedStoryPlayerCampaign(host, reader, room, STORY_PLAYER_CAMPAIGN)
+  await seedStoryPlayerCampaign(
+    await connect(REVIEW_STORY_OPEN_HOST),
+    reader,
+    room,
+    STORY_OPEN_CAMPAIGN
+  )
   await seedStorySocial(
     {
       reader,
@@ -303,7 +312,7 @@ async function findStoryDefinition(client: StoryClient, label: string) {
  */
 async function prepareStoryRun(
   client: StoryClient,
-  { slug, name, blueprintName, enemyLabel, playSettings }: StoryCampaignSpec
+  { slug, name, blueprintName, enemyLabel, playSettings, creatures }: StoryCampaignSpec
 ) {
   const campaignId = await findOrCreateStoryCampaign(client, name)
   const current = await client.query(api.campaigns.playSettings.get, { campaignId })
@@ -329,16 +338,32 @@ async function prepareStoryRun(
     gameSystemId: srdSystemRecord.id,
     name: blueprintName,
     commandId: reviewId(`${slug}-blueprint`),
-    enemies: [{ kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 }]
+    enemies: [
+      { kind: 'CUSTOM', label: enemyLabel, maxHitPoints: 22 },
+      ...(creatures ?? []).map(({ enemy }) => enemy)
+    ]
   })
   const run = await client.mutation(api.encounters.runs.create, {
     campaignId,
     blueprintId: blueprint.id,
     commandId: reviewId(`${slug}-run`)
   })
-  const [actor] = run.actors
+  assert.equal(run.actors.length, 1 + (creatures ?? []).length, 'The story Run lost a creature.')
+  // The Run does not keep the Blueprint's order, so each actor is found by its label; a creature
+  // taken from the SRD is named by its source, so it is the one actor left once the custom ones are placed.
+  const actor = run.actors.find(({ label }) => label === enemyLabel)
   assert.ok(actor, 'The story Run has no creature.')
-  return { campaignId, run, actor }
+  const unclaimed = run.actors.filter((candidate) => candidate !== actor)
+  const claim = (matches: (candidate: (typeof unclaimed)[number]) => boolean) => {
+    const [claimed] = unclaimed.splice(unclaimed.findIndex(matches), 1)
+    assert.ok(claimed, 'The story Run lost a creature.')
+    return claimed
+  }
+  const customs = (creatures ?? []).map(({ enemy }) =>
+    enemy.kind === 'CUSTOM' ? claim(({ label }) => label === enemy.label) : null
+  )
+  const crowd = customs.map((custom) => custom ?? claim(() => true))
+  return { campaignId, run, actor, crowd }
 }
 
 /**
@@ -403,18 +428,23 @@ async function seedStoryCampaign(
     commandId: reviewId('story-prepared-run')
   })
   const { userId } = await client.query(api.account.identity, {})
-  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor }, userId)
+  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor, crowd: [] }, userId)
   return campaignId
 }
 
 /**
- * Hosts the player Campaign: the story reader joins it through the invitation commands, and its
- * presented Scene gives the reader a token it controls (the reader's own Character waits on the
- * story Characters, so the token stands for none).
+ * Hosts a Campaign the story reader plays in: the reader joins it through the invitation commands,
+ * and its presented Scene gives the reader a token it controls (the reader's own Character waits on
+ * the story Characters, so the token stands for none).
  */
-async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, room: StoryRoom) {
-  const prepared = await prepareStoryRun(host, STORY_PLAYER_CAMPAIGN)
-  if (!(await findCampaign(reader, STORY_PLAYER_CAMPAIGN.name)))
+async function seedStoryPlayerCampaign(
+  host: StoryClient,
+  reader: StoryClient,
+  room: StoryRoom,
+  campaign: StoryCampaignSpec
+) {
+  const prepared = await prepareStoryRun(host, campaign)
+  if (!(await findCampaign(reader, campaign.name)))
     await admitPlayers(
       { client: host },
       prepared.campaignId,
@@ -422,7 +452,7 @@ async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, r
       1
     )
   const { userId } = await reader.query(api.account.identity, {})
-  await presentStoryRun(host, room, STORY_PLAYER_CAMPAIGN, prepared, userId)
+  await presentStoryRun(host, room, campaign, prepared, userId)
 }
 
 /**
@@ -432,11 +462,30 @@ async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, r
 async function presentStoryRun(
   client: StoryClient,
   room: StoryRoom,
-  { slug, name, scene, zones, shownScene }: StoryCampaignSpec,
-  { campaignId, run, actor }: Awaited<ReturnType<typeof prepareStoryRun>>,
+  {
+    slug,
+    name,
+    scene,
+    zones,
+    shownScene,
+    enemyState,
+    enemyVision,
+    creatures = []
+  }: StoryCampaignSpec,
+  { campaignId, run, actor, crowd: crowdActors }: Awaited<ReturnType<typeof prepareStoryRun>>,
   allyUserId: string
 ) {
   if (run.status !== 'PREPARED') return
+  const conditionRefs = (codes: readonly string[]) =>
+    codes.map((code) => {
+      const type = srdSystemRecord.conditionTypes.find((candidate) => candidate.code === code)
+      assert.ok(type, `The SRD has no condition type ${code}.`)
+      return { conditionTypeId: type.id }
+    })
+  const crowd = crowdActors.map((crowdActor, index) => ({
+    actor: crowdActor,
+    spec: creatures[index]!
+  }))
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
   const execute: ExecuteCommand = (command) => client.mutation(executeEncounterCommand, { command })
@@ -454,7 +503,8 @@ async function presentStoryRun(
         tokenId: reviewId(`${slug}-scene-enemy-token`),
         controlledBy: [],
         squares: 1,
-        hidden: false
+        hidden: false,
+        vision: enemyVision
       },
       {
         actorId: null,
@@ -464,7 +514,16 @@ async function presentStoryRun(
         controlledBy: [allyUserId],
         squares: 1,
         hidden: false
-      }
+      },
+      ...crowd.map(({ actor: crowdActor, spec }, index) => ({
+        actorId: crowdActor.id,
+        label: spec.tokenLabel ?? crowdActor.label,
+        position: spec.position,
+        tokenId: reviewId(`${slug}-scene-creature-${index}-token`),
+        controlledBy: [],
+        squares: 1,
+        hidden: spec.hidden === true
+      }))
     ]
   })
   let version = presented.run.version
@@ -491,6 +550,32 @@ async function presentStoryRun(
       ...(spotDc ? { spotDc } : {})
     })
     version = placed.projection.version
+  }
+  const conditioned = [
+    ...(enemyState
+      ? [
+          {
+            actorId: actor.id,
+            currentHitPoints: enemyState.currentHitPoints,
+            conditionCodes: enemyState.conditionCodes
+          }
+        ]
+      : []),
+    ...crowd.flatMap(({ actor: crowdActor, spec }) =>
+      spec.conditionCodes ? [{ actorId: crowdActor.id, conditionCodes: spec.conditionCodes }] : []
+    )
+  ]
+  for (const { actorId, conditionCodes, ...hitPoints } of conditioned) {
+    const updated = await execute({
+      type: 'UPDATE_ACTOR',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: version,
+      actorId,
+      ...hitPoints,
+      conditions: conditionRefs(conditionCodes)
+    })
+    version = updated.projection.version
   }
   if (shownScene) await createShownScene(client, campaignId, shownScene.name, scene.board)
   await room.checkpoint(campaignId)
@@ -1039,6 +1124,7 @@ type SceneToken = {
   controlledBy: string[]
   squares: number
   hidden: boolean
+  vision?: SceneDefinitionDto['tokens'][number]['vision']
 }
 
 /**
@@ -1074,7 +1160,7 @@ async function presentRunScene(
     position: token.position,
     rotationDegrees: 0,
     senses: [],
-    vision: null,
+    vision: token.vision ?? null,
     width: token.squares * 50
   }))
   assert.ok(firstToken && secondToken, 'A Scene needs at least two tokens.')

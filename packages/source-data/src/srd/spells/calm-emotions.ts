@@ -1,11 +1,14 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -15,7 +18,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const calmEmotions: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CALM_EMOTIONS,
@@ -34,7 +37,12 @@ export const calmEmotions: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x213, 1),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CHARISMA
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -45,22 +53,34 @@ export const calmEmotions: SpellAuthored = {
           amount: 60,
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
+        shape: {
+          id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x214, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+        },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          allowedCreatureTypeIds: [creatureTypeId('HUMANOID')]
         }
       },
       paths: [
         {
           id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x212, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            // The chosen effect is held while the cast's Concentration lasts.
+            duration: {
+              id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x215, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 1
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x212, 1),
@@ -68,7 +88,7 @@ export const calmEmotions: SpellAuthored = {
                 label: 'Calm Emotions',
                 reasonCode: 'GM_CHOICE' as const,
                 instructions:
-                  'Each humanoid in a 20-foot-radius sphere centered on a point you choose within range makes a Charisma saving throw; a creature can choose to fail it. On a failure, choose one effect: suppress any effect causing the target to be charmed or frightened, which resumes when the spell ends if its duration has not expired; or make the target indifferent about creatures of your choice that it is hostile toward. The indifference ends if the target is attacked or harmed by a spell or witnesses any of its friends being harmed. When the spell ends, the creature becomes hostile again, unless the GM rules otherwise.'
+                  'A creature can choose to fail the saving throw. On a failure, choose one effect: suppress any effect causing the target to be charmed or frightened, which resumes when the spell ends if its duration has not expired; or make the target indifferent about creatures of your choice that it is hostile toward. The indifference ends if the target is attacked or harmed by a spell or witnesses any of its friends being harmed. When the spell ends, the creature becomes hostile again, unless the GM rules otherwise.'
               }
             ]
           }
