@@ -135,6 +135,11 @@ export interface SpatialEffectInstance {
    * (D156). Absent for entry only.
    */
   readonly distanceStep?: number
+  /**
+   * Its place among a layered zone's effects, all over one area (D223): a creature meeting them at
+   * one point is put through them in this order. Absent for a zone of one layer.
+   */
+  readonly layerIndex?: number
 }
 
 /** The space a token occupies. */
@@ -156,6 +161,8 @@ export interface SpatialMovementCandidate {
   readonly trigger: SpatialTriggerMode
   /** The 1-based whole step it completes, for an effect that catches per distance moved. */
   readonly step?: number
+  /** The effect's place among its zone's layers, which settle in order at one point (D223). */
+  readonly layerIndex?: number
 }
 
 /** One complete outside-to-outside crossing of a stationary token's occupied footprint. */
@@ -1527,19 +1534,29 @@ export function collectTokenFootprintPathCrossings(input: {
     )
 }
 
-/** The order a move settles its candidates in: along the path, then by a stable identity. */
+/**
+ * The order a move settles its candidates in: along the path, a layered zone's layers met at one
+ * point in their order (D223), then by a stable identity.
+ */
 export function compareSpatialMovementCandidates(
   left: SpatialMovementCandidate,
   right: SpatialMovementCandidate
 ): number {
   return (
     left.pathDistance - right.pathDistance ||
+    compareSpatialLayers(left, right) ||
     compareText(left.effectId, right.effectId) ||
     compareText(left.targetActorId, right.targetActorId) ||
     compareText(left.trigger, right.trigger) ||
     (left.step ?? 0) - (right.step ?? 0)
   )
 }
+
+/** A layered zone's layers in their order (D223); an effect of one layer comes first. */
+const compareSpatialLayers = (
+  left: Pick<SpatialEffectInstance, 'layerIndex'>,
+  right: Pick<SpatialEffectInstance, 'layerIndex'>
+) => (left.layerIndex ?? 0) - (right.layerIndex ?? 0)
 
 /**
  * Whether a careful mover crosses this field at double cost and makes no entry save: it allows
@@ -1598,6 +1615,7 @@ export function collectSpatialMovementCandidates(input: {
       continue
     const sourceMoved =
       effect.anchorKind === 'TOKEN' && effect.sourceTokenId === input.movingTokenId
+    const layer = effect.layerIndex !== undefined ? { layerIndex: effect.layerIndex } : {}
     const targets = sourceMoved
       ? input.tokens.filter(
           (token) => token.id !== input.movingTokenId && input.actorIdByTokenId.has(token.id)
@@ -1634,7 +1652,8 @@ export function collectSpatialMovementCandidates(input: {
             sourceMoved,
             targetActorId,
             trigger: 'ENTER',
-            step
+            step,
+            ...layer
           })
         }
         continue
@@ -1657,7 +1676,8 @@ export function collectSpatialMovementCandidates(input: {
         sourceActorId: effect.sourceActorId,
         sourceMoved,
         targetActorId,
-        trigger: trigger.trigger
+        trigger: trigger.trigger,
+        ...layer
       })
     }
   }
@@ -1729,13 +1749,16 @@ export function collectSpatialTurnCandidates(input: {
         ? footprintWithinSpatialGeometry(footprint(target), geometry)
         : spatialGeometryOverlapsTokenFootprint({ geometry, token: target })
     })
+    .sort(
+      (left, right) =>
+        compareSpatialLayers(left, right) || compareText(left.effectId, right.effectId)
+    )
     .map((effect) => ({
       effectId: effect.effectId,
       sourceActorId: effect.sourceActorId,
       targetActorId,
       trigger: input.trigger
     }))
-    .sort((left, right) => compareText(left.effectId, right.effectId))
 }
 
 export interface SpatialMeleeRetaliationCandidate {

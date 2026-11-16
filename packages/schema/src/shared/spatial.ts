@@ -19,12 +19,14 @@ import {
   spatialPointDtoSchema,
   spatialPositiveDistanceDtoSchema,
   spatialTriggerDtoSchema,
-  spatialTurnTriggerDtoSchema
+  spatialTurnTriggerDtoSchema,
+  zoneLayerIndexSchema
 } from './spatialFacts.js'
 
 export {
   MAX_SPATIAL_CANDIDATES,
   MAX_SPATIAL_PATH_POINTS,
+  MAX_ZONE_LAYERS,
   SPATIAL_TURN_TRIGGERS,
   spatialMovementCandidateDtoSchema,
   spatialMovementKindDtoSchema,
@@ -254,6 +256,11 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
       /** The zone catches a mover once per whole step (Scene distance units) it moves inside (D156). */
       distanceStep: z.optional(positiveDistanceSchema),
+      /**
+       * Its place among a layered zone's records, all over one area (D223): a creature meeting them
+       * at one point of its move is put through them in this order. Absent for a zone of one layer.
+       */
+      layerIndex: z.optional(zoneLayerIndexSchema),
       blockingRules: z.optional(zoneBlockingRulesSchema),
       /** A creature failing the zone's save at the start of its turn loses its Action for that turn. */
       failedSaveLosesAction: z.optional(z.boolean()),
@@ -472,7 +479,8 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
       requiresFullyWithin: z.optional(z.boolean()),
       retaliatesMeleeHits: z.optional(z.literal(true)),
-      distanceStep: z.optional(positiveDistanceSchema)
+      distanceStep: z.optional(positiveDistanceSchema),
+      layerIndex: z.optional(zoneLayerIndexSchema)
     })
     .check(
       z.superRefine((effect, context) => {

@@ -102,6 +102,54 @@ describe('spatial movement candidates', () => {
     expect(exit[0]?.contact.x).toBeCloseTo(2)
   })
 
+  it('meets the layers of a layered zone at one point in their order, not by record id (D223)', () => {
+    // The second layer's record id sorts before the first's.
+    const layers = [
+      effect({ effectId: ids.effectTwo, layerIndex: 1, triggerModes: ['ENTER'] }),
+      effect({ effectId: ids.effect, layerIndex: 2, triggerModes: ['ENTER'] })
+    ]
+
+    const met = collect({
+      effects: layers,
+      movementKind: 'VOLUNTARY',
+      path: [
+        { x: -5, y: 0 },
+        { x: 0, y: 0 }
+      ]
+    })
+
+    expect(met.map(({ effectId, layerIndex }) => ({ effectId, layerIndex }))).toEqual([
+      { effectId: ids.effectTwo, layerIndex: 1 },
+      { effectId: ids.effect, layerIndex: 2 }
+    ])
+    expect(met[0]?.pathDistance).toBe(met[1]?.pathDistance)
+  })
+
+  it('catches a creature standing in a layered zone at a turn boundary layer by layer (D223)', () => {
+    const turn = collectSpatialTurnCandidates({
+      actorIdByTokenId: new Map([[ids.targetToken, ids.targetActor]]),
+      effects: [
+        effect({ effectId: ids.effectTwo, layerIndex: 2, turnTriggers: ['START_OF_TURN'] }),
+        effect({ effectId: ids.effect, layerIndex: 3, turnTriggers: ['START_OF_TURN'] }),
+        effect({
+          effectId: '00000000-0000-4000-8000-000000000007',
+          layerIndex: 1,
+          turnTriggers: ['START_OF_TURN']
+        })
+      ],
+      targetTokenId: ids.targetToken,
+      tokens: [token(ids.targetToken, 0)],
+      trigger: 'START_OF_TURN',
+      turnSequence: 1
+    })
+
+    expect(turn.map(({ effectId }) => effectId)).toEqual([
+      '00000000-0000-4000-8000-000000000007',
+      ids.effectTwo,
+      ids.effect
+    ])
+  })
+
   describe('creatures designated unaffected (SPELLS-20 T4c)', () => {
     const walk = [
       { x: -5, y: 0 },
