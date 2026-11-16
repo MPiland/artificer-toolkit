@@ -11,7 +11,10 @@ import type {
   CharacterRuleActionZonePlacementPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import { encounterZoneChoiceTarget } from '../../encounterAreaAction.js'
-import { effectOutcomeProposalNode, effectOutcomeProposalOutputs } from '../../effectOutcomeRegistry.js'
+import {
+  effectOutcomeProposalNode,
+  effectOutcomeProposalOutputs
+} from '../../effectOutcomeRegistry.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
   passiveMeleeRetaliationZone,
@@ -741,7 +744,10 @@ function unsavedZonePlacementPlan(
     unsupported('A zone outcome with no save is direct damage on use.')
   const row = zoneDamageRow(entries, action.spellCastLevel)
   const outcome = zoneDamageOutcome(row, 'ON_USE')
-  if ((outcome.kind !== 'ENTRY_DICE_DAMAGE' && outcome.kind !== 'DAMAGE') || !UUID.test(row.entryId))
+  if (
+    (outcome.kind !== 'ENTRY_DICE_DAMAGE' && outcome.kind !== 'DAMAGE') ||
+    !UUID.test(row.entryId)
+  )
     unsupported('A zone outcome with no save deals one fixed or dice damage row.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,

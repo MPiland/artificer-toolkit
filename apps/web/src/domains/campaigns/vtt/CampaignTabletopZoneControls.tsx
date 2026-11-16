@@ -9,7 +9,8 @@ import type {
 
 /**
  * The GM's hand on each placed zone (MOVE-3.7): show a concealed zone to chosen Characters, light
- * one that waits to be lit (QUALITY-15.T3w), or disarm it. The disarm DC is the GM's own note; players never receive it.
+ * one that waits to be lit (QUALITY-15.T3w), or disarm it. The disarm DC is the GM's own note;
+ * players never receive it.
  */
 export function CampaignTabletopZoneControls({
   actors,
