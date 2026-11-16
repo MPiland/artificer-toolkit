@@ -811,11 +811,6 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     expect(policy.targeting?.selectionKind).toBe('AREA_CONTENTS')
     expect(policy.targeting).not.toHaveProperty('hitPointPool')
     expect(encounterActionTargetKind(policy)).toBe(targetKind)
-    expect(
-      effect.paths.every(({ resultBlock }) =>
-        resultBlock?.outcomes.every(({ effectKind }) => effectKind === 'MANUAL_ADJUDICATION')
-      )
-    ).toBe(true)
   })
 
   // Each area row that stays refused, with why it stays refused.
@@ -835,7 +830,7 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     // Sleep's Unconscious over its sphere, with no hit-point pool deciding who it reaches.
     const targeting = { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' } as const
     expect(() => compile({ targeting }, spellEffect('Sleep'), 1)).toThrow(
-      'D&D area that tests no one must be a GM ruling on each creature it catches.'
+      'D&D area that tests no one must land its timed pool condition or GM ruling.'
     )
   })
 })

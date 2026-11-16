@@ -23,7 +23,9 @@ import type { Dnd5eTestKind } from './effectActionTest.js'
  * - `SINGLE`: one creature in range.
  * - `CHOSEN`: a resolved list of chosen creatures, inside a round area when it names one.
  * - `AREA`: the creatures a fixed-size area catches, or a hit-point pool rolled over them (Sleep).
- *   An unpooled area that tests no one is a GM ruling on each creature it catches.
+ *   `outcomeKind` is the one outcome it may land with no test: a hit-point pool puts the creatures
+ *   it covers under a timed condition, and any other area is a GM ruling on each creature it
+ *   catches (Zone of Truth).
  * `willing` marks a target that must be willing; an unwilling one only warns, so the outcome decides
  * whether it may ask for one.
  */
@@ -31,7 +33,7 @@ export type Dnd5eTargeting =
   | Readonly<{ kind: 'SELF'; reachFeet: number | null }>
   | Readonly<{ kind: 'SINGLE'; willing: boolean }>
   | Readonly<{ kind: 'CHOSEN'; willing: boolean }>
-  | Readonly<{ kind: 'AREA'; pooled: boolean }>
+  | Readonly<{ kind: 'AREA'; outcomeKind: 'CONDITION' | 'MANUAL_ADJUDICATION' }>
 
 /**
  * The targeting aspect of an activated Effect action, given the test that decides it (see
@@ -48,7 +50,10 @@ export function compileDnd5eTargeting(
   switch (targeting?.selectionKind) {
     case 'AREA_CONTENTS':
       requireSupportedArea(invocation, targeting, action.zoneAppearSave === true)
-      return { kind: 'AREA', pooled: hitPointPoolIsAuthored(targeting) }
+      return {
+        kind: 'AREA',
+        outcomeKind: hitPointPoolIsAuthored(targeting) ? 'CONDITION' : 'MANUAL_ADJUDICATION'
+      }
     case 'SELF':
       return selfTargeting(invocation, test)
     case 'SINGLE_TARGET':
