@@ -190,6 +190,11 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   playAbsenceContribution?: { keepsTurn: boolean }
   /**
+   * The check its holder, or a creature within reach, may make to end the effect and the conditions
+   * it holds. See the compiled plan schema for each field.
+   */
+  conditionEscapeContribution?: CompiledActionActiveEffectPlan['conditionEscapeContribution']
+  /**
    * The effect holds nothing itself: a d20 at the end of each of its holder's turns makes the child
    * effect when it reaches `minimumRoll` (Blink). The child's own graph is frozen with the plan.
    */

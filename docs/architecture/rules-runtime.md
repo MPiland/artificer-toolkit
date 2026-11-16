@@ -4065,6 +4065,18 @@ still free another creature. Undo follows the escape rule: a failure returns the
 **Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
 held creature against its holder); `encounterRescues.test.ts` proves the omission.
 
+**An effect's own check escape (QUALITY-15.T3t).** A held-conditions plan (`timedConditionPlan`) whose result
+block also authors one `FOLLOW_UP_CHECK` that is repeatable, ends on success (`END`), continues on failure
+(`CONTINUE`), has a fixed DC and names an ability or skill (no tool) compiles that check into the plan's
+`conditionEscapeContribution` (`followUpCheckEscape`); any other follow-up check beside conditions still refuses.
+The effect persists it as a `CONDITION_ESCAPE` carrying `escapeOutcome { outcomeId, actorKinds }`, which the
+schema allows only beside a `CONDITION_OWNERSHIP` (a zone's escape keeps `heldBySpatialEffectId` and no
+`escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
+offers it to the held creature (`escapeSourceId` = the check outcome id, `zoneLabel` null), and
+`findEncounterRescues` offers it to another creature when `actorKinds` allows `CREATURE_WITHIN_REACH`, within the
+rescuer's own reach, taken as Touch (5 ft) because no actor reach model exists. Settlement is the one escape path.
+**Unsupported:** moving the freed creature out of the area, and a rescuer's reach longer than 5 ft.
+
 **Contest outcomes (D105, ATTACK-7.6, D173).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is
 any outcome the test-outcome specializer admits (`isCheckOutcomeAction`; Shove, or a homebrew contest whose win deals
 damage) compiles to `TEST_OUTCOME`: the test is the contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
