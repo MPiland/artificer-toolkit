@@ -378,6 +378,17 @@ async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<
       ]
     })
   }
+  const preparedBlueprint = await client.mutation(api.encounters.blueprints.create, {
+    gameSystemId: srdSystemRecord.id,
+    name: STORY_CAMPAIGN.preparedBlueprintName,
+    commandId: reviewId('story-prepared-blueprint'),
+    enemies: [{ kind: 'CUSTOM', label: STORY_CAMPAIGN.enemyLabel, maxHitPoints: 22 }]
+  })
+  await client.mutation(api.encounters.runs.create, {
+    campaignId,
+    blueprintId: preparedBlueprint.id,
+    commandId: reviewId('story-prepared-run')
+  })
   const { userId } = await client.query(api.account.identity, {})
   await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor }, userId)
   return campaignId

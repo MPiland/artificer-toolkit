@@ -3,14 +3,15 @@ import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
-import { useMutation } from 'convex/react'
+import { useMutation, type ConvexReactClient } from 'convex/react'
 import { expect, mocked, sb } from 'storybook/test'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { recordMissingQueryFnReports } from '../../src/test/storybook/missingQueryFnReports'
 import {
   installQueryOverride,
-  type StoryQueryOverride
+  type StoryQueryOverride,
+  unoverriddenReads
 } from '../../src/test/storybook/storyQueryOverride'
 import {
   bindStoryQueryClient,
@@ -33,6 +34,8 @@ sb.mock(import('convex/react'), { spy: true })
 type StoryBackend = {
   convex: ConvexQueryClient
   queryClient: ReturnType<typeof createAppQueryClient>
+  /** The read client taken before a query override, so a write's seeded read is never overridden. */
+  reads: ConvexReactClient
   missingQueryFnReports: string[]
   user: AuthSessionUserDto
 }
@@ -80,6 +83,7 @@ async function connectStoryBackend(
   if (current.data?.user.email !== email) await signInStoryAccount(email)
   const convex = new ConvexQueryClient(url, { expectAuth: true })
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
+  const reads = unoverriddenReads(convex.convexClient)
   const queryClient = createAppQueryClient(convex)
   if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
   convex.convexClient.setAuth(
@@ -90,6 +94,7 @@ async function connectStoryBackend(
   storyBackends.set(storyId, {
     convex,
     queryClient,
+    reads,
     missingQueryFnReports: recordMissingQueryFnReports(queryClient),
     user
   })
@@ -99,7 +104,7 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       const backend = getStoryBackend(context.id)
-      bindStoryReads(backend.convex.convexClient)
+      bindStoryReads(backend.reads)
       return (
         <StoryFrame theme={context.globals.theme} queryClient={backend.queryClient}>
           <ConvexBetterAuthProvider
