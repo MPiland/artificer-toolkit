@@ -123,7 +123,10 @@ export function escalationCondition(
     : null
 }
 
-/** The turns a repeating save's held effect lasts: a tally waits for a count, a source-turn save one tick. */
+/**
+ * The turns a repeating save's held effect lasts: a tally waits for a count, a source-turn save one
+ * tick, and an effect with no duration of its own until its save ends it.
+ */
 export function repeatSaveHeldTurns(input: {
   save: FollowUpSaveOutcome
   escalated: boolean
@@ -133,7 +136,7 @@ export function repeatSaveHeldTurns(input: {
   if (input.escalated)
     return input.save.attempts.kind === 'THRESHOLDS' ? MAX_ACTIVE_EFFECT_TURNS : 1
   if (input.sourceTurn) return 1
-  return input.duration ? conditionDurationTurns(input.duration) : null
+  return input.duration ? conditionDurationTurns(input.duration) : MAX_ACTIVE_EFFECT_TURNS
 }
 
 /** Whether a repeating save's timing and attempts are a shape the plan counts on the holder's turn. */

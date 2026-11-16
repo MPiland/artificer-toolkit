@@ -16,6 +16,7 @@ import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+
 import { wizard as wizardClass } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { burningHands } from '@artificer-toolkit/source-data/srd/spells/burning-hands.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
@@ -26,6 +27,9 @@ import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
+
+import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
+
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
 import { definitionReferences } from '../convex/content/definitionReferences'
@@ -42,6 +46,8 @@ import {
   REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
+  REVIEW_STORY_SHOWING_HOST,
+  STORY_SHOWING_CAMPAIGN,
   STORY_SOCIAL,
   REVIEW_ADMIN,
   STORY_CAMPAIGN,
@@ -195,10 +201,14 @@ export async function seedStoryData(
     room,
     STORY_OPEN_CAMPAIGN
   )
+
   await setTier(userId, 'GM')
   await seedStoryCharacters(reader)
   // The Campaign stories read the plan limits of a free account.
   await setTier(userId, 'FREE')
+
+  await seedStoryShowingCampaign(await connect(REVIEW_STORY_SHOWING_HOST), reader)
+
   await seedStorySocial(
     {
       reader,
@@ -508,7 +518,22 @@ async function presentStoryRun(
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
   const execute: ExecuteCommand = (command) => client.mutation(executeEncounterCommand, { command })
-  const started = await startRun(execute, run, name)
+  // Morale is switched on while the Run is still prepared, before START.
+  const created = crowd.some(({ spec }) => spec.morale)
+    ? {
+        id: run.id,
+        version: (
+          await execute({
+            type: 'REPLACE_OPTIONAL_COMBAT_RULES',
+            encounterId: run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: run.version,
+            definitionIds: [moraleDefinitionId()]
+          })
+        ).projection.version
+      }
+    : run
+  const started = await startRun(execute, created, name)
   const presented = await presentRunScene(client, {
     campaignId,
     run: started,
@@ -596,7 +621,33 @@ async function presentStoryRun(
     })
     version = updated.projection.version
   }
-  if (shownScene) await createShownScene(client, campaignId, shownScene.name, scene.board)
+  for (const { actor: crowdActor, spec } of crowd) {
+    if (!spec.morale) continue
+    const checked = await execute({
+      type: 'MORALE_SAVE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: version,
+      actorId: crowdActor.id,
+      triggerKind: spec.morale.triggerKind,
+      leaderActorId: null,
+      overwhelmingOpposition: false,
+      escapePossible: true,
+      roll: { kind: 'AUTO_ROLL' },
+      visibility: 'PUBLIC'
+    })
+    const confirmed = await execute({
+      type: 'CONFIRM_MORALE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: checked.projection.version,
+      actorId: crowdActor.id,
+      disposition: spec.morale.disposition
+    })
+    version = confirmed.projection.version
+  }
+  if (shownScene)
+    await createShownScene(client, campaignId, shownScene.name, scene.board.ambientIllumination)
   await room.checkpoint(campaignId)
   await room.releaseRoom?.(campaignId)
 }
@@ -751,12 +802,39 @@ async function seedStorySpellNote(reader: StoryClient, characterId: string) {
     })
 }
 
+function moraleDefinitionId(): string {
+  const morale = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+    (definition) => definition.document.kind === 'MORALE'
+  )
+  assert.ok(morale, 'The SRD publishes no Morale rule.')
+  return morale.id
+}
+
+/**
+ * Hosts the Campaign whose GM is showing a Scene to the reader through the real showing command (D87):
+ * the reader joins it, and the Scene is created and shown only while nothing is on show.
+ */
+async function seedStoryShowingCampaign(host: StoryClient, reader: StoryClient) {
+  const { name, shownScene } = STORY_SHOWING_CAMPAIGN
+  const campaignId = await findOrCreateStoryCampaign(host, name)
+  if (!(await findCampaign(reader, name)))
+    await admitPlayers(
+      { client: host },
+      campaignId,
+      [{ client: reader, username: REVIEW_STORY_READER.username }],
+      1
+    )
+  if (await host.query(api.scenes.showings.current, { campaignId })) return
+  const scene = await createShownScene(host, campaignId, shownScene.name, 'BRIGHT')
+  await host.mutation(api.scenes.showings.show, { campaignId, sceneId: scene.liveSceneId })
+}
+
 /** An unpresented Scene on its own real map: what the GM shows to players (D87) without presenting it. */
 async function createShownScene(
   client: StoryClient,
   campaignId: string,
   name: string,
-  board: ReviewBoard
+  ambientIllumination: ReviewBoard['ambientIllumination']
 ) {
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const token = (label: string, x: number) => ({
@@ -773,13 +851,13 @@ async function createShownScene(
     vision: null,
     width: 50
   })
-  await createEncounterLifecycleScene({
+  return createEncounterLifecycleScene({
     owner: client,
     campaignId,
     name,
     options: {
       fogMode: 'OFF',
-      ambientIllumination: board.ambientIllumination,
+      ambientIllumination,
       map: { width: 800, height: 600 },
       grid: {
         kind: 'SQUARE',

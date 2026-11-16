@@ -18,6 +18,7 @@ import {
   STORY_CAMPAIGN,
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
+  STORY_SHOWING_CAMPAIGN,
   STORY_ZONES,
   type StoryCampaignSpec
 } from '../../../../../apis/tests/developmentReviewDataScenarios'
@@ -1117,6 +1118,53 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
       await expect(description).toContain(status)
     for (const band of ['Wounded', 'Bloodied', 'Critical'])
       await expect(description).not.toContain(band)
+    // The GM's confirmed morale outcome stays the GM's: the room sends the player no morale.
+    await expect(description).not.toContain('Fled')
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// VTT_UI-2 journey: the GM confirmed the visible Balor's Morale save as fleeing; its token says so in
+// the canvas description and in its status list.
+export const GmSeesMoraleOutcome: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const token = tokenLabelled(STORY_OPEN_CAMPAIGN.creatures[2].tokenLabel)
+    await expect(await sceneDescription(page)).toContain('Fled')
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.hover(
+      await within(sceneControls).findByRole('menuitem', { name: `Focus ${token.label}` })
+    )
+    const list = await page.findByRole('region', statusRegion(token.label))
+    await expect(within(list).getByText('Fled')).toBeVisible()
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// The GM showed the Scene to the table: the player's own window opens it read-only over the page,
+// and closing it leaves the window as it was. The Campaign has no Run, so nothing else is on screen.
+export const PlayerSeesShownScene: Story = {
+  args: { campaign: STORY_SHOWING_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    const sceneName = STORY_SHOWING_CAMPAIGN.shownScene.name
+    const viewer = await page.findByRole(
+      'dialog',
+      { name: sceneName },
+      { timeout: roomJoinTimeoutMs }
+    )
+    const map = await within(viewer).findByRole('img', { name: `Map of ${sceneName}` })
+    // The Modal fades in; the map is visible once that enter transition has finished.
+    await waitFor(() => expect(map).toBeVisible())
+    await expect(page.queryByRole('button', { name: 'Show to players' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() =>
+      expect(page.queryByRole('dialog', { name: sceneName })).not.toBeInTheDocument()
+    )
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
