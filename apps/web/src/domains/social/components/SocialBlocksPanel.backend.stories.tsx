@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import { expect, userEvent, waitFor } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { storyMutation, writesTo } from '#app/test/storybook/storyWrites'
 import { REVIEW_STORY_BLOCKED } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededSocialProfiles } from '../stories/SeededSocialProfiles'
@@ -16,6 +16,11 @@ function SeededBlocks() {
       )}
     </SeededSocialProfiles>
   )
+}
+
+/** The block list is its own paginated query, so the seeded frame does not mean its row has loaded. */
+function findSeededBlockUnblock(canvas: ReturnType<typeof within>) {
+  return canvas.findByRole('button', { name: 'Unblock' }, { timeout: 5000 })
 }
 
 // Reads the story reader's seeded block (D218, D221). Unblocking is a spy, so the row keeps the
@@ -38,7 +43,7 @@ export const SeededBlockIsListed: Story = {
 export const UnblockUsesPublicId: Story = {
   play: async ({ canvas }) => {
     const profilePublicId = (await canvas.findByTestId('seeded-block')).dataset.profileId
-    await userEvent.click(await canvas.findByRole('button', { name: 'Unblock' }))
+    await userEvent.click(await findSeededBlockUnblock(canvas))
     await waitFor(() => expect(writesTo(api.social.blocks.remove)).toEqual([{ profilePublicId }]))
   }
 }
@@ -46,7 +51,7 @@ export const UnblockUsesPublicId: Story = {
 export const FailedUnblockPreservesRow: Story = {
   play: async ({ canvas }) => {
     storyMutation.mockRejectedValueOnce(new Error('Social block not found.'))
-    await userEvent.click(await canvas.findByRole('button', { name: 'Unblock' }))
+    await userEvent.click(await findSeededBlockUnblock(canvas))
     await expect(await canvas.findByText('Social block not found.')).toBeVisible()
     await expect(canvas.getByText(`@${REVIEW_STORY_BLOCKED.username}`)).toBeVisible()
   }

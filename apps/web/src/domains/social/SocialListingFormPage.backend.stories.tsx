@@ -177,11 +177,10 @@ export const CreateForCampaignWithListing: Story = {
     const body = within(canvasElement.ownerDocument.body)
     const campaignId = (await canvas.findByTestId('seeded-campaign', {}, { timeout: 5000 })).dataset
       .campaignId
-    // The page lists Campaigns from its own paginated query, so its spinner is the load signal.
-    await waitFor(() =>
-      expect(canvas.queryByLabelText('Loading Campaigns')).not.toBeInTheDocument()
-    )
-    await userEvent.click(await canvas.findByRole('combobox', { name: 'Campaign' }))
+    // The Campaign select stays disabled until its own paginated query returns the first page.
+    const campaign = await canvas.findByRole('combobox', { name: 'Campaign' })
+    await waitFor(() => expect(campaign).toBeEnabled(), { timeout: 5000 })
+    await userEvent.click(campaign)
     await userEvent.click(await body.findByRole('option', { name: STORY_CAMPAIGN.name }))
     await userEvent.click(canvas.getByRole('combobox', { name: 'System and ruleset' }))
     await userEvent.click(
