@@ -150,7 +150,7 @@ export function repeatSaveFailureDamageRows(save: FollowUpSaveOutcome) {
     outcome.effectKind === 'DAMAGE' &&
     outcome.valueKind === 'DICE' &&
     !outcome.bonuses?.length &&
-    outcome.halfHitPointsDice === undefined &&
+    !('halfHitPointsDice' in outcome && outcome.halfHitPointsDice !== undefined) &&
     outcome.damageTypeId !== undefined &&
     UUID.test(outcome.damageTypeId)
       ? [outcome]
@@ -185,7 +185,7 @@ export function repeatSaveFailureDamage(
       ? rows[0]
       : spellCastLevel === undefined
         ? null
-        : selectScalingRow(rows, spellCastLevel)
+        : selectScalingRow<(typeof rows)[number]>(rows, spellCastLevel)
   const damageTypeId = row?.damageTypeId
   if (!row || damageTypeId === undefined)
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save damage has no row at the cast level.')
