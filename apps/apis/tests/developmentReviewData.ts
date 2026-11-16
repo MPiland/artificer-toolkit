@@ -41,6 +41,7 @@ import {
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
   STORY_SOCIAL,
+  REVIEW_ADMIN,
   STORY_CAMPAIGN,
   STORY_CHARACTERS,
   STORY_DEFINITIONS,
@@ -153,6 +154,8 @@ export async function seedStoryData(
   /** The story Characters copy more content than a free account may own, so the account is promoted while they are built. */
   setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>,
   room: StoryRoom,
+  /** Operator step: promotes the account to superadmin, as the review data does for its admin. */
+  grantSuperadmin: (userId: string) => Promise<void>,
   /** One step toward delivering queued notifications: the backend's own dispatcher runs each minute. */
   deliverNotifications: () => Promise<void> = () =>
     new Promise((resolve) => setTimeout(resolve, 2_000))
@@ -189,8 +192,10 @@ export async function seedStoryData(
     {
       reader,
       peer: await connect(REVIEW_STORY_PEER),
-      blocked: await connect(REVIEW_STORY_BLOCKED)
+      blocked: await connect(REVIEW_STORY_BLOCKED),
+      admin: await connect(REVIEW_ADMIN)
     },
+    grantSuperadmin,
     campaignId,
     deliverNotifications
   )
@@ -551,16 +556,26 @@ async function seedStoryCharacters(reader: StoryClient) {
 /**
  * The Social Hub state the story account sees, through product commands: its listing for the story
  * Campaign, an application and an invitation for the peer, and a report and block on the other
- * stranger, with the notifications those queue. A step runs only while its result is missing; the
+ * stranger, with the notifications those queue. The admin gets a Social profile and superadmin, so it
+ * reads that report in the moderation queue. A step runs only while its result is missing; the
  * report waits on the block, which cannot be read back.
  */
 async function seedStorySocial(
-  { reader, peer, blocked }: { reader: StoryClient; peer: StoryClient; blocked: StoryClient },
+  {
+    reader,
+    peer,
+    blocked,
+    admin
+  }: { reader: StoryClient; peer: StoryClient; blocked: StoryClient; admin: StoryClient },
+  grantSuperadmin: (userId: string) => Promise<void>,
   campaignId: string,
   deliverNotifications: () => Promise<void>
 ) {
-  for (const account of [reader, peer, blocked])
+  for (const account of [reader, peer, blocked, admin])
     await account.mutation(api.social.profiles.initialize, {})
+  // The moderation queue admits a superadmin with an active Social profile, and the reader's report
+  // below is what it lists.
+  await grantSuperadmin((await admin.query(api.account.identity, {})).userId)
   // Another account's Social profile page resolves only for a public account.
   await peer.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
   const firstPage = { paginationOpts: { cursor: null, numItems: 8 } }

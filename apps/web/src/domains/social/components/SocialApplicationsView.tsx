@@ -8,9 +8,9 @@ import type {
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CatchBoundary } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
 import { formatEnumLabel } from '#components/AuthoredDetail'
 import { admissionPageSize, mergeAdmissionRows } from '../hooks/admissionLists'
+import { useFocusLinkedRow } from '../hooks/useFocusLinkedRow'
 import { formatSocialDate } from '../socialModels'
 import { AdmissionListFooter } from './AdmissionListFooter'
 import { SocialBlocksPanel } from './SocialBlocksPanel'
@@ -53,7 +53,6 @@ function SocialApplicationsList({ applicationPublicId }: { applicationPublicId?:
   const withdraw = useMutation({
     mutationFn: (input: SocialApplicationVersionInput) => withdrawApplication(input)
   })
-  const focusedApplicationPublicId = useRef<string | null>(null)
   const {
     rows: applications,
     loadingFirstPage,
@@ -71,20 +70,11 @@ function SocialApplicationsList({ applicationPublicId }: { applicationPublicId?:
     ? applicationPublicId
     : null
 
-  useEffect(() => {
-    if (
-      !matchingApplicationPublicId ||
-      direct.isError ||
-      direct.isPending ||
-      focusedApplicationPublicId.current === matchingApplicationPublicId
-    )
-      return
-    const element = document.getElementById(`application-${matchingApplicationPublicId}`)
-    if (!element) return
-    focusedApplicationPublicId.current = matchingApplicationPublicId
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'center' })
-  }, [direct.isError, direct.isPending, matchingApplicationPublicId])
+  useFocusLinkedRow(
+    matchingApplicationPublicId && !direct.isError && !direct.isPending
+      ? `application-${matchingApplicationPublicId}`
+      : null
+  )
 
   return (
     <>

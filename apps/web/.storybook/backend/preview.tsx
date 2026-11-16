@@ -55,6 +55,15 @@ declare module 'vitest/browser' {
 }
 
 /**
+ * The sign-in rate limit keys on the client address. This module loads once per story file, and a
+ * file signs in at least once, so the file takes its own address before its first request and
+ * keeps it; no story swaps it mid-file.
+ */
+const ownClientAddress = import('vitest/browser').then(({ commands }) =>
+  commands.routeFromOwnClientAddress()
+)
+
+/**
  * Signs in as the story account through the web app auth proxy and opens a read client. The
  * browser session holds one identity at a time, so a sign-in happens only when the story needs a
  * different account than the one already signed in; stories sharing an account share its session.
@@ -67,10 +76,7 @@ async function connectStoryBackend(
   if (storyBackends.has(storyId)) return
   const url = import.meta.env.VITE_CONVEX_URL
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
-  // The sign-in rate limit keys on the client address, so each story takes a fresh one for its
-  // browser context before its first request.
-  const { commands } = await import('vitest/browser')
-  await commands.routeFromOwnClientAddress()
+  await ownClientAddress
   const email = reviewAccountEmail(STORY_ACCOUNTS[accountKey])
   const current = await betterAuthClient.getSession()
   if (current.data?.user.email !== email) {
