@@ -17,16 +17,20 @@ import {
   DND5E_TARGET_ACTOR_FACT_KEY,
   Dnd5eEffectActionCompilerError,
   UUID,
-  type Dnd5eCompiledEffectActionSource
+  type Dnd5eCompiledEffectActionSource,
+  type EntryDiceDamageOutcome
 } from './effectActionContracts.js'
 import { pathGatedProposalNode } from './effectActionOutcomeNodes.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { repeatSaveGated } from './effectActionRepeatSaveEvidence.js'
+import { entryDiceDamageNodes } from './effectActionTestPhase.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 
 export function repeatFollowUpSavePublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
+  /** The dice damage each failed save deals while the effect goes on. */
+  failureDamage?: EntryDiceDamageOutcome | null
 }): ServerPublishedRuleDefinitionDto {
   const abilityDefinitionId =
     input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
@@ -50,6 +54,15 @@ export function repeatFollowUpSavePublishedGraph(input: {
       conditionImmuneFactKey: undefined
     })
   }))
+  // Its damage dice are asked for only when the save fails, and their proposal binds its authored row.
+  const damage = input.failureDamage
+  if (damage && (gated || rulings.length > 0))
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D repeat-save damage needs an ungated save with no rulings.'
+    )
+  const damageNodes = damage
+    ? entryDiceDamageNodes('ON_SAVE_FAIL', damage, false, input.plan.frozenGraphNodeId)
+    : []
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -84,7 +97,8 @@ export function repeatFollowUpSavePublishedGraph(input: {
           outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       },
-      ...rulings.map(({ node }) => node)
+      ...rulings.map(({ node }) => node),
+      ...damageNodes
     ],
     outputs: {
       targetActorId: {
@@ -118,7 +132,8 @@ export function repeatFollowUpSavePublishedGraph(input: {
         sourceEntryId: input.plan.compiledEntryId,
         nodeId: input.plan.frozenGraphNodeId
       },
-      ...rulings.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
+      ...rulings.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id })),
+      ...(damage ? [{ sourceEntryId: damage.entryId, nodeId: 'proposal-on_save_fail' }] : [])
     ]
   }
   return publishedGraph(definition)

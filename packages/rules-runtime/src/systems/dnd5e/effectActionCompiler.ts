@@ -230,6 +230,7 @@ import {
 } from './effectActionInterpretation.js'
 import {
   countRepeatSave,
+  isRepeatSaveFailureDamageNode,
   repeatedFollowUpSaveResultPath,
   repeatSaveAttemptAllowed,
   repeatSaveGated,
@@ -273,6 +274,8 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
   repeatCadenceSupported,
+  repeatSaveFailureDamage,
+  repeatSaveFailureDamageRows,
   repeatSaveHeldTurns,
   sourceTurnStartSave
 } from './effectActionNestedSave.js'
@@ -1391,6 +1394,8 @@ function repeatingDirectFollowUpSavePlan(
         })
       : null
   const grantContribution = grantPlan?.modifierGrantContribution
+  // The test template is compiled once for every cast level; the effect's plan picks the row.
+  const failsWithDamage = repeatSaveFailureDamageRows(save) !== null
   const contribution =
     leadConditions.length > 0 &&
     leadConditions.every(
@@ -1419,7 +1424,10 @@ function repeatingDirectFollowUpSavePlan(
     (!sourceTurn && !repeatCadenceSupported(save, escalation !== null)) ||
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
-    (escalation === null && !sourceTurn && save.onFailure.kind !== 'CONTINUE') ||
+    (escalation === null &&
+      !sourceTurn &&
+      !failsWithDamage &&
+      save.onFailure.kind !== 'CONTINUE') ||
     (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
     (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
@@ -2690,8 +2698,13 @@ function dnd5eActiveEffectPlans(
   if (!lifetime || !plan) return []
   // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
   const savePlan = lifetime.kind === 'REPEAT_SAVE' || timedPlan?.turnEndGate ? plan : null
+  const repeatedSave = directRepeatSaveEntries(entriesBesideSourceImmunity(action)).saveEntry
+  const failureDamage =
+    lifetime.kind === 'REPEAT_SAVE' && repeatedSave?.outcome.effectKind === 'FOLLOW_UP_SAVE'
+      ? repeatSaveFailureDamage(repeatedSave.outcome, action.spellCastLevel)
+      : null
   const frozenGraph = savePlan
-    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
+    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan, failureDamage })
     : timedPlan
       ? durationPublishedGraph({
           effectId: action.effectId,
@@ -4022,10 +4035,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         (thresholds
           ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
           : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
+      // A failure that goes on deals the damage its graph rolled, before anything the save ends.
+      const failureDamage = graph.nodes.some(({ id }) => isRepeatSaveFailureDamageNode(id))
+        ? testApplications({ execution, published, ...target }, undefined, {
+            d20: 'repeat-save-d20',
+            test: definition.frozenGraphNodeId
+          })
+        : []
+      if (failureDamage === null)
+        throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
       // Grants held by the effect leave with it; only held conditions need removing.
       if (conditionIds === null)
         return {
-          applications: [],
+          applications: failureDamage,
           terminal,
           emptyApplicationAllowed: true,
           ...(saveTally ? { saveTally } : {})
@@ -4050,6 +4072,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return terminal
         ? {
             applications: [
+              ...failureDamage,
               ...conditionIds.map((conditionId) => ({
                 ...application,
                 kind: 'CONDITION_REMOVE' as const,
@@ -4075,7 +4098,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             terminal: true
           }
         : {
-            applications: [],
+            applications: failureDamage,
             terminal: false,
             emptyApplicationAllowed: true,
             ...(saveTally ? { saveTally } : {})

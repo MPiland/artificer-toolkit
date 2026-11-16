@@ -4245,6 +4245,19 @@ either case the lead applies only on `ON_SAVE_FAIL` (`reachesAuthoredPath`), so 
 creature that passes. Gold Dragon Weakening Breath is the grant-led case: Strength check, Strength save and
 Strength attack disadvantage, ended by the repeated Strength save.
 
+**A repeated save whose failure deals damage (QUALITY-15.T3z).** A once-per-turn `TARGET_TURN_END` repeat save,
+ungated, whose failure outcomes are only plain dice damage (Weird, Phantasmal Killer) compiles through
+`repeatingDirectFollowUpSavePlan`. The test template is compiled once for every cast level, so admission
+(`repeatSaveFailureDamageRows` in `effectActionNestedSave.ts`) checks only the shape; `dnd5eActiveEffectPlans`
+then picks the row for the action's `spellCastLevel` (`repeatSaveFailureDamage`) and freezes its dice into the
+effect's graph. The persisted active-effect contract is unchanged: the cast level's dice are graph nodes
+(`entryDiceDamageNodes`, gated on `repeat-save-test`'s path) and the damage proposal
+`proposal-on_save_fail` is a `sourceEntryBindings` entry bound to the authored damage row. At the holder's turn
+end, a failed save yields `DAMAGE` applications from that proposal through the shared `testApplications`, and
+the effect holds; a made save ends it as before. The turn-effect batch schema and
+`persistEncounterTurnEffects` accept an application whose source is the frozen node or a bound proposal. A
+repeat save may roll failure damage or propose GM rulings, never both, and never behind a gate.
+
 **Ability-scoped and fractional grants (SPELLS-19.T3b).** `ATTACK_ROLL` may name an `ability`; a grant naming one
 covers only attacks made with it. A Character folds it through `dnd5eAttackRollContributors` (the action's
 `attackAbility`); a Creature reads `creatureAttackAbility` (the first damage outcome's `ABILITY_BONUS`). Plain

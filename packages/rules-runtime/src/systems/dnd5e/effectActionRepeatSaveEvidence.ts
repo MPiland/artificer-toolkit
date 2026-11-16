@@ -19,6 +19,7 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
+  ENTRY_DAMAGE_NODE_PREFIX,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
 import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
@@ -61,6 +62,11 @@ export function repeatSaveAttemptAllowed(input: {
   )
 }
 
+/** Whether a repeat-save graph node rolls or proposes the damage its failed save deals. */
+export function isRepeatSaveFailureDamageNode(nodeId: string) {
+  return nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX) || nodeId === 'proposal-on_save_fail'
+}
+
 export function repeatedFollowUpSaveResultPath(input: {
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   occurrenceId: string
@@ -83,21 +89,24 @@ export function repeatedFollowUpSaveResultPath(input: {
   const attemptAllowed = gated
     ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
     : true
-  // A source-turn follow-up save may add GM rulings, each gated on its failure; nothing else may follow.
-  const rulingNodes = input.graph.nodes.slice(3)
+  // A source-turn follow-up save may add GM rulings, each gated on its failure, and a failure that
+  // goes on may roll damage (its dice and proposal are checked with the save's applications);
+  // nothing else may follow.
+  const failureNodes = input.graph.nodes.slice(3)
   const rulingOperationKey = dnd5eOutcomeDefinition('MANUAL_ADJUDICATION').pathGatedOperationKey
-  const rulingNodeIds = new Set(rulingNodes.map(({ id }) => id))
+  const failureNodeIds = new Set(failureNodes.map(({ id }) => id))
   if (
     input.graph.nodes.length < 3 ||
-    !rulingNodes.every(
-      (node) =>
-        /^manual_adjudication-\d+$/.test(node.id) &&
-        node.operation.key === rulingOperationKey &&
-        node.inputs.authoredPath?.kind === 'LITERAL' &&
-        node.inputs.authoredPath.value === 'ON_SAVE_FAIL'
+    !failureNodes.every((node) =>
+      isRepeatSaveFailureDamageNode(node.id)
+        ? !gated
+        : /^manual_adjudication-\d+$/.test(node.id) &&
+          node.operation.key === rulingOperationKey &&
+          node.inputs.authoredPath?.kind === 'LITERAL' &&
+          node.inputs.authoredPath.value === 'ON_SAVE_FAIL'
     ) ||
     input.execution.evidence.trace.length < 3 ||
-    !input.execution.evidence.trace.slice(3).every(({ nodeId }) => rulingNodeIds.has(nodeId)) ||
+    !input.execution.evidence.trace.slice(3).every(({ nodeId }) => failureNodeIds.has(nodeId)) ||
     input.graph.nodes[0]?.id !== d20NodeId ||
     input.graph.nodes[0]?.operation.key !== d20OperationKey ||
     input.graph.nodes[2]?.id !== input.definition.frozenGraphNodeId ||
