@@ -13,6 +13,7 @@ import {
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -30,6 +31,7 @@ export const wallOfForce: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'a pinch of powder made by crushing a clear gemstone',
   magicSchoolId: schoolId('EVOCATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.WALL_OF_FORCE, 0x210, 1),

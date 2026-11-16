@@ -12,6 +12,7 @@ import {
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -35,6 +36,7 @@ export const giantInsect: SpellAuthored = {
   classIds: [CLASS_IDS.DRUID],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
   magicSchoolId: schoolId('TRANSMUTATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.GIANT_INSECT, 0x210, 1),

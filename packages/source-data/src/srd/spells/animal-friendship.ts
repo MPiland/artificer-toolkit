@@ -8,7 +8,6 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
-  SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -37,7 +36,6 @@ export const animalFriendship: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'a morsel of food',
   magicSchoolId: schoolId('ENCHANTMENT'),
-  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.ANIMAL_FRIENDSHIP, 0x210, 1),

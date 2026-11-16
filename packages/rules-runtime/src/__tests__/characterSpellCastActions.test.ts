@@ -67,6 +67,7 @@ import {
 } from '../character/sheetSpellSummon.js'
 import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
+import { layeredZoneSpell } from '../testing/layeredZoneSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -1693,6 +1694,63 @@ describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', (
       area: { kind: 'CUBE', edgeLength: { amount: 200, unit: 'FEET' } },
       choiceOptions: options.map(({ optionId, label }) => ({ id: optionId, label }))
     })
+  })
+})
+
+describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', () => {
+  const layeredZones = (authored: SpellAuthored) => {
+    const placement = compiledCastEntry(authored)?.compilation.zonePlacement
+    if (!placement || !('options' in placement)) throw new Error('The zone must offer its forms.')
+    return placement.options.map(({ zone }) => zone)
+  }
+
+  it('places its first layer as the zone and each later one as a record over the same shape, all sparing the designated', () => {
+    const zones = layeredZones(layeredZoneSpell())
+
+    expect(zones).toHaveLength(2)
+    for (const zone of zones) {
+      // No Concentration holds it: the zone, and so every layer placed from it, lasts 10 minutes, 100
+      // of its caster's turns from placement (QUALITY-15.T3ag).
+      expect(zone).toMatchObject({
+        attachment: 'PLACED_SPACE',
+        choosesUnaffected: true,
+        maintenance: null,
+        duration: { startsAt: 'PLACEMENT', expiration: { kind: 'TICKS', initialRemaining: 100 } }
+      })
+      expect(zone).not.toHaveProperty('regionComponents')
+      expect(zone.layerComponents?.map(({ label }) => label)).toEqual(['Orange', 'Yellow'])
+      const layers = [zone, ...(zone.layerComponents ?? [])]
+      // Each layer catches whoever meets the zone, with a save and damage of its own.
+      for (const layer of layers) {
+        expect(layer.triggerModes).toEqual(zone.triggerModes)
+        expect(layer.triggerModes.length).toBeGreaterThan(0)
+      }
+      // The zone's own record spares the designated; its later layers spare whom it spares.
+      for (const layer of zone.layerComponents ?? [])
+        expect(layer).not.toHaveProperty('choosesUnaffected')
+      expect(new Set(layers.map(({ entry }) => entry.compiledEntryId)).size).toBe(3)
+    }
+  })
+
+  it('refuses a layered zone of one layer, or one with a layer beside it rather than over it', () => {
+    expect(compiledCastEntry(layeredZoneSpell(1))).toBeNull()
+    const banded = layeredZoneSpell()
+    const path = banded.effects?.[0]?.paths[0]
+    if (path?.selectionKind !== 'CHOICE') throw new Error('The wall must offer its forms.')
+    for (const { resultBlock } of path.options)
+      for (const outcome of resultBlock.outcomes) {
+        const second =
+          outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'ZONE'
+            ? outcome.components?.[1]
+            : undefined
+        if (!second) throw new Error('Each form must place a zone of layers.')
+        second.region = { kind: 'SIDE_BAND', distance: { amount: 10, unit: 'FEET' } }
+      }
+    expect(compiledCastEntry(banded)).toBeNull()
+  })
+
+  it('keeps the SRD Prismatic Wall refused until its destruction, proximity, light and placement rules are built', () => {
+    expect(compiledCastEntry(spell('Prismatic Wall'))).toBeNull()
   })
 })
 

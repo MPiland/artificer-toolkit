@@ -2,6 +2,7 @@ import type {
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
+import { MAX_ZONE_LAYERS } from '@artificer-toolkit/schema/shared/spatial'
 import type {
   CompiledEffectGroup,
   CompiledManifestComponent
@@ -31,6 +32,13 @@ export interface PlacedSpaceZone {
    * only its appear save acts through.
    */
   components: Array<{ component: CompiledManifestComponent; behavior: CompiledEffectGroup | null }>
+  /**
+   * Whether the components are layers of the zone's own shape, each met in order (D223), rather than
+   * a shape and the regions beside it. Absent for a zone of one layer or with regions.
+   */
+  layered?: true
+  /** Whether the caster designates creatures at cast that the zone never affects. */
+  designatedCreatureImmunity?: true
   /** The save each creature in the area makes when the zone appears; null for none. */
   appearSave: CompiledEffectGroup | null
   /** The zone's compiled entry: its manifest outcome. */
@@ -50,7 +58,11 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'hollow',
   'wallThickness',
   'camouflage',
-  'components'
+  'components',
+  'componentsMustResolveInOrder',
+  'designatedCreatureImmunity',
+  // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
+  'suppressionImmunities'
 ])
 /**
  * The target fact a planner pins `false` when an occupant lacks the sight a zone requires of it, so the
@@ -132,9 +144,18 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone needs a label and a shape.'
     )
-  if (components[0]?.region || components.slice(1).some((component) => !component.region))
+  const layered = manifest.componentsMustResolveInOrder === true
+  if (
+    layered
+      ? components.length < 2 ||
+        components.length > MAX_ZONE_LAYERS ||
+        components.some((component) => component.region)
+      : components[0]?.region || components.slice(1).some((component) => !component.region)
+  )
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone’s first component covers its shape, and each later one a region beside it.'
+      layered
+        ? `A layered zone has 2 to ${MAX_ZONE_LAYERS} layers, each covering its shape.`
+        : 'A placed zone’s first component covers its shape, and each later one a region beside it.'
     )
   const planned = components.map((component) => {
     if (hasUnmodeledField(component, MODELED_COMPONENT_KEYS))
@@ -177,6 +198,8 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     ...(camouflage ? { camouflage } : {}),
     components: planned,
+    ...(layered ? { layered: true as const } : {}),
+    ...(manifest.designatedCreatureImmunity ? { designatedCreatureImmunity: true as const } : {}),
     appearSave,
     entry,
     sourceGrantEntry

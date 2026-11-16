@@ -10,6 +10,7 @@ import {
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -27,6 +28,7 @@ export const controlWeather: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'burning incense and bits of earth and wood mixed in water',
   magicSchoolId: schoolId('TRANSMUTATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.CONTROL_WEATHER, 0x210, 1),

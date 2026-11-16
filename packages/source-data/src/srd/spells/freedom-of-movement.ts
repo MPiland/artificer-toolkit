@@ -10,7 +10,6 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   RANGE_KIND,
-  SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
@@ -34,7 +33,6 @@ export const freedomOfMovement: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'a leather strap, bound around the arm or a similar appendage',
   magicSchoolId: schoolId('ABJURATION'),
-  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.FREEDOM_OF_MOVEMENT, 0x210, 1),

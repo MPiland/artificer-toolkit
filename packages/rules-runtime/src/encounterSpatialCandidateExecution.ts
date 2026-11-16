@@ -142,6 +142,7 @@ function toSpatialInstance(
     requiresFullyWithin: effect.placement.requiresFullyWithin,
     retaliatesMeleeHits: effect.placement.retaliatesMeleeHits,
     distanceStep: effect.placement.distanceStep,
+    layerIndex: effect.placement.layerIndex,
     suppressed:
       isEncounterPassiveZone(effect) &&
       sourceActorId !== null &&

@@ -173,8 +173,15 @@ function zonePlacementPlan(
   const zone = placedSpaceZone(action.compiledEffect)
   if (!zone) return null
   const [first, ...later] = zone.components
-  const { appearSave } = zone
-  if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
+  const { appearSave, layered } = zone
+  if (!layered && later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
+  // Every layer of a layered zone (D223) covers its shape and acts on whoever meets it there.
+  if (
+    layered &&
+    (zone.attachment !== 'PLACED_SPACE' ||
+      zone.components.some(({ behavior, component }) => !behavior || component.perDistanceMoved))
+  )
+    unsupported('Each layer of a layered zone left where its cast places it acts where it reaches.')
   // A passive zone's radius scaled by class level is resolved when it is placed on its source's
   // token (D155); a cast's area is aimed before any source resolves it, and no other size scales.
   const passive = action.compiledEffect.invocation.kind === 'PASSIVE'
@@ -186,14 +193,17 @@ function zonePlacementPlan(
   )
     unsupported('A zone size scales only as a passive zone’s radius by class level.')
   const placementKind = encounterZoneChoiceTarget(
-    { ...zone, regionComponents: later.map(({ component }) => ({ region: component.region! })) },
+    {
+      ...zone,
+      regionComponents: layered ? [] : later.map(({ component }) => ({ region: component.region! }))
+    },
     action.compiledEffect.invocation.range.rangeKind
   )?.kind
   // A directed area is aimed, not placed; a zone is left where its action is centered or its wall
   // is drawn (D154), and a source zone is centered on the caster. Only a wall has a side to reach.
   if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
     unsupported(
-      later.length
+      later.length && !layered
         ? 'A zone with a band beside it is a straight wall or a ring.'
         : zone.attachment === 'SOURCE'
           ? 'A source zone is centered on the caster.'
@@ -241,27 +251,30 @@ function zonePlacementPlan(
           },
           { triggerModes: [] }
         )
-  // Each band is a record of its own, sparing whom the zone spares.
-  const regionComponents = later.map((planned) => {
-    const { region, choosesUnaffected, perDistanceMoved, label } = planned.component
+  // Each band or later layer is a record of its own, sparing whom the zone spares.
+  const laterRecord = (planned: PlacedSpaceZone['components'][number]) => {
+    const { label } = planned.component
     if (!planned.behavior) unsupported('A zone’s band beside its wall acts where it reaches.')
-    if (choosesUnaffected)
+    if (planned.component.choosesUnaffected)
       unsupported('A zone’s region component spares the creatures the zone spares.')
-    if (perDistanceMoved) unsupported('Only a zone’s own component acts per distance moved.')
-    const { attachment, shape, ringThickness, maintenance, ...component } = zoneComponentPlan(
-      action,
-      zone,
-      planned
-    )
+    if (planned.component.perDistanceMoved)
+      unsupported('Only a zone’s own component acts per distance moved.')
+    const { attachment, shape, ringThickness, maintenance, choosesUnaffected, ...component } =
+      zoneComponentPlan(action, zone, planned)
     if (checksumCanonicalJson(maintenance) !== checksumCanonicalJson(primary.maintenance))
       unsupported('Every component of a zone depends on the Concentration its cast opens.')
-    return { region: region!, ...component, label }
-  })
+    return { ...component, label }
+  }
+  const regionComponents = layered
+    ? []
+    : later.map((planned) => ({ region: planned.component.region!, ...laterRecord(planned) }))
+  const layerComponents = layered ? later.map(laterRecord) : []
   const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
   return withZoneDuration(
     {
       ...primary,
       ...(regionComponents.length ? { regionComponents } : {}),
+      ...(layerComponents.length ? { layerComponents } : {}),
       ...(sourceGrant ? { sourceGrant } : {})
     },
     zone.entry
@@ -313,6 +326,7 @@ function occupantBonusZonePlacementPlan(
     component.interactionKinds?.length ||
     component.bypassAtHalfSpeed ||
     component.choosesUnaffected ||
+    zone.designatedCreatureImmunity ||
     component.maxApplicationsPerTurn !== undefined ||
     component.requiresFullyWithin ||
     component.requiredSight?.length ||
@@ -361,7 +375,8 @@ function inertZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone
 ): CharacterRuleActionZonePlacementPlan {
-  if (zone.sourceGrantEntry) unsupported('A zone that marks its area holds no grant.')
+  if (zone.sourceGrantEntry || zone.designatedCreatureImmunity)
+    unsupported('A zone that marks its area holds no grant and spares no one.')
   return {
     attachment: zone.attachment,
     label: zone.label,
@@ -418,7 +433,10 @@ function zoneComponentPlan(
   zone: PlacedSpaceZone,
   { component, behavior }: PlacedSpaceZone['components'][number],
   triggers = dnd5eEventVocabularyCapabilityAdapter.zoneSubscription(component.interactionKinds)
-): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
+): Omit<
+  CharacterRuleActionZonePlacementPlan,
+  'regionComponents' | 'layerComponents' | 'sourceGrant'
+> {
   if (!behavior && !component.movementCostMultiplier)
     unsupported('Only a zone’s own component lends an occupant save bonus.')
   const {
@@ -458,7 +476,9 @@ function zoneComponentPlan(
     ...(zone.camouflage ? { camouflage: zone.camouflage } : {}),
     ...triggers,
     bypassAtHalfSpeed: component.bypassAtHalfSpeed === true,
-    ...(component.choosesUnaffected ? { choosesUnaffected: true } : {}),
+    ...(component.choosesUnaffected || zone.designatedCreatureImmunity
+      ? { choosesUnaffected: true }
+      : {}),
     ...(component.maxApplicationsPerTurn
       ? { maxApplicationsPerTurn: component.maxApplicationsPerTurn }
       : {}),
