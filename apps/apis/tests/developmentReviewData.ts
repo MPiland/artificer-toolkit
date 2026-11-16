@@ -16,7 +16,6 @@ import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-
 import { wizard as wizardClass } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { burningHands } from '@artificer-toolkit/source-data/srd/spells/burning-hands.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
@@ -26,11 +25,8 @@ import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.
 import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
-import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
-
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
-
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
 import { api } from '../convex/_generated/api.js'
 import { definitionReferences } from '../convex/content/definitionReferences'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
@@ -202,14 +198,11 @@ export async function seedStoryData(
     room,
     STORY_OPEN_CAMPAIGN
   )
-
+  await seedStoryShowingCampaign(await connect(REVIEW_STORY_SHOWING_HOST), reader)
   await setTier(userId, 'GM')
   await seedStoryCharacters(reader)
   // The Campaign stories read the plan limits of a free account.
   await setTier(userId, 'FREE')
-
-  await seedStoryShowingCampaign(await connect(REVIEW_STORY_SHOWING_HOST), reader)
-
   await seedStorySocial(
     {
       reader,
