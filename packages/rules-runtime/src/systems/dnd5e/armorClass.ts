@@ -4,7 +4,8 @@ import type { ArmorClassResult } from '../../armorClassCapability.js'
  * The one D&D armor class formula. The standard base is worn armor (its armor class plus the
  * ability bonuses it grants itself, such as light armor's Dexterity) or 10 + Dexterity unarmored.
  * Authored alternatives ("your AC equals 13 + DEX") compete with it and never stack: the best one
- * wins. A shield and flat bonuses then add.
+ * wins. A shield and flat bonuses then add. A minimum ("your AC can't be less than 16") floors the
+ * final value, shield and bonuses included; of several, the highest holds.
  */
 export function combineDnd5eArmorClass(input: {
   armor: { armorClass: number; abilityBonuses: readonly number[] } | null
@@ -12,13 +13,20 @@ export function combineDnd5eArmorClass(input: {
   setValues: readonly number[]
   shield: number
   additive: readonly number[]
+  minimums: readonly number[]
 }): { base: number; effective: number } {
   const standardBase =
     input.armor === null
       ? 10 + input.dexterityModifier
       : input.armor.abilityBonuses.reduce((sum, bonus) => sum + bonus, input.armor.armorClass)
   const base = Math.max(standardBase, ...input.setValues) + input.shield
-  return { base, effective: input.additive.reduce((sum, value) => sum + value, base) }
+  return {
+    base,
+    effective: Math.max(
+      input.additive.reduce((sum, value) => sum + value, base),
+      ...input.minimums
+    )
+  }
 }
 
 /**

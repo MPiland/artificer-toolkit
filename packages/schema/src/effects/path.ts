@@ -21,7 +21,6 @@ import { stabilizeDtoSchema } from './stabilize.js'
 import { killDtoSchema } from './kill.js'
 import { hitPointsToZeroDtoSchema } from './hitPointsToZero.js'
 import { reviveDtoSchema } from './revive.js'
-import { armorClassFloorDtoSchema } from './armorClassFloor.js'
 import { restoreResourceDtoSchema } from './restoreResource.js'
 import { spellSlotExchangeDtoSchema } from './spellSlotExchange.js'
 import { telepathicLinkDtoSchema } from './telepathicLink.js'
@@ -95,7 +94,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             killDtoSchema,
             hitPointsToZeroDtoSchema,
             reviveDtoSchema,
-            armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
             spellSlotExchangeDtoSchema,
             telepathicLinkDtoSchema,
@@ -131,7 +129,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             killDtoSchema,
             hitPointsToZeroDtoSchema,
             reviveDtoSchema,
-            armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
             spellSlotExchangeDtoSchema,
             telepathicLinkDtoSchema,

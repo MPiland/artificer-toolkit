@@ -98,7 +98,11 @@ export function evaluateDnd5eCharacterModifiers(
     // A penalty is authored as a positive amount and is negated here, once, for every consumer.
     if (group.modifierKind === 'PENALTY') return -additiveAmount(payload)
     if (group.modifierKind === 'BONUS') return additiveAmount(payload)
-    if (group.modifierKind === 'SET_VALUE' || group.modifierKind === 'MODIFY_CHARGE_LIMIT') {
+    if (
+      group.modifierKind === 'SET_VALUE' ||
+      group.modifierKind === 'MINIMUM_VALUE' ||
+      group.modifierKind === 'MODIFY_CHARGE_LIMIT'
+    ) {
       return amountOf(payload)
     }
     if (

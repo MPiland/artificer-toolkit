@@ -460,10 +460,10 @@ export function activeSpeedGrantFeet(
 }
 
 /** The amounts a holder's active global grants of one modifier kind carry for one value domain. */
-function activeGlobalAmounts(
+export function activeGlobalAmounts(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: string,
-  modifierKind: 'SET_VALUE' | 'CAP_VALUE'
+  modifierKind: 'SET_VALUE' | 'CAP_VALUE' | 'MINIMUM_VALUE'
 ): number[] {
   const amounts: number[] = []
   for (const { modifiers } of listActiveEffectGrants(effects)) {

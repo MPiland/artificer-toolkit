@@ -198,7 +198,12 @@ function resolveDnd5eArmorClass(input: {
     entry.contribution.source.itemInstanceId === armor.itemInstanceId
   const additiveOf = (applicable: ReturnType<typeof applicableWith>) =>
     applicable
-      .filter((entry) => entry.modifierKind !== 'SET_VALUE' && !isArmorFormulaPart(entry))
+      .filter(
+        (entry) =>
+          entry.modifierKind !== 'SET_VALUE' &&
+          entry.modifierKind !== 'MINIMUM_VALUE' &&
+          !isArmorFormulaPart(entry)
+      )
       .map(({ contribution }) => ({
         sourceId: contribution.sourceId,
         source: contribution.source,
@@ -236,7 +241,10 @@ function resolveDnd5eArmorClass(input: {
     shield: shield?.armorClass ?? 0,
     additive: additive
       .filter((contribution) => contribution.state === 'APPLIED')
-      .map((contribution) => contribution.value)
+      .map((contribution) => contribution.value),
+    minimums: applicable
+      .filter((entry) => entry.modifierKind === 'MINIMUM_VALUE')
+      .map((entry) => entry.contribution.value)
   })
   return {
     base: combined.base,

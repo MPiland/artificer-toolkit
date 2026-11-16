@@ -1814,14 +1814,6 @@ function registerOutcomeFields(
       })
     )
     .set(
-      'minimum',
-      number(['minimum'], 'Minimum Armor Class', {
-        constraints: { minimum: 0 },
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ARMOR_CLASS_FLOOR)
-      })
-    )
-    .set(
       'chargeId',
       selectSingle(['chargeId'], 'Resource pool', CHARGE_SELECT_SOURCE, {
         requiredIf: true,

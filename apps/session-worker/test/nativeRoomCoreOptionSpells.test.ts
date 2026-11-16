@@ -16,6 +16,7 @@ import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/m
 import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
 import { arcaneEye } from '@artificer-toolkit/source-data/srd/spells/arcane-eye.js'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
+import { barkskin } from '@artificer-toolkit/source-data/srd/spells/barkskin.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
@@ -83,8 +84,8 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The Character (first in the order) who prepares Mage Armor, then a Wolf whose Bite attacks. */
-async function mageArmorRoom() {
+/** The Character (first in the order) who prepares an armor spell, then a Wolf whose Bite attacks. */
+async function armorSpellRoom(spell: typeof mageArmor | typeof barkskin) {
   const wolf = biteWolf('ATTACK')
   const wolfActor = srdCreatureActor({ id: WOLF_ID, creature: wolf })
   const room = await actionRoom({
@@ -96,14 +97,14 @@ async function mageArmorRoom() {
       },
       wolfActor
     ],
-    characterSpellcasting: { spells: [mageArmor], prepared: [mageArmor.id] },
-    characterAction: (action) => action.label.startsWith(mageArmor.label)
+    characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+    characterAction: (action) => action.label.startsWith(spell.label)
   })
   return { room, biteActionId: room.featureActionId(wolfActor, creatureFeature(wolf, 'Bite').id) }
 }
 
 /** On the Wolf's turn, the armor class its Bite at the Character must beat. */
-async function biteArmorClass({ room, biteActionId }: Awaited<ReturnType<typeof mageArmorRoom>>) {
+async function biteArmorClass({ room, biteActionId }: Awaited<ReturnType<typeof armorSpellRoom>>) {
   await room.advanceTurn()
   const bite = await room.startAction(CHARACTER_ACTOR_ID, [], null, null, biteActionId, WOLF_ID)
   expect(bite.answer.type, JSON.stringify(bite.answer)).toBe('COMMAND_COMMITTED')
@@ -116,14 +117,36 @@ async function biteArmorClass({ room, biteActionId }: Awaited<ReturnType<typeof 
 describe('room Mage Armor (SPELLS-4.T2a3)', () => {
   it('sets the unarmored Character’s armor class to 13 + Dexterity against a Wolf’s Bite', async () => {
     // Unarmored, the Character's armor class is 10 + Dexterity; Mage Armor makes the base 13.
-    const unarmored = await biteArmorClass(await mageArmorRoom())
+    const unarmored = await biteArmorClass(await armorSpellRoom(mageArmor))
 
-    const fixture = await mageArmorRoom()
+    const fixture = await armorSpellRoom(mageArmor)
     const cast = await fixture.room.startAction(CHARACTER_ACTOR_ID, RANGE)
     expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
 
     expect(await biteArmorClass(fixture)).toBe(unarmored + 3)
   }, 120000)
+})
+
+describe('room Barkskin (QUALITY-15.T3y)', () => {
+  it('floors the Character’s armor class at 16 while Concentration holds', async () => {
+    // Unarmored, the Character's armor class is 10 + Dexterity, below Barkskin's floor of 16.
+    const unarmored = await biteArmorClass(await armorSpellRoom(barkskin))
+    expect(unarmored).toBeLessThan(16)
+
+    const held = await armorSpellRoom(barkskin)
+    const cast = await held.room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await biteArmorClass(held)).toBe(16)
+
+    const ended = await armorSpellRoom(barkskin)
+    const castThenEnded = await ended.room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(castThenEnded.answer.type, JSON.stringify(castThenEnded.answer)).toBe(
+      'COMMAND_COMMITTED'
+    )
+    const end = await endConcentrationAtSheet(ended.room, CHARACTER_ID)
+    expect(end.type, JSON.stringify(end)).toBe('COMMAND_COMMITTED')
+    expect(await biteArmorClass(ended)).toBe(unarmored)
+  }, 180000)
 })
 
 type ActionRoom = Awaited<ReturnType<typeof actionRoom>>
