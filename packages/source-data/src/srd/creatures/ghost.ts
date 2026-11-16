@@ -150,12 +150,7 @@ export const ghost: CreatureAuthored = {
               baseDc: 13
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(111, 1205),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
+            ...S.selfSphere(S.actionId(111, 1205), S.actionId(111, 0xf01), 60)
           },
           paths: [
             {

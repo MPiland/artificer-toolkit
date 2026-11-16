@@ -22,6 +22,7 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
+  SHAPE_KIND,
   SPELL_GRANT_ATTRIBUTE,
   TARGET_SELECTION_KIND,
   TRIGGER,
@@ -240,11 +241,11 @@ export const oathOfDevotion: ClassAuthored = {
             },
             resourceUse: { chargeId: channelDivinityChargeId, cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: classRowId(P, 21, 2),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: MEASUREMENT_UNIT_CODE.FEET
+            range: { id: classRowId(P, 21, 2), rangeKind: RANGE_KIND.SELF },
+            shape: {
+              id: classRowId(P, 0xf1, 2),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
             },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
