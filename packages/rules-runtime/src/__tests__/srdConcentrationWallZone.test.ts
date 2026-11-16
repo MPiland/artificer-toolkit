@@ -14,13 +14,13 @@ const SPELL_CAST_LEVEL = 9
 function zonePlacementOf(label: string) {
   const spell = srdBaselineContent.subjects.spells.find((entry) => entry.label === label)
   if (!spell) throw new Error(`SRD spell ${label} is missing.`)
-  const [effect] = spell.effects
+  const [effect] = spell.effects ?? []
   if (!effect) throw new Error(`SRD spell ${label} authors no Effect.`)
   const placement = compileActionPlacement(
     dnd5eCharacterRuleActionSystemAdapter,
     characterActionDescriptor(
       compileSpellEffect(
-        { attributes: spell.attributes, effects: spell.effects },
+        { attributes: spell.attributes, effects: spell.effects ?? [] },
         { ...effect, id: ACTION_EFFECT_ID }
       ),
       SPELL_CAST_LEVEL,
@@ -28,6 +28,8 @@ function zonePlacementOf(label: string) {
     )
   )
   if (placement?.kind !== 'ZONE') throw new Error(`SRD spell ${label} places no zone.`)
+  if ('options' in placement.zonePlacement)
+    throw new Error(`SRD spell ${label} offers a zone pick.`)
   return placement.zonePlacement
 }
 
