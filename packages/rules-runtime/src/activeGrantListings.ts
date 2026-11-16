@@ -211,7 +211,6 @@ export function listActiveGrantListings(
     .flatMap((effect) => {
       const { id, definition, lifecycle } = effect
       return definition.stateContributions.flatMap((contribution) =>
-      definition.stateContributions.flatMap((contribution) =>
         contribution.kind === 'MODIFIER_GRANT'
           ? [
               {

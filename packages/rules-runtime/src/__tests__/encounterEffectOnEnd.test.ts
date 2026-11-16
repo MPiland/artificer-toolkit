@@ -97,9 +97,7 @@ describe('the lethargy an ended Haste leaves (SPELLS-4.T2l-a)', () => {
     expect(
       listActiveGrantListings([
         { ...effect, createdOrdinal: 1, lifecycle: follow.lifecycle, maintainedEffectStateId: null }
-      ]).map(
-        ({ polarity }) => polarity
-      )
+      ]).map(({ polarity }) => polarity)
     ).toEqual(['HARMFUL'])
     expect(
       onEndGrantEffect({ ...hasteRecord(), definition: follow.definition, id: follow.id })
