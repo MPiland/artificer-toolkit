@@ -27,11 +27,13 @@ import {
   REVIEW_ADMIN,
   REVIEW_STORY_BLOCKED,
   REVIEW_STORY_HOST,
+  REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
   STORY_CAMPAIGN,
   STORY_DEFINITIONS,
   STORY_DRAFT_ONLY,
+  STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS,
   STORY_ZONES,
@@ -74,6 +76,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   // START and the Scene binding go through the real room, as on the local backend.
   const roomReader = roomDevelopmentClient(first.caller)
   const roomHost = roomDevelopmentClient(second.caller)
+  // The open-fog Campaign has a host of its own: the free tier hosts one Campaign per account.
+  const openHostUser = await createPartyUser(t, {
+    username: REVIEW_STORY_OPEN_HOST.username,
+    email: `${REVIEW_STORY_OPEN_HOST.username.toLowerCase()}@example.invalid`
+  })
+  const roomOpenHost = roomDevelopmentClient(openHostUser.caller)
   const room: StoryRoom = {
     checkpoint: async (campaignId) => {
       await checkpointRoom(campaignId)
@@ -82,6 +90,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     releaseRoom: async (campaignId) => {
       roomReader.closeRooms()
       roomHost.closeRooms()
+      roomOpenHost.closeRooms()
       await closeRoom(campaignId)
     }
   }
@@ -105,6 +114,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   const clients = {
     [REVIEW_STORY_READER.key]: reader,
     [REVIEW_STORY_HOST.key]: roomHost,
+    [REVIEW_STORY_OPEN_HOST.key]: roomOpenHost,
     [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
     [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED),
     [REVIEW_ADMIN.key]: await stranger(REVIEW_ADMIN)
@@ -149,6 +159,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   const connected = [
     REVIEW_STORY_READER.key,
     REVIEW_STORY_HOST.key,
+    REVIEW_STORY_OPEN_HOST.key,
     REVIEW_STORY_PEER.key,
     REVIEW_STORY_BLOCKED.key,
     REVIEW_ADMIN.key
@@ -277,10 +288,14 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       .sort()
   }))
   expect(bindings).toEqual({
-    scenes: 2,
+    scenes: 3,
     tokens: [
       reviewId(`${STORY_CAMPAIGN.slug}-scene-enemy-token`),
-      reviewId(`${STORY_PLAYER_CAMPAIGN.slug}-scene-enemy-token`)
+      reviewId(`${STORY_PLAYER_CAMPAIGN.slug}-scene-enemy-token`),
+      reviewId(`${STORY_OPEN_CAMPAIGN.slug}-scene-enemy-token`),
+      ...STORY_OPEN_CAMPAIGN.creatures.map((_, index) =>
+        reviewId(`${STORY_OPEN_CAMPAIGN.slug}-scene-creature-${index}-token`)
+      )
     ].sort()
   })
 
@@ -331,6 +346,52 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       conditionTypeId: srdSystemRecord.conditionTypes.find((type) => type.code === code)!.id
     }))
   })
+
+  // The reader plays in a third Campaign, with no fog, that its own host (the open host) runs: the
+  // creatures, passive auras and statuses the tabletop stories read back.
+  const openCampaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
+    ({ name }) => name === STORY_OPEN_CAMPAIGN.name
+  )
+  expect(openCampaigns).toHaveLength(1)
+  const openCampaignId = openCampaigns[0]!.id
+  expect(openCampaigns[0]!.ownerUserId).toBe(openHostUser.userId)
+  expect(await activeMemberUserIds(openCampaignId)).toEqual(
+    [first.userId, openHostUser.userId].sort()
+  )
+  expect(
+    (await reader.query(api.encounters.projectionReads.list, { campaignId: openCampaignId })).map(
+      ({ status }) => status
+    )
+  ).toEqual(['ACTIVE'])
+  const openBoard = await presentedBoard(openCampaignId, STORY_OPEN_CAMPAIGN.scene.name)
+  expect(openBoard).toMatchObject({ saves: 1, fogMode: 'OFF' })
+  expect(openBoard.tokens).toHaveLength(2 + STORY_OPEN_CAMPAIGN.creatures.length)
+  expect(openBoard.tokens).toEqual(
+    expect.arrayContaining([
+      [STORY_OPEN_CAMPAIGN.scene.allyLabel, [first.userId]],
+      [STORY_OPEN_CAMPAIGN.enemyLabel, []]
+    ])
+  )
+  const openActors = (
+    await roomOpenHost.query(api.encounters.activeReads.active, {
+      campaignId: openCampaignId
+    })
+  ).encounter?.actors
+  const prone = srdSystemRecord.conditionTypes.find((type) => type.code === 'PRONE')!.id
+  expect(
+    openActors
+      ?.filter(({ conditions }) => conditions.some((c) => c.conditionTypeId === prone))
+      .map(({ label }) => label)
+  ).toEqual([STORY_OPEN_CAMPAIGN.creatures[0].enemy.label])
+  expect(
+    openActors?.find(({ label }) => label === STORY_OPEN_CAMPAIGN.enemyLabel)?.conditions
+  ).toHaveLength(STORY_OPEN_CAMPAIGN.enemyState.conditionCodes.length)
+  // The GM reads both Balors' Fire Auras. A Convex read cannot tell which tokens a player's map draws
+  // (D121), so the player's one visible aura is proved in the room, by the stories.
+  expect(
+    (await roomOpenHost.query(api.encounters.activeReads.active, { campaignId: openCampaignId }))
+      .auras
+  ).toHaveLength(2)
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
   expect(settings.initiativePolicyDefinitionId).not.toBeNull()

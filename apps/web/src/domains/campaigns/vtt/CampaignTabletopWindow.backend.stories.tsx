@@ -6,6 +6,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test'
 import { writesTo } from '#app/test/storybook/storyWrites'
 import {
+  latestAuras,
   latestEncounter,
   latestStateSync,
   liveFramesReceived,
@@ -15,6 +16,7 @@ import {
 import {
   REVIEW_STORY_HOST,
   STORY_CAMPAIGN,
+  STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_ZONES,
   type StoryCampaignSpec
@@ -23,8 +25,14 @@ import { SeededCampaign } from '../stories/SeededCampaign'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
 import { createPlacedZoneDraft, placedZoneSize } from './campaignTabletopZoneTool.model'
 import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
-import { latestStageRenderer } from './vttSceneRenderer.assertions'
-import { placedZoneColor } from './vttSceneRenderer.model'
+import { pressStage } from './CampaignTabletop.stories.pointer'
+import { drawnToken, latestStageRenderer } from './vttSceneRenderer.assertions'
+import {
+  auraColor,
+  minimumFocusedTokenScreenSize,
+  placedZoneColor,
+  selectionOutlineColor
+} from './vttSceneRenderer.model'
 
 /** The room activates from its checkpoint on the first socket, then syncs and the map loads. */
 const roomJoinTimeoutMs = 30_000
@@ -623,20 +631,31 @@ export const GmOpensTheLiveSceneObjectEditor: Story = {
   }
 }
 
-/** The Story Cultist as the room presented it to this viewer: its actor and its token. */
-function seededCreature() {
-  const actor = latestEncounter().actors.find(({ label }) => label === STORY_CAMPAIGN.enemyLabel)
-  if (!actor) throw new Error('The room holds no story creature.')
-  return { actor, token: tokenLabelled(STORY_CAMPAIGN.enemyLabel) }
+/** A seeded creature as the room presented it to this viewer: its actor and its token. */
+function seededCreature(label: string = STORY_CAMPAIGN.enemyLabel) {
+  const actor = latestEncounter().actors.find((candidate) => candidate.label === label)
+  if (!actor) throw new Error(`The room holds no creature "${label}".`)
+  return { actor, token: tokenLabelled(label) }
 }
 
-/** The statuses the GM's seed gave the creature, as the product names them on its token. */
-function seededCreatureStatuses() {
-  const { actor } = seededCreature()
-  if (!('healthBand' in actor) || actor.healthBand === 'HEALTHY')
-    throw new Error('The seeded creature is not hurt.')
-  const band = `${actor.healthBand[0]}${actor.healthBand.slice(1).toLowerCase()}`
-  return ['Poisoned', 'Frightened', band]
+/** A condition code or health band as the product words it on a token: `POISONED` is "Poisoned". */
+function wordedStatus(code: string) {
+  return `${code[0]}${code.slice(1).toLowerCase()}`
+}
+
+/**
+ * The statuses the seed gave the Campaign's creature, as the product names them on its token. Only the
+ * GM is shown how hurt the creature is (VTT_UI-1).
+ */
+function seededCreatureStatuses(campaign: {
+  enemyLabel: string
+  enemyState: { conditionCodes: readonly string[] }
+}) {
+  const { actor } = seededCreature(campaign.enemyLabel)
+  const conditions = campaign.enemyState.conditionCodes.map(wordedStatus)
+  if (!('healthBand' in actor)) return conditions
+  if (actor.healthBand === 'HEALTHY') throw new Error('The seeded creature is not hurt.')
+  return [...conditions, wordedStatus(actor.healthBand)]
 }
 
 // VTT_UI-1: the scene canvas describes each token's statuses; the GM also sees how hurt the creature is.
@@ -647,7 +666,8 @@ export const GmSeesTokenStatuses: Story = {
     await expectConnected(page)
     const description = await sceneDescription(page)
     await expect(description).toContain(`${STORY_CAMPAIGN.enemyLabel}. Custom. Hostile.`)
-    for (const status of seededCreatureStatuses()) await expect(description).toContain(status)
+    for (const status of seededCreatureStatuses(STORY_CAMPAIGN))
+      await expect(description).toContain(status)
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
@@ -668,7 +688,7 @@ export const FocusingATokenListsEveryStatus: Story = {
     })
     focusItem.focus()
     const list = await page.findByRole('region', statusRegion)
-    for (const status of seededCreatureStatuses())
+    for (const status of seededCreatureStatuses(STORY_CAMPAIGN))
       await expect(within(list).getByText(status)).toBeVisible()
     focusItem.blur()
     await waitFor(() => expect(page.queryByRole('region', statusRegion)).toBeNull())
@@ -756,5 +776,347 @@ export const KeyboardOnlyTabletopJourney: Story = {
     await reachByKeyboard(stage, () => userEvent.tab())
     await userEvent.keyboard('p')
     await expect(await page.findByText('You pinged the map.')).toBeInTheDocument()
+  }
+}
+
+// The open-fog Campaign: the reader plays beside the GM, so every creature shows on the board.
+const [vaultSentry, vaultHound] = STORY_OPEN_CAMPAIGN.creatures
+const openWarden = STORY_OPEN_CAMPAIGN.enemyLabel
+const openAlly = STORY_OPEN_CAMPAIGN.scene.allyLabel
+const gmOfOpenCampaign = { storyAccount: 'openHost' } as const
+
+function statusRegion(label: string) {
+  return { name: `${label} statuses` }
+}
+
+function auraSource(aura: ReturnType<typeof latestAuras>[number]) {
+  const source = presentedScene().tokens.find((token) => token.id === aura.sourceTokenId)
+  if (!source) throw new Error('An aura surrounds a token the Scene does not present.')
+  return source
+}
+
+/** The label the stage draws on an aura: its name and the token it surrounds. */
+function auraLabel(aura: ReturnType<typeof latestAuras>[number]) {
+  return `${aura.label ?? 'Aura'} around ${auraSource(aura).label}`
+}
+
+/** The auras the room shows this viewer, once it has sent them. */
+function roomAuras(count: number) {
+  return waitFor(
+    () => {
+      const auras = latestAuras()
+      expect(auras).toHaveLength(count)
+      return auras
+    },
+    { timeout: roomJoinTimeoutMs }
+  )
+}
+
+/** The auras the stage draws, read from the renderer's drawn presentation overlays. */
+async function drawnAuras(expectedLabels: readonly string[]) {
+  const renderer = await latestStageRenderer()
+  return waitFor(() => {
+    const drawn = renderer
+      .getDiagnostics()
+      .overlays.filter((overlay) => overlay.strokeColors.includes(auraColor))
+    expect(drawn.map((overlay) => overlay.label)).toEqual(expectedLabels)
+    return drawn
+  })
+}
+
+// The room lists every aura to the GM, who sees the hidden Balor's too.
+export const GmSeesEveryAura: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const auras = await roomAuras(2)
+    const drawn = await drawnAuras(auras.map(auraLabel))
+    await expect(drawn.map((overlay) => overlay.circles)).toEqual(
+      auras.map((aura) => [{ center: auraSource(aura).position, radius: aura.radius }])
+    )
+    await expect(await sceneDescription(page)).toContain(
+      `Auras: ${auras.map(auraLabel).join('; ')}`
+    )
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// The room omits the hidden Balor's aura for the player (D121); the visible source's aura draws.
+export const PlayerSeesOnlyAVisibleSourcesAura: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const [aura] = await roomAuras(1)
+    // The hidden Balor has no token on the player's Scene either.
+    await expect(presentedScene().tokens).toHaveLength(
+      2 + STORY_OPEN_CAMPAIGN.creatures.filter((creature) => !('hidden' in creature)).length
+    )
+    const drawn = await drawnAuras([auraLabel(aura!)])
+    await expect(drawn[0]!.circles).toEqual([
+      { center: auraSource(aura!).position, radius: aura!.radius }
+    ])
+    await expect(await sceneDescription(page)).toContain(`Auras: ${auraLabel(aura!)}`)
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// VTT_UI-1.1 journey: the SELECT tool selects any token on the canvas or from the Scene controls.
+export const SelectingATokenOutlinesIt: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    // The player moves their own token; the Warden is not theirs, so selecting it must still work.
+    const [ally, warden] = [tokenLabelled(openAlly), tokenLabelled(openWarden)]
+    await expect(ally.controlledByUserIds).toHaveLength(1)
+    await expect(warden.controlledByUserIds).toEqual([])
+    const selectedIds = () =>
+      renderer
+        .getDiagnostics()
+        .tokens.filter((token) => token.selection)
+        .map((token) => token.id)
+
+    renderer.focusPoint(ally.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(selectedIds()).toEqual([ally.id]))
+    await expect(drawnToken(renderer.getDiagnostics(), ally.id).selection?.color).toBe(
+      selectionOutlineColor
+    )
+    await waitFor(() =>
+      expect(stage.getAttribute('aria-description')).toMatch(
+        new RegExp(`${ally.label}[^;]*, selected`)
+      )
+    )
+    await expect(stage.getAttribute('aria-description')?.match(/, selected/g)).toHaveLength(1)
+
+    renderer.focusPoint(warden.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(selectedIds()).toEqual([warden.id]))
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(selectedIds()).toEqual([]))
+    await expect(stage.getAttribute('aria-description')).not.toContain(', selected')
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.click(
+      await within(sceneControls).findByRole('menuitem', { name: `Focus ${ally.label}` })
+    )
+    await waitFor(() => expect(selectedIds()).toEqual([ally.id]))
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// VTT_UI-1.2: the selected token lists every status until the selection clears.
+export const SelectingATokenListsItsStatuses: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { token } = seededCreature(openWarden)
+    const statuses = seededCreatureStatuses(STORY_OPEN_CAMPAIGN)
+    await expect(statuses.length).toBeGreaterThan(0)
+
+    renderer.focusPoint(token.position)
+    await pressStage(stage, 'centre')
+    const list = await page.findByRole('region', statusRegion(token.label))
+    for (const status of statuses) await expect(within(list).getByText(status)).toBeVisible()
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(page.queryByRole('region', statusRegion(token.label))).toBeNull())
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// VTT_UI-1.2: pointing at a token's Focus item in the Scene controls lists every status.
+export const HoveringAFocusItemListsEveryStatus: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const { token } = seededCreature(openWarden)
+    const statuses = seededCreatureStatuses(STORY_OPEN_CAMPAIGN)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${token.label}`
+    })
+    await userEvent.hover(focusItem)
+    const list = await page.findByRole('region', statusRegion(token.label))
+    for (const status of statuses) await expect(within(list).getByText(status)).toBeVisible()
+    await userEvent.unhover(focusItem)
+    await waitFor(() => expect(page.queryByRole('region', statusRegion(token.label))).toBeNull())
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// VTT_UI-4.1: the panel names a token's disposition even when it has no statuses, and focusing a
+// token from the Scene controls zooms a far-out view in until the token is readable.
+export const FocusingATokenNamesItsDispositionAndZoomsIn: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const { token } = seededCreature(vaultHound.enemy.label)
+    const renderer = await latestStageRenderer()
+    for (let step = 0; step < 40; step += 1) renderer.zoomOut()
+    const zoomedOut = renderer.getDiagnostics().zoomScale
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${token.label}`
+    })
+    await userEvent.hover(focusItem)
+    const panel = await page.findByRole('region', statusRegion(token.label))
+    await expect(within(panel).getByText('Hostile')).toBeVisible()
+    await userEvent.click(focusItem)
+    await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+    await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(zoomedOut))
+    await expect(
+      renderer.getDiagnostics().zoomScale * Math.max(token.width, token.height)
+    ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    // At the minimum zoom every token stays reachable: listed in Scene controls, and Focus brings
+    // its larger footprint side up to the readable size.
+    for (const { label, width, height } of presentedScene().tokens) {
+      let floor = renderer.getDiagnostics().zoomScale
+      let zoomedOutTo = Number.NaN
+      while (zoomedOutTo !== floor) {
+        zoomedOutTo = floor
+        renderer.zoomOut()
+        floor = renderer.getDiagnostics().zoomScale
+      }
+      await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+      const menu = await page.findByRole('menu', { name: 'Scene controls' })
+      await userEvent.click(await within(menu).findByRole('menuitem', { name: `Focus ${label}` }))
+      // The next token reopens the menu, so wait for this one to finish closing first.
+      await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+      await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(floor))
+      await expect(
+        renderer.getDiagnostics().zoomScale * Math.max(width, height)
+      ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    }
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// VTT_UI-1.2: pointing at another token lists its statuses over the selected token's; leaving it
+// lists the selected token's again.
+export const HoveringATokenListsItOverTheSelection: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { token: warden } = seededCreature(openWarden)
+    const { token: sentry } = seededCreature(vaultSentry.enemy.label)
+    const statusList = (label: string) => page.queryByRole('region', statusRegion(label))
+
+    renderer.focusPoint(warden.position)
+    await pressStage(stage, 'centre')
+    await expect(
+      within(await page.findByRole('region', statusRegion(warden.label))).getByText('Poisoned')
+    ).toBeVisible()
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const sentryFocus = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${sentry.label}`
+    })
+    await userEvent.hover(sentryFocus)
+    const sentryList = await page.findByRole('region', statusRegion(sentry.label))
+    await expect(within(sentryList).getByText('Prone')).toBeVisible()
+    await expect(statusList(warden.label)).toBeNull()
+
+    await userEvent.unhover(sentryFocus)
+    await waitFor(() => expect(statusList(sentry.label)).toBeNull())
+    const wardenList = await page.findByRole('region', statusRegion(warden.label))
+    await expect(within(wardenList).getByText('Poisoned')).toBeVisible()
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+export const GmPreviewsATokenView: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const { token } = seededCreature(openWarden)
+    const renderer = await latestStageRenderer()
+    await expect(renderer.getDiagnostics().lighting.visionCount).toBe(0)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const controls = within(await page.findByRole('menu', { name: 'Scene controls' }))
+    // Mantine fixes menu items to role menuitem, which cannot carry a pressed or checked state,
+    // so the item's own words say whether the preview is on.
+    await userEvent.click(
+      await controls.findByRole('menuitem', { name: `Preview view ${token.label}` })
+    )
+    const stop = await controls.findByRole('menuitem', { name: `Stop previewing ${token.label}` })
+    await expect(controls.getAllByRole('menuitem', { name: /^Stop previewing/ })).toHaveLength(1)
+    // The renderer draws the previewed token's sight.
+    await waitFor(() => expect(renderer.getDiagnostics().lighting.visionCount).toBe(1))
+    await userEvent.click(stop)
+    await expect(
+      await controls.findByRole('menuitem', { name: `Preview view ${token.label}` })
+    ).toBeVisible()
+    await waitFor(() => expect(renderer.getDiagnostics().lighting.visionCount).toBe(0))
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// Hovering a token on the canvas lists its statuses in the DOM, and leaving hides the list.
+export const HoveringATokenOnTheCanvasListsItsStatuses: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  parameters: gmOfOpenCampaign,
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const { token } = seededCreature(openWarden)
+    const statuses = seededCreatureStatuses(STORY_OPEN_CAMPAIGN)
+    const region = statusRegion(token.label)
+    await expect(page.queryByRole('region', region)).toBeNull()
+    // Centring the view puts the Warden under the middle of the canvas.
+    const renderer = await latestStageRenderer()
+    renderer.focusPoint(token.position)
+    const canvas = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const bounds = canvas.getBoundingClientRect()
+    const pointer = { pointerId: 41, pointerType: 'mouse' }
+    fireEvent.pointerMove(canvas, {
+      ...pointer,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2
+    })
+    const list = await page.findByRole('region', region)
+    for (const status of statuses) await expect(within(list).getByText(status)).toBeVisible()
+    fireEvent.pointerMove(canvas, { ...pointer, clientX: bounds.left + 4, clientY: bounds.top + 4 })
+    await waitFor(() => expect(page.queryByRole('region', region)).toBeNull())
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// A player reads each token's statuses, never how hurt a creature is: the room sends no health band.
+export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
+  args: { campaign: STORY_OPEN_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
+    await expectConnected(page)
+    const description = await sceneDescription(page)
+    await expect(description).toContain(`${openWarden}. Custom. Hostile.`)
+    for (const status of seededCreatureStatuses(STORY_OPEN_CAMPAIGN))
+      await expect(description).toContain(status)
+    for (const band of ['Wounded', 'Bloodied', 'Critical'])
+      await expect(description).not.toContain(band)
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
