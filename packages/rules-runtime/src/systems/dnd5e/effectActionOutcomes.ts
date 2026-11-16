@@ -32,6 +32,7 @@ import {
   DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+  DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
@@ -100,6 +101,16 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       pathGatedOperationKey: null,
       payloadInputs: () => ({
         amount: { kind: 'FACT', factKey: DND5E_SPENT_HEAL_AMOUNT_FACT_KEY }
+      }),
+      payloadOutputs: ['amount'],
+      changesTargetState: true
+    },
+    // The amount is the resolved-heal fact, which the use binds from the actor's own bonuses.
+    RESOLVED_HEAL: {
+      operationKey: DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+      pathGatedOperationKey: null,
+      payloadInputs: () => ({
+        amount: { kind: 'FACT', factKey: DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY }
       }),
       payloadOutputs: ['amount'],
       changesTargetState: true

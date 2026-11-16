@@ -95,7 +95,11 @@ export const InvitedPeer: Story = {
     const page = within(canvasElement.ownerDocument.body)
     await userEvent.click(await page.findByRole('button', { name: 'Notifications, 1 new' }))
     const drawer = within(await page.findByRole('dialog', { name: 'Notifications' }))
-    const row = await drawer.findByText(`Invitation from @${REVIEW_STORY_READER.username}`)
-    await waitFor(() => expect(row).toBeVisible())
+    // The feed re-renders as it loads, so the row is looked up again until it is stable and visible.
+    await waitFor(
+      () =>
+        expect(drawer.getByText(`Invitation from @${REVIEW_STORY_READER.username}`)).toBeVisible(),
+      { timeout: 15_000 }
+    )
   }
 }

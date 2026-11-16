@@ -169,6 +169,31 @@ export function compileEncounterFeatureActionPlan(
   )
 }
 
+/**
+ * What an activated action places on the Scene instead of testing creatures: the zone it leaves
+ * (a placed area, or one centered on its user) or the summoned token it creates. A Character action
+ * is offered this before any execution plan, so an action that places something never reaches the
+ * test paths. Null for an action that places neither.
+ */
+export function compileActionPlacement(
+  adapter: CharacterRuleActionSystemAdapter,
+  descriptor: EffectActionCapabilityDescriptor
+):
+  | {
+      kind: 'ZONE'
+      zonePlacement: NonNullable<ReturnType<NonNullable<typeof adapter.compileZonePlacement>>>
+    }
+  | {
+      kind: 'SUMMON'
+      summonPlacement: NonNullable<ReturnType<NonNullable<typeof adapter.compileSummonPlacement>>>
+    }
+  | null {
+  const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
+  if (zonePlacement) return { kind: 'ZONE', zonePlacement }
+  const summonPlacement = adapter.compileSummonPlacement?.({ action: descriptor }) ?? null
+  return summonPlacement ? { kind: 'SUMMON', summonPlacement } : null
+}
+
 function assertDescriptorAlignment(input: {
   candidates: readonly CharacterActionCandidate[]
   descriptors: readonly CharacterActionCapabilityDescriptor[]
@@ -403,8 +428,9 @@ export function compileCharacterActionEntryPoints(
       const exactTargetPolicy = buildCompiledActionTargetPolicy(descriptor)
       const admission = activatedActionAdmission(descriptor.compiledEffect)
       try {
-        const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
-        if (zonePlacement) {
+        const placement = compileActionPlacement(adapter, descriptor)
+        if (placement?.kind === 'ZONE') {
+          const { zonePlacement } = placement
           // The save each creature in the area makes when the zone appears is the cast's area
           // occurrence (D154 amendment). Without one, the cast runs nothing: the zone's entry graph
           // runs when a creature enters it, and a cast-time pick (D140) names its first option's.
@@ -471,8 +497,8 @@ export function compileCharacterActionEntryPoints(
             }
           }
         }
-        const summonPlacement = adapter.compileSummonPlacement?.({ action: descriptor }) ?? null
-        if (summonPlacement)
+        if (placement?.kind === 'SUMMON') {
+          const { summonPlacement } = placement
           return {
             schemaVersion: 4,
             kind: 'CHARACTER_ACTION',
@@ -490,6 +516,7 @@ export function compileCharacterActionEntryPoints(
               executionPlan: { kind: 'SINGLE_GRAPH', published: summonPlacement.entry.frozenGraph }
             }
           }
+        }
         const {
           activeEffectPlan,
           hitPointTierPlans,

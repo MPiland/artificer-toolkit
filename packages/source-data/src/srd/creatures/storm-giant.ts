@@ -1,5 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { SHAPE_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const stormGiant: CreatureAuthored = {
   id: S.CREATURE_IDS.STORM_GIANT,
@@ -260,7 +260,18 @@ export const stormGiant: CreatureAuthored = {
             },
             range: {
               id: S.actionId(266, 14),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 500,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            shape: {
+              id: S.actionId(266, 0xf01),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: 10, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [

@@ -17,6 +17,11 @@ import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/sche
 import { executeRollInputDtoSchema, rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import {
+  beginSceneDefinitionInputSchema,
+  sceneDefinitionSaveLookupSchema,
+  sceneDefinitionSaveProgressSchema
+} from '@artificer-toolkit/schema/api/sceneDefinitionSave'
+import {
   socialEligibilityDtoSchema,
   socialListingDtoSchema,
   socialListingVersionInputSchema,
@@ -95,6 +100,21 @@ async function writeResponse(reference: MutationReference, input: unknown): Prom
       createdAt: new Date().toISOString()
     })
   }
+  // A Scene save is three writes (D218 amendment): begin opens the save, append batches are not
+  // read back, and publish answers as the save that begin opened, so the client sees the whole
+  // save succeed while the seeded Scene stays as it was.
+  if (name === getFunctionName(api.scenes.definitions.begin)) {
+    const begin = beginSceneDefinitionInputSchema.parse(input)
+    return sceneDefinitionSaveProgressSchema.parse(sceneSaveProgress(begin, 'RECEIVING'))
+  }
+  if (name === getFunctionName(api.scenes.definitions.publish)) {
+    const { saveId } = sceneDefinitionSaveLookupSchema.parse(input)
+    const begin = writesTo(api.scenes.definitions.begin)
+      .map((written) => beginSceneDefinitionInputSchema.parse(written))
+      .find(({ commandId }) => commandId === saveId)
+    if (!begin) throw new Error('The story published a Scene save it never began.')
+    return sceneDefinitionSaveProgressSchema.parse(sceneSaveProgress(begin, 'PUBLISHED'))
+  }
   if (name === getFunctionName(api.social.profiles.updatePreference)) {
     const { input: preference } = z
       .object({ input: updateSocialContentPreferenceInputSchema })
@@ -131,6 +151,25 @@ async function writeResponse(reference: MutationReference, input: unknown): Prom
     )
   }
   return null
+}
+
+/** The progress a recorded Scene save reports: its commandId is the save id, and it edits an existing Scene. */
+function sceneSaveProgress(
+  begin: z.infer<typeof beginSceneDefinitionInputSchema>,
+  status: 'RECEIVING' | 'PUBLISHED'
+) {
+  if (begin.sceneId === null || begin.expectedVersion === null)
+    throw new Error('Backend stories save an existing seeded Scene, not a new one.')
+  const received = { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 0 }
+  return {
+    saveId: begin.commandId,
+    sceneId: begin.sceneId,
+    version: begin.expectedVersion + 1,
+    status,
+    counts: begin.counts,
+    received: status === 'PUBLISHED' ? begin.counts : received,
+    liveSceneId: null
+  }
 }
 
 /** Every backend-story write, from `convex.mutation` and from the `useMutation` hook, lands here. */

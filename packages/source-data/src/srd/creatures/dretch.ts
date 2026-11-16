@@ -202,10 +202,7 @@ export const dretch: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(86, 12),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfSphere(S.actionId(86, 12), S.actionId(86, 0xf01), 10)
           },
           paths: [
             {

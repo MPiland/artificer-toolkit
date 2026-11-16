@@ -182,8 +182,9 @@ export async function seedStoryData(
   }
   await seedStoryDraftOnly(reader)
   await seedStoryDefinitions(reader)
-  const campaignId = await seedStoryCampaign(reader, room)
-  await seedStoryPlayerCampaign(await connect(REVIEW_STORY_HOST), reader, room)
+  const host = await connect(REVIEW_STORY_HOST)
+  const campaignId = await seedStoryCampaign(reader, host, room)
+  await seedStoryPlayerCampaign(host, reader, room)
   await setTier(userId, 'GM')
   await seedStoryCharacters(reader)
   // The Campaign stories read the plan limits of a free account.
@@ -359,12 +360,24 @@ async function prepareStoryRun(
 }
 
 /**
- * Hosts the story Campaign and fills what its stories read: a loot table on the Run's creature,
- * then the Run started and presented, returning its id. The Run is started, presented and bound only while it is
- * still prepared.
+ * Hosts the story Campaign and fills what its stories read: the story host joined as its one
+ * player (the GM's fog controls list the Campaign's players), a loot table on the Run's creature,
+ * then the Run started and presented, returning the Campaign's id. The Run is started, presented
+ * and bound only while it is still prepared.
  */
-async function seedStoryCampaign(client: StoryClient, room: StoryRoom): Promise<string> {
+async function seedStoryCampaign(
+  client: StoryClient,
+  host: StoryClient,
+  room: StoryRoom
+): Promise<string> {
   const { campaignId, run, actor } = await prepareStoryRun(client, STORY_CAMPAIGN)
+  if (!(await findCampaign(host, STORY_CAMPAIGN.name)))
+    await admitPlayers(
+      { client },
+      campaignId,
+      [{ client: host, username: REVIEW_STORY_HOST.username }],
+      REVIEW_PLAYERS.length
+    )
   const { lootTable } = STORY_CAMPAIGN
   const owner = {
     kind: 'ENCOUNTER_ACTOR',
@@ -596,12 +609,17 @@ async function seedStorySocial(
     ...firstPage,
     group: 'PENDING'
   })
-  if (!applications.page.some((application) => application.listingPublicId === listingPublicId))
+  if (!applications.page.some((application) => application.listingPublicId === listingPublicId)) {
+    // The story host's acceptance of its seat notified the reader. The reader's bell shows only the
+    // peer's application as new, so that earlier notice is seen before the application arrives.
+    await awaitFeedItem(reader, 'SOCIAL_INVITATION_DECIDED', deliverNotifications)
+    await reader.mutation(api.notifications.markAllSeen, {})
     await peer.mutation(api.social.applications.submit, {
       listingPublicId,
       message: STORY_SOCIAL.applicationMessage,
       expectedListingVersion: listing.version
     })
+  }
 
   const invitations = await reader.query(api.social.admissionLists.listListingInvitations, {
     ...firstPage,

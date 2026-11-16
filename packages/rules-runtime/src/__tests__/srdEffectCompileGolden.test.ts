@@ -3,7 +3,8 @@ import {
   equipmentEffectDtoSchema,
   featureEffectDtoSchema
 } from '@artificer-toolkit/schema/effects/effect'
-import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
+import { SPELL_ATTRIBUTE, type SpellAttribute } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -12,9 +13,11 @@ import type { EffectActionCapabilityDescriptor } from '../characterActionCapabil
 import type { CharacterRuleActionExecutionPlan } from '../characterRuleActionSystemAdapter.js'
 import {
   buildCompiledActionCompilerSource,
+  compileActionPlacement,
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
 import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
+import { isActivatedEffect } from '../spellCastCandidates.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -65,7 +68,12 @@ type Found = {
   siblings: AuthoredEffect[]
   label: string
   spellLevel: number | undefined
+  /** The owning spell's own attributes, which the compiler reads for each of its Effects. */
+  attributes: SpellAttribute[]
 }
+
+const isSpellAttribute = (value: unknown): value is SpellAttribute =>
+  typeof value === 'string' && Object.hasOwn(SPELL_ATTRIBUTE, value)
 
 /** Every authored Effect under a subject, with the label and spell level of its owner. */
 function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>, found: Found[]) {
@@ -84,7 +92,11 @@ function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>
   }
   const next = {
     label: typeof node.label === 'string' ? node.label : owner.label,
-    spellLevel: typeof node.level === 'number' ? node.level : owner.spellLevel
+    spellLevel: typeof node.level === 'number' ? node.level : owner.spellLevel,
+    attributes:
+      typeof node.level === 'number' && Array.isArray(node.attributes)
+        ? node.attributes.filter(isSpellAttribute)
+        : owner.attributes
   }
   for (const value of Object.values(node)) collectEffects(value, next, found)
 }
@@ -192,19 +204,36 @@ function outcomeOf(compile: () => Compiled): Outcome {
  * checksum does not depend on the Effect's own id.
  */
 function characterOutcome(
-  { effect, siblings }: Pick<Found, 'effect' | 'siblings'>,
+  { effect, siblings, attributes }: Pick<Found, 'effect' | 'siblings' | 'attributes'>,
   spellCastLevel: number | undefined,
   characterLevel: number
 ) {
-  return outcomeOf(() => {
-    const action = {
-      ...characterActionDescriptor(
-        compileEffect({ ...effect, id: ACTION_EFFECT_ID }, siblings),
-        spellCastLevel,
-        characterLevel
+  const action = {
+    ...characterActionDescriptor(
+      compileSpellEffect(
+        { attributes, effects: siblings },
+        {
+          ...effect,
+          id: ACTION_EFFECT_ID
+        }
       ),
-      conditionDefinitionIds
+      spellCastLevel,
+      characterLevel
+    ),
+    conditionDefinitionIds
+  }
+  // The product places a zone or a summon before it plans a cast, so the golden pins the same
+  // order. Only an activated action is discovered as a Character action at all.
+  if (isActivatedEffect(effect)) {
+    try {
+      const placement = compileActionPlacement(dnd5eCharacterRuleActionSystemAdapter, action)
+      if (placement)
+        return { compiled: `${placement.kind}_PLACEMENT ${checksumOf(placement)}`, facts: null }
+    } catch (error) {
+      return { compiled: refusal(error), facts: null }
     }
+  }
+  return outcomeOf(() => {
     const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
       action,
       compilerSource: buildCompiledActionCompilerSource(action)
@@ -262,7 +291,7 @@ function creatureLines(creatureIndex: number): Line[] {
     spells: new Map()
   })
   const found: Found[] = []
-  collectEffects(creature, { label: creature.label, spellLevel: undefined }, found)
+  collectEffects(creature, { label: creature.label, spellLevel: undefined, attributes: [] }, found)
   return found.map(({ effect, label }) => {
     const capability = discovery.available.find((candidate) => candidate.effectId === effect.id)
     const outcome = capability
@@ -282,7 +311,7 @@ function goldenLines(): Line[] {
     ...creatures.flatMap((_creature, index) => creatureLines(index)),
     ...Object.entries(characterSubjects).flatMap(([subject, records]) => {
       const found: Found[] = []
-      collectEffects(records, { label: '', spellLevel: undefined }, found)
+      collectEffects(records, { label: '', spellLevel: undefined, attributes: [] }, found)
       return found.flatMap((entry) => characterLines(entry, `CHARACTER:${subject}`))
     })
   ]
@@ -305,15 +334,22 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D Self target names no area shape.': 'INVALID_INPUT',
   'D&D single target names no area shape.': 'INVALID_INPUT',
   'D&D test action has no authored result.': 'INVALID_INPUT',
+  // Forbiddance, Gate, Magnificent Mansion, Mirage Arcane and the Wall of Force, Ice and Stone author
+  // a zone with no shape of its own (a wall, a panel set, a doorway, a square mile or 40,000 square
+  // feet); the corpus has no authored shape for them, so the zone stays refused until it does.
+  'A placed zone needs a label and a shape.': 'INVALID_INPUT',
   'D&D test action paths must be unique direct outcomes. Its path is not one its test resolves to.':
     'INVALID_INPUT',
   // The fact binding is given no rolled or spent amount: the room resolves one before it binds.
   'D&D dice healing requires one exact resolved healing expression.': 'INVALID_INPUT',
   'D&D spent healing requires one exact resolved amount and the units spent.': 'INVALID_INPUT',
   'D&D recurring healing requires one exact resolved fixed amount.': 'INVALID_INPUT',
+  'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
   'D&D area with no hit-point pool tests each creature it catches with a save.': 'UNBUILT',
+  'A placed zone models only its label, shape and entering components.': 'UNBUILT',
+  'D&D Concentration spell has no supported maintained effect.': 'UNBUILT',
   'D&D Effect action must have one fixed direct result without lifecycle overrides. Its duration, lifecycle or maintenance has no plan that holds it.':
     'UNBUILT',
   'D&D Effect action must have one fixed direct result without lifecycle overrides. It applies more than one result.':
@@ -330,11 +366,7 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D test action outcome is not supported.': 'UNBUILT',
   'D&D reaction must name a registered trigger.': 'UNBUILT',
   'D&D direct results of one kind cannot share a cast.': 'UNBUILT',
-  'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.': 'UNBUILT',
-  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT',
-  'D&D willing target needs an outcome a creature accepts.': 'UNBUILT',
-  'D&D repeat offer needs a maintained chosen-item grant it can ride.': 'UNBUILT',
-  'D&D action activation must take exactly one action, bonus action or reaction.': 'UNBUILT'
+  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT'
 }
 
 describe('SRD effect compile golden', () => {

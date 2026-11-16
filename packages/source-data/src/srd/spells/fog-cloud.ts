@@ -75,6 +75,7 @@ export const fogCloud: SpellAuthored = {
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
                 attachmentKind: 'PLACED_SPACE',
+                label: 'Fog Cloud',
                 shape: {
                   id: spellChildId(SPELL_IDS.FOG_CLOUD, 0x214, 1),
                   shapeKind: SHAPE_KIND.SPHERE,

@@ -6,6 +6,7 @@ import {
   type StoryAccountKey
 } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import type { SocialHubSearch } from '../socialSearch'
+import { socialStoryLoadTimeout } from '../stories/storyLoad'
 import { SocialDiscoveryView } from './SocialDiscoveryView'
 import { SocialHostingView } from './SocialHostingView'
 
@@ -31,12 +32,24 @@ const peer = { storyAccount: 'peer' satisfies StoryAccountKey }
 export const BrowseThenSearch: Story = {
   parameters: peer,
   play: async ({ canvas, canvasElement }) => {
-    await expect(await canvas.findByRole('link', { name: STORY_CAMPAIGN.name })).toBeVisible()
+    await expect(
+      await canvas.findByRole(
+        'link',
+        { name: STORY_CAMPAIGN.name },
+        { timeout: socialStoryLoadTimeout }
+      )
+    ).toBeVisible()
     await userEvent.type(
       canvas.getByRole('textbox', { name: 'Search table titles and summaries' }),
       STORY_CAMPAIGN.name
     )
-    await expect(await canvas.findByRole('link', { name: STORY_CAMPAIGN.name })).toBeVisible()
+    await expect(
+      await canvas.findByRole(
+        'link',
+        { name: STORY_CAMPAIGN.name },
+        { timeout: socialStoryLoadTimeout }
+      )
+    ).toBeVisible()
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     const body = within(canvasElement.ownerDocument.body)
     await waitFor(() =>
@@ -50,12 +63,18 @@ export const BrowseThenSearch: Story = {
 export const ExhaustedSearch: Story = {
   parameters: peer,
   play: async ({ canvas }) => {
-    await canvas.findByRole('link', { name: STORY_CAMPAIGN.name })
+    await canvas.findByRole(
+      'link',
+      { name: STORY_CAMPAIGN.name },
+      { timeout: socialStoryLoadTimeout }
+    )
     await userEvent.type(
       canvas.getByRole('textbox', { name: 'Search table titles and summaries' }),
       'zzzzqx'
     )
-    await expect(await canvas.findByText('No tables match', {}, { timeout: 5000 })).toBeVisible()
+    await expect(
+      await canvas.findByText('No tables match', {}, { timeout: socialStoryLoadTimeout })
+    ).toBeVisible()
     await expect(canvas.queryByRole('button', { name: 'Load more tables' })).not.toBeInTheDocument()
   }
 }
@@ -63,7 +82,13 @@ export const ExhaustedSearch: Story = {
 export const HostedPage: Story = {
   args: { view: 'hosting' },
   play: async ({ canvas, canvasElement }) => {
-    await expect(await canvas.findByRole('link', { name: STORY_CAMPAIGN.name })).toBeVisible()
+    await expect(
+      await canvas.findByRole(
+        'link',
+        { name: STORY_CAMPAIGN.name },
+        { timeout: socialStoryLoadTimeout }
+      )
+    ).toBeVisible()
     await expect(canvas.queryByText('No hosted listings')).not.toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Edit listing' })).toBeVisible()
     await expect(canvas.getByRole('button', { name: 'Review applications' })).toBeVisible()

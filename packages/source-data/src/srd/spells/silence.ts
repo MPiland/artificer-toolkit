@@ -82,7 +82,16 @@ export const silence: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.SILENCE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Silence',
+                shape: {
+                  id: spellChildId(SPELL_IDS.SILENCE, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: {
+                    amount: 20,
+                    unit: MEASUREMENT_UNIT_CODE.FEET
+                  }
+                }
               }
             ]
           }

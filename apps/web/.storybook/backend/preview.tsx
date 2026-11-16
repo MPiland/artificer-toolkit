@@ -30,6 +30,8 @@ import { StoryFrame } from '../StoryFrame.tsx'
 
 // Reads stay real; mutations are spies so no story write reaches the seeded deployment (D218).
 sb.mock(import('convex/react'), { spy: true })
+// The Scene renderer stays real; the spy lets a story read what the Stage asked it to draw.
+sb.mock(import('../../src/domains/campaigns/vtt/vttSceneRenderer.ts'), { spy: true })
 
 type StoryBackend = {
   convex: ConvexQueryClient
@@ -133,7 +135,7 @@ const preview: Preview = {
     bindStoryQueryClient(getStoryBackend(context.id).queryClient)
     storyMutation.mockClear()
     mocked(useMutation).mockImplementation(storyMutationHook)
-    // The room connection is real; its COMMAND frames are recorded and never sent (D218).
+    // The room connection is real; its write frames (COMMAND and fog staging) are recorded and never sent (D218).
     return installLiveSessionSpy()
   },
   // A read without a query function shows a loading or empty state instead of the seeded record,

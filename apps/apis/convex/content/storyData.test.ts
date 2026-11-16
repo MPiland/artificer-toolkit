@@ -277,6 +277,19 @@ it('gives the story account an active copy and a copy with a waiting draft per d
           .sort()
       }
     })
+  // The story host plays in the story Campaign, so the GM's fog controls list a player.
+  const activeMemberUserIds = async (id: string) =>
+    (
+      await t.run((ctx) =>
+        ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_campaignId_status', (q) => q.eq('campaignId', id).eq('status', 'ACTIVE'))
+          .collect()
+      )
+    )
+      .map(({ userId }) => userId)
+      .sort()
+  expect(await activeMemberUserIds(campaignId)).toEqual([first.userId, second.userId].sort())
   expect(await presentedBoard(campaignId)).toEqual({
     saves: 1,
     fogMode: STORY_CAMPAIGN.scene.board.fogMode,
@@ -286,6 +299,23 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       [STORY_CAMPAIGN.enemyLabel, []]
     ].sort()
   })
+  // The Scene editor story opens that Scene's definition: listed for the host, on a map asset the
+  // real upload path finalized.
+  const sceneList = await reader.query(api.scenes.definitionReads.list, {
+    campaignId,
+    paginationOpts: { cursor: null, numItems: 8 }
+  })
+  const [storyScene, ...otherScenes] = sceneList.page
+  expect(otherScenes).toEqual([])
+  expect(storyScene).toMatchObject({ name: STORY_CAMPAIGN.scene.name, campaignId })
+  expect(storyScene!.counts).toMatchObject({ barriers: 3, tokens: 2 })
+  const mapAsset = await t.run((ctx) =>
+    ctx.db
+      .query('mediaAssets')
+      .withIndex('by_publicId', (q) => q.eq('id', storyScene!.map.assetId))
+      .unique()
+  )
+  expect(mapAsset).toMatchObject({ profileClass: 'VTT_MAP', status: 'READY' })
   const bindings = await t.run(async (ctx) => ({
     scenes: (await ctx.db.query('encounterSceneBindings').collect()).length,
     tokens: (await ctx.db.query('encounterActorTokenBindings').collect())
@@ -308,17 +338,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(playerCampaigns).toHaveLength(1)
   const playerCampaignId = playerCampaigns[0]!.id
   expect(playerCampaigns[0]!.ownerUserId).toBe(second.userId)
-  const memberships = await t.run((ctx) =>
-    ctx.db
-      .query('campaignMemberships')
-      .withIndex('by_campaignId_status', (q) =>
-        q.eq('campaignId', playerCampaignId).eq('status', 'ACTIVE')
-      )
-      .collect()
-  )
-  expect(memberships.map(({ userId }) => userId).sort()).toEqual(
-    [first.userId, second.userId].sort()
-  )
+  expect(await activeMemberUserIds(playerCampaignId)).toEqual([first.userId, second.userId].sort())
   expect(
     (await reader.query(api.encounters.projectionReads.list, { campaignId: playerCampaignId })).map(
       ({ status }) => status

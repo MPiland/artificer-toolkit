@@ -289,16 +289,7 @@ export const vrock: CreatureAuthored = {
               baseDc: 14
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(281, 220),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 20,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfSphere(S.actionId(281, 220), S.actionId(281, 0xf01), 20)
           },
           paths: [
             {
