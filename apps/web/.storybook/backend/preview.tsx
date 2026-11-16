@@ -2,7 +2,6 @@ import type { Preview } from '@storybook/tanstack-react'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
-import type { AuthTokenFetcher } from 'convex/browser'
 import { ConvexProviderWithAuth, useMutation, type ConvexReactClient } from 'convex/react'
 import { expect, mocked, sb } from 'storybook/test'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
@@ -45,7 +44,11 @@ type StoryBackend = {
    * page-wide session store: that store still holds the previous story's account after a sign-in,
    * and when it catches up, the provider clears the client's auth and queries run unauthenticated.
    */
-  auth: { isLoading: false; isAuthenticated: true; fetchAccessToken: AuthTokenFetcher }
+  auth: {
+    isLoading: false
+    isAuthenticated: true
+    fetchAccessToken: (args: { forceRefreshToken: boolean }) => Promise<string | null>
+  }
 }
 
 const storyBackends = new Map<string, StoryBackend>()
@@ -97,7 +100,9 @@ async function connectStoryBackend(
   // The provider sets this fetcher again on mount; the cached token keeps that from pausing the
   // story's first reads on another token request.
   let token: string | null = null
-  const fetchAccessToken: AuthTokenFetcher = async ({ forceRefreshToken }) => {
+  const fetchAccessToken: StoryBackend['auth']['fetchAccessToken'] = async ({
+    forceRefreshToken
+  }) => {
     if (!token || forceRefreshToken)
       token = (await betterAuthClient.convex.token()).data?.token ?? null
     return token
