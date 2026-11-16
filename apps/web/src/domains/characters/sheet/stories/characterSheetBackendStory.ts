@@ -112,7 +112,8 @@ export function abilityPanelOverride(
     args: { target: { kind: 'ABILITY', ability } },
     derive: (served) => {
       const panel = characterSheetPanelDtoSchema.parse(served)
-      if (panel.kind !== 'ABILITY') throw new Error(`The deployment read ${panel.kind}, not ABILITY.`)
+      if (panel.kind !== 'ABILITY')
+        throw new Error(`The deployment read ${panel.kind}, not ABILITY.`)
       return characterSheetPanelDtoSchema.parse(derive(panel))
     }
   }

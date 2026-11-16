@@ -39,7 +39,8 @@ async function openAddExtraDrawer({ canvas, canvasElement }: Parameters<Play>[0]
 }
 
 /** Fills the drawer's selects in order; the Creature and Origin options come from the seeded System. */
-async function chooseCompanionOwl(body: ReturnType<typeof within>) {
+async function chooseCompanionOwl(canvasElement: HTMLElement) {
+  const body = within(canvasElement.ownerDocument.body)
   for (const [label, option] of [
     ['Kind', 'Companion'],
     ['Creature', 'Owl'],
@@ -57,7 +58,7 @@ async function chooseCompanionOwl(body: ReturnType<typeof within>) {
 export const Extras: Story = {
   play: async (context) => {
     const { body, canvas, drawer } = await openAddExtraDrawer(context)
-    await chooseCompanionOwl(body)
+    await chooseCompanionOwl(context.canvasElement)
     await userEvent.click(within(drawer).getByRole('button', { name: /^add extra$/i }))
     await waitFor(() =>
       expect(body.queryByRole('dialog', { name: 'Add Extra' })).not.toBeInTheDocument()
@@ -90,7 +91,7 @@ export const ExtrasCommandError: Story = {
   play: async (context) => {
     storyMutation.mockRejectedValueOnce(new Error('The extra could not be added.'))
     const { body, drawer } = await openAddExtraDrawer(context)
-    await chooseCompanionOwl(body)
+    await chooseCompanionOwl(context.canvasElement)
     await userEvent.click(within(drawer).getByRole('button', { name: /^add extra$/i }))
     await expect(await within(drawer).findByRole('alert')).toHaveTextContent('Could not add extra')
     await expect(body.getByRole('dialog', { name: 'Add Extra' })).toBeVisible()
