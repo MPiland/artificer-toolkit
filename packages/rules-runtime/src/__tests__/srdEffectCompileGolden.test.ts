@@ -389,7 +389,6 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D Effect action outcome is not a supported hit-point or condition outcome. It is no timed creature form.':
     'UNBUILT',
   'D&D test action has an unsupported bounded shape.': 'UNBUILT',
-  'D&D test action outcome is not supported.': 'UNBUILT',
   'D&D reaction must name a registered trigger.': 'UNBUILT'
 }
 
