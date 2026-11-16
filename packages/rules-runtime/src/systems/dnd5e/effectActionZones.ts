@@ -37,7 +37,11 @@ import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { boundedTestOutcome, specializedTestOutcome } from './effectActionTestOutcomes.js'
 import { compileTestDefinition, withMovementInterruption } from './effectActionTestPhase.js'
-import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import {
+  conditionDurationTurns,
+  dnd5eRepeatSave,
+  overBoundDurationCampaignMinutes
+} from './effectActionFollowUp.js'
 import { dnd5eEventVocabularyCapabilityAdapter } from './eventVocabulary.js'
 import { boundedDiceTerm } from './effectActionScalingFacts.js'
 
@@ -197,7 +201,8 @@ function zonePlacementPlan(
     )
   // A zone that authors no component and no appear save only marks its area for the table (Darkness,
   // Silence): placed with no triggers, held for its duration like terrain placed with no save.
-  if (!first && !appearSave) return inertZonePlacementPlan(action, zone)
+  if (!first && !appearSave)
+    return withZoneDuration(inertZonePlacementPlan(action, zone), zone.entry)
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
@@ -220,7 +225,10 @@ function zonePlacementPlan(
       'Only a zone no creature interacts with holds the condition its appear save applies.'
     )
   if (first && !first.behavior && !terrain)
-    return occupantBonusZonePlacementPlan(action, zone, first.component)
+    return withZoneDuration(
+      occupantBonusZonePlacementPlan(action, zone, first.component),
+      zone.entry
+    )
   const primary =
     first && (!terrain || !appearSave)
       ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
@@ -250,11 +258,36 @@ function zonePlacementPlan(
     return { region: region!, ...component, label }
   })
   const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
-  return {
-    ...primary,
-    ...(regionComponents.length ? { regionComponents } : {}),
-    ...(sourceGrant ? { sourceGrant } : {})
-  }
+  return withZoneDuration(
+    {
+      ...primary,
+      ...(regionComponents.length ? { regionComponents } : {}),
+      ...(sourceGrant ? { sourceGrant } : {})
+    },
+    zone.entry
+  )
+}
+
+/**
+ * A zone no Concentration holds lasts its authored duration from its placement: its source's turns,
+ * or Campaign minutes past the turn bound (D222). A maintained zone ends with its Concentration, and
+ * an untimed or scaled duration leaves it until the Encounter ends.
+ */
+function withZoneDuration(
+  plan: CharacterRuleActionZonePlacementPlan,
+  entry: PlacedSpaceZone['entry']
+): CharacterRuleActionZonePlacementPlan {
+  const duration = !plan.maintenance && 'duration' in entry ? entry.duration : undefined
+  if (!duration) return plan
+  const initialRemaining = conditionDurationTurns(duration)
+  const minutes = overBoundDurationCampaignMinutes(duration)
+  const expiration =
+    initialRemaining !== null
+      ? { kind: 'TICKS' as const, initialRemaining }
+      : minutes !== null
+        ? { kind: 'CAMPAIGN_MINUTES' as const, minutes }
+        : null
+  return expiration ? { ...plan, duration: { startsAt: 'PLACEMENT', expiration } } : plan
 }
 
 /**
