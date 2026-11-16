@@ -6,6 +6,8 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
+  SHAPE_KIND,
   RANGE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -51,6 +53,11 @@ export const hallow: SpellAuthored = {
           id: spellChildId(SPELL_IDS.HALLOW, 0x211, 1),
           rangeKind: RANGE_KIND.TOUCH
         },
+        shape: {
+          id: spellChildId(SPELL_IDS.HALLOW, 0x2f1, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 60, unit: MEASUREMENT_UNIT_CODE.FEET }
+        },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -76,7 +83,13 @@ export const hallow: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.HALLOW, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Hallow',
+                shape: {
+                  id: spellChildId(SPELL_IDS.HALLOW, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 60, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }

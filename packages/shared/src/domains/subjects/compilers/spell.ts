@@ -25,12 +25,20 @@ export type CompiledSpell = {
   castingTime?: CompiledCastingTime
 }
 
-export function compileSpell(authored: SpellAuthored): CompiledSpell {
+/** One Effect of a spell as the spell compiles it: a Concentration spell's Effect requires it. */
+export function compileSpellEffect(
+  authored: Pick<SpellAuthored, 'attributes' | 'effects'>,
+  effect: NonNullable<SpellAuthored['effects']>[number]
+): CompiledEffectGroup {
   const concentration = authored.attributes?.includes(SPELL_ATTRIBUTE.CONCENTRATION) ?? false
-  const compiled = (authored.effects ?? []).map((effect) => ({
+  return {
     ...compileEffect(effect, authored.effects),
     ...(concentration ? { requiresConcentration: true as const } : {})
-  }))
+  }
+}
+
+export function compileSpell(authored: SpellAuthored): CompiledSpell {
+  const compiled = (authored.effects ?? []).map((effect) => compileSpellEffect(authored, effect))
   // A sibling Effect that a repeat offer re-runs is not a cast of its own: it lives in the offer.
   const repeatedIds = new Set(
     compiled.flatMap(({ id: carrierId, entries }) =>
