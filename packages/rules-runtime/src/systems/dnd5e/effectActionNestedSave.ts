@@ -111,21 +111,18 @@ export function isImmediateFollowUpSave(save: FollowUpSaveOutcome): save is Foll
 }
 
 /**
- * The second condition a repeated save leaves when it fails: its only failure outcome. By default it
- * ends the held effect, in place of the held condition ("restrained, then petrified"); with
- * `endsEffect: false` the effect goes on holding it beside the held one for the rest of its duration
- * ("subjected to the petrified condition for the duration"). Null for any other repeat.
+ * A repeat branch's only outcome when it is one ungated condition and ends the effect as `endsEffect`
+ * says. Null for any other branch, or none.
  */
-export function escalationCondition(
-  repeat: FollowUpSaveOutcome,
-  { endsEffect }: { endsEffect: boolean } = { endsEffect: true }
+function soleBranchCondition(
+  branch: FollowUpSaveOutcome['onDurationComplete'],
+  endsEffect: boolean
 ): FollowUpSaveConditionOutcome | null {
-  const { onFailure } = repeat
-  const [outcome] = onFailure.kind === 'OUTCOMES' ? onFailure.outcomes : []
-  return onFailure.kind === 'OUTCOMES' &&
-    onFailure.endCurrent === endsEffect &&
-    !onFailure.gate &&
-    onFailure.outcomes.length === 1 &&
+  const [outcome] = branch?.kind === 'OUTCOMES' ? branch.outcomes : []
+  return branch?.kind === 'OUTCOMES' &&
+    branch.endCurrent === endsEffect &&
+    !branch.gate &&
+    branch.outcomes.length === 1 &&
     outcome?.effectKind === 'CONDITION' &&
     UUID.test(outcome.conditionId)
     ? outcome
@@ -133,23 +130,65 @@ export function escalationCondition(
 }
 
 /**
- * The condition a repeated save's effect leaves when it runs its full duration ("turned to stone
- * until the effect is removed"): the duration-complete branch's only outcome, ending the effect.
- * Null for any other branch, or none.
+ * A direct follow-up save and the entries of its own result block it repeats. A GM ruling in that
+ * block (an Androsphinx roar's lasting effect) is proposed once, as the failed save's other results
+ * are (Sunburst's damage in a block of its own): the repeat-save effect holds neither.
  */
-export function durationCompleteCondition(
-  repeat: FollowUpSaveOutcome
-): FollowUpSaveConditionOutcome | null {
-  const branch = repeat.onDurationComplete
-  const [outcome] = branch?.kind === 'OUTCOMES' ? branch.outcomes : []
-  return branch?.kind === 'OUTCOMES' &&
-    branch.endCurrent &&
-    !branch.gate &&
-    branch.outcomes.length === 1 &&
-    outcome?.effectKind === 'CONDITION' &&
-    UUID.test(outcome.conditionId)
-    ? outcome
-    : null
+export function directRepeatSaveEntries(entries: CompiledEffectGroup['entries']) {
+  const saves = entries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE' ? [entry] : []
+  )
+  const saveEntry = saves.length === 1 ? saves[0] : undefined
+  const leadEntries = saveEntry
+    ? entries.filter(
+        (entry) =>
+          entry !== saveEntry &&
+          'outcome' in entry &&
+          entry.outcome.effectKind !== 'MANUAL_ADJUDICATION' &&
+          entry.resultBlockId === saveEntry.resultBlockId
+      )
+    : []
+  return { saveEntry, leadEntries }
+}
+
+/**
+ * The conditions a repeated save leaves beyond those it holds. A held condition with no duration of
+ * its own escalates in its place on the failure that ends the effect ("restrained, then
+ * petrified"). One with a duration of its own may hold a second condition beside it once a failure
+ * tally settles, and leave a condition when that duration runs its full course (Flesh to Stone).
+ * Null when one is not a System condition, the held escalation is already held, or the duration's
+ * completion does something else.
+ */
+export function repeatSaveEscalations({
+  save,
+  heldConditionIds,
+  singleCondition,
+  timed,
+  knownConditionIds
+}: {
+  save: FollowUpSaveOutcome
+  heldConditionIds: readonly string[]
+  singleCondition: boolean
+  timed: boolean
+  knownConditionIds: readonly string[]
+}) {
+  const escalation = singleCondition && !timed ? soleBranchCondition(save.onFailure, true) : null
+  const heldEscalation =
+    singleCondition && timed && save.attempts.kind === 'THRESHOLDS'
+      ? soleBranchCondition(save.onFailure, false)
+      : null
+  const completion = timed ? soleBranchCondition(save.onDurationComplete, true) : null
+  const unhandledCompletion =
+    save.onDurationComplete !== undefined &&
+    save.onDurationComplete.kind !== 'END' &&
+    completion === null
+  return unhandledCompletion ||
+    [escalation, heldEscalation, completion].some(
+      (condition) => condition && !knownConditionIds.includes(condition.conditionId)
+    ) ||
+    (heldEscalation && heldConditionIds.includes(heldEscalation.conditionId))
+    ? null
+    : { escalation, heldEscalation, completion }
 }
 
 /**
@@ -308,7 +347,7 @@ export function escalatingImmediateSave(save: FollowUpSaveOutcome): {
   if (onFailure.kind !== 'OUTCOMES' || onFailure.outcomes.length !== 2) return null
   const [condition, repeat] = onFailure.outcomes
   if (condition?.effectKind !== 'CONDITION' || repeat?.effectKind !== 'FOLLOW_UP_SAVE') return null
-  const escalation = escalationCondition(repeat)
+  const escalation = soleBranchCondition(repeat.onFailure, true)
   return escalation &&
     save.attempts.kind === 'ONCE' &&
     save.attempts.repeatOnFailure !== true &&
