@@ -54,6 +54,8 @@ import {
   STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
+  STORY_PREPARED_SPELLS,
+  STORY_SPELL_NOTE,
   type StoryCampaignSpec,
   type ReviewAccountSpec,
   type ReviewBoard,
@@ -666,6 +668,7 @@ async function seedStoryCharacters(reader: StoryClient) {
         conditionTypeId: poisoned.id
       }
     })
+  await seedStoryExtras(reader, fighter.characterId)
   if (!(await exists(multiclass.characterId)))
     await createDevelopmentCharacter(reader, multiclass.characterId, {}, multiclass.label, {
       source: wizardClass,
@@ -681,6 +684,8 @@ async function seedStoryCharacters(reader: StoryClient) {
         identify
       ]
     })
+  await seedStoryPreparedSpells(reader, multiclass.characterId)
+  await seedStorySpellNote(reader, multiclass.characterId)
   if (!(await exists(caster.characterId)))
     await createDevelopmentSpellCharacter(
       reader,
@@ -716,6 +721,110 @@ async function seedStoryCharacters(reader: StoryClient) {
     await reader.mutation(api.characters.drafts.create, {
       id: draftPending.characterId,
       systemId: srdSystemRecord.id
+    })
+}
+
+/** The Extras stories open a companion and a vehicle, which a Character gains through the Sheet command. */
+async function seedStoryExtras(reader: StoryClient, characterId: string) {
+  const read = async () => {
+    const sheet = await reader.query(api.characters.sheet.get, { id: characterId })
+    assert.ok(sheet, 'The story Fighter must read its Sheet.')
+    return sheet
+  }
+  const catalogued = async (kind: 'CREATURE' | 'VEHICLE', label: string) => {
+    const { items } = await reader.query(api.characters.extraOptions.list, {
+      id: characterId,
+      kind,
+      query: label,
+      limit: 25
+    })
+    const option = items.find((item) => item.label === label)
+    assert.ok(option, `The System has no ${kind} ${label} to add as an extra.`)
+    return option.id
+  }
+  if (!(await read()).extras.items.some(({ kind }) => kind === 'COMPANION')) {
+    const creatureId = await catalogued('CREATURE', 'Owl')
+    await reader.mutation(api.characters.sheetCommands.execute, {
+      id: characterId,
+      command: {
+        type: 'ADD_SHEET_EXTRA',
+        commandId: crypto.randomUUID(),
+        expectedVersion: (await read()).meta.streamVersion,
+        extra: { kind: 'COMPANION', creatureId, originKind: 'SUMMONED' }
+      }
+    })
+    const sheet = await read()
+    const companion = sheet.extras.items.find(({ kind }) => kind === 'COMPANION')
+    assert.ok(companion, 'The story Fighter lost its companion.')
+    await reader.mutation(api.characters.sheetCommands.execute, {
+      id: characterId,
+      command: {
+        type: 'UPDATE_SHEET_EXTRA',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion,
+        extra: { kind: 'COMPANION', extraId: companion.id, customName: 'Ferdinand' }
+      }
+    })
+  }
+  if (!(await read()).extras.items.some(({ kind }) => kind === 'VEHICLE'))
+    await reader.mutation(api.characters.sheetCommands.execute, {
+      id: characterId,
+      command: {
+        type: 'ADD_SHEET_EXTRA',
+        commandId: crypto.randomUUID(),
+        expectedVersion: (await read()).meta.streamVersion,
+        extra: { kind: 'VEHICLE', vehicleId: await catalogued('VEHICLE', 'Sailing Ship') }
+      }
+    })
+}
+
+/** A Wizard's spellbook lists known spells; the Spells section shows only those the Wizard prepared. */
+async function seedStoryPreparedSpells(reader: StoryClient, characterId: string) {
+  const read = async () => {
+    const panel = await reader.query(api.characters.panels.get, {
+      id: characterId,
+      target: { kind: 'SPELLS' }
+    })
+    assert.ok(panel?.kind === 'SPELLS', 'The story multiclass must read its Spells panel.')
+    return panel.groups.flatMap((group) => group.sources)
+  }
+  const sources = await read()
+  const chosen = STORY_PREPARED_SPELLS.map((label) => {
+    const source = sources.find((candidate) => candidate.label === label && candidate.canPrepare)
+    assert.ok(source?.preparationClassId, `The story multiclass cannot prepare ${label}.`)
+    return { ...source, preparationClassId: source.preparationClassId }
+  })
+  if (chosen.every(({ prepared }) => prepared)) return
+  const sheet = await reader.query(api.characters.sheet.get, { id: characterId })
+  assert.ok(sheet, 'The story multiclass must read its Sheet.')
+  await reader.mutation(api.characters.sheetCommands.execute, {
+    id: characterId,
+    command: {
+      type: 'SET_PREPARED_SPELLS',
+      commandId: crypto.randomUUID(),
+      expectedVersion: sheet.meta.streamVersion,
+      classId: chosen[0]!.preparationClassId,
+      spellIds: chosen.map(({ spellId }) => spellId)
+    }
+  })
+}
+/** The Spell inspector's configured-customization story opens Burning Hands with a note on its source. */
+async function seedStorySpellNote(reader: StoryClient, characterId: string) {
+  const sheet = await reader.query(api.characters.sheet.get, { id: characterId })
+  const source = sheet?.spells.spells
+    .find(({ label }) => label === 'Burning Hands')
+    ?.sources?.find(({ source: { sourceKind } }) => sourceKind === 'CLASS')
+  assert.ok(sheet && source, 'The story multiclass must read a Class source for Burning Hands.')
+  if (source.notes === undefined)
+    await reader.mutation(api.characters.sheetCommands.execute, {
+      id: characterId,
+      command: {
+        type: 'UPDATE_SPELL_SOURCE_CUSTOMIZATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion,
+        source: source.source,
+        notes: STORY_SPELL_NOTE
+      }
     })
 }
 
