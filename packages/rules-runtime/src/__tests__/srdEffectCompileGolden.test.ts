@@ -380,7 +380,8 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D test action has an unsupported bounded shape.': 'UNBUILT',
   'D&D test action outcome is not supported.': 'UNBUILT',
   'D&D reaction must name a registered trigger.': 'UNBUILT',
-  // Imprisonment's failed save removes its target from play, which no TEST/OUTCOME plan carries. The golden\n  // compiled it before it compiled through the product's plan check (QUALITY-15.T3c), which refuses it.
+  // Imprisonment's failed save removes its target from play, which no TEST/OUTCOME plan carries. The golden
+  // compiled it before it compiled through the product's plan check (QUALITY-15.T3c), which refuses it.
   'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form or GM ruling active-effect plans.':
     'UNBUILT',
   'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.': 'UNBUILT',
