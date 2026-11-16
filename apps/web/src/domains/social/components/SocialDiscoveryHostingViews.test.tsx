@@ -1,12 +1,53 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
+import {
+  socialListingDtoSchema,
+  type SocialListingDto
+} from '@artificer-toolkit/schema/api/socialHub'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import type { SocialHubSearch } from '../socialSearch'
 import { SocialDiscoveryView } from './SocialDiscoveryView'
 import { SocialHostingView } from './SocialHostingView'
+
+const searchedListing = socialListingDtoSchema.parse({
+  listingPublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
+  host: { profilePublicId: 'bbbbbbbb-2222-4222-8222-222222222222', username: 'HarborHost' },
+  title: 'The Glass Harbor',
+  summary: 'Weekly adventures in a coastal city.',
+  status: 'OPEN',
+  audience: 'PUBLIC',
+  moderationStatus: 'VISIBLE',
+  system: {
+    systemId: 'cccccccc-3333-4333-8333-333333333333',
+    label: 'Fifth Edition',
+    rulesetCode: 'SRD',
+    rulesetVersion: '2014'
+  },
+  format: 'ONGOING',
+  toneTags: ['HEROIC'],
+  toneDetails: null,
+  contentMaturity: 'STANDARD',
+  playMode: 'ONLINE',
+  capacity: 4,
+  availableSeats: 2,
+  ageBand: '13_PLUS',
+  schedule: { kind: 'FLEXIBLE', timeZone: 'America/Chicago', summary: 'Agree a weekly evening' },
+  location: null,
+  expectations: {
+    contentGuidance: 'Fantasy adventure',
+    attendancePolicy: 'Tell us if you cannot attend.',
+    allowedContentRules: 'SRD',
+    tableConduct: 'Respect each other.',
+    contentBoundaries: 'Discuss before play.',
+    safetyPractices: ['LINES_AND_VEILS'],
+    safetyDetails: 'Pause when needed.'
+  },
+  isFree: true,
+  publishedAt: '2024-03-01T12:00:00.000Z',
+  version: 2
+})
 
 const mocks = vi.hoisted(() => ({
   calls: vi.fn(),
@@ -109,6 +150,22 @@ describe('Social discovery and hosting views', () => {
     await user.click(screen.getByRole('button', { name: 'Load more tables' }))
     expect(mocks.browse.loadMore).toHaveBeenCalledWith(8)
     expect(screen.queryByText('No tables match')).not.toBeInTheDocument()
+  })
+
+  it('loads another page of search results and lists what it returns', async () => {
+    mocks.search.status = 'CanLoadMore'
+    const user = userEvent.setup()
+    const { rerender } = renderWithAppProviders(
+      <SocialDiscoveryView search={search({ query: 'harbor' })} onSearchChange={vi.fn()} />
+    )
+    await user.click(screen.getByRole('button', { name: 'Load more tables' }))
+    expect(mocks.search.loadMore).toHaveBeenCalledWith(8)
+
+    mocks.search.results = [searchedListing]
+    mocks.search.status = 'Exhausted'
+    rerender(<SocialDiscoveryView search={search({ query: 'harbor' })} onSearchChange={vi.fn()} />)
+    expect(await screen.findByRole('link', { name: searchedListing.title })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Load more tables' })).not.toBeInTheDocument()
   })
 
   it('shows discovery empty only when exhausted', () => {
