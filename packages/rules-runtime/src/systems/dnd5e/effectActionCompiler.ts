@@ -17,7 +17,6 @@ import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   compileConditionEffect,
-  type CompiledDuration,
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
@@ -270,6 +269,7 @@ import {
   escalationCondition,
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
+  immediateFollowUpSaveDuration,
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
   repeatCadenceSupported,
@@ -765,14 +765,6 @@ function repeatingImmediateFollowUpSavePlan(
     maintenance: maintenancePlan(action, saveEntry),
     marginRiders: []
   }
-}
-
-/** The authored duration of a hit's result block, which its follow-up save's condition lasts. */
-function immediateFollowUpSaveDuration(
-  action: Dnd5eCompiledEffectActionSource
-): CompiledDuration | undefined {
-  const saveEntry = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry
-  return saveEntry && 'duration' in saveEntry ? saveEntry.duration : undefined
 }
 
 /**
