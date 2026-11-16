@@ -33,6 +33,7 @@ import {
   REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
+  REVIEW_STORY_SHOWING_HOST,
   STORY_CAMPAIGN,
   STORY_CHARACTERS,
   STORY_DEFINITIONS,
@@ -40,6 +41,7 @@ import {
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS,
+  STORY_SHOWING_CAMPAIGN,
   STORY_ZONES,
   STORY_SOCIAL
 } from '../../tests/developmentReviewDataScenarios'
@@ -106,19 +108,21 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       )
   })
   const reader: StoryClient = roomReader
+  const strangerUser = (spec: { username: string }) =>
+    createPartyUser(t, {
+      username: spec.username,
+      email: `${spec.username.toLowerCase()}@example.invalid`
+    })
   const stranger = async (spec: { username: string }) =>
-    clientFor(
-      (
-        await createPartyUser(t, {
-          username: spec.username,
-          email: `${spec.username.toLowerCase()}@example.invalid`
-        })
-      ).caller
-    )
+    clientFor((await strangerUser(spec)).caller)
+  // The Scene showing has a host of its own for the same reason: one hosted Campaign per account.
+  const showingHostUser = await strangerUser(REVIEW_STORY_SHOWING_HOST)
+  const showingHost = clientFor(showingHostUser.caller)
   const clients = {
     [REVIEW_STORY_READER.key]: reader,
     [REVIEW_STORY_HOST.key]: roomHost,
     [REVIEW_STORY_OPEN_HOST.key]: roomOpenHost,
+    [REVIEW_STORY_SHOWING_HOST.key]: showingHost,
     [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
     [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED),
     [REVIEW_ADMIN.key]: await stranger(REVIEW_ADMIN)
@@ -179,6 +183,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     REVIEW_STORY_READER.key,
     REVIEW_STORY_HOST.key,
     REVIEW_STORY_OPEN_HOST.key,
+    REVIEW_STORY_SHOWING_HOST.key,
     REVIEW_STORY_PEER.key,
     REVIEW_STORY_BLOCKED.key,
     REVIEW_ADMIN.key
@@ -440,12 +445,35 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(
     openActors?.find(({ label }) => label === STORY_OPEN_CAMPAIGN.enemyLabel)?.conditions
   ).toHaveLength(STORY_OPEN_CAMPAIGN.enemyState.conditionCodes.length)
+  // The GM confirmed one Balor's morale save as fleeing, which the GM's token shows as Fled.
+  const { morale: expectedMorale } = STORY_OPEN_CAMPAIGN.creatures[2]
+  expect(
+    openActors?.flatMap((actor) =>
+      'morale' in actor && actor.morale ? [[actor.label, actor.morale]] : []
+    )
+  ).toEqual([['Balor', expect.objectContaining(expectedMorale)]])
   // The GM reads both Balors' Fire Auras. A Convex read cannot tell which tokens a player's map draws
   // (D121), so the player's one visible aura is proved in the room, by the stories.
   expect(
     (await roomOpenHost.query(api.encounters.activeReads.active, { campaignId: openCampaignId }))
       .auras
   ).toHaveLength(2)
+  // The reader watches a fourth Campaign's GM show a Scene, with no Run: the shown-scene viewer.
+  const showingCampaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
+    ({ name }) => name === STORY_SHOWING_CAMPAIGN.name
+  )
+  expect(showingCampaigns).toHaveLength(1)
+  const showingCampaignId = showingCampaigns[0]!.id
+  expect(showingCampaigns[0]!.ownerUserId).toBe(showingHostUser.userId)
+  expect(await activeMemberUserIds(showingCampaignId)).toEqual(
+    [first.userId, showingHostUser.userId].sort()
+  )
+  expect(
+    await reader.query(api.encounters.projectionReads.list, { campaignId: showingCampaignId })
+  ).toEqual([])
+  expect(
+    (await reader.query(api.scenes.showings.current, { campaignId: showingCampaignId }))?.sceneName
+  ).toBe(STORY_SHOWING_CAMPAIGN.shownScene.name)
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
   expect(settings.initiativePolicyDefinitionId).not.toBeNull()
