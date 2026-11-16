@@ -23,9 +23,8 @@ import {
 
 /**
  * QUALITY-15.T3r: a failed save's condition with no duration of its own, which a repeated save at the
- * end of each of the holder's turns ends, lasts until that save ends it. The repeated saves whose
- * failure deals damage or whose full duration petrifies stay refused: the repeat-save effect settles
- * a d20 and GM rulings only.
+ * end of each of the holder's turns ends, lasts until that save ends it. A repeated save whose full
+ * duration petrifies stays refused (a failure that deals damage is QUALITY-15.T3z's).
  */
 
 const POISONED = srdCondition('Poisoned')
@@ -96,12 +95,6 @@ function compileSpell(label: string) {
 }
 
 describe('repeated saves that need room behavior the repeat-save effect does not have stay refused', () => {
-  it('Phantasmal Killer’s psychic damage on each failed repeat is not settled by the repeat-save effect', () => {
-    expect(compileSpell('Phantasmal Killer')).toThrow(
-      'D&D test action has an unsupported bounded shape.'
-    )
-  })
-
   it('Flesh to Stone’s petrification when its full duration completes is not applied by the repeat-save effect', () => {
     expect(compileSpell('Flesh to Stone')).toThrow(
       'D&D test action has an unsupported bounded shape.'

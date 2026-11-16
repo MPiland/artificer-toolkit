@@ -397,23 +397,36 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               typeof trace.outputs.resultPath === 'string'
           )
           const hasD20Trace = d20RequestTraces.length > 0 || d20ResultTraces.length > 0
-          // The recurring save is its d20, the d20's added dice (D156) and the save test, then any GM
-          // rulings its failure proposes: they change nothing in the holder, so no application binds them.
-          const [repeatRequest, repeatAddedDice, repeatResult, ...repeatRulings] =
+          // The recurring save is its d20, the d20's added dice (D156) and the save test, then either
+          // the GM rulings its failure proposes, which change nothing in the holder so no application
+          // binds them, or the damage its failure rolls: dice that propose nothing and one bound
+          // proposal, whose applications bind like any other.
+          const [repeatRequest, repeatAddedDice, repeatResult, ...repeatFailureTraces] =
             execution.execution.evidence.trace
           const repeatSave = installedReceiptBindings.find(
             (binding) => binding.repeatSave.testOperationKey === repeatResult?.operation.key
           )?.repeatSave
+          const repeatRulings = repeatFailureTraces.filter(
+            (trace) => trace.operation.key === repeatSave?.rulingOperationKey
+          )
+          const repeatProposals = repeatFailureTraces.filter(
+            (trace) => !repeatRulings.includes(trace) && trace.outputs.applicationCandidate === true
+          )
           const repeatSaveShape =
             repeatSave !== undefined &&
             execution.execution.evidence.trace.length >= 3 &&
             repeatRulings.every(
               (trace) =>
                 /^manual_adjudication-\d+$/.test(trace.nodeId) &&
-                trace.operation.key === repeatSave.rulingOperationKey &&
                 trace.outputs.changesTargetState === false
             ) &&
-            execution.execution.evidence.sourceEntryBindings?.length === 1 + repeatRulings.length &&
+            repeatProposals.every((trace) =>
+              execution.execution.evidence.sourceEntryBindings?.some(
+                (binding) => binding.nodeId === trace.nodeId
+              )
+            ) &&
+            execution.execution.evidence.sourceEntryBindings?.length ===
+              1 + repeatRulings.length + repeatProposals.length &&
             bindings.length === 1 &&
             repeatRequest?.nodeId === 'repeat-save-d20' &&
             repeatRequest.operation.contractVersion === 1 &&
@@ -436,9 +449,12 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             JSON.stringify(execution.targetTransition.after)
           // A repeat save that ends its effect removes the conditions the effect owns, each once and
           // bound to the effect and the save test on `path`. A failed save may then leave one
-          // escalated condition in their place.
+          // escalated condition in their place. Damage its failure dealt first binds to its proposal.
           const repeatSaveEndsEffect = (path: string | null) => {
-            const escalation = execution.applications.at(-1)
+            const ending = execution.applications.filter(
+              (application) => application.sourceNodeId === execution.definition.frozenGraphNodeId
+            )
+            const escalation = ending.at(-1)
             const escalates =
               path === 'ON_SAVE_FAIL' &&
               escalation?.kind === 'CONDITION_APPLY' &&
@@ -446,9 +462,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               escalation.sourceOperationKey === repeatSave?.testOperationKey &&
               escalation.authoredPath === path &&
               escalation.resolvedPath === path
-            const removals = escalates
-              ? execution.applications.slice(0, -1)
-              : execution.applications
+            const removals = escalates ? ending.slice(0, -1) : ending
             const ownedConditionIds = removals.flatMap((removal) =>
               removal.kind === 'CONDITION_REMOVE' &&
               removal.sourceActiveEffectId === execution.activeEffectId &&
@@ -707,7 +721,11 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           const boundTraceIndexes = new Set<number>()
           let priorTraceIndex = -1
           for (const application of execution.applications) {
-            if (repeatedSaveTerminal || refusedRepeatSaveTerminal) continue
+            if (
+              (repeatedSaveTerminal || refusedRepeatSaveTerminal) &&
+              application.sourceNodeId === execution.definition.frozenGraphNodeId
+            )
+              continue
             if (application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY) {
               // What an effect that ended released from its holder follows from the effect's end, not
               // from a trace of this execution (SPELLS-27.T4b, D156).
@@ -738,7 +756,12 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 })
               continue
             }
-            if (application.sourceNodeId !== execution.definition.frozenGraphNodeId)
+            if (
+              application.sourceNodeId !== execution.definition.frozenGraphNodeId &&
+              !execution.execution.evidence.sourceEntryBindings?.some(
+                (binding) => binding.nodeId === application.sourceNodeId
+              )
+            )
               context.addIssue({
                 code: 'custom',
                 path: ['executions', index, 'applications'],
