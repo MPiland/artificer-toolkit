@@ -205,14 +205,6 @@ export type StoryCampaignSpec = {
   shownScene?: { name: string }
   /** What the GM does to the creature once the Run is presented: conditions and damage. */
   enemyState?: { conditionCodes: readonly string[]; currentHitPoints: number }
-  /**
-   * The Morale rule is on for the Run (set before START), and the GM checks the first creature for
-   * `triggerKind` and confirms `disposition` as its outcome.
-   */
-  enemyMorale?: {
-    triggerKind: MoraleSaveInputDto['triggerKind']
-    disposition: ConfirmMoraleInputDto['disposition']
-  }
   /** The first creature's token sight, which the GM previews. */
   enemyVision?: NonNullable<SceneDefinitionDto['tokens'][number]['vision']>
   /** More creatures in the Run, in blueprint order after the first, each bound to its own token. */
@@ -230,6 +222,14 @@ export type StoryCreatureSpec = {
   hidden?: true
   /** Conditions the GM gives the creature once the Run is presented. */
   conditionCodes?: readonly string[]
+  /**
+   * The Morale rule is on for the Run (set before START), and the GM checks this creature for
+   * `triggerKind` and confirms `disposition`. The creature must have a saving throw to roll.
+   */
+  morale?: {
+    triggerKind: MoraleSaveInputDto['triggerKind']
+    disposition: ConfirmMoraleInputDto['disposition']
+  }
 }
 
 /** A circular zone placed at point; a spot DC conceals it from every player (MOVE-3.3). */
@@ -418,9 +418,9 @@ export const STORY_PLAYER_CAMPAIGN = {
 /**
  * The Campaign the story reader plays in on an open board (D221): hosted by REVIEW_STORY_OPEN_HOST, who
  * is also the GM the tabletop stories read as. Fog is off, so a player sees every token the GM has not
- * hidden. The Run has Morale on and holds a hurt, poisoned, frightened Warden with sight that the GM
- * confirmed fled, a prone Sentry, an unhurt Hound and two Balors, each carrying a Fire Aura, one of
- * them on a hidden token.
+ * hidden. The Run has Morale on and holds a hurt, poisoned, frightened Warden with sight, a prone
+ * Sentry, an unhurt Hound and two Balors, each carrying a Fire Aura, one of them on a hidden token.
+ * The GM confirmed the visible Balor fled.
  */
 export const STORY_OPEN_CAMPAIGN = {
   slug: 'story-open',
@@ -442,7 +442,6 @@ export const STORY_OPEN_CAMPAIGN = {
   playSettings: STORY_CAMPAIGN.playSettings,
   zones: [],
   enemyState: { conditionCodes: ['POISONED', 'FRIGHTENED'], currentHitPoints: 10 },
-  enemyMorale: { triggerKind: 'INDIVIDUAL_SURPRISED', disposition: 'FLEE' },
   enemyVision: {
     angleDegrees: 360,
     brightRange: 60,
@@ -463,7 +462,8 @@ export const STORY_OPEN_CAMPAIGN = {
     {
       enemy: { kind: 'CREATURE', sourceId: balor.id },
       tokenLabel: 'Balor in the Hall',
-      position: { x: 250, y: 450 }
+      position: { x: 250, y: 450 },
+      morale: { triggerKind: 'INDIVIDUAL_SURPRISED', disposition: 'FLEE' }
     },
     {
       enemy: { kind: 'CREATURE', sourceId: balor.id },

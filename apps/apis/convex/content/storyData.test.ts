@@ -391,13 +391,11 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(
     openActors?.find(({ label }) => label === STORY_OPEN_CAMPAIGN.enemyLabel)?.conditions
   ).toHaveLength(STORY_OPEN_CAMPAIGN.enemyState.conditionCodes.length)
-  // The GM confirmed the Warden's morale save as fleeing, which the GM's token shows as Fled.
+  // The GM confirmed one Balor's morale save as fleeing, which the GM's token shows as Fled.
+  const { morale: expectedMorale } = STORY_OPEN_CAMPAIGN.creatures[2]
   expect(
-    openActors?.find(({ label }) => label === STORY_OPEN_CAMPAIGN.enemyLabel)?.morale
-  ).toMatchObject({
-    triggerKind: STORY_OPEN_CAMPAIGN.enemyMorale.triggerKind,
-    disposition: STORY_OPEN_CAMPAIGN.enemyMorale.disposition
-  })
+    openActors?.filter(({ morale }) => morale).map(({ label, morale }) => [label, morale])
+  ).toEqual([['Balor', expect.objectContaining(expectedMorale)]])
   // The GM reads both Balors' Fire Auras. A Convex read cannot tell which tokens a player's map draws
   // (D121), so the player's one visible aura is proved in the room, by the stories.
   expect(

@@ -1124,15 +1124,15 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
   }
 }
 
-// VTT_UI-2 journey: the GM confirmed the Warden's Morale save as fleeing; its token says so in the
-// canvas description and in its status list.
+// VTT_UI-2 journey: the GM confirmed the visible Balor's Morale save as fleeing; its token says so in
+// the canvas description and in its status list.
 export const GmSeesMoraleOutcome: Story = {
   args: { campaign: STORY_OPEN_CAMPAIGN },
   parameters: gmOfOpenCampaign,
   play: async ({ canvasElement }) => {
     const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
     await expectConnected(page)
-    const { token } = seededCreature(openWarden)
+    const token = tokenLabelled(STORY_OPEN_CAMPAIGN.creatures[2].tokenLabel)
     await expect(await sceneDescription(page)).toContain('Fled')
     await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
     const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })

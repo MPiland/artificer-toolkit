@@ -473,7 +473,6 @@ async function presentStoryRun(
     zones,
     shownScene,
     enemyState,
-    enemyMorale,
     enemyVision,
     creatures = []
   }: StoryCampaignSpec,
@@ -495,7 +494,7 @@ async function presentStoryRun(
   await awaitSnapshotHeads(client, srdSystemRecord.id)
   const execute: ExecuteCommand = (command) => client.mutation(executeEncounterCommand, { command })
   // Morale is switched on while the Run is still prepared, before START.
-  const created = enemyMorale
+  const created = crowd.some(({ spec }) => spec.morale)
     ? {
         id: run.id,
         version: (
@@ -597,28 +596,30 @@ async function presentStoryRun(
     })
     version = updated.projection.version
   }
-  if (enemyMorale) {
+  for (const { actor: crowdActor, spec } of crowd) {
+    if (!spec.morale) continue
     const checked = await execute({
       type: 'MORALE_SAVE',
       encounterId: run.id,
       commandId: crypto.randomUUID(),
       expectedVersion: version,
-      actorId: actor.id,
-      triggerKind: enemyMorale.triggerKind,
+      actorId: crowdActor.id,
+      triggerKind: spec.morale.triggerKind,
       leaderActorId: null,
       overwhelmingOpposition: false,
       escapePossible: true,
       roll: { kind: 'AUTO_ROLL' },
       visibility: 'PUBLIC'
     })
-    await execute({
+    const confirmed = await execute({
       type: 'CONFIRM_MORALE',
       encounterId: run.id,
       commandId: crypto.randomUUID(),
       expectedVersion: checked.projection.version,
-      actorId: actor.id,
-      disposition: enemyMorale.disposition
+      actorId: crowdActor.id,
+      disposition: spec.morale.disposition
     })
+    version = confirmed.projection.version
   }
   if (shownScene)
     await createShownScene(client, campaignId, shownScene.name, scene.board.ambientIllumination)
