@@ -295126,6 +295126,7 @@ export declare const api: {
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                    turnsHostileOnRelease?: true;
                   };
                   public: boolean;
                   resources:
@@ -295297,6 +295298,7 @@ export declare const api: {
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                    turnsHostileOnRelease?: true;
                   };
                   public: boolean;
                   sourceId: string | null;
@@ -297478,6 +297480,7 @@ export declare const api: {
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                    turnsHostileOnRelease?: true;
                   };
                   public: boolean;
                   resources:
@@ -297649,6 +297652,7 @@ export declare const api: {
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                    turnsHostileOnRelease?: true;
                   };
                   public: boolean;
                   sourceId: string | null;
@@ -299070,6 +299074,7 @@ export declare const api: {
                 ownerActorId: string;
                 sourceEffectId?: string;
                 turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                turnsHostileOnRelease?: true;
               };
               public: boolean;
               resources:
@@ -299240,6 +299245,7 @@ export declare const api: {
                 ownerActorId: string;
                 sourceEffectId?: string;
                 turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                turnsHostileOnRelease?: true;
               };
               public: boolean;
               sourceId: string | null;
@@ -299509,6 +299515,7 @@ export declare const api: {
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                    turnsHostileOnRelease?: true;
                   };
                   public: boolean;
                   resources:
@@ -299680,6 +299687,7 @@ export declare const api: {
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                    turnsHostileOnRelease?: true;
                   };
                   public: boolean;
                   sourceId: string | null;
@@ -300815,6 +300823,7 @@ export declare const api: {
               ownerActorId: string;
               sourceEffectId?: string;
               turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+              turnsHostileOnRelease?: true;
             };
             public: boolean;
             resources:
@@ -310329,6 +310338,7 @@ export declare const internal: {
                   ownerActorId: string;
                   sourceEffectId?: string;
                   turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  turnsHostileOnRelease?: true;
                 };
                 sourceId: string | null;
               }>;
