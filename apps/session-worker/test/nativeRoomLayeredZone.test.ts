@@ -27,7 +27,6 @@ const DIE = 0
 const LAYER_DAMAGE = 10
 
 const SPELL = layeredZoneSpell()
-const SPHERE = choiceOptionIdOf(SPELL, 'Sphere')
 /** The 15-foot sphere is 300 Scene units across its radius; the Brown Bear starts outside it. */
 const CENTER = { x: 600, y: 600 }
 const OUTSIDE = { x: 1000, y: 600 }
@@ -39,7 +38,7 @@ afterEach(() => {
 
 type Room = Awaited<ReturnType<typeof actionRoom>>
 
-function layeredRoom() {
+function layeredRoom(spell = SPELL) {
   return actionRoom({
     actors: [
       {
@@ -49,7 +48,7 @@ function layeredRoom() {
       srdCreatureActor({ id: BEAR_ID, creature: brownBear })
     ],
     positions: { [BEAR_ID]: OUTSIDE },
-    characterSpellcasting: { spells: [SPELL], prepared: [SPELL.id] },
+    characterSpellcasting: { spells: [spell], prepared: [spell.id] },
     characterAction: (action) => action.label === 'Layered Ward (9th level)',
     autoRoll: 'EVERYONE',
     fallbackRoll: DIE
@@ -57,11 +56,11 @@ function layeredRoom() {
 }
 
 /** The cast places one record per layer; it returns them by the effect id each one holds. */
-async function castSphere(room: Room, unaffectedActorIds?: string[]) {
+async function castSphere(room: Room, spell = SPELL, unaffectedActorIds?: string[]) {
   const { answer } = await room.startAreaCommand({
     kind: 'POINT',
     point: CENTER,
-    choiceOptionId: SPHERE,
+    choiceOptionId: choiceOptionIdOf(spell, 'Sphere'),
     ...(unaffectedActorIds ? { unaffectedActorIds } : {})
   })
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
@@ -82,6 +81,25 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
       expect(zone.placement.geometry).toEqual(first?.placement.geometry)
       expect(zone.placement.triggerModes).toEqual(first?.placement.triggerModes)
     }
+    // No Concentration holds it: every layer lasts the zone's 10 minutes, 100 of its caster's turns.
+    for (const zone of zones) expect(zone.lifecycle.remainingTicks).toBe(100)
+  })
+
+  it('ends every layer together as its duration runs out', async () => {
+    // A 1-minute ward: 10 of its caster's turns. Each round is two turns: the caster's and the bear's.
+    const shortSpell = layeredZoneSpell(3, 1)
+    const room = await layeredRoom(shortSpell)
+    const zones = await castSphere(room, shortSpell)
+    const ids = zones.map(({ id }) => id)
+
+    // The bear's turn in the 10th round: one of the caster's turns is left on every layer.
+    for (let turn = 0; turn < 19; turn += 1) await room.advanceTurn()
+    expect(
+      (await readZones(room)).map(({ id, lifecycle }) => [id, lifecycle.remainingTicks])
+    ).toEqual(ids.map((id) => [id, 1]))
+
+    await room.advanceTurn()
+    expect(await readZones(room)).toEqual([])
   })
 
   it('meets a creature that enters it one layer at a time, in order', async () => {
@@ -101,7 +119,7 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
 
   it('lets a creature its caster designates pass every layer unharmed', async () => {
     const room = await layeredRoom()
-    const zones = await castSphere(room, [BEAR_ID])
+    const zones = await castSphere(room, SPELL, [BEAR_ID])
     for (const { placement } of zones) expect(placement.unaffectedActorIds).toEqual([BEAR_ID])
     await room.advanceTurn()
     const hitPointsBefore = await hitPointsOf(room, BEAR_ID)

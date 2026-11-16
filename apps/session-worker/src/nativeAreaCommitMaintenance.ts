@@ -51,6 +51,11 @@ export async function prepareAreaCommitMaintenance(args: {
   const bandIds = placement ? placement.regions.map(() => crypto.randomUUID()) : []
   const layerIds = (placement?.zone.layerComponents ?? []).map(() => crypto.randomUUID())
   const zoneId = crypto.randomUUID()
+  // A zone lasting Campaign minutes ends at the clock minute it was placed plus its duration (D222).
+  const campaignClockMinute =
+    placement?.zone.duration?.expiration.kind === 'CAMPAIGN_MINUTES'
+      ? await input.readCampaignClockMinute()
+      : null
   const planZones = (maintainedEffectStateId: string | null) => {
     if (!placement) return []
     const zoneInput = {
@@ -66,7 +71,8 @@ export async function prepareAreaCommitMaintenance(args: {
       distanceStep: placement.distanceStep,
       saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
       originLevel: preparedSpellCastLevel(lead),
-      unaffectedActorIds: placement.unaffectedActorIds
+      unaffectedActorIds: placement.unaffectedActorIds,
+      campaignClockMinute
     }
     return [
       planEncounterPlacedZone({ ...zoneInput, id: zoneId }),

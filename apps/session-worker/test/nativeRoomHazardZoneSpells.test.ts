@@ -743,3 +743,46 @@ describe('the SRD Spike Growth zone (SPELLS-4.T1h)', () => {
     expect(await hitPointsOf(room, WOLF_ID)).toBe(0)
   })
 })
+
+/**
+ * QUALITY-15.T3ag: a zone no Concentration holds lasts its authored duration, counted on its
+ * caster's turns from placement. Grease lasts 1 minute, 10 of the caster's turns, so it ends as the
+ * caster's turn starts 10 rounds after the cast; Moonbeam, also 1 minute, is held by Concentration
+ * and stays until that ends. Each round is two turns: the caster's and the Wolf's.
+ */
+describe('a timed zone no Concentration holds (QUALITY-15.T3ag)', () => {
+  async function advanceTurns(room: Room, turns: number) {
+    for (let turn = 0; turn < turns; turn += 1) await room.advanceTurn()
+  }
+
+  async function zoneTicks(room: Room) {
+    return (await readZones(room)).map(({ id, lifecycle }) => [id, lifecycle.remainingTicks])
+  }
+
+  it('ends Grease as its caster’s turn starts 1 minute after the cast', async () => {
+    const room = await zoneRoom({ spell: grease }, 'Grease (1st level)', OUTSIDE_THE_ZONE)
+    const zone = await castAtTheCenter(room)
+    expect(JSON.parse(zone.definitionJson).recurrence).toMatchObject({
+      anchor: 'SOURCE',
+      expiration: { kind: 'TICKS', initialRemaining: 10, decrementStage: 'START_OF_TURN' }
+    })
+    expect(zone.lifecycle.remainingTicks).toBe(10)
+
+    // The Wolf's turn in the 10th round: one of the caster's turns is left.
+    await advanceTurns(room, 19)
+    expect(await zoneTicks(room)).toEqual([[zone.id, 1]])
+
+    await advanceTurns(room, 1)
+    expect(await readZones(room)).toEqual([])
+  })
+
+  it('keeps Moonbeam, held by Concentration, past 1 minute', async () => {
+    const room = await zoneRoom({ spell: moonbeam }, 'Moonbeam (2nd level)', OUTSIDE_THE_ZONE)
+    const zone = await castAtTheCenter(room)
+    expect(JSON.parse(zone.definitionJson).recurrence.expiration).toEqual({ kind: 'INDEFINITE' })
+
+    await advanceTurns(room, 22)
+
+    expect(await zoneTicks(room)).toEqual([[zone.id, null]])
+  })
+})

@@ -16,13 +16,16 @@ const LATER_SLICE_KEYS = [
  * A layered zone authored from core options (D223): the SRD Prismatic Wall's wall and sphere with
  * only their first `layerCount` layers (Red fire, Orange acid, Yellow lightning: a Dexterity save
  * against the caster's DC for 10d6, half on a success), resolving in order and sparing the creatures
- * its caster designates, without anything later slices build.
+ * its caster designates, without anything later slices build. It lasts `minutes` (10, as the wall
+ * does) with no Concentration.
  */
-export function layeredZoneSpell(layerCount = 3): SpellAuthored {
+export function layeredZoneSpell(layerCount = 3, minutes = 10): SpellAuthored {
   const spell: SpellAuthored = { ...structuredClone(prismaticWall), label: 'Layered Ward' }
   const path = spell.effects?.[0]?.paths[0]
   if (path?.selectionKind !== 'CHOICE') throw new Error('The wall must offer its forms.')
-  for (const { resultBlock } of path.options)
+  for (const { resultBlock } of path.options) {
+    if (resultBlock.duration && 'amount' in resultBlock.duration)
+      resultBlock.duration.amount = minutes
     for (const outcome of resultBlock.outcomes) {
       if (outcome.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
         throw new Error('Each form must place a zone.')
@@ -31,5 +34,6 @@ export function layeredZoneSpell(layerCount = 3): SpellAuthored {
         ?.slice(0, layerCount)
         .map(({ destructionCriteria, blockingRules, ...layer }) => layer)
     }
+  }
   return spell
 }

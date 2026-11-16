@@ -703,6 +703,30 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     ),
     /** The Concentration the placing cast opens; every record it places depends on it (D135). */
     maintenance: compiledActionMaintenanceSchema,
+    /**
+     * How long a zone no Concentration holds lasts, counted from `startsAt`: its source's turns, or
+     * Campaign minutes past the turn bound (D222). Every record the zone places ends with it. Absent
+     * for a maintained or untimed zone, which lasts until its Concentration or the Encounter ends.
+     */
+    duration: z.optional(
+      z.strictObject({
+        startsAt: z.literal('PLACEMENT'),
+        expiration: z.discriminatedUnion('kind', [
+          z.strictObject({
+            kind: z.literal('TICKS'),
+            initialRemaining: z
+              .number()
+              .check(z.int())
+              .check(z.gte(1))
+              .check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+          }),
+          z.strictObject({
+            kind: z.literal('CAMPAIGN_MINUTES'),
+            minutes: z.number().check(z.int()).check(z.gte(1))
+          })
+        ])
+      })
+    ),
     /** The timed grant the zone's placer holds once it is placed (D153); absent for none. */
     sourceGrant: z.optional(compiledActionActiveEffectPlanSchema)
   })

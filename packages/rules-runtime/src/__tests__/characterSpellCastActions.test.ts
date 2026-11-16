@@ -1688,7 +1688,14 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
 
     expect(zones).toHaveLength(2)
     for (const zone of zones) {
-      expect(zone).toMatchObject({ attachment: 'PLACED_SPACE', choosesUnaffected: true })
+      // No Concentration holds it: the zone, and so every layer placed from it, lasts 10 minutes, 100
+      // of its caster's turns from placement (QUALITY-15.T3ag).
+      expect(zone).toMatchObject({
+        attachment: 'PLACED_SPACE',
+        choosesUnaffected: true,
+        maintenance: null,
+        duration: { startsAt: 'PLACEMENT', expiration: { kind: 'TICKS', initialRemaining: 100 } }
+      })
       expect(zone).not.toHaveProperty('regionComponents')
       expect(zone.layerComponents?.map(({ label }) => label)).toEqual(['Orange', 'Yellow'])
       const layers = [zone, ...(zone.layerComponents ?? [])]

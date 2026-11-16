@@ -3,6 +3,7 @@ import {
   planEncounterPassiveZones,
   type EncounterPassiveZoneCharacterRules
 } from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
+import { planEncounterZoneTicks } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type { LiveSessionPlacedSpatialEffect } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   EncounterRunActorState,
@@ -47,6 +48,44 @@ export async function deletePlacedSpatialEffect(
   })
   const current = await store?.get(input.id)
   if (store && current) await store.deleteCas({ id: current.id, expectedVersion: current.version })
+}
+
+/**
+ * Counts a turn's start off the timed zones its actor placed and deletes those it ends (see
+ * `planEncounterZoneTicks`); a zone a Concentration holds ends with it instead (D135).
+ */
+export async function persistEncounterZoneTicks(
+  ctx: EncounterWriteContext,
+  input: { encounterId: string; turnActorId: string | null }
+) {
+  const { turnActorId } = input
+  if (turnActorId === null) return
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', input.encounterId))
+    .unique()
+  const store =
+    binding &&
+    (await createSpatialRuleEffectStore(ctx).scope({
+      encounterId: input.encounterId,
+      sceneId: binding.sceneId
+    }))
+  if (!store) return
+  const ticks = planEncounterZoneTicks({
+    stage: 'START_OF_TURN',
+    turnActorId,
+    zones: await store.list()
+  })
+  for (const tick of ticks)
+    if (tick.kind === 'EXPIRE')
+      await store.deleteCas({ id: tick.zone.id, expectedVersion: tick.zone.version })
+    else
+      await store.updateCurrentStateCas({
+        id: tick.zone.id,
+        expectedVersion: tick.zone.version,
+        lifecycle: { ...tick.zone.lifecycle, remainingTicks: tick.remainingTicks },
+        spatialState: tick.zone.spatialState
+      })
 }
 
 /** What placing passive zones reads from its host: the Scene, and a Character's current rules. */

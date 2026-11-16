@@ -1387,7 +1387,16 @@ through `createPlacedSpatialEffect` (refused with `TARGET_UNAVAILABLE` at `MAX_S
 on the area root in `placedSpatialEffectIds`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. A concentration
 zone compiles `zonePlacement.maintenance` (the same policy shape as `activeEffectPlan.maintenance`);
 `prepareEncounterActionMaintenance` selects it, so a zone-only cast opens Concentration and the zone depends on that
-state (`maintainedEffectStateId`, D135). When a
+state (`maintainedEffectStateId`, D135). A zone no Concentration holds whose authored duration is timed
+(Grease, Guardian of Faith; QUALITY-15.T3ag) compiles `zonePlacement.duration { startsAt: 'PLACEMENT', expiration }`
+(`withZoneDuration` in `effectActionZones.ts`): `TICKS` of its source's turns, or `CAMPAIGN_MINUTES` past the turn bound
+(D222). `startsAt` is the plan-level hook for when the count begins; only placement is built. Each record the zone places
+stores `anchor: 'SOURCE'` with a `TICKS` expiration decremented at `START_OF_TURN` (so an N-turn zone ends as its source's
+Nth turn after the cast starts), or a `CAMPAIGN_MINUTES` expiration stamped `expiresAtCampaignMinute` at placement. The turn
+commit counts the incoming actor's turn start off the zones it placed after the incoming zone stage
+(`persistEncounterZoneTicks` over `planEncounterZoneTicks`) and deletes those it ends. A `CAMPAIGN_MINUTES` zone still ends
+with its Run, since spatial rows are Run-scoped (`finishedRunRows.ts`); no clock pass reads its stamp. An untimed or scaled
+duration leaves the zone `INDEFINITE`. When a
 creature fails the zone's entry save, `persistLiveMovementSpatial` copies the zone's grant template under the
 movement's origin onto that creature (`planSpatialEntryGrant`, built from the grant entry; it does not stack per
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
@@ -1464,8 +1473,10 @@ every layer at the same path distance; `compareSpatialMovementCandidates` (and t
 candidates sort the same way, so a crossing runs the layers in authored order rather than by random record id. A
 manifest's `designatedCreatureImmunity` compiles to the zone's `choosesUnaffected` (the caster designates spared
 creatures at cast; every layer record spares them). `suppressionImmunities: ['ANTIMAGIC_FIELD']` is accepted as
-satisfied: no antimagic suppression exists, so nothing can suppress the zone. Destroying layers, the proximity rule,
-light, the occupied-placement refusal and timed expiry of a zone with no Concentration are later slices.
+satisfied: no antimagic suppression exists, so nothing can suppress the zone. A zone with no Concentration keeps
+one `zonePlacement.duration` (QUALITY-15.T3ag), and `placedZoneRecord` stamps it on every record it places (its own,
+each band's and each layer's), so all of a timed zone's layers count the same source turns and expire together.
+Destroying layers, the proximity rule, light and the occupied-placement refusal are later slices.
 A zone-placing cast may also author an ON_USE `SAVING_THROW` behavior beside the zone manifest (D154 amendment,
 SPELLS-4.T1g): the save each creature in the area makes once as the zone appears. The entry-point compiler runs it
 as the cast's `TEST_OUTCOME` plan against the zone's aimed area (the wall or ring itself, never its band; its compiler
