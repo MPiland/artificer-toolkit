@@ -50,23 +50,16 @@ function getStoryBackend(storyId: string): StoryBackend {
 
 declare module 'vitest/browser' {
   interface BrowserCommands {
-    routeFromOwnClientAddress: () => Promise<void>
+    keepAccountSession: (account: StoryAccountKey) => Promise<void>
+    restoreAccountSession: (account: StoryAccountKey) => Promise<boolean>
   }
 }
 
 /**
- * The sign-in rate limit keys on the client address. This module loads once per story file, and a
- * file signs in at least once, so the file takes its own address before its first request and
- * keeps it; no story swaps it mid-file.
- */
-const ownClientAddress = import('vitest/browser').then(({ commands }) =>
-  commands.routeFromOwnClientAddress()
-)
-
-/**
- * Signs in as the story account through the web app auth proxy and opens a read client. The
- * browser session holds one identity at a time, so a sign-in happens only when the story needs a
- * different account than the one already signed in; stories sharing an account share its session.
+ * Opens a read client as the story account through the web app auth proxy. The browser holds one
+ * identity at a time, and the sign-in rate limit rejects a run that signs in for every story file
+ * and account switch, so an account signs in once per run: the runner keeps its session cookies and
+ * puts them back whenever a story needs that account again.
  */
 async function connectStoryBackend(
   storyId: string,
@@ -76,7 +69,9 @@ async function connectStoryBackend(
   if (storyBackends.has(storyId)) return
   const url = import.meta.env.VITE_CONVEX_URL
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
-  await ownClientAddress
+  const { commands } = await import('vitest/browser')
+  if (await commands.restoreAccountSession(accountKey))
+    betterAuthClient.$store.notify('$sessionSignal')
   const email = reviewAccountEmail(STORY_ACCOUNTS[accountKey])
   const current = await betterAuthClient.getSession()
   if (current.data?.user.email !== email) {
@@ -84,6 +79,7 @@ async function connectStoryBackend(
     if (signIn.error) {
       throw new Error(`The story account could not sign in: ${signIn.error.message}`)
     }
+    await commands.keepAccountSession(accountKey)
   }
   const convex = new ConvexQueryClient(url, { expectAuth: true })
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })

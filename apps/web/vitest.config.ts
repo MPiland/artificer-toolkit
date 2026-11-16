@@ -9,13 +9,11 @@ import type { BrowserConfigOptions } from 'vitest/node'
 import type { BrowserContext } from '@playwright/test'
 import { sourceResolve, workspaceSourceAliases } from '../../scripts/vitestSource.mjs'
 import { storyAuthProxy } from './.storybook/authProxy.ts'
-import { routeFromClientAddress } from './tests/live-backend/clientAddress.ts'
 
 const configDir = join(dirname(fileURLToPath(import.meta.url)), '.storybook')
 
-/** Removes the client-address route each browser context currently holds. */
-const clientAddressRoutes = new WeakMap<BrowserContext, () => Promise<void>>()
-let nextClientAddressSlot = 0
+/** The session cookies of each story account that has signed in during this run. */
+const accountSessions = new Map<string, Awaited<ReturnType<BrowserContext['cookies']>>>()
 
 const storyBrowser: BrowserConfigOptions = {
   // Vitest's default browser port (63315) sits in the dynamic range Windows reserves for Hyper-V,
@@ -34,17 +32,19 @@ const storyBrowser: BrowserConfigOptions = {
       await session.send('ServiceWorker.stopAllWorkers')
       await session.detach()
     },
-    // Every story file signs in, and behind one client address the sign-in rate limit (3 per 10s)
-    // rejects the files that follow each other quickly. A file takes a fresh address for its context
-    // before its first request, as separate players reach the app from separate addresses, and
-    // replaces the address of the file before it, whether or not a context is shared.
-    async routeFromOwnClientAddress({ page }) {
+    // A story account signs in once per run: the sign-in rate limit (3 per 10s per address) rejects
+    // a run that signs in again for every story file and every account switch, so the session
+    // cookies of a signed-in account are kept here and put back whenever a story needs it.
+    async keepAccountSession({ page }, account: string) {
+      accountSessions.set(account, await page.context().cookies(new URL(page.url()).origin))
+    },
+    async restoreAccountSession({ page }, account: string) {
+      const cookies = accountSessions.get(account)
+      if (!cookies) return false
       const context = page.context()
-      await clientAddressRoutes.get(context)?.()
-      clientAddressRoutes.set(
-        context,
-        await routeFromClientAddress(context, new URL(page.url()).origin, nextClientAddressSlot++)
-      )
+      await context.clearCookies()
+      await context.addCookies(cookies)
+      return true
     }
   },
   enabled: true,
