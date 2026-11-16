@@ -230,10 +230,22 @@ surface and occupancy, ignition, application limits), and each needs room behavi
 their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
 Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
 own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
-over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. The other 11 stay refused (UNBUILT,
-cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary
-sensor, summoned lights, a creature that stays hostile after Concentration breaks, an Armor Class floor, tree travel, a
-repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to its target).
+over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Of the other 11, Conjure Elemental
+and Conjure Fey now compile (below, QUALITY-15.T3x); nine stay refused (UNBUILT, cited in the golden's
+`REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary sensor, summoned lights,
+an Armor Class floor, tree travel, a repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to
+its target).
+
+**A summon that turns hostile when released (current, QUALITY-15.T3x).** A form summon on its own initiative, of one
+creature a form, may author `turnsHostileOnRelease`; the compiler refuses it on any other summon. The plan carries it
+onto the summoned actor's `owner`. When the carrier ends (Concentration breaks or ends, dispel, expiry), the sweep in
+`endOrphanedConjuredActors` does not remove that creature: it drops the `owner` (so control falls back to the GM and
+the creature leaves its caster's Sheet Extras), flips its disposition (`HOSTILE` becomes `FRIENDLY`, anything else
+`HOSTILE`), keeps its token and initiative place, and records the `SUMMONS_ENDED` command as "Summon released" with
+`releasedActorIds`. Conjure Elemental (13 SRD elementals of challenge rating 5 or lower) and Conjure Fey (6 fey and 90
+beasts of challenge rating 6 or lower, all fey) use it. GM rulings: which elemental suits the chosen area, the released
+creature's 1-hour limit, and the higher slots' challenge rating. A carrier that lapses at its full hour also releases
+rather than removes the creature.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
