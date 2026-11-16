@@ -85,7 +85,16 @@ export const antilifeShell: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.ANTILIFE_SHELL, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'SOURCE'
+                attachmentKind: 'SOURCE',
+                label: 'Antilife Shell',
+                shape: {
+                  id: spellChildId(SPELL_IDS.ANTILIFE_SHELL, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: {
+                    amount: 10,
+                    unit: MEASUREMENT_UNIT_CODE.FEET
+                  }
+                }
               }
             ]
           }

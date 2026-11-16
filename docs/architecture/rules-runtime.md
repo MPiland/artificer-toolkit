@@ -191,6 +191,16 @@ refusal message the corpus meets as a game rule, invalid input (incomplete or co
 given no resolved roll) or an unbuilt path, and fails on a message it has not classed. The unbuilt list may only shrink:
 building a path removes its message from the list.
 
+**Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
+product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
+`compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
+execution plan, the order of `compileCharacterActionEntryPoints`. A placed row pins as `ZONE_PLACEMENT` or
+`SUMMON_PLACEMENT` with a checksum of the placement. Carrying Concentration exposed 15 spells whose Concentration has no
+supported maintained effect (class UNBUILT); the golden had hidden them. A PLACED_SPACE or SOURCE zone that authors a
+label and a shape but no component and no appear save is an inert zone: `inertZonePlacementPlan` places it with no trigger
+modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), so the table sees the area and a GM rules
+what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input.
+
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
 save, a timed condition, grant, link, form or GM ruling, a relationship, a recurring result, then a concealment. The compiler
