@@ -18,8 +18,7 @@ import {
   sceneFogChunksPageInputSchema,
   sceneFogChunksPageSchema,
   sceneFogLayersPageInputSchema,
-  sceneFogLayersPageSchema,
-  type SceneFogPatchInput
+  sceneFogLayersPageSchema
 } from '@artificer-toolkit/schema/api/sceneFog'
 import {
   liveSessionWebSocketClientMessageDtoSchema,
@@ -59,10 +58,7 @@ import { CampaignTabletopWindow } from './CampaignTabletopWindow'
 const recipientRevision = 'a'.repeat(64)
 export const mapReadyTimeoutMs = 10_000
 export const liveCommand = fn()
-export const mediaGetDelivery = fn()
-export const fogBegin = fn()
-export const fogAppend = fn()
-export const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
+const mediaGetDelivery = fn()
 export const showScene = fn()
 export const shownScene = validated(campaignSceneShowingDtoSchema)({
   sceneId: '77777777-7777-4777-8777-777777777798',
@@ -373,8 +369,6 @@ export function renderWindow(
     })
   })
   showScene.mockReset()
-  fogBegin.mockReset()
-  fogAppend.mockReset()
 
   const recipientState = validated(liveSessionRecipientStateDtoSchema)({
     presentationVersion,
@@ -471,7 +465,6 @@ function StoryLiveSessionTransport({
       state,
       type: 'STATE_SYNC'
     })
-    let fogInput: SceneFogPatchInput | null = null
     class StoryWebSocket extends EventTarget {
       readyState = 0
 
@@ -504,33 +497,6 @@ function StoryLiveSessionTransport({
 
       send(data: string): void {
         const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
-        // The room stages a GM fog patch and reports each step's progress (D79).
-        if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') {
-          if (message.type === 'SCENE_FOG_BEGIN') {
-            fogBegin(message.input)
-            fogInput = message.input
-          } else {
-            fogAppend(message.input)
-            if (message.input.saveId !== storyFogSaveId)
-              throw new Error('Unexpected story fog append.')
-          }
-          if (!fogInput) throw new Error('Story fog append arrived before its begin.')
-          const progress = validated(liveSessionWebSocketServerMessageDtoSchema)({
-            progress: {
-              commandId: fogInput.commandId,
-              receivedChunks:
-                message.type === 'SCENE_FOG_APPEND'
-                  ? message.input.offset + message.input.chunks.length
-                  : 0,
-              saveId: storyFogSaveId,
-              sceneId: fogInput.sceneId,
-              status: 'RECEIVING',
-              totalChunks: fogInput.chunkManifest.length
-            },
-            type: 'SCENE_FOG_PROGRESS'
-          })
-          this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(progress) }))
-        }
         if (message.type === 'COMMAND') {
           liveCommand(message)
           if (message.command.scope === 'SCENE' && sceneCommandRejection) {
