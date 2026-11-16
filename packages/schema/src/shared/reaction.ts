@@ -180,6 +180,8 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
       kind: z.literal('ATTACK_RESOLVED_ON_SELF'),
       /** Answers only an attack that hit, only one that missed, or either. */
       outcome: z.enum(['HIT', 'MISS', 'ANY']),
+      /** Answers only a melee, or only a ranged, attack. */
+      attackRange: z.optional(z.enum(['MELEE', 'RANGED'])),
       /** Answers only an attacker the reactor sees. */
       requiresSight: z.optional(z.boolean()),
       /** Answers only an attacker within this many feet of the reactor. */

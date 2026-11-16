@@ -351,7 +351,7 @@ function reactionHookMet(
   switch (trigger.kind) {
     case 'ATTACKED_SELF':
       return event.kind === 'HIT_BY_ATTACK' &&
-        (trigger.attackRange === undefined || (trigger.attackRange === 'MELEE') === event.melee) &&
+        attackRangeMet(trigger.attackRange, event.melee) &&
         (!trigger.weaponOnly || event.weapon) &&
         (!trigger.requiresSight || event.attackerSeen)
         ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds: [] }
@@ -387,6 +387,7 @@ function reactionHookMet(
     case 'ATTACK_RESOLVED_ON_SELF':
       return event.kind === 'ATTACK_RESOLVED_ON_HOLDER' &&
         (trigger.outcome === 'ANY' || (trigger.outcome === 'HIT') === event.hit) &&
+        attackRangeMet(trigger.attackRange, event.melee) &&
         attackerMet(trigger, event) &&
         (trigger.attackerWithinFeet === undefined ||
           withinFeet(event.attackerScene, trigger.attackerWithinFeet))
@@ -411,6 +412,11 @@ function attackerMet(
     (trigger.attackerSize === undefined ||
       sizeInRange(event.gameSystemId, event.attackerSizeCode, trigger.attackerSize))
   )
+}
+
+/** Whether an attack, melee or not, meets a trigger's optional melee-or-ranged qualifier. */
+function attackRangeMet(attackRange: 'MELEE' | 'RANGED' | undefined, melee: boolean) {
+  return attackRange === undefined || (attackRange === 'MELEE') === melee
 }
 
 /** Whether the two tokens of a Scene stand within `feet` of each other; never off a Scene. */

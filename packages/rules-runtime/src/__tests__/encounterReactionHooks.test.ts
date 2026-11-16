@@ -395,6 +395,49 @@ describe('attack-on-other reaction discovery', () => {
   })
 })
 
+/**
+ * QUALITY-15.T3p: an ATTACK_RESOLVED_ON_SELF reaction limited to a missed melee attack answers only
+ * a melee miss; one with no attack range answers a miss of either kind.
+ */
+describe('resolved-attack reaction discovery by attack range (QUALITY-15.T3p)', () => {
+  const resolved = (hit: boolean, melee: boolean) =>
+    ({
+      kind: 'ATTACK_RESOLVED_ON_HOLDER',
+      gameSystemId: DND5E_SYSTEM_ID,
+      hit,
+      melee,
+      attackerSeen: true,
+      attackerSizeCode: SIZE_CODE.MEDIUM,
+      attackerScene: null
+    }) as const
+  const offered = (trigger: Record<string, unknown>, event: ReturnType<typeof resolved>) => {
+    nextSequence = 0
+    return heldReactionsTo(
+      [candidate('class:redirect', 'REACTION', trigger as { kind: string }, 'MANUAL_ADJUDICATION')],
+      event
+    ).map(({ trigger: met }) => met)
+  }
+  const meleeMiss = { kind: 'ATTACK_RESOLVED_ON_SELF', outcome: 'MISS', attackRange: 'MELEE' }
+
+  it('offers a melee-miss reaction against a melee attack that missed', () => {
+    expect(offered(meleeMiss, resolved(false, true))).toEqual(['ATTACK_RESOLVED_ON_SELF'])
+  })
+
+  it('offers it against neither a ranged miss nor a melee hit', () => {
+    expect(offered(meleeMiss, resolved(false, false))).toEqual([])
+    expect(offered(meleeMiss, resolved(true, true))).toEqual([])
+  })
+
+  it('answers a ranged-only trigger on a ranged miss, and an unqualified one on either', () => {
+    expect(offered({ ...meleeMiss, attackRange: 'RANGED' }, resolved(false, false))).toEqual([
+      'ATTACK_RESOLVED_ON_SELF'
+    ])
+    const { attackRange: _range, ...anyRange } = meleeMiss
+    expect(offered(anyRange, resolved(false, false))).toEqual(['ATTACK_RESOLVED_ON_SELF'])
+    expect(offered(anyRange, resolved(false, true))).toEqual(['ATTACK_RESOLVED_ON_SELF'])
+  })
+})
+
 describe('targeted-self reaction discovery (REACTION-4.1)', () => {
   const targeted = (actionId: string, sourceEffectIds?: string[]) =>
     candidate(

@@ -110,3 +110,31 @@ describe("the Hunter's Giant Killer from core options", () => {
     await expectKeptAsAuthored(variant)
   })
 })
+
+/**
+ * QUALITY-15.T3p: Stand Against the Tide is a reaction to a melee attack that missed, authored with
+ * the trigger's attack-range option; the conclave keeps it through the node map, and a homebrew
+ * ranged variant keeps its range the same way.
+ */
+describe("the Hunter's Stand Against the Tide from core options", () => {
+  const meleeMiss = (record: ClassAuthored) =>
+    reactionInvocations(record, 'ATTACK_RESOLVED_ON_SELF').find(
+      ({ reactionTrigger }) => reactionTrigger.attackRange !== undefined
+    )
+
+  it('authors a reaction to a melee attack that missed', () => {
+    expect(meleeMiss(hunterConclave)?.reactionTrigger).toEqual({
+      kind: 'ATTACK_RESOLVED_ON_SELF',
+      outcome: 'MISS',
+      attackRange: 'MELEE'
+    })
+  })
+
+  it('keeps a homebrew variant, a reaction to a ranged attack that missed, the same way', async () => {
+    const variant = structuredClone(hunterConclave)
+    const invocation = meleeMiss(variant)
+    if (!invocation) throw new Error('The record must author Stand Against the Tide.')
+    invocation.reactionTrigger.attackRange = 'RANGED'
+    await expectKeptAsAuthored(variant)
+  })
+})
