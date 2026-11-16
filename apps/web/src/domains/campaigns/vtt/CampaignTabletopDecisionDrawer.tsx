@@ -934,8 +934,7 @@ function LegendaryActionControls({
     drawnTarget: null,
     bandSide: null,
     needsBandSide: false,
-    zoneChoices: {},
-    sparedChoice: {},
+    areaChoices: {},
     summonChoices: {}
   })
   useEffect(() => {

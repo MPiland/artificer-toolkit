@@ -196,7 +196,7 @@ willing list with a timed ruling, and a creature's two-action activation (author
 sibling Androsphinx already is).
 
 **Cast picks and ruling sequences (current, QUALITY-15.T3c).** The golden plans a Character action through
-`compileCastChoicePlans` with `buildCompiledActionTargetPolicy`, as the cast entry does, so a cast pick (D148) pins one
+`compileCastChoicePlans`, as the cast entry does, so a cast pick (D148) pins one
 plan pair per option (`choice=[...]`) instead of refusing as "choice has no plan". `rulingSequence` also accepts a
 SEQUENCE made only of GM rulings (Awaken, Contingency, Glyph of Warding): its first ruling leads as the action's result
 and the rest sit beside it as manual-adjudication nodes bound to their own entries. Irresistible Dance's authored path is
@@ -1422,8 +1422,9 @@ Energy's damage type, Blindness/Deafness's condition, SPELLS-30, D148) compiles 
 narrow the action to one option with `castChoiceOptions`, which restores each option's own result kind from the
 compiled entry's `optionGroupKind`. The options must share their test and maintenance graphs, or the action goes
 manual. The top-level plans hold the first option. The choice DTO lists the options as `choiceOptions` on the
-`ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
-kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
+`SELF`, `ACTOR` / `ACTORS`, `POINT`, `CASTER_CENTERED` or `DIRECTED` target, and the cast command names one as
+`choiceOptionId`. An area's pick is made once at cast and lands on every creature the area catches: the room prepares
+each caught creature with the same pick (Antipathy/Sympathy, QUALITY-15.T3ab, `nativeRoomAreaCastChoice.test.ts`). A read that shows only the shared test before any pick (the target
 modifiers) passes `readsSharedTest` and reads the top-level option.
 An option may author `initiatorCheckInfluence`, a System roll-influence code (MOVE-2.T2b). It does not make a
 separate test: the compiler copies it onto the option's entries. `prepareEncounterBasicActionContest` reads it from the
@@ -4088,6 +4089,18 @@ the one escape end path. A zone's `CONDITION_ESCAPE` is held-creature-only. A re
 still free another creature. Undo follows the escape rule: a failure returns the activation, a success is refused.
 **Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
 held creature against its holder); `encounterRescues.test.ts` proves the omission.
+
+**An effect's own check escape (QUALITY-15.T3t).** A held-conditions plan (`timedConditionPlan`) whose result
+block also authors one `FOLLOW_UP_CHECK` that is repeatable, ends on success (`END`), continues on failure
+(`CONTINUE`), has a fixed DC and names an ability or skill (no tool) compiles that check into the plan's
+`conditionEscapeContribution` (`followUpCheckEscape`); any other follow-up check beside conditions still refuses.
+The effect persists it as a `CONDITION_ESCAPE` carrying `escapeOutcome { outcomeId, actorKinds }`, which the
+schema allows only beside a `CONDITION_OWNERSHIP` (a zone's escape keeps `heldBySpatialEffectId` and no
+`escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
+offers it to the held creature (`escapeSourceId` = the check outcome id, `zoneLabel` null), and
+`findEncounterRescues` offers it to another creature when `actorKinds` allows `CREATURE_WITHIN_REACH`, within the
+rescuer's own reach, taken as Touch (5 ft) because no actor reach model exists. Settlement is the one escape path.
+**Unsupported:** moving the freed creature out of the area, and a rescuer's reach longer than 5 ft.
 
 **Contest outcomes (D105, ATTACK-7.6, D173).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is
 any outcome the test-outcome specializer admits (`isCheckOutcomeAction`; Shove, or a homebrew contest whose win deals

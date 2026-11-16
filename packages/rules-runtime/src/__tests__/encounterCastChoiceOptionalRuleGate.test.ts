@@ -9,10 +9,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import {
-  buildCompiledActionTargetPolicy,
-  compileCastChoicePlans
-} from '../encounterActionEntryPointCompiler.js'
+import { compileCastChoicePlans } from '../encounterActionEntryPointCompiler.js'
 import {
   castChoiceOptions,
   offeredCastChoiceOptions,
@@ -129,11 +126,7 @@ describe('A cast pick option gated on an optional combat rule (MOVE-2.T2a)', () 
       ...characterActionDescriptor(compiledGatedShove()),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id)
     }
-    const { choice } = compileCastChoicePlans(
-      dnd5eCharacterRuleActionSystemAdapter,
-      descriptor,
-      buildCompiledActionTargetPolicy(descriptor)
-    )
+    const { choice } = compileCastChoicePlans(dnd5eCharacterRuleActionSystemAdapter, descriptor)
     expect(
       choice?.options.map(({ label, requiresOptionalRule }) => ({ label, requiresOptionalRule }))
     ).toEqual([

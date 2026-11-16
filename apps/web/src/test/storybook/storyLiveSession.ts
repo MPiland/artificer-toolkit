@@ -63,6 +63,11 @@ export function latestAuras() {
   return latestHeldState().auras
 }
 
+/** The decision the room holds pending for this story's recipient, or null when none is theirs to see. */
+export function latestPending() {
+  return latestHeldState().pending
+}
+
 /** The write frames of one type this story's client tried to send, as the room's schema parses them. */
 export function liveWritesOfType<Type extends LiveSessionWebSocketClientMessageDto['type']>(
   type: Type

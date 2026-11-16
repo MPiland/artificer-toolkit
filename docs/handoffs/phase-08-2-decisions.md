@@ -2247,3 +2247,12 @@ QUALITY-15.T3i's seam trace found that the active-effect turn bound (14,400 turn
 - **Ruling (orchestrator): the room stamps `lifecycle.expiresAtCampaignMinute` = clock + minutes at cast,** and the DTO requires the stamp on a CAMPAIGN_MINUTES effect whenever the Campaign has a clock. The effect survives Run completion and ends on the clock advance that passes it, through the existing `END_ACTIVE_EFFECT` clock-expiry pass, for every effect kind, not only grants.
 - **Ruling (orchestrator): with no Campaign clock, the effect lasts until the GM ends it,** the same rule carried-over effects follow. It is an explicit state, not a dropped field.
 - **Tracking:** QUALITY-15.T3i (contract and compile, 3) and T3i2 (stamping, carry-over and expiry, 5).
+
+## D223 (2026-11-16): Layered zones are one spatial record per layer; the GM triggers zone state changes
+
+QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be expressed as D154 regions, and T3w's that Oil needs an ignition state nobody triggers.
+
+- **Ruling (orchestrator, amends D154): a zone authored with ordered components places one spatial record per layer on the same area,** placed in layer order and maintained like D154 bands, with a layer index on the placement that breaks distance ties in the movement planner and the room. The layer is a component kind beside regions; the region rule for other zones is unchanged.
+- **Ruling (orchestrator): the Antimagic Field immunity key is treated as satisfied,** because the room has no antimagic suppression; a doc note records it.
+- **Ruling (user, 2026-11-16): "GM now, player later".** Zone state changes are GM commands: IGNITE_ZONE for Oil, and "destroy next layer" for Prismatic Wall, which shows the authored criterion, refuses out of order and can be undone. Player-driven triggering is a post-launch enhancement (future-enhancements).
+- **Tracking:** QUALITY-15.T3v1-T3v7, T3w; timed expiry for non-Concentration zones is QUALITY-15.T3ag.
