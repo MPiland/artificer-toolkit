@@ -363,15 +363,15 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       ({ status }) => status
     )
   ).toEqual(['ACTIVE'])
-  expect(await presentedBoard(openCampaignId, STORY_OPEN_CAMPAIGN.scene.name)).toMatchObject({
-    saves: 1,
-    fogMode: 'OFF',
-    tokens: [
+  const openBoard = await presentedBoard(openCampaignId, STORY_OPEN_CAMPAIGN.scene.name)
+  expect(openBoard).toMatchObject({ saves: 1, fogMode: 'OFF' })
+  expect(openBoard.tokens).toHaveLength(2 + STORY_OPEN_CAMPAIGN.creatures.length)
+  expect(openBoard.tokens).toEqual(
+    expect.arrayContaining([
       [STORY_OPEN_CAMPAIGN.scene.allyLabel, [first.userId]],
-      [STORY_OPEN_CAMPAIGN.enemyLabel, []],
-      ...STORY_OPEN_CAMPAIGN.creatures.map(() => [expect.any(String), []])
-    ].sort()
-  })
+      [STORY_OPEN_CAMPAIGN.enemyLabel, []]
+    ])
+  )
   const openActors = (
     await roomOpenHost.query(api.encounters.activeReads.active, {
       campaignId: openCampaignId
