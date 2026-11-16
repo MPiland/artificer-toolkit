@@ -59,7 +59,7 @@ const recipientRevision = 'a'.repeat(64)
 export const mapReadyTimeoutMs = 10_000
 export const liveCommand = fn()
 const mediaGetDelivery = fn()
-export const showScene = fn()
+const showScene = fn()
 export const shownScene = validated(campaignSceneShowingDtoSchema)({
   sceneId: '77777777-7777-4777-8777-777777777798',
   sceneName: 'The Ashen Stair',
