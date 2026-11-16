@@ -12,12 +12,13 @@ import {
   installQueryOverride,
   type StoryQueryOverride
 } from '../../src/test/storybook/storyQueryOverride'
-import { installLiveSessionSpy } from '../../src/test/storybook/storyLiveSession'
 import {
+  bindStoryQueryClient,
   bindStoryReads,
   storyMutation,
   storyMutationHook
 } from '../../src/test/storybook/storyWrites'
+import { installLiveSessionSpy } from '../../src/test/storybook/storyLiveSession'
 import {
   REVIEW_PASSWORD,
   REVIEW_STORY_READER
@@ -95,7 +96,8 @@ const preview: Preview = {
     }
   ],
   loaders: [(context) => connectStoryBackend(context.id, context.parameters.queryOverride)],
-  beforeEach() {
+  beforeEach(context) {
+    bindStoryQueryClient(getStoryBackend(context.id).queryClient)
     storyMutation.mockClear()
     mocked(useMutation).mockImplementation(storyMutationHook)
     // The room connection is real; its COMMAND frames are recorded and never sent (D218).
