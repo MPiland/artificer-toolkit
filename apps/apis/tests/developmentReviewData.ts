@@ -348,10 +348,22 @@ async function prepareStoryRun(
     blueprintId: blueprint.id,
     commandId: reviewId(`${slug}-run`)
   })
-  const [actor] = run.actors
-  assert.ok(actor, 'The story Run has no creature.')
   assert.equal(run.actors.length, 1 + (creatures ?? []).length, 'The story Run lost a creature.')
-  return { campaignId, run, actor }
+  // The Run does not keep the Blueprint's order, so each actor is found by its label; a creature
+  // taken from the SRD is named by its source, so it is the one actor left once the custom ones are placed.
+  const actor = run.actors.find(({ label }) => label === enemyLabel)
+  assert.ok(actor, 'The story Run has no creature.')
+  const unclaimed = run.actors.filter((candidate) => candidate !== actor)
+  const claim = (matches: (candidate: (typeof unclaimed)[number]) => boolean) => {
+    const [claimed] = unclaimed.splice(unclaimed.findIndex(matches), 1)
+    assert.ok(claimed, 'The story Run lost a creature.')
+    return claimed
+  }
+  const customs = (creatures ?? []).map(({ enemy }) =>
+    enemy.kind === 'CUSTOM' ? claim(({ label }) => label === enemy.label) : null
+  )
+  const crowd = customs.map((custom) => custom ?? claim(() => true))
+  return { campaignId, run, actor, crowd }
 }
 
 /**
@@ -460,7 +472,7 @@ async function presentStoryRun(
     enemyVision,
     creatures = []
   }: StoryCampaignSpec,
-  { campaignId, run, actor }: Awaited<ReturnType<typeof prepareStoryRun>>,
+  { campaignId, run, actor, crowd: crowdActors }: Awaited<ReturnType<typeof prepareStoryRun>>,
   allyUserId: string
 ) {
   if (run.status !== 'PREPARED') return
@@ -470,8 +482,7 @@ async function presentStoryRun(
       assert.ok(type, `The SRD has no condition type ${code}.`)
       return { conditionTypeId: type.id }
     })
-  // The blueprint lists the first creature, then `creatures`; the Run keeps that order.
-  const crowd = run.actors.slice(1).map((crowdActor, index) => ({
+  const crowd = crowdActors.map((crowdActor, index) => ({
     actor: crowdActor,
     spec: creatures[index]!
   }))
@@ -506,7 +517,7 @@ async function presentStoryRun(
       },
       ...crowd.map(({ actor: crowdActor, spec }, index) => ({
         actorId: crowdActor.id,
-        label: crowdActor.label,
+        label: spec.tokenLabel ?? crowdActor.label,
         position: spec.position,
         tokenId: reviewId(`${slug}-scene-creature-${index}-token`),
         controlledBy: [],

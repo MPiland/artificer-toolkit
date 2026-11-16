@@ -206,6 +206,8 @@ export type StoryCreatureSpec = {
     | { kind: 'CUSTOM'; label: string; maxHitPoints: number }
     | { kind: 'CREATURE'; sourceId: string }
   position: { x: number; y: number }
+  /** The token's own label, where several creatures share a name. */
+  tokenLabel?: string
   /** The token starts hidden from players. */
   hidden?: true
   /** Conditions the GM gives the creature once the Run is presented. */
@@ -438,8 +440,17 @@ export const STORY_OPEN_CAMPAIGN = {
       enemy: { kind: 'CUSTOM', label: 'Vault Hound', maxHitPoints: 22 },
       position: { x: 650, y: 450 }
     },
-    { enemy: { kind: 'CREATURE', sourceId: balor.id }, position: { x: 250, y: 450 } },
-    { enemy: { kind: 'CREATURE', sourceId: balor.id }, position: { x: 250, y: 100 }, hidden: true }
+    {
+      enemy: { kind: 'CREATURE', sourceId: balor.id },
+      tokenLabel: 'Balor in the Hall',
+      position: { x: 250, y: 450 }
+    },
+    {
+      enemy: { kind: 'CREATURE', sourceId: balor.id },
+      tokenLabel: 'Balor in the Dark',
+      position: { x: 250, y: 100 },
+      hidden: true
+    }
   ]
 } as const satisfies StoryCampaignSpec
 

@@ -379,8 +379,13 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   ).encounter?.actors
   const prone = srdSystemRecord.conditionTypes.find((type) => type.code === 'PRONE')!.id
   expect(
-    openActors?.filter(({ conditions }) => conditions.some((c) => c.conditionTypeId === prone))
-  ).toHaveLength(1)
+    openActors
+      ?.filter(({ conditions }) => conditions.some((c) => c.conditionTypeId === prone))
+      .map(({ label }) => label)
+  ).toEqual([STORY_OPEN_CAMPAIGN.creatures[0].enemy.label])
+  expect(
+    openActors?.find(({ label }) => label === STORY_OPEN_CAMPAIGN.enemyLabel)?.conditions
+  ).toHaveLength(STORY_OPEN_CAMPAIGN.enemyState.conditionCodes.length)
   // The GM reads both Balors' Fire Auras. A Convex read cannot tell which tokens a player's map draws
   // (D121), so the player's one visible aura is proved in the room, by the stories.
   expect(
