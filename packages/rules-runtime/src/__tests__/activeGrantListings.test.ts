@@ -424,7 +424,8 @@ describe('polarity of real SRD grants (D110)', () => {
         id: testUuid(0xd061),
         createdOrdinal: 1,
         definition: planned.definition,
-        lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+        lifecycle: { schemaVersion: 1, remainingTicks: 3 },
+        maintainedEffectStateId: null
       }
     ]).map(({ polarity }) => polarity)
   }
