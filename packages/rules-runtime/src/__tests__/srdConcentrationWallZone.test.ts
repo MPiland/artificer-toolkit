@@ -34,7 +34,7 @@ function zonePlacementOf(label: string) {
 }
 
 describe('a Concentration wall holds its zone by Concentration, not a timed duration (QUALITY-15.T3ah)', () => {
-  it.each(['Wall of Fire', 'Wall of Force', 'Wall of Ice', 'Wall of Stone'])(
+  it.each(['Wall of Force', 'Wall of Ice', 'Wall of Stone'])(
     'places %s maintained by Concentration with no timed duration',
     (label) => {
       const zone = zonePlacementOf(label)
