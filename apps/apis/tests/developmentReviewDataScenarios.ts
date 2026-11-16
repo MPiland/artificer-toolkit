@@ -77,6 +77,12 @@ export const REVIEW_STORY_SHOWING_HOST = {
   username: 'Review_Story_Showing_Host'
 } satisfies ReviewAccountSpec
 
+/** Hosts the Campaign whose Run waits on the story reader's forced-movement pick; a fifth host for the same reason. */
+export const REVIEW_STORY_SHOVE_HOST = {
+  key: 'storyShoveHost',
+  username: 'Review_Story_Shove_Host'
+} satisfies ReviewAccountSpec
+
 /** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
 export const REVIEW_STORY_PEER = {
   key: 'storyPeer',
@@ -209,6 +215,13 @@ export type StoryCampaignSpec = {
   enemyVision?: NonNullable<SceneDefinitionDto['tokens'][number]['vision']>
   /** More creatures in the Run, in blueprint order after the first, each bound to its own token. */
   creatures?: readonly StoryCreatureSpec[]
+  /**
+   * The Shove Aside rule is on for the Run (set before START). The GM hands the creature at index
+   * `shover` of `creatures` to the ally's player, who shoves the one at `target` with the Shove
+   * option labelled `option` and wins the contest, so the Run waits on that player's pick of where
+   * the target lands (D157).
+   */
+  shove?: { shover: number; target: number; option: string }
 }
 
 export type StoryCreatureSpec = {
@@ -494,6 +507,41 @@ export const STORY_OPEN_CAMPAIGN = {
       hidden: true
     }
   ]
+} as const satisfies StoryCampaignSpec
+
+/**
+ * The Campaign the story reader plays in whose Run waits on the reader's pick of where a pushed
+ * creature lands (D157): hosted by REVIEW_STORY_SHOVE_HOST on an open board. The GM hands the reader
+ * a Wolf, which shoves the adjacent Goblin 5 feet aside and wins; the pick stays pending.
+ */
+export const STORY_SHOVE_CAMPAIGN = {
+  slug: 'story-shove',
+  name: 'Story Shove Campaign',
+  blueprintName: 'Story Shove Encounter',
+  enemyLabel: 'Story Shove Lookout',
+  // A forced movement lands on whole squares, so every token on this board fills its squares.
+  scene: {
+    ...STORY_OPEN_CAMPAIGN.scene,
+    name: 'Story Shove Scene',
+    allyLabel: 'Story Shove Hero',
+    allyPosition: { x: 125, y: 225 },
+    enemyPosition: { x: 575, y: 275 }
+  },
+  playSettings: STORY_CAMPAIGN.playSettings,
+  zones: [],
+  creatures: [
+    {
+      enemy: { kind: 'CREATURE', sourceId: wolf.id },
+      tokenLabel: 'Story Shoving Wolf',
+      position: { x: 325, y: 325 }
+    },
+    {
+      enemy: { kind: 'CREATURE', sourceId: goblin.id },
+      tokenLabel: 'Story Shoved Goblin',
+      position: { x: 375, y: 325 }
+    }
+  ],
+  shove: { shover: 0, target: 1, option: 'Shove 5 feet aside' }
 } as const satisfies StoryCampaignSpec
 
 /**
