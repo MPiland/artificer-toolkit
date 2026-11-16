@@ -39,16 +39,26 @@ export function latestStateSync(): StateSyncFrame {
   return frame
 }
 
-/** The Encounter the room holds for this story's recipient, as the window shows it. */
-export function latestEncounter() {
+/** The latest Encounter session state the room holds for this story's recipient. */
+function latestHeldState() {
   const held = receivedFrames
     .filter(
       (candidate): candidate is EncounterSessionFrame => candidate.type === 'ENCOUNTER_SESSION'
     )
-    .flatMap(({ session }) => (session.held ? [session.state.encounter] : []))
-  const encounter = held[held.length - 1]
-  if (!encounter) throw new Error('The room holds no Encounter for this story.')
-  return encounter
+    .flatMap(({ session }) => (session.held ? [session.state] : []))
+  const state = held[held.length - 1]
+  if (!state) throw new Error('The room holds no Encounter for this story.')
+  return state
+}
+
+/** The Encounter the room holds for this story's recipient, as the window shows it. */
+export function latestEncounter() {
+  return latestHeldState().encounter
+}
+
+/** The auras the room shows this story's recipient: a player's omit those of sources out of sight (D121). */
+export function latestAuras() {
+  return latestHeldState().auras
 }
 
 /** The write frames of one type this story's client tried to send, as the room's schema parses them. */

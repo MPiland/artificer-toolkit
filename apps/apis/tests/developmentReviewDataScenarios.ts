@@ -6,6 +6,7 @@ import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
 import { acolyte as acolyteCreature } from '@artificer-toolkit/source-data/srd/creatures/acolyte.js'
+import { balor } from '@artificer-toolkit/source-data/srd/creatures/balor.js'
 import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
 import { ogre } from '@artificer-toolkit/source-data/srd/creatures/ogre.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -60,6 +61,12 @@ export const REVIEW_STORY_HOST = {
   username: 'Review_Story_Host'
 } satisfies ReviewAccountSpec
 
+/** Hosts the open-fog Campaign the story reader joins; a third host because the FREE tier hosts one Campaign. */
+export const REVIEW_STORY_OPEN_HOST = {
+  key: 'storyOpenHost',
+  username: 'Review_Story_Open_Host'
+} satisfies ReviewAccountSpec
+
 /** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
 export const REVIEW_STORY_PEER = {
   key: 'storyPeer',
@@ -74,6 +81,8 @@ export const REVIEW_STORY_BLOCKED = {
 export const STORY_ACCOUNTS = {
   reader: REVIEW_STORY_READER,
   peer: REVIEW_STORY_PEER,
+  /** The GM of the open-fog Campaign, which the reader plays in. */
+  openHost: REVIEW_STORY_OPEN_HOST,
   admin: REVIEW_ADMIN
 } satisfies Record<string, ReviewAccountSpec>
 
@@ -186,6 +195,21 @@ export type StoryCampaignSpec = {
   shownScene?: { name: string }
   /** What the GM does to the creature once the Run is presented: conditions and damage. */
   enemyState?: { conditionCodes: readonly string[]; currentHitPoints: number }
+  /** The first creature's token sight, which the GM previews. */
+  enemyVision?: NonNullable<SceneDefinitionDto['tokens'][number]['vision']>
+  /** More creatures in the Run, in blueprint order after the first, each bound to its own token. */
+  creatures?: readonly StoryCreatureSpec[]
+}
+
+export type StoryCreatureSpec = {
+  enemy:
+    | { kind: 'CUSTOM'; label: string; maxHitPoints: number }
+    | { kind: 'CREATURE'; sourceId: string }
+  position: { x: number; y: number }
+  /** The token starts hidden from players. */
+  hidden?: true
+  /** Conditions the GM gives the creature once the Run is presented. */
+  conditionCodes?: readonly string[]
 }
 
 /** A circular zone placed at point; a spot DC conceals it from every player (MOVE-3.3). */
@@ -369,6 +393,54 @@ export const STORY_PLAYER_CAMPAIGN = {
   scene: { ...STORY_CAMPAIGN.scene, name: 'Story Player Scene', allyLabel: 'Story Reader Hero' },
   playSettings: STORY_CAMPAIGN.playSettings,
   zones: STORY_ZONES
+} as const satisfies StoryCampaignSpec
+
+/**
+ * The Campaign the story reader plays in on an open board (D221): hosted by REVIEW_STORY_OPEN_HOST, who
+ * is also the GM the tabletop stories read as. Fog is off, so a player sees every token the GM has not
+ * hidden. The Run holds a hurt, poisoned, frightened Warden with sight, a prone Sentry, an unhurt Hound
+ * and two Balors, each carrying a Fire Aura, one of them on a hidden token.
+ */
+export const STORY_OPEN_CAMPAIGN = {
+  slug: 'story-open',
+  name: 'Story Open Campaign',
+  blueprintName: 'Story Open Encounter',
+  enemyLabel: 'Vault Warden',
+  scene: {
+    name: 'Story Open Scene',
+    allyLabel: 'Story Open Hero',
+    allyPosition: { x: 100, y: 200 },
+    enemyPosition: { x: 550, y: 250 },
+    board: {
+      fogMode: 'OFF',
+      ambientIllumination: 'BRIGHT',
+      barriers: [],
+      lights: []
+    }
+  },
+  playSettings: STORY_CAMPAIGN.playSettings,
+  zones: [],
+  enemyState: { conditionCodes: ['POISONED', 'FRIGHTENED'], currentHitPoints: 10 },
+  enemyVision: {
+    angleDegrees: 360,
+    brightRange: 60,
+    dimRange: 120,
+    directionDegrees: 0,
+    enabled: true
+  },
+  creatures: [
+    {
+      enemy: { kind: 'CUSTOM', label: 'Vault Sentry', maxHitPoints: 22 },
+      position: { x: 700, y: 300 },
+      conditionCodes: ['PRONE']
+    },
+    {
+      enemy: { kind: 'CUSTOM', label: 'Vault Hound', maxHitPoints: 22 },
+      position: { x: 650, y: 450 }
+    },
+    { enemy: { kind: 'CREATURE', sourceId: balor.id }, position: { x: 250, y: 450 } },
+    { enemy: { kind: 'CREATURE', sourceId: balor.id }, position: { x: 250, y: 100 }, hidden: true }
+  ]
 } as const satisfies StoryCampaignSpec
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
