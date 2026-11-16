@@ -21,12 +21,15 @@ import {
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { imprisonment } from '@artificer-toolkit/source-data/srd/spells/imprisonment.js'
 import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 
-import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
+import { ENCOUNTER_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
+import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 
 const SOURCE_ACTOR_ID = testUuid(0xd001)
 
@@ -158,6 +161,37 @@ describe('listActiveGrantListings', () => {
     ).toEqual([
       { effectId: free.id, endable: true },
       { effectId: maintained.id, endable: false }
+    ])
+  })
+
+  it('lists an imprisoned Wolf by the removal label, endable by hand (QUALITY-15.T3af)', () => {
+    const wolfId = testUuid(0xd041)
+    const imprisoned = plannedTimedCondition({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: SOURCE_ACTOR_ID,
+      holderActorId: wolfId,
+      spell: imprisonment,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    const record = prepareActiveRuleEffectRecord({
+      id: testUuid(0xd042),
+      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: wolfId },
+      definition: imprisoned.definition,
+      lifecycle: imprisoned.lifecycle,
+      currentEffects: [],
+      occurredAt: TIMESTAMP
+    })
+    expect(listActiveGrantListings([record])).toEqual([
+      {
+        effectId: record.id,
+        label: imprisonment.label,
+        sourceHidden: false,
+        sourceActorId: SOURCE_ACTOR_ID,
+        remainingTicks: null,
+        expiresAtCampaignMinute: null,
+        polarity: 'NEUTRAL',
+        endable: true
+      }
     ])
   })
 })

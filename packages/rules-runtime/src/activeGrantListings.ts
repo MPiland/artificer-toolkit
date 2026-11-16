@@ -196,7 +196,9 @@ export function isEndableByHand(
 
 /**
  * A holder's active grants as a viewer lists them (D99), oldest first, with the GM's view of each
- * label. Players read them through `hideActiveGrantSources`.
+ * label: one row per effect that grants modifiers or takes its holder out of play (Banishment), named
+ * by the label that contribution froze. A removal from play grants no modifier, so it is neutral.
+ * Players read them through `hideActiveGrantSources`.
  */
 export function listActiveGrantListings(
   effects: readonly Pick<
@@ -210,23 +212,27 @@ export function listActiveGrantListings(
     )
     .flatMap((effect) => {
       const { id, definition, lifecycle } = effect
-      return definition.stateContributions.flatMap((contribution) =>
-        contribution.kind === 'MODIFIER_GRANT'
-          ? [
-              {
-                effectId: id,
-                label: contribution.sourceLabel,
-                sourceHidden: contribution.sourceHidden,
-                sourceActorId:
-                  definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null,
-                remainingTicks: lifecycle.remainingTicks,
-                expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
-                polarity: grantPolarity(definition.frozenGraph.source.gameSystemId, contribution),
-                endable: isEndableByHand(effect)
-              }
-            ]
-          : []
-      )
+      const { stateContributions } = definition
+      const listed =
+        stateContributions.find(({ kind }) => kind === 'MODIFIER_GRANT') ??
+        stateContributions.find(({ kind }) => kind === 'PLAY_ABSENCE')
+      if (listed?.kind !== 'MODIFIER_GRANT' && listed?.kind !== 'PLAY_ABSENCE') return []
+      return [
+        {
+          effectId: id,
+          label: listed.sourceLabel,
+          sourceHidden: listed.sourceHidden,
+          sourceActorId:
+            definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null,
+          remainingTicks: lifecycle.remainingTicks,
+          expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
+          polarity:
+            listed.kind === 'MODIFIER_GRANT'
+              ? grantPolarity(definition.frozenGraph.source.gameSystemId, listed)
+              : 'NEUTRAL',
+          endable: isEndableByHand(effect)
+        }
+      ]
     })
 }
 

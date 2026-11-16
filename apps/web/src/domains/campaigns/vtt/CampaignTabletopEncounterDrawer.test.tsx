@@ -675,6 +675,58 @@ describe('CampaignTabletopEncounterDrawer', () => {
       expect(screen.queryByRole('button', { name: 'End Bless' })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'End Trap blessing' })).toBeVisible()
     })
+
+    it('lists a Creature removed from play by its removal, and lets the GM end it (QUALITY-15.T3af)', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      const imprisonment = {
+        ...hidden,
+        label: 'Imprisonment',
+        sourceHidden: false,
+        remainingTicks: null
+      }
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={{
+            ...tabletopGmEncounter,
+            actors: [
+              tabletopGmEncounter.actors[0],
+              {
+                ...tabletopGmEncounter.actors[1],
+                absence: 'EFFECT',
+                activeGrants: [imprisonment]
+              }
+            ]
+          }}
+          holds={[]}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          session={undefined}
+          onCommand={onCommand}
+          onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      const list = screen.getByRole('list', { name: 'Active grants on Vault Warden' })
+      expect(within(list).getByRole('listitem')).toHaveTextContent('Imprisonment')
+      await user.click(screen.getByRole('button', { name: 'End Imprisonment' }))
+
+      expect(onCommand).toHaveBeenCalledWith({
+        actorId: tabletopGmEncounter.actors[1]!.id,
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        endActiveEffectId: imprisonment.effectId,
+        expectedVersion: tabletopGmEncounter.version,
+        type: 'UPDATE_ACTOR'
+      })
+    })
   })
 
   describe('Concentration (SPELLS-5.11)', () => {

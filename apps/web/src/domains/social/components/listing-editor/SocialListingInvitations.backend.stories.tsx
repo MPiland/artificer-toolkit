@@ -73,10 +73,15 @@ type Story = StoryObj<typeof meta>
 
 export const FocusedDeepLink: Story = {
   play: async ({ canvas }) => {
-    const row = await canvas.findByRole('article', {}, { timeout: socialStoryLoadTimeout })
+    // The listing also holds the host's accepted invitation, so the linked row is found by its recipient.
+    const peerHeading = { name: `@${REVIEW_STORY_PEER.username}` }
+    const peerRow = () => canvas.getByRole('heading', peerHeading).closest('article')
+    const heading = await canvas.findByRole('heading', peerHeading, {
+      timeout: socialStoryLoadTimeout
+    })
     // A horizon refresh can remount the row, so the focused row is the one on screen now.
-    await waitFor(() => expect(row.ownerDocument.activeElement).toBe(canvas.getByRole('article')))
-    await expect(canvas.getByRole('article')).toHaveAttribute('data-highlighted', 'true')
+    await waitFor(() => expect(heading.ownerDocument.activeElement).toBe(peerRow()))
+    await expect(peerRow()).toHaveAttribute('data-highlighted', 'true')
     await expect(canvas.queryByText('This item is no longer available.')).not.toBeInTheDocument()
   }
 }

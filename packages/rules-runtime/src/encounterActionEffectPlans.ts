@@ -468,9 +468,11 @@ export function prepareRecurringActiveEffect(
       throw new EncounterActionEffectPlanError('The target cannot take a creature form.')
   }
   if (plan.concealmentContribution && !concealment?.observerActorIds.length) return null
-  const grantLabel = input.sourceLabel?.trim() ?? ''
-  if (grantContribution && !grantLabel)
-    throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
+  // A grant and a removal from play freeze the label the GM lists and ends them by.
+  const sourceLabel = input.sourceLabel?.trim() ?? ''
+  if ((grantContribution || absenceContribution || plan.turnEndGate) && !sourceLabel)
+    throw new EncounterActionEffectPlanError('A listed effect requires a source label.')
+  const frozenSource = { sourceLabel, sourceHidden: input.sourceHidden }
   if (relationshipContribution) {
     const { appliesWhen } = relationshipContribution
     if (
@@ -649,7 +651,11 @@ export function prepareRecurringActiveEffect(
               plan.turnEndGate.child.frozenGraph,
               plan.capabilityContractVersion
             ),
-            playAbsence: { kind: 'PLAY_ABSENCE' as const, ...plan.turnEndGate.child.playAbsence }
+            playAbsence: {
+              kind: 'PLAY_ABSENCE' as const,
+              ...plan.turnEndGate.child.playAbsence,
+              ...frozenSource
+            }
           }
         }
       }),
@@ -691,7 +697,13 @@ export function prepareRecurringActiveEffect(
           ]
         : []),
       ...(absenceContribution
-        ? [{ kind: 'PLAY_ABSENCE' as const, keepsTurn: absenceContribution.keepsTurn }]
+        ? [
+            {
+              kind: 'PLAY_ABSENCE' as const,
+              keepsTurn: absenceContribution.keepsTurn,
+              ...frozenSource
+            }
+          ]
         : []),
       ...(rulingContribution ? [{ kind: 'GM_RULING' as const, ...rulingContribution }] : []),
       ...(manifestationContribution
@@ -727,8 +739,7 @@ export function prepareRecurringActiveEffect(
                 )
               ),
               senses: grantContribution.senses,
-              sourceLabel: grantLabel,
-              sourceHidden: input.sourceHidden,
+              ...frozenSource,
               ...(boundItem && { boundItem }),
               ...(grantContribution.onEnd && { onEnd: grantContribution.onEnd }),
               ...(grantContribution.grantedActions && {

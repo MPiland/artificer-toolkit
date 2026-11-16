@@ -3315,10 +3315,15 @@ the action mechanic. The pool modes need exactly one RESOLVED pool matching the 
 or the outcome resolves to nothing.
 
 The Sheet and room command is `EXCHANGE_SPELL_SLOTS { actionId, selection }`. Its selection is
-`SLOTS { slotKeys }` or `SLOT_LEVEL { slotLevel }`. `planSpellSlotExchange` (`character/sheetSpellSlotExchange.ts`)
+`SLOTS { slotKeys }` or `SLOT_LEVEL { slotLevel }`. `planSpellSlotExchange` (`systems/dnd5e/spellSlotExchange.ts`)
 is the one validator: the reducer applies its plan, and `getSheetCommandResourceUsageUpdate` writes
 its pool use. A recovery spends the action's own charge. A pool-mode action spends no charge of its
 own and no Bonus Action.
+
+The exchange is a Sheet command in and out of an Encounter, never an encounter action (QUALITY-15.T3q
+ruling). The effect compiler refuses a `SPELL_SLOT_EXCHANGE` outcome as a classified `GAME_RULE`, so
+the action is not offered through `RESOLVE_ACTION`. In an Encounter, the Bonus Action that Font of
+Magic takes is not spent automatically; the table tracks it.
 
 A created slot is stored as `spellSlots[].created`. The slot table adds it to that level's total,
 and a long rest clears it. Sorcerous Restoration, Eldritch Master and the short-rest timing of the
@@ -3863,7 +3868,9 @@ reinstated: a caster whose stamped grants all sit on Characters outside the Run.
 
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
 whether the source was hidden, the Encounter actor whose action gave it, rounds left or the carried expiry
-minute, and its polarity); `hideActiveGrantSources` nulls a hidden source's label and source actor for everyone
+minute, and its polarity), one row per effect: its `MODIFIER_GRANT`, else its `PLAY_ABSENCE`, each of which
+freezes the source label and hidden flag at creation (QUALITY-15.T3af), so the GM sees and can end a removal
+from play (Imprisonment) on a Character or a Creature. A removal grants no modifier and lists as NEUTRAL; `hideActiveGrantSources` nulls a hidden source's label and source actor for everyone
 but the GM and keeps the polarity (D110); it also nulls a source actor the player's projection does not
 list (ATTACK-17.3), so the id never reveals an unseen actor, and the Sheet, which lists no actors, names none.
 The VTT token status list names another actor's grant by that

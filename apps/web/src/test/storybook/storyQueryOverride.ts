@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query'
+import { partialMatchKey, type QueryClient } from '@tanstack/react-query'
 import type { ConvexReactClient, Watch } from 'convex/react'
 import { getFunctionName, makeFunctionReference } from 'convex/server'
 import type { Value } from 'convex/values'
@@ -15,7 +15,7 @@ import type { Value } from 'convex/values'
  */
 export type StoryQueryOverride = {
   query: string
-  args?: Record<string, string>
+  args?: Record<string, unknown>
   derive: (served: unknown) => unknown
 }
 
@@ -40,8 +40,7 @@ export function installQueryOverride(
   client: ConvexReactClient,
   reads: ConvexReactClient
 ) {
-  const selects = (read: Record<string, unknown>) =>
-    Object.entries(args).every(([name, value]) => read[name] === value)
+  const selects = (read: Record<string, unknown>) => partialMatchKey([read], [args])
   const watchQuery = client.watchQuery.bind(client)
   // ConvexQueryClient subscribes every `convexQuery` key through `watchQuery` and lets the server's
   // push replace the cache, so serving the value from the query function alone would not hold.
