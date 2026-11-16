@@ -24,6 +24,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
+import { darkness } from '@artificer-toolkit/source-data/srd/spells/darkness.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -1170,5 +1171,34 @@ describe('the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)', () => 
       ]
     })
     expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - 3 * (DIE + 1))
+  })
+})
+
+describe('the SRD Darkness, a zone that only marks its area, in the room (QUALITY-15.T3b)', () => {
+  it('places the zone at the chosen point and holds it by Concentration, and a turn passing over a creature inside it applies nothing', async () => {
+    const room = await actionRoom({
+      actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+      positions: { [WOLF_ID]: FIELD_POINT },
+      characterSpellcasting: { spells: [darkness], prepared: [darkness.id] },
+      characterAction: (action) => action.label.startsWith('Darkness'),
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const [zone, ...others] = await readZones(room)
+    expect(others).toEqual([])
+    expect(zone?.placement).toMatchObject({ label: 'Darkness' })
+    expect(await readMaintainedStates(room)).toHaveLength(1)
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const advance = await advanceCommand(room)
+    expect((await advance.send()).type).toBe('COMMAND_COMMITTED')
+
+    const { outgoing, incoming } = await storedZonePhases(room, advance.commandId)
+    expect(outgoing).toBeUndefined()
+    expect(incoming).toBeUndefined()
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+    expect(await readZones(room)).toHaveLength(1)
   })
 })

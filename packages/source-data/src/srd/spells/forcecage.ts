@@ -81,7 +81,16 @@ export const forcecage: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.FORCECAGE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Forcecage',
+                shape: {
+                  id: spellChildId(SPELL_IDS.FORCECAGE, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: {
+                    amount: 20,
+                    unit: MEASUREMENT_UNIT_CODE.FEET
+                  }
+                }
               }
             ]
           }

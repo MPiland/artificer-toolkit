@@ -6,6 +6,7 @@ import {
   effectReadsSpellCastLevel,
   normalizeCharacterActionMechanicFacts
 } from './characterActionRuleFacts.js'
+import { isActivatedEffect } from '../spellCastCandidates.js'
 
 export function buildCharacterSpellActionRuleFacts(params: {
   spellIds: readonly string[]
@@ -20,7 +21,7 @@ export function buildCharacterSpellActionRuleFacts(params: {
       if (!spell) {
         throw new Error(`Character spell action facts are missing spell "${spellId}".`)
       }
-      const effects = (spell.effects ?? []).filter((effect) => effect.invocation.kind !== 'PASSIVE')
+      const effects = (spell.effects ?? []).filter(isActivatedEffect)
       // The sibling Effects the cast's repeat offers name, which the compiled spell keeps only there.
       const repeated = new Map(
         effects.flatMap((effect) =>

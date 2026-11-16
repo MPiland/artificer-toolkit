@@ -2394,7 +2394,7 @@
             },
             {
               "id": "PLATFORM-28.T5c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2404,7 +2404,8 @@
                 "after": ["PLATFORM-28.T5b"]
               },
               "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T6a",
@@ -27641,7 +27642,7 @@
             },
             {
               "id": "QUALITY-15.T3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27652,7 +27653,50 @@
               },
               "text": "An untested area (no save, no hit-point pool) compiles as a placement or area ruling (88 golden rows; 13 already compile as zones in product, 25 need zone-placement data fixes).",
               "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m814 (f51d243ce); slice tip d7fb263d3 (contains m813): Tests 43801372791, Live 43801372795, Browser journeys 43801372826 green. One isActivatedEffect predicate (spellCastCandidates.ts) is shared by castableEffectGroups, the spell action rule facts and the golden; the golden passes each spell's own attributes to compileSpellEffect. Placement-first compile (compileActionPlacement shared by product and golden), compileSpellEffect owns the Concentration carry, and an inert zone (label and shape, no components, maintained by the cast's Concentration) let area rulings place: 53 placement lines, 16 SRD manifests given a label and shape copied from the spell's own invocation. Proofs: encounterInertZonePlacement.test (Darkness, Antimagic Field, Forbiddance refused) and a Session Worker room test that casts SRD Darkness over a Wolf and holds the zone through a turn. The golden now carries Concentration, which surfaced 15 product refusals (T3n)."
+            },
+            {
+              "id": "QUALITY-15.T3m",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The 31 area rulings with no zone (Gust of Wind, Detect Magic, Zone of Truth, Major Image, Reverse Gravity, Storm of Vengeance, Hunting Trap, Planar Ally, Create Undead, Find Steed, Move Earth and the rest) compile: the room catches the creatures in an area ruling through a generic test plan instead of treating a no-save placement as catching nobody.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3n",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The 15 Concentration spells the compiler refuses as having no supported maintained effect (Animate Objects, Arcane Eye, Barkskin, Call Lightning, Calm Emotions, Clairvoyance, Conjure Celestial, Elemental and Fey, Dancing Lights, Delayed Blast Fireball, Flaming Sphere, Resilient Sphere, Silent Image, Tree Stride) compile with their effect held by the cast's Concentration, through generic options.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3o",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Zones with no authored shape (Forbiddance, Gate, Magnificent Mansion, Mirage Arcane, Wall of Force, Ice and Stone) get SRD-cited shapes or a generic wall or panel shape, and the zone manifest models what Prismatic Wall and Oil author beyond label, shape and entering components.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3c",

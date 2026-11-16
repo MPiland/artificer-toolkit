@@ -195,6 +195,9 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
+  // A zone that authors no component and no appear save only marks its area for the table (Darkness,
+  // Silence): placed with no triggers, held for its duration like terrain placed with no save.
+  if (!first && !appearSave) return inertZonePlacementPlan(action, zone)
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
@@ -317,6 +320,21 @@ function occupantBonusZonePlacementPlan(
           }
         }
       : {}),
+    ...lastingZoneEntry(action, zone)
+  }
+}
+
+function inertZonePlacementPlan(
+  action: Dnd5eCompiledEffectActionSource,
+  zone: PlacedSpaceZone
+): CharacterRuleActionZonePlacementPlan {
+  if (zone.sourceGrantEntry) unsupported('A zone that marks its area holds no grant.')
+  return {
+    attachment: zone.attachment,
+    label: zone.label,
+    shape: zone.shape,
+    ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
+    triggerModes: [],
     ...lastingZoneEntry(action, zone)
   }
 }
