@@ -703,7 +703,8 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
      */
     duration: z.optional(
       z.strictObject({
-        startsAt: z.literal('PLACEMENT'),
+        /** IGNITION: a zone that needs lighting counts nothing while it waits (QUALITY-15.T3w). */
+        startsAt: z.enum(['PLACEMENT', 'IGNITION']),
         expiration: z.discriminatedUnion('kind', [
           z.strictObject({
             kind: z.literal('TICKS'),

@@ -280,7 +280,8 @@ function zonePlacementPlan(
 /**
  * A zone no Concentration holds lasts its authored duration from its placement: its source's turns,
  * or Campaign minutes past the turn bound (D222). A maintained zone ends with its Concentration, and
- * an untimed or scaled duration leaves it until the Encounter ends.
+ * an untimed or scaled duration leaves it until the Encounter ends. A zone that needs lighting counts
+ * its turns from its ignition (QUALITY-15.T3w).
  */
 function withZoneDuration(
   plan: CharacterRuleActionZonePlacementPlan,
@@ -296,7 +297,13 @@ function withZoneDuration(
       : minutes !== null
         ? { kind: 'CAMPAIGN_MINUTES' as const, minutes }
         : null
-  return expiration ? { ...plan, duration: { startsAt: 'PLACEMENT', expiration } } : plan
+  if (!expiration) return plan
+  if (plan.requiresIgnition && expiration.kind !== 'TICKS')
+    unsupported('A zone that needs lighting lasts a count of its source’s turns.')
+  return {
+    ...plan,
+    duration: { startsAt: plan.requiresIgnition ? 'IGNITION' : 'PLACEMENT', expiration }
+  }
 }
 
 /**

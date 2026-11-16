@@ -227,6 +227,8 @@ the placement does not model (ordered layers and their destruction, proximity ru
 data. (QUALITY-15.T3w) Oil (flask) poured on the ground compiles: its one component burns on `ENTER_OR_PASS_THROUGH` and
 `END_TURN_IN_SPACE` with the component's `maxApplicationsPerTurn` 1 (the Run's per-turn count is keyed by zone and actor,
 so both triggers share it), and `requiresIgnition` places the zone `unlit` until the GM lights it (`IGNITE_ZONE`, below).
+Its timed duration (T3ag) has `startsAt: 'IGNITION'`: `planEncounterZoneTicks` counts nothing off an unlit zone, so the
+oil's 2 rounds run from its lighting. A zone that needs lighting and lasts Campaign minutes is refused.
 A zone that needs lighting has one component. The manifest-level `maxApplicationsPerTurn` and `placementSurfaceKind` keys
 are deleted: the per-turn limit is the component's, and a level surface is the GM's call, as for Wall of Fire. A zone
 outcome with no save deals one fixed damage row (`fixedZoneDamageGraph`) or rolls one damage dice row.

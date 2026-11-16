@@ -4,6 +4,7 @@ import { oilFlask } from '@artificer-toolkit/source-data/srd/equipment/oil-flask
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
+import { planEncounterZoneTicks } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { toSpatialInstances } from '../encounterSpatialCandidateExecution.js'
 import { withZoneDcs } from '../encounterZoneConcealment.js'
@@ -15,6 +16,7 @@ import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 // creature entering it or ending its turn there, at most once per turn.
 
 const POUR_EFFECT_ID = oilFlask.effects![1]!.id
+const SOURCE_ACTOR_ID = testUuid(0x1e04)
 
 function placedPour() {
   const entry = compileItemEntry(oilFlask, POUR_EFFECT_ID)
@@ -34,7 +36,7 @@ function placedPour() {
       encounterId: ENCOUNTER_ID,
       occurrenceId: testUuid(0x1e02),
       rootCommandId: testUuid(0x1e03),
-      sourceActorId: testUuid(0x1e04),
+      sourceActorId: SOURCE_ACTOR_ID,
       point: { x: 250, y: 350 },
       area: { kind: 'CUBE', edgeLength: 100 },
       sourceToken: null,
@@ -82,6 +84,25 @@ describe('real SRD Oil (flask) poured on the ground (QUALITY-15.T3w)', () => {
     expect(toSpatialInstances([unlit, lit], []).map(({ suppressed }) => suppressed)).toEqual([
       true,
       false
+    ])
+  })
+
+  it('burns for 2 of its source’s turns counted from its ignition, not its placement', () => {
+    const { zone, record } = placedPour()
+    expect(zone.duration).toEqual({
+      startsAt: 'IGNITION',
+      expiration: { kind: 'TICKS', initialRemaining: 2 }
+    })
+    expect(record.lifecycle).toEqual({ schemaVersion: 1, remainingTicks: 2 })
+    const ticks = (spatialState: typeof record.spatialState) =>
+      planEncounterZoneTicks({
+        stage: 'START_OF_TURN',
+        turnActorId: SOURCE_ACTOR_ID,
+        zones: [{ ...record, spatialState }]
+      }).map(({ kind, zone: ticked, ...rest }) => ({ kind, id: ticked.id, ...rest }))
+    expect(ticks(record.spatialState)).toEqual([])
+    expect(ticks({ schemaVersion: 1, revealed: true })).toEqual([
+      { kind: 'UPDATE', id: record.id, remainingTicks: 1 }
     ])
   })
 

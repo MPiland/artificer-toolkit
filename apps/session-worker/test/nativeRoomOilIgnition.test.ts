@@ -137,6 +137,27 @@ describe('SRD Oil (flask) poured on the ground (QUALITY-15.T3w)', () => {
     })
   })
 
+  it('burns out 2 of its pourer’s turns after the GM lights it, however long it waited', async () => {
+    const room = await oilRoom()
+    const zone = await pourOil(room)
+    /** One round: the Wolf's turn, then the pourer's, whose start counts the burn down. */
+    const nextRound = async () => {
+      await advanceTurn(room)
+      await advanceTurn(room)
+    }
+
+    await nextRound()
+    await nextRound()
+    expect((await readZones(room))[0]?.lifecycle).toMatchObject({ remainingTicks: 2 })
+
+    const lit = await room.send(await igniteCommand(room, zone.id))
+    expect(lit.type, JSON.stringify(lit)).toBe('COMMAND_COMMITTED')
+    await nextRound()
+    expect((await readZones(room))[0]?.lifecycle).toMatchObject({ remainingTicks: 1 })
+    await nextRound()
+    expect(await readZones(room)).toEqual([])
+  })
+
   it('puts the oil out again when the GM undoes the lighting', async () => {
     const room = await oilRoom()
     const zone = await pourOil(room)
