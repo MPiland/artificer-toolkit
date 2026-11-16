@@ -220,4 +220,19 @@ describe('native Social moderation page', () => {
     expect(screen.getByText('Captured report details.')).toBeVisible()
     expect(reason).toHaveValue('Keep this reason.')
   })
+
+  it('clears a failed action and its reason when the report is reopened', async () => {
+    mocks.queue.results = [queueItem]
+    mocks.review.mockRejectedValueOnce(new Error('Action failed.'))
+    const user = userEvent.setup()
+    renderWithAppProviders(<SocialModerationPage />)
+    await user.click(screen.getByRole('button', { name: 'Open report' }))
+    await screen.findByText('Captured report details.')
+    await user.type(screen.getByRole('textbox', { name: 'Audit reason' }), 'Keep this reason.')
+    await user.click(screen.getByRole('button', { name: 'Record action' }))
+    await screen.findByText('Action failed.')
+    await user.click(screen.getByRole('button', { name: 'Open report' }))
+    await waitFor(() => expect(screen.queryByText('Action failed.')).not.toBeInTheDocument())
+    expect(screen.getByRole('textbox', { name: 'Audit reason' })).toHaveValue('')
+  })
 })
