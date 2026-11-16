@@ -24,18 +24,20 @@ describe('a zone that only marks its area (QUALITY-15.T3b)', () => {
   it('places the real SRD Darkness as a labeled sphere that triggers nobody and ends with its Concentration', () => {
     const placement = placementOf('Darkness')
     expect(placement?.kind).toBe('ZONE')
-    if (placement?.kind !== 'ZONE') return
-    const { zonePlacement } = placement
-    expect(zonePlacement.label).toBe('Darkness')
-    expect(zonePlacement.shape).toMatchObject({ shapeKind: 'SPHERE', radius: { amount: 15 } })
-    expect(zonePlacement.triggerModes).toEqual([])
-    expect(zonePlacement.entry.initialRemaining).toBeNull()
-    expect(zonePlacement.maintenance).not.toBeNull()
+    expect(placement?.kind === 'ZONE' && placement.zonePlacement).toMatchObject({
+      label: 'Darkness',
+      shape: { shapeKind: 'SPHERE', radius: { amount: 15 } },
+      triggerModes: [],
+      entry: { initialRemaining: null },
+      maintenance: expect.anything()
+    })
   })
 
   it('places the real SRD Antimagic Field on its caster, which a source zone is centered on', () => {
     const placement = placementOf('Antimagic Field')
-    expect(placement?.kind === 'ZONE' && placement.zonePlacement.attachment).toBe('SOURCE')
+    expect(placement?.kind === 'ZONE' && placement.zonePlacement).toMatchObject({
+      attachment: 'SOURCE'
+    })
   })
 
   it('refuses a real SRD zone that authors no shape, naming what is missing', () => {
