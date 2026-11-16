@@ -27967,7 +27967,7 @@
             },
             {
               "id": "QUALITY-15.T3s",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Relationship hold paths and their choices compile (Vampire Claws, Unarmed Strike grapple, Bestow Curse): relationship outcomes bounded by a hit, failed save, contest win or use.",
               "wsjf": {
@@ -27977,7 +27977,9 @@
                 "size": 1,
                 "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
               },
-              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Resized 2026-11-16 (3 -> 1): the refusal lived only in the golden."
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Resized 2026-11-16 (3 -> 1): the refusal lived only in the golden.",
+              "mergedAt": "2026-11-16",
+              "proof": "m823 (f5d73c408); slice tip d03cb9bed (contains m822): Tests 43833461143, Live 43833461165, Browser journeys 43833461091 green. The relationship refusal lived only in the golden, which planned the whole unpicked action; creature rows with a pick now pin compileCastChoicePlans per option like Character rows, so Vampire Spawn Claws and Vampire Unarmed Strike show Grapple as SINGLE_GRAPH with an ON_HIT/ON_CRIT relationship plan (Grappled, held at once 1, escape check at the printed DC). relationshipPlan is unchanged: an unpicked choice stays refused. Bestow Curse already compiled since T3c. Proofs: creatureCastChoiceDiscovery.test (both creatures) and nativeRoomCreatureCastChoice.test (grapple, then an Athletics escape at DC 13 ends it). Red proof ALREADY-PASSING for all files (test-only change)."
             },
             {
               "id": "QUALITY-15.T3t",
