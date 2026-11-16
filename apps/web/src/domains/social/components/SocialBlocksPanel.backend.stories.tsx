@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { storyMutation, writesTo } from '#app/test/storybook/storyWrites'
 import { REVIEW_STORY_BLOCKED } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededSocialProfiles } from '../stories/SeededSocialProfiles'
+import { socialStoryLoadTimeout } from '../stories/storyLoad'
 import { SocialBlocksPanel } from './SocialBlocksPanel'
 
 function SeededBlocks() {
@@ -20,7 +21,7 @@ function SeededBlocks() {
 
 /** The block list is its own paginated query, so the seeded frame does not mean its row has loaded. */
 function findSeededBlockUnblock(canvas: ReturnType<typeof within>) {
-  return canvas.findByRole('button', { name: 'Unblock' }, { timeout: 5000 })
+  return canvas.findByRole('button', { name: 'Unblock' }, { timeout: socialStoryLoadTimeout })
 }
 
 // Reads the story reader's seeded block (D218, D221). Unblocking is a spy, so the row keeps the

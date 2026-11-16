@@ -10,6 +10,7 @@ import {
   STORY_SOCIAL,
   type StoryAccountKey
 } from '../../../../../apis/tests/developmentReviewDataScenarios'
+import { socialStoryLoadTimeout } from '../stories/storyLoad'
 import { SocialApplicationsView } from './SocialApplicationsView'
 
 const frameTestId = 'seeded-application'
@@ -35,15 +36,23 @@ function SeededApplications({ direct }: { direct: boolean }) {
 }
 
 async function readSeededApplication(canvas: {
-  findByTestId: (id: string) => Promise<HTMLElement>
+  findByTestId: (
+    id: string,
+    options: object,
+    waitForOptions: { timeout: number }
+  ) => Promise<HTMLElement>
 }) {
-  const frame = await canvas.findByTestId(frameTestId)
+  const frame = await canvas.findByTestId(frameTestId, {}, { timeout: socialStoryLoadTimeout })
   return socialApplicationDtoSchema.parse(JSON.parse(z.string().parse(frame.dataset.application)))
 }
 
 /** The view lists applications through its own queries, so the seeded frame does not mean its row has loaded. */
 function findWithdraw(canvas: ReturnType<typeof within>) {
-  return canvas.findByRole('button', { name: 'Withdraw application' }, { timeout: 5000 })
+  return canvas.findByRole(
+    'button',
+    { name: 'Withdraw application' },
+    { timeout: socialStoryLoadTimeout }
+  )
 }
 
 // Reads the peer's seeded application under the peer's own sign-in (D218, D221). Withdrawals are
@@ -66,7 +75,11 @@ export const DirectLinkFocusesApplication: Story = {
   play: async ({ canvas }) => {
     // The view reads the direct-link application through its own query, after the frame's list.
     await expect(
-      await canvas.findByRole('heading', { name: STORY_CAMPAIGN.name }, { timeout: 5000 })
+      await canvas.findByRole(
+        'heading',
+        { name: STORY_CAMPAIGN.name },
+        { timeout: socialStoryLoadTimeout }
+      )
     ).toBeVisible()
     await waitFor(() => expect(canvas.getByRole('article')).toHaveFocus())
     await expect(canvas.getByRole('article')).toHaveAttribute('data-highlighted', 'true')

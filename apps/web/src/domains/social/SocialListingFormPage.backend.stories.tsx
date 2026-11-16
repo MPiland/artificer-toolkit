@@ -15,6 +15,7 @@ import {
 import { SeededCampaign } from '../campaigns/stories/SeededCampaign'
 import { SeededHostedListing } from './stories/SeededSocialListing'
 import { readSeededListing } from './stories/seededListing'
+import { socialStoryLoadTimeout } from './stories/storyLoad'
 import { SocialListingFormPage } from './SocialListingFormPage'
 
 /** The backend's own refusal of a write against a listing that has moved on. */
@@ -97,8 +98,14 @@ export const SaveThenOpenDraft: Story = {
   parameters: peer,
   play: async ({ canvas }) => {
     const listing = await readSeededListing(canvas)
-    const summary = await canvas.findByRole('textbox', { name: /Summary/ })
-    await waitFor(() => expect(summary).toHaveValue(listing.summary))
+    const summary = await canvas.findByRole(
+      'textbox',
+      { name: /Summary/ },
+      { timeout: socialStoryLoadTimeout }
+    )
+    await waitFor(() => expect(summary).toHaveValue(listing.summary), {
+      timeout: socialStoryLoadTimeout
+    })
     await userEvent.type(summary, ' More adventures.')
     await expect(canvas.getByRole('button', { name: 'Open listing' })).toBeDisabled()
     await userEvent.click(canvas.getByRole('button', { name: 'Save listing' }))
@@ -119,7 +126,13 @@ export const CloseOpenListing: Story = {
   args: { table: 'open' },
   play: async ({ canvas }) => {
     const listing = await readSeededListing(canvas)
-    await userEvent.click(await canvas.findByRole('button', { name: 'Close listing' }))
+    await userEvent.click(
+      await canvas.findByRole(
+        'button',
+        { name: 'Close listing' },
+        { timeout: socialStoryLoadTimeout }
+      )
+    )
     await waitFor(() =>
       expect(writesTo(api.social.listings.close)).toEqual([
         { listingPublicId: listing.listingPublicId, expectedVersion: listing.version }
@@ -133,8 +146,14 @@ export const LiveConflictKeepsDraft: Story = {
   parameters: peer,
   play: async ({ canvas }) => {
     const listing = await readSeededListing(canvas)
-    const summary = await canvas.findByRole('textbox', { name: /Summary/ })
-    await waitFor(() => expect(summary).toHaveValue(listing.summary))
+    const summary = await canvas.findByRole(
+      'textbox',
+      { name: /Summary/ },
+      { timeout: socialStoryLoadTimeout }
+    )
+    await waitFor(() => expect(summary).toHaveValue(listing.summary), {
+      timeout: socialStoryLoadTimeout
+    })
     await userEvent.type(summary, ' Unsaved work.')
     await userEvent.click(canvas.getByRole('button', { name: 'Simulate another editor' }))
     await expect(summary).toHaveValue(`${listing.summary} Unsaved work.`)
@@ -152,8 +171,14 @@ export const DeleteFailureKeepsDraft: Story = {
   parameters: peer,
   play: async ({ canvas }) => {
     const listing = await readSeededListing(canvas)
-    const summary = await canvas.findByRole('textbox', { name: /Summary/ })
-    await waitFor(() => expect(summary).toHaveValue(listing.summary))
+    const summary = await canvas.findByRole(
+      'textbox',
+      { name: /Summary/ },
+      { timeout: socialStoryLoadTimeout }
+    )
+    await waitFor(() => expect(summary).toHaveValue(listing.summary), {
+      timeout: socialStoryLoadTimeout
+    })
     await userEvent.type(summary, ' Unsaved work.')
     storyMutation.mockRejectedValueOnce(new Error(versionConflict))
     const originalConfirm = window.confirm
@@ -175,11 +200,12 @@ export const CreateForCampaignWithListing: Story = {
   args: { table: 'create' },
   play: async ({ canvas, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
-    const campaignId = (await canvas.findByTestId('seeded-campaign', {}, { timeout: 5000 })).dataset
-      .campaignId
+    const campaignId = (
+      await canvas.findByTestId('seeded-campaign', {}, { timeout: socialStoryLoadTimeout })
+    ).dataset.campaignId
     // The Campaign select stays disabled until its own paginated query returns the first page.
     const campaign = await canvas.findByRole('combobox', { name: 'Campaign' })
-    await waitFor(() => expect(campaign).toBeEnabled(), { timeout: 5000 })
+    await waitFor(() => expect(campaign).toBeEnabled(), { timeout: socialStoryLoadTimeout })
     await userEvent.click(campaign)
     await userEvent.click(await body.findByRole('option', { name: STORY_CAMPAIGN.name }))
     await userEvent.click(canvas.getByRole('combobox', { name: 'System and ruleset' }))
