@@ -85,11 +85,13 @@ export const HostCannotApply: Story = {
   play: async ({ canvas, canvasElement }) => {
     const listing = await readSeededListing(canvas)
     await canvas.findByRole('heading', { name: listing.title }, { timeout: socialStoryLoadTimeout })
-    await waitFor(() =>
-      expect(canvasElement.querySelector('[data-eligibility]')).toHaveAttribute(
-        'data-eligibility',
-        'loaded'
-      )
+    await waitFor(
+      () =>
+        expect(canvasElement.querySelector('[data-eligibility]')).toHaveAttribute(
+          'data-eligibility',
+          'loaded'
+        ),
+      { timeout: socialStoryLoadTimeout }
     )
     await expect(canvas.queryByRole('button', { name: 'Apply to join' })).not.toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: 'Report' })).not.toBeInTheDocument()
