@@ -27705,7 +27705,7 @@
             },
             {
               "id": "QUALITY-15.T3o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Zones with no authored shape (Forbiddance, Gate, Magnificent Mansion, Mirage Arcane, Wall of Force, Ice and Stone) get SRD-cited shapes or a generic wall or panel shape, and the zone manifest models what Prismatic Wall and Oil author beyond label, shape and entering components.",
               "wsjf": {
@@ -27716,7 +27716,75 @@
                 "after": ["QUALITY-15.T2"]
               },
               "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m820 (0dcc6e21d); slice tip 6d3eaf86d: Tests 43817832151, Live 43817832077, Browser journeys 43817832069 green. Seven area rulings place as inert zones with SRD-cited shapes through the existing WALL, CIRCLE, CYLINDER and CUBE kinds (no contract change): Wall of Force, Ice and Stone as their straight ten-panel form, Gate at its 20 ft maximum, Magnificent Mansion's entrance, Forbiddance as the widest round floor within 40,000 sq ft, Mirage Arcane as a mile square. \"A placed zone needs a label and a shape\" no longer refuses any row. Proof: encounterInertZonePlacement.test places each real SRD spell. Dome, sphere and bent wall forms are not authored. Prismatic Wall and Oil keep their honest refusal (the manifest models only label, shape and entering components) and moved to T3v and T3w."
+            },
+            {
+              "id": "QUALITY-15.T3v",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Prismatic Wall places as a layered zone: layers resolve and are destroyed in order and stay destroyed, a 20 ft sight proximity rule blinds, it sheds light, refuses an occupied placement and spends the casting when placed invalidly, and designated creatures pass, through generic zone manifest keys (encounterZonePlacement.ts MODELED_MANIFEST_KEYS).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3w",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Oil (flask) places as a zone that needs ignition before its components apply, on a level surface, with a per-turn application limit shared across its components, through generic zone manifest keys.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3x",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Summoned and animated creatures from Concentration spells: Animate Objects stat blocks per object size, Dancing Lights as several light-shedding objects, and Conjure Elemental and Conjure Fey creatures turning hostile when Concentration breaks, through generic summon and light plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Maintained Concentration effects with ongoing behavior: Barkskin AC floor, Call Lightning repeat bolt, Delayed Blast Fireball detonating when the spell ends, Flaming Sphere as a movable damaging sphere, Resilient Sphere as a zone attached to its target, Clairvoyance sensor, and Tree Stride, through generic plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3z",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A repeat save whose failure deals damage (Weird) compiles through the repeat-save-test plan and the room applies the damage on each failed save.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3c",
