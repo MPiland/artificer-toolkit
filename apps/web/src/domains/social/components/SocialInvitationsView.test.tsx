@@ -68,6 +68,31 @@ describe('SocialInvitationsView', () => {
     expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Decline' })).not.toBeInTheDocument()
   })
+  it('focuses the deep-linked row again when a list reload remounts it', () => {
+    const invitation = campaignInviteDtoSchema.parse({
+      invitePublicId: 'aaaaaaaa-0000-4000-8000-000000000004',
+      listingPublicId: '00000000-0000-4000-8000-000000000002',
+      listingTitle: 'The Glass Harbor',
+      hostProfilePublicId: '00000000-0000-4000-8000-000000000005',
+      hostUsername: 'harbormaster',
+      recipientUsername: 'pathfinder',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      respondedAt: null,
+      createdAt: new Date().toISOString(),
+      version: 1
+    })
+    const view = <SocialInvitationsView invitePublicId={invitation.invitePublicId} />
+    mocks.pending.results = [invitation]
+    const { rerender } = renderWithAppProviders(view)
+    expect(screen.getByRole('article')).toHaveFocus()
+    mocks.pending.results = []
+    rerender(view)
+    expect(screen.queryByRole('article')).not.toBeInTheDocument()
+    mocks.pending.results = [invitation]
+    rerender(view)
+    expect(screen.getByRole('article')).toHaveFocus()
+  })
   it.each(['EXPIRED', 'REVOKED'] as const)(
     'explains a %s invitation opened by its link and offers no actions',
     (status) => {
