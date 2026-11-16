@@ -23,6 +23,7 @@ import {
   type StoryRoom
 } from '../../tests/developmentReviewData'
 import {
+  REVIEW_ADMIN,
   REVIEW_STORY_BLOCKED,
   REVIEW_STORY_HOST,
   REVIEW_STORY_PEER,
@@ -103,7 +104,8 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     [REVIEW_STORY_READER.key]: reader,
     [REVIEW_STORY_HOST.key]: roomHost,
     [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
-    [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED)
+    [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED),
+    [REVIEW_ADMIN.key]: await stranger(REVIEW_ADMIN)
   }
   const accounts: string[] = []
   const connect = async (spec: { key: string }) => {
@@ -134,15 +136,20 @@ it('gives the story account an active copy and a copy with a waiting draft per d
         .sort()
     }))
 
-  await seedStoryData(connect, room, deliverNotifications)
+  // The operator step the local backend runs: the deployment-admin role change.
+  const grantSuperadmin = async (userId: string) => {
+    await t.mutation(internal.authAdmin.setRole, { userId, role: 'superadmin' })
+  }
+  await seedStoryData(connect, room, grantSuperadmin, deliverNotifications)
   const seeded = await stored()
-  await seedStoryData(connect, room, deliverNotifications)
+  await seedStoryData(connect, room, grantSuperadmin, deliverNotifications)
 
   const connected = [
     REVIEW_STORY_READER.key,
     REVIEW_STORY_HOST.key,
     REVIEW_STORY_PEER.key,
-    REVIEW_STORY_BLOCKED.key
+    REVIEW_STORY_BLOCKED.key,
+    REVIEW_ADMIN.key
   ]
   expect(accounts).toEqual([...connected, ...connected])
   const records = Object.values(STORY_RECORDS)
@@ -305,6 +312,14 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       .length
   expect(await feedCount(reader, 'SOCIAL_APPLICATION_SUBMITTED')).toBe(1)
   expect(await feedCount(clients[REVIEW_STORY_PEER.key], 'SOCIAL_INVITATION_RECEIVED')).toBe(1)
+
+  // The superadmin story account reads the reader's report in the moderation queue.
+  const queue = await clients[REVIEW_ADMIN.key].query(api.social.moderation.list, {
+    paginationOpts: { cursor: null, numItems: 8 }
+  })
+  expect(queue.page.map(({ targetKind, reason, status }) => [targetKind, reason, status])).toEqual([
+    ['PROFILE', 'OTHER', 'SUBMITTED']
+  ])
 
   // The reader's listing is open; the peer hosts its own Campaign whose listing is still a draft,
   // which the listing editor stories open.
