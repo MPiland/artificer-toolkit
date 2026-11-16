@@ -94,10 +94,12 @@ export const HostedPage: Story = {
     await expect(canvas.getByRole('button', { name: 'Review applications' })).toBeVisible()
     await userEvent.click(canvas.getByRole('button', { name: 'Invite player' }))
     const body = within(canvasElement.ownerDocument.body)
-    await expect(
-      await body.findByRole('dialog', {}, { timeout: socialStoryLoadTimeout })
-    ).toBeVisible()
+    const dialog = await body.findByRole('dialog', {}, { timeout: socialStoryLoadTimeout })
+    // The modal is in the DOM before its open transition finishes.
+    await waitFor(() => expect(dialog).toBeVisible(), { timeout: socialStoryLoadTimeout })
     await userEvent.keyboard('{Escape}')
-    await waitFor(() => expect(body.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(body.queryByRole('dialog')).not.toBeInTheDocument(), {
+      timeout: socialStoryLoadTimeout
+    })
   }
 }
