@@ -306,14 +306,8 @@ export function isChosenAmountHeal(
 export function isBonusAmountHeal(
   outcome: Extract<Dnd5eAuthoredOutcome, { effectKind: 'HEAL' }>
 ): boolean {
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    !outcome.bonuses?.length ||
-    outcome.amount !== 0 ||
-    outcome.temporary ||
-    outcome.scalingKind !== 'NONE'
-  )
-    return false
+  if (outcome.valueKind !== 'FIXED' || outcome.scalingKind !== 'NONE') return false
+  if (!outcome.bonuses?.length || outcome.amount !== 0 || outcome.temporary) return false
   validateHealBonuses(outcome.bonuses)
   return true
 }
