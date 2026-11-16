@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { ConvexReactClient, useMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { z } from 'zod'
 import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
@@ -13,8 +14,14 @@ import {
   reusableDefinitionWorkspaceDtoSchema
 } from '@artificer-toolkit/schema/api/reusableDefinitions'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
+import {
+  socialEligibilityDtoSchema,
+  socialListingDtoSchema,
+  socialListingVersionInputSchema,
+  updateSocialContentPreferenceInputSchema,
+  updateSocialListingInputSchema
+} from '@artificer-toolkit/schema/api/socialHub'
 import { getSystemDefinition } from '#app/data/systems/queries'
-import { unoverriddenReads } from './storyQueryOverride'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
@@ -35,9 +42,17 @@ function boundStoryQueryClient(): QueryClient {
 /** The story's read client, bound by the preview, for responses that echo a record the deployment holds. */
 let storyReads: ConvexReactClient | undefined
 
-/** Binds before the preview installs a query override, so the reads stay unoverridden. */
+/** The preview binds the story's read client before each story; it is taken before any query override. */
 export function bindStoryReads(client: ConvexReactClient) {
-  storyReads = unoverriddenReads(client)
+  storyReads = client
+}
+
+/** The Social listing a listing write targets, exactly as `getOwned` returns it. */
+async function readOwnedListing(listingPublicId: string) {
+  if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
+  return socialListingDtoSchema.parse(
+    await storyReads.query(api.social.listings.getOwned, { listingPublicId })
+  )
 }
 
 /**
@@ -46,11 +61,36 @@ export function bindStoryReads(client: ConvexReactClient) {
  * deployment (D218). A write whose caller ignores the response answers null.
  */
 async function writeResponse(reference: MutationReference, input: unknown): Promise<unknown> {
-  if (getFunctionName(reference) === getFunctionName(api.loot.tables.save)) {
+  const name = getFunctionName(reference)
+  // A story ends at its write (D218): each listing write answers with the listing as read, which
+  // is all the editor needs (its id). The state after the write is a seeded variant, not simulated.
+  if (name === getFunctionName(api.social.listings.update))
+    return readOwnedListing(
+      z.object({ input: updateSocialListingInputSchema }).parse(input).input.listingPublicId
+    )
+  if (
+    name === getFunctionName(api.social.listings.open) ||
+    name === getFunctionName(api.social.listings.close)
+  )
+    return readOwnedListing(socialListingVersionInputSchema.parse(input).listingPublicId)
+  if (name === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
   }
-  if (getFunctionName(reference) === getFunctionName(api.encounters.runs.create)) {
+  if (name === getFunctionName(api.social.profiles.updatePreference)) {
+    const { input: preference } = z
+      .object({ input: updateSocialContentPreferenceInputSchema })
+      .parse(input)
+    // Settings can only write after a Mature attestation, so every reachable answer carries one.
+    return socialEligibilityDtoSchema.parse({
+      eligible: true,
+      profilePublicId: null,
+      adultAttestedAt: new Date().toISOString(),
+      contentPreference: preference.contentPreference,
+      status: 'ACTIVE'
+    })
+  }
+  if (name === getFunctionName(api.encounters.runs.create)) {
     if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
     const { campaignId, blueprintId } = createEncounterInputDtoSchema.parse(input)
     // The created Run answers as the Campaign's seeded prepared Run: its real projection.

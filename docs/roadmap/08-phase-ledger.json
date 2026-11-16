@@ -2298,32 +2298,35 @@
             },
             {
               "id": "PLATFORM-28.T4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T2", "PLATFORM-28.T5a"]
               },
               "text": "Per-story sign-in in the backend Storybook preview (seeded second account and superadmin, sign-in reused to stay under the rate limit) and the seed extension through product commands (second account, an application and invitation, a block, a report and the notifications they trigger); SocialProfilePage, MatureContentPreference and NotificationShell stories read seeded data. NotificationFeedView and NotificationPreferencesView stay props-only.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (14 story files, whole about 18): listing stories to T4b, second-account views to T4c, moderation to T4d; depends on T5a for the single-query override and write spies (D218 amendments).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m807 (1a8079afb; T4a landed through T4b, which built on it); slice tip 186186453 (re-synced with m803): Tests 43743445567, Live 43743445566, Browser journeys 43743445606 green; earlier tip 0062b8e3f Browser journeys 43730323012 green (storybook-backend-browser). An earlier Browser journeys run 43728044682 was red on a real failure (another account's profile page resolves only for a PUBLIC profile), fixed in the seed. The backend preview signs in per story (storyAccount reader, peer or admin; one sign-in per identity, reused). seedStorySocial runs through product commands and is idempotent (storyData.test): three profiles, the peer made PUBLIC through account.setProfileVisibility, the reader's listing (openReviewListing), the peer's application, the reader's invitation, a report and a block, and the notifications they deliver. updatePreference is answered through the real socialEligibilityDtoSchema. SocialProfilePage, MatureContentPreference and NotificationShell backend stories replace the fixture stories (deleted with no-importer proofs); the two notifications.spec Playwright checks moved into the Desktop Drawer and Mobile Page play functions. NotificationFeedView and NotificationPreferencesView stay props-only. Red proof: storyData.test ALREADY-PASSING (helpers kept). Restated: storyData accounts list (three accounts); SocialProfilePage after-write state checks become exact write inputs (blocks.create, reports.create, blocks.remove) under D218; MatureContentPreference call checks read writesTo. No D196 change. Risk: notification delivery in the seed waits on the minute dispatcher (polled)."
             },
             {
               "id": "PLATFORM-28.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialListingDetailPage, SocialListingFormPage, SocialNativeLists and SocialListingInvitations stories read the seeded listing; their hand-seeded caches and local shapes are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221). Resized 5 -> 8 at merge: a product fix and Vitest regression test, seed work and a three-way re-sync.",
+              "mergedAt": "2026-11-15",
+              "proof": "m807 (1a8079afb); slice tip 75040480a (re-synced with m806): Tests 43774720773, Live 43774720772, Browser journeys 43774720771 green. FocusedDeepLink root cause: the invitation list's focus-driven horizon refresh remounts the deep-linked row and the id-keyed focused ref blocked refocusing it; SocialListingInvitations now keeps the row element, with a Vitest regression test (focuses the linked row again when a horizon refresh remounts it). ExhaustedSearch types a query no seeded term matches. Listing detail, form, native lists and invitations stories read the seeded listing (SeededHostedListing, SeededAppliedListing); listing writes go through storyMutation and answer with getOwned parsed by socialListingDtoSchema; the old fixture stories are deleted with a no-importer proof; paging assertions moved to Vitest (SocialListingFormPage.test, SocialDiscoveryHostingViews.test). Restated: storyData counts the peer's invitations and feed items per account and kind (the player Campaign adds the reader's own). Known stopgap: the signInStoryAccount 429 retry in the backend preview stays until T6b's per-file client address replaces it."
             },
             {
               "id": "PLATFORM-28.T4c",

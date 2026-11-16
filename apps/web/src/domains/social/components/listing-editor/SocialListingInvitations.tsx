@@ -67,7 +67,7 @@ function SocialListingInvitationsList({
   const revoke = useMutation({
     mutationFn: (input: CampaignInviteVersionInput) => revokeInvite(input)
   })
-  const focused = useRef<string | null>(null)
+  const focused = useRef<HTMLElement | null>(null)
   const { rows, loadingFirstPage, exhaustedEmpty } = mergeAdmissionRows<CampaignInviteDto>({
     pending,
     history,
@@ -78,10 +78,10 @@ function SocialListingInvitationsList({
   useInvitationExpiry(asOf, setAsOf, rows)
   const target = rows.some((item) => item.invitePublicId === invitePublicId) ? invitePublicId : null
   useEffect(() => {
-    if (!target || direct.isError || focused.current === target) return
+    if (!target || direct.isError) return
     const row = document.getElementById(`invitation-${target}`)
-    if (!row) return
-    focused.current = target
+    if (!row || focused.current === row) return
+    focused.current = row
     row.focus({ preventScroll: true })
     row.scrollIntoView({ block: 'center' })
   }, [direct.isError, target])
