@@ -12,8 +12,9 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import type { EffectActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import type { CharacterRuleActionExecutionPlan } from '../characterRuleActionSystemAdapter.js'
 import {
-  buildCompiledActionCompilerSource,
+  buildCompiledActionTargetPolicy,
   compileActionPlacement,
+  compileCastChoicePlans,
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
 import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
@@ -126,6 +127,8 @@ function describePlan(plan: CharacterRuleActionExecutionPlan) {
 type Compiled = {
   action: EffectActionCapabilityDescriptor
   plan: CharacterRuleActionExecutionPlan
+  /** The options a cast pick (D148) compiles to, one plan pair each; absent for an action with no pick. */
+  choice?: ReturnType<typeof compileCastChoicePlans>['choice']
 }
 
 const refusal = (error: unknown) => {
@@ -138,13 +141,23 @@ const refusal = (error: unknown) => {
 const checksumOf = (value: unknown) => checksumRuleDocument(JSON.parse(JSON.stringify(value)))
 
 /** The action's active-effect plans in the System's order: each one's recurrence stage and checksum. */
-function describeActiveEffectPlans({ action, plan }: Compiled) {
+function describeActiveEffectPlans({ action, plan, choice }: Compiled) {
+  const describe = (entry: { recurrenceStage: string }) =>
+    `${entry.recurrenceStage}=${checksumOf(entry)}`
+  // A pick compiles one plan pair per option; the action's own plans are its first option's.
+  if (choice)
+    return `[${choice.options
+      .map(
+        ({ label, activeEffectPlan }) =>
+          `${label}:${activeEffectPlan ? describe(activeEffectPlan) : 'NONE'}`
+      )
+      .join(',')}]`
   const plans =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
       action,
       published: publishedOf(plan)
     }) ?? []
-  return `[${plans.map((entry) => `${entry.recurrenceStage}=${checksumOf(entry)}`).join(',')}]`
+  return `[${plans.map(describe).join(',')}]`
 }
 
 /** The facts the action's first graph is bound with against the fixed target, and its d20 mode. */
@@ -182,6 +195,10 @@ function outcomeOf(compile: () => Compiled): Outcome {
   try {
     compiled = compile()
     graph = describePlan(compiled.plan)
+    if (compiled.choice)
+      graph += ` choice=[${compiled.choice.options
+        .map(({ label, executionPlan }) => `${label}=${describePlan(executionPlan)}`)
+        .join(' ; ')}]`
   } catch (error) {
     return { compiled: refusal(error), facts: null }
   }
@@ -233,13 +250,14 @@ function characterOutcome(
       return { compiled: refusal(error), facts: null }
     }
   }
+  // The product compiles the plans of an action, and of each option of a cast pick, in one place.
   return outcomeOf(() => {
-    const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+    const { executionPlan, choice } = compileCastChoicePlans(
+      dnd5eCharacterRuleActionSystemAdapter,
       action,
-      compilerSource: buildCompiledActionCompilerSource(action)
-    })
-    if (!plan) throw new Error('The System adapter has no execution plan.')
-    return { action, plan }
+      buildCompiledActionTargetPolicy(action)
+    )
+    return { action, plan: executionPlan, choice }
   })
 }
 
@@ -352,8 +370,6 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
     'UNBUILT',
   'D&D test action paths must be unique direct outcomes. Its duration, lifecycle or maintenance has no plan that holds it.':
     'UNBUILT',
-  'D&D test action paths must be unique direct outcomes. Its choice has no plan that holds its options.':
-    'UNBUILT',
   'D&D Effect action outcome is not a supported hit-point or condition outcome. It is no timed creature form.':
     'UNBUILT',
   'D&D Effect action outcome is not a supported hit-point or condition outcome. Its kind has none.':
@@ -361,7 +377,10 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D test action has an unsupported bounded shape.': 'UNBUILT',
   'D&D test action outcome is not supported.': 'UNBUILT',
   'D&D reaction must name a registered trigger.': 'UNBUILT',
-  'D&D direct results of one kind cannot share a cast.': 'UNBUILT',
+  // Imprisonment's failed save removes its target from play, which no TEST/OUTCOME plan carries. The golden
+  // compiled it before it compiled through the product's plan check (QUALITY-15.T3c), which refuses it.
+  'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form or GM ruling active-effect plans.':
+    'UNBUILT',
   'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT'
 }
 
