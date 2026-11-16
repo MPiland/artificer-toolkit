@@ -217,7 +217,12 @@ execution plan, the order of `compileCharacterActionEntryPoints`. A placed row p
 supported maintained effect (class UNBUILT); the golden had hidden them. A PLACED_SPACE or SOURCE zone that authors a
 label and a shape but no component and no appear save is an inert zone: `inertZonePlacementPlan` places it with no trigger
 modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), so the table sees the area and a GM rules
-what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input.
+what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input. (QUALITY-15.T3o) The
+corpus authors a shape for every inert SRD zone from its own text, with the existing shape kinds: Wall of Force, Ice and
+Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddance and the Magnificent Mansion entrance as
+a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
+author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
+surface and occupancy, ignition, application limits), and each needs room behavior, not data.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up

@@ -365,10 +365,6 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D Self target names no area shape.': 'INVALID_INPUT',
   'D&D single target names no area shape.': 'INVALID_INPUT',
   'D&D test action has no authored result.': 'INVALID_INPUT',
-  // Forbiddance, Gate, Magnificent Mansion, Mirage Arcane and the Wall of Force, Ice and Stone author
-  // a zone with no shape of its own (a wall, a panel set, a doorway, a square mile or 40,000 square
-  // feet); the corpus has no authored shape for them, so the zone stays refused until it does.
-  'A placed zone needs a label and a shape.': 'INVALID_INPUT',
   'D&D test action paths must be unique direct outcomes. Its path is not one its test resolves to.':
     'INVALID_INPUT',
   // The fact binding is given no rolled or spent amount: the room resolves one before it binds.

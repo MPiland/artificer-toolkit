@@ -6,7 +6,9 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -68,7 +70,14 @@ export const mirageArcane: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.MIRAGE_ARCANE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Mirage Arcane',
+                // "terrain in an area up to 1 mile square"
+                shape: {
+                  id: spellChildId(SPELL_IDS.MIRAGE_ARCANE, 0x214, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 1, unit: MEASUREMENT_UNIT_CODE.MILES }
+                }
               }
             ]
           }
