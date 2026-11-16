@@ -13,8 +13,8 @@ import { routeFromClientAddress } from './tests/live-backend/clientAddress.ts'
 
 const configDir = join(dirname(fileURLToPath(import.meta.url)), '.storybook')
 
-/** The browser contexts that already route through their own client address. */
-const routedContexts = new WeakSet<BrowserContext>()
+/** Removes the client-address route each browser context currently holds. */
+const clientAddressRoutes = new WeakMap<BrowserContext, () => Promise<void>>()
 let nextClientAddressSlot = 0
 
 const storyBrowser: BrowserConfigOptions = {
@@ -34,14 +34,16 @@ const storyBrowser: BrowserConfigOptions = {
       await session.send('ServiceWorker.stopAllWorkers')
       await session.detach()
     },
-    // Every test file runs in its own browser context, and a story file signs in again. Behind one
-    // client address the sign-in rate limit (3 per 10s) would reject the files that follow each other
-    // quickly, so each context reaches the app from its own address, as separate players do.
+    // Every story signs in, and behind one client address the sign-in rate limit (3 per 10s) rejects
+    // the stories that follow each other quickly. Each story takes a fresh address for its context,
+    // as separate players reach the app from separate addresses, whether or not a context is shared.
     async routeFromOwnClientAddress({ page }) {
       const context = page.context()
-      if (routedContexts.has(context)) return
-      routedContexts.add(context)
-      await routeFromClientAddress(context, new URL(page.url()).origin, nextClientAddressSlot++)
+      await clientAddressRoutes.get(context)?.()
+      clientAddressRoutes.set(
+        context,
+        await routeFromClientAddress(context, new URL(page.url()).origin, nextClientAddressSlot++)
+      )
     }
   },
   enabled: true,

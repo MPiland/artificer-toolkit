@@ -67,8 +67,8 @@ async function connectStoryBackend(
   if (storyBackends.has(storyId)) return
   const url = import.meta.env.VITE_CONVEX_URL
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
-  // The sign-in rate limit keys on the client address, so this file's browser context takes its own
-  // before the first request of the file.
+  // The sign-in rate limit keys on the client address, so each story takes a fresh one for its
+  // browser context before its first request.
   const { commands } = await import('vitest/browser')
   await commands.routeFromOwnClientAddress()
   const email = reviewAccountEmail(STORY_ACCOUNTS[accountKey])
