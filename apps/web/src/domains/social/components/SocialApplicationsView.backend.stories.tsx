@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { socialApplicationDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { usePaginatedQuery } from 'convex/react'
-import { expect, userEvent, waitFor } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { storyMutation, writesTo } from '#app/test/storybook/storyWrites'
 import {
   STORY_CAMPAIGN,
@@ -41,6 +41,11 @@ async function readSeededApplication(canvas: {
   return socialApplicationDtoSchema.parse(JSON.parse(z.string().parse(frame.dataset.application)))
 }
 
+/** The view lists applications through its own queries, so the seeded frame does not mean its row has loaded. */
+function findWithdraw(canvas: ReturnType<typeof within>) {
+  return canvas.findByRole('button', { name: 'Withdraw application' }, { timeout: 5000 })
+}
+
 // Reads the peer's seeded application under the peer's own sign-in (D218, D221). Withdrawals are
 // spies, so the row keeps the state it read. Paging and history ordering are covered with the real
 // view in SocialApplicationsView.test.tsx.
@@ -59,7 +64,10 @@ type Story = StoryObj<typeof meta>
 export const DirectLinkFocusesApplication: Story = {
   args: { direct: true },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole('heading', { name: STORY_CAMPAIGN.name })).toBeVisible()
+    // The view reads the direct-link application through its own query, after the frame's list.
+    await expect(
+      await canvas.findByRole('heading', { name: STORY_CAMPAIGN.name }, { timeout: 5000 })
+    ).toBeVisible()
     await waitFor(() => expect(canvas.getByRole('article')).toHaveFocus())
     await expect(canvas.getByRole('article')).toHaveAttribute('data-highlighted', 'true')
   }
@@ -68,7 +76,7 @@ export const DirectLinkFocusesApplication: Story = {
 export const WithdrawApplication: Story = {
   play: async ({ canvas }) => {
     const application = await readSeededApplication(canvas)
-    await userEvent.click(await canvas.findByRole('button', { name: 'Withdraw application' }))
+    await userEvent.click(await findWithdraw(canvas))
     await waitFor(() =>
       expect(writesTo(api.social.applications.withdraw)).toEqual([
         {
@@ -84,7 +92,7 @@ export const FailedWithdrawKeepsBlocksVisible: Story = {
   play: async ({ canvas }) => {
     const application = await readSeededApplication(canvas)
     storyMutation.mockRejectedValueOnce(new Error('Social application version conflict.'))
-    await userEvent.click(await canvas.findByRole('button', { name: 'Withdraw application' }))
+    await userEvent.click(await findWithdraw(canvas))
     await expect(await canvas.findByText('Social application version conflict.')).toBeVisible()
     await expect(canvas.getByText('Blocked profiles')).toBeVisible()
     await expect(writesTo(api.social.applications.withdraw)).toEqual([
