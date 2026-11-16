@@ -89,7 +89,8 @@ export function singleEntryAction(
 /**
  * An ON_USE SEQUENCE whose other outcomes are all GM rulings (D156): its one executable outcome
  * compiles as the action's result, and each ruling stays beside it as a manual-adjudication node.
- * A sequence with two executable outcomes is not split, so the one-result rule refuses it.
+ * A sequence of rulings alone (Awaken) leads with its first ruling. A sequence with two executable
+ * outcomes is not split, so the one-result rule refuses it.
  */
 export function rulingSequence(action: Dnd5eCompiledEffectActionSource): {
   executable: Dnd5eCompiledEffectActionSource
@@ -110,16 +111,19 @@ export function rulingSequence(action: Dnd5eCompiledEffectActionSource): {
     'outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION'
   const rulings = entries.filter(isRuling)
   const executable = entries.filter((entry) => !isRuling(entry))
-  if (executable.length !== 1) return null
+  if (executable.length > 1) return null
+  // A sequence of rulings alone has no executable outcome: its first ruling stands as the action's
+  // result and the others sit beside it, each bound to its own authored entry.
+  const [lead, ...beside] = executable.length === 0 ? rulings : executable
   return {
     executable: {
       ...action,
       compiledEffect: {
         ...action.compiledEffect,
-        entries: [{ ...executable[0]!, groupKind: 'SINGLE' }]
+        entries: [{ ...lead!, groupKind: 'SINGLE' }]
       }
     },
-    rulings
+    rulings: executable.length === 0 ? beside : rulings
   }
 }
 

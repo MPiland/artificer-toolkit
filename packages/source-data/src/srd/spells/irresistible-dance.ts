@@ -106,12 +106,12 @@ export const irresistibleDance: SpellAuthored = {
           id: spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x213, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x214, 1),
               durationKind: DURATION_KIND.MINUTE,
