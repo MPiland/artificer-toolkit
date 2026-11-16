@@ -646,7 +646,7 @@ export const GmSeesTokenStatuses: Story = {
     const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
     await expectConnected(page)
     const description = await sceneDescription(page)
-    await expect(description).toContain(`${STORY_CAMPAIGN.enemyLabel}. Creature. Hostile.`)
+    await expect(description).toContain(`${STORY_CAMPAIGN.enemyLabel}. Custom. Hostile.`)
     for (const status of seededCreatureStatuses()) await expect(description).toContain(status)
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
